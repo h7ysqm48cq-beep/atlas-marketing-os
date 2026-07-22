@@ -1,5 +1,43 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+coverage/
+
+# Environment secrets
 .env
-.DS_Store
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+!.env.example
+!**/.env.example
+
+# Logs
+*.log
 npm-debug.log*
-data/*.json
+yarn-debug.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Tool-specific local files
+**/.agents/
+**/skills-lock.json
+**/AGENTS.md
+**/CLAUDE.md
+
+# Prisma local databases
+*.db
+*.db-journal
