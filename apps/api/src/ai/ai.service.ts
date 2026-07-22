@@ -6,11 +6,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
-import { HistoryService } from '../history/history.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 import { PromptBuilderService } from './prompt-builder.service';
 
-type GeneratedContent = {
+type GeneratedOutputs = {
   facebook: string;
   telegram: string;
   reels: string;
@@ -23,15 +22,11 @@ type GeneratedContent = {
     brandFitScore: number;
     bestPostingTime: string;
   };
-};
-
-type GeneratedOutputs = GeneratedContent & {
   brandUsed: {
     id: string;
     name: string;
     workspaceName: string;
   };
-  historyId: string;
 };
 
 @Injectable()
@@ -42,7 +37,6 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly brandsService: BrandsService,
     private readonly promptBuilder: PromptBuilderService,
-    private readonly historyService: HistoryService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -57,6 +51,7 @@ export class AiService {
 
     const brand = await this.brandsService.getActiveBrand();
     const prompt = this.promptBuilder.build(dto, brand);
+
     const model =
       this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
 
@@ -73,15 +68,25 @@ export class AiService {
               type: 'object',
               additionalProperties: false,
               properties: {
-                facebook: { type: 'string' },
-                telegram: { type: 'string' },
-                reels: { type: 'string' },
-                image: { type: 'string' },
+                facebook: {
+                  type: 'string',
+                },
+                telegram: {
+                  type: 'string',
+                },
+                reels: {
+                  type: 'string',
+                },
+                image: {
+                  type: 'string',
+                },
                 analysis: {
                   type: 'object',
                   additionalProperties: false,
                   properties: {
-                    summary: { type: 'string' },
+                    summary: {
+                      type: 'string',
+                    },
                     viralScore: {
                       type: 'integer',
                       minimum: 0,
@@ -102,7 +107,9 @@ export class AiService {
                       minimum: 0,
                       maximum: 100,
                     },
-                    bestPostingTime: { type: 'string' },
+                    bestPostingTime: {
+                      type: 'string',
+                    },
                   },
                   required: [
                     'summary',
@@ -126,22 +133,10 @@ export class AiService {
         },
       });
 
-      const generated = JSON.parse(
-        response.output_text,
-      ) as GeneratedContent;
-
-      const history = await this.historyService.save({
-        brandId: brand.id,
-        topic: dto.topic,
-        platforms: dto.platforms,
-        style: dto.style,
-        language: dto.language,
-        facebook: generated.facebook,
-        telegram: generated.telegram,
-        reels: generated.reels,
-        imagePrompt: generated.image,
-        analysis: generated.analysis,
-      });
+      const generated = JSON.parse(response.output_text) as Omit<
+        GeneratedOutputs,
+        'brandUsed'
+      >;
 
       return {
         ...generated,
@@ -150,7 +145,6 @@ export class AiService {
           name: brand.name,
           workspaceName: brand.workspace.name,
         },
-        historyId: history.id,
       };
     } catch (error) {
       const message =
@@ -164,6 +158,7 @@ export class AiService {
 
   async previewPrompt(dto: GenerateContentDto) {
     const brand = await this.brandsService.getActiveBrand();
+
     return this.promptBuilder.preview(dto, brand);
   }
 }
