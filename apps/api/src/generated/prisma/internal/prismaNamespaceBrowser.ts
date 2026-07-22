@@ -53,7 +53,8 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Workspace: 'Workspace',
   Brand: 'Brand',
-  GenerationHistory: 'GenerationHistory'
+  GenerationHistory: 'GenerationHistory',
+  Campaign: 'Campaign'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -126,6 +127,22 @@ export const GenerationHistoryScalarFieldEnum = {
 } as const
 
 export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
+
+
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  name: 'name',
+  description: 'description',
+  objective: 'objective',
+  status: 'status',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
 
 
 export const SortOrder = {

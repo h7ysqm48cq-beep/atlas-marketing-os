@@ -32,3 +32,8 @@ export type Brand = Prisma.BrandModel
  * 
  */
 export type GenerationHistory = Prisma.GenerationHistoryModel
+/**
+ * Model Campaign
+ * 
+ */
+export type Campaign = Prisma.CampaignModel

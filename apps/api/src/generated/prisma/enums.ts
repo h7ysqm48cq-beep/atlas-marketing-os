@@ -15,3 +15,14 @@ export const BrandStatus = {
 } as const
 
 export type BrandStatus = (typeof BrandStatus)[keyof typeof BrandStatus]
+
+
+export const CampaignStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]

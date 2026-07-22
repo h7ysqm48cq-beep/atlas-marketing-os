@@ -7,6 +7,7 @@ import { BrandsModule } from './brands/brands.module';
 import { DatabaseModule } from './database/database.module';
 import { HistoryModule } from './history/history.module';
 import { ImageModule } from './image/image.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ImageModule } from './image/image.module';
     HistoryModule,
     AiModule,
     ImageModule,
+    CampaignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

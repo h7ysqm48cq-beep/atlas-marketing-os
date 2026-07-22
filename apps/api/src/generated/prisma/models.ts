@@ -11,4 +11,5 @@
 export type * from './models/Workspace.js'
 export type * from './models/Brand.js'
 export type * from './models/GenerationHistory.js'
+export type * from './models/Campaign.js'
 export type * from './commonInputTypes.js'
