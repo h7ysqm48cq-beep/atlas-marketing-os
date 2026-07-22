@@ -398,7 +398,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Workspace: 'Workspace',
-  Brand: 'Brand'
+  Brand: 'Brand',
+  GenerationHistory: 'GenerationHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand"
+    modelProps: "workspace" | "brand" | "generationHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -566,6 +567,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    GenerationHistory: {
+      payload: Prisma.$GenerationHistoryPayload<ExtArgs>
+      fields: Prisma.GenerationHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GenerationHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GenerationHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.GenerationHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GenerationHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.GenerationHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.GenerationHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.GenerationHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GenerationHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.GenerationHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        update: {
+          args: Prisma.GenerationHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.GenerationHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GenerationHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GenerationHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.GenerationHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GenerationHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.GenerationHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGenerationHistory>
+        }
+        groupBy: {
+          args: Prisma.GenerationHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GenerationHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GenerationHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GenerationHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -641,12 +716,39 @@ export const BrandScalarFieldEnum = {
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
 
 
+export const GenerationHistoryScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  topic: 'topic',
+  platforms: 'platforms',
+  style: 'style',
+  language: 'language',
+  facebook: 'facebook',
+  telegram: 'telegram',
+  reels: 'reels',
+  imagePrompt: 'imagePrompt',
+  analysis: 'analysis',
+  isFavorite: 'isFavorite',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -663,6 +765,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -710,6 +821,27 @@ export type EnumBrandStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'BrandStatus[]'
  */
 export type ListEnumBrandStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrandStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -879,6 +1011,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   workspace?: Prisma.WorkspaceOmit
   brand?: Prisma.BrandOmit
+  generationHistory?: Prisma.GenerationHistoryOmit
 }
 
 /* Types for Logging */

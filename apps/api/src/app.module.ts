@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BrandsModule } from './brands/brands.module';
 import { DatabaseModule } from './database/database.module';
+import { HistoryModule } from './history/history.module';
 import { ImageModule } from './image/image.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { ImageModule } from './image/image.module';
     }),
     DatabaseModule,
     BrandsModule,
+    HistoryModule,
     AiModule,
     ImageModule,
   ],

@@ -27,3 +27,8 @@ export type Workspace = Prisma.WorkspaceModel
  * 
  */
 export type Brand = Prisma.BrandModel
+/**
+ * Model GenerationHistory
+ * 
+ */
+export type GenerationHistory = Prisma.GenerationHistoryModel

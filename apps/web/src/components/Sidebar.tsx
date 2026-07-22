@@ -1,6 +1,6 @@
 const mainItems = [
   ["Dashboard", "⌂", "/"],
-  ["Content Center", "▤", "#"],
+  ["Content History", "▤", "/content-history"],
   ["Campaigns", "◉", "#"],
   ["Calendar", "□", "#"],
   ["AI Studio", "✦", "/ai-studio"],

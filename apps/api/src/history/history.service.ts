@@ -1,0 +1,103 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
+import { PrismaService } from '../database/prisma.service';
+import { UpdateFavoriteDto } from './dto/update-favorite.dto';
+
+type SaveGenerationInput = {
+  brandId: string;
+  topic: string;
+  platforms: string[];
+  style: string;
+  language: string;
+  facebook: string;
+  telegram: string;
+  reels: string;
+  imagePrompt: string;
+  analysis: Record<string, unknown>;
+};
+
+@Injectable()
+export class HistoryService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  list() {
+    return this.prisma.generationHistory.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async get(id: string) {
+    const record = await this.prisma.generationHistory.findUnique({
+      where: { id },
+      include: {
+        brand: {
+          include: {
+            workspace: true,
+          },
+        },
+      },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Generation history record not found.');
+    }
+
+    return record;
+  }
+
+  save(input: SaveGenerationInput) {
+    return this.prisma.generationHistory.create({
+      data: {
+        brandId: input.brandId,
+        topic: input.topic,
+        platforms: input.platforms,
+        style: input.style,
+        language: input.language,
+        facebook: input.facebook,
+        telegram: input.telegram,
+        reels: input.reels,
+        imagePrompt: input.imagePrompt,
+        analysis: input.analysis as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  async updateFavorite(id: string, dto: UpdateFavoriteDto) {
+    await this.get(id);
+
+    return this.prisma.generationHistory.update({
+      where: { id },
+      data: {
+        isFavorite: dto.isFavorite,
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.get(id);
+
+    await this.prisma.generationHistory.delete({
+      where: { id },
+    });
+
+    return {
+      deleted: true,
+      id,
+    };
+  }
+}
