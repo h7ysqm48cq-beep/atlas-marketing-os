@@ -13,6 +13,14 @@ enum BrandStatus {
   ARCHIVED
 }
 
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
 model Workspace {
   id        String   @id @default(cuid())
   name      String
@@ -23,48 +31,66 @@ model Workspace {
 }
 
 model Brand {
-  id                String              @id @default(cuid())
-  workspaceId       String
-  workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name              String
-  website           String?
-  industry          String?
-  country           String              @default("Malaysia")
-  primaryLanguage   String              @default("Chinese")
-  targetAudience    String
-  brandVoice        String
-  visualStyle       String
-  contentGoals      String
-  callsToAction     String[]
-  keywords          String[]
-  forbiddenWords    String[]
-  brandRules        String[]
-  examplePosts      String[]
-  status            BrandStatus         @default(ACTIVE)
-  generations       GenerationHistory[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id              String              @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  website         String?
+  industry        String?
+  country         String              @default("Malaysia")
+  primaryLanguage String              @default("Chinese")
+  targetAudience  String
+  brandVoice      String
+  visualStyle     String
+  contentGoals    String
+  callsToAction   String[]
+  keywords        String[]
+  forbiddenWords  String[]
+  brandRules      String[]
+  examplePosts    String[]
+  status          BrandStatus         @default(ACTIVE)
+  generations     GenerationHistory[]
+  campaigns       Campaign[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@index([workspaceId])
 }
 
 model GenerationHistory {
-  id             String   @id @default(cuid())
-  brandId        String
-  brand          Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  topic          String
-  platforms      String[]
-  style          String
-  language       String
-  facebook       String
-  telegram       String
-  reels          String
-  imagePrompt    String
-  analysis       Json
-  isFavorite     Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          String   @id @default(cuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  topic       String
+  platforms   String[]
+  style       String
+  language    String
+  facebook    String
+  telegram    String
+  reels       String
+  imagePrompt String
+  analysis    Json
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([brandId])
   @@index([createdAt])
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  brandId     String
+  brand       Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  objective   String?
+  status      CampaignStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([brandId])
+  @@index([status])
 }
