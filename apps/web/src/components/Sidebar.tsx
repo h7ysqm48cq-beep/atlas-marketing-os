@@ -1,17 +1,17 @@
 const mainItems = [
-  ["Dashboard", "⌂"],
-  ["Content Center", "▤"],
-  ["Campaigns", "◉"],
-  ["Calendar", "□"],
-  ["AI Factory", "✦"],
-  ["Analytics", "⌁"],
+  ["Dashboard", "⌂", "/"],
+  ["Content Center", "▤", "#"],
+  ["Campaigns", "◉", "#"],
+  ["Calendar", "□", "#"],
+  ["AI Studio", "✦", "/ai-studio"],
+  ["Analytics", "⌁", "#"],
 ];
 
 const resourceItems = [
-  ["Asset Library", "◇"],
-  ["Prompt Library", "≡"],
-  ["Brand Knowledge", "◆"],
-  ["Settings", "⚙"],
+  ["Asset Library", "◇", "#"],
+  ["Prompt Library", "≡", "#"],
+  ["Brand Brain", "◆", "/brand-brain"],
+  ["Settings", "⚙", "#"],
 ];
 
 export function Sidebar() {
@@ -27,8 +27,8 @@ export function Sidebar() {
 
       <div className="nav-section-label">Workspace</div>
       <nav className="nav-list">
-        {mainItems.map(([label, icon], index) => (
-          <a className={`nav-item ${index === 0 ? "active" : ""}`} href="#" key={label}>
+        {mainItems.map(([label, icon, href]) => (
+          <a className="nav-item" href={href} key={label}>
             <span className="nav-icon">{icon}</span>
             <span>{label}</span>
           </a>
@@ -37,8 +37,8 @@ export function Sidebar() {
 
       <div className="nav-section-label">Resources</div>
       <nav className="nav-list">
-        {resourceItems.map(([label, icon]) => (
-          <a className="nav-item" href="#" key={label}>
+        {resourceItems.map(([label, icon, href]) => (
+          <a className="nav-item" href={href} key={label}>
             <span className="nav-icon">{icon}</span>
             <span>{label}</span>
           </a>
