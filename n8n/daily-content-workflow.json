@@ -1,0 +1,29 @@
+{
+  "name": "MGMBETMYR Daily Content Draft",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "days", "triggerAtHour": 9}]}},
+      "name": "Daily 9AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://marketing-os:3000/api/generate",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"topic\":\"马来西亚生活共鸣\",\"platform\":\"Facebook\"}"
+      },
+      "name": "Generate Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {"Daily 9AM": {"main": [[{"node": "Generate Draft", "type": "main", "index": 0}]]}},
+  "active": false,
+  "settings": {}
+}
