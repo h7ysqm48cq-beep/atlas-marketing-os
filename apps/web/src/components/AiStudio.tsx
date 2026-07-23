@@ -248,6 +248,16 @@ export function AiStudio() {
               >
                 Campaign assets
               </a>
+
+              {result?.historyId ? (
+                <a
+                  href={`/content-history?historyId=${encodeURIComponent(
+                    result.historyId,
+                  )}`}
+                >
+                  Open history
+                </a>
+              ) : null}
             </div>
           </div>
         ) : null}
