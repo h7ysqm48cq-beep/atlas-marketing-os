@@ -52,6 +52,13 @@ type GeneratedOutputs = GeneratedContent & {
       loaded: boolean;
       summary: string;
     }>;
+    knowledgeUsed: Array<{
+      id: string;
+      title: string;
+      category: string;
+      tags: string[];
+      summary: string;
+    }>;
   };
 };
 
@@ -213,6 +220,7 @@ export class AiService {
           loadedSourceCount: promptChain.loadedSourceCount,
           totalSourceCount: promptChain.totalSourceCount,
           sources: promptChain.sources,
+          knowledgeUsed: promptChain.knowledgeUsed,
         },
       };
     } catch (error) {

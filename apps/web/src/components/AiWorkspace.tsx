@@ -51,6 +51,13 @@ export type WorkspaceResult = {
       loaded: boolean;
       summary: string;
     }>;
+    knowledgeUsed?: Array<{
+      id: string;
+      title: string;
+      category: string;
+      tags: string[];
+      summary: string;
+    }>;
   };
 };
 
@@ -168,14 +175,56 @@ export function AiWorkspace({
           </button>
 
           {knowledgeOpen ? (
-            <div className={styles.sourceGrid}>
-              {result.promptChain.sources.map((source) => (
-                <article key={source.key} className={source.loaded ? styles.loadedSource : styles.missingSource}>
-                  <strong>{source.loaded ? "✓" : "○"} {source.label}</strong>
-                  <p>{source.summary}</p>
-                </article>
-              ))}
-            </div>
+            <>
+              <div className={styles.sourceGrid}>
+                {result.promptChain.sources.map((source) => (
+                  <article
+                    key={source.key}
+                    className={
+                      source.loaded
+                        ? styles.loadedSource
+                        : styles.missingSource
+                    }
+                  >
+                    <strong>
+                      {source.loaded ? "✓" : "○"} {source.label}
+                    </strong>
+                    <p>{source.summary}</p>
+                  </article>
+                ))}
+              </div>
+
+              {result.promptChain.knowledgeUsed?.length ? (
+                <div className={styles.knowledgeUsed}>
+                  <div className={styles.knowledgeUsedHeader}>
+                    <span>Knowledge used</span>
+                    <strong>
+                      {result.promptChain.knowledgeUsed.length} documents
+                    </strong>
+                  </div>
+
+                  <div className={styles.knowledgeDocumentGrid}>
+                    {result.promptChain.knowledgeUsed.map((document) => (
+                      <article key={document.id}>
+                        <div>
+                          <span>{document.category}</span>
+                          <a href="/knowledge">Open library</a>
+                        </div>
+
+                        <h4>{document.title}</h4>
+                        <p>{document.summary}</p>
+
+                        <div>
+                          {document.tags.slice(0, 5).map((tag) => (
+                            <small key={tag}>{tag}</small>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
           ) : null}
         </section>
       ) : null}

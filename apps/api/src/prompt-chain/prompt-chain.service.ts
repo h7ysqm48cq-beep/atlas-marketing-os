@@ -234,6 +234,13 @@ export class PromptChainService {
       sources,
       loadedSourceCount: sources.filter((source) => source.loaded).length,
       totalSourceCount: sources.length,
+      knowledgeUsed: knowledgeDocuments.map((document) => ({
+        id: document.id,
+        title: document.title,
+        category: document.category,
+        tags: document.tags,
+        summary: document.content.trim().slice(0, 220),
+      })),
       mergedPrompt,
     };
   }
