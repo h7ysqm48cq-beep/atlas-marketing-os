@@ -1,0 +1,399 @@
+.workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.hero,
+.controlPanel,
+.summaryCard,
+.strategyCard,
+.emptyState {
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top right, rgba(209, 163, 63, .06), transparent 30%),
+    rgba(13, 16, 22, .96);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.hero h2 {
+  margin: 7px 0;
+  font-size: 24px;
+}
+
+.hero p,
+.strategyCard p,
+.summaryCard > p {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.7;
+}
+
+.heroMeta {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 7px;
+}
+
+.heroMeta span,
+.heroMeta strong {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 8px;
+}
+
+.heroMeta strong {
+  color: #8fe0b5;
+}
+
+.controlPanel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) minmax(260px, 1.5fr);
+  gap: 12px;
+  padding: 15px;
+}
+
+.controlPanel label,
+.platformSelector {
+  display: grid;
+  gap: 7px;
+}
+
+.controlPanel label > span,
+.platformSelector > span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.controlPanel select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .55);
+  color: var(--text);
+}
+
+.platformSelector > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.platformSelector button {
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .45);
+  color: var(--muted);
+}
+
+.platformSelector .selectedPlatform {
+  border-color: rgba(209, 163, 63, .3);
+  background: rgba(209, 163, 63, .08);
+  color: var(--gold-light);
+}
+
+.generateButton {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  border: 1px solid rgba(209, 163, 63, .32);
+  border-radius: 10px;
+  background: rgba(209, 163, 63, .1);
+  color: var(--gold-light);
+  font-weight: 850;
+}
+
+.message {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.strategy {
+  display: grid;
+  gap: 14px;
+}
+
+.summaryCard,
+.strategyCard {
+  padding: 17px;
+}
+
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHeading h3,
+.strategyCard h3 {
+  margin: 6px 0 12px;
+  font-size: 16px;
+}
+
+.sectionHeading button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, .5);
+  color: var(--text);
+}
+
+.memoryGrid,
+.audienceGrid,
+.pillarGrid,
+.platformGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.memoryGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.metric,
+.detail,
+.pillarGrid article,
+.platformGrid article,
+.simpleList article {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7, 9, 13, .38);
+}
+
+.metric {
+  display: grid;
+  gap: 6px;
+  padding: 11px;
+}
+
+.metric span,
+.detail span {
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.metric strong {
+  color: var(--gold-light);
+  font-size: 10px;
+}
+
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.audienceGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail {
+  padding: 12px;
+}
+
+.detail p {
+  margin: 7px 0 0;
+}
+
+.pillarGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pillarGrid article,
+.platformGrid article {
+  padding: 13px;
+}
+
+.pillarGrid h4,
+.platformGrid h4 {
+  margin: 0 0 7px;
+  font-size: 11px;
+}
+
+.pillarGrid ul {
+  margin: 10px 0 0;
+  padding-left: 16px;
+  color: var(--text);
+  font-size: 8px;
+  line-height: 1.7;
+}
+
+.platformGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.platformGrid article > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.platformGrid article span {
+  color: var(--gold-light);
+  font-size: 8px;
+}
+
+.platformGrid article small,
+.platformGrid article strong {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.platformGrid article strong {
+  color: var(--text);
+}
+
+.mixList,
+.simpleList {
+  display: grid;
+  gap: 9px;
+}
+
+.mixList article {
+  display: grid;
+  gap: 7px;
+}
+
+.mixList article > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+}
+
+.mixTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(140, 150, 170, .14);
+}
+
+.mixTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #668fdc, var(--gold-light));
+}
+
+.mixList p {
+  margin: 0;
+}
+
+.simpleList article {
+  padding: 11px;
+}
+
+.simpleList strong,
+.simpleList span {
+  display: block;
+  font-size: 9px;
+}
+
+.simpleList span {
+  margin-top: 5px;
+  color: var(--gold-light);
+}
+
+.simpleList p {
+  margin: 6px 0 0;
+}
+
+.nextActions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.generatedMeta {
+  color: var(--muted);
+  font-size: 8px;
+  text-align: right;
+}
+
+.emptyState {
+  display: grid;
+  justify-items: center;
+  padding: 52px 20px;
+  text-align: center;
+}
+
+.emptyState > span {
+  color: var(--gold-light);
+  font-size: 30px;
+}
+
+.emptyState h3 {
+  margin: 14px 0 6px;
+}
+
+.emptyState p {
+  max-width: 480px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1000px) {
+  .controlPanel,
+  .pillarGrid,
+  .platformGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .hero,
+  .sectionHeading {
+    flex-direction: column;
+  }
+
+  .heroMeta {
+    justify-items: start;
+  }
+
+  .controlPanel,
+  .twoColumnGrid,
+  .audienceGrid,
+  .pillarGrid,
+  .platformGrid,
+  .memoryGrid {
+    grid-template-columns: 1fr;
+  }
+}
