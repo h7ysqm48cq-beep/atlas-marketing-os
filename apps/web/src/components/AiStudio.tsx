@@ -28,26 +28,138 @@ export function AiStudio() {
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const topicParam = params.get("topic") || "";
-    const styleParam = params.get("style") || "";
-    const languageParam = params.get("language") || "";
-    const campaignParam = params.get("campaignId") || "";
-    const ideaParam = params.get("ideaId") || "";
-    const campaignNameParam = params.get("campaignName") || "";
-    const ideaTitleParam = params.get("ideaTitle") || "";
+    let cancelled = false;
 
-    if (topicParam) setTopic(topicParam);
-    if (styleParam) setStyle(styleParam);
-    if (languageParam) setLanguage(languageParam);
-    if (campaignParam) setCampaignId(campaignParam);
-    if (ideaParam) setIdeaId(ideaParam);
-    if (campaignNameParam) setCampaignName(campaignNameParam);
-    if (ideaTitleParam) setIdeaTitle(ideaTitleParam);
+    async function initialiseWorkspace() {
+      const params = new URLSearchParams(window.location.search);
 
-    if (campaignParam || ideaParam) {
-      setMessage("Campaign context loaded. Ready to generate.");
+      const topicParam = params.get("topic") || "";
+      const styleParam = params.get("style") || "";
+      const languageParam = params.get("language") || "";
+      const campaignParam = params.get("campaignId") || "";
+      const ideaParam = params.get("ideaId") || "";
+      const campaignNameParam = params.get("campaignName") || "";
+      const ideaTitleParam = params.get("ideaTitle") || "";
+      const historyParam = params.get("historyId") || "";
+
+      if (topicParam) setTopic(topicParam);
+      if (styleParam) setStyle(styleParam);
+      if (languageParam) setLanguage(languageParam);
+      if (campaignParam) setCampaignId(campaignParam);
+      if (ideaParam) setIdeaId(ideaParam);
+      if (campaignNameParam) setCampaignName(campaignNameParam);
+      if (ideaTitleParam) setIdeaTitle(ideaTitleParam);
+
+      if (!historyParam) {
+        if (campaignParam || ideaParam) {
+          setMessage(
+            "Campaign context loaded. Ready to generate.",
+          );
+        }
+
+        return;
+      }
+
+      setMessage("Restoring saved AI workspace...");
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/history/${historyParam}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        const record = (await response.json()) as {
+          id: string;
+          topic: string;
+          style: string;
+          language: string;
+          facebook: string;
+          telegram: string;
+          reels: string;
+          imagePrompt: string;
+          analysis: WorkspaceResult["analysis"];
+          campaign: {
+            id: string;
+            name: string;
+          } | null;
+          idea: {
+            id: string;
+            title: string;
+          } | null;
+          message?: string;
+        };
+
+        if (!response.ok || !record.id) {
+          throw new Error(
+            record.message || "Unable to restore workspace.",
+          );
+        }
+
+        if (cancelled) return;
+
+        setTopic(record.topic);
+        setStyle(record.style);
+        setLanguage(record.language);
+
+        if (record.campaign) {
+          setCampaignId(record.campaign.id);
+          setCampaignName(record.campaign.name);
+        }
+
+        if (record.idea) {
+          setIdeaId(record.idea.id);
+          setIdeaTitle(record.idea.title);
+        }
+
+        const restoredResult: WorkspaceResult = {
+          facebook: record.facebook,
+          telegram: record.telegram,
+          reels: record.reels,
+          image: record.imagePrompt,
+          analysis: record.analysis,
+          historyId: record.id,
+          ...(record.campaign
+            ? {
+                campaignUsed: {
+                  id: record.campaign.id,
+                  name: record.campaign.name,
+                },
+              }
+            : {}),
+          ...(record.idea
+            ? {
+                ideaUsed: {
+                  id: record.idea.id,
+                  title: record.idea.title,
+                },
+              }
+            : {}),
+        };
+
+        setResult(restoredResult);
+        setMessage(
+          record.campaign
+            ? `Workspace restored · Linked to ${record.campaign.name}`
+            : "Workspace restored from Content History.",
+        );
+      } catch (error) {
+        if (cancelled) return;
+
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to restore workspace.",
+        );
+      }
     }
+
+    void initialiseWorkspace();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function generateContent() {
@@ -118,9 +230,25 @@ export function AiStudio() {
 
         {campaignId ? (
           <div className={styles.contextCard}>
-            <span>Campaign context</span>
-            <strong>{campaignName || "Selected campaign"}</strong>
-            <small>{ideaTitle || topic || "Selected content idea"}</small>
+            <div className={styles.contextHeading}>
+              <span>Campaign context</span>
+              <strong>{campaignName || "Selected campaign"}</strong>
+              <small>{ideaTitle || topic || "Selected content idea"}</small>
+            </div>
+
+            <div className={styles.contextActions}>
+              <a href={`/campaigns/${encodeURIComponent(campaignId)}`}>
+                Back to campaign
+              </a>
+
+              <a
+                href={`/campaigns/${encodeURIComponent(
+                  campaignId,
+                )}?tab=assets`}
+              >
+                Campaign assets
+              </a>
+            </div>
           </div>
         ) : null}
       </section>
@@ -179,6 +307,27 @@ export function AiStudio() {
               <span>Linked workflow</span>
               <strong>{campaignName || campaignId}</strong>
               <small>{ideaTitle || ideaId || "Campaign-level generation"}</small>
+
+              <div className={styles.linkedMeta}>
+                <span>
+                  Campaign
+                  <strong>{campaignId}</strong>
+                </span>
+
+                <span>
+                  Idea
+                  <strong>{ideaId || "Campaign-level"}</strong>
+                </span>
+
+                <span>
+                  History
+                  <strong>
+                    {result?.historyId
+                      ? "Saved"
+                      : "Created after generation"}
+                  </strong>
+                </span>
+              </div>
             </div>
           ) : null}
 
