@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   ServiceUnavailableException,
@@ -6,7 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
+import { PrismaService } from '../database/prisma.service';
 import { HistoryService } from '../history/history.service';
+import { PromptChainService } from '../prompt-chain/prompt-chain.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 import { PromptBuilderService } from './prompt-builder.service';
 
@@ -31,6 +34,14 @@ type GeneratedOutputs = GeneratedContent & {
     name: string;
     workspaceName: string;
   };
+  campaignUsed?: {
+    id: string;
+    name: string;
+  };
+  ideaUsed?: {
+    id: string;
+    title: string;
+  };
   historyId: string;
 };
 
@@ -42,7 +53,9 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly brandsService: BrandsService,
     private readonly promptBuilder: PromptBuilderService,
+    private readonly promptChainService: PromptChainService,
     private readonly historyService: HistoryService,
+    private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -56,7 +69,23 @@ export class AiService {
     }
 
     const brand = await this.brandsService.getActiveBrand();
-    const prompt = this.promptBuilder.build(dto, brand);
+    const context = await this.resolveCampaignContext(dto, brand.id);
+    const promptChain = await this.promptChainService.preview({
+      topic: dto.topic,
+      platform: dto.platforms.join(', '),
+      style: dto.style,
+      language: dto.language,
+      campaignId: dto.campaignId,
+    });
+
+    const outputContract = this.promptBuilder.build(dto, brand);
+
+    const prompt = [
+      promptChain.mergedPrompt,
+      '',
+      'ATLAS OUTPUT CONTRACT',
+      outputContract,
+    ].join('\n');
     const model =
       this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
 
@@ -126,12 +155,12 @@ export class AiService {
         },
       });
 
-      const generated = JSON.parse(
-        response.output_text,
-      ) as GeneratedContent;
+      const generated = JSON.parse(response.output_text) as GeneratedContent;
 
       const history = await this.historyService.save({
         brandId: brand.id,
+        campaignId: context.campaign?.id,
+        ideaId: context.idea?.id,
         topic: dto.topic,
         platforms: dto.platforms,
         style: dto.style,
@@ -143,6 +172,13 @@ export class AiService {
         analysis: generated.analysis,
       });
 
+      if (context.idea) {
+        await this.prisma.campaignIdea.update({
+          where: { id: context.idea.id },
+          data: { status: 'GENERATED' },
+        });
+      }
+
       return {
         ...generated,
         brandUsed: {
@@ -150,6 +186,18 @@ export class AiService {
           name: brand.name,
           workspaceName: brand.workspace.name,
         },
+        campaignUsed: context.campaign
+          ? {
+              id: context.campaign.id,
+              name: context.campaign.name,
+            }
+          : undefined,
+        ideaUsed: context.idea
+          ? {
+              id: context.idea.id,
+              title: context.idea.title,
+            }
+          : undefined,
         historyId: history.id,
       };
     } catch (error) {
@@ -165,5 +213,69 @@ export class AiService {
   async previewPrompt(dto: GenerateContentDto) {
     const brand = await this.brandsService.getActiveBrand();
     return this.promptBuilder.preview(dto, brand);
+  }
+
+  private async resolveCampaignContext(
+    dto: GenerateContentDto,
+    brandId: string,
+  ) {
+    if (!dto.campaignId && !dto.ideaId) {
+      return {
+        campaign: null,
+        idea: null,
+      };
+    }
+
+    if (!dto.campaignId) {
+      throw new BadRequestException(
+        'campaignId is required when ideaId is provided.',
+      );
+    }
+
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id: dto.campaignId,
+        brandId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!campaign) {
+      throw new BadRequestException(
+        'Campaign was not found for the active brand.',
+      );
+    }
+
+    if (!dto.ideaId) {
+      return {
+        campaign,
+        idea: null,
+      };
+    }
+
+    const idea = await this.prisma.campaignIdea.findFirst({
+      where: {
+        id: dto.ideaId,
+        campaignId: campaign.id,
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+
+    if (!idea) {
+      throw new BadRequestException(
+        'Campaign idea was not found in this campaign.',
+      );
+    }
+
+    return {
+      campaign,
+      idea,
+    };
   }
 }
