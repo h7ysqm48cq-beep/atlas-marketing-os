@@ -10,6 +10,9 @@
  */
 export type * from './models/Workspace.js'
 export type * from './models/Brand.js'
-export type * from './models/GenerationHistory.js'
 export type * from './models/Campaign.js'
+export type * from './models/CampaignIdea.js'
+export type * from './models/GenerationHistory.js'
+export type * from './models/ContentVersion.js'
+export type * from './models/Asset.js'
 export type * from './commonInputTypes.js'

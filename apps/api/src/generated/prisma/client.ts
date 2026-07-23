@@ -50,12 +50,27 @@ export type Workspace = Prisma.WorkspaceModel
  */
 export type Brand = Prisma.BrandModel
 /**
+ * Model Campaign
+ * 
+ */
+export type Campaign = Prisma.CampaignModel
+/**
+ * Model CampaignIdea
+ * 
+ */
+export type CampaignIdea = Prisma.CampaignIdeaModel
+/**
  * Model GenerationHistory
  * 
  */
 export type GenerationHistory = Prisma.GenerationHistoryModel
 /**
- * Model Campaign
+ * Model ContentVersion
  * 
  */
-export type Campaign = Prisma.CampaignModel
+export type ContentVersion = Prisma.ContentVersionModel
+/**
+ * Model Asset
+ * 
+ */
+export type Asset = Prisma.AssetModel

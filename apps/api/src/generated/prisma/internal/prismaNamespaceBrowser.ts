@@ -53,8 +53,11 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Workspace: 'Workspace',
   Brand: 'Brand',
+  Campaign: 'Campaign',
+  CampaignIdea: 'CampaignIdea',
   GenerationHistory: 'GenerationHistory',
-  Campaign: 'Campaign'
+  ContentVersion: 'ContentVersion',
+  Asset: 'Asset'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -109,26 +112,6 @@ export const BrandScalarFieldEnum = {
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
 
 
-export const GenerationHistoryScalarFieldEnum = {
-  id: 'id',
-  brandId: 'brandId',
-  topic: 'topic',
-  platforms: 'platforms',
-  style: 'style',
-  language: 'language',
-  facebook: 'facebook',
-  telegram: 'telegram',
-  reels: 'reels',
-  imagePrompt: 'imagePrompt',
-  analysis: 'analysis',
-  isFavorite: 'isFavorite',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
-
-
 export const CampaignScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -143,6 +126,88 @@ export const CampaignScalarFieldEnum = {
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
+export const CampaignIdeaScalarFieldEnum = {
+  id: 'id',
+  campaignId: 'campaignId',
+  title: 'title',
+  angle: 'angle',
+  hook: 'hook',
+  platform: 'platform',
+  style: 'style',
+  language: 'language',
+  status: 'status',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignIdeaScalarFieldEnum = (typeof CampaignIdeaScalarFieldEnum)[keyof typeof CampaignIdeaScalarFieldEnum]
+
+
+export const GenerationHistoryScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  campaignId: 'campaignId',
+  ideaId: 'ideaId',
+  topic: 'topic',
+  platforms: 'platforms',
+  style: 'style',
+  language: 'language',
+  facebook: 'facebook',
+  telegram: 'telegram',
+  reels: 'reels',
+  imagePrompt: 'imagePrompt',
+  analysis: 'analysis',
+  isFavorite: 'isFavorite',
+  status: 'status',
+  reviewNote: 'reviewNote',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  approvedAt: 'approvedAt',
+  publishedAt: 'publishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
+
+
+export const ContentVersionScalarFieldEnum = {
+  id: 'id',
+  historyId: 'historyId',
+  platform: 'platform',
+  content: 'content',
+  sourceAction: 'sourceAction',
+  versionNumber: 'versionNumber',
+  createdAt: 'createdAt'
+} as const
+
+export type ContentVersionScalarFieldEnum = (typeof ContentVersionScalarFieldEnum)[keyof typeof ContentVersionScalarFieldEnum]
+
+
+export const AssetScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  campaignId: 'campaignId',
+  historyId: 'historyId',
+  name: 'name',
+  type: 'type',
+  provider: 'provider',
+  platform: 'platform',
+  prompt: 'prompt',
+  url: 'url',
+  thumbnailUrl: 'thumbnailUrl',
+  mimeType: 'mimeType',
+  width: 'width',
+  height: 'height',
+  isFavorite: 'isFavorite',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
 
 
 export const SortOrder = {

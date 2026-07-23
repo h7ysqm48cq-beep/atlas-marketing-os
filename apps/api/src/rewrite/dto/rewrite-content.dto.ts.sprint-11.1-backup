@@ -1,0 +1,22 @@
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export class RewriteContentDto {
+  @IsString()
+  @IsNotEmpty()
+  content!: string;
+
+  @IsIn(['improve', 'rewrite', 'translate', 'shorter', 'longer'])
+  action!: 'improve' | 'rewrite' | 'translate' | 'shorter' | 'longer';
+
+  @IsString()
+  @IsNotEmpty()
+  platform!: string;
+
+  @IsString()
+  @IsOptional()
+  campaignId?: string;
+
+  @IsString()
+  @IsOptional()
+  targetLanguage?: string;
+}

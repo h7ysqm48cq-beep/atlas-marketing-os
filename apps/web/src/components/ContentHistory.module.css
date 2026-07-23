@@ -327,3 +327,14 @@
     justify-content: flex-start;
   }
 }
+
+
+.toolbar select { min-height:42px; border:1px solid var(--border); border-radius:11px; background:rgba(8,10,15,.48); color:var(--text); padding:0 12px; }
+.viewerBadges { display:flex; gap:8px; flex-wrap:wrap; }
+.statusBadge { display:inline-flex; padding:5px 8px; border-radius:999px; border:1px solid var(--border); font-size:8px; font-weight:850; }
+.statusDRAFT { color:#c4cbd8; } .statusAI_IMPROVED { color:#abc1ee; background:rgba(124,167,255,.08); } .statusPENDING_REVIEW { color:var(--gold-light); background:rgba(209,163,63,.08); } .statusAPPROVED { color:#8fe0b5; background:rgba(77,190,134,.09); } .statusREJECTED { color:#ffaaaa; background:rgba(255,120,120,.07); } .statusPUBLISHED { color:#c9b7ff; background:rgba(166,132,255,.08); }
+.workflowPanel { display:grid; gap:12px; margin:18px 0; padding:14px; border:1px solid rgba(209,163,63,.22); border-radius:12px; background:rgba(209,163,63,.035); }
+.workflowTitle { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; } .workflowTitle > div { display:grid; gap:4px; } .workflowTitle span,.reviewFields label>span { color:var(--gold-light); font-size:8px; font-weight:850; text-transform:uppercase; letter-spacing:.07em; } .workflowTitle strong { font-size:13px; } .workflowTitle small { color:var(--muted); font-size:8px; }
+.reviewFields { display:grid; grid-template-columns:180px minmax(0,1fr); gap:10px; } .reviewFields label { display:grid; gap:7px; } .reviewFields input,.reviewFields textarea { width:100%; border:1px solid var(--border); border-radius:8px; background:#0b0f15; color:var(--text); padding:9px 10px; font:inherit; font-size:9px; outline:none; } .reviewFields textarea { min-height:72px; resize:vertical; }
+.workflowActions { display:flex; flex-wrap:wrap; gap:7px; } .workflowActions button { min-height:32px; border:1px solid var(--border); border-radius:8px; background:rgba(7,9,13,.5); color:var(--text); padding:0 9px; font-size:8px; font-weight:780; } .workflowActions .approveButton { color:#8fe0b5; border-color:rgba(77,190,134,.3); } .workflowActions .rejectButton { color:#ffaaaa; border-color:rgba(255,120,120,.28); } .workflowActions button:disabled { opacity:.45; cursor:not-allowed; }
+@media(max-width:680px){ .reviewFields { grid-template-columns:1fr; } }

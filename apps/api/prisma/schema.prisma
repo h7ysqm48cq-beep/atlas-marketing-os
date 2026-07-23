@@ -21,6 +21,30 @@ enum CampaignStatus {
   ARCHIVED
 }
 
+enum CampaignIdeaStatus {
+  PLANNED
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+
+enum ContentStatus {
+  DRAFT
+  AI_IMPROVED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  TEMPLATE
+}
+
 model Workspace {
   id        String   @id @default(cuid())
   name      String
@@ -51,16 +75,63 @@ model Brand {
   status          BrandStatus         @default(ACTIVE)
   generations     GenerationHistory[]
   campaigns       Campaign[]
+  assets          Asset[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
   @@index([workspaceId])
 }
 
-model GenerationHistory {
-  id          String   @id @default(cuid())
+model Campaign {
+  id          String              @id @default(cuid())
   brandId     String
-  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  objective   String?
+  status      CampaignStatus      @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  ideas       CampaignIdea[]
+  generations GenerationHistory[]
+  assets      Asset[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([brandId])
+  @@index([status])
+}
+
+model CampaignIdea {
+  id          String              @id @default(cuid())
+  campaignId  String
+  campaign    Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  title       String
+  angle       String
+  hook        String
+  platform    String
+  style       String
+  language    String
+  status      CampaignIdeaStatus  @default(PLANNED)
+  sortOrder   Int                 @default(0)
+  generations GenerationHistory[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([sortOrder])
+}
+
+model GenerationHistory {
+  versions    ContentVersion[]
+  id          String           @id @default(cuid())
+  brandId     String
+  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId  String?
+  campaign    Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  ideaId      String?
+  idea        CampaignIdea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
   topic       String
   platforms   String[]
   style       String
@@ -70,27 +141,65 @@ model GenerationHistory {
   reels       String
   imagePrompt String
   analysis    Json
-  isFavorite  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isFavorite  Boolean          @default(false)
+  status      ContentStatus    @default(DRAFT)
+  reviewNote  String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  approvedAt  DateTime?
+  publishedAt DateTime?
+  assets      Asset[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([brandId])
+  @@index([campaignId])
+  @@index([ideaId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model ContentVersion {
+  id            String            @id @default(cuid())
+  historyId     String
+  history       GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+  platform      String
+  content       String
+  sourceAction  String
+  versionNumber Int
+  createdAt     DateTime          @default(now())
+
+  @@unique([historyId, platform, versionNumber])
+  @@index([historyId])
+  @@index([platform])
   @@index([createdAt])
 }
 
-model Campaign {
-  id          String         @id @default(cuid())
-  brandId     String
-  brand       Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  objective   String?
-  status      CampaignStatus @default(DRAFT)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+model Asset {
+  id           String             @id @default(cuid())
+  brandId      String
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId   String?
+  campaign     Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  historyId    String?
+  history      GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+  name         String
+  type         AssetType          @default(IMAGE)
+  provider     String?
+  platform     String?
+  prompt       String?
+  url          String
+  thumbnailUrl String?
+  mimeType     String?
+  width        Int?
+  height       Int?
+  isFavorite   Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([brandId])
-  @@index([status])
+  @@index([campaignId])
+  @@index([historyId])
+  @@index([type])
+  @@index([createdAt])
 }

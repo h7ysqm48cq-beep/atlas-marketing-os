@@ -223,6 +223,9 @@ export type CampaignWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  ideas?: Prisma.CampaignIdeaListRelationFilter
+  generations?: Prisma.GenerationHistoryListRelationFilter
+  assets?: Prisma.AssetListRelationFilter
 }
 
 export type CampaignOrderByWithRelationInput = {
@@ -237,6 +240,9 @@ export type CampaignOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   brand?: Prisma.BrandOrderByWithRelationInput
+  ideas?: Prisma.CampaignIdeaOrderByRelationAggregateInput
+  generations?: Prisma.GenerationHistoryOrderByRelationAggregateInput
+  assets?: Prisma.AssetOrderByRelationAggregateInput
 }
 
 export type CampaignWhereUniqueInput = Prisma.AtLeast<{
@@ -254,6 +260,9 @@ export type CampaignWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  ideas?: Prisma.CampaignIdeaListRelationFilter
+  generations?: Prisma.GenerationHistoryListRelationFilter
+  assets?: Prisma.AssetListRelationFilter
 }, "id">
 
 export type CampaignOrderByWithAggregationInput = {
@@ -299,6 +308,9 @@ export type CampaignCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
+  ideas?: Prisma.CampaignIdeaCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetCreateNestedManyWithoutCampaignInput
 }
 
 export type CampaignUncheckedCreateInput = {
@@ -312,6 +324,9 @@ export type CampaignUncheckedCreateInput = {
   endDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCampaignInput
 }
 
 export type CampaignUpdateInput = {
@@ -325,6 +340,9 @@ export type CampaignUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
+  ideas?: Prisma.CampaignIdeaUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutCampaignNestedInput
 }
 
 export type CampaignUncheckedUpdateInput = {
@@ -338,6 +356,9 @@ export type CampaignUncheckedUpdateInput = {
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCampaignNestedInput
 }
 
 export type CampaignCreateManyInput = {
@@ -427,6 +448,16 @@ export type CampaignMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type CampaignScalarRelationFilter = {
+  is?: Prisma.CampaignWhereInput
+  isNot?: Prisma.CampaignWhereInput
+}
+
+export type CampaignNullableScalarRelationFilter = {
+  is?: Prisma.CampaignWhereInput | null
+  isNot?: Prisma.CampaignWhereInput | null
+}
+
 export type CampaignCreateNestedManyWithoutBrandInput = {
   create?: Prisma.XOR<Prisma.CampaignCreateWithoutBrandInput, Prisma.CampaignUncheckedCreateWithoutBrandInput> | Prisma.CampaignCreateWithoutBrandInput[] | Prisma.CampaignUncheckedCreateWithoutBrandInput[]
   connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutBrandInput | Prisma.CampaignCreateOrConnectWithoutBrandInput[]
@@ -477,6 +508,52 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
+export type CampaignCreateNestedOneWithoutIdeasInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutIdeasInput, Prisma.CampaignUncheckedCreateWithoutIdeasInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutIdeasInput
+  connect?: Prisma.CampaignWhereUniqueInput
+}
+
+export type CampaignUpdateOneRequiredWithoutIdeasNestedInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutIdeasInput, Prisma.CampaignUncheckedCreateWithoutIdeasInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutIdeasInput
+  upsert?: Prisma.CampaignUpsertWithoutIdeasInput
+  connect?: Prisma.CampaignWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CampaignUpdateToOneWithWhereWithoutIdeasInput, Prisma.CampaignUpdateWithoutIdeasInput>, Prisma.CampaignUncheckedUpdateWithoutIdeasInput>
+}
+
+export type CampaignCreateNestedOneWithoutGenerationsInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutGenerationsInput, Prisma.CampaignUncheckedCreateWithoutGenerationsInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutGenerationsInput
+  connect?: Prisma.CampaignWhereUniqueInput
+}
+
+export type CampaignUpdateOneWithoutGenerationsNestedInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutGenerationsInput, Prisma.CampaignUncheckedCreateWithoutGenerationsInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutGenerationsInput
+  upsert?: Prisma.CampaignUpsertWithoutGenerationsInput
+  disconnect?: Prisma.CampaignWhereInput | boolean
+  delete?: Prisma.CampaignWhereInput | boolean
+  connect?: Prisma.CampaignWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CampaignUpdateToOneWithWhereWithoutGenerationsInput, Prisma.CampaignUpdateWithoutGenerationsInput>, Prisma.CampaignUncheckedUpdateWithoutGenerationsInput>
+}
+
+export type CampaignCreateNestedOneWithoutAssetsInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutAssetsInput, Prisma.CampaignUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutAssetsInput
+  connect?: Prisma.CampaignWhereUniqueInput
+}
+
+export type CampaignUpdateOneWithoutAssetsNestedInput = {
+  create?: Prisma.XOR<Prisma.CampaignCreateWithoutAssetsInput, Prisma.CampaignUncheckedCreateWithoutAssetsInput>
+  connectOrCreate?: Prisma.CampaignCreateOrConnectWithoutAssetsInput
+  upsert?: Prisma.CampaignUpsertWithoutAssetsInput
+  disconnect?: Prisma.CampaignWhereInput | boolean
+  delete?: Prisma.CampaignWhereInput | boolean
+  connect?: Prisma.CampaignWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CampaignUpdateToOneWithWhereWithoutAssetsInput, Prisma.CampaignUpdateWithoutAssetsInput>, Prisma.CampaignUncheckedUpdateWithoutAssetsInput>
+}
+
 export type CampaignCreateWithoutBrandInput = {
   id?: string
   name: string
@@ -487,6 +564,9 @@ export type CampaignCreateWithoutBrandInput = {
   endDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  ideas?: Prisma.CampaignIdeaCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetCreateNestedManyWithoutCampaignInput
 }
 
 export type CampaignUncheckedCreateWithoutBrandInput = {
@@ -499,6 +579,9 @@ export type CampaignUncheckedCreateWithoutBrandInput = {
   endDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCampaignInput
 }
 
 export type CampaignCreateOrConnectWithoutBrandInput = {
@@ -543,6 +626,234 @@ export type CampaignScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
 }
 
+export type CampaignCreateWithoutIdeasInput = {
+  id?: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignUncheckedCreateWithoutIdeasInput = {
+  id?: string
+  brandId: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignCreateOrConnectWithoutIdeasInput = {
+  where: Prisma.CampaignWhereUniqueInput
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutIdeasInput, Prisma.CampaignUncheckedCreateWithoutIdeasInput>
+}
+
+export type CampaignUpsertWithoutIdeasInput = {
+  update: Prisma.XOR<Prisma.CampaignUpdateWithoutIdeasInput, Prisma.CampaignUncheckedUpdateWithoutIdeasInput>
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutIdeasInput, Prisma.CampaignUncheckedCreateWithoutIdeasInput>
+  where?: Prisma.CampaignWhereInput
+}
+
+export type CampaignUpdateToOneWithWhereWithoutIdeasInput = {
+  where?: Prisma.CampaignWhereInput
+  data: Prisma.XOR<Prisma.CampaignUpdateWithoutIdeasInput, Prisma.CampaignUncheckedUpdateWithoutIdeasInput>
+}
+
+export type CampaignUpdateWithoutIdeasInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutCampaignNestedInput
+}
+
+export type CampaignUncheckedUpdateWithoutIdeasInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCampaignNestedInput
+}
+
+export type CampaignCreateWithoutGenerationsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
+  ideas?: Prisma.CampaignIdeaCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignUncheckedCreateWithoutGenerationsInput = {
+  id?: string
+  brandId: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignCreateOrConnectWithoutGenerationsInput = {
+  where: Prisma.CampaignWhereUniqueInput
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutGenerationsInput, Prisma.CampaignUncheckedCreateWithoutGenerationsInput>
+}
+
+export type CampaignUpsertWithoutGenerationsInput = {
+  update: Prisma.XOR<Prisma.CampaignUpdateWithoutGenerationsInput, Prisma.CampaignUncheckedUpdateWithoutGenerationsInput>
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutGenerationsInput, Prisma.CampaignUncheckedCreateWithoutGenerationsInput>
+  where?: Prisma.CampaignWhereInput
+}
+
+export type CampaignUpdateToOneWithWhereWithoutGenerationsInput = {
+  where?: Prisma.CampaignWhereInput
+  data: Prisma.XOR<Prisma.CampaignUpdateWithoutGenerationsInput, Prisma.CampaignUncheckedUpdateWithoutGenerationsInput>
+}
+
+export type CampaignUpdateWithoutGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
+  ideas?: Prisma.CampaignIdeaUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutCampaignNestedInput
+}
+
+export type CampaignUncheckedUpdateWithoutGenerationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCampaignNestedInput
+}
+
+export type CampaignCreateWithoutAssetsInput = {
+  id?: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
+  ideas?: Prisma.CampaignIdeaCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignUncheckedCreateWithoutAssetsInput = {
+  id?: string
+  brandId: string
+  name: string
+  description?: string | null
+  objective?: string | null
+  status?: $Enums.CampaignStatus
+  startDate?: Date | string | null
+  endDate?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutCampaignInput
+}
+
+export type CampaignCreateOrConnectWithoutAssetsInput = {
+  where: Prisma.CampaignWhereUniqueInput
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutAssetsInput, Prisma.CampaignUncheckedCreateWithoutAssetsInput>
+}
+
+export type CampaignUpsertWithoutAssetsInput = {
+  update: Prisma.XOR<Prisma.CampaignUpdateWithoutAssetsInput, Prisma.CampaignUncheckedUpdateWithoutAssetsInput>
+  create: Prisma.XOR<Prisma.CampaignCreateWithoutAssetsInput, Prisma.CampaignUncheckedCreateWithoutAssetsInput>
+  where?: Prisma.CampaignWhereInput
+}
+
+export type CampaignUpdateToOneWithWhereWithoutAssetsInput = {
+  where?: Prisma.CampaignWhereInput
+  data: Prisma.XOR<Prisma.CampaignUpdateWithoutAssetsInput, Prisma.CampaignUncheckedUpdateWithoutAssetsInput>
+}
+
+export type CampaignUpdateWithoutAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
+  ideas?: Prisma.CampaignIdeaUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutCampaignNestedInput
+}
+
+export type CampaignUncheckedUpdateWithoutAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  objective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutCampaignNestedInput
+}
+
 export type CampaignCreateManyBrandInput = {
   id?: string
   name: string
@@ -565,6 +876,9 @@ export type CampaignUpdateWithoutBrandInput = {
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ideas?: Prisma.CampaignIdeaUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutCampaignNestedInput
 }
 
 export type CampaignUncheckedUpdateWithoutBrandInput = {
@@ -577,6 +891,9 @@ export type CampaignUncheckedUpdateWithoutBrandInput = {
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutCampaignNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCampaignNestedInput
 }
 
 export type CampaignUncheckedUpdateManyWithoutBrandInput = {
@@ -592,6 +909,53 @@ export type CampaignUncheckedUpdateManyWithoutBrandInput = {
 }
 
 
+/**
+ * Count Type CampaignCountOutputType
+ */
+
+export type CampaignCountOutputType = {
+  ideas: number
+  generations: number
+  assets: number
+}
+
+export type CampaignCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  ideas?: boolean | CampaignCountOutputTypeCountIdeasArgs
+  generations?: boolean | CampaignCountOutputTypeCountGenerationsArgs
+  assets?: boolean | CampaignCountOutputTypeCountAssetsArgs
+}
+
+/**
+ * CampaignCountOutputType without action
+ */
+export type CampaignCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CampaignCountOutputType
+   */
+  select?: Prisma.CampaignCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * CampaignCountOutputType without action
+ */
+export type CampaignCountOutputTypeCountIdeasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CampaignIdeaWhereInput
+}
+
+/**
+ * CampaignCountOutputType without action
+ */
+export type CampaignCountOutputTypeCountGenerationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.GenerationHistoryWhereInput
+}
+
+/**
+ * CampaignCountOutputType without action
+ */
+export type CampaignCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AssetWhereInput
+}
+
 
 export type CampaignSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -605,6 +969,10 @@ export type CampaignSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   createdAt?: boolean
   updatedAt?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  ideas?: boolean | Prisma.Campaign$ideasArgs<ExtArgs>
+  generations?: boolean | Prisma.Campaign$generationsArgs<ExtArgs>
+  assets?: boolean | Prisma.Campaign$assetsArgs<ExtArgs>
+  _count?: boolean | Prisma.CampaignCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["campaign"]>
 
 export type CampaignSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -651,6 +1019,10 @@ export type CampaignSelectScalar = {
 export type CampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "name" | "description" | "objective" | "status" | "startDate" | "endDate" | "createdAt" | "updatedAt", ExtArgs["result"]["campaign"]>
 export type CampaignInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  ideas?: boolean | Prisma.Campaign$ideasArgs<ExtArgs>
+  generations?: boolean | Prisma.Campaign$generationsArgs<ExtArgs>
+  assets?: boolean | Prisma.Campaign$assetsArgs<ExtArgs>
+  _count?: boolean | Prisma.CampaignCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CampaignIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -663,6 +1035,9 @@ export type $CampaignPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   name: "Campaign"
   objects: {
     brand: Prisma.$BrandPayload<ExtArgs>
+    ideas: Prisma.$CampaignIdeaPayload<ExtArgs>[]
+    generations: Prisma.$GenerationHistoryPayload<ExtArgs>[]
+    assets: Prisma.$AssetPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1070,6 +1445,9 @@ readonly fields: CampaignFieldRefs;
 export interface Prisma__CampaignClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  ideas<T extends Prisma.Campaign$ideasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Campaign$ideasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CampaignIdeaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  generations<T extends Prisma.Campaign$generationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Campaign$generationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GenerationHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  assets<T extends Prisma.Campaign$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Campaign$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1507,6 +1885,78 @@ export type CampaignDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many Campaigns to delete.
    */
   limit?: number
+}
+
+/**
+ * Campaign.ideas
+ */
+export type Campaign$ideasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CampaignIdea
+   */
+  select?: Prisma.CampaignIdeaSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CampaignIdea
+   */
+  omit?: Prisma.CampaignIdeaOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CampaignIdeaInclude<ExtArgs> | null
+  where?: Prisma.CampaignIdeaWhereInput
+  orderBy?: Prisma.CampaignIdeaOrderByWithRelationInput | Prisma.CampaignIdeaOrderByWithRelationInput[]
+  cursor?: Prisma.CampaignIdeaWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CampaignIdeaScalarFieldEnum | Prisma.CampaignIdeaScalarFieldEnum[]
+}
+
+/**
+ * Campaign.generations
+ */
+export type Campaign$generationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the GenerationHistory
+   */
+  select?: Prisma.GenerationHistorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the GenerationHistory
+   */
+  omit?: Prisma.GenerationHistoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.GenerationHistoryInclude<ExtArgs> | null
+  where?: Prisma.GenerationHistoryWhereInput
+  orderBy?: Prisma.GenerationHistoryOrderByWithRelationInput | Prisma.GenerationHistoryOrderByWithRelationInput[]
+  cursor?: Prisma.GenerationHistoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.GenerationHistoryScalarFieldEnum | Prisma.GenerationHistoryScalarFieldEnum[]
+}
+
+/**
+ * Campaign.assets
+ */
+export type Campaign$assetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Asset
+   */
+  select?: Prisma.AssetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Asset
+   */
+  omit?: Prisma.AssetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssetInclude<ExtArgs> | null
+  where?: Prisma.AssetWhereInput
+  orderBy?: Prisma.AssetOrderByWithRelationInput | Prisma.AssetOrderByWithRelationInput[]
+  cursor?: Prisma.AssetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AssetScalarFieldEnum | Prisma.AssetScalarFieldEnum[]
 }
 
 /**

@@ -1,0 +1,195 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ImageAssetPanel } from "./ImageAssetPanel";
+import { PlatformCard } from "./PlatformCard";
+import styles from "./AiWorkspace.module.css";
+
+export type WorkspaceResult = {
+  facebook: string;
+  telegram: string;
+  reels: string;
+  image: string;
+  analysis: {
+    summary: string;
+    viralScore: number;
+    discussionScore: number;
+    shareabilityScore: number;
+    brandFitScore: number;
+    bestPostingTime: string;
+  };
+  campaignUsed?: { id: string; name: string };
+  ideaUsed?: { id: string; title: string };
+  historyId?: string;
+  promptChain?: {
+    loadedSourceCount: number;
+    totalSourceCount: number;
+    sources: Array<{
+      key: string;
+      label: string;
+      loaded: boolean;
+      summary: string;
+    }>;
+  };
+};
+
+export function AiWorkspace({
+  topic,
+  result,
+  campaignId,
+  onMessage,
+  onResultChange,
+}: {
+  topic: string;
+  result: WorkspaceResult | null;
+  campaignId?: string;
+  onMessage: (message: string) => void;
+  onResultChange: (result: WorkspaceResult) => void;
+}) {
+  const [tab, setTab] = useState<"content" | "analysis" | "image">("content");
+  const [knowledgeOpen, setKnowledgeOpen] = useState(true);
+
+  const cards = useMemo(
+    () =>
+      [
+        ["Facebook", "Long-form discussion-led social post.", "facebook", result?.analysis.discussionScore],
+        ["Telegram", "Shorter conversational community post.", "telegram", result?.analysis.shareabilityScore],
+        ["Reels Script", "Scene-by-scene short-form video structure.", "reels", result?.analysis.viralScore],
+        ["Image Prompt", "Production-ready visual direction in English.", "image", result?.analysis.brandFitScore],
+      ] as const,
+    [result],
+  );
+
+  function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
+    if (!result) return;
+    onResultChange({ ...result, [key]: content });
+  }
+
+  const fullyLoaded =
+    result?.promptChain?.loadedSourceCount === result?.promptChain?.totalSourceCount;
+
+  return (
+    <section className={styles.workspace}>
+      <div className={styles.workspaceHeader}>
+        <div>
+          <p className={styles.eyebrow}>AI Workspace</p>
+          <h2>{topic || "Untitled content workspace"}</h2>
+          <p>
+            {result?.campaignUsed
+              ? `Linked to ${result.campaignUsed.name}`
+              : "Generate content to activate the complete workspace."}
+          </p>
+        </div>
+
+        <div className={styles.tabs}>
+          {(["content", "analysis", "image"] as const).map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={tab === value ? styles.activeTab : ""}
+              onClick={() => setTab(value)}
+            >
+              {value === "image"
+                ? "AI Image"
+                : value.charAt(0).toUpperCase() + value.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {result?.promptChain ? (
+        <section className={styles.knowledgePanel}>
+          <button
+            type="button"
+            className={styles.knowledgeHeader}
+            onClick={() => setKnowledgeOpen((value) => !value)}
+          >
+            <div>
+              <p className={styles.eyebrow}>Knowledge Engine</p>
+              <h3>
+                {result.promptChain.loadedSourceCount} / {result.promptChain.totalSourceCount} sources loaded
+              </h3>
+            </div>
+            <div className={styles.knowledgeControls}>
+              <span className={fullyLoaded ? styles.readyStatus : styles.partialStatus}>
+                {fullyLoaded ? "Ready" : "Partial"}
+              </span>
+              <span className={styles.chevron}>{knowledgeOpen ? "Hide" : "Show"}</span>
+            </div>
+          </button>
+
+          {knowledgeOpen ? (
+            <div className={styles.sourceGrid}>
+              {result.promptChain.sources.map((source) => (
+                <article key={source.key} className={source.loaded ? styles.loadedSource : styles.missingSource}>
+                  <strong>{source.loaded ? "✓" : "○"} {source.label}</strong>
+                  <p>{source.summary}</p>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {tab === "content" ? (
+        <div className={styles.cards}>
+          {cards.map(([title, description, key, score]) => (
+            <PlatformCard
+              key={key}
+              title={title}
+              description={description}
+              content={result?.[key] || `Generate content to create the ${title} version.`}
+              score={score}
+              campaignId={result?.campaignUsed?.id || campaignId}
+              historyId={result?.historyId}
+              onReplace={(content) => replace(key, content)}
+              onMessage={onMessage}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {tab === "analysis" ? (
+        <div className={styles.analysis}>
+          <div className={styles.summary}>
+            <p className={styles.eyebrow}>AI Coach Summary</p>
+            <h3>{result?.analysis.summary || "Generate content to receive strategic analysis."}</h3>
+            <p>
+              Recommended posting time: <strong>{result?.analysis.bestPostingTime || "—"}</strong>
+            </p>
+          </div>
+
+          <div className={styles.scoreGrid}>
+            <Score label="Viral" value={result?.analysis.viralScore || 0} />
+            <Score label="Discussion" value={result?.analysis.discussionScore || 0} />
+            <Score label="Shareability" value={result?.analysis.shareabilityScore || 0} />
+            <Score label="Brand fit" value={result?.analysis.brandFitScore || 0} />
+          </div>
+        </div>
+      ) : null}
+
+      {tab === "image" ? (
+        <ImageAssetPanel
+          prompt={result?.image || ""}
+          topic={topic}
+          campaignId={result?.campaignUsed?.id || campaignId}
+          historyId={result?.historyId}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function Score({ label, value }: { label: string; value: number }) {
+  return (
+    <div className={styles.scoreCard}>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div className={styles.scoreTrack}>
+        <i style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}

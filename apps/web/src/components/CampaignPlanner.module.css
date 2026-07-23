@@ -1,0 +1,309 @@
+.page {
+  display: grid;
+  gap: 22px;
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.backLink {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.eyebrow {
+  color: var(--gold-light) !important;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  margin: 13px 0 0;
+}
+
+.hero h1 {
+  margin: 6px 0 10px;
+}
+
+.hero > div > p:last-child {
+  color: var(--muted);
+  max-width: 720px;
+  line-height: 1.65;
+}
+
+.campaignMeta {
+  width: 270px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  display: grid;
+  gap: 7px;
+}
+
+.campaignMeta span {
+  color: var(--gold-light);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.campaignMeta strong {
+  font-size: 18px;
+}
+
+.campaignMeta small {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  align-items: start;
+  gap: 17px;
+}
+
+.plannerCard {
+  position: sticky;
+  top: 96px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+}
+
+.cardHeading span {
+  color: var(--gold-light);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.cardHeading h2 {
+  margin: 7px 0 0;
+  font-size: 18px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field > span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 800;
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7,9,13,.58);
+  color: var(--text);
+  outline: none;
+}
+
+.field input,
+.field select {
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+  padding: 10px;
+  line-height: 1.55;
+}
+
+.formGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.generateButton {
+  min-height: 44px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  font-weight: 850;
+}
+
+.generateButton:disabled {
+  opacity: .6;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.ideaArea {
+  min-width: 0;
+}
+
+.ideaHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 13px;
+}
+
+.ideaHeading h2 {
+  margin: 6px 0 0;
+}
+
+.ideaHeading button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.ideaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ideaCard {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(209,163,63,.06), transparent 36%),
+    linear-gradient(160deg, rgba(21,25,34,.97), rgba(13,16,22,.97));
+}
+
+.ideaTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ideaTop > span {
+  color: var(--gold-light);
+  font-weight: 850;
+}
+
+.ideaTop small {
+  color: var(--muted);
+}
+
+.ideaCard h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.ideaBlock {
+  display: grid;
+  gap: 5px;
+}
+
+.ideaBlock span {
+  color: var(--gold-light);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.ideaBlock p {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.tags,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tags span {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(124,167,255,.1);
+  color: #abc1ee;
+  font-size: 8px;
+}
+
+.actions {
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(8,10,15,.4);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.deleteButton {
+  color: #ffaaaa !important;
+}
+
+.emptyState {
+  min-height: 360px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 7px;
+  border: 1px dashed var(--border);
+  border-radius: 15px;
+  color: var(--muted);
+}
+
+.emptyState strong {
+  color: var(--text);
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .plannerCard {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .campaignMeta {
+    width: 100%;
+  }
+
+  .ideaGrid {
+    grid-template-columns: 1fr;
+  }
+}

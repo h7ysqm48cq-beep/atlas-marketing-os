@@ -1,0 +1,235 @@
+.workspace {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.workspaceHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top right, rgba(209, 163, 63, .07), transparent 35%),
+    linear-gradient(160deg, rgba(21, 25, 34, .98), rgba(13, 16, 22, .98));
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold-light) !important;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.workspaceHeader h2 {
+  margin: 7px 0 5px;
+  font-size: 20px;
+}
+
+.workspaceHeader > div:first-child > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.tabs {
+  display: flex;
+  gap: 7px;
+}
+
+.tabs button {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .42);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.tabs .activeTab {
+  border-color: rgba(209, 163, 63, .32);
+  background: rgba(209, 163, 63, .09);
+  color: var(--gold-light);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.analysis {
+  display: grid;
+  gap: 13px;
+}
+
+.summary {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, .98),
+    rgba(13, 16, 22, .98)
+  );
+}
+
+.summary h3 {
+  max-width: 780px;
+  margin: 10px 0 12px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.summary > p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.summary strong {
+  color: var(--gold-light);
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.score {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.score span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.score strong {
+  color: var(--gold-light);
+  font-size: 22px;
+}
+
+.score > div {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(140, 150, 170, .18);
+}
+
+.score i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+
+.historyNotice {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+@media (max-width: 1050px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspaceHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .scoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.knowledgePanel {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid rgba(209, 163, 63, .25);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top right, rgba(209, 163, 63, .07), transparent 38%),
+    linear-gradient(160deg, rgba(21, 25, 34, .98), rgba(13, 16, 22, .98));
+}
+
+.knowledgeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.knowledgeHeader h3 {
+  margin: 6px 0 0;
+  font-size: 16px;
+}
+
+.knowledgeHeader > span {
+  padding: 5px 9px;
+  border: 1px solid rgba(209, 163, 63, .28);
+  border-radius: 999px;
+  background: rgba(209, 163, 63, .08);
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.sourceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.sourceGrid article {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7, 9, 13, .4);
+}
+
+.sourceGrid strong {
+  color: var(--text);
+  font-size: 9px;
+}
+
+.sourceGrid p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .sourceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .sourceGrid {
+    grid-template-columns: 1fr;
+  }
+}

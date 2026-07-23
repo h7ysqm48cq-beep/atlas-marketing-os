@@ -1,0 +1,444 @@
+.page {
+  display: grid;
+  gap: 22px;
+}
+
+.hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold-light) !important;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 780px;
+  margin: 6px 0 11px;
+}
+
+.hero p:last-child {
+  max-width: 730px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.primaryButton {
+  min-height: 43px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  font-weight: 850;
+}
+
+.primaryButton:disabled {
+  opacity: .58;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  display: grid;
+  gap: 5px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(21,25,34,.97), rgba(13,16,22,.97));
+}
+
+.statCard span {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.statCard strong {
+  color: var(--gold-light);
+  font-size: 25px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px auto;
+  gap: 10px;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button,
+.field input,
+.field textarea,
+.field select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(8,10,15,.48);
+  color: var(--text);
+  outline: none;
+}
+
+.toolbar input {
+  min-height: 42px;
+  padding: 0 13px;
+}
+
+.toolbar select,
+.toolbar button {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.toolbar button {
+  font-weight: 750;
+}
+
+.toolbar input:focus,
+.toolbar select:focus,
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: rgba(209,163,63,.52);
+  box-shadow: 0 0 0 3px rgba(209,163,63,.08);
+}
+
+.statusMessage {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.campaignGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: grid;
+  gap: 15px;
+  min-height: 330px;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(209,163,63,.06), transparent 34%),
+    linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+  box-shadow: var(--shadow);
+}
+
+.card:hover {
+  border-color: rgba(209,163,63,.36);
+  transform: translateY(-2px);
+  transition: .18s ease;
+}
+
+.cardTop,
+.cardFooter,
+.dateRange {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.statusACTIVE {
+  color: #9ee8be;
+  background: rgba(62,185,115,.12);
+  border: 1px solid rgba(62,185,115,.22);
+}
+
+.statusDRAFT {
+  color: #b8c1d0;
+  background: rgba(150,160,180,.1);
+  border: 1px solid rgba(150,160,180,.18);
+}
+
+.statusPAUSED {
+  color: #f1ce7c;
+  background: rgba(218,168,52,.11);
+  border: 1px solid rgba(218,168,52,.22);
+}
+
+.statusCOMPLETED {
+  color: #9fbaff;
+  background: rgba(90,130,220,.12);
+  border: 1px solid rgba(90,130,220,.22);
+}
+
+.statusARCHIVED {
+  color: #c1a4d9;
+  background: rgba(130,83,168,.12);
+  border: 1px solid rgba(130,83,168,.22);
+}
+
+.brandName {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.description {
+  min-height: 52px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.objective {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(8,10,15,.34);
+}
+
+.objective span,
+.dateRange span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.objective strong,
+.dateRange strong {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.dateRange > div {
+  display: grid;
+  gap: 4px;
+}
+
+.cardFooter {
+  margin-top: auto;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.cardFooter small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.cardFooter > div {
+  display: flex;
+  gap: 7px;
+}
+
+.cardFooter button,
+.emptyState button,
+.modalHeader button,
+.modalActions button {
+  min-height: 35px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(8,10,15,.4);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.deleteButton {
+  color: #ffabab !important;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  min-height: 340px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  padding: 30px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.emptyState > span {
+  color: var(--gold-light);
+  font-size: 32px;
+}
+
+.emptyState strong {
+  color: var(--text);
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 11px;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(2,4,7,.78);
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid rgba(209,163,63,.28);
+  border-radius: 17px;
+  background: linear-gradient(160deg, #171b24, #0d1016);
+  box-shadow: 0 28px 80px rgba(0,0,0,.55);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalHeader span {
+  color: var(--gold-light);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.modalHeader h2 {
+  margin: 7px 0 0;
+}
+
+.modalHeader button {
+  width: 36px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.modal form {
+  display: grid;
+  gap: 14px;
+  margin-top: 17px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.field input,
+.field select {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.field textarea {
+  min-height: 92px;
+  resize: vertical;
+  padding: 11px;
+  line-height: 1.55;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 5px;
+}
+
+.modalActions .primaryButton {
+  border: 0;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  opacity: 1;
+}
+
+@media (max-width: 1100px) {
+  .campaignGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero .primaryButton {
+    align-self: start;
+  }
+
+  .statsGrid,
+  .campaignGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.modalActions .primaryButton {
+  border: 0;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  opacity: 1;
+}

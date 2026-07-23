@@ -43,6 +43,16 @@ type GeneratedOutputs = GeneratedContent & {
     title: string;
   };
   historyId: string;
+  promptChain: {
+    loadedSourceCount: number;
+    totalSourceCount: number;
+    sources: Array<{
+      key: string;
+      label: string;
+      loaded: boolean;
+      summary: string;
+    }>;
+  };
 };
 
 @Injectable()
@@ -199,6 +209,11 @@ export class AiService {
             }
           : undefined,
         historyId: history.id,
+        promptChain: {
+          loadedSourceCount: promptChain.loadedSourceCount,
+          totalSourceCount: promptChain.totalSourceCount,
+          sources: promptChain.sources,
+        },
       };
     } catch (error) {
       const message =

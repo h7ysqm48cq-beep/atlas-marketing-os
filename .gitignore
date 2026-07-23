@@ -41,3 +41,6 @@ pnpm-debug.log*
 # Prisma local databases
 *.db
 *.db-journal
+
+# Local generated assets
+apps/api/storage/

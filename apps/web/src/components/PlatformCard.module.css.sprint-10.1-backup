@@ -1,0 +1,225 @@
+.card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, .98),
+    rgba(13, 16, 22, .98)
+  );
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.titleRow,
+.headerActions,
+.toolbar,
+.compareHeader,
+.versionHeader,
+.versionList article > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score,
+.versionCount {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+}
+
+.score {
+  border: 1px solid rgba(209, 163, 63, .24);
+  color: var(--gold-light);
+}
+
+.versionCount {
+  background: rgba(124, 167, 255, .1);
+  color: #abc1ee;
+}
+
+.headerActions button,
+.toolbar button,
+.compareHeader button,
+.versionHeader button,
+.versionList article > button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, .42);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.toolbar {
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar button:first-child {
+  color: var(--gold-light);
+}
+
+.toolbar button:disabled {
+  opacity: .5;
+}
+
+.content {
+  width: 100%;
+  min-height: 230px;
+  padding: 15px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.75;
+}
+
+.compare,
+.versionPanel {
+  margin: 0 14px 14px;
+  overflow: hidden;
+  border: 1px solid rgba(209, 163, 63, .28);
+  border-radius: 12px;
+  background: rgba(209, 163, 63, .045);
+}
+
+.compareHeader,
+.versionHeader {
+  justify-content: space-between;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.compareHeader > div:first-child,
+.versionHeader > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.compareHeader span,
+.versionHeader span {
+  color: var(--gold-light);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.compareHeader strong,
+.versionHeader strong {
+  font-size: 10px;
+}
+
+.compareHeader > div:last-child {
+  display: flex;
+  gap: 7px;
+}
+
+.compareHeader button:first-child {
+  border: 0;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+}
+
+.compare textarea {
+  width: 100%;
+  min-height: 190px;
+  padding: 13px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.75;
+}
+
+.versionList {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+}
+
+.versionList article {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .4);
+}
+
+.versionList article > div {
+  flex-wrap: wrap;
+}
+
+.versionList article > div strong {
+  color: var(--gold-light);
+}
+
+.versionList article > div span {
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgba(124, 167, 255, .1);
+  color: #abc1ee;
+  font-size: 8px;
+}
+
+.versionList article > div small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.versionList article p {
+  max-height: 100px;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  white-space: pre-wrap;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.versionList article > button {
+  justify-self: start;
+}
+
+.emptyVersion {
+  margin: 0;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+@media (max-width: 720px) {
+  .header,
+  .compareHeader,
+  .versionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .headerActions {
+    align-self: flex-start;
+  }
+}

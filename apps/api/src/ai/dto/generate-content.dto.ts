@@ -1,4 +1,9 @@
-import { IsArray, IsIn, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class GenerateContentDto {
   @IsString()
@@ -10,10 +15,18 @@ export class GenerateContentDto {
   platforms!: string[];
 
   @IsString()
-  @IsIn(['Nostalgia', 'Funny', 'Motivation', 'Lifestyle', 'Soft Sell'])
+  @IsNotEmpty()
   style!: string;
 
   @IsString()
-  @IsIn(['Chinese', 'English', 'Bilingual'])
+  @IsNotEmpty()
   language!: string;
+
+  @IsString()
+  @IsOptional()
+  campaignId?: string;
+
+  @IsString()
+  @IsOptional()
+  ideaId?: string;
 }

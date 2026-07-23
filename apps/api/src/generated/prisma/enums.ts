@@ -26,3 +26,35 @@ export const CampaignStatus = {
 } as const
 
 export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]
+
+
+export const CampaignIdeaStatus = {
+  PLANNED: 'PLANNED',
+  GENERATED: 'GENERATED',
+  APPROVED: 'APPROVED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type CampaignIdeaStatus = (typeof CampaignIdeaStatus)[keyof typeof CampaignIdeaStatus]
+
+
+export const ContentStatus = {
+  DRAFT: 'DRAFT',
+  AI_IMPROVED: 'AI_IMPROVED',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  PUBLISHED: 'PUBLISHED'
+} as const
+
+export type ContentStatus = (typeof ContentStatus)[keyof typeof ContentStatus]
+
+
+export const AssetType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  DOCUMENT: 'DOCUMENT',
+  TEMPLATE: 'TEMPLATE'
+} as const
+
+export type AssetType = (typeof AssetType)[keyof typeof AssetType]

@@ -1,0 +1,147 @@
+.panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid rgba(209,163,63,.25);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top right, rgba(209,163,63,.07), transparent 36%),
+    linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+}
+
+.header,
+.controls,
+.result,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header {
+  justify-content: space-between;
+}
+
+.header span,
+.result > div > span,
+.controls label > span {
+  color: var(--gold-light);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.header h3,
+.result h3 {
+  margin: 5px 0 0;
+}
+
+.header > a,
+.actions a,
+.actions button {
+  min-height: 35px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7,9,13,.45);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.controls {
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.controls label {
+  min-width: 180px;
+  display: grid;
+  gap: 7px;
+}
+
+.controls select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7,9,13,.55);
+  color: var(--text);
+}
+
+.controls button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  font-weight: 850;
+}
+
+.controls button:disabled {
+  opacity: .48;
+}
+
+.message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.result {
+  align-items: stretch;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.result img {
+  width: min(280px, 38%);
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #090b10;
+}
+
+.result > div {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.result p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.actions {
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+@media (max-width: 760px) {
+  .header,
+  .result {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .controls label {
+    min-width: 0;
+  }
+
+  .result img {
+    width: 100%;
+  }
+}

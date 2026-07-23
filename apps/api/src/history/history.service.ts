@@ -1,10 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PrismaClient } from '../generated/prisma/client';
+import { ContentStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { UpdateFavoriteDto } from './dto/update-favorite.dto';
+import { UpdateHistoryStatusDto } from './dto/update-history-status.dto';
 
 type SaveGenerationInput = {
   brandId: string;
+  campaignId?: string;
+  ideaId?: string;
   topic: string;
   platforms: string[];
   style: string;
@@ -28,15 +31,11 @@ export class HistoryService {
           select: {
             id: true,
             name: true,
-            workspace: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
+            workspace: { select: { id: true, name: true, slug: true } },
           },
         },
+        campaign: { select: { id: true, name: true } },
+        idea: { select: { id: true, title: true, sortOrder: true } },
       },
     });
   }
@@ -45,11 +44,9 @@ export class HistoryService {
     const record = await this.prisma.generationHistory.findUnique({
       where: { id },
       include: {
-        brand: {
-          include: {
-            workspace: true,
-          },
-        },
+        brand: { include: { workspace: true } },
+        campaign: true,
+        idea: true,
       },
     });
 
@@ -64,6 +61,8 @@ export class HistoryService {
     return this.prisma.generationHistory.create({
       data: {
         brandId: input.brandId,
+        campaignId: input.campaignId,
+        ideaId: input.ideaId,
         topic: input.topic,
         platforms: input.platforms,
         style: input.style,
@@ -73,31 +72,46 @@ export class HistoryService {
         reels: input.reels,
         imagePrompt: input.imagePrompt,
         analysis: input.analysis as Prisma.InputJsonValue,
+        status: ContentStatus.DRAFT,
       },
     });
   }
 
   async updateFavorite(id: string, dto: UpdateFavoriteDto) {
     await this.get(id);
+    return this.prisma.generationHistory.update({
+      where: { id },
+      data: { isFavorite: dto.isFavorite },
+    });
+  }
+
+  async updateStatus(id: string, dto: UpdateHistoryStatusDto) {
+    await this.get(id);
+    const now = new Date();
 
     return this.prisma.generationHistory.update({
       where: { id },
       data: {
-        isFavorite: dto.isFavorite,
+        status: dto.status,
+        reviewNote: dto.reviewNote,
+        reviewedBy: dto.reviewedBy,
+        reviewedAt:
+          dto.status === ContentStatus.PENDING_REVIEW ||
+          dto.status === ContentStatus.APPROVED ||
+          dto.status === ContentStatus.REJECTED
+            ? now
+            : undefined,
+        approvedAt:
+          dto.status === ContentStatus.APPROVED ? now : undefined,
+        publishedAt:
+          dto.status === ContentStatus.PUBLISHED ? now : undefined,
       },
     });
   }
 
   async remove(id: string) {
     await this.get(id);
-
-    await this.prisma.generationHistory.delete({
-      where: { id },
-    });
-
-    return {
-      deleted: true,
-      id,
-    };
+    await this.prisma.generationHistory.delete({ where: { id } });
+    return { deleted: true, id };
   }
 }

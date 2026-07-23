@@ -1,115 +1,63 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import styles from "./AiStudio.module.css";
-
-type OutputKey = "facebook" | "telegram" | "reels" | "image";
-
-type Analysis = {
-  summary: string;
-  viralScore: number;
-  discussionScore: number;
-  shareabilityScore: number;
-  brandFitScore: number;
-  bestPostingTime: string;
-};
-
-type GeneratedPackage = {
-  facebook: string;
-  telegram: string;
-  reels: string;
-  image: string;
-  analysis: Analysis;
-};
-
-type ImageSize = "1024x1024" | "1536x1024" | "1024x1536";
-type ImageQuality = "low" | "medium" | "high";
-
-const defaultOutputs: Record<OutputKey, string> = {
-  facebook: "Generate a topic to create the Facebook post.",
-  telegram: "Generate a topic to create the Telegram post.",
-  reels: "Generate a topic to create the Reels script.",
-  image: "Generate a topic to create the image prompt.",
-};
-
-const defaultAnalysis: Analysis = {
-  summary: "Enter a topic and click Generate content.",
-  viralScore: 0,
-  discussionScore: 0,
-  shareabilityScore: 0,
-  brandFitScore: 0,
-  bestPostingTime: "—",
-};
-
-const tabs: { key: OutputKey; label: string }[] = [
-  { key: "facebook", label: "Facebook" },
-  { key: "telegram", label: "Telegram" },
-  { key: "reels", label: "Reels Script" },
-  { key: "image", label: "Image Studio" },
-];
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export function AiStudio() {
-  const [topic, setTopic] = useState("港剧怀旧");
-  const [platforms, setPlatforms] = useState([
+  const [topic, setTopic] = useState("");
+  const [style, setStyle] = useState("Nostalgia");
+  const [language, setLanguage] = useState("Chinese");
+  const [platforms] = useState([
     "Facebook",
     "Telegram",
     "Reels",
     "Image Prompt",
   ]);
-  const [style, setStyle] = useState("Nostalgia");
-  const [language, setLanguage] = useState("Chinese");
-  const [activeTab, setActiveTab] = useState<OutputKey>("facebook");
-  const [outputs, setOutputs] =
-    useState<Record<OutputKey, string>>(defaultOutputs);
-  const [analysis, setAnalysis] = useState<Analysis>(defaultAnalysis);
+  const [campaignId, setCampaignId] = useState("");
+  const [ideaId, setIdeaId] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [ideaTitle, setIdeaTitle] = useState("");
+  const [result, setResult] = useState<WorkspaceResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [imageDataUrl, setImageDataUrl] = useState("");
-  const [imageSize, setImageSize] = useState<ImageSize>("1024x1536");
-  const [imageQuality, setImageQuality] =
-    useState<ImageQuality>("low");
-  const [error, setError] = useState("");
-  const [imageError, setImageError] = useState("");
-  const [history, setHistory] = useState<string[]>([]);
-
-  const scores = useMemo(
-    () => [
-      ["Viral Score", analysis.viralScore],
-      ["Discussion", analysis.discussionScore],
-      ["Shareability", analysis.shareabilityScore],
-      ["Brand Fit", analysis.brandFitScore],
-    ],
-    [analysis],
+  const [message, setMessage] = useState(
+    "Enter a topic and click Generate content.",
   );
 
-  function togglePlatform(platform: string) {
-    setPlatforms((current) =>
-      current.includes(platform)
-        ? current.filter((item) => item !== platform)
-        : [...current, platform],
-    );
-  }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const topicParam = params.get("topic") || "";
+    const styleParam = params.get("style") || "";
+    const languageParam = params.get("language") || "";
+    const campaignParam = params.get("campaignId") || "";
+    const ideaParam = params.get("ideaId") || "";
+    const campaignNameParam = params.get("campaignName") || "";
+    const ideaTitleParam = params.get("ideaTitle") || "";
 
-  async function generate() {
-    const cleanTopic = topic.trim();
+    if (topicParam) setTopic(topicParam);
+    if (styleParam) setStyle(styleParam);
+    if (languageParam) setLanguage(languageParam);
+    if (campaignParam) setCampaignId(campaignParam);
+    if (ideaParam) setIdeaId(ideaParam);
+    if (campaignNameParam) setCampaignName(campaignNameParam);
+    if (ideaTitleParam) setIdeaTitle(ideaTitleParam);
 
-    if (!cleanTopic) {
-      setError("Please enter a topic.");
+    if (campaignParam || ideaParam) {
+      setMessage("Campaign context loaded. Ready to generate.");
+    }
+  }, []);
+
+  async function generateContent() {
+    if (!topic.trim()) {
+      setMessage("Topic is required.");
       return;
     }
 
-    if (platforms.length === 0) {
-      setError("Select at least one platform.");
-      return;
-    }
-
-    setError("");
-    setImageError("");
-    setImageDataUrl("");
     setIsGenerating(true);
+    setMessage("Reading Brand Brain and Campaign context...");
 
     try {
       const response = await fetch(`${API_BASE_URL}/ai/generate`, {
@@ -118,176 +66,90 @@ export function AiStudio() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          topic: cleanTopic,
+          topic: topic.trim(),
           platforms,
           style,
           language,
+          campaignId: campaignId || undefined,
+          ideaId: ideaId || undefined,
         }),
       });
 
-      const data = (await response.json()) as
-        | GeneratedPackage
-        | { message?: string | string[] };
+      setMessage("Building platform-specific outputs...");
 
-      if (!response.ok) {
-        const message = "message" in data ? data.message : "Generation failed.";
+      const data = (await response.json()) as
+        | WorkspaceResult
+        | { message?: string };
+
+      if (!response.ok || !("facebook" in data)) {
         throw new Error(
-          Array.isArray(message)
-            ? message.join(", ")
-            : message || "Generation failed.",
+          "message" in data && data.message
+            ? data.message
+            : "Unable to generate content.",
         );
       }
 
-      const generated = data as GeneratedPackage;
-
-      setOutputs({
-        facebook: generated.facebook,
-        telegram: generated.telegram,
-        reels: generated.reels,
-        image: generated.image,
-      });
-      setAnalysis(generated.analysis);
-      setHistory((current) =>
-        [cleanTopic, ...current.filter((item) => item !== cleanTopic)].slice(
-          0,
-          6,
-        ),
+      setResult(data);
+      setMessage(
+        data.campaignUsed
+          ? `Workspace complete · Saved to ${data.campaignUsed.name}`
+          : "Workspace complete · Saved to Content History",
       );
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to connect to Atlas API.",
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to generate content.",
       );
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function generateImage() {
-    const prompt = outputs.image.trim();
-
-    if (!prompt || prompt.startsWith("Generate a topic")) {
-      setImageError("Generate the content package first.");
-      return;
-    }
-
-    setImageError("");
-    setIsGeneratingImage(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/images/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt,
-          size: imageSize,
-          quality: imageQuality,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        imageDataUrl?: string;
-        message?: string | string[];
-      };
-
-      if (!response.ok || !data.imageDataUrl) {
-        const message = data.message || "Image generation failed.";
-        throw new Error(
-          Array.isArray(message) ? message.join(", ") : message,
-        );
-      }
-
-      setImageDataUrl(data.imageDataUrl);
-    } catch (requestError) {
-      setImageError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to generate the image.",
-      );
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  }
-
-  async function copyOutput() {
-    await navigator.clipboard.writeText(outputs[activeTab]);
-  }
-
-  function downloadImage() {
-    if (!imageDataUrl) return;
-
-    const link = document.createElement("a");
-    const safeName =
-      topic.trim().replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-|-$/g, "") ||
-      "atlas-image";
-
-    link.href = imageDataUrl;
-    link.download = `${safeName}-${imageSize}.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
-
   return (
-    <div className={styles.studio}>
-      <section className={styles.heading}>
+    <div className={styles.page}>
+      <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Atlas AI Studio</p>
-          <h1>Turn one topic into a complete content package.</h1>
+          <p className={styles.eyebrow}>AI Studio</p>
+          <h1>Build a complete marketing workspace.</h1>
           <p>
-            Generate platform content and create a campaign-ready image from
-            the same workspace.
+            Generate, compare and manage every platform output without leaving
+            one unified workspace.
           </p>
         </div>
-        <div className={styles.version}>Sprint 2.3 · Live image</div>
+
+        {campaignId ? (
+          <div className={styles.contextCard}>
+            <span>Campaign context</span>
+            <strong>{campaignName || "Selected campaign"}</strong>
+            <small>{ideaTitle || topic || "Selected content idea"}</small>
+          </div>
+        ) : null}
       </section>
 
       <section className={styles.layout}>
-        <aside className={styles.controls}>
-          <div className={styles.section}>
-            <label className={styles.label} htmlFor="topic">
-              Topic
-            </label>
+        <aside className={styles.formCard}>
+          <label className={styles.field}>
+            <span>Topic</span>
             <textarea
-              id="topic"
-              className={styles.topicInput}
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
-              placeholder="例如：港剧怀旧、足球人生、马来西亚生活梗"
+              placeholder="Enter a content topic..."
             />
-          </div>
+          </label>
 
-          <div className={styles.section}>
-            <div className={styles.label}>Platform</div>
-            <div className={styles.chipGrid}>
-              {["Facebook", "Telegram", "Reels", "Image Prompt"].map(
-                (platform) => (
-                  <button
-                    key={platform}
-                    className={`${styles.chip} ${
-                      platforms.includes(platform) ? styles.selected : ""
-                    }`}
-                    onClick={() => togglePlatform(platform)}
-                    type="button"
-                  >
-                    {platforms.includes(platform) ? "✓ " : ""}
-                    {platform}
-                  </button>
-                ),
-              )}
+          <div className={styles.platforms}>
+            <span>Platforms</span>
+            <div>
+              {platforms.map((platform) => (
+                <button type="button" key={platform}>
+                  ✓ {platform}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className={styles.section}>
-            <label className={styles.label} htmlFor="style">
-              Style
-            </label>
+          <label className={styles.field}>
+            <span>Style</span>
             <select
-              id="style"
-              className={styles.select}
               value={style}
               onChange={(event) => setStyle(event.target.value)}
             >
@@ -296,16 +158,13 @@ export function AiStudio() {
               <option>Motivation</option>
               <option>Lifestyle</option>
               <option>Soft Sell</option>
+              <option>Educational</option>
             </select>
-          </div>
+          </label>
 
-          <div className={styles.section}>
-            <label className={styles.label} htmlFor="language">
-              Language
-            </label>
+          <label className={styles.field}>
+            <span>Language</span>
             <select
-              id="language"
-              className={styles.select}
               value={language}
               onChange={(event) => setLanguage(event.target.value)}
             >
@@ -313,213 +172,36 @@ export function AiStudio() {
               <option>English</option>
               <option>Bilingual</option>
             </select>
-          </div>
+          </label>
 
-          <div className={styles.section}>
-            <div className={styles.label}>Brand memory</div>
-            <div className={styles.brandMemory}>
-              <strong>MGMBETMYR</strong>
-              <span>
-                Black-gold · Natural · Discussion-led · No hard sell
-              </span>
+          {campaignId ? (
+            <div className={styles.linkedContext}>
+              <span>Linked workflow</span>
+              <strong>{campaignName || campaignId}</strong>
+              <small>{ideaTitle || ideaId || "Campaign-level generation"}</small>
             </div>
-          </div>
-
-          {error ? <div className={styles.errorBox}>{error}</div> : null}
+          ) : null}
 
           <button
             className={styles.generateButton}
-            onClick={generate}
+            onClick={() => void generateContent()}
             disabled={isGenerating}
           >
-            {isGenerating ? "Atlas is thinking..." : "✦ Generate content"}
+            {isGenerating ? "Generating workspace..." : "✦ Generate workspace"}
           </button>
+
+          <p className={styles.message}>{message}</p>
         </aside>
 
-        <div className={styles.workspace}>
-          <article className={styles.analysisCard}>
-            <div className={styles.cardHeading}>
-              <div>
-                <span className={styles.badge}>AI analysis</span>
-                <h2>{analysis.summary}</h2>
-              </div>
-              <div className={styles.scoreCircle}>
-                <strong>{analysis.viralScore}</strong>
-                <span>/100</span>
-              </div>
-            </div>
-
-            <p className={styles.analysisCopy}>
-              Recommended posting time:{" "}
-              <strong>{analysis.bestPostingTime}</strong>
-            </p>
-
-            <div className={styles.scoreGrid}>
-              {scores.map(([label, value]) => (
-                <div className={styles.scoreItem} key={label}>
-                  <div className={styles.scoreTop}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
-                  </div>
-                  <div className={styles.scoreBar}>
-                    <span style={{ width: `${value}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className={styles.outputCard}>
-            <div className={styles.outputHeader}>
-              <div>
-                <span className={styles.badge}>Generated workspace</span>
-                <h2>{topic || "Untitled topic"}</h2>
-              </div>
-              <button className={styles.copyButton} onClick={copyOutput}>
-                Copy output
-              </button>
-            </div>
-
-            <div className={styles.tabs}>
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  className={`${styles.tab} ${
-                    activeTab === tab.key ? styles.activeTab : ""
-                  }`}
-                  onClick={() => setActiveTab(tab.key)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab !== "image" ? (
-              <textarea
-                className={styles.outputEditor}
-                value={outputs[activeTab]}
-                onChange={(event) =>
-                  setOutputs((current) => ({
-                    ...current,
-                    [activeTab]: event.target.value,
-                  }))
-                }
-              />
-            ) : (
-              <div className={styles.imageStudio}>
-                <div className={styles.imagePromptSection}>
-                  <label className={styles.label} htmlFor="imagePrompt">
-                    Image prompt
-                  </label>
-                  <textarea
-                    id="imagePrompt"
-                    className={styles.outputEditor}
-                    value={outputs.image}
-                    onChange={(event) =>
-                      setOutputs((current) => ({
-                        ...current,
-                        image: event.target.value,
-                      }))
-                    }
-                  />
-
-                  <div className={styles.imageOptions}>
-                    <label>
-                      <span>Size</span>
-                      <select
-                        value={imageSize}
-                        onChange={(event) =>
-                          setImageSize(event.target.value as ImageSize)
-                        }
-                      >
-                        <option value="1024x1536">Portrait · 1024×1536</option>
-                        <option value="1024x1024">Square · 1024×1024</option>
-                        <option value="1536x1024">Landscape · 1536×1024</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <span>Quality</span>
-                      <select
-                        value={imageQuality}
-                        onChange={(event) =>
-                          setImageQuality(
-                            event.target.value as ImageQuality,
-                          )
-                        }
-                      >
-                        <option value="low">Low · Fast draft</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  {imageError ? (
-                    <div className={styles.errorBox}>{imageError}</div>
-                  ) : null}
-
-                  <button
-                    className={styles.generateImageButton}
-                    onClick={generateImage}
-                    disabled={isGeneratingImage}
-                  >
-                    {isGeneratingImage
-                      ? "Generating image..."
-                      : "◈ Generate image"}
-                  </button>
-                </div>
-
-                <div className={styles.imagePreview}>
-                  {imageDataUrl ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imageDataUrl} alt={`Generated visual for ${topic}`} />
-                      <button
-                        className={styles.downloadButton}
-                        onClick={downloadImage}
-                      >
-                        Download PNG
-                      </button>
-                    </>
-                  ) : (
-                    <div className={styles.imagePlaceholder}>
-                      <span>◈</span>
-                      <strong>Image preview</strong>
-                      <small>
-                        Generate the content package, then create the image.
-                      </small>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </article>
-        </div>
-
-        <aside className={styles.history}>
-          <div className={styles.historyHeading}>
-            <span className={styles.badge}>History</span>
-            <h2>Recent generations</h2>
-          </div>
-
-          <div className={styles.historyList}>
-            {history.length === 0 ? (
-              <p className={styles.emptyHistory}>No generations yet.</p>
-            ) : (
-              history.map((item, index) => (
-                <button
-                  key={`${item}-${index}`}
-                  className={styles.historyItem}
-                  onClick={() => setTopic(item)}
-                >
-                  <span>{item}</span>
-                  <small>{index === 0 ? "Just now" : "Earlier"}</small>
-                </button>
-              ))
-            )}
-          </div>
-        </aside>
+        <AiWorkspace
+          topic={topic}
+          result={result}
+          campaignId={campaignId || undefined}
+          isGenerating={isGenerating}
+          statusMessage={message}
+          onMessage={setMessage}
+	  onResultChange={setResult}
+        />
       </section>
     </div>
   );
