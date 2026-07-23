@@ -12,6 +12,8 @@ type AssetType =
   | "DOCUMENT"
   | "TEMPLATE";
 
+type AssetTypeFilter = AssetType | "ALL";
+
 type CampaignAsset = {
   id: string;
   name: string;
@@ -49,6 +51,14 @@ export function CampaignAssets({
     "Loading campaign assets...",
   );
 
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] =
+    useState<AssetTypeFilter>("ALL");
+  const [platformFilter, setPlatformFilter] =
+    useState("ALL");
+  const [favoritesOnly, setFavoritesOnly] =
+    useState(false);
+
   useEffect(() => {
     void loadAssets();
   }, [campaignId]);
@@ -62,14 +72,76 @@ export function CampaignAssets({
       videos: assets.filter(
         (asset) => asset.type === "VIDEO",
       ).length,
-      other: assets.filter(
-        (asset) =>
-          asset.type === "DOCUMENT" ||
-          asset.type === "TEMPLATE",
+      favorites: assets.filter(
+        (asset) => asset.isFavorite,
       ).length,
     }),
     [assets],
   );
+
+  const platforms = useMemo(() => {
+    return Array.from(
+      new Set(
+        assets
+          .map((asset) => asset.platform?.trim())
+          .filter(
+            (platform): platform is string =>
+              Boolean(platform),
+          ),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [assets]);
+
+  const filteredAssets = useMemo(() => {
+    const cleanSearch = search.trim().toLowerCase();
+
+    return assets.filter((asset) => {
+      const searchableText = [
+        asset.name,
+        asset.prompt,
+        asset.provider,
+        asset.platform,
+        asset.history?.topic,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch =
+        !cleanSearch ||
+        searchableText.includes(cleanSearch);
+
+      const matchesType =
+        typeFilter === "ALL" ||
+        asset.type === typeFilter;
+
+      const matchesPlatform =
+        platformFilter === "ALL" ||
+        asset.platform === platformFilter;
+
+      const matchesFavorite =
+        !favoritesOnly || asset.isFavorite;
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesPlatform &&
+        matchesFavorite
+      );
+    });
+  }, [
+    assets,
+    favoritesOnly,
+    platformFilter,
+    search,
+    typeFilter,
+  ]);
+
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    typeFilter !== "ALL" ||
+    platformFilter !== "ALL" ||
+    favoritesOnly;
 
   async function loadAssets() {
     setIsLoading(true);
@@ -110,6 +182,7 @@ export function CampaignAssets({
       );
     } catch (error) {
       setAssets([]);
+
       setMessage(
         error instanceof Error
           ? error.message
@@ -118,6 +191,82 @@ export function CampaignAssets({
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setTypeFilter("ALL");
+    setPlatformFilter("ALL");
+    setFavoritesOnly(false);
+  }
+
+  async function copyPrompt(asset: CampaignAsset) {
+    if (!asset.prompt) {
+      setMessage(`"${asset.name}" has no saved prompt.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(asset.prompt);
+      setMessage(`Prompt copied from "${asset.name}".`);
+    } catch {
+      setMessage("Unable to copy prompt.");
+    }
+  }
+
+  async function deleteAsset(asset: CampaignAsset) {
+    const confirmed = window.confirm(
+      `Delete "${asset.name}" from this campaign?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/assets/${asset.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to delete asset.");
+      }
+
+      setAssets((current) =>
+        current.filter((item) => item.id !== asset.id),
+      );
+
+      setMessage(`"${asset.name}" deleted.`);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete asset.",
+      );
+    }
+  }
+
+  function buildStudioHref(asset: CampaignAsset) {
+    const params = new URLSearchParams({
+      topic: asset.history?.topic || asset.name,
+      campaignId,
+      campaignName,
+    });
+
+    if (asset.history) {
+      params.set("historyId", asset.history.id);
+    }
+
+    if (asset.prompt) {
+      params.set("imagePrompt", asset.prompt);
+    }
+
+    if (asset.platform) {
+      params.set("platform", asset.platform);
+    }
+
+    return `/ai-studio?${params.toString()}`;
   }
 
   return (
@@ -131,30 +280,134 @@ export function CampaignAssets({
           <h2>Campaign Assets</h2>
 
           <p>
-            View images, videos, documents and templates belonging
-            specifically to this campaign.
+            Search and organise images, videos, documents and
+            templates belonging specifically to this campaign.
           </p>
         </div>
 
         <div className={styles.campaignMeta}>
           <span>{campaignName}</span>
+
           <strong>
-            {isLoading ? "Loading" : `${assets.length} assets`}
+            {isLoading
+              ? "Loading"
+              : `${filteredAssets.length}/${assets.length} assets`}
           </strong>
         </div>
       </header>
 
       <section className={styles.stats}>
-        <AssetStat label="Total assets" value={stats.total} />
-        <AssetStat label="Images" value={stats.images} />
-        <AssetStat label="Videos" value={stats.videos} />
-        <AssetStat label="Other files" value={stats.other} />
+        <AssetStat
+          label="Total assets"
+          value={stats.total}
+        />
+
+        <AssetStat
+          label="Images"
+          value={stats.images}
+        />
+
+        <AssetStat
+          label="Videos"
+          value={stats.videos}
+        />
+
+        <AssetStat
+          label="Favorites"
+          value={stats.favorites}
+        />
+      </section>
+
+      <section className={styles.filterPanel}>
+        <div className={styles.searchField}>
+          <span>Search assets</span>
+
+          <input
+            type="search"
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+            placeholder="Search name, prompt, provider or topic..."
+          />
+        </div>
+
+        <label className={styles.filterField}>
+          <span>Type</span>
+
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(
+                event.target.value as AssetTypeFilter,
+              )
+            }
+          >
+            <option value="ALL">All types</option>
+            <option value="IMAGE">Images</option>
+            <option value="VIDEO">Videos</option>
+            <option value="DOCUMENT">Documents</option>
+            <option value="TEMPLATE">Templates</option>
+          </select>
+        </label>
+
+        <label className={styles.filterField}>
+          <span>Platform</span>
+
+          <select
+            value={platformFilter}
+            onChange={(event) =>
+              setPlatformFilter(event.target.value)
+            }
+          >
+            <option value="ALL">All platforms</option>
+
+            {platforms.map((platform) => (
+              <option
+                key={platform}
+                value={platform}
+              >
+                {platform}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className={
+            favoritesOnly
+              ? styles.activeFavoriteFilter
+              : styles.favoriteFilter
+          }
+          onClick={() =>
+            setFavoritesOnly((current) => !current)
+          }
+        >
+          ★ Favorites
+        </button>
+
+        <button
+          type="button"
+          className={styles.clearButton}
+          disabled={!hasActiveFilters}
+          onClick={clearFilters}
+        >
+          Clear
+        </button>
       </section>
 
       <section className={styles.toolbar}>
         <div>
           <span>Campaign library</span>
-          <strong>{message}</strong>
+
+          <strong>
+            {hasActiveFilters
+              ? `${filteredAssets.length} matching asset${
+                  filteredAssets.length === 1 ? "" : "s"
+                }`
+              : message}
+          </strong>
         </div>
 
         <div className={styles.toolbarActions}>
@@ -179,10 +432,12 @@ export function CampaignAssets({
       {isLoading ? (
         <section className={styles.loadingState}>
           <span className={styles.spinner} />
+
           <strong>Loading campaign assets</strong>
+
           <p>
-            Atlas is retrieving the creative files connected to this
-            campaign.
+            Atlas is retrieving the creative files connected to
+            this campaign.
           </p>
         </section>
       ) : assets.length === 0 ? (
@@ -200,10 +455,31 @@ export function CampaignAssets({
             Add an asset in Asset Library
           </a>
         </section>
+      ) : filteredAssets.length === 0 ? (
+        <section className={styles.emptyState}>
+          <span>⌕</span>
+
+          <h3>No matching campaign assets</h3>
+
+          <p>
+            No assets match the current search and filter
+            combination.
+          </p>
+
+          <button
+            type="button"
+            onClick={clearFilters}
+          >
+            Clear all filters
+          </button>
+        </section>
       ) : (
         <section className={styles.assetGrid}>
-          {assets.map((asset) => (
-            <article className={styles.assetCard} key={asset.id}>
+          {filteredAssets.map((asset) => (
+            <article
+              className={styles.assetCard}
+              key={asset.id}
+            >
               <div className={styles.preview}>
                 {asset.type === "IMAGE" ? (
                   <img
@@ -226,8 +502,10 @@ export function CampaignAssets({
               <div className={styles.assetBody}>
                 <div className={styles.assetMeta}>
                   <span>{asset.type}</span>
+
                   <small>
-                    {asset.provider || "Unknown provider"}
+                    {asset.provider ||
+                      "Unknown provider"}
                   </small>
                 </div>
 
@@ -249,13 +527,49 @@ export function CampaignAssets({
                   </span>
                 </div>
 
-                <a
-                  href={asset.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open asset
-                </a>
+                <div className={styles.workflowActions}>
+                  <a
+                    href={asset.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View
+                  </a>
+
+                  <a href={asset.url} download>
+                    Download
+                  </a>
+
+                  {asset.history ? (
+                    <a
+                      href={`/content-history?historyId=${encodeURIComponent(
+                        asset.history.id,
+                      )}`}
+                    >
+                      History
+                    </a>
+                  ) : null}
+
+                  <a href={buildStudioHref(asset)}>
+                    AI Studio
+                  </a>
+
+                  <button
+                    type="button"
+                    disabled={!asset.prompt}
+                    onClick={() => void copyPrompt(asset)}
+                  >
+                    Copy prompt
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.deleteAction}
+                    onClick={() => void deleteAsset(asset)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </article>
           ))}

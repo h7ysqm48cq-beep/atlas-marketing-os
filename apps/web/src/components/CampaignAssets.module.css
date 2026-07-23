@@ -439,3 +439,149 @@
     transform: none;
   }
 }
+
+.filterPanel {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.7fr)
+    minmax(130px, .7fr)
+    minmax(140px, .8fr)
+    auto
+    auto;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(13, 16, 22, .96);
+}
+
+.searchField,
+.filterField {
+  display: grid;
+  gap: 6px;
+}
+
+.searchField span,
+.filterField span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.searchField input,
+.filterField select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(7, 9, 13, .45);
+  color: var(--text);
+  font-size: 8px;
+}
+
+.searchField input:focus,
+.filterField select:focus {
+  border-color: rgba(209, 163, 63, .34);
+}
+
+.favoriteFilter,
+.activeFavoriteFilter,
+.clearButton,
+.emptyState button {
+  min-height: 38px;
+  align-self: end;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, .42);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.activeFavoriteFilter {
+  border-color: rgba(209, 163, 63, .34);
+  background: rgba(209, 163, 63, .09);
+  color: var(--gold-light);
+}
+
+.clearButton:disabled {
+  cursor: default;
+  opacity: .4;
+}
+
+.favoriteFilter:hover,
+.clearButton:not(:disabled):hover,
+.emptyState button:hover {
+  border-color: rgba(209, 163, 63, .3);
+  color: var(--gold-light);
+}
+
+@media (max-width: 1050px) {
+  .filterPanel {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .filterPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .favoriteFilter,
+  .activeFavoriteFilter,
+  .clearButton {
+    align-self: stretch;
+  }
+}
+
+.workflowActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.workflowActions a,
+.workflowActions button {
+  display: grid;
+  min-height: 32px;
+  padding: 0 8px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(7, 9, 13, .48);
+  color: var(--text);
+  font-size: 7px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.workflowActions a:hover,
+.workflowActions button:not(:disabled):hover {
+  border-color: rgba(209, 163, 63, .36);
+  background: rgba(209, 163, 63, .07);
+  color: var(--gold-light);
+}
+
+.workflowActions button:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+
+.workflowActions .deleteAction {
+  border-color: rgba(255, 120, 120, .2);
+  color: #ffaaaa;
+}
+
+@media (max-width: 720px) {
+  .workflowActions {
+    grid-template-columns: 1fr;
+  }
+}
