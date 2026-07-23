@@ -243,6 +243,41 @@ export function AssetLibrary() {
     setMessage("Asset deleted.");
   }
 
+  async function copyPrompt(asset: Asset) {
+    if (!asset.prompt) {
+      setMessage(`"${asset.name}" has no saved prompt.`);
+      return;
+    }
+
+    await navigator.clipboard.writeText(asset.prompt);
+    setMessage(`Prompt copied from "${asset.name}".`);
+  }
+
+  function buildStudioHref(asset: Asset) {
+    const params = new URLSearchParams({
+      topic: asset.history?.topic || asset.name,
+    });
+
+    if (asset.prompt) {
+      params.set("imagePrompt", asset.prompt);
+    }
+
+    if (asset.platform) {
+      params.set("platform", asset.platform);
+    }
+
+    if (asset.campaign) {
+      params.set("campaignId", asset.campaign.id);
+      params.set("campaignName", asset.campaign.name);
+    }
+
+    if (asset.history) {
+      params.set("historyId", asset.history.id);
+    }
+
+    return `/ai-studio?${params.toString()}`;
+  }
+
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
@@ -368,7 +403,7 @@ export function AssetLibrary() {
 
                 <div className={styles.cardFooter}>
                   <small>{formatDate(asset.createdAt)}</small>
-                  <div>
+                  <div className={styles.workflowActions}>
                     <a
                       href={asset.url}
                       target="_blank"
@@ -376,9 +411,43 @@ export function AssetLibrary() {
                     >
                       View
                     </a>
+
                     <a href={asset.url} download>
                       Download
                     </a>
+
+                    {asset.campaign ? (
+                      <a
+                        href={`/campaigns/${encodeURIComponent(
+                          asset.campaign.id,
+                        )}?tab=assets`}
+                      >
+                        Campaign
+                      </a>
+                    ) : null}
+
+                    {asset.history ? (
+                      <a
+                        href={`/content-history?historyId=${encodeURIComponent(
+                          asset.history.id,
+                        )}`}
+                      >
+                        History
+                      </a>
+                    ) : null}
+
+                    <a href={buildStudioHref(asset)}>
+                      AI Studio
+                    </a>
+
+                    <button
+                      type="button"
+                      disabled={!asset.prompt}
+                      onClick={() => void copyPrompt(asset)}
+                    >
+                      Copy prompt
+                    </button>
+
                     <button
                       className={styles.deleteButton}
                       onClick={() => void deleteAsset(asset)}

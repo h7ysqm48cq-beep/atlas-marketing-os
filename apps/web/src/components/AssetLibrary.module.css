@@ -404,3 +404,47 @@
     flex-direction: column;
   }
 }
+
+.workflowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.workflowActions a,
+.workflowActions button {
+  display: grid;
+  min-height: 31px;
+  padding: 0 9px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(7, 9, 13, .5);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 780;
+  text-decoration: none;
+}
+
+.workflowActions a:hover,
+.workflowActions button:not(:disabled):hover {
+  border-color: rgba(209, 163, 63, .36);
+  color: var(--gold-light);
+  background: rgba(209, 163, 63, .07);
+}
+
+.workflowActions button:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
+
+.workflowActions .deleteButton {
+  color: #ffaaaa;
+}
+
+@media (max-width: 720px) {
+  .workflowActions {
+    justify-content: flex-start;
+  }
+}
