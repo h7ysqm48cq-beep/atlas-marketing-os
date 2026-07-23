@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { CampaignStrategy } from "./CampaignStrategy";
 import styles from "./CampaignPlanner.module.css";
 
 type Campaign = {
@@ -33,6 +34,7 @@ const API_BASE_URL =
 
 export function CampaignPlanner({ campaignId }: { campaignId: string }) {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [activeTab, setActiveTab] = useState<"strategy" | "ideas">("ideas");
   const [ideas, setIdeas] = useState<CampaignIdea[]>([]);
   const [count, setCount] = useState(10);
   const [direction, setDirection] = useState(
@@ -181,6 +183,35 @@ export function CampaignPlanner({ campaignId }: { campaignId: string }) {
         </div>
       </section>
 
+      <nav className={styles.workspaceTabs}>
+        <button
+          type="button"
+          className={activeTab === "strategy" ? styles.activeWorkspaceTab : ""}
+          onClick={() => setActiveTab("strategy")}
+        >
+          Strategy
+        </button>
+
+        <button
+          type="button"
+          className={activeTab === "ideas" ? styles.activeWorkspaceTab : ""}
+          onClick={() => setActiveTab("ideas")}
+        >
+          Ideas
+          <span>{ideas.length}</span>
+        </button>
+      </nav>
+
+      {activeTab === "strategy" && campaign ? (
+        <CampaignStrategy
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+          objective={campaign.objective}
+        />
+      ) : null}
+
+      {activeTab === "ideas" ? (
+
       <section className={styles.layout}>
         <form className={styles.plannerCard} onSubmit={generatePlan}>
           <div className={styles.cardHeading}>
@@ -314,6 +345,7 @@ export function CampaignPlanner({ campaignId }: { campaignId: string }) {
           )}
         </section>
       </section>
+      ) : null}
     </div>
   );
 }

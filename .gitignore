@@ -48,3 +48,7 @@ apps/api/storage/
 # Local sprint backups
 *.sprint-*-backup
 *.sprint-*-backup.*
+
+# Local development backups
+*broken-backup*
+*.concatenated-backup

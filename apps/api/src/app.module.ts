@@ -8,10 +8,12 @@ import { AssetsModule } from './assets/assets.module';
 import { BrandsModule } from './brands/brands.module';
 import { CampaignPlannerModule } from './campaign-planner/campaign-planner.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { CampaignStrategyModule } from './campaign-strategy/campaign-strategy.module';
 import { CopilotModule } from './copilot/copilot.module';
 import { DatabaseModule } from './database/database.module';
 import { HistoryModule } from './history/history.module';
 import { ImageModule } from './image/image.module';
+import { MemoryModule } from './memory/memory.module';
 import { RewriteModule } from './rewrite/rewrite.module';
 import { VersionsModule } from './versions/versions.module';
 
@@ -24,7 +26,9 @@ import { PromptChainModule } from './prompt-chain/prompt-chain.module';
     BrandsModule,
     CampaignsModule,
     CampaignPlannerModule,
+    CampaignStrategyModule,
     HistoryModule,
+    MemoryModule,
     AssetsModule,
     AssetImageModule,
     CopilotModule,

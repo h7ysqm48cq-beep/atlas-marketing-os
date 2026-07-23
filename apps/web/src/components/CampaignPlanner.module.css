@@ -307,3 +307,49 @@
     grid-template-columns: 1fr;
   }
 }
+
+.workspaceTabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(7, 9, 13, .42);
+}
+
+.workspaceTabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.workspaceTabs button:hover {
+  color: var(--text);
+}
+
+.workspaceTabs .activeWorkspaceTab {
+  border-color: rgba(209, 163, 63, .28);
+  background: rgba(209, 163, 63, .08);
+  color: var(--gold-light);
+}
+
+.workspaceTabs button span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(140, 150, 170, .12);
+  color: inherit;
+  font-size: 7px;
+}

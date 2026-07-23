@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { MemoryService } from '../memory/memory.service';
 import { PreviewPromptChainDto } from './dto/preview-prompt-chain.dto';
 
 type PromptSource = {
@@ -15,10 +16,12 @@ export class PromptChainService {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly prisma: PrismaService,
+    private readonly memoryService: MemoryService,
   ) {}
 
   async preview(dto: PreviewPromptChainDto) {
     const brand = await this.brandsService.getActiveBrand();
+    const memory = await this.memoryService.summary();
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -83,6 +86,14 @@ export class PromptChainService {
             : 'No brand rules configured',
       },
       {
+        key: 'memory',
+        label: 'Atlas Memory',
+        loaded: memory.learningSampleSize > 0,
+        summary: memory.learningSampleSize > 0
+          ? `${memory.preferredStyle || 'No style'} · ${memory.bestPlatform || 'No platform'} · ${memory.bestPostingTime || 'No time'}`
+          : 'No memory available',
+      },
+      {
         key: 'examples',
         label: 'Reference Posts',
         loaded: brand.examplePosts.length > 0,
@@ -119,6 +130,19 @@ export class PromptChainService {
       '',
       'CONTENT GOALS',
       brand.contentGoals,
+      '',
+      'ATLAS MEMORY',
+      `Preferred style: ${memory.preferredStyle || 'Not learned yet'}`,
+      `Preferred language: ${memory.preferredLanguage || 'Not learned yet'}`,
+      `Best platform: ${memory.bestPlatform || 'Not learned yet'}`,
+      `Best posting time: ${memory.bestPostingTime || 'Not learned yet'}`,
+      `Average viral score: ${memory.averageScores.viral}`,
+      `Average discussion score: ${memory.averageScores.discussion}`,
+      `Average shareability score: ${memory.averageScores.shareability}`,
+      `Average brand-fit score: ${memory.averageScores.brandFit}`,
+      memory.recommendations.length
+        ? memory.recommendations.map((item) => `- ${item}`).join('\n')
+        : '- No memory recommendations yet',
       '',
       'CAMPAIGN CONTEXT',
       campaign
