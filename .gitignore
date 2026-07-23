@@ -44,3 +44,7 @@ pnpm-debug.log*
 
 # Local generated assets
 apps/api/storage/
+
+# Local sprint backups
+*.sprint-*-backup
+*.sprint-*-backup.*
