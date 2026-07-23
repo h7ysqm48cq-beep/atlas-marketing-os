@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import styles from "./CampaignAssets.module.css";
+import { AssetDetailsDrawer } from "./campaign-assets/AssetDetailsDrawer";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -46,6 +47,8 @@ export function CampaignAssets({
   campaignName: string;
 }) {
   const [assets, setAssets] = useState<CampaignAsset[]>([]);
+  const [selectedAsset, setSelectedAsset] =
+    useState<CampaignAsset | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState(
     "Loading campaign assets...",
@@ -528,6 +531,13 @@ export function CampaignAssets({
                 </div>
 
                 <div className={styles.workflowActions}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAsset(asset)}
+                  >
+                    Details
+                  </button>
+
                   <a
                     href={asset.url}
                     target="_blank"
@@ -575,6 +585,15 @@ export function CampaignAssets({
           ))}
         </section>
       )}
+
+      {selectedAsset ? (
+        <AssetDetailsDrawer
+          asset={selectedAsset}
+          studioHref={buildStudioHref(selectedAsset)}
+          onClose={() => setSelectedAsset(null)}
+          onCopyPrompt={() => void copyPrompt(selectedAsset)}
+        />
+      ) : null}
     </section>
   );
 }
