@@ -82,6 +82,88 @@ export class KnowledgeService {
     });
   }
 
+  async findRelevant(input: {
+    topic: string;
+    platform?: string;
+    style?: string;
+    language?: string;
+    limit?: number;
+  }) {
+    const brand = await this.brandsService.getActiveBrand();
+
+    const terms = Array.from(
+      new Set(
+        [
+          input.topic,
+          input.platform,
+          input.style,
+          input.language,
+        ]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .flatMap((value) =>
+            value
+              .toLowerCase()
+              .split(/[^\p{L}\p{N}]+/u)
+              .map((term) => term.trim())
+              .filter((term) => term.length >= 2),
+          ),
+      ),
+    );
+
+    const documents =
+      await this.prisma.knowledgeDocument.findMany({
+        where: {
+          brandId: brand.id,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+
+    const scored = documents
+      .map((document) => {
+        const title = document.title.toLowerCase();
+        const category = document.category.toLowerCase();
+        const content = document.content.toLowerCase();
+        const tags = document.tags.map((tag) => tag.toLowerCase());
+
+        const score = terms.reduce((total, term) => {
+          let next = total;
+
+          if (title.includes(term)) next += 6;
+          if (category.includes(term)) next += 4;
+          if (tags.some((tag) => tag.includes(term))) next += 5;
+          if (content.includes(term)) next += 2;
+
+          return next;
+        }, 0);
+
+        return {
+          document,
+          score,
+        };
+      })
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+
+        return (
+          b.document.updatedAt.getTime() -
+          a.document.updatedAt.getTime()
+        );
+      });
+
+    const relevant = scored
+      .filter((item) => item.score > 0)
+      .slice(0, input.limit || 5)
+      .map((item) => item.document);
+
+    if (relevant.length > 0) {
+      return relevant;
+    }
+
+    return documents.slice(0, input.limit || 5);
+  }
+
   async findOne(id: string) {
     const brand = await this.brandsService.getActiveBrand();
 

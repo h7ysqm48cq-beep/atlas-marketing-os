@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryService } from '../memory/memory.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import { PreviewPromptChainDto } from './dto/preview-prompt-chain.dto';
 
 type PromptSource = {
@@ -17,11 +18,21 @@ export class PromptChainService {
     private readonly brandsService: BrandsService,
     private readonly prisma: PrismaService,
     private readonly memoryService: MemoryService,
+    private readonly knowledgeService: KnowledgeService,
   ) {}
 
   async preview(dto: PreviewPromptChainDto) {
     const brand = await this.brandsService.getActiveBrand();
     const memory = await this.memoryService.summary();
+
+    const knowledgeDocuments =
+      await this.knowledgeService.findRelevant({
+        topic: dto.topic,
+        platform: dto.platform,
+        style: dto.style,
+        language: dto.language,
+        limit: 5,
+      });
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -102,6 +113,15 @@ export class PromptChainService {
             ? `${brand.examplePosts.length} reference posts loaded`
             : 'No reference posts configured',
       },
+      {
+        key: 'knowledge',
+        label: 'Knowledge Library',
+        loaded: knowledgeDocuments.length > 0,
+        summary:
+          knowledgeDocuments.length > 0
+            ? `${knowledgeDocuments.length} relevant documents loaded`
+            : 'No relevant knowledge documents found',
+      },
     ];
 
     const mergedPrompt = [
@@ -180,6 +200,26 @@ export class PromptChainService {
             .map((post, index) => `${index + 1}. ${post}`)
             .join('\n')
         : 'No reference posts configured.',
+      '',
+      'RELEVANT KNOWLEDGE',
+      knowledgeDocuments.length
+        ? knowledgeDocuments
+            .map((document, index) => {
+              const cleanContent = document.content
+                .trim()
+                .slice(0, 2400);
+
+              return [
+                `${index + 1}. ${document.title}`,
+                `Category: ${document.category}`,
+                document.tags.length
+                  ? `Tags: ${document.tags.join(', ')}`
+                  : 'Tags: None',
+                cleanContent,
+              ].join('\n');
+            })
+            .join('\n\n')
+        : 'No relevant knowledge documents available.',
     ].join('\n');
 
     return {
