@@ -80,6 +80,7 @@ model Brand {
   updatedAt       DateTime            @updatedAt
 
   @@index([workspaceId])
+  knowledgeDocuments KnowledgeDocument[]
 }
 
 model Campaign {
@@ -201,5 +202,21 @@ model Asset {
   @@index([campaignId])
   @@index([historyId])
   @@index([type])
+  @@index([createdAt])
+}
+
+model KnowledgeDocument {
+  id        String   @id @default(cuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  title     String
+  category  String
+  content   String
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([category])
   @@index([createdAt])
 }

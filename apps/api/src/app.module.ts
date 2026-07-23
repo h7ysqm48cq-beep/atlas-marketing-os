@@ -14,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
 import { HistoryModule } from './history/history.module';
 import { ImageModule } from './image/image.module';
 import { MemoryModule } from './memory/memory.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 import { RewriteModule } from './rewrite/rewrite.module';
 import { VersionsModule } from './versions/versions.module';
 
@@ -29,6 +30,7 @@ import { PromptChainModule } from './prompt-chain/prompt-chain.module';
     CampaignStrategyModule,
     HistoryModule,
     MemoryModule,
+    KnowledgeModule,
     AssetsModule,
     AssetImageModule,
     CopilotModule,
