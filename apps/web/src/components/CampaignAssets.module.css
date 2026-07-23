@@ -4,17 +4,17 @@
 }
 
 .hero,
-.toolbar,
 .stat,
+.filters,
+.toolbar,
 .assetCard,
-.emptyState,
-.loadingState {
+.statePanel {
   border: 1px solid var(--border);
   background:
     radial-gradient(
       circle at top right,
-      rgba(209, 163, 63, .06),
-      transparent 32%
+      rgba(209, 163, 63, .055),
+      transparent 34%
     ),
     rgba(13, 16, 22, .96);
 }
@@ -22,7 +22,7 @@
 .hero {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: 22px;
   padding: 20px;
   border-radius: 15px;
 }
@@ -42,7 +42,7 @@
 }
 
 .hero p {
-  max-width: 620px;
+  max-width: 650px;
   margin: 0;
   color: var(--muted);
   font-size: 9px;
@@ -77,21 +77,79 @@
 .stat {
   display: grid;
   gap: 7px;
-  min-height: 88px;
+  min-height: 82px;
   padding: 12px;
   border-radius: 10px;
 }
 
-.stat span {
+.stat span,
+.filters label > span,
+.toolbar span {
   color: var(--muted);
   font-size: 7px;
   font-weight: 800;
+  letter-spacing: .05em;
   text-transform: uppercase;
 }
 
 .stat strong {
   color: var(--gold-light);
-  font-size: 22px;
+  font-size: 21px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 1.8fr)
+    minmax(130px, .7fr)
+    minmax(140px, .8fr)
+    auto
+    auto;
+  gap: 9px;
+  padding: 13px;
+  border-radius: 11px;
+}
+
+.filters label {
+  display: grid;
+  gap: 6px;
+}
+
+.filters input,
+.filters select,
+.filters button,
+.toolbar button,
+.toolbar a,
+.statePanel button,
+.statePanel a {
+  min-height: 37px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(7, 9, 13, .44);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.filters button {
+  align-self: end;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: rgba(209, 163, 63, .34);
+}
+
+.filters button:disabled {
+  opacity: .4;
+}
+
+.activeFilter {
+  border-color: rgba(209, 163, 63, .35) !important;
+  background: rgba(209, 163, 63, .09) !important;
+  color: var(--gold-light) !important;
 }
 
 .toolbar {
@@ -99,8 +157,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 13px;
+  padding: 12px;
   border-radius: 11px;
+}
+
+.toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .toolbar > div:first-child {
@@ -108,84 +172,56 @@
   gap: 5px;
 }
 
-.toolbar > div:first-child span {
-  color: var(--muted);
-  font-size: 7px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.toolbar > div:first-child strong {
+.toolbar strong {
   font-size: 8px;
 }
 
-.toolbarActions {
-  display: flex;
-  gap: 8px;
-}
-
-.toolbarActions button,
-.toolbarActions a,
-.emptyState a,
-.assetBody > a {
+.toolbar button,
+.toolbar a,
+.statePanel button,
+.statePanel a {
   display: grid;
-  min-height: 36px;
-  padding: 0 11px;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(7, 9, 13, .4);
-  color: var(--text);
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.toolbarActions button:hover,
-.toolbarActions a:hover,
-.emptyState a:hover,
-.assetBody > a:hover {
-  border-color: rgba(209, 163, 63, .3);
-  color: var(--gold-light);
-}
-
-.toolbarActions button:disabled {
-  cursor: wait;
-  opacity: .55;
 }
 
 .assetGrid {
   display: grid;
-  grid-template-columns: repeat(
-    3,
-    minmax(0, 1fr)
-  );
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
 }
 
 .assetCard {
+  min-width: 0;
   overflow: hidden;
-  border-radius: 13px;
+  border-radius: 12px;
   transition:
     transform .18s ease,
-    border-color .18s ease;
+    border-color .18s ease,
+    box-shadow .18s ease;
 }
 
 .assetCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(209, 163, 63, .25);
+  border-color: rgba(209, 163, 63, .28);
+  box-shadow: 0 13px 28px rgba(0, 0, 0, .18);
 }
 
 .preview {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: rgba(7, 9, 13, .6);
+  background: rgba(6, 8, 12, .7);
 }
 
 .preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform .22s ease;
+}
+
+.assetCard:hover .preview img {
+  transform: scale(1.025);
 }
 
 .filePreview {
@@ -193,42 +229,83 @@
   width: 100%;
   height: 100%;
   place-items: center;
-}
-
-.filePreview span {
   color: var(--gold-light);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 850;
   letter-spacing: .08em;
 }
 
-.favoriteBadge {
+.favoriteButton,
+.favoriteActive {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 8px;
+  right: 8px;
   display: grid;
-  width: 27px;
-  height: 27px;
+  width: 29px;
+  height: 29px;
+  padding: 0;
   place-items: center;
-  border: 1px solid rgba(209, 163, 63, .3);
+  border: 1px solid rgba(255, 255, 255, .15);
   border-radius: 50%;
-  background: rgba(7, 9, 13, .78);
-  color: var(--gold-light);
+  background: rgba(5, 7, 11, .78);
+  color: rgba(255, 255, 255, .54);
   font-size: 10px;
+}
+
+.favoriteActive {
+  border-color: rgba(209, 163, 63, .42);
+  color: var(--gold-light);
+}
+
+.previewActions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(7px);
+  transition:
+    opacity .18s ease,
+    transform .18s ease;
+}
+
+.assetCard:hover .previewActions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.previewActions a,
+.previewActions button {
+  display: grid;
+  flex: 1;
+  min-height: 31px;
+  padding: 0 8px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .17);
+  border-radius: 7px;
+  background: rgba(5, 7, 11, .86);
+  color: var(--text);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.previewActions button {
+  color: #ff9c9c;
 }
 
 .assetBody {
   display: grid;
-  gap: 9px;
-  padding: 13px;
+  gap: 8px;
+  padding: 11px;
 }
 
 .assetMeta,
-.assetDetails {
+.assetFooter {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 9px;
+  gap: 8px;
 }
 
 .assetMeta span {
@@ -238,66 +315,71 @@
 }
 
 .assetMeta small,
-.assetDetails span {
+.assetFooter span {
+  overflow: hidden;
   color: var(--muted);
   font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assetBody h3 {
+  overflow: hidden;
   margin: 0;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assetBody p {
   display: -webkit-box;
+  min-height: 37px;
   overflow: hidden;
   margin: 0;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 7px;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
 
-.assetBody > a {
-  margin-top: 2px;
+.assetFooter {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
-.emptyState,
-.loadingState {
+.statePanel {
   display: grid;
   justify-items: center;
-  padding: 58px 22px;
-  border-radius: 15px;
+  padding: 55px 20px;
+  border-radius: 14px;
   text-align: center;
 }
 
-.emptyState > span {
+.statePanel b {
   color: var(--gold-light);
-  font-size: 34px;
+  font-size: 28px;
 }
 
-.emptyState h3,
-.loadingState strong {
-  margin: 14px 0 7px;
+.statePanel h3 {
+  margin: 12px 0 6px;
 }
 
-.emptyState p,
-.loadingState p {
-  max-width: 520px;
+.statePanel p {
   margin: 0;
   color: var(--muted);
   font-size: 9px;
-  line-height: 1.65;
 }
 
-.emptyState a {
-  margin-top: 17px;
+.statePanel button,
+.statePanel a {
+  margin-top: 15px;
 }
 
 .spinner {
-  width: 26px;
-  height: 26px;
+  width: 25px;
+  height: 25px;
   border: 2px solid rgba(209, 163, 63, .16);
   border-top-color: var(--gold-light);
   border-radius: 50%;
@@ -310,12 +392,19 @@
   }
 }
 
-@media (max-width: 1050px) {
+@media (max-width: 1250px) {
   .assetGrid {
-    grid-template-columns: repeat(
-      2,
-      minmax(0, 1fr)
-    );
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .assetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -331,11 +420,22 @@
   }
 
   .stats,
+  .filters,
   .assetGrid {
     grid-template-columns: 1fr;
   }
 
-  .toolbarActions {
+  .filters button {
+    align-self: stretch;
+  }
+
+  .toolbar > div {
+    align-items: stretch;
     flex-direction: column;
+  }
+
+  .previewActions {
+    opacity: 1;
+    transform: none;
   }
 }
