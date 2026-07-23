@@ -19,10 +19,21 @@ export function BrandCopilot() {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/campaigns`).then((r) => r.json()).then((d) => Array.isArray(d) && setCampaigns(d)).catch(() => setStatus('Unable to load campaigns.'));
+    void fetch(`${API}/campaigns`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCampaigns(data);
+        }
+      })
+      .catch(() => {
+        setStatus('Unable to load campaigns.');
+      });
   }, []);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   async function send(event?: FormEvent) {
     event?.preventDefault();
