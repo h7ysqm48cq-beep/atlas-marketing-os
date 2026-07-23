@@ -338,3 +338,23 @@
 .reviewFields { display:grid; grid-template-columns:180px minmax(0,1fr); gap:10px; } .reviewFields label { display:grid; gap:7px; } .reviewFields input,.reviewFields textarea { width:100%; border:1px solid var(--border); border-radius:8px; background:#0b0f15; color:var(--text); padding:9px 10px; font:inherit; font-size:9px; outline:none; } .reviewFields textarea { min-height:72px; resize:vertical; }
 .workflowActions { display:flex; flex-wrap:wrap; gap:7px; } .workflowActions button { min-height:32px; border:1px solid var(--border); border-radius:8px; background:rgba(7,9,13,.5); color:var(--text); padding:0 9px; font-size:8px; font-weight:780; } .workflowActions .approveButton { color:#8fe0b5; border-color:rgba(77,190,134,.3); } .workflowActions .rejectButton { color:#ffaaaa; border-color:rgba(255,120,120,.28); } .workflowActions button:disabled { opacity:.45; cursor:not-allowed; }
 @media(max-width:680px){ .reviewFields { grid-template-columns:1fr; } }
+
+.actions a {
+  display: grid;
+  min-height: 40px;
+  padding: 0 12px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.actions a:hover {
+  border-color: rgba(209,163,63,.42);
+  background: var(--gold-soft);
+  color: var(--gold-light);
+}
