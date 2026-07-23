@@ -43,6 +43,18 @@ export function CampaignPlanner({
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+
+    if (
+      requestedTab === "overview" ||
+      requestedTab === "strategy" ||
+      requestedTab === "ideas" ||
+      requestedTab === "assets"
+    ) {
+      setActiveTab(requestedTab);
+    }
+
     void load();
   }, [campaignId]);
 
@@ -191,7 +203,13 @@ export function CampaignPlanner({
       <CampaignWorkspaceTabs
         activeTab={activeTab}
         ideaCount={ideas.length}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          setActiveTab(tab);
+
+          const url = new URL(window.location.href);
+          url.searchParams.set("tab", tab);
+          window.history.replaceState({}, "", url);
+        }}
       />
 
       {activeTab === "overview" && campaign ? (
