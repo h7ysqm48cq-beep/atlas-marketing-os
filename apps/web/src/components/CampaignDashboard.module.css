@@ -1,0 +1,431 @@
+.dashboard {
+  display: grid;
+  gap: 14px;
+}
+
+.hero,
+.panel,
+.metric {
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle at top right, rgba(209, 163, 63, .06), transparent 32%),
+    rgba(13, 16, 22, .96);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px;
+  border-radius: 15px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.hero h2,
+.panel h3 {
+  margin: 7px 0;
+}
+
+.hero > div > p:not(.eyebrow),
+.recommendation {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.65;
+}
+
+.heroDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.heroDetails > div {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .35);
+}
+
+.heroDetails span,
+.metric span,
+.signal span,
+.health span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.heroDetails strong {
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.health {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  min-width: 145px;
+  gap: 5px;
+}
+
+.health strong {
+  color: var(--gold-light);
+  font-size: 31px;
+}
+
+.health small {
+  color: #8fe0b5;
+  font-size: 8px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.metric {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 105px;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.metric strong {
+  color: var(--gold-light);
+  font-size: 21px;
+}
+
+.metric small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.panel {
+  padding: 17px;
+  border-radius: 14px;
+}
+
+.progressRow {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.progressRow > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+}
+
+.progressTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(140, 150, 170, .14);
+}
+
+.progressTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #668fdc, #b8caf0, var(--gold-light));
+}
+
+.recommendationMeta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 8px;
+}
+
+.recommendationMeta span {
+  color: var(--muted);
+}
+
+.recommendationMeta strong {
+  color: var(--gold-light);
+}
+
+.signalList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.signal {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .38);
+}
+
+.signal strong {
+  max-width: 65%;
+  font-size: 8px;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.quickActions button,
+.quickActions a,
+.dashboardFooter button {
+  display: grid;
+  min-height: 38px;
+  padding: 0 11px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .4);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.quickActions button:hover,
+.quickActions a:hover,
+.dashboardFooter button:hover {
+  border-color: rgba(209, 163, 63, .3);
+  color: var(--gold-light);
+}
+
+.dashboardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+@media (max-width: 1100px) {
+  .metricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .health {
+    justify-items: start;
+  }
+
+  .metricGrid,
+  .twoColumnGrid,
+  .quickActions {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardFooter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.intelligencePanel {
+  display: grid;
+  gap: 15px;
+  padding: 18px;
+  border: 1px solid rgba(124, 167, 255, .23);
+  border-radius: 15px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(124, 167, 255, .09),
+      transparent 31%
+    ),
+    rgba(13, 16, 22, .97);
+}
+
+.intelligenceHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.intelligenceHeading h3 {
+  margin: 7px 0;
+}
+
+.intelligenceHeading > div:first-child > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.intelligenceConfidence {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 125px;
+}
+
+.intelligenceConfidence span,
+.intelligenceMetric > span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.intelligenceConfidence strong {
+  color: var(--gold-light);
+  font-size: 24px;
+}
+
+.intelligenceConfidence small {
+  color: #8fe0b5;
+  font-size: 8px;
+}
+
+.intelligenceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.intelligenceMetric {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 118px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7, 9, 13, .42);
+}
+
+.intelligenceMetric strong {
+  color: var(--gold-light);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.intelligenceMetric b {
+  color: var(--text);
+  font-size: 10px;
+}
+
+.intelligenceMetric small {
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.intelligenceRecommendations {
+  display: grid;
+  gap: 10px;
+}
+
+.intelligenceRecommendationsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.intelligenceRecommendationsHeader h4 {
+  margin: 0;
+  font-size: 11px;
+}
+
+.intelligenceRecommendationsHeader span {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.intelligenceRecommendationGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.intelligenceRecommendationGrid article {
+  display: grid;
+  grid-template-columns: 23px minmax(0, 1fr);
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, .36);
+}
+
+.intelligenceRecommendationGrid article > span {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(124, 167, 255, .11);
+  color: #b8caf0;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.intelligenceRecommendationGrid p {
+  margin: 1px 0 0;
+  color: var(--text);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+@media (max-width: 950px) {
+  .intelligenceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .intelligenceHeading {
+    flex-direction: column;
+  }
+
+  .intelligenceConfidence {
+    justify-items: start;
+  }
+
+  .intelligenceGrid,
+  .intelligenceRecommendationGrid {
+    grid-template-columns: 1fr;
+  }
+}
