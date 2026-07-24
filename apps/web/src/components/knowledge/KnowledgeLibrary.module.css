@@ -282,3 +282,92 @@
     grid-template-columns: 1fr;
   }
 }
+
+.twoColumns {
+  grid-template-columns: minmax(0, 2fr) minmax(190px, 1fr);
+}
+
+.titleField,
+.categoryField {
+  min-width: 0;
+}
+
+.field input {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.field textarea {
+  min-height: min(52vh, 560px);
+}
+
+.editorMeta {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.documentMetrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deleteButton {
+  min-height: 40px;
+  opacity: .75;
+  font-size: 9px;
+}
+
+.deleteButton:hover {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .footerActions {
+    width: 100%;
+  }
+
+  .footerActions button {
+    flex: 1;
+  }
+}
+
+.documentMetrics {
+  flex-wrap: wrap;
+}
+
+.usageMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.usageMeta strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 7px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

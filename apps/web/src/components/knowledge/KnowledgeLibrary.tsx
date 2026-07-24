@@ -293,7 +293,7 @@ export function KnowledgeLibrary() {
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search knowledge..."
+          placeholder="Search title, category, tag or content..."
         />
 
         <select
@@ -350,6 +350,23 @@ export function KnowledgeLibrary() {
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
+
+                <div className={styles.documentMetrics}>
+                  <span>{document.tags.length} tags</span>
+                  <span>{countWords(document.content)} words</span>
+                  <span>
+                    Used {document.usageCount || 0} times
+                  </span>
+                </div>
+
+                <div className={styles.usageMeta}>
+                  <span>Last used</span>
+                  <strong>
+                    {document.lastUsedAt
+                      ? formatDateTime(document.lastUsedAt)
+                      : "Never"}
+                  </strong>
+                </div>
               </button>
             ))
           )}
@@ -372,21 +389,21 @@ export function KnowledgeLibrary() {
                     ? "Untitled knowledge document"
                     : "Select a document")}
               </h2>
-            </div>
 
-            {selected ? (
-              <button
-                className={styles.deleteButton}
-                type="button"
-                onClick={() => void remove()}
-              >
-                Delete
-              </button>
-            ) : null}
+              {selected ? (
+                <p className={styles.editorMeta}>
+                  {selected.category} ·{" "}
+                  {countWords(selected.content)} words · Updated{" "}
+                  {formatDate(selected.updatedAt)}
+                </p>
+              ) : null}
+            </div>
           </header>
 
           <div className={styles.twoColumns}>
-            <label className={styles.field}>
+            <label
+              className={`${styles.field} ${styles.titleField}`}
+            >
               <span>Title</span>
               <input
                 value={form.title}
@@ -397,7 +414,9 @@ export function KnowledgeLibrary() {
               />
             </label>
 
-            <label className={styles.field}>
+            <label
+              className={`${styles.field} ${styles.categoryField}`}
+            >
               <span>Category</span>
               <input
                 list="knowledge-categories"
@@ -443,28 +462,62 @@ export function KnowledgeLibrary() {
           <footer className={styles.editorFooter}>
             <span>
               {selected
-                ? `Updated ${formatDate(selected.updatedAt)}`
+                ? `${countWords(form.content)} words`
                 : "Not saved yet"}
             </span>
 
-            <button
-              className={styles.primaryButton}
-              type="submit"
-              disabled={
-                isSaving || (!selected && !isCreating)
-              }
-            >
-              {isSaving
-                ? "Saving..."
-                : selected
-                  ? "Save changes"
-                  : "Create document"}
-            </button>
+            <div className={styles.footerActions}>
+              {selected ? (
+                <button
+                  className={styles.deleteButton}
+                  type="button"
+                  onClick={() => void remove()}
+                >
+                  Delete
+                </button>
+              ) : null}
+
+              <button
+                className={styles.primaryButton}
+                type="submit"
+                disabled={
+                  isSaving || (!selected && !isCreating)
+                }
+              >
+                {isSaving
+                  ? "Saving..."
+                  : selected
+                    ? "Save changes"
+                    : "Create document"}
+              </button>
+            </div>
           </footer>
         </form>
       </section>
     </div>
   );
+}
+
+function countWords(value: string) {
+  const cleanValue = value.trim();
+
+  if (!cleanValue) return 0;
+
+  const latinWords =
+    cleanValue.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)
+      ?.length || 0;
+
+  const chineseCharacters =
+    cleanValue.match(/[\u3400-\u9fff]/g)?.length || 0;
+
+  return latinWords + chineseCharacters;
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function formatDate(value: string) {

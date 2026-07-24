@@ -164,6 +164,40 @@ export class KnowledgeService {
     return documents.slice(0, input.limit || 5);
   }
 
+  async recordUsage(documentIds: string[]) {
+    const uniqueIds = Array.from(
+      new Set(documentIds.filter(Boolean)),
+    );
+
+    if (uniqueIds.length === 0) {
+      return {
+        updated: 0,
+      };
+    }
+
+    const brand = await this.brandsService.getActiveBrand();
+
+    const result =
+      await this.prisma.knowledgeDocument.updateMany({
+        where: {
+          id: {
+            in: uniqueIds,
+          },
+          brandId: brand.id,
+        },
+        data: {
+          usageCount: {
+            increment: 1,
+          },
+          lastUsedAt: new Date(),
+        },
+      });
+
+    return {
+      updated: result.count,
+    };
+  }
+
   async findOne(id: string) {
     const brand = await this.brandsService.getActiveBrand();
 

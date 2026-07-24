@@ -212,9 +212,11 @@ model KnowledgeDocument {
   title     String
   category  String
   content   String
-  tags      String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  tags       String[]
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([brandId])
   @@index([category])

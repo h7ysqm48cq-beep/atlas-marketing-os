@@ -9,6 +9,7 @@ import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { HistoryService } from '../history/history.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import { PromptChainService } from '../prompt-chain/prompt-chain.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 import { PromptBuilderService } from './prompt-builder.service';
@@ -72,6 +73,7 @@ export class AiService {
     private readonly promptBuilder: PromptBuilderService,
     private readonly promptChainService: PromptChainService,
     private readonly historyService: HistoryService,
+    private readonly knowledgeService: KnowledgeService,
     private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -195,6 +197,12 @@ export class AiService {
           data: { status: 'GENERATED' },
         });
       }
+
+      await this.knowledgeService.recordUsage(
+        promptChain.knowledgeUsed.map(
+          (document) => document.id,
+        ),
+      );
 
       return {
         ...generated,

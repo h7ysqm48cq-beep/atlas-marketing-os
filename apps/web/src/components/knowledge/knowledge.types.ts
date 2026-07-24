@@ -5,6 +5,8 @@ export type KnowledgeDocument = {
   category: string;
   content: string;
   tags: string[];
+  usageCount: number;
+  lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
   brand: {
