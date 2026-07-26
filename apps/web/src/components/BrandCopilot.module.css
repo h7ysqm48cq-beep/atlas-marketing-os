@@ -143,7 +143,7 @@
 .conversationItem {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 30px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   border: 1px solid transparent;
   border-radius: 10px;
@@ -184,6 +184,14 @@
   font-size: 10px;
 }
 
+.conversationActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 5px;
+}
+
+.renameConversation,
 .deleteConversation {
   width: 26px;
   height: 26px;
@@ -191,15 +199,31 @@
   border-radius: 7px;
   background: transparent;
   color: var(--muted);
-  font-size: 18px;
   opacity: 0;
 }
 
+.renameConversation {
+  font-size: 14px;
+}
+
+.deleteConversation {
+  font-size: 18px;
+}
+
+.conversationItem:hover
+  .renameConversation,
 .conversationItem:hover
   .deleteConversation,
 .activeConversation
+  .renameConversation,
+.activeConversation
   .deleteConversation {
   opacity: 1;
+}
+
+.renameConversation:hover {
+  background: rgba(209, 163, 63, 0.12);
+  color: var(--gold-light);
 }
 
 .deleteConversation:hover {

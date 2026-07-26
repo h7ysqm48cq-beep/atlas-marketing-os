@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -211,6 +212,57 @@ export class ConversationMemoryService {
           : ('user' as const),
       content: message.content,
     }));
+  }
+
+  async rename(
+    conversationId: string,
+    title: string,
+  ) {
+    const brand = await this.brands.getActiveBrand();
+
+    const cleanTitle = title
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanTitle) {
+      throw new BadRequestException(
+        'Conversation title cannot be empty.',
+      );
+    }
+
+    if (cleanTitle.length > 80) {
+      throw new BadRequestException(
+        'Conversation title cannot exceed 80 characters.',
+      );
+    }
+
+    const conversation =
+      await this.prisma.copilotConversation.findFirst({
+        where: {
+          id: conversationId,
+          brandId: brand.id,
+          isArchived: false,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new NotFoundException(
+        'Conversation not found.',
+      );
+    }
+
+    return this.prisma.copilotConversation.update({
+      where: {
+        id: conversation.id,
+      },
+      data: {
+        title: cleanTitle,
+      },
+      select: this.conversationSummarySelect(),
+    });
   }
 
   async delete(conversationId: string) {

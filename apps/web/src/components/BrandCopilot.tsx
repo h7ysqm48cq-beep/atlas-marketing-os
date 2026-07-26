@@ -222,6 +222,87 @@ export function BrandCopilot() {
     }
   }
 
+  async function renameConversation(
+    conversation: ConversationSummary,
+  ) {
+    const title = window.prompt(
+      'Rename conversation',
+      conversation.title,
+    );
+
+    if (title === null) {
+      return;
+    }
+
+    const cleanTitle = title
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanTitle) {
+      setStatus(
+        'Conversation title cannot be empty.',
+      );
+      return;
+    }
+
+    if (cleanTitle.length > 80) {
+      setStatus(
+        'Conversation title cannot exceed 80 characters.',
+      );
+      return;
+    }
+
+    if (cleanTitle === conversation.title) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API}/copilot/conversations/${conversation.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: cleanTitle,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            'Unable to rename conversation.',
+        );
+      }
+
+      setConversations((current) =>
+        current.map((item) =>
+          item.id === conversation.id
+            ? {
+                ...item,
+                title: data.title,
+                updatedAt: data.updatedAt,
+              }
+            : item,
+        ),
+      );
+
+      setStatus(
+        `Conversation renamed: ${data.title}`,
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Unable to rename conversation.',
+      );
+    }
+  }
+
   async function deleteConversation(
     id: string,
   ) {
@@ -542,20 +623,41 @@ export function BrandCopilot() {
                       </small>
                     </button>
 
-                    <button
+                    <div
                       className={
-                        styles.deleteConversation
-                      }
-                      type="button"
-                      aria-label={`Delete ${conversation.title}`}
-                      onClick={() =>
-                        void deleteConversation(
-                          conversation.id,
-                        )
+                        styles.conversationActions
                       }
                     >
-                      ×
-                    </button>
+                      <button
+                        className={
+                          styles.renameConversation
+                        }
+                        type="button"
+                        aria-label={`Rename ${conversation.title}`}
+                        onClick={() =>
+                          void renameConversation(
+                            conversation,
+                          )
+                        }
+                      >
+                        ✎
+                      </button>
+
+                      <button
+                        className={
+                          styles.deleteConversation
+                        }
+                        type="button"
+                        aria-label={`Delete ${conversation.title}`}
+                        onClick={() =>
+                          void deleteConversation(
+                            conversation.id,
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 ),
               )}

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { ConversationMemoryService } from './conversation-memory.service';
@@ -54,6 +55,17 @@ export class CopilotController {
     @Param('id') id: string,
   ) {
     return this.conversations.get(id);
+  }
+
+  @Patch('conversations/:id')
+  renameConversation(
+    @Param('id') id: string,
+    @Body() body: { title?: string },
+  ) {
+    return this.conversations.rename(
+      id,
+      body.title || '',
+    );
   }
 
   @Delete('conversations/:id')
