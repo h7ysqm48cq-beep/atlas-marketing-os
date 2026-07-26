@@ -24,8 +24,10 @@ import { WorkflowModule } from './workflow/workflow.module';
 
 import { PromptChainModule } from './prompt-chain/prompt-chain.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { StrategyModule } from './strategy/strategy.module';
 @Module({
   imports: [
+    StrategyModule,
     ScheduleModule.forRoot(), AutomationModule, WorkflowModule, AiUsageModule, 
     PromptChainModule,
     ConfigModule.forRoot({ isGlobal: true }),
