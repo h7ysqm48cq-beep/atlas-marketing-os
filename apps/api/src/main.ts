@@ -8,8 +8,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3002'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3002',
+      process.env.WEB_URL,
+    ].filter((origin): origin is string => Boolean(origin)),
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true,
   });
 
   app.useStaticAssets(join(process.cwd(), 'storage'), {
