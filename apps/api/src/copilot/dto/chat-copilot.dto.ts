@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 class CopilotMessageDto {
   @IsString()
@@ -20,4 +27,8 @@ export class ChatCopilotDto {
   @IsString()
   @IsOptional()
   campaignId?: string;
+
+  @IsOptional()
+  @IsIn(['chat', 'marketing-plan'])
+  mode?: 'chat' | 'marketing-plan';
 }
