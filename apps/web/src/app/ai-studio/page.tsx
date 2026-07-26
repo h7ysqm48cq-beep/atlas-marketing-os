@@ -1,17 +1,10 @@
-import { Sidebar } from "@/components/Sidebar";
-import { Header } from "@/components/Header";
 import { AiStudio } from "@/components/AiStudio";
+import { AppLayout } from "@/components/AppLayout";
 
 export default function AiStudioPage() {
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="main-panel">
-        <Header />
-        <div className="page-content">
-          <AiStudio />
-        </div>
-      </main>
-    </div>
+    <AppLayout>
+      <AiStudio />
+    </AppLayout>
   );
 }
