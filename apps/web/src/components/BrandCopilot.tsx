@@ -18,6 +18,30 @@ type Message = {
   content: string;
 };
 
+type ConversationSummary = {
+  id: string;
+  campaignId: string | null;
+  title: string;
+  mode: string;
+  updatedAt: string;
+  _count?: {
+    messages: number;
+  };
+};
+
+type ConversationDetail = {
+  id: string;
+  campaignId: string | null;
+  title: string;
+  mode: string;
+  messages: Array<{
+    id: string;
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM';
+    content: string;
+    createdAt: string;
+  }>;
+};
+
 type MarketingPlan = {
   campaignName: string;
   objective: string;
@@ -44,19 +68,30 @@ const API =
   process.env.NEXT_PUBLIC_API_URL ||
   'http://localhost:3001';
 
+const INITIAL_MESSAGES: Message[] = [
+  {
+    role: 'assistant',
+    content:
+      '我是 Elena，你的 AI Marketing Strategist。你可以和我讨论创意、改文案，或切换到 Marketing Plan 模式让我一次生成完整营销方案。',
+  },
+];
+
 export function BrandCopilot() {
   const [campaigns, setCampaigns] =
     useState<Campaign[]>([]);
   const [campaignId, setCampaignId] = useState('');
   const [mode, setMode] =
     useState<CopilotMode>('chat');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        '我是 Elena，你的 AI Marketing Strategist。你可以和我讨论创意、改文案，或切换到 Marketing Plan 模式让我一次生成完整营销方案。',
-    },
-  ]);
+  const [messages, setMessages] =
+    useState<Message[]>(INITIAL_MESSAGES);
+  const [conversationId, setConversationId] =
+    useState('');
+  const [conversations, setConversations] =
+    useState<ConversationSummary[]>([]);
+  const [
+    loadingConversations,
+    setLoadingConversations,
+  ] = useState(true);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [marketingPlan, setMarketingPlan] =
@@ -80,10 +115,152 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
+    void refreshConversations();
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({
       behavior: 'smooth',
     });
   }, [messages]);
+
+  async function refreshConversations() {
+    try {
+      const response = await fetch(
+        `${API}/copilot/conversations`,
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          'Unable to load conversations.',
+        );
+      }
+
+      const data = await response.json();
+
+      setConversations(
+        Array.isArray(data) ? data : [],
+      );
+    } catch {
+      setStatus(
+        'Unable to load conversation history.',
+      );
+    } finally {
+      setLoadingConversations(false);
+    }
+  }
+
+  function newChat() {
+    setConversationId('');
+    setMessages(INITIAL_MESSAGES);
+    setMarketingPlan(null);
+    setInput('');
+    setCampaignId('');
+    setMode('chat');
+    setStatus('New conversation.');
+  }
+
+  async function openConversation(id: string) {
+    if (busy || id === conversationId) {
+      return;
+    }
+
+    setBusy(true);
+    setStatus('Loading conversation...');
+
+    try {
+      const response = await fetch(
+        `${API}/copilot/conversations/${id}`,
+      );
+
+      const data =
+        (await response.json()) as ConversationDetail;
+
+      if (!response.ok) {
+        throw new Error(
+          'Unable to load conversation.',
+        );
+      }
+
+      const loadedMessages: Message[] =
+        data.messages
+          .filter(
+            (message) =>
+              message.role === 'USER' ||
+              message.role === 'ASSISTANT',
+          )
+          .map((message) => ({
+            role:
+              message.role === 'USER'
+                ? 'user'
+                : 'assistant',
+            content: message.content,
+          }));
+
+      setConversationId(data.id);
+      setMessages(
+        loadedMessages.length > 0
+          ? loadedMessages
+          : INITIAL_MESSAGES,
+      );
+      setCampaignId(data.campaignId || '');
+      setMode(
+        data.mode === 'marketing-plan'
+          ? 'marketing-plan'
+          : 'chat',
+      );
+      setMarketingPlan(null);
+      setStatus(`Loaded: ${data.title}`);
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load conversation.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteConversation(
+    id: string,
+  ) {
+    const confirmed = window.confirm(
+      'Delete this conversation permanently?',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API}/copilot/conversations/${id}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          'Unable to delete conversation.',
+        );
+      }
+
+      if (conversationId === id) {
+        newChat();
+      }
+
+      await refreshConversations();
+      setStatus('Conversation deleted.');
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'Unable to delete conversation.',
+      );
+    }
+  }
 
   async function send(event?: FormEvent) {
     event?.preventDefault();
@@ -153,6 +330,8 @@ export function BrandCopilot() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              conversationId:
+                conversationId || undefined,
               campaignId:
                 campaignId || undefined,
               mode,
@@ -172,6 +351,12 @@ export function BrandCopilot() {
 
         setMarketingPlan(null);
 
+        if (data.conversation?.id) {
+          setConversationId(
+            data.conversation.id,
+          );
+        }
+
         setMessages((current) => [
           ...current,
           {
@@ -179,6 +364,8 @@ export function BrandCopilot() {
             content: data.reply,
           },
         ]);
+
+        await refreshConversations();
 
         setStatus(
           data.campaign
@@ -267,40 +454,136 @@ export function BrandCopilot() {
       </section>
 
       <section className={styles.layout}>
-        <aside className={styles.quick}>
-          <p className={styles.eyebrow}>
-            Quick directions
-          </p>
-
-          {[
-            '帮我想10个更容易引起讨论的港剧怀旧话题。',
-            '把这段文案改得更自然、更像马来西亚华人口吻。',
-            '为这个主题生成完整 Facebook、Telegram 和 Reels 营销方案。',
-            '分析为什么这段内容不够吸引人，并直接优化。',
-            '给我一个包含文案、CTA、Hashtags 和图片 Prompt 的完整方案。',
-          ].map((text) => (
-            <button
-              key={text}
-              onClick={() => setInput(text)}
-            >
-              {text}
-            </button>
-          ))}
-
+        <aside className={styles.sidebar}>
           <button
-            className={styles.clear}
-            onClick={() =>
-              setMessages([
-                {
-                  role: 'assistant',
-                  content:
-                    '对话已清空。接下来想让 Elena 帮你做什么？',
-                },
-              ])
-            }
+            className={styles.newChat}
+            onClick={newChat}
+            type="button"
           >
-            Clear conversation
+            <span>＋</span>
+            New Chat
           </button>
+
+          <section
+            className={styles.conversationSection}
+          >
+            <div
+              className={styles.sidebarHeading}
+            >
+              <p className={styles.eyebrow}>
+                Conversations
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void refreshConversations()
+                }
+                aria-label="Refresh conversations"
+              >
+                ↻
+              </button>
+            </div>
+
+            <div
+              className={styles.conversationList}
+            >
+              {loadingConversations && (
+                <p
+                  className={
+                    styles.emptyConversations
+                  }
+                >
+                  Loading history...
+                </p>
+              )}
+
+              {!loadingConversations &&
+                conversations.length === 0 && (
+                  <p
+                    className={
+                      styles.emptyConversations
+                    }
+                  >
+                    No conversations yet.
+                  </p>
+                )}
+
+              {conversations.map(
+                (conversation) => (
+                  <div
+                    className={`${styles.conversationItem} ${
+                      conversation.id ===
+                      conversationId
+                        ? styles.activeConversation
+                        : ''
+                    }`}
+                    key={conversation.id}
+                  >
+                    <button
+                      className={
+                        styles.conversationOpen
+                      }
+                      type="button"
+                      onClick={() =>
+                        void openConversation(
+                          conversation.id,
+                        )
+                      }
+                    >
+                      <strong>
+                        {conversation.title}
+                      </strong>
+
+                      <small>
+                        {conversation._count
+                          ?.messages || 0}{' '}
+                        messages
+                      </small>
+                    </button>
+
+                    <button
+                      className={
+                        styles.deleteConversation
+                      }
+                      type="button"
+                      aria-label={`Delete ${conversation.title}`}
+                      onClick={() =>
+                        void deleteConversation(
+                          conversation.id,
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ),
+              )}
+            </div>
+          </section>
+
+          <section
+            className={styles.quickDirections}
+          >
+            <p className={styles.eyebrow}>
+              Quick directions
+            </p>
+
+            {[
+              '帮我想10个更容易引起讨论的港剧怀旧话题。',
+              '把这段文案改得更自然、更像马来西亚华人口吻。',
+              '为这个主题生成完整 Facebook、Telegram 和 Reels 营销方案。',
+              '分析为什么这段内容不够吸引人，并直接优化。',
+            ].map((text) => (
+              <button
+                key={text}
+                type="button"
+                onClick={() => setInput(text)}
+              >
+                {text}
+              </button>
+            ))}
+          </section>
         </aside>
 
         <section className={styles.chat}>
