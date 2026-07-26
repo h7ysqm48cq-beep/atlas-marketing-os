@@ -225,6 +225,11 @@ export class MarketingPlannerService {
       '- Produce a realistic 7-day publishing schedule.',
       '- Adapt each platform version instead of copying the same text.',
       '- Avoid unsupported current claims, fake urgency and prohibited brand wording.',
+      '- Never invent a promotion, contest, giveaway, lucky draw, reward, bonus, discount, free credit or prize unless the user explicitly requests it.',
+      '- Never claim that an activity, offer, campaign or event exists unless it is provided by the user or selected campaign context.',
+      '- Do not use phrases such as limited time, claim now, guaranteed, instant reward or act now unless explicitly supported by the request.',
+      '- Do not instruct image generation to reproduce copyrighted television footage, screenshots, posters, logos, celebrity likenesses or identifiable real actors.',
+      '- Image prompts should use original fictional scenes and generic people. Do not add a logo unless the user explicitly asks for one.',
       '- Keep promotional language natural and aligned with the Brand Brain.',
       '- Return only data matching the required JSON schema.',
     ].join('\n');
@@ -262,11 +267,23 @@ export class MarketingPlannerService {
         response.output_text,
       ) as unknown;
 
+      const normalized = this.normalizePlan(
+        parsed,
+        fallback,
+      );
+
+      const guarded = this.applyGuardrails(
+        normalized,
+        prompt,
+        Array.isArray(brand.forbiddenWords)
+          ? brand.forbiddenWords.map((item) =>
+              String(item),
+            )
+          : [],
+      );
+
       return {
-        ...this.normalizePlan(
-          parsed,
-          fallback,
-        ),
+        ...guarded,
         generatedBy: 'ai',
       };
     } catch (error) {
@@ -564,6 +581,263 @@ export class MarketingPlannerService {
     return items.length
       ? items
       : fallback;
+  }
+
+  private applyGuardrails(
+    plan: MarketingPlan,
+    userPrompt: string,
+    forbiddenWords: string[],
+  ): MarketingPlan {
+    const userRequestedPromotion =
+      this.containsAny(userPrompt, [
+        'promotion',
+        'promo',
+        'contest',
+        'giveaway',
+        'lucky draw',
+        'reward',
+        'bonus',
+        'discount',
+        'offer',
+        'free credit',
+        '抽奖',
+        '赠品',
+        '促销',
+        '优惠',
+        '奖励',
+        '奖金',
+        '红利',
+        '免费送',
+        '送出',
+        '奖品',
+      ]);
+
+    const userRequestedLogo =
+      this.containsAny(userPrompt, [
+        'logo',
+        'brand logo',
+        '品牌标志',
+        '品牌 logo',
+        '放品牌',
+        '加入品牌',
+      ]);
+
+    const sanitizeText = (
+      value: string,
+      imagePrompt = false,
+    ): string => {
+      let result = value;
+
+      if (!userRequestedPromotion) {
+        result = this.removeUnsupportedPromotion(
+          result,
+        );
+      }
+
+      result = this.removeForbiddenWords(
+        result,
+        forbiddenWords,
+      );
+
+      if (imagePrompt) {
+        result = this.sanitizeImagePrompt(
+          result,
+          userRequestedLogo,
+        );
+      }
+
+      return result
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([，。！？,.!?])/g, '$1')
+        .trim();
+    };
+
+    const cleanArray = (
+      values: string[],
+      imagePrompt = false,
+    ): string[] =>
+      values
+        .map((value) =>
+          sanitizeText(value, imagePrompt),
+        )
+        .filter(Boolean);
+
+    return {
+      ...plan,
+      campaignName: sanitizeText(
+        plan.campaignName,
+      ),
+      objective: sanitizeText(plan.objective),
+      audience: sanitizeText(plan.audience),
+      hook: sanitizeText(plan.hook),
+      keyMessage: sanitizeText(
+        plan.keyMessage,
+      ),
+      contentPillars: cleanArray(
+        plan.contentPillars,
+      ),
+      contentIdeas: cleanArray(
+        plan.contentIdeas,
+      ),
+      facebook: cleanArray(plan.facebook),
+      telegram: cleanArray(plan.telegram),
+      reels: cleanArray(plan.reels),
+      imagePrompts: cleanArray(
+        plan.imagePrompts,
+        true,
+      ),
+      schedule: plan.schedule
+        .map((item) => ({
+          ...item,
+          platform: sanitizeText(
+            item.platform,
+          ),
+          contentType: sanitizeText(
+            item.contentType,
+          ),
+          topic: sanitizeText(item.topic),
+        }))
+        .filter(
+          (item) =>
+            item.platform &&
+            item.contentType &&
+            item.topic,
+        ),
+    };
+  }
+
+  private removeUnsupportedPromotion(
+    value: string,
+  ): string {
+    const unsupportedPatterns: RegExp[] = [
+      /互动抽奖活动等你参加[！!。.，,]?/gi,
+      /参与抽奖[！!。.，,]?/gi,
+      /抽奖活动[！!。.，,]?/gi,
+      /赢取[^，。,.!！?？]*/gi,
+      /领取奖励[！!。.，,]?/gi,
+      /立即领取[！!。.，,]?/gi,
+      /限时优惠[！!。.，,]?/gi,
+      /免费彩金[！!。.，,]?/gi,
+      /免费额度[！!。.，,]?/gi,
+      /幸运抽奖[！!。.，,]?/gi,
+      /lucky draw/gi,
+      /enter (?:our |the )?giveaway/gi,
+      /join (?:our |the )?contest/gi,
+      /claim (?:your |the )?(?:bonus|reward|prize)/gi,
+      /limited[- ]time offer/gi,
+      /free credit/gi,
+      /guaranteed reward/gi,
+      /instant reward/gi,
+    ];
+
+    return unsupportedPatterns.reduce(
+      (result, pattern) =>
+        result.replace(pattern, ''),
+      value,
+    );
+  }
+
+  private removeForbiddenWords(
+    value: string,
+    forbiddenWords: string[],
+  ): string {
+    return forbiddenWords.reduce(
+      (result, word) => {
+        const cleanWord = word.trim();
+
+        if (!cleanWord) {
+          return result;
+        }
+
+        return result.replace(
+          new RegExp(
+            this.escapeRegExp(cleanWord),
+            'gi',
+          ),
+          '',
+        );
+      },
+      value,
+    );
+  }
+
+  private sanitizeImagePrompt(
+    value: string,
+    allowLogo: boolean,
+  ): string {
+    let result = value
+      .replace(
+        /\b(?:real|famous|celebrity)\s+(?:actor|actress|person|star)\b/gi,
+        'fictional person',
+      )
+      .replace(
+        /\b(?:recognizable|identifiable)\s+(?:actor|actress|celebrity|person)\b/gi,
+        'fictional person',
+      )
+      .replace(
+        /\b(?:television|tv|drama|movie|film)\s+(?:screenshot|footage|still|poster|frame)\b/gi,
+        'original fictional scene',
+      )
+      .replace(
+        /\bclassic\s+(?:hong kong|hk)\s+drama\s+(?:footage|screenshots?|scenes?)\b/gi,
+        'original nostalgic Hong Kong-inspired fictional scene',
+      )
+      .replace(
+        /\bcopyrighted\s+(?:footage|image|poster|character|scene)\b/gi,
+        'original fictional visual',
+      );
+
+    if (!allowLogo) {
+      result = result
+        .replace(
+          /\b(?:subtle|small|visible|prominent)?\s*(?:brand\s+)?logo\s+(?:placement|in the corner|in background|on a poster)?\b/gi,
+          '',
+        )
+        .replace(
+          /\bwith\s+(?:subtle\s+)?[A-Za-z0-9_-]+\s+branding\b/gi,
+          '',
+        )
+        .replace(
+          /\bbranded\s+(?:poster|sign|logo|background)\b/gi,
+          '',
+        );
+    }
+
+    const safetySuffix =
+      ' Use original fictional characters and scenes only; no celebrity likeness, copyrighted footage, television screenshots, or third-party logos.';
+
+    if (
+      !this.containsAny(result, [
+        'original fictional characters',
+        'no celebrity likeness',
+      ])
+    ) {
+      result += safetySuffix;
+    }
+
+    return result;
+  }
+
+  private containsAny(
+    value: string,
+    terms: string[],
+  ): boolean {
+    const normalized = value.toLowerCase();
+
+    return terms.some((term) =>
+      normalized.includes(
+        term.toLowerCase(),
+      ),
+    );
+  }
+
+  private escapeRegExp(
+    value: string,
+  ): string {
+    return value.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&',
+    );
   }
 
   private toText(value: unknown): string {
