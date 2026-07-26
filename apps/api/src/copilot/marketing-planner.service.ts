@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { StrategyService } from '../strategy/strategy.service';
+import { StrategyResult } from '../strategy/types/strategy';
 import { CreateMarketingPlanDto } from './dto/create-marketing-plan.dto';
 
 export type MarketingPlanScheduleItem = {
@@ -28,6 +30,7 @@ export type MarketingPlan = {
   reels: string[];
   imagePrompts: string[];
   schedule: MarketingPlanScheduleItem[];
+  strategy?: StrategyResult;
   generatedBy?: 'ai' | 'fallback';
   warning?: string;
 };
@@ -139,6 +142,7 @@ export class MarketingPlannerService {
     private readonly config: ConfigService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
+    private readonly strategyService: StrategyService,
   ) {
     const apiKey =
       this.config.get<string>('OPENAI_API_KEY');
@@ -156,6 +160,12 @@ export class MarketingPlannerService {
     dto: CreateMarketingPlanDto,
   ): Promise<MarketingPlan> {
     const prompt = dto.prompt.trim();
+
+    const strategy = this.strategyService.generate({
+      prompt,
+      campaignId: dto.campaignId,
+    });
+
     const brand = await this.brands.getActiveBrand();
 
     const campaign = dto.campaignId
@@ -187,6 +197,7 @@ export class MarketingPlannerService {
     if (!this.client) {
       return {
         ...fallback,
+        strategy,
         generatedBy: 'fallback',
         warning:
           'OPENAI_API_KEY is not configured. Returned the safe fallback plan.',
@@ -213,6 +224,22 @@ export class MarketingPlannerService {
             `Campaign description: ${campaign.description || 'Not set'}`,
           ].join('\n')
         : 'Existing campaign: none selected',
+      '',
+      'Elena Strategy Brain:',
+      `Detected intent: ${strategy.intent}`,
+      `Strategy confidence: ${strategy.confidence}`,
+      `Primary campaign goal: ${strategy.goal}`,
+      `Recommended audiences: ${strategy.audience.join(', ')}`,
+      `Recommended content pillars: ${strategy.pillars.join(', ')}`,
+      `Recommended KPIs: ${strategy.kpis.join(', ')}`,
+      `Decision notes: ${strategy.reasoning.join(' | ')}`,
+      '',
+      'Strategy alignment rules:',
+      '- Treat the Strategy Brain output as the primary planning direction.',
+      '- Align the objective, audience, content pillars, platform content and schedule with the selected goal.',
+      '- Keep the recommended KPIs measurable and relevant to the selected goal.',
+      '- Refine the strategy only when the user request, Brand Brain or selected campaign provides stronger evidence.',
+      '- Do not silently contradict the Strategy Brain.',
       '',
       'Requirements:',
       '- Use the language requested by the user. For a Chinese request, use natural Simplified Chinese suitable for Malaysian Chinese audiences.',
@@ -284,6 +311,7 @@ export class MarketingPlannerService {
 
       return {
         ...guarded,
+        strategy,
         generatedBy: 'ai',
       };
     } catch (error) {
@@ -299,6 +327,7 @@ export class MarketingPlannerService {
 
       return {
         ...fallback,
+        strategy,
         generatedBy: 'fallback',
         warning:
           `AI generation failed. Returned the safe fallback plan. ${message}`,
