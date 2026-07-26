@@ -502,12 +502,12 @@ export function BrandCopilot() {
       />
 
       <section className={styles.mobileCopilotBar}>
-        <div>
-          <span>Elena Copilot</span>
+        <div className={styles.mobileCopilotIdentity}>
+          <span>Elena</span>
           <strong>
             {mode === 'marketing-plan'
               ? 'Marketing Plan'
-              : 'Chat mode'}
+              : 'Chat'}
           </strong>
         </div>
 
@@ -517,6 +517,52 @@ export function BrandCopilot() {
         >
           Conversations
         </button>
+      </section>
+
+      <section className={styles.mobileControls}>
+        <label>
+          <span>Mode</span>
+          <select
+            value={mode}
+            onChange={(event) =>
+              setMode(
+                event.target.value as CopilotMode,
+              )
+            }
+          >
+            <option value="chat">
+              Chat mode
+            </option>
+            <option value="marketing-plan">
+              Marketing Plan
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>Context</span>
+          <select
+            value={campaignId}
+            onChange={(event) =>
+              setCampaignId(event.target.value)
+            }
+          >
+            <option value="">
+              Brand Brain only
+            </option>
+
+            {campaigns.map((campaign) => (
+              <option
+                key={campaign.id}
+                value={campaign.id}
+              >
+                {campaign.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <small>{status}</small>
       </section>
 
       <section className={styles.hero}>

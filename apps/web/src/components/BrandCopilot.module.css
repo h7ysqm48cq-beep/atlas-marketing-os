@@ -668,3 +668,199 @@
     min-height: 48dvh;
   }
 }
+
+
+/* Copilot mobile v2 chat-first */
+.mobileControls {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .page {
+    gap: 10px;
+  }
+
+  .hero {
+    display: none;
+  }
+
+  .mobileCopilotBar {
+    min-height: 58px;
+    padding: 9px 11px;
+  }
+
+  .mobileCopilotIdentity {
+    display: grid;
+    gap: 1px;
+  }
+
+  .mobileCopilotIdentity span {
+    color: var(--gold-light);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .mobileCopilotIdentity strong {
+    font-size: 15px;
+  }
+
+  .mobileCopilotBar button {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 10px;
+  }
+
+  .mobileControls {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: rgba(16, 19, 26, 0.96);
+  }
+
+  .mobileControls label {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+  }
+
+  .mobileControls span {
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .mobileControls select {
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #090b10;
+    color: var(--text);
+    font-size: 11px;
+  }
+
+  .mobileControls small {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.3;
+  }
+
+  .layout {
+    min-height: 0;
+  }
+
+  .chat {
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 88px
+      - env(safe-area-inset-bottom)
+    );
+    border-radius: 14px;
+  }
+
+  .messages {
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 88px
+      - 132px
+      - env(safe-area-inset-bottom)
+    );
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .assistant,
+  .user {
+    width: 95%;
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+
+  .assistant p,
+  .user p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    gap: 7px;
+    padding:
+      10px
+      10px
+      calc(10px + env(safe-area-inset-bottom));
+    background: rgba(13, 16, 22, 0.98);
+  }
+
+  .composer textarea {
+    min-height: 60px;
+    max-height: 140px;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+
+  .composer > div {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .composer small {
+    display: none;
+  }
+
+  .composer button {
+    margin-left: auto;
+    min-height: 38px;
+    padding: 0 13px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileControls {
+    grid-template-columns: 1fr;
+  }
+
+  .mobileControls small {
+    grid-column: auto;
+  }
+
+  .chat {
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 132px
+      - env(safe-area-inset-bottom)
+    );
+  }
+
+  .messages {
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 132px
+      - 122px
+      - env(safe-area-inset-bottom)
+    );
+  }
+}
