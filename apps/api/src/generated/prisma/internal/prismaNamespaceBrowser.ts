@@ -57,7 +57,14 @@ export const ModelName = {
   CampaignIdea: 'CampaignIdea',
   GenerationHistory: 'GenerationHistory',
   ContentVersion: 'ContentVersion',
-  Asset: 'Asset'
+  Asset: 'Asset',
+  KnowledgeDocument: 'KnowledgeDocument',
+  KnowledgeEmbedding: 'KnowledgeEmbedding',
+  AiUsage: 'AiUsage',
+  SocialChannel: 'SocialChannel',
+  ScheduledPost: 'ScheduledPost',
+  PublishAttempt: 'PublishAttempt',
+  AutomationSetting: 'AutomationSetting'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -210,6 +217,132 @@ export const AssetScalarFieldEnum = {
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
 
 
+export const KnowledgeDocumentScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  tags: 'tags',
+  usageCount: 'usageCount',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
+
+
+export const KnowledgeEmbeddingScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  brandId: 'brandId',
+  vector: 'vector',
+  model: 'model',
+  dimensions: 'dimensions',
+  contentHash: 'contentHash',
+  embeddedAt: 'embeddedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalarFieldEnum)[keyof typeof KnowledgeEmbeddingScalarFieldEnum]
+
+
+export const AiUsageScalarFieldEnum = {
+  id: 'id',
+  historyId: 'historyId',
+  model: 'model',
+  promptTokens: 'promptTokens',
+  cachedInputTokens: 'cachedInputTokens',
+  completionTokens: 'completionTokens',
+  totalTokens: 'totalTokens',
+  estimatedCostUsd: 'estimatedCostUsd',
+  estimatedCostMyr: 'estimatedCostMyr',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type AiUsageScalarFieldEnum = (typeof AiUsageScalarFieldEnum)[keyof typeof AiUsageScalarFieldEnum]
+
+
+export const SocialChannelScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  platform: 'platform',
+  name: 'name',
+  externalId: 'externalId',
+  username: 'username',
+  status: 'status',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  lastConnectedAt: 'lastConnectedAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
+
+
+export const ScheduledPostScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  channelId: 'channelId',
+  campaignId: 'campaignId',
+  historyId: 'historyId',
+  platform: 'platform',
+  title: 'title',
+  content: 'content',
+  mediaUrls: 'mediaUrls',
+  scheduledAt: 'scheduledAt',
+  timezone: 'timezone',
+  status: 'status',
+  publishedAt: 'publishedAt',
+  externalPostId: 'externalPostId',
+  externalPostUrl: 'externalPostUrl',
+  lastError: 'lastError',
+  retryCount: 'retryCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScheduledPostScalarFieldEnum = (typeof ScheduledPostScalarFieldEnum)[keyof typeof ScheduledPostScalarFieldEnum]
+
+
+export const PublishAttemptScalarFieldEnum = {
+  id: 'id',
+  scheduledPostId: 'scheduledPostId',
+  attemptNumber: 'attemptNumber',
+  status: 'status',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PublishAttemptScalarFieldEnum = (typeof PublishAttemptScalarFieldEnum)[keyof typeof PublishAttemptScalarFieldEnum]
+
+
+export const AutomationSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  timezone: 'timezone',
+  approvalRequired: 'approvalRequired',
+  autoPublishEnabled: 'autoPublishEnabled',
+  retryLimit: 'retryLimit',
+  retryDelayMinutes: 'retryDelayMinutes',
+  defaultFacebookTime: 'defaultFacebookTime',
+  defaultTelegramTime: 'defaultTelegramTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AutomationSettingScalarFieldEnum = (typeof AutomationSettingScalarFieldEnum)[keyof typeof AutomationSettingScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -223,6 +356,14 @@ export const JsonNullValueInput = {
 } as const
 
 export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {

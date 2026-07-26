@@ -52,3 +52,38 @@ export type ContentVersion = Prisma.ContentVersionModel
  * 
  */
 export type Asset = Prisma.AssetModel
+/**
+ * Model KnowledgeDocument
+ * 
+ */
+export type KnowledgeDocument = Prisma.KnowledgeDocumentModel
+/**
+ * Model KnowledgeEmbedding
+ * 
+ */
+export type KnowledgeEmbedding = Prisma.KnowledgeEmbeddingModel
+/**
+ * Model AiUsage
+ * 
+ */
+export type AiUsage = Prisma.AiUsageModel
+/**
+ * Model SocialChannel
+ * 
+ */
+export type SocialChannel = Prisma.SocialChannelModel
+/**
+ * Model ScheduledPost
+ * 
+ */
+export type ScheduledPost = Prisma.ScheduledPostModel
+/**
+ * Model PublishAttempt
+ * 
+ */
+export type PublishAttempt = Prisma.PublishAttemptModel
+/**
+ * Model AutomationSetting
+ * 
+ */
+export type AutomationSetting = Prisma.AutomationSettingModel

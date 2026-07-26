@@ -3,7 +3,9 @@ import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryService } from '../memory/memory.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
+import { KnowledgeEmbeddingService } from '../knowledge/knowledge-embedding.service';
 import { PreviewPromptChainDto } from './dto/preview-prompt-chain.dto';
+import { QueryUnderstandingService } from './query-understanding.service';
 
 type PromptSource = {
   key: string;
@@ -14,25 +16,134 @@ type PromptSource = {
 
 @Injectable()
 export class PromptChainService {
+  private readonly previewCache =
+    new Map<
+      string,
+      {
+        expires: number;
+        value: any;
+      }
+    >();
+
   constructor(
     private readonly brandsService: BrandsService,
     private readonly prisma: PrismaService,
     private readonly memoryService: MemoryService,
     private readonly knowledgeService: KnowledgeService,
+    private readonly knowledgeEmbeddingService: KnowledgeEmbeddingService,
+    private readonly queryUnderstandingService: QueryUnderstandingService,
   ) {}
 
   async preview(dto: PreviewPromptChainDto) {
-    const brand = await this.brandsService.getActiveBrand();
-    const memory = await this.memoryService.summary();
 
-    const knowledgeDocuments =
-      await this.knowledgeService.findRelevant({
+    const cacheKey = JSON.stringify({
+      topic: dto.topic,
+      platform: dto.platform,
+      style: dto.style,
+      language: dto.language,
+      campaignId: dto.campaignId ?? null,
+    });
+
+    const cached =
+      this.previewCache.get(cacheKey);
+
+    if (
+      cached &&
+      cached.expires > Date.now()
+    ) {
+      return cached.value;
+    }
+
+
+    const [
+      brand,
+      memory,
+    ] = await Promise.all([
+      this.brandsService.getActiveBrand(),
+      this.memoryService.summary(),
+    ]);
+
+    const queryUnderstanding =
+      await this.queryUnderstandingService.understand({
         topic: dto.topic,
         platform: dto.platform,
         style: dto.style,
         language: dto.language,
-        limit: 5,
       });
+
+    const retrievalQueries = Array.from(
+      new Set(
+        queryUnderstanding.retrievalQueries
+          .map((query) => query.trim())
+          .filter(Boolean),
+      ),
+    ).slice(0, 2);
+
+    const retrievalResults = await Promise.all(
+      retrievalQueries.map(async (query) => ({
+        query,
+        results:
+          await this.knowledgeEmbeddingService.semanticSearch({
+            query,
+            limit: 5,
+            threshold: 0.2,
+          }),
+      })),
+    );
+
+    const mergedKnowledge = new Map<
+      string,
+      (typeof retrievalResults)[number]['results'][number] & {
+        matchedQueries: string[];
+      }
+    >();
+
+    for (const retrieval of retrievalResults) {
+      for (const item of retrieval.results) {
+        const current = mergedKnowledge.get(
+          item.document.id,
+        );
+
+        if (!current) {
+          mergedKnowledge.set(item.document.id, {
+            ...item,
+            matchedQueries: [retrieval.query],
+          });
+          continue;
+        }
+
+        const matchedQueries = Array.from(
+          new Set([
+            ...current.matchedQueries,
+            retrieval.query,
+          ]),
+        );
+
+        if (item.hybridScore > current.hybridScore) {
+          mergedKnowledge.set(item.document.id, {
+            ...item,
+            matchedQueries,
+          });
+        } else {
+          mergedKnowledge.set(item.document.id, {
+            ...current,
+            matchedQueries,
+          });
+        }
+      }
+    }
+
+    const semanticKnowledge = Array.from(
+      mergedKnowledge.values(),
+    )
+      .sort((a, b) => {
+        if (b.hybridScore !== a.hybridScore) {
+          return b.hybridScore - a.hybridScore;
+        }
+
+        return b.similarity - a.similarity;
+      })
+      .slice(0, 5);
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -116,10 +227,10 @@ export class PromptChainService {
       {
         key: 'knowledge',
         label: 'Knowledge Library',
-        loaded: knowledgeDocuments.length > 0,
+        loaded: semanticKnowledge.length > 0,
         summary:
-          knowledgeDocuments.length > 0
-            ? `${knowledgeDocuments.length} relevant documents loaded`
+          semanticKnowledge.length > 0
+            ? `${semanticKnowledge.length} semantic matches loaded · threshold 20%`
             : 'No relevant knowledge documents found',
       },
     ];
@@ -132,6 +243,20 @@ export class PromptChainService {
       `Platform: ${platform}`,
       `Style: ${style}`,
       `Language: ${language}`,
+      '',
+      'QUERY UNDERSTANDING',
+      `Intent: ${queryUnderstanding.intent}`,
+      `Content type: ${queryUnderstanding.contentType}`,
+      `Audience: ${queryUnderstanding.audience}`,
+      `Tone: ${queryUnderstanding.tone}`,
+      `Industry: ${queryUnderstanding.industry}`,
+      `Platform: ${queryUnderstanding.platform}`,
+      `Language: ${queryUnderstanding.language}`,
+      `Concepts: ${
+        queryUnderstanding.concepts.length
+          ? queryUnderstanding.concepts.join(', ')
+          : 'None'
+      }`,
       '',
       'BRAND IDENTITY',
       `Brand: ${brand.name}`,
@@ -202,19 +327,31 @@ export class PromptChainService {
         : 'No reference posts configured.',
       '',
       'RELEVANT KNOWLEDGE',
-      knowledgeDocuments.length
-        ? knowledgeDocuments
-            .map((document, index) => {
+      semanticKnowledge.length
+        ? semanticKnowledge
+            .map((item, index) => {
+              const document = item.document;
               const cleanContent = document.content
                 .trim()
                 .slice(0, 2400);
 
               return [
-                `${index + 1}. ${document.title}`,
+                `Knowledge ${index + 1}: ${document.title}`,
+                `Hybrid score: ${item.hybridScore}%`,
+                `Semantic similarity: ${item.similarityPercent}%`,
+                item.matchedTerms.length
+                  ? `Matched terms: ${item.matchedTerms.join(', ')}`
+                  : 'Matched terms: None',
+                item.matchedQueries.length
+                  ? `Matched queries: ${item.matchedQueries.join(' | ')}`
+                  : 'Matched queries: None',
                 `Category: ${document.category}`,
                 document.tags.length
                   ? `Tags: ${document.tags.join(', ')}`
                   : 'Tags: None',
+                `Embedding model: ${item.embedding.model}`,
+                `Embedding dimensions: ${item.embedding.dimensions}`,
+                '',
                 cleanContent,
               ].join('\n');
             })
@@ -222,7 +359,7 @@ export class PromptChainService {
         : 'No relevant knowledge documents available.',
     ].join('\n');
 
-    return {
+    const result = {
       brandId: brand.id,
       brandName: brand.name,
       campaign: campaign
@@ -232,16 +369,54 @@ export class PromptChainService {
           }
         : null,
       sources,
-      loadedSourceCount: sources.filter((source) => source.loaded).length,
+      loadedSourceCount:
+        sources.filter((source) => source.loaded).length,
       totalSourceCount: sources.length,
-      knowledgeUsed: knowledgeDocuments.map((document) => ({
-        id: document.id,
-        title: document.title,
-        category: document.category,
-        tags: document.tags,
-        summary: document.content.trim().slice(0, 220),
+      queryUnderstanding: {
+        ...queryUnderstanding,
+        retrievalQueries,
+      },
+      knowledgeUsed: semanticKnowledge.map((item) => ({
+        id: item.document.id,
+        title: item.document.title,
+        category: item.document.category,
+        tags: item.document.tags,
+        summary:
+          item.document.content.trim().slice(0, 220),
+        similarity: item.similarity,
+        similarityPercent: item.similarityPercent,
+        hybridScore: item.hybridScore,
+        scoreBreakdown: item.scoreBreakdown,
+        matchedTerms: item.matchedTerms,
+        matchedQueries: item.matchedQueries,
+        reasons: item.reasons,
+        embeddingModel: item.embedding.model,
+        embeddingDimensions:
+          item.embedding.dimensions,
+        embeddedAt: item.embedding.embeddedAt,
       })),
       mergedPrompt,
     };
+
+    this.previewCache.set(
+      cacheKey,
+      {
+        expires:
+          Date.now() + 5 * 60 * 1000,
+        value: result,
+      },
+    );
+
+    if (this.previewCache.size > 200) {
+      const oldestKey =
+        this.previewCache.keys().next()
+          .value as string | undefined;
+
+      if (oldestKey) {
+        this.previewCache.delete(oldestKey);
+      }
+    }
+
+    return result;
   }
 }

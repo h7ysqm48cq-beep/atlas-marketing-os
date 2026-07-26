@@ -6,10 +6,15 @@ import { PromptChainModule } from '../prompt-chain/prompt-chain.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { PromptBuilderService } from './prompt-builder.service';
+import { ContentQualityService } from './content-quality.service';
 
 @Module({
   imports: [BrandsModule, HistoryModule, KnowledgeModule, PromptChainModule],
   controllers: [AiController],
-  providers: [AiService, PromptBuilderService],
+  providers: [
+    AiService,
+    PromptBuilderService,
+    ContentQualityService,
+  ],
 })
 export class AiModule {}

@@ -31,11 +31,43 @@ export class HistoryService {
           select: {
             id: true,
             name: true,
-            workspace: { select: { id: true, name: true, slug: true } },
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
-        campaign: { select: { id: true, name: true } },
-        idea: { select: { id: true, title: true, sortOrder: true } },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        idea: {
+          select: {
+            id: true,
+            title: true,
+            sortOrder: true,
+          },
+        },
+        scheduledPosts: {
+          orderBy: {
+            scheduledAt: 'desc',
+          },
+          include: {
+            channel: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                externalId: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -44,9 +76,26 @@ export class HistoryService {
     const record = await this.prisma.generationHistory.findUnique({
       where: { id },
       include: {
-        brand: { include: { workspace: true } },
+        brand: {
+          include: {
+            workspace: true,
+          },
+        },
         campaign: true,
         idea: true,
+        scheduledPosts: {
+          orderBy: {
+            scheduledAt: 'desc',
+          },
+          include: {
+            channel: true,
+            attempts: {
+              orderBy: {
+                attemptNumber: 'desc',
+              },
+            },
+          },
+        },
       },
     });
 

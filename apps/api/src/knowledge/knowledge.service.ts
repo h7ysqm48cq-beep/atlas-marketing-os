@@ -7,12 +7,14 @@ import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { CreateKnowledgeDocumentDto } from './dto/create-knowledge-document.dto';
 import { UpdateKnowledgeDocumentDto } from './dto/update-knowledge-document.dto';
+import { KnowledgeEmbeddingService } from './knowledge-embedding.service';
 
 @Injectable()
 export class KnowledgeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
+    private readonly embeddingService: KnowledgeEmbeddingService,
   ) {}
 
   async create(dto: CreateKnowledgeDocumentDto) {
@@ -20,16 +22,27 @@ export class KnowledgeService {
 
     this.validateRequiredFields(dto);
 
-    return this.prisma.knowledgeDocument.create({
-      data: {
-        brandId: brand.id,
-        title: dto.title.trim(),
-        category: dto.category.trim(),
-        content: dto.content.trim(),
-        tags: this.cleanTags(dto.tags),
-      },
-      include: this.documentInclude,
-    });
+    const document =
+      await this.prisma.knowledgeDocument.create({
+        data: {
+          brandId: brand.id,
+          title: dto.title.trim(),
+          category: dto.category.trim(),
+          content: dto.content.trim(),
+          tags: this.cleanTags(dto.tags),
+        },
+        include: this.documentInclude,
+      });
+
+    const embedding =
+      await this.embeddingService.safeEmbedDocument(
+        document.id,
+      );
+
+    return {
+      ...document,
+      embeddingStatus: embedding,
+    };
   }
 
   async findAll(query?: {
@@ -99,7 +112,9 @@ export class KnowledgeService {
           input.style,
           input.language,
         ]
-          .filter((value): value is string => Boolean(value?.trim()))
+          .filter((value): value is string =>
+            Boolean(value?.trim()),
+          )
           .flatMap((value) =>
             value
               .toLowerCase()
@@ -120,83 +135,147 @@ export class KnowledgeService {
         },
       });
 
-    const scored = documents
+    const now = Date.now();
+
+    return documents
       .map((document) => {
         const title = document.title.toLowerCase();
         const category = document.category.toLowerCase();
         const content = document.content.toLowerCase();
-        const tags = document.tags.map((tag) => tag.toLowerCase());
+        const tags = document.tags.map((tag) =>
+          tag.toLowerCase(),
+        );
 
-        const score = terms.reduce((total, term) => {
-          let next = total;
+        const matchedTerms = terms.filter(
+          (term) =>
+            title.includes(term) ||
+            category.includes(term) ||
+            content.includes(term) ||
+            tags.some((tag) => tag.includes(term)),
+        );
 
-          if (title.includes(term)) next += 6;
-          if (category.includes(term)) next += 4;
-          if (tags.some((tag) => tag.includes(term))) next += 5;
-          if (content.includes(term)) next += 2;
+        const rawMatchScore = matchedTerms.reduce(
+          (total, term) => {
+            let score = total;
 
-          return next;
-        }, 0);
+            if (title.includes(term)) score += 12;
+            if (tags.some((tag) => tag.includes(term))) {
+              score += 10;
+            }
+            if (category.includes(term)) score += 8;
+            if (content.includes(term)) score += 4;
+
+            return score;
+          },
+          0,
+        );
+
+        const matchScore = Math.min(70, rawMatchScore);
+
+        const usageScore = Math.min(
+          15,
+          Math.round(
+            Math.log2(document.usageCount + 1) * 4,
+          ),
+        );
+
+        const ageInDays = Math.max(
+          0,
+          (now - document.updatedAt.getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+
+        const freshnessScore = Math.max(
+          0,
+          Math.round(10 - ageInDays / 30),
+        );
+
+        const qualityScore = Math.min(
+          5,
+          [
+            document.title.trim().length >= 8,
+            document.content.trim().length >= 120,
+            document.tags.length >= 2,
+            Boolean(document.category.trim()),
+            document.content.trim().length >= 400,
+          ].filter(Boolean).length,
+        );
+
+        const relevanceScore = Math.min(
+          100,
+          matchScore +
+            usageScore +
+            freshnessScore +
+            qualityScore,
+        );
+
+        const reasons: string[] = [];
+
+        if (matchedTerms.length > 0) {
+          reasons.push(
+            `Matched ${matchedTerms.length} query term${
+              matchedTerms.length === 1 ? '' : 's'
+            }`,
+          );
+        }
+
+        if (document.usageCount > 0) {
+          reasons.push(
+            `Used ${document.usageCount} times`,
+          );
+        }
+
+        if (freshnessScore >= 8) {
+          reasons.push('Recently updated');
+        }
+
+        if (qualityScore >= 4) {
+          reasons.push('Well-structured document');
+        }
 
         return {
           document,
-          score,
+          relevanceScore,
+          matchedTerms,
+          reasons,
         };
       })
+      .filter((item) => item.matchedTerms.length > 0)
       .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
+        if (
+          b.relevanceScore !== a.relevanceScore
+        ) {
+          return b.relevanceScore - a.relevanceScore;
+        }
 
         return (
           b.document.updatedAt.getTime() -
           a.document.updatedAt.getTime()
         );
-      });
-
-    const relevant = scored
-      .filter((item) => item.score > 0)
-      .slice(0, input.limit || 5)
-      .map((item) => item.document);
-
-    if (relevant.length > 0) {
-      return relevant;
-    }
-
-    return documents.slice(0, input.limit || 5);
+      })
+      .slice(0, input.limit || 5);
   }
 
   async recordUsage(documentIds: string[]) {
-    const uniqueIds = Array.from(
-      new Set(documentIds.filter(Boolean)),
-    );
-
-    if (uniqueIds.length === 0) {
-      return {
-        updated: 0,
-      };
+    if (!documentIds.length) {
+      return;
     }
 
-    const brand = await this.brandsService.getActiveBrand();
-
-    const result =
-      await this.prisma.knowledgeDocument.updateMany({
-        where: {
-          id: {
-            in: uniqueIds,
-          },
-          brandId: brand.id,
+    // Fire-and-forget usage update.
+    void this.prisma.knowledgeDocument.updateMany({
+      where: {
+        id: {
+          in: documentIds,
         },
-        data: {
-          usageCount: {
-            increment: 1,
-          },
-          lastUsedAt: new Date(),
+      },
+      data: {
+        usageCount: {
+          increment: 1,
         },
-      });
-
-    return {
-      updated: result.count,
-    };
-  }
+        lastUsedAt: new Date(),
+      },
+    }).catch(() => {});
+}
 
   async findOne(id: string) {
     const brand = await this.brandsService.getActiveBrand();
@@ -245,28 +324,39 @@ export class KnowledgeService {
       throw new BadRequestException('Content is required.');
     }
 
-    return this.prisma.knowledgeDocument.update({
-      where: { id },
-      data: {
-        title:
-          dto.title === undefined
-            ? undefined
-            : dto.title.trim(),
-        category:
-          dto.category === undefined
-            ? undefined
-            : dto.category.trim(),
-        content:
-          dto.content === undefined
-            ? undefined
-            : dto.content.trim(),
-        tags:
-          dto.tags === undefined
-            ? undefined
-            : this.cleanTags(dto.tags),
-      },
-      include: this.documentInclude,
-    });
+    const document =
+      await this.prisma.knowledgeDocument.update({
+        where: { id },
+        data: {
+          title:
+            dto.title === undefined
+              ? undefined
+              : dto.title.trim(),
+          category:
+            dto.category === undefined
+              ? undefined
+              : dto.category.trim(),
+          content:
+            dto.content === undefined
+              ? undefined
+              : dto.content.trim(),
+          tags:
+            dto.tags === undefined
+              ? undefined
+              : this.cleanTags(dto.tags),
+        },
+        include: this.documentInclude,
+      });
+
+    const embedding =
+      await this.embeddingService.safeEmbedDocument(
+        document.id,
+      );
+
+    return {
+      ...document,
+      embeddingStatus: embedding,
+    };
   }
 
   async remove(id: string) {

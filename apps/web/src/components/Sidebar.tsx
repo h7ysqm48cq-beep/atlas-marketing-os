@@ -1,8 +1,8 @@
 const mainItems = [
   ['Dashboard','⌂','/'],['Campaigns','◉','/campaigns'],['Content History','▤','/content-history'],
-  ['Calendar','□','#'],['AI Studio','✦','/ai-studio'],['Brand Copilot','◎','/copilot'],['Analytics','⌁','#'],
+  ['Automation','↻','/automation'],['Calendar','□','/calendar'],['AI Studio','✦','/ai-studio'],['Brand Copilot','◎','/copilot'],['Analytics','⌁','/ai-usage'],
 ];
-const resourceItems = [['Asset Library','◇','/assets'],['Prompt Library','≡','#'],['Brand Brain','◆','/brand-brain'],['Knowledge','◈','/knowledge'],['Settings','⚙','#']];
+const resourceItems = [['Asset Library','◇','/assets'],['Prompt Library','≡','#'],['Brand Brain','◆','/brand-brain'],['Knowledge','◈','/knowledge'],['Settings','⚙','/settings']];
 
 export function Sidebar() {
   return <aside className="sidebar">

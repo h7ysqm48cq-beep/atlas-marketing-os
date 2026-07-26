@@ -14,6 +14,23 @@ type HistoryRecord = {
   brand: { id: string; name: string; workspace: { id: string; name: string; slug: string } };
   campaign: { id: string; name: string } | null;
   idea: { id: string; title: string; sortOrder: number } | null;
+  scheduledPosts?: Array<{
+    id: string;
+    platform: "FACEBOOK" | "TELEGRAM";
+    status: string;
+    scheduledAt?: string;
+    publishedAt?: string | null;
+    externalPostId?: string | null;
+    externalPostUrl?: string | null;
+    lastError?: string | null;
+    retryCount?: number;
+    channel: {
+      id: string;
+      name: string;
+      username?: string | null;
+      externalId?: string | null;
+    };
+  }>;
 };
 type OutputKey = "facebook" | "telegram" | "reels" | "imagePrompt";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -39,6 +56,20 @@ export function ContentHistory() {
     const search=!q || record.topic.toLowerCase().includes(q) || record.brand.name.toLowerCase().includes(q) || record.style.toLowerCase().includes(q);
     return search && (!onlyFavorites || record.isFavorite) && (statusFilter==="ALL" || record.status===statusFilter);
   }),[records,query,onlyFavorites,statusFilter]);
+
+  useEffect(()=>{
+    if(!filtered.length){
+      setSelected(null);
+      return;
+    }
+
+    if(
+      !selected ||
+      !filtered.some((record)=>record.id===selected.id)
+    ){
+      setSelected(filtered[0]);
+    }
+  },[filtered,selected]);
 
   async function load(){
     try{ const response=await fetch(`${API_BASE_URL}/history`,{cache:"no-store"}); const data=await response.json() as HistoryRecord[]|{message?:string};
@@ -109,8 +140,20 @@ export function ContentHistory() {
         </a>
       ) : null}
 
-      <a href={buildStudioHref(selected)}>
-        Continue in AI Studio
+      <a
+        href={
+          selected.status === "PUBLISHED"
+            ? `/ai-studio?${new URLSearchParams({
+                topic: selected.topic,
+                style: selected.style,
+                language: selected.language,
+              }).toString()}`
+            : buildStudioHref(selected)
+        }
+      >
+        {selected.status === "PUBLISHED"
+          ? "Create new draft"
+          : "Continue in AI Studio"}
       </a>
 
       <button onClick={()=>void toggleFavorite(selected)}>
@@ -121,14 +164,280 @@ export function ContentHistory() {
         Copy
       </button>
 
-      <button
-        className={styles.deleteButton}
-        onClick={()=>void remove(selected)}
-      >
-        Delete
-      </button>
+      {selected.status !== "PUBLISHED" ? (
+        <button
+          className={styles.deleteButton}
+          onClick={()=>void remove(selected)}
+        >
+          Delete
+        </button>
+      ) : null}
     </div></div>
-    <section className={styles.workflowPanel}><div className={styles.workflowTitle}><div><span>Approval workflow</span><strong>{formatStatus(selected.status)}</strong></div><small>{selected.reviewedBy?`Reviewer: ${selected.reviewedBy}`:"No reviewer assigned"}</small></div><div className={styles.reviewFields}><label><span>Reviewer</span><input value={reviewer} onChange={(e)=>setReviewer(e.target.value)}/></label><label><span>Review note</span><textarea value={reviewNote} onChange={(e)=>setReviewNote(e.target.value)} placeholder="Add feedback or approval notes..."/></label></div><div className={styles.workflowActions}><button disabled={saving} onClick={()=>void updateWorkflow("DRAFT")}>Draft</button><button disabled={saving} onClick={()=>void updateWorkflow("PENDING_REVIEW")}>Submit review</button><button disabled={saving} onClick={()=>void updateWorkflow("AI_IMPROVED")}>Need changes</button><button disabled={saving} className={styles.approveButton} onClick={()=>void updateWorkflow("APPROVED")}>Approve</button><button disabled={saving} className={styles.rejectButton} onClick={()=>void updateWorkflow("REJECTED")}>Reject</button><button disabled={saving||selected.status!=="APPROVED"} onClick={()=>void updateWorkflow("PUBLISHED")}>Mark published</button></div></section>
+    {selected.status === "PUBLISHED" ? (
+      <section className={`${styles.workflowPanel} ${styles.publishedPanel}`}>
+        <div className={styles.workflowTitle}>
+          <div>
+            <span>Publishing details</span>
+            <strong>Published</strong>
+          </div>
+
+          <small>
+            {selected.reviewedBy
+              ? `Published by: ${selected.reviewedBy}`
+              : "Published by Atlas"}
+          </small>
+        </div>
+
+        <div className={styles.publishedDetails}>
+          <article>
+            <span>Status</span>
+            <strong>Published</strong>
+          </article>
+
+          <article>
+            <span>Published at</span>
+            <strong>
+              {selected.publishedAt
+                ? formatDate(selected.publishedAt)
+                : "Published"}
+            </strong>
+          </article>
+
+          <article>
+            <span>Platforms</span>
+            <strong>
+              {selected.platforms
+                .filter(
+                  (platform) =>
+                    platform === "Facebook" ||
+                    platform === "Telegram",
+                )
+                .join(" · ") || "Not specified"}
+            </strong>
+          </article>
+        </div>
+
+        <div className={styles.reviewFields}>
+          <label>
+            <span>Published by</span>
+            <input
+              value={selected.reviewedBy || "Atlas Publisher"}
+              readOnly
+            />
+          </label>
+
+          <label>
+            <span>Publishing note</span>
+            <textarea
+              value={
+                selected.reviewNote ||
+                "Successfully published through the Atlas automation workflow."
+              }
+              readOnly
+            />
+          </label>
+        </div>
+
+        {selected.scheduledPosts?.length ? (
+          <div className={styles.publishedPostList}>
+            {selected.scheduledPosts.map((post) => (
+              <article key={post.id}>
+                <div>
+                  <span className={styles.publishPlatform}>
+                    <span
+                      className={`${styles.publishPlatformIcon} ${
+                        post.platform === "FACEBOOK"
+                          ? styles.facebookPublishIcon
+                          : styles.telegramPublishIcon
+                      }`}
+                    >
+                      {post.platform === "FACEBOOK" ? "f" : "✈"}
+                    </span>
+
+                    {post.platform === "FACEBOOK"
+                      ? "Facebook"
+                      : "Telegram"}
+                  </span>
+
+                  <strong>{post.channel.name}</strong>
+
+                  <small>
+                    {post.publishedAt
+                      ? formatDate(post.publishedAt)
+                      : formatPublishStatus(post.status)}
+                  </small>
+
+                  {post.platform === "TELEGRAM" &&
+                  post.externalPostId ? (
+                    <small>
+                      Message ID: {post.externalPostId}
+                    </small>
+                  ) : null}
+
+                  {post.status === "FAILED" &&
+                  post.lastError ? (
+                    <small className={styles.publishError}>
+                      {post.lastError}
+                    </small>
+                  ) : null}
+
+                  {typeof post.retryCount === "number" &&
+                  post.retryCount > 0 ? (
+                    <small>
+                      Attempts: {post.retryCount}
+                    </small>
+                  ) : null}
+                </div>
+
+                <span
+                  className={`${styles.publishStatus} ${
+                    post.status === "PUBLISHED"
+                      ? styles.publishStatusSuccess
+                      : post.status === "FAILED"
+                        ? styles.publishStatusFailed
+                        : styles.publishStatusPending
+                  }`}
+                >
+                  {formatPublishStatus(post.status)}
+                </span>
+
+                {post.externalPostUrl ? (
+                  <a
+                    href={post.externalPostUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open post
+                  </a>
+                ) : post.platform === "TELEGRAM" &&
+                  post.channel.username &&
+                  post.externalPostId ? (
+                  <a
+                    href={`https://t.me/${post.channel.username}/${post.externalPostId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open message
+                  </a>
+                ) : (
+                  <a
+                    href="/calendar"
+                    className={styles.calendarFallbackLink}
+                  >
+                    {post.status === "FAILED"
+                      ? "Review failure"
+                      : "Open calendar"}
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.noPublishRecords}>
+            No linked publishing records found.
+          </p>
+        )}
+
+        <div className={styles.publishedActions}>
+          <a href="/calendar">
+            Open Content Calendar
+          </a>
+
+          <a
+            href={`/ai-studio?${new URLSearchParams({
+              topic: selected.topic,
+              style: selected.style,
+              language: selected.language,
+            }).toString()}`}
+          >
+            Create new draft
+          </a>
+        </div>
+      </section>
+    ) : (
+      <section className={styles.workflowPanel}>
+        <div className={styles.workflowTitle}>
+          <div>
+            <span>Approval workflow</span>
+            <strong>{formatStatus(selected.status)}</strong>
+          </div>
+
+          <small>
+            {selected.reviewedBy
+              ? `Reviewer: ${selected.reviewedBy}`
+              : "No reviewer assigned"}
+          </small>
+        </div>
+
+        <div className={styles.reviewFields}>
+          <label>
+            <span>Reviewer</span>
+            <input
+              value={reviewer}
+              onChange={(e)=>setReviewer(e.target.value)}
+            />
+          </label>
+
+          <label>
+            <span>Review note</span>
+            <textarea
+              value={reviewNote}
+              onChange={(e)=>setReviewNote(e.target.value)}
+              placeholder="Add feedback or approval notes..."
+            />
+          </label>
+        </div>
+
+        <div className={styles.workflowActions}>
+          <button
+            disabled={saving}
+            onClick={()=>void updateWorkflow("DRAFT")}
+          >
+            Draft
+          </button>
+
+          <button
+            disabled={saving}
+            onClick={()=>void updateWorkflow("PENDING_REVIEW")}
+          >
+            Submit review
+          </button>
+
+          <button
+            disabled={saving}
+            onClick={()=>void updateWorkflow("AI_IMPROVED")}
+          >
+            Need changes
+          </button>
+
+          <button
+            disabled={saving}
+            className={styles.approveButton}
+            onClick={()=>void updateWorkflow("APPROVED")}
+          >
+            Approve
+          </button>
+
+          <button
+            disabled={saving}
+            className={styles.rejectButton}
+            onClick={()=>void updateWorkflow("REJECTED")}
+          >
+            Reject
+          </button>
+
+          <button
+            disabled={
+              saving ||
+              selected.status !== "APPROVED"
+            }
+            onClick={()=>void updateWorkflow("PUBLISHED")}
+          >
+            Mark published
+          </button>
+        </div>
+      </section>
+    )}
     <div className={styles.scoreGrid}><Score label="Viral" value={selected.analysis.viralScore}/><Score label="Discussion" value={selected.analysis.discussionScore}/><Score label="Shareability" value={selected.analysis.shareabilityScore}/><Score label="Brand Fit" value={selected.analysis.brandFitScore}/></div>
     <div className={styles.tabs}>{[["facebook","Facebook"],["telegram","Telegram"],["reels","Reels"],["imagePrompt","Image Prompt"]].map(([key,label])=><button key={key} className={activeOutput===key?styles.activeTab:""} onClick={()=>setActiveOutput(key as OutputKey)}>{label}</button>)}</div><textarea className={styles.output} readOnly value={getOutput(selected)}/><div className={styles.meta}><span>Best time: {selected.analysis.bestPostingTime||"Not provided"}</span><span>{formatDate(selected.createdAt)}</span></div></>}</div></section>
   </div>;
@@ -136,3 +445,15 @@ export function ContentHistory() {
 function Score({label,value}:{label:string;value?:number}){ return <div className={styles.score}><strong>{value??0}</strong><span>{label}</span></div>; }
 function formatDate(value:string){ return new Intl.DateTimeFormat("en-MY",{dateStyle:"medium",timeStyle:"short"}).format(new Date(value)); }
 function formatStatus(status:ContentStatus){ return status.toLowerCase().split("_").map((part)=>part.charAt(0).toUpperCase()+part.slice(1)).join(" "); }
+
+function formatPublishStatus(status:string){
+  return status
+    .toLowerCase()
+    .split("_")
+    .map(
+      (part)=>
+        part.charAt(0).toUpperCase()+
+        part.slice(1),
+    )
+    .join(" ");
+}

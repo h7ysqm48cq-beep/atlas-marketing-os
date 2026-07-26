@@ -1,0 +1,276 @@
+.card {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid rgba(209, 163, 63, 0.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(209, 163, 63, 0.1),
+      transparent 38%
+    ),
+    rgba(11, 18, 34, 0.92);
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.heading p,
+.successHeader p {
+  margin: 0 0 5px;
+  color: #d1a33f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.heading h3,
+.successHeader h3 {
+  margin: 0 0 6px;
+  color: #f8fafc;
+  font-size: 20px;
+}
+
+.heading span,
+.successHeader small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.heading b {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(209, 163, 63, 0.12);
+  color: #f8d56b;
+  font-size: 11px;
+}
+
+.platforms {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.platforms label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.58);
+  cursor: pointer;
+}
+
+.platforms label:has(input:checked) {
+  border-color: rgba(209, 163, 63, 0.5);
+  background: rgba(209, 163, 63, 0.06);
+}
+
+.platforms span {
+  display: grid;
+  gap: 3px;
+}
+
+.platforms strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.platforms small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.scheduleGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scheduleGrid label {
+  display: grid;
+  gap: 7px;
+}
+
+.scheduleGrid span,
+.days > span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.scheduleGrid input {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: #0b1220;
+  color: #ffffff;
+}
+
+.days {
+  display: grid;
+  gap: 9px;
+}
+
+.days > div {
+  display: grid;
+  grid-template-columns:
+    repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.days button {
+  min-height: 36px;
+  border: 1px solid rgba(148, 163, 184, 0.17);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.days .activeDay {
+  border-color: rgba(209, 163, 63, 0.52);
+  background: rgba(209, 163, 63, 0.1);
+  color: #f8d56b;
+}
+
+.queueButton {
+  min-height: 54px;
+  border: 0;
+  border-radius: 13px;
+  background:
+    linear-gradient(
+      135deg,
+      #d1a33f,
+      #9a6c18
+    );
+  color: #111827;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.queueButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.successHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.successHeader > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.results {
+  display: grid;
+  gap: 8px;
+}
+
+.results article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 11px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.results article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.results strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.results small {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.results article > span {
+  color: #f8d56b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px;
+}
+
+.actions a,
+.actions button {
+  display: grid;
+  min-height: 42px;
+  padding: 0 13px;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.actions a {
+  background: rgba(209, 163, 63, 0.12);
+  color: #f8d56b;
+}
+
+.actions button {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .platforms,
+  .scheduleGrid,
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .days > div {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,266 @@
+.settingsPage {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hero,
+.panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.hero h1 {
+  margin: 6px 0 8px;
+  font-size: 40px;
+  letter-spacing: -0.04em;
+}
+
+.hero p {
+  margin: 0;
+  color: #8d94a7;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #8276ff !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.primaryButton,
+.state button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #7868ff;
+  border-radius: 10px;
+  background: #7868ff;
+  color: white;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.summaryGrid article,
+.panel,
+.state {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(18, 21, 31, 0.94);
+}
+
+.summaryGrid article {
+  display: flex;
+  min-height: 116px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px;
+}
+
+.summaryGrid span,
+.summaryGrid small,
+.formGrid span,
+.toggleList span,
+.channelGrid span {
+  color: #858c9f;
+}
+
+.summaryGrid strong {
+  font-size: 22px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.panel {
+  padding: 21px;
+}
+
+.panel header {
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.panel header a {
+  color: #aaa3ff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.formGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.formGrid input,
+.formGrid select {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  background: #171b27;
+  color: inherit;
+}
+
+.formGrid input:disabled {
+  opacity: 0.55;
+}
+
+.toggleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.toggleList label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.toggleList label div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.toggleList input {
+  width: 18px;
+  height: 18px;
+}
+
+.channelGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.channelGrid article {
+  display: grid;
+  grid-template-columns:
+    auto 1fr auto;
+  align-items: center;
+  gap: 13px;
+  padding: 15px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.channelGrid article > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channelIcon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 11px;
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.facebook {
+  background: #2563eb;
+}
+
+.telegram {
+  background: #229ed9;
+}
+
+.connected,
+.disconnected {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.connected {
+  background: rgba(56, 189, 120, 0.12);
+  color: #73d9a0;
+}
+
+.disconnected {
+  background: rgba(255, 183, 77, 0.1);
+  color: #e6b968;
+}
+
+.success,
+.error {
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.success {
+  border: 1px solid rgba(56, 189, 120, 0.22);
+  background: rgba(56, 189, 120, 0.08);
+  color: #7be0a8;
+}
+
+.error {
+  border: 1px solid rgba(255, 100, 100, 0.22);
+  background: rgba(255, 100, 100, 0.08);
+  color: #ffb0b0;
+}
+
+.state {
+  padding: 28px;
+}
+
+@media (max-width: 1050px) {
+  .grid,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .formGrid,
+  .channelGrid {
+    grid-template-columns: 1fr;
+  }
+}

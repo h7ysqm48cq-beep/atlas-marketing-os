@@ -28,7 +28,6 @@ enum CampaignIdeaStatus {
   ARCHIVED
 }
 
-
 enum ContentStatus {
   DRAFT
   AI_IMPROVED
@@ -46,58 +45,63 @@ enum AssetType {
 }
 
 model Workspace {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  brands    Brand[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String             @id @default(cuid())
+  name              String
+  slug              String             @unique
+  brands            Brand[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  socialChannels    SocialChannel[]
+  automationSetting AutomationSetting?
 }
 
 model Brand {
-  id              String              @id @default(cuid())
-  workspaceId     String
-  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name            String
-  website         String?
-  industry        String?
-  country         String              @default("Malaysia")
-  primaryLanguage String              @default("Chinese")
-  targetAudience  String
-  brandVoice      String
-  visualStyle     String
-  contentGoals    String
-  callsToAction   String[]
-  keywords        String[]
-  forbiddenWords  String[]
-  brandRules      String[]
-  examplePosts    String[]
-  status          BrandStatus         @default(ACTIVE)
-  generations     GenerationHistory[]
-  campaigns       Campaign[]
-  assets          Asset[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                 String              @id @default(cuid())
+  workspaceId        String
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name               String
+  website            String?
+  industry           String?
+  country            String              @default("Malaysia")
+  primaryLanguage    String              @default("Chinese")
+  targetAudience     String
+  brandVoice         String
+  visualStyle        String
+  contentGoals       String
+  callsToAction      String[]
+  keywords           String[]
+  forbiddenWords     String[]
+  brandRules         String[]
+  examplePosts       String[]
+  status             BrandStatus         @default(ACTIVE)
+  generations        GenerationHistory[]
+  campaigns          Campaign[]
+  assets             Asset[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  knowledgeDocuments KnowledgeDocument[]
+  socialChannels     SocialChannel[]
+  scheduledPosts     ScheduledPost[]
 
   @@index([workspaceId])
-  knowledgeDocuments KnowledgeDocument[]
 }
 
 model Campaign {
-  id          String              @id @default(cuid())
-  brandId     String
-  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  objective   String?
-  status      CampaignStatus      @default(DRAFT)
-  startDate   DateTime?
-  endDate     DateTime?
-  ideas       CampaignIdea[]
-  generations GenerationHistory[]
-  assets      Asset[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id             String              @id @default(cuid())
+  brandId        String
+  brand          Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  objective      String?
+  status         CampaignStatus      @default(DRAFT)
+  startDate      DateTime?
+  endDate        DateTime?
+  ideas          CampaignIdea[]
+  generations    GenerationHistory[]
+  assets         Asset[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  scheduledPosts ScheduledPost[]
 
   @@index([brandId])
   @@index([status])
@@ -125,33 +129,35 @@ model CampaignIdea {
 }
 
 model GenerationHistory {
-  versions    ContentVersion[]
-  id          String           @id @default(cuid())
-  brandId     String
-  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  campaignId  String?
-  campaign    Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  ideaId      String?
-  idea        CampaignIdea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
-  topic       String
-  platforms   String[]
-  style       String
-  language    String
-  facebook    String
-  telegram    String
-  reels       String
-  imagePrompt String
-  analysis    Json
-  isFavorite  Boolean          @default(false)
-  status      ContentStatus    @default(DRAFT)
-  reviewNote  String?
-  reviewedBy  String?
-  reviewedAt  DateTime?
-  approvedAt  DateTime?
-  publishedAt DateTime?
-  assets      Asset[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  versions       ContentVersion[]
+  id             String           @id @default(cuid())
+  brandId        String
+  brand          Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId     String?
+  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  ideaId         String?
+  idea           CampaignIdea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  topic          String
+  platforms      String[]
+  style          String
+  language       String
+  facebook       String
+  telegram       String
+  reels          String
+  imagePrompt    String
+  analysis       Json
+  isFavorite     Boolean          @default(false)
+  status         ContentStatus    @default(DRAFT)
+  reviewNote     String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  approvedAt     DateTime?
+  publishedAt    DateTime?
+  usageLogs      AiUsage[]
+  assets         Asset[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  scheduledPosts ScheduledPost[]
 
   @@index([brandId])
   @@index([campaignId])
@@ -206,19 +212,198 @@ model Asset {
 }
 
 model KnowledgeDocument {
-  id        String   @id @default(cuid())
-  brandId   String
-  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  title     String
-  category  String
-  content   String
+  id         String              @id @default(cuid())
+  brandId    String
+  brand      Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  embedding  KnowledgeEmbedding?
+  title      String
+  category   String
+  content    String
   tags       String[]
-  usageCount Int       @default(0)
+  usageCount Int                 @default(0)
   lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
 
   @@index([brandId])
   @@index([category])
   @@index([createdAt])
+}
+
+model KnowledgeEmbedding {
+  id          String            @id @default(cuid())
+  documentId  String            @unique
+  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  brandId     String
+  vector      Json
+  model       String
+  dimensions  Int
+  contentHash String
+  embeddedAt  DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([brandId])
+  @@index([embeddedAt])
+}
+
+model AiUsage {
+  id String @id @default(cuid())
+
+  historyId String?
+  history   GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+
+  model String
+
+  promptTokens      Int
+  cachedInputTokens Int @default(0)
+  completionTokens  Int
+  totalTokens       Int
+
+  estimatedCostUsd Float
+  estimatedCostMyr Float
+
+  durationMs Int
+
+  createdAt DateTime @default(now())
+
+  @@index([historyId])
+  @@index([model])
+  @@index([createdAt])
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  TELEGRAM
+}
+
+enum SocialChannelStatus {
+  DISCONNECTED
+  CONNECTED
+  EXPIRED
+  ERROR
+}
+
+enum ScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum PublishAttemptStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model SocialChannel {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandId     String
+  brand       Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  platform   SocialPlatform
+  name       String
+  externalId String?
+  username   String?
+  status     SocialChannelStatus @default(DISCONNECTED)
+
+  accessTokenEncrypted String?
+  tokenExpiresAt       DateTime?
+  lastConnectedAt      DateTime?
+  lastError            String?
+
+  scheduledPosts ScheduledPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, platform, externalId])
+  @@index([workspaceId])
+  @@index([brandId])
+  @@index([platform])
+  @@index([status])
+}
+
+model ScheduledPost {
+  id         String             @id @default(cuid())
+  brandId    String
+  brand      Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  channelId  String
+  channel    SocialChannel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  historyId  String?
+  history    GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+
+  platform  SocialPlatform
+  title     String?
+  content   String
+  mediaUrls String[]
+
+  scheduledAt DateTime
+  timezone    String              @default("Asia/Kuala_Lumpur")
+  status      ScheduledPostStatus @default(DRAFT)
+
+  publishedAt     DateTime?
+  externalPostId  String?
+  externalPostUrl String?
+  lastError       String?
+  retryCount      Int       @default(0)
+
+  attempts PublishAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([channelId])
+  @@index([campaignId])
+  @@index([historyId])
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model PublishAttempt {
+  id              String        @id @default(cuid())
+  scheduledPostId String
+  scheduledPost   ScheduledPost @relation(fields: [scheduledPostId], references: [id], onDelete: Cascade)
+
+  attemptNumber Int
+  status        PublishAttemptStatus @default(PENDING)
+
+  requestPayload  Json?
+  responsePayload Json?
+  errorMessage    String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([scheduledPostId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AutomationSetting {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  timezone           String  @default("Asia/Kuala_Lumpur")
+  approvalRequired   Boolean @default(true)
+  autoPublishEnabled Boolean @default(false)
+  retryLimit         Int     @default(3)
+  retryDelayMinutes  Int     @default(10)
+
+  defaultFacebookTime String @default("20:00")
+  defaultTelegramTime String @default("20:05")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

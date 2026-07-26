@@ -2,21 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
+import { AiTopicSuggestions } from "./AiTopicSuggestions";
 import styles from "./AiStudio.module.css";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+const platformOptions = [
+  "Facebook",
+  "Telegram",
+  "Reels",
+  "Image Prompt",
+] as const;
+
+type StudioPlatform =
+  (typeof platformOptions)[number];
+
 export function AiStudio() {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState("Nostalgia");
   const [language, setLanguage] = useState("Chinese");
-  const [platforms] = useState([
-    "Facebook",
-    "Telegram",
-    "Reels",
-    "Image Prompt",
-  ]);
+  const [platforms, setPlatforms] =
+    useState<StudioPlatform[]>([
+      ...platformOptions,
+    ]);
   const [campaignId, setCampaignId] = useState("");
   const [ideaId, setIdeaId] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -162,9 +171,38 @@ export function AiStudio() {
     };
   }, []);
 
+  function togglePlatform(
+    platform: StudioPlatform,
+  ) {
+    setPlatforms((current) => {
+      if (current.includes(platform)) {
+        if (current.length === 1) {
+          setMessage(
+            "Select at least one platform.",
+          );
+
+          return current;
+        }
+
+        return current.filter(
+          (item) => item !== platform,
+        );
+      }
+
+      return [...current, platform];
+    });
+  }
+
   async function generateContent() {
     if (!topic.trim()) {
       setMessage("Topic is required.");
+      return;
+    }
+
+    if (!platforms.length) {
+      setMessage(
+        "Select at least one platform.",
+      );
       return;
     }
 
@@ -274,14 +312,45 @@ export function AiStudio() {
             />
           </label>
 
+          <AiTopicSuggestions
+            style={style}
+            language={language}
+            platforms={platforms}
+            campaignId={campaignId || undefined}
+            onSelect={setTopic}
+            onMessage={setMessage}
+          />
+
           <div className={styles.platforms}>
             <span>Platforms</span>
             <div>
-              {platforms.map((platform) => (
-                <button type="button" key={platform}>
-                  ✓ {platform}
-                </button>
-              ))}
+              {platformOptions.map(
+                (platform) => {
+                  const selected =
+                    platforms.includes(platform);
+
+                  return (
+                    <button
+                      type="button"
+                      key={platform}
+                      aria-pressed={selected}
+                      className={
+                        selected
+                          ? styles.activePlatform
+                          : styles.inactivePlatform
+                      }
+                      onClick={() =>
+                        togglePlatform(platform)
+                      }
+                    >
+                      <span>
+                        {selected ? "✓" : "+"}
+                      </span>
+                      {platform}
+                    </button>
+                  );
+                },
+              )}
             </div>
           </div>
 
@@ -350,16 +419,19 @@ export function AiStudio() {
           </button>
 
           <p className={styles.message}>{message}</p>
+
         </aside>
 
         <AiWorkspace
           topic={topic}
           result={result}
           campaignId={campaignId || undefined}
+          publishTopic={topic}
+          publishCampaignId={campaignId || undefined}
           isGenerating={isGenerating}
           statusMessage={message}
           onMessage={setMessage}
-	  onResultChange={setResult}
+          onResultChange={setResult}
         />
       </section>
     </div>

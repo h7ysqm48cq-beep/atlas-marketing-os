@@ -278,6 +278,9 @@ export type BrandWhereInput = {
   generations?: Prisma.GenerationHistoryListRelationFilter
   campaigns?: Prisma.CampaignListRelationFilter
   assets?: Prisma.AssetListRelationFilter
+  knowledgeDocuments?: Prisma.KnowledgeDocumentListRelationFilter
+  socialChannels?: Prisma.SocialChannelListRelationFilter
+  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
 }
 
 export type BrandOrderByWithRelationInput = {
@@ -304,6 +307,9 @@ export type BrandOrderByWithRelationInput = {
   generations?: Prisma.GenerationHistoryOrderByRelationAggregateInput
   campaigns?: Prisma.CampaignOrderByRelationAggregateInput
   assets?: Prisma.AssetOrderByRelationAggregateInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentOrderByRelationAggregateInput
+  socialChannels?: Prisma.SocialChannelOrderByRelationAggregateInput
+  scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
 }
 
 export type BrandWhereUniqueInput = Prisma.AtLeast<{
@@ -333,6 +339,9 @@ export type BrandWhereUniqueInput = Prisma.AtLeast<{
   generations?: Prisma.GenerationHistoryListRelationFilter
   campaigns?: Prisma.CampaignListRelationFilter
   assets?: Prisma.AssetListRelationFilter
+  knowledgeDocuments?: Prisma.KnowledgeDocumentListRelationFilter
+  socialChannels?: Prisma.SocialChannelListRelationFilter
+  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
 }, "id">
 
 export type BrandOrderByWithAggregationInput = {
@@ -408,6 +417,9 @@ export type BrandCreateInput = {
   generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateInput = {
@@ -433,6 +445,9 @@ export type BrandUncheckedCreateInput = {
   generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUpdateInput = {
@@ -458,6 +473,9 @@ export type BrandUpdateInput = {
   generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateInput = {
@@ -483,6 +501,9 @@ export type BrandUncheckedUpdateInput = {
   generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateManyInput = {
@@ -766,6 +787,48 @@ export type BrandUpdateOneRequiredWithoutAssetsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutAssetsInput, Prisma.BrandUpdateWithoutAssetsInput>, Prisma.BrandUncheckedUpdateWithoutAssetsInput>
 }
 
+export type BrandCreateNestedOneWithoutKnowledgeDocumentsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedCreateWithoutKnowledgeDocumentsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutKnowledgeDocumentsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutKnowledgeDocumentsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedCreateWithoutKnowledgeDocumentsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutKnowledgeDocumentsInput
+  upsert?: Prisma.BrandUpsertWithoutKnowledgeDocumentsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutKnowledgeDocumentsInput, Prisma.BrandUpdateWithoutKnowledgeDocumentsInput>, Prisma.BrandUncheckedUpdateWithoutKnowledgeDocumentsInput>
+}
+
+export type BrandCreateNestedOneWithoutSocialChannelsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutSocialChannelsInput, Prisma.BrandUncheckedCreateWithoutSocialChannelsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutSocialChannelsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutSocialChannelsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutSocialChannelsInput, Prisma.BrandUncheckedCreateWithoutSocialChannelsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutSocialChannelsInput
+  upsert?: Prisma.BrandUpsertWithoutSocialChannelsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutSocialChannelsInput, Prisma.BrandUpdateWithoutSocialChannelsInput>, Prisma.BrandUncheckedUpdateWithoutSocialChannelsInput>
+}
+
+export type BrandCreateNestedOneWithoutScheduledPostsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutScheduledPostsInput, Prisma.BrandUncheckedCreateWithoutScheduledPostsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutScheduledPostsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutScheduledPostsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutScheduledPostsInput, Prisma.BrandUncheckedCreateWithoutScheduledPostsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutScheduledPostsInput
+  upsert?: Prisma.BrandUpsertWithoutScheduledPostsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutScheduledPostsInput, Prisma.BrandUpdateWithoutScheduledPostsInput>, Prisma.BrandUncheckedUpdateWithoutScheduledPostsInput>
+}
+
 export type BrandCreateWithoutWorkspaceInput = {
   id?: string
   name: string
@@ -788,6 +851,9 @@ export type BrandCreateWithoutWorkspaceInput = {
   generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutWorkspaceInput = {
@@ -812,6 +878,9 @@ export type BrandUncheckedCreateWithoutWorkspaceInput = {
   generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutWorkspaceInput = {
@@ -887,6 +956,9 @@ export type BrandCreateWithoutCampaignsInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutCampaignsInput = {
@@ -911,6 +983,9 @@ export type BrandUncheckedCreateWithoutCampaignsInput = {
   updatedAt?: Date | string
   generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutCampaignsInput = {
@@ -951,6 +1026,9 @@ export type BrandUpdateWithoutCampaignsInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutCampaignsInput = {
@@ -975,6 +1053,9 @@ export type BrandUncheckedUpdateWithoutCampaignsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutGenerationsInput = {
@@ -999,6 +1080,9 @@ export type BrandCreateWithoutGenerationsInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutGenerationsInput = {
@@ -1023,6 +1107,9 @@ export type BrandUncheckedCreateWithoutGenerationsInput = {
   updatedAt?: Date | string
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutGenerationsInput = {
@@ -1063,6 +1150,9 @@ export type BrandUpdateWithoutGenerationsInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutGenerationsInput = {
@@ -1087,6 +1177,9 @@ export type BrandUncheckedUpdateWithoutGenerationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutAssetsInput = {
@@ -1111,6 +1204,9 @@ export type BrandCreateWithoutAssetsInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutAssetsInput = {
@@ -1135,6 +1231,9 @@ export type BrandUncheckedCreateWithoutAssetsInput = {
   updatedAt?: Date | string
   generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutAssetsInput = {
@@ -1175,6 +1274,9 @@ export type BrandUpdateWithoutAssetsInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutAssetsInput = {
@@ -1199,6 +1301,381 @@ export type BrandUncheckedUpdateWithoutAssetsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutKnowledgeDocumentsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutKnowledgeDocumentsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutKnowledgeDocumentsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedCreateWithoutKnowledgeDocumentsInput>
+}
+
+export type BrandUpsertWithoutKnowledgeDocumentsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedUpdateWithoutKnowledgeDocumentsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedCreateWithoutKnowledgeDocumentsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutKnowledgeDocumentsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutKnowledgeDocumentsInput, Prisma.BrandUncheckedUpdateWithoutKnowledgeDocumentsInput>
+}
+
+export type BrandUpdateWithoutKnowledgeDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutKnowledgeDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutSocialChannelsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutSocialChannelsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutSocialChannelsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutSocialChannelsInput, Prisma.BrandUncheckedCreateWithoutSocialChannelsInput>
+}
+
+export type BrandUpsertWithoutSocialChannelsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutSocialChannelsInput, Prisma.BrandUncheckedUpdateWithoutSocialChannelsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutSocialChannelsInput, Prisma.BrandUncheckedCreateWithoutSocialChannelsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutSocialChannelsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutSocialChannelsInput, Prisma.BrandUncheckedUpdateWithoutSocialChannelsInput>
+}
+
+export type BrandUpdateWithoutSocialChannelsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutSocialChannelsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutScheduledPostsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutScheduledPostsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutScheduledPostsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutScheduledPostsInput, Prisma.BrandUncheckedCreateWithoutScheduledPostsInput>
+}
+
+export type BrandUpsertWithoutScheduledPostsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutScheduledPostsInput, Prisma.BrandUncheckedUpdateWithoutScheduledPostsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutScheduledPostsInput, Prisma.BrandUncheckedCreateWithoutScheduledPostsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutScheduledPostsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutScheduledPostsInput, Prisma.BrandUncheckedUpdateWithoutScheduledPostsInput>
+}
+
+export type BrandUpdateWithoutScheduledPostsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutScheduledPostsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateManyWorkspaceInput = {
@@ -1244,6 +1721,9 @@ export type BrandUpdateWithoutWorkspaceInput = {
   generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutWorkspaceInput = {
@@ -1268,6 +1748,9 @@ export type BrandUncheckedUpdateWithoutWorkspaceInput = {
   generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1300,12 +1783,18 @@ export type BrandCountOutputType = {
   generations: number
   campaigns: number
   assets: number
+  knowledgeDocuments: number
+  socialChannels: number
+  scheduledPosts: number
 }
 
 export type BrandCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   generations?: boolean | BrandCountOutputTypeCountGenerationsArgs
   campaigns?: boolean | BrandCountOutputTypeCountCampaignsArgs
   assets?: boolean | BrandCountOutputTypeCountAssetsArgs
+  knowledgeDocuments?: boolean | BrandCountOutputTypeCountKnowledgeDocumentsArgs
+  socialChannels?: boolean | BrandCountOutputTypeCountSocialChannelsArgs
+  scheduledPosts?: boolean | BrandCountOutputTypeCountScheduledPostsArgs
 }
 
 /**
@@ -1339,6 +1828,27 @@ export type BrandCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.AssetWhereInput
 }
 
+/**
+ * BrandCountOutputType without action
+ */
+export type BrandCountOutputTypeCountKnowledgeDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KnowledgeDocumentWhereInput
+}
+
+/**
+ * BrandCountOutputType without action
+ */
+export type BrandCountOutputTypeCountSocialChannelsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SocialChannelWhereInput
+}
+
+/**
+ * BrandCountOutputType without action
+ */
+export type BrandCountOutputTypeCountScheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScheduledPostWhereInput
+}
+
 
 export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1364,6 +1874,9 @@ export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   generations?: boolean | Prisma.Brand$generationsArgs<ExtArgs>
   campaigns?: boolean | Prisma.Brand$campaignsArgs<ExtArgs>
   assets?: boolean | Prisma.Brand$assetsArgs<ExtArgs>
+  knowledgeDocuments?: boolean | Prisma.Brand$knowledgeDocumentsArgs<ExtArgs>
+  socialChannels?: boolean | Prisma.Brand$socialChannelsArgs<ExtArgs>
+  scheduledPosts?: boolean | Prisma.Brand$scheduledPostsArgs<ExtArgs>
   _count?: boolean | Prisma.BrandCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["brand"]>
 
@@ -1441,6 +1954,9 @@ export type BrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   generations?: boolean | Prisma.Brand$generationsArgs<ExtArgs>
   campaigns?: boolean | Prisma.Brand$campaignsArgs<ExtArgs>
   assets?: boolean | Prisma.Brand$assetsArgs<ExtArgs>
+  knowledgeDocuments?: boolean | Prisma.Brand$knowledgeDocumentsArgs<ExtArgs>
+  socialChannels?: boolean | Prisma.Brand$socialChannelsArgs<ExtArgs>
+  scheduledPosts?: boolean | Prisma.Brand$scheduledPostsArgs<ExtArgs>
   _count?: boolean | Prisma.BrandCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BrandIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1457,6 +1973,9 @@ export type $BrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     generations: Prisma.$GenerationHistoryPayload<ExtArgs>[]
     campaigns: Prisma.$CampaignPayload<ExtArgs>[]
     assets: Prisma.$AssetPayload<ExtArgs>[]
+    knowledgeDocuments: Prisma.$KnowledgeDocumentPayload<ExtArgs>[]
+    socialChannels: Prisma.$SocialChannelPayload<ExtArgs>[]
+    scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1876,6 +2395,9 @@ export interface Prisma__BrandClient<T, Null = never, ExtArgs extends runtime.Ty
   generations<T extends Prisma.Brand$generationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$generationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GenerationHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   campaigns<T extends Prisma.Brand$campaignsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$campaignsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assets<T extends Prisma.Brand$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  knowledgeDocuments<T extends Prisma.Brand$knowledgeDocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$knowledgeDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  socialChannels<T extends Prisma.Brand$socialChannelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$socialChannelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  scheduledPosts<T extends Prisma.Brand$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2394,6 +2916,78 @@ export type Brand$assetsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.AssetScalarFieldEnum | Prisma.AssetScalarFieldEnum[]
+}
+
+/**
+ * Brand.knowledgeDocuments
+ */
+export type Brand$knowledgeDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KnowledgeDocument
+   */
+  select?: Prisma.KnowledgeDocumentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KnowledgeDocument
+   */
+  omit?: Prisma.KnowledgeDocumentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KnowledgeDocumentInclude<ExtArgs> | null
+  where?: Prisma.KnowledgeDocumentWhereInput
+  orderBy?: Prisma.KnowledgeDocumentOrderByWithRelationInput | Prisma.KnowledgeDocumentOrderByWithRelationInput[]
+  cursor?: Prisma.KnowledgeDocumentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KnowledgeDocumentScalarFieldEnum | Prisma.KnowledgeDocumentScalarFieldEnum[]
+}
+
+/**
+ * Brand.socialChannels
+ */
+export type Brand$socialChannelsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannel
+   */
+  select?: Prisma.SocialChannelSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannel
+   */
+  omit?: Prisma.SocialChannelOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelWhereInput
+  orderBy?: Prisma.SocialChannelOrderByWithRelationInput | Prisma.SocialChannelOrderByWithRelationInput[]
+  cursor?: Prisma.SocialChannelWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SocialChannelScalarFieldEnum | Prisma.SocialChannelScalarFieldEnum[]
+}
+
+/**
+ * Brand.scheduledPosts
+ */
+export type Brand$scheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ScheduledPost
+   */
+  select?: Prisma.ScheduledPostSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ScheduledPost
+   */
+  omit?: Prisma.ScheduledPostOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScheduledPostInclude<ExtArgs> | null
+  where?: Prisma.ScheduledPostWhereInput
+  orderBy?: Prisma.ScheduledPostOrderByWithRelationInput | Prisma.ScheduledPostOrderByWithRelationInput[]
+  cursor?: Prisma.ScheduledPostWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScheduledPostScalarFieldEnum | Prisma.ScheduledPostScalarFieldEnum[]
 }
 
 /**

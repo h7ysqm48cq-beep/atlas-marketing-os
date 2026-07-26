@@ -1,0 +1,309 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import type { WorkspaceResult } from "./AiWorkspace";
+import styles from "./AiPublishCard.module.css";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+type Platform = "FACEBOOK" | "TELEGRAM";
+
+type PublishResult = {
+  success: boolean;
+  count: number;
+  posts: Array<{
+    id: string;
+    platform: Platform;
+    status: string;
+    scheduledAt: string;
+    channel: {
+      id: string;
+      name: string;
+    };
+  }>;
+};
+
+type Props = {
+  result: WorkspaceResult;
+  campaignId?: string;
+  topic: string;
+  onMessage?: (message: string) => void;
+};
+
+function defaultDateTime() {
+  const date = new Date(Date.now() + 5 * 60 * 1000);
+
+  const local = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000,
+  );
+
+  return local.toISOString().slice(0, 16);
+}
+
+export function AiPublishCard({
+  result,
+  campaignId,
+  topic,
+  onMessage,
+}: Props) {
+  const [brandId, setBrandId] = useState("");
+  const [facebook, setFacebook] = useState(true);
+  const [telegram, setTelegram] = useState(true);
+  const [mode, setMode] = useState<"NOW" | "SCHEDULE">(
+    "SCHEDULE",
+  );
+  const [scheduledAt, setScheduledAt] = useState(
+    defaultDateTime,
+  );
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
+  const [publishResult, setPublishResult] =
+    useState<PublishResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBrand() {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/brands`,
+          { cache: "no-store" },
+        );
+
+        const brands = (await response.json()) as Array<{
+          id: string;
+          status?: string;
+        }>;
+
+        const brand =
+          brands.find((item) => item.status === "ACTIVE") ??
+          brands[0];
+
+        if (!cancelled && brand) {
+          setBrandId(brand.id);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to load brand.");
+        }
+      }
+    }
+
+    void loadBrand();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedPlatforms = useMemo(() => {
+    const platforms: Platform[] = [];
+
+    if (facebook) platforms.push("FACEBOOK");
+    if (telegram) platforms.push("TELEGRAM");
+
+    return platforms;
+  }, [facebook, telegram]);
+
+  async function publish() {
+    setError("");
+    setPublishResult(null);
+
+    if (!brandId) {
+      setError("Brand is not ready.");
+      return;
+    }
+
+    if (!selectedPlatforms.length) {
+      setError("Select at least one platform.");
+      return;
+    }
+
+    const finalScheduledAt =
+      mode === "NOW"
+        ? new Date().toISOString()
+        : new Date(scheduledAt).toISOString();
+
+    if (
+      mode === "SCHEDULE" &&
+      Number.isNaN(new Date(scheduledAt).getTime())
+    ) {
+      setError("Choose a valid schedule time.");
+      return;
+    }
+
+    const contents: Partial<Record<Platform, string>> = {};
+
+    if (facebook) {
+      contents.FACEBOOK = result.facebook;
+    }
+
+    if (telegram) {
+      contents.TELEGRAM = result.telegram;
+    }
+
+    setPublishing(true);
+    onMessage?.("Creating multi-platform scheduled posts...");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/automation/multi-publish`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            brandId,
+            campaignId: campaignId || undefined,
+            historyId: result.historyId || undefined,
+            title: topic.trim() || "AI Studio Content",
+            contents,
+            platforms: selectedPlatforms,
+            scheduledAt: finalScheduledAt,
+            timezone: "Asia/Kuala_Lumpur",
+            queueImmediately: true,
+          }),
+        },
+      );
+
+      const data = (await response.json()) as
+        | PublishResult
+        | { message?: string };
+
+      if (!response.ok || !("posts" in data)) {
+        throw new Error(
+          "message" in data && data.message
+            ? data.message
+            : "Unable to schedule content.",
+        );
+      }
+
+      setPublishResult(data);
+      onMessage?.(
+        `${data.count} platform post(s) successfully queued.`,
+      );
+    } catch (publishError) {
+      const message =
+        publishError instanceof Error
+          ? publishError.message
+          : "Unable to publish content.";
+
+      setError(message);
+      onMessage?.(message);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  return (
+    <section className={styles.card}>
+      <div className={styles.heading}>
+        <div>
+          <span>Publish workflow</span>
+          <h3>Schedule generated content</h3>
+        </div>
+
+        <span className={styles.ready}>
+          Ready
+        </span>
+      </div>
+
+      <div className={styles.platforms}>
+        <label>
+          <input
+            type="checkbox"
+            checked={facebook}
+            onChange={(event) =>
+              setFacebook(event.target.checked)
+            }
+          />
+          Facebook
+        </label>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={telegram}
+            onChange={(event) =>
+              setTelegram(event.target.checked)
+            }
+          />
+          Telegram
+        </label>
+      </div>
+
+      <div className={styles.mode}>
+        <button
+          type="button"
+          className={mode === "NOW" ? styles.active : ""}
+          onClick={() => setMode("NOW")}
+        >
+          Publish now
+        </button>
+
+        <button
+          type="button"
+          className={
+            mode === "SCHEDULE" ? styles.active : ""
+          }
+          onClick={() => setMode("SCHEDULE")}
+        >
+          Schedule
+        </button>
+      </div>
+
+      {mode === "SCHEDULE" ? (
+        <label className={styles.scheduleField}>
+          <span>Publish date and time</span>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            onChange={(event) =>
+              setScheduledAt(event.target.value)
+            }
+          />
+        </label>
+      ) : null}
+
+      <button
+        type="button"
+        className={styles.publishButton}
+        disabled={
+          publishing ||
+          !brandId ||
+          selectedPlatforms.length === 0
+        }
+        onClick={() => void publish()}
+      >
+        {publishing
+          ? "Scheduling..."
+          : `Publish to ${selectedPlatforms.length} platform${
+              selectedPlatforms.length === 1 ? "" : "s"
+            }`}
+      </button>
+
+      {error ? (
+        <p className={styles.error}>{error}</p>
+      ) : null}
+
+      {publishResult ? (
+        <div className={styles.success}>
+          <strong>Successfully queued</strong>
+
+          {publishResult.posts.map((post) => (
+            <div key={post.id}>
+              <span>{post.platform}</span>
+              <span>{post.status}</span>
+            </div>
+          ))}
+
+          <a href="/calendar">
+            Open Content Calendar →
+          </a>
+        </div>
+      ) : null}
+    </section>
+  );
+}

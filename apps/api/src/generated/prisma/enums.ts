@@ -58,3 +58,43 @@ export const AssetType = {
 } as const
 
 export type AssetType = (typeof AssetType)[keyof typeof AssetType]
+
+
+export const SocialPlatform = {
+  FACEBOOK: 'FACEBOOK',
+  TELEGRAM: 'TELEGRAM'
+} as const
+
+export type SocialPlatform = (typeof SocialPlatform)[keyof typeof SocialPlatform]
+
+
+export const SocialChannelStatus = {
+  DISCONNECTED: 'DISCONNECTED',
+  CONNECTED: 'CONNECTED',
+  EXPIRED: 'EXPIRED',
+  ERROR: 'ERROR'
+} as const
+
+export type SocialChannelStatus = (typeof SocialChannelStatus)[keyof typeof SocialChannelStatus]
+
+
+export const ScheduledPostStatus = {
+  DRAFT: 'DRAFT',
+  SCHEDULED: 'SCHEDULED',
+  QUEUED: 'QUEUED',
+  PUBLISHING: 'PUBLISHING',
+  PUBLISHED: 'PUBLISHED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type ScheduledPostStatus = (typeof ScheduledPostStatus)[keyof typeof ScheduledPostStatus]
+
+
+export const PublishAttemptStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+} as const
+
+export type PublishAttemptStatus = (typeof PublishAttemptStatus)[keyof typeof PublishAttemptStatus]

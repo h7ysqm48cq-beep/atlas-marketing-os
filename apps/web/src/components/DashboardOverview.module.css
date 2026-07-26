@@ -1,0 +1,311 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.hero h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(32px, 4vw, 46px);
+  letter-spacing: -0.045em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #8276ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  max-width: 650px;
+  margin: 0;
+  color: #8d94a7;
+  line-height: 1.6;
+}
+
+.heroActions {
+  display: flex;
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border-radius: 11px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.primaryButton {
+  border: 1px solid #7868ff;
+  background: #7868ff;
+  color: white;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: #171b27;
+  color: inherit;
+  cursor: pointer;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+}
+
+.warning {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 183, 77, 0.24);
+  border-radius: 11px;
+  background: rgba(255, 183, 77, 0.07);
+  color: #e6bd75;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(
+    3,
+    minmax(0, 1fr)
+  );
+  gap: 15px;
+}
+
+.kpiCard,
+.panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 17px;
+  background: rgba(18, 21, 31, 0.92);
+}
+
+.kpiCard {
+  display: flex;
+  min-height: 128px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+
+.kpiCard span,
+.kpiCard small,
+.workflowGrid span,
+.healthPanel span,
+.healthPanel small,
+.listContent span {
+  color: #858c9f;
+}
+
+.kpiCard strong {
+  font-size: 28px;
+  letter-spacing: -0.025em;
+}
+
+.healthValue {
+  font-size: 22px !important;
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.2fr)
+    minmax(320px, 0.8fr);
+  gap: 17px;
+}
+
+.panel {
+  padding: 21px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.panelHeader h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.panelHeader a {
+  color: #aaa3ff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.listItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 13px;
+  padding: 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.platformIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: #7868ff;
+  color: white;
+  font-weight: 800;
+}
+
+.listContent {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listContent strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listItem b {
+  color: #b6afff;
+  font-size: 10px;
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.workflowGrid div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.workflowGrid strong {
+  font-size: 23px;
+}
+
+.healthPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 13px;
+  padding: 15px;
+  border: 1px solid rgba(130, 118, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(130, 118, 255, 0.055);
+}
+
+.healthPanel strong {
+  font-size: 20px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.tableWrap th {
+  color: #747c8f;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tableWrap td {
+  color: #c9cfdb;
+  font-size: 13px;
+}
+
+.tableWrap td:first-child {
+  max-width: 480px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  padding: 5px 8px;
+  border: 1px solid rgba(130, 118, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(130, 118, 255, 0.08);
+  color: #bbb4ff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.empty {
+  padding: 27px;
+  color: #747c8f;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .kpiGrid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .heroActions {
+    width: 100%;
+  }
+
+  .heroActions a,
+  .heroActions button {
+    flex: 1;
+  }
+
+  .kpiGrid,
+  .workflowGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,172 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgba(209, 163, 63, 0.13),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 85% 85%,
+      rgba(91, 70, 229, 0.11),
+      transparent 34%
+    ),
+    #070a0f;
+}
+
+.panel {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 28px;
+  padding: 34px;
+  border: 1px solid
+    rgba(209, 163, 63, 0.24);
+  border-radius: 22px;
+  background:
+    rgba(14, 19, 29, 0.94);
+  box-shadow:
+    0 35px 100px
+      rgba(0, 0, 0, 0.52);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 13px;
+  background:
+    linear-gradient(
+      145deg,
+      #f5ce67,
+      #a87818
+    );
+  color: #111319;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.brand > div:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.brand strong {
+  color: #f8fafc;
+  font-size: 20px;
+}
+
+.brand span {
+  color: #8f99aa;
+  font-size: 11px;
+}
+
+.intro {
+  display: grid;
+  gap: 8px;
+}
+
+.intro p {
+  margin: 0;
+  color: #e5b94d;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.intro h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 30px;
+  line-height: 1.12;
+}
+
+.intro span {
+  color: #98a2b3;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+}
+
+.form label span {
+  color: #adb5c3;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid
+    rgba(148, 163, 184, 0.19);
+  border-radius: 11px;
+  background: #090e16;
+  color: #f8fafc;
+  font: inherit;
+  outline: none;
+}
+
+.form input:focus {
+  border-color:
+    rgba(209, 163, 63, 0.62);
+  box-shadow:
+    0 0 0 3px
+      rgba(209, 163, 63, 0.08);
+}
+
+.form button {
+  min-height: 50px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 11px;
+  background:
+    linear-gradient(
+      135deg,
+      #f0c75b,
+      #c18c24
+    );
+  color: #111319;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.footer {
+  color: #687386;
+  font-size: 10px;
+  text-align: center;
+}

@@ -1,0 +1,1393 @@
+===== CAMPAIGN SERVICE =====
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { BrandsService } from '../brands/brands.service';
+import { PrismaService } from '../database/prisma.service';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
+
+@Injectable()
+export class CampaignsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly brandsService: BrandsService,
+  ) {}
+
+  async create(dto: CreateCampaignDto) {
+    const brand = await this.brandsService.getActiveBrand();
+
+    return this.prisma.campaign.create({
+      data: {
+        brandId: brand.id,
+        name: dto.name,
+        description: dto.description,
+        objective: dto.objective,
+        status: dto.status,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  findAll() {
+    return this.prisma.campaign.findMany({
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id },
+      include: {
+        brand: {
+          include: {
+            workspace: true,
+          },
+        },
+      },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found.');
+    }
+
+    return campaign;
+  }
+
+  async update(id: string, dto: UpdateCampaignDto) {
+    await this.findOne(id);
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        description: dto.description,
+        objective: dto.objective,
+        status: dto.status,
+        startDate:
+          dto.startDate === undefined
+            ? undefined
+            : dto.startDate
+              ? new Date(dto.startDate)
+              : null,
+        endDate:
+          dto.endDate === undefined
+            ? undefined
+            : dto.endDate
+              ? new Date(dto.endDate)
+              : null,
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            workspace: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+
+    await this.prisma.campaign.delete({
+      where: { id },
+    });
+
+    return {
+      deleted: true,
+      id,
+    };
+  }
+}
+
+===== CAMPAIGN CONTROLLER =====
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { CampaignsService } from './campaigns.service';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
+
+@Controller('campaigns')
+export class CampaignsController {
+  constructor(private readonly campaignsService: CampaignsService) {}
+
+  @Post()
+  create(@Body() dto: CreateCampaignDto) {
+    return this.campaignsService.create(dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.campaignsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.campaignsService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCampaignDto,
+  ) {
+    return this.campaignsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.campaignsService.remove(id);
+  }
+}
+
+===== CAMPAIGN PLANNER =====
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import OpenAI from 'openai';
+import { PrismaService } from '../database/prisma.service';
+import { GenerateCampaignPlanDto } from './dto/generate-campaign-plan.dto';
+
+type GeneratedIdea = {
+  title: string;
+  angle: string;
+  hook: string;
+  platform: string;
+  style: string;
+  language: string;
+};
+
+@Injectable()
+export class CampaignPlannerService {
+  private readonly client: OpenAI | null;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+  }
+
+  async listIdeas(campaignId: string) {
+    await this.getCampaign(campaignId);
+
+    return this.prisma.campaignIdea.findMany({
+      where: { campaignId },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async generate(campaignId: string, dto: GenerateCampaignPlanDto) {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'OPENAI_API_KEY is not configured in apps/api/.env',
+      );
+    }
+
+    const campaign = await this.getCampaign(campaignId);
+    const model =
+      this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
+
+    const prompt = [
+      'You are Atlas, an AI campaign strategist.',
+      '',
+      'CAMPAIGN',
+      `Name: ${campaign.name}`,
+      `Description: ${campaign.description || 'Not provided'}`,
+      `Objective: ${campaign.objective || 'Not provided'}`,
+      '',
+      'BRAND',
+      `Name: ${campaign.brand.name}`,
+      `Audience: ${campaign.brand.targetAudience}`,
+      `Voice: ${campaign.brand.brandVoice}`,
+      `Content goals: ${campaign.brand.contentGoals}`,
+      `Keywords: ${campaign.brand.keywords.join(', ')}`,
+      `Rules: ${campaign.brand.brandRules.join(' | ')}`,
+      `Forbidden words: ${campaign.brand.forbiddenWords.join(', ')}`,
+      '',
+      'PLAN REQUEST',
+      `Number of ideas: ${dto.count}`,
+      `Direction: ${dto.direction}`,
+      `Language: ${dto.language}`,
+      `Style: ${dto.style}`,
+      `Primary platform: ${dto.platform || 'Multi-platform'}`,
+      '',
+      'Create distinct, non-repetitive content ideas.',
+      'Each idea must have a concise title, strategic angle, strong opening hook, recommended platform, style and language.',
+      'Do not invent current statistics, current trends or factual claims.',
+      'Return only JSON matching the schema.',
+    ].join('\n');
+
+    try {
+      const response = await this.client.responses.create({
+        model,
+        input: prompt,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'atlas_campaign_plan',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                ideas: {
+                  type: 'array',
+                  minItems: dto.count,
+                  maxItems: dto.count,
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      title: { type: 'string' },
+                      angle: { type: 'string' },
+                      hook: { type: 'string' },
+                      platform: { type: 'string' },
+                      style: { type: 'string' },
+                      language: { type: 'string' },
+                    },
+                    required: [
+                      'title',
+                      'angle',
+                      'hook',
+                      'platform',
+                      'style',
+                      'language',
+                    ],
+                  },
+                },
+              },
+              required: ['ideas'],
+            },
+          },
+        },
+      });
+
+      const parsed = JSON.parse(response.output_text) as {
+        ideas: GeneratedIdea[];
+      };
+
+      await this.prisma.campaignIdea.deleteMany({
+        where: {
+          campaignId,
+          status: 'PLANNED',
+        },
+      });
+
+      const created = await this.prisma.$transaction(
+        parsed.ideas.map((idea, index) =>
+          this.prisma.campaignIdea.create({
+            data: {
+              campaignId,
+              title: idea.title,
+              angle: idea.angle,
+              hook: idea.hook,
+              platform: idea.platform,
+              style: idea.style,
+              language: idea.language,
+              sortOrder: index + 1,
+            },
+          }),
+        ),
+      );
+
+      return {
+        campaign: {
+          id: campaign.id,
+          name: campaign.name,
+        },
+        ideas: created,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown campaign planner error';
+
+      throw new InternalServerErrorException(
+        `Campaign planning failed: ${message}`,
+      );
+    }
+  }
+
+  async removeIdea(campaignId: string, ideaId: string) {
+    await this.getCampaign(campaignId);
+
+    const idea = await this.prisma.campaignIdea.findFirst({
+      where: {
+        id: ideaId,
+        campaignId,
+      },
+    });
+
+    if (!idea) {
+      throw new NotFoundException('Campaign idea not found.');
+    }
+
+    await this.prisma.campaignIdea.delete({
+      where: { id: ideaId },
+    });
+
+    return {
+      deleted: true,
+      id: ideaId,
+    };
+  }
+
+  private async getCampaign(id: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id },
+      include: {
+        brand: true,
+      },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found.');
+    }
+
+    return campaign;
+  }
+}
+
+===== AI MODULE =====
+import { Module } from '@nestjs/common';
+import { BrandsModule } from '../brands/brands.module';
+import { HistoryModule } from '../history/history.module';
+import { KnowledgeModule } from '../knowledge/knowledge.module';
+import { PromptChainModule } from '../prompt-chain/prompt-chain.module';
+import { AiController } from './ai.controller';
+import { AiService } from './ai.service';
+import { PromptBuilderService } from './prompt-builder.service';
+import { ContentQualityService } from './content-quality.service';
+
+@Module({
+  imports: [BrandsModule, HistoryModule, KnowledgeModule, PromptChainModule],
+  controllers: [AiController],
+  providers: [
+    AiService,
+    PromptBuilderService,
+    ContentQualityService,
+  ],
+})
+export class AiModule {}
+
+===== AI CONTROLLER =====
+import { Body, Controller, Post } from '@nestjs/common';
+import { AiService } from './ai.service';
+import { GenerateContentDto } from './dto/generate-content.dto';
+
+@Controller('ai')
+export class AiController {
+  constructor(private readonly aiService: AiService) {}
+  @Post('generate') generate(@Body() dto: GenerateContentDto) { return this.aiService.generate(dto); }
+  @Post('prompt-preview') previewPrompt(@Body() dto: GenerateContentDto) { return this.aiService.previewPrompt(dto); }
+}
+
+===== AI GENERATE METHOD =====
+17-
+18-type GeneratedContent = {
+19-  facebook: string;
+20-  telegram: string;
+21-  reels: string;
+22-  image: string;
+23-  analysis: {
+24-    summary: string;
+25-    viralScore: number;
+26-    discussionScore: number;
+27-    shareabilityScore: number;
+28-    brandFitScore: number;
+29-    bestPostingTime: string;
+30-  };
+31-};
+32-
+33-type GeneratedOutputs = GeneratedContent & {
+34-  brandUsed: {
+35-    id: string;
+36-    name: string;
+37-    workspaceName: string;
+38-  };
+39-  campaignUsed?: {
+40-    id: string;
+41-    name: string;
+42-  };
+43-  ideaUsed?: {
+44-    id: string;
+45-    title: string;
+46-  };
+47:  historyId: string;
+48-  factualGuard: {
+49-    passed: boolean;
+50-    revised: boolean;
+51-    factualRiskScore: number;
+52-    entityRiskScore: number;
+53-    promotionalRiskScore: number;
+54-    detectedIssues: string[];
+55-    corrections: string[];
+56-    reviewer: 'AI' | 'FALLBACK';
+57-  };
+58-  qualityGate: {
+59-    passed: boolean;
+60-    revised: boolean;
+61-    overallScore: number;
+62-    brandFitScore: number;
+63-    platformFitScore: number;
+64-    clarityScore: number;
+65-    engagementScore: number;
+66-    safetyScore: number;
+67-    issues: string[];
+68-    improvements: string[];
+69-    reviewer: 'AI' | 'FALLBACK';
+70-  };
+71-  promptChain: {
+72-    loadedSourceCount: number;
+73-    totalSourceCount: number;
+74-    sources: Array<{
+75-      key: string;
+76-      label: string;
+77-      loaded: boolean;
+78-      summary: string;
+79-    }>;
+80-    queryUnderstanding: {
+81-      intent: string;
+82-      contentType: string;
+83-      audience: string;
+84-      tone: string;
+85-      industry: string;
+86-      platform: string;
+87-      language: string;
+88-      concepts: string[];
+89-      retrievalQueries: string[];
+90-      expandedQuery: string;
+91-      source: 'AI' | 'FALLBACK';
+92-    };
+93-    knowledgeUsed: Array<{
+94-      id: string;
+95-      title: string;
+96-      category: string;
+97-      tags: string[];
+98-      summary: string;
+99-      similarity: number;
+100-      similarityPercent: number;
+101-      hybridScore: number;
+102-      scoreBreakdown: {
+103-        semantic: number;
+104-        keyword: number;
+105-        usage: number;
+106-        freshness: number;
+107-        quality: number;
+108-      };
+109-      matchedTerms: string[];
+110-      matchedQueries: string[];
+111-      reasons: string[];
+112-      embeddingModel: string;
+113-      embeddingDimensions: number;
+114-      embeddedAt: Date;
+115-    }>;
+116-    mergedPrompt: string;
+117-  };
+118-};
+119-
+120-@Injectable()
+121-export class AiService {
+122-  private readonly client: OpenAI | null;
+123-
+124-  constructor(
+125-    private readonly configService: ConfigService,
+126-    private readonly brandsService: BrandsService,
+127-    private readonly promptBuilder: PromptBuilderService,
+128-    private readonly contentQualityService: ContentQualityService,
+129-    private readonly promptChainService: PromptChainService,
+130-    private readonly historyService: HistoryService,
+131-    private readonly knowledgeService: KnowledgeService,
+132-    private readonly prisma: PrismaService,
+133-  ) {
+134-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+135-    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+136-  }
+137-
+138:  async generate(dto: GenerateContentDto): Promise<GeneratedOutputs> {
+139-    console.time('[AI] total');
+140-    if (!this.client) {
+141-      throw new ServiceUnavailableException(
+142-        'OPENAI_API_KEY is not configured in apps/api/.env',
+143-      );
+144-    }
+145-
+146-    const brand = await this.brandsService.getActiveBrand();
+147-    const context = await this.resolveCampaignContext(dto, brand.id);
+148-    console.time('[AI] prompt-chain');
+149-    const promptChain = await this.promptChainService.preview({
+150-      topic: dto.topic,
+151-      platform: dto.platforms.join(', '),
+152-      style: dto.style,
+153-      language: dto.language,
+154-      campaignId: dto.campaignId,
+155-    });
+156-    console.timeEnd('[AI] prompt-chain');
+157-
+158-    const outputContract = this.promptBuilder.build(dto, brand);
+159-
+160-
+161-    const model =
+162-      this.selectModel(dto);
+163-
+164-    console.log(
+165-      `[AI] model: ${model}`,
+166-    );
+167-
+168-    const selectedPlatforms = new Set(
+169-      dto.platforms.map((platform) =>
+170-        platform.trim().toLowerCase(),
+171-      ),
+172-    );
+173-
+174-    const wantsFacebook =
+175-      selectedPlatforms.has('facebook');
+176-
+177-    const wantsTelegram =
+178-      selectedPlatforms.has('telegram');
+179-
+180-    const wantsReels =
+181-      selectedPlatforms.has('reels') ||
+182-      selectedPlatforms.has('reel');
+183-
+184-    const wantsImage =
+185-      selectedPlatforms.has('image prompt') ||
+186-      selectedPlatforms.has('image') ||
+187-      selectedPlatforms.has('visual');
+188-
+189-    const selectedOutputInstruction = [
+190-      '',
+191-      'SELECTED PLATFORM OUTPUTS',
+192-      wantsFacebook
+193-        ? '- Generate Facebook content.'
+194-        : '- Return facebook as an empty string.',
+195-      wantsTelegram
+196-        ? '- Generate Telegram content.'
+197-        : '- Return telegram as an empty string.',
+198-      wantsReels
+199-        ? '- Generate Reels content.'
+200-        : '- Return reels as an empty string.',
+201-      wantsImage
+202-        ? '- Generate the image prompt.'
+203-        : '- Return image as an empty string.',
+204-      '- Always generate the analysis object.',
+205-      '- Do not create content for unselected platforms.',
+206-    ].join('\n');
+207-
+208-    const compactMergedPrompt =
+209-      this.compressPromptChainPrompt(
+210-        promptChain.mergedPrompt,
+211-      );
+212-
+213-    console.log(
+214-      `[AI] prompt-size: ${promptChain.mergedPrompt.length} -> ${compactMergedPrompt.length} chars`,
+215-    );
+216-
+217-    const prompt = [
+218-      compactMergedPrompt,
+219-      '',
+220-      'ATLAS OUTPUT CONTRACT',
+221-      outputContract,
+222-      selectedOutputInstruction,
+223-    ].join('\n');
+224-
+225-    const requestStartedAt = Date.now();
+226-
+227-    try {
+228-      console.time('[AI] generation');
+229-      const createGeneration = () =>
+230-        this.client!.responses.create({
+231-          model,
+232-          input: prompt,
+233-        text: {
+234-          format: {
+235-            type: 'json_schema',
+236-            name: 'atlas_content_package',
+237-            strict: true,
+238-            schema: {
+239-              type: 'object',
+240-              additionalProperties: false,
+241-              properties: {
+242-                facebook: wantsFacebook
+243-                  ? { type: 'string' }
+244-                  : {
+245-                      type: 'string',
+246-                      enum: [''],
+247-                    },
+248-                telegram: wantsTelegram
+249-                  ? { type: 'string' }
+250-                  : {
+251-                      type: 'string',
+252-                      enum: [''],
+253-                    },
+254-                reels: wantsReels
+255-                  ? { type: 'string' }
+256-                  : {
+257-                      type: 'string',
+258-                      enum: [''],
+259-                    },
+260-                image: wantsImage
+261-                  ? { type: 'string' }
+262-                  : {
+263-                      type: 'string',
+264-                      enum: [''],
+265-                    },
+266-                analysis: {
+267-                  type: 'object',
+268-                  additionalProperties: false,
+269-                  properties: {
+270-                    summary: { type: 'string' },
+271-                    viralScore: {
+272-                      type: 'integer',
+273-                      minimum: 0,
+274-                      maximum: 100,
+275-                    },
+276-                    discussionScore: {
+277-                      type: 'integer',
+278-                      minimum: 0,
+279-                      maximum: 100,
+280-                    },
+281-                    shareabilityScore: {
+282-                      type: 'integer',
+283-                      minimum: 0,
+284-                      maximum: 100,
+285-                    },
+286-                    brandFitScore: {
+287-                      type: 'integer',
+288-                      minimum: 0,
+289-                      maximum: 100,
+290-                    },
+291-                    bestPostingTime: { type: 'string' },
+292-                  },
+293-                  required: [
+294-                    'summary',
+295-                    'viralScore',
+296-                    'discussionScore',
+297-                    'shareabilityScore',
+298-                    'brandFitScore',
+299-                    'bestPostingTime',
+300-                  ],
+301-                },
+302-              },
+303-              required: [
+304-                'facebook',
+305-                'telegram',
+306-                'reels',
+307-                'image',
+308-                'analysis',
+309-              ],
+310-            },
+311-          },
+312-        },
+313-      });
+314-
+315-      const withTimeout = async <T>(
+316-        operation: Promise<T>,
+317-        timeoutMs: number,
+318-      ): Promise<T> => {
+319-        let timeout: NodeJS.Timeout | undefined;
+320-
+321-        try {
+322-          return await Promise.race([
+323-            operation,
+324-            new Promise<T>((_, reject) => {
+325-              timeout = setTimeout(
+326-                () =>
+327-                  reject(
+328-                    new Error(
+329-                      `Generation timed out after ${timeoutMs}ms`,
+330-                    ),
+331-                  ),
+332-                timeoutMs,
+333-              );
+334-            }),
+335-          ]);
+336-        } finally {
+337-          if (timeout) {
+338-            clearTimeout(timeout);
+339-          }
+340-        }
+341-      };
+342-
+343-      let response;
+344-
+345-      try {
+346-        response = await withTimeout(
+347-          createGeneration(),
+348-          30000,
+349-        );
+350-      } catch (firstError) {
+351-        console.warn(
+352-          '[AI] generation retry:',
+353-          firstError instanceof Error
+354-            ? firstError.message
+355-            : 'Unknown error',
+356-        );
+357-
+358-        response = await withTimeout(
+359-          createGeneration(),
+360-          30000,
+361-        );
+362-      }
+363-
+364-      console.timeEnd('[AI] generation');
+365-
+366-      const generated = JSON.parse(
+367-        response.output_text,
+368-      ) as GeneratedContent;
+369-
+370-      console.time('[AI] unified-quality');
+371-
+372-      const inspected =
+373-        await this.contentQualityService.inspect({
+374-          topic: dto.topic,
+375-          style: dto.style,
+376-          language: dto.language,
+377-          brandName: brand.name,
+378-          brandAliases: [
+379-            brand.name,
+380-            'MGMBETMYR',
+381-            'MGM',
+382-            '满贯门',
+383-          ],
+384-          brandVoice: brand.brandVoice,
+385-          brandRules: brand.brandRules,
+386-          forbiddenWords: brand.forbiddenWords,
+387-          content: {
+388-            facebook: generated.facebook,
+389-            telegram: generated.telegram,
+390-            reels: generated.reels,
+391-            image: generated.image,
+392-          },
+393-        });
+394-
+395-      console.timeEnd('[AI] unified-quality');
+396-
+397-      const finalGenerated: GeneratedContent = {
+398-        ...generated,
+399-        facebook: inspected.content.facebook,
+400-        telegram: inspected.content.telegram,
+401-        reels: inspected.content.reels,
+402-        image: inspected.content.image,
+403-      };
+404-
+405-      console.time('[AI] history');
+406-      const history = await this.historyService.save({
+407-        brandId: brand.id,
+408-        campaignId: context.campaign?.id,
+409-        ideaId: context.idea?.id,
+410-        topic: dto.topic,
+411-        platforms: dto.platforms,
+412-        style: dto.style,
+413-        language: dto.language,
+414-        facebook: finalGenerated.facebook,
+415-        telegram: finalGenerated.telegram,
+416-        reels: finalGenerated.reels,
+417-        imagePrompt: finalGenerated.image,
+418-        analysis: generated.analysis,
+419-      });
+420-
+421-
+422-      const usage =
+423-        (response as any).usage ?? {};
+424-
+425-      const promptTokens =
+426-        usage.input_tokens ??
+427-        usage.prompt_tokens ??
+428-        0;
+429-
+430-      const cachedInputTokens =
+431-        usage.input_tokens_details?.cached_tokens ??
+432-        usage.prompt_tokens_details?.cached_tokens ??
+433-        0;
+434-
+435-      const completionTokens =
+436-        usage.output_tokens ??
+437-        usage.completion_tokens ??
+438-        0;
+439-
+440-      const totalTokens =
+441-        usage.total_tokens ??
+442-        promptTokens + completionTokens;
+443-
+444-      const durationMs =
+445-        Date.now() - requestStartedAt;
+446-
+447-      const pricing =
+448-        this.getModelPricing(model);
+449-
+450-      const regularInputTokens =
+451-        Math.max(
+452-          0,
+453-          promptTokens - cachedInputTokens,
+454-        );
+455-
+456-      const estimatedCostUsd =
+457-        (
+458-          regularInputTokens *
+459-            pricing.inputPerMillion +
+460-          cachedInputTokens *
+461-            pricing.cachedInputPerMillion +
+462-          completionTokens *
+463-            pricing.outputPerMillion
+464-        ) / 1_000_000;
+465-
+466-      const usdToMyrRate = Number(
+467-        this.configService.get<string>(
+468-          'USD_TO_MYR_RATE',
+469-        ) ?? '4.30',
+470-      );
+471-
+472-      const estimatedCostMyr =
+473-        estimatedCostUsd * usdToMyrRate;
+474-
+475-      await this.prisma.aiUsage.create({
+476-        data: {
+477:          historyId: history.id,
+478-          model,
+479-          promptTokens,
+480-          cachedInputTokens,
+481-          completionTokens,
+482-          totalTokens,
+483-          estimatedCostUsd,
+484-          estimatedCostMyr,
+485-          durationMs,
+486-        },
+487-      });
+488-
+489-      console.timeEnd('[AI] history');
+490-
+491-      if (context.idea) {
+492-        await this.prisma.campaignIdea.update({
+493-          where: { id: context.idea.id },
+494-          data: { status: 'GENERATED' },
+495-        });
+496-      }
+497-
+498-      console.time('[AI] knowledge');
+499-      await this.knowledgeService.recordUsage(
+500-        promptChain.knowledgeUsed.map(
+501-          (document) => document.id,
+502-        ),
+503-      );
+504-      console.timeEnd('[AI] knowledge');
+505-
+506-      console.timeEnd('[AI] total');
+507-
+508-      return {
+509-        ...finalGenerated,
+510-        analysis: generated.analysis,
+511-        qualityGate: inspected.qualityGate,
+512-        factualGuard: inspected.factualGuard,
+513-        brandUsed: {
+514-          id: brand.id,
+515-          name: brand.name,
+516-          workspaceName: brand.workspace.name,
+517-        },
+518-        campaignUsed: context.campaign
+519-          ? {
+520-              id: context.campaign.id,
+521-              name: context.campaign.name,
+522-            }
+523-          : undefined,
+524-        ideaUsed: context.idea
+525-          ? {
+526-              id: context.idea.id,
+527-              title: context.idea.title,
+528-            }
+529-          : undefined,
+530:        historyId: history.id,
+531-        promptChain: {
+532-          loadedSourceCount: promptChain.loadedSourceCount,
+533-          totalSourceCount: promptChain.totalSourceCount,
+534-          sources: promptChain.sources,
+535-          queryUnderstanding:
+536-            promptChain.queryUnderstanding,
+537-          knowledgeUsed: promptChain.knowledgeUsed,
+538-          mergedPrompt: promptChain.mergedPrompt,
+539-        },
+540-      };
+541-    } catch (error) {
+542-      const message =
+543-        error instanceof Error ? error.message : 'Unknown OpenAI error';
+544-
+545-      throw new InternalServerErrorException(
+546-        `Content generation failed: ${message}`,
+547-      );
+548-    }
+549-  }
+550-
+551-  async previewPrompt(dto: GenerateContentDto) {
+552-    const brand = await this.brandsService.getActiveBrand();
+553-    return this.promptBuilder.preview(dto, brand);
+554-  }
+555-
+556-
+557-  private getModelPricing(
+558-    model: string,
+559-  ): {
+560-    inputPerMillion: number;
+561-    cachedInputPerMillion: number;
+562-    outputPerMillion: number;
+563-  } {
+564-    const pricing = {
+565-      'gpt-4.1': {
+566-        inputPerMillion: 2,
+567-        cachedInputPerMillion: 0.5,
+568-        outputPerMillion: 8,
+569-      },
+570-      'gpt-4.1-mini': {
+571-        inputPerMillion: 0.4,
+572-        cachedInputPerMillion: 0.1,
+573-        outputPerMillion: 1.6,
+574-      },
+575-      'gpt-4.1-nano': {
+576-        inputPerMillion: 0.1,
+577-        cachedInputPerMillion: 0.025,
+578-        outputPerMillion: 0.4,
+579-      },
+580-    } as const;
+581-
+582-    if (model.startsWith('gpt-4.1-nano')) {
+583-      return pricing['gpt-4.1-nano'];
+584-    }
+585-
+586-    if (model.startsWith('gpt-4.1-mini')) {
+587-      return pricing['gpt-4.1-mini'];
+588-    }
+589-
+590-    if (model.startsWith('gpt-4.1')) {
+591-      return pricing['gpt-4.1'];
+592-    }
+593-
+594-    console.warn(
+595-      `[AI] Missing pricing for model: ${model}`,
+596-    );
+597-
+598-    return {
+599-      inputPerMillion: 0,
+600-      cachedInputPerMillion: 0,
+601-      outputPerMillion: 0,
+602-    };
+603-  }
+604-
+605-  private selectModel(
+606-    dto: GenerateContentDto,
+607-  ): string {
+608-    const platform =
+609-      dto.platforms.join(",").toLowerCase();
+610-
+611-    const topic =
+612-      dto.topic.toLowerCase();
+613-
+614-    if (
+615-      platform.includes("rewrite")
+616-    ) {
+617-      return "gpt-4.1-nano";
+618-    }
+619-
+620-    if (
+621-      platform.includes("image")
+622-    ) {
+623-      return "gpt-4.1-nano";
+624-    }
+625-
+626-    if (
+627-      topic.includes("translate") ||
+628-      topic.includes("grammar") ||
+629-      topic.includes("rewrite")
+630-    ) {
+631-      return "gpt-4.1-nano";
+632-    }
+633-
+634-    if (
+635-      topic.includes("campaign") ||
+636-      topic.includes("strategy") ||
+637-      topic.includes("planner")
+638-    ) {
+639-      return "gpt-4.1";
+640-    }
+641-
+642-    return (
+643-      this.configService.get<string>(
+644-        "OPENAI_MODEL",
+645-      ) ??
+646-      "gpt-4.1-mini"
+647-    );
+648-  }
+649-
+650-
+651-  private compressPromptChainPrompt(
+652-    prompt: string,
+653-  ): string {
+654-    const removablePrefixes = [
+655-      'Hybrid score:',
+656-      'Semantic similarity:',
+657-      'Matched terms:',
+658-      'Matched queries:',
+659-      'Embedding model:',
+660-      'Embedding dimensions:',
+661-      'Average viral score:',
+662-      'Average discussion score:',
+663-      'Average shareability score:',
+664-      'Average brand-fit score:',
+665-    ];
+666-
+667-    return prompt
+668-      .split('\n')
+669-      .filter((line) => {
+670-        const trimmed = line.trim();
+671-
+672-        return !removablePrefixes.some(
+673-          (prefix) =>
+674-            trimmed.startsWith(prefix),
+675-        );
+676-      })
+677-      .join('\n')
+678-      .replace(/\n{3,}/g, '\n\n')
+679-      .trim();
+680-  }
+681-
+682-  private async resolveCampaignContext(
+683-    dto: GenerateContentDto,
+684-    brandId: string,
+685-  ) {
+686-    if (!dto.campaignId && !dto.ideaId) {
+687-      return {
+688-        campaign: null,
+689-        idea: null,
+690-      };
+691-    }
+692-
+693-    if (!dto.campaignId) {
+694-      throw new BadRequestException(
+695-        'campaignId is required when ideaId is provided.',
+696-      );
+697-    }
+698-
+699-    const campaign = await this.prisma.campaign.findFirst({
+700-      where: {
+701-        id: dto.campaignId,
+702-        brandId,
+703-      },
+704-      select: {
+705-        id: true,
+706-        name: true,
+707-      },
+708-    });
+709-
+710-    if (!campaign) {
+711-      throw new BadRequestException(
+712-        'Campaign was not found for the active brand.',
+713-      );
+714-    }
+715-
+716-    if (!dto.ideaId) {
+717-      return {
+718-        campaign,
+719-        idea: null,
+720-      };
+721-    }
+722-
+723-    const idea = await this.prisma.campaignIdea.findFirst({
+724-      where: {
+725-        id: dto.ideaId,
+726-        campaignId: campaign.id,
+727-      },
+728-      select: {
+729-        id: true,
+730-        title: true,
+731-      },
+732-    });
+733-
+734-    if (!idea) {
+735-      throw new BadRequestException(
+736-        'Campaign idea was not found in this campaign.',
+737-      );
+738-    }
+739-
+740-    return {
+741-      campaign,
+742-      idea,
+743-    };
+744-  }
+745-}
+
+===== AI DTO FILES =====
+apps/api/src/ai/dto/generate-content.dto.ts
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+
+export class GenerateContentDto {
+  @IsString()
+  @IsNotEmpty()
+  topic!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  platforms!: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  style!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  language!: string;
+
+  @IsString()
+  @IsOptional()
+  campaignId?: string;
+
+  @IsString()
+  @IsOptional()
+  ideaId?: string;
+}
+
+===== CAMPAIGN PRISMA MODELS =====
+69-  visualStyle        String
+70-  contentGoals       String
+71-  callsToAction      String[]
+72-  keywords           String[]
+73-  forbiddenWords     String[]
+74-  brandRules         String[]
+75-  examplePosts       String[]
+76-  status             BrandStatus         @default(ACTIVE)
+77-  generations        GenerationHistory[]
+78-  campaigns          Campaign[]
+79-  assets             Asset[]
+80-  createdAt          DateTime            @default(now())
+81-  updatedAt          DateTime            @updatedAt
+82-  knowledgeDocuments KnowledgeDocument[]
+83-  socialChannels     SocialChannel[]
+84-  scheduledPosts     ScheduledPost[]
+85-
+86-  @@index([workspaceId])
+87-}
+88-
+89:model Campaign {
+90-  id             String              @id @default(cuid())
+91-  brandId        String
+92-  brand          Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+93-  name           String
+94-  description    String?
+95-  objective      String?
+96-  status         CampaignStatus      @default(DRAFT)
+97-  startDate      DateTime?
+98-  endDate        DateTime?
+99-  ideas          CampaignIdea[]
+100-  generations    GenerationHistory[]
+101-  assets         Asset[]
+102-  createdAt      DateTime            @default(now())
+103-  updatedAt      DateTime            @updatedAt
+104-  scheduledPosts ScheduledPost[]
+105-
+106-  @@index([brandId])
+107-  @@index([status])
+108-}
+109-
+110:model CampaignIdea {
+111-  id          String              @id @default(cuid())
+112-  campaignId  String
+113-  campaign    Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+114-  title       String
+115-  angle       String
+116-  hook        String
+117-  platform    String
+118-  style       String
+119-  language    String
+120-  status      CampaignIdeaStatus  @default(PLANNED)
+121-  sortOrder   Int                 @default(0)
+122-  generations GenerationHistory[]
+123-  createdAt   DateTime            @default(now())
+124-  updatedAt   DateTime            @updatedAt
+125-
+126-  @@index([campaignId])
+127-  @@index([status])
+128-  @@index([sortOrder])
+129-}
+130-
+131-model GenerationHistory {
+132-  versions       ContentVersion[]
+133-  id             String           @id @default(cuid())
+134-  brandId        String
+135-  brand          Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+136-  campaignId     String?
+137-  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+138-  ideaId         String?
+139-  idea           CampaignIdea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+140-  topic          String
+141-  platforms      String[]
+142-  style          String
+143-  language       String
+144-  facebook       String
+145-  telegram       String
+146-  reels          String
+147-  imagePrompt    String
+148-  analysis       Json
+149-  isFavorite     Boolean          @default(false)
+150-  status         ContentStatus    @default(DRAFT)
+151-  reviewNote     String?
+152-  reviewedBy     String?
+153-  reviewedAt     DateTime?
+154-  approvedAt     DateTime?
+155-  publishedAt    DateTime?
+156-  usageLogs      AiUsage[]
+157-  assets         Asset[]
+158-  createdAt      DateTime         @default(now())
+159-  updatedAt      DateTime         @updatedAt
+160-  scheduledPosts ScheduledPost[]
+161-
+162-  @@index([brandId])
+163-  @@index([campaignId])
+164-  @@index([ideaId])
+165-  @@index([createdAt])
+166-  @@index([status])
+167-}
+168-
+169-model ContentVersion {
+170-  id            String            @id @default(cuid())
+171-  historyId     String
+172-  history       GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+173-  platform      String
+174-  content       String
+175-  sourceAction  String
+176-  versionNumber Int
+177-  createdAt     DateTime          @default(now())
+178-
+179-  @@unique([historyId, platform, versionNumber])
+180-  @@index([historyId])
+181-  @@index([platform])
+182-  @@index([createdAt])
+183-}
+184-
+185-model Asset {
+186-  id           String             @id @default(cuid())
+187-  brandId      String
+188-  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+189-  campaignId   String?
+190-  campaign     Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+191-  historyId    String?
+192-  history      GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+193-  name         String
+194-  type         AssetType          @default(IMAGE)
+195-  provider     String?
+196-  platform     String?
+197-  prompt       String?
+198-  url          String
+199-  thumbnailUrl String?
+200-  mimeType     String?
+201-  width        Int?
+202-  height       Int?
+203-  isFavorite   Boolean            @default(false)
+204-  createdAt    DateTime           @default(now())
+205-  updatedAt    DateTime           @updatedAt
+206-
+207-  @@index([brandId])
+208-  @@index([campaignId])
+209-  @@index([historyId])
+210-  @@index([type])
+211-  @@index([createdAt])
+212-}
+213-
+214-model KnowledgeDocument {
+215-  id         String              @id @default(cuid())
+216-  brandId    String
+217-  brand      Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+218-  embedding  KnowledgeEmbedding?
+219-  title      String
+220-  category   String
+221-  content    String
+222-  tags       String[]
+223-  usageCount Int                 @default(0)
+224-  lastUsedAt DateTime?
+225-  createdAt  DateTime            @default(now())
+226-  updatedAt  DateTime            @updatedAt
+227-
+228-  @@index([brandId])
+229-  @@index([category])
+230-  @@index([createdAt])
+231-}
+232-
+233-model KnowledgeEmbedding {
+234-  id          String            @id @default(cuid())
+235-  documentId  String            @unique
+236-  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+237-  brandId     String
+238-  vector      Json
+239-  model       String
+240-  dimensions  Int
+241-  contentHash String
+242-  embeddedAt  DateTime          @default(now())
+243-  updatedAt   DateTime          @updatedAt
+244-
+245-  @@index([brandId])
+246-  @@index([embeddedAt])
+247-}
+248-
+249-model AiUsage {
+250-  id String @id @default(cuid())
+251-
+252-  historyId String?
+253-  history   GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+254-
+255-  model String
+256-
+257-  promptTokens      Int
+258-  cachedInputTokens Int @default(0)
+259-  completionTokens  Int
+260-  totalTokens       Int

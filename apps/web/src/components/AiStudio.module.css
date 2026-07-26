@@ -393,3 +393,184 @@
     overflow-x: auto;
   }
 }
+
+.contextHeading {
+  display: grid;
+  gap: 5px;
+}
+
+.contextActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.contextActions a {
+  display: grid;
+  min-height: 32px;
+  padding: 0 10px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, .4);
+  color: var(--text);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.contextActions a:hover {
+  border-color: rgba(209, 163, 63, .32);
+  color: var(--gold-light);
+}
+
+.linkedMeta {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.linkedMeta > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.linkedMeta strong {
+  overflow: hidden;
+  max-width: 65%;
+  color: var(--text);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextHeading {
+  display: grid;
+  gap: 5px;
+}
+
+.contextActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.contextActions a {
+  display: grid;
+  min-height: 32px;
+  padding: 0 10px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, .42);
+  color: var(--text);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.contextActions a:hover {
+  border-color: rgba(209, 163, 63, .32);
+  color: var(--gold-light);
+}
+
+.linkedMeta {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.linkedMeta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+
+.linkedMeta span {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.linkedMeta strong {
+  overflow: hidden;
+  max-width: 65%;
+  color: var(--text);
+  font-size: 7px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ===== Sprint 1 UI Polish ===== */
+
+
+.formCard{
+    align-self:start;
+    max-height:calc(100vh - 100px);
+    overflow-y:auto;
+}
+
+
+
+/* ===== Selectable AI Studio Platforms ===== */
+
+.platforms button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.platforms button:hover {
+  transform: translateY(-1px);
+}
+
+.platforms button span {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.activePlatform {
+  border-color: rgba(209, 163, 63, 0.62) !important;
+  background: rgba(209, 163, 63, 0.12) !important;
+  color: #f8d56b !important;
+}
+
+.activePlatform span {
+  background: rgba(209, 163, 63, 0.18);
+  color: #f8d56b;
+}
+
+.inactivePlatform {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: rgba(15, 23, 42, 0.48) !important;
+  color: #94a3b8 !important;
+}
+
+.inactivePlatform span {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+}
+
+.platforms button:focus-visible {
+  outline: 2px solid rgba(209, 163, 63, 0.7);
+  outline-offset: 3px;
+}

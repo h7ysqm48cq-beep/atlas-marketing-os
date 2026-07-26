@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AtlasCopilot } from "./AtlasCopilot";
+import { AiPublishCard } from "./AiPublishCard";
+import { AiAutoQueueCard } from "./AiAutoQueueCard";
 import { ImageAssetPanel } from "./ImageAssetPanel";
 import { PlatformCard } from "./PlatformCard";
+import { PromptInspector } from "./prompt-inspector/PromptInspector";
 import styles from "./AiWorkspace.module.css";
 
 export type ContentStatus =
@@ -39,6 +42,29 @@ export type WorkspaceResult = {
     brandFitScore: number;
     bestPostingTime: string;
   };
+  factualGuard?: {
+    passed: boolean;
+    revised: boolean;
+    factualRiskScore: number;
+    entityRiskScore: number;
+    promotionalRiskScore: number;
+    detectedIssues: string[];
+    corrections: string[];
+    reviewer: "AI" | "FALLBACK";
+  };
+  qualityGate?: {
+    passed: boolean;
+    revised: boolean;
+    overallScore: number;
+    brandFitScore: number;
+    platformFitScore: number;
+    clarityScore: number;
+    engagementScore: number;
+    safetyScore: number;
+    issues: string[];
+    improvements: string[];
+    reviewer: "AI" | "FALLBACK";
+  };
   campaignUsed?: { id: string; name: string };
   ideaUsed?: { id: string; title: string };
   historyId?: string;
@@ -51,13 +77,44 @@ export type WorkspaceResult = {
       loaded: boolean;
       summary: string;
     }>;
+    queryUnderstanding?: {
+      intent: string;
+      contentType: string;
+      audience: string;
+      tone: string;
+      industry: string;
+      platform: string;
+      language: string;
+      concepts: string[];
+      retrievalQueries: string[];
+      expandedQuery: string;
+      source: "AI" | "FALLBACK";
+    };
     knowledgeUsed?: Array<{
       id: string;
       title: string;
       category: string;
       tags: string[];
       summary: string;
+      similarity: number;
+      similarityPercent: number;
+      hybridScore: number;
+      scoreBreakdown: {
+        semantic: number;
+        keyword: number;
+        usage: number;
+        freshness: number;
+        quality: number;
+      };
+      matchedTerms: string[];
+      matchedQueries: string[];
+      reasons: string[];
+      embeddingModel: string;
+      embeddingDimensions: number;
+      embeddedAt: string;
     }>;
+
+    mergedPrompt?: string;
   };
 };
 
@@ -65,6 +122,8 @@ export function AiWorkspace({
   topic,
   result,
   campaignId,
+  publishTopic,
+  publishCampaignId,
   isGenerating,
   statusMessage,
   onMessage,
@@ -73,12 +132,14 @@ export function AiWorkspace({
   topic: string;
   result: WorkspaceResult | null;
   campaignId?: string;
+  publishTopic: string;
+  publishCampaignId?: string;
   isGenerating: boolean;
   statusMessage: string;
   onMessage: (message: string) => void;
   onResultChange: (result: WorkspaceResult) => void;
 }) {
-  const [tab, setTab] = useState<"content" | "analysis" | "image">("content");
+  const [tab, setTab] = useState<"content" | "analysis" | "image" | "prompt">("content");
 
   const [copilotRequest, setCopilotRequest] = useState<{
     platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
@@ -138,7 +199,7 @@ export function AiWorkspace({
         </div>
 
         <div className={styles.tabs}>
-          {(["content", "analysis", "image"] as const).map((value) => (
+          {(["content", "analysis", "image", "prompt"] as const).map((value) => (
             <button
               type="button"
               key={value}
@@ -147,7 +208,9 @@ export function AiWorkspace({
             >
               {value === "image"
                 ? "AI Image"
-                : value.charAt(0).toUpperCase() + value.slice(1)}
+                : value === "prompt"
+                  ? "Prompt"
+                  : value.charAt(0).toUpperCase() + value.slice(1)}
             </button>
           ))}
         </div>
@@ -294,6 +357,31 @@ export function AiWorkspace({
           campaignId={result?.campaignUsed?.id || campaignId}
           historyId={result?.historyId}
         />
+      ) : null}
+
+      {tab === "prompt" ? (
+        <PromptInspector
+          promptChain={result?.promptChain}
+          onMessage={onMessage}
+        />
+      ) : null}
+
+      {result ? (
+        <>
+          <AiAutoQueueCard
+            result={result}
+            campaignId={publishCampaignId}
+            topic={publishTopic}
+            onMessage={onMessage}
+          />
+
+          <AiPublishCard
+            result={result}
+            campaignId={publishCampaignId}
+            topic={publishTopic}
+            onMessage={onMessage}
+          />
+        </>
       ) : null}
     </section>
   );

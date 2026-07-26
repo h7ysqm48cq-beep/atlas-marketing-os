@@ -183,6 +183,8 @@ export type WorkspaceWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   brands?: Prisma.BrandListRelationFilter
+  socialChannels?: Prisma.SocialChannelListRelationFilter
+  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -192,6 +194,8 @@ export type WorkspaceOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   brands?: Prisma.BrandOrderByRelationAggregateInput
+  socialChannels?: Prisma.SocialChannelOrderByRelationAggregateInput
+  automationSetting?: Prisma.AutomationSettingOrderByWithRelationInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -204,6 +208,8 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   brands?: Prisma.BrandListRelationFilter
+  socialChannels?: Prisma.SocialChannelListRelationFilter
+  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
 }, "id" | "slug">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -235,6 +241,8 @@ export type WorkspaceCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -244,6 +252,8 @@ export type WorkspaceUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -253,6 +263,8 @@ export type WorkspaceUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -262,6 +274,8 @@ export type WorkspaceUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -339,12 +353,42 @@ export type WorkspaceUpdateOneRequiredWithoutBrandsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutBrandsInput, Prisma.WorkspaceUpdateWithoutBrandsInput>, Prisma.WorkspaceUncheckedUpdateWithoutBrandsInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutSocialChannelsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedCreateWithoutSocialChannelsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSocialChannelsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedCreateWithoutSocialChannelsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSocialChannelsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutSocialChannelsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutSocialChannelsInput, Prisma.WorkspaceUpdateWithoutSocialChannelsInput>, Prisma.WorkspaceUncheckedUpdateWithoutSocialChannelsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutAutomationSettingInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedCreateWithoutAutomationSettingInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutAutomationSettingInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutAutomationSettingNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedCreateWithoutAutomationSettingInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutAutomationSettingInput
+  upsert?: Prisma.WorkspaceUpsertWithoutAutomationSettingInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutAutomationSettingInput, Prisma.WorkspaceUpdateWithoutAutomationSettingInput>, Prisma.WorkspaceUncheckedUpdateWithoutAutomationSettingInput>
+}
+
 export type WorkspaceCreateWithoutBrandsInput = {
   id?: string
   name: string
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBrandsInput = {
@@ -353,6 +397,8 @@ export type WorkspaceUncheckedCreateWithoutBrandsInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBrandsInput = {
@@ -377,6 +423,8 @@ export type WorkspaceUpdateWithoutBrandsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
@@ -385,6 +433,120 @@ export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutSocialChannelsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutSocialChannelsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutSocialChannelsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedCreateWithoutSocialChannelsInput>
+}
+
+export type WorkspaceUpsertWithoutSocialChannelsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedUpdateWithoutSocialChannelsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedCreateWithoutSocialChannelsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutSocialChannelsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSocialChannelsInput, Prisma.WorkspaceUncheckedUpdateWithoutSocialChannelsInput>
+}
+
+export type WorkspaceUpdateWithoutSocialChannelsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutSocialChannelsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutAutomationSettingInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutAutomationSettingInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutAutomationSettingInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedCreateWithoutAutomationSettingInput>
+}
+
+export type WorkspaceUpsertWithoutAutomationSettingInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedUpdateWithoutAutomationSettingInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedCreateWithoutAutomationSettingInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutAutomationSettingInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedUpdateWithoutAutomationSettingInput>
+}
+
+export type WorkspaceUpdateWithoutAutomationSettingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutAutomationSettingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 
@@ -394,10 +556,12 @@ export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
 
 export type WorkspaceCountOutputType = {
   brands: number
+  socialChannels: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brands?: boolean | WorkspaceCountOutputTypeCountBrandsArgs
+  socialChannels?: boolean | WorkspaceCountOutputTypeCountSocialChannelsArgs
 }
 
 /**
@@ -417,6 +581,13 @@ export type WorkspaceCountOutputTypeCountBrandsArgs<ExtArgs extends runtime.Type
   where?: Prisma.BrandWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountSocialChannelsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SocialChannelWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -425,6 +596,8 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   createdAt?: boolean
   updatedAt?: boolean
   brands?: boolean | Prisma.Workspace$brandsArgs<ExtArgs>
+  socialChannels?: boolean | Prisma.Workspace$socialChannelsArgs<ExtArgs>
+  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -455,6 +628,8 @@ export type WorkspaceSelectScalar = {
 export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
 export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brands?: boolean | Prisma.Workspace$brandsArgs<ExtArgs>
+  socialChannels?: boolean | Prisma.Workspace$socialChannelsArgs<ExtArgs>
+  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -464,6 +639,8 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
   name: "Workspace"
   objects: {
     brands: Prisma.$BrandPayload<ExtArgs>[]
+    socialChannels: Prisma.$SocialChannelPayload<ExtArgs>[]
+    automationSetting: Prisma.$AutomationSettingPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -866,6 +1043,8 @@ readonly fields: WorkspaceFieldRefs;
 export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   brands<T extends Prisma.Workspace$brandsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$brandsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  socialChannels<T extends Prisma.Workspace$socialChannelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$socialChannelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  automationSetting<T extends Prisma.Workspace$automationSettingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$automationSettingArgs<ExtArgs>>): Prisma.Prisma__AutomationSettingClient<runtime.Types.Result.GetResult<Prisma.$AutomationSettingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1314,6 +1493,49 @@ export type Workspace$brandsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.BrandScalarFieldEnum | Prisma.BrandScalarFieldEnum[]
+}
+
+/**
+ * Workspace.socialChannels
+ */
+export type Workspace$socialChannelsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannel
+   */
+  select?: Prisma.SocialChannelSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannel
+   */
+  omit?: Prisma.SocialChannelOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelWhereInput
+  orderBy?: Prisma.SocialChannelOrderByWithRelationInput | Prisma.SocialChannelOrderByWithRelationInput[]
+  cursor?: Prisma.SocialChannelWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SocialChannelScalarFieldEnum | Prisma.SocialChannelScalarFieldEnum[]
+}
+
+/**
+ * Workspace.automationSetting
+ */
+export type Workspace$automationSettingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AutomationSetting
+   */
+  select?: Prisma.AutomationSettingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AutomationSetting
+   */
+  omit?: Prisma.AutomationSettingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AutomationSettingInclude<ExtArgs> | null
+  where?: Prisma.AutomationSettingWhereInput
 }
 
 /**

@@ -1,0 +1,349 @@
+import {
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+type TelegramApiResponse<T> = {
+  ok: boolean;
+  result?: T;
+  description?: string;
+  error_code?: number;
+};
+
+type TelegramUser = {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  username?: string;
+};
+
+type TelegramChat = {
+  id: number;
+  type: string;
+  title?: string;
+  username?: string;
+};
+
+type TelegramMessage = {
+  message_id: number;
+  date: number;
+  chat: TelegramChat;
+  text?: string;
+};
+
+@Injectable()
+export class TelegramConnectorService {
+  constructor(
+    private readonly configService: ConfigService,
+  ) {}
+
+  async testConnection() {
+    const bot = await this.call<TelegramUser>(
+      'getMe',
+      {},
+    );
+
+    const chatId = this.getChatId();
+
+    const chat = await this.call<TelegramChat>(
+      'getChat',
+      {
+        chat_id: chatId,
+      },
+    );
+
+    return {
+      connected: true,
+      bot: {
+        id: bot.id,
+        name: bot.first_name,
+        username: bot.username ?? null,
+      },
+      channel: {
+        id: chat.id,
+        title: chat.title ?? null,
+        username: chat.username ?? null,
+        type: chat.type,
+      },
+    };
+  }
+
+  async sendTestMessage() {
+    const result =
+      await this.sendMessage(
+        '✅ Atlas Telegram connection test successful.',
+      );
+
+    return {
+      published: true,
+      messageId: result.message_id,
+      chatId: result.chat.id,
+      sentAt: new Date(
+        result.date * 1000,
+      ).toISOString(),
+    };
+  }
+
+  async publish(
+    text: string,
+    mediaUrls: string[] = [],
+  ): Promise<TelegramMessage> {
+    const firstMediaUrl =
+      mediaUrls
+        .map((url) => url?.trim())
+        .find(Boolean);
+
+    if (firstMediaUrl) {
+      return this.sendPhoto(
+        text,
+        firstMediaUrl,
+      );
+    }
+
+    return this.sendMessage(text);
+  }
+
+  async sendPhoto(
+    caption: string,
+    mediaUrl: string,
+  ): Promise<TelegramMessage> {
+    const cleanCaption =
+      caption?.trim();
+
+    if (!cleanCaption) {
+      throw new BadRequestException(
+        'Telegram caption cannot be empty.',
+      );
+    }
+
+    const media =
+      await this.fetchMedia(mediaUrl);
+
+    const form =
+      new FormData();
+
+    form.set(
+      'chat_id',
+      this.getChatId(),
+    );
+
+    form.set(
+      'caption',
+      cleanCaption,
+    );
+
+    form.set(
+      'photo',
+      media.blob,
+      media.filename,
+    );
+
+    return this.callMultipart<TelegramMessage>(
+      'sendPhoto',
+      form,
+    );
+  }
+
+  async sendMessage(
+    text: string,
+  ): Promise<TelegramMessage> {
+    const cleanText = text?.trim();
+
+    if (!cleanText) {
+      throw new BadRequestException(
+        'Telegram message cannot be empty.',
+      );
+    }
+
+    return this.call<TelegramMessage>(
+      'sendMessage',
+      {
+        chat_id: this.getChatId(),
+        text: cleanText,
+        disable_web_page_preview: false,
+      },
+    );
+  }
+
+  private getToken() {
+    const token =
+      this.configService.get<string>(
+        'TELEGRAM_BOT_TOKEN',
+      );
+
+    if (
+      !token ||
+      token ===
+        'PASTE_YOUR_BOT_TOKEN_HERE'
+    ) {
+      throw new BadRequestException(
+        'TELEGRAM_BOT_TOKEN is not configured.',
+      );
+    }
+
+    return token.trim();
+  }
+
+  private getChatId() {
+    const chatId =
+      this.configService.get<string>(
+        'TELEGRAM_CHAT_ID',
+      );
+
+    if (!chatId?.trim()) {
+      throw new BadRequestException(
+        'TELEGRAM_CHAT_ID is not configured.',
+      );
+    }
+
+    return chatId.trim();
+  }
+
+  private async fetchMedia(
+    mediaUrl: string,
+  ) {
+    const cleanUrl =
+      mediaUrl?.trim();
+
+    if (!cleanUrl) {
+      throw new BadRequestException(
+        'Telegram media URL is required.',
+      );
+    }
+
+    let response: Response;
+
+    try {
+      response =
+        await fetch(cleanUrl);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unknown media fetch error';
+
+      throw new BadRequestException(
+        `Unable to read Telegram media: ${message}`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new BadRequestException(
+        [
+          'Unable to read Telegram media.',
+          `HTTP ${response.status}`,
+        ].join(' '),
+      );
+    }
+
+    const contentType =
+      response.headers.get(
+        'content-type',
+      ) || 'application/octet-stream';
+
+    if (
+      !contentType.startsWith(
+        'image/',
+      )
+    ) {
+      throw new BadRequestException(
+        `Telegram media must be an image. Received ${contentType}.`,
+      );
+    }
+
+    const pathname =
+      new URL(cleanUrl).pathname;
+
+    const filename =
+      pathname.split('/').pop() ||
+      'atlas-image';
+
+    const bytes =
+      await response.arrayBuffer();
+
+    return {
+      filename,
+      blob: new Blob(
+        [bytes],
+        {
+          type: contentType,
+        },
+      ),
+    };
+  }
+
+  private async callMultipart<T>(
+    method: string,
+    form: FormData,
+  ): Promise<T> {
+    const response =
+      await fetch(
+        `https://api.telegram.org/bot${this.getToken()}/${method}`,
+        {
+          method: 'POST',
+          body: form,
+        },
+      );
+
+    const body =
+      (await response.json()) as
+        TelegramApiResponse<T>;
+
+    if (
+      !response.ok ||
+      !body.ok
+    ) {
+      throw new BadRequestException(
+        body.description ||
+          `Telegram API request failed: ${method}`,
+      );
+    }
+
+    if (
+      body.result === undefined
+    ) {
+      throw new BadRequestException(
+        `Telegram API returned no result: ${method}`,
+      );
+    }
+
+    return body.result;
+  }
+
+  private async call<T>(
+    method: string,
+    payload: Record<string, unknown>,
+  ): Promise<T> {
+    const response = await fetch(
+      `https://api.telegram.org/bot${this.getToken()}/${method}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const body =
+      await response.json() as
+        TelegramApiResponse<T>;
+
+    if (!response.ok || !body.ok) {
+      throw new BadRequestException(
+        body.description ||
+          `Telegram API request failed: ${method}`,
+      );
+    }
+
+    if (body.result === undefined) {
+      throw new BadRequestException(
+        `Telegram API returned no result: ${method}`,
+      );
+    }
+
+    return body.result;
+  }
+}

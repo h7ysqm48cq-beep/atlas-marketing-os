@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { defineConfig } from "prisma/config";
 
 dotenv.config({
-  path: "apps/api/.env",
+  path: ".env",
 });
 
 if (!process.env.DATABASE_URL) {

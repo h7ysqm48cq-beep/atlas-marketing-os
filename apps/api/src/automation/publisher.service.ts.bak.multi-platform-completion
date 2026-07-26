@@ -1,0 +1,241 @@
+import {
+  Injectable,
+  Logger,
+} from "@nestjs/common";
+
+import { PrismaService } from "../database/prisma.service";
+
+import {
+  ScheduledPostStatus,
+  PublishAttemptStatus,
+  SocialPlatform,
+  ContentStatus,
+} from "../generated/prisma/enums";
+
+import { FacebookConnectorService } from "./facebook-connector.service";
+import { TelegramConnectorService } from "./telegram-connector.service";
+
+@Injectable()
+export class PublisherService {
+
+  private readonly logger =
+    new Logger(PublisherService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly facebook: FacebookConnectorService,
+    private readonly telegram: TelegramConnectorService,
+  ) {}
+
+  private buildFacebookPostUrl(
+    externalPostId?: string | null,
+  ) {
+    const cleanId =
+      externalPostId?.trim();
+
+    if (!cleanId) {
+      return null;
+    }
+
+    const separatorIndex =
+      cleanId.indexOf("_");
+
+    if (separatorIndex < 0) {
+      return null;
+    }
+
+    const pageId =
+      cleanId.slice(0, separatorIndex);
+
+    const postId =
+      cleanId.slice(separatorIndex + 1);
+
+    if (!pageId || !postId) {
+      return null;
+    }
+
+    return `https://www.facebook.com/${pageId}/posts/${postId}`;
+  }
+
+
+  async run() {
+
+    const posts =
+      await this.prisma.scheduledPost.findMany({
+        where: {
+          status: {
+            in: [
+              ScheduledPostStatus.SCHEDULED,
+              ScheduledPostStatus.QUEUED,
+            ],
+          },
+          scheduledAt: {
+            lte: new Date(),
+          },
+        },
+        include: {
+          channel: true,
+        },
+      });
+
+    this.logger.log(
+      `Found ${posts.length} scheduled post(s).`,
+    );
+
+    let published = 0;
+
+    for (const post of posts) {
+
+      await this.prisma.scheduledPost.update({
+        where: {
+          id: post.id,
+        },
+        data: {
+          status:
+            ScheduledPostStatus.PUBLISHING,
+        },
+      });
+
+      const attempt =
+        await this.prisma.publishAttempt.create({
+          data: {
+            scheduledPostId: post.id,
+            attemptNumber:
+              post.retryCount + 1,
+            status:
+              PublishAttemptStatus.PENDING,
+          },
+        });
+
+      try {
+
+        let result: any = null;
+
+        if (
+          post.platform ===
+          SocialPlatform.FACEBOOK
+        ) {
+
+          result =
+            await this.facebook.publish(
+              post.content,
+              post.mediaUrls,
+            );
+
+        } else if (
+          post.platform ===
+          SocialPlatform.TELEGRAM
+        ) {
+
+          result =
+            await this.telegram.publish(
+              post.content,
+              post.mediaUrls,
+            );
+
+        }
+
+        await this.prisma.publishAttempt.update({
+          where: {
+            id: attempt.id,
+          },
+          data: {
+            status:
+              PublishAttemptStatus.SUCCESS,
+            responsePayload: result,
+            completedAt:
+              new Date(),
+          },
+        });
+
+        await this.prisma.scheduledPost.update({
+          where: {
+            id: post.id,
+          },
+          data: {
+            status:
+              ScheduledPostStatus.PUBLISHED,
+            publishedAt:
+              new Date(),
+            retryCount:
+              post.retryCount + 1,
+            externalPostId:
+              result?.postId ??
+              result?.post_id ??
+              result?.id ??
+              result?.messageId?.toString() ??
+              result?.message_id?.toString() ??
+              null,
+            externalPostUrl:
+              post.platform === SocialPlatform.FACEBOOK
+                ? this.buildFacebookPostUrl(
+                    result?.postId ??
+                      result?.post_id ??
+                      result?.id ??
+                      null,
+                  )
+                : null,
+          },
+        });
+
+        if (post.historyId) {
+          await this.prisma.generationHistory.update({
+            where: {
+              id: post.historyId,
+            },
+            data: {
+              status:
+                ContentStatus.PUBLISHED,
+              publishedAt:
+                new Date(),
+            },
+          });
+        }
+
+        published++;
+
+      } catch (e: any) {
+
+        await this.prisma.publishAttempt.update({
+          where: {
+            id: attempt.id,
+          },
+          data: {
+            status:
+              PublishAttemptStatus.FAILED,
+            errorMessage:
+              e?.message ??
+              "Unknown Error",
+            completedAt:
+              new Date(),
+          },
+        });
+
+        await this.prisma.scheduledPost.update({
+          where: {
+            id: post.id,
+          },
+          data: {
+            status:
+              ScheduledPostStatus.FAILED,
+            retryCount:
+              post.retryCount + 1,
+            lastError:
+              e?.message ??
+              "Unknown Error",
+          },
+        });
+
+      }
+
+    }
+
+    return {
+      success: true,
+      found: posts.length,
+      published,
+    };
+
+  }
+
+}

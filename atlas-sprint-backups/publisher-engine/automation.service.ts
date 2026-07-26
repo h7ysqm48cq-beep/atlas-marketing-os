@@ -1,0 +1,627 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  ScheduledPostStatus,
+  SocialChannelStatus,
+  SocialPlatform,
+} from '../generated/prisma/enums';
+import { PrismaService } from '../database/prisma.service';
+
+type CreateChannelInput = {
+  brandId: string;
+  platform: SocialPlatform;
+  name: string;
+  externalId?: string;
+  username?: string;
+};
+
+type CreatePostInput = {
+  brandId: string;
+  channelId: string;
+  campaignId?: string;
+  historyId?: string;
+  platform: SocialPlatform;
+  title?: string;
+  content: string;
+  mediaUrls?: string[];
+  scheduledAt: string;
+  timezone?: string;
+  status?: ScheduledPostStatus;
+};
+
+type UpdatePostInput = Partial<CreatePostInput> & {
+  lastError?: string | null;
+};
+
+@Injectable()
+export class AutomationService {
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async dashboard() {
+    const [
+      channels,
+      postsByStatus,
+      upcoming,
+      recentAttempts,
+    ] = await Promise.all([
+      this.prisma.socialChannel.findMany({
+        orderBy: [
+          { platform: 'asc' },
+          { createdAt: 'asc' },
+        ],
+        include: {
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              scheduledPosts: true,
+            },
+          },
+        },
+      }),
+
+      this.prisma.scheduledPost.groupBy({
+        by: ['status'],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.scheduledPost.findMany({
+        where: {
+          status: {
+            in: [
+              ScheduledPostStatus.SCHEDULED,
+              ScheduledPostStatus.QUEUED,
+            ],
+          },
+          scheduledAt: {
+            gte: new Date(),
+          },
+        },
+        take: 10,
+        orderBy: {
+          scheduledAt: 'asc',
+        },
+        include: {
+          channel: true,
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          campaign: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+
+      this.prisma.publishAttempt.findMany({
+        take: 10,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          scheduledPost: {
+            include: {
+              channel: true,
+              brand: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const statusCounts = Object.fromEntries(
+      Object.values(ScheduledPostStatus).map(
+        (status) => [status, 0],
+      ),
+    ) as Record<ScheduledPostStatus, number>;
+
+    for (const item of postsByStatus) {
+      statusCounts[item.status] =
+        item._count._all;
+    }
+
+    return {
+      channels,
+      statusCounts,
+      upcoming,
+      recentAttempts,
+    };
+  }
+
+  listChannels() {
+    return this.prisma.socialChannel.findMany({
+      orderBy: [
+        { platform: 'asc' },
+        { createdAt: 'asc' },
+      ],
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            scheduledPosts: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createChannel(input: CreateChannelInput) {
+    await this.ensureBrand(input.brandId);
+
+    const brand =
+      await this.prisma.brand.findUniqueOrThrow({
+        where: {
+          id: input.brandId,
+        },
+        select: {
+          workspaceId: true,
+        },
+      });
+
+    return this.prisma.socialChannel.create({
+      data: {
+        workspaceId: brand.workspaceId,
+        brandId: input.brandId,
+        platform: input.platform,
+        name: input.name.trim(),
+        externalId:
+          input.externalId?.trim() || null,
+        username:
+          input.username?.trim() || null,
+        status:
+          SocialChannelStatus.DISCONNECTED,
+      },
+    });
+  }
+
+  async updateChannelStatus(
+    id: string,
+    status: SocialChannelStatus,
+    lastError?: string,
+  ) {
+    await this.ensureChannel(id);
+
+    return this.prisma.socialChannel.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+        lastError:
+          lastError?.trim() || null,
+        lastConnectedAt:
+          status === SocialChannelStatus.CONNECTED
+            ? new Date()
+            : undefined,
+      },
+    });
+  }
+
+  listPosts(status?: ScheduledPostStatus) {
+    return this.prisma.scheduledPost.findMany({
+      where: status
+        ? {
+            status,
+          }
+        : undefined,
+      orderBy: {
+        scheduledAt: 'asc',
+      },
+      include: {
+        channel: true,
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        history: {
+          select: {
+            id: true,
+            topic: true,
+            status: true,
+          },
+        },
+        attempts: {
+          orderBy: {
+            attemptNumber: 'desc',
+          },
+          take: 1,
+        },
+      },
+    });
+  }
+
+  async getPost(id: string) {
+    const post =
+      await this.prisma.scheduledPost.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          channel: true,
+          brand: true,
+          campaign: true,
+          history: true,
+          attempts: {
+            orderBy: {
+              attemptNumber: 'desc',
+            },
+          },
+        },
+      });
+
+    if (!post) {
+      throw new NotFoundException(
+        'Scheduled post not found.',
+      );
+    }
+
+    return post;
+  }
+
+  async createPost(input: CreatePostInput) {
+    if (!input.content?.trim()) {
+      throw new BadRequestException(
+        'Content is required.',
+      );
+    }
+
+    const scheduledAt =
+      new Date(input.scheduledAt);
+
+    if (
+      Number.isNaN(
+        scheduledAt.getTime(),
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid scheduledAt value.',
+      );
+    }
+
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id: input.channelId,
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+
+    if (
+      channel.brandId !== input.brandId
+    ) {
+      throw new BadRequestException(
+        'Channel does not belong to this brand.',
+      );
+    }
+
+    if (
+      channel.platform !== input.platform
+    ) {
+      throw new BadRequestException(
+        'Channel platform does not match post platform.',
+      );
+    }
+
+    return this.prisma.scheduledPost.create({
+      data: {
+        brandId: input.brandId,
+        channelId: input.channelId,
+        campaignId:
+          input.campaignId || null,
+        historyId:
+          input.historyId || null,
+        platform: input.platform,
+        title:
+          input.title?.trim() || null,
+        content: input.content.trim(),
+        mediaUrls:
+          input.mediaUrls ?? [],
+        scheduledAt,
+        timezone:
+          input.timezone ||
+          'Asia/Kuala_Lumpur',
+        status:
+          input.status ??
+          ScheduledPostStatus.DRAFT,
+      },
+      include: {
+        channel: true,
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updatePost(
+    id: string,
+    input: UpdatePostInput,
+  ) {
+    const current =
+      await this.getPost(id);
+
+    if (
+      current.status ===
+      ScheduledPostStatus.PUBLISHED
+    ) {
+      throw new BadRequestException(
+        'Published posts cannot be edited.',
+      );
+    }
+
+    const scheduledAt =
+      input.scheduledAt
+        ? new Date(input.scheduledAt)
+        : undefined;
+
+    if (
+      scheduledAt &&
+      Number.isNaN(
+        scheduledAt.getTime(),
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid scheduledAt value.',
+      );
+    }
+
+    return this.prisma.scheduledPost.update({
+      where: {
+        id,
+      },
+      data: {
+        title:
+          input.title === undefined
+            ? undefined
+            : input.title.trim() || null,
+        content:
+          input.content === undefined
+            ? undefined
+            : input.content.trim(),
+        mediaUrls:
+          input.mediaUrls,
+        scheduledAt,
+        timezone:
+          input.timezone,
+        status:
+          input.status,
+        campaignId:
+          input.campaignId === undefined
+            ? undefined
+            : input.campaignId || null,
+        historyId:
+          input.historyId === undefined
+            ? undefined
+            : input.historyId || null,
+        lastError:
+          input.lastError === undefined
+            ? undefined
+            : input.lastError,
+      },
+      include: {
+        channel: true,
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async removePost(id: string) {
+    const current =
+      await this.getPost(id);
+
+    if (
+      current.status ===
+      ScheduledPostStatus.PUBLISHED
+    ) {
+      throw new BadRequestException(
+        'Published posts cannot be deleted.',
+      );
+    }
+
+    await this.prisma.scheduledPost.delete({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      deleted: true,
+      id,
+    };
+  }
+
+  async queuePost(id: string) {
+    const current =
+      await this.getPost(id);
+
+    if (
+      current.status !==
+        ScheduledPostStatus.DRAFT &&
+      current.status !==
+        ScheduledPostStatus.SCHEDULED &&
+      current.status !==
+        ScheduledPostStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Only draft, scheduled or failed posts can be queued.',
+      );
+    }
+
+    return this.prisma.scheduledPost.update({
+      where: {
+        id,
+      },
+      data: {
+        status:
+          ScheduledPostStatus.QUEUED,
+        lastError: null,
+      },
+    });
+  }
+
+  async cancelPost(id: string) {
+    const current =
+      await this.getPost(id);
+
+    if (
+      current.status ===
+      ScheduledPostStatus.PUBLISHED
+    ) {
+      throw new BadRequestException(
+        'Published posts cannot be cancelled.',
+      );
+    }
+
+    return this.prisma.scheduledPost.update({
+      where: {
+        id,
+      },
+      data: {
+        status:
+          ScheduledPostStatus.CANCELLED,
+      },
+    });
+  }
+
+  async getSettings() {
+    const workspace =
+      await this.prisma.workspace.findFirst({
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+    if (!workspace) {
+      throw new NotFoundException(
+        'Workspace not found.',
+      );
+    }
+
+    return this.prisma.automationSetting.upsert({
+      where: {
+        workspaceId: workspace.id,
+      },
+      update: {},
+      create: {
+        workspaceId: workspace.id,
+      },
+    });
+  }
+
+  async updateSettings(
+    input: {
+      timezone?: string;
+      approvalRequired?: boolean;
+      autoPublishEnabled?: boolean;
+      retryLimit?: number;
+      retryDelayMinutes?: number;
+      defaultFacebookTime?: string;
+      defaultTelegramTime?: string;
+    },
+  ) {
+    const settings =
+      await this.getSettings();
+
+    return this.prisma.automationSetting.update({
+      where: {
+        id: settings.id,
+      },
+      data: input,
+    });
+  }
+
+  private async ensureBrand(id: string) {
+    const brand =
+      await this.prisma.brand.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!brand) {
+      throw new NotFoundException(
+        'Brand not found.',
+      );
+    }
+  }
+
+  private async ensureChannel(id: string) {
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+  }
+}
