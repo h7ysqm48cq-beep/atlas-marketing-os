@@ -27,11 +27,11 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  const port = Number(process.env.PORT) || 3001;
 
-  const port = Number(process.env.PORT || 3001);
-  await app.listen(port);
+await app.listen(port, "0.0.0.0");
 
-  console.log(`Atlas API running at http://localhost:${port}`);
+  console.log(`Atlas API running on port ${port}`);
 }
 
 void bootstrap();
