@@ -864,3 +864,122 @@
     );
   }
 }
+
+
+/* Copilot mobile v3 fixed composer */
+@media (max-width: 720px) {
+  .page {
+    min-height: calc(
+      100dvh
+      - 68px
+      - env(safe-area-inset-bottom)
+    );
+  }
+
+  .layout {
+    min-height: 0;
+  }
+
+  .chat {
+    position: relative;
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 90px
+      - 32px
+      - env(safe-area-inset-bottom)
+    );
+    max-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 90px
+      - 32px
+      - env(safe-area-inset-bottom)
+    );
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .messages {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px 12px 16px;
+    scroll-padding-bottom: 120px;
+  }
+
+  .composer {
+    position: relative;
+    bottom: auto;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  .composer textarea {
+    width: 100%;
+    min-height: 56px;
+    max-height: 132px;
+    line-height: 1.45;
+  }
+
+  .composer > div {
+    min-height: 38px;
+  }
+
+  .composer button {
+    min-width: 84px;
+  }
+
+  .assistant,
+  .user {
+    width: min(94%, 620px);
+  }
+
+  .assistant {
+    margin-right: auto;
+  }
+
+  .user {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .chat {
+    min-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 134px
+      - 24px
+      - env(safe-area-inset-bottom)
+    );
+    max-height: calc(
+      100dvh
+      - 68px
+      - 58px
+      - 134px
+      - 24px
+      - env(safe-area-inset-bottom)
+    );
+  }
+
+  .messages {
+    padding: 10px 10px 14px;
+  }
+
+  .composer {
+    padding:
+      9px
+      9px
+      calc(9px + env(safe-area-inset-bottom));
+  }
+
+  .composer textarea {
+    min-height: 52px;
+  }
+}
