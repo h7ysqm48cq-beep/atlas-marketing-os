@@ -294,7 +294,9 @@ export function DashboardOverview() {
 
   return (
     <div className={styles.dashboard}>
-      <section className={styles.hero}>
+
+      <div className={styles.desktopSummary}>
+        <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>
             Marketing Command Center
@@ -396,6 +398,99 @@ export function DashboardOverview() {
           </small>
         </article>
       </section>
+      </div>
+
+
+      <div className={styles.mobileSummary}>
+        <section className={styles.mobileHero}>
+          <div>
+            <p className={styles.mobileGreeting}>
+              Good evening
+            </p>
+
+            <h1>Loh.</h1>
+
+            <p className={styles.mobileAttention}>
+              {pendingReview > 0
+                ? `${pendingReview} item${
+                    pendingReview === 1 ? "" : "s"
+                  } need your attention`
+                : "Everything is under control"}
+            </p>
+          </div>
+
+          <a
+            className={styles.mobileCreateButton}
+            href="/ai-studio"
+          >
+            + Create
+          </a>
+        </section>
+
+        <button
+          type="button"
+          className={styles.mobileRefreshButton}
+          onClick={() => void load()}
+          disabled={loading}
+        >
+          {loading ? "Refreshing..." : "Refresh dashboard"}
+        </button>
+
+        {error ? (
+          <div className={styles.warning}>
+            {error}
+          </div>
+        ) : null}
+
+        <section className={styles.mobileKpiGrid}>
+          <article className={styles.mobileKpiCard}>
+            <span>AI calls</span>
+            <strong>
+              {number(last24Hours.calls)}
+            </strong>
+            <small>Last 24 hours</small>
+          </article>
+
+          <article className={styles.mobileKpiCard}>
+            <span>AI cost</span>
+            <strong className={styles.mobileMoneyValue}>
+              {myr(last24Hours.estimatedCostMyr)}
+            </strong>
+            <small>Last 24 hours</small>
+          </article>
+
+          <article className={styles.mobileKpiCard}>
+            <span>Pending</span>
+            <strong>{pendingReview}</strong>
+            <small>{approved} approved</small>
+          </article>
+
+          <article className={styles.mobileKpiCard}>
+            <span>Scheduled</span>
+            <strong>{scheduled}</strong>
+            <small>{publishingQueue} in queue</small>
+          </article>
+
+          <article className={styles.mobileKpiCard}>
+            <span>Campaigns</span>
+            <strong>{activeCampaigns}</strong>
+            <small>
+              {data.campaigns.length} total
+            </small>
+          </article>
+
+          <article className={styles.mobileKpiCard}>
+            <span>Automation</span>
+            <strong className={styles.mobileHealthValue}>
+              {automationHealth}
+            </strong>
+            <small>
+              {connectedChannels}/{totalChannels} connected
+            </small>
+          </article>
+        </section>
+      </div>
+
 
       <section className={styles.mainGrid}>
         <article className={styles.panel}>
