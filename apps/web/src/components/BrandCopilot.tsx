@@ -94,6 +94,8 @@ export function BrandCopilot() {
   ] = useState(true);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] =
+    useState(false);
   const [marketingPlan, setMarketingPlan] =
     useState<MarketingPlan | null>(null);
   const [status, setStatus] = useState(
@@ -123,6 +125,19 @@ export function BrandCopilot() {
       behavior: 'smooth',
     });
   }, [messages]);
+
+  useEffect(() => {
+    document.body.classList.toggle(
+      'copilot-mobile-drawer-open',
+      mobileSidebarOpen,
+    );
+
+    return () => {
+      document.body.classList.remove(
+        'copilot-mobile-drawer-open',
+      );
+    };
+  }, [mobileSidebarOpen]);
 
   async function refreshConversations() {
     try {
@@ -158,6 +173,7 @@ export function BrandCopilot() {
     setCampaignId('');
     setMode('chat');
     setStatus('New conversation.');
+    setMobileSidebarOpen(false);
   }
 
   async function openConversation(id: string) {
@@ -211,6 +227,7 @@ export function BrandCopilot() {
       );
       setMarketingPlan(null);
       setStatus(`Loaded: ${data.title}`);
+      setMobileSidebarOpen(false);
     } catch (error) {
       setStatus(
         error instanceof Error
@@ -475,6 +492,33 @@ export function BrandCopilot() {
 
   return (
     <div className={styles.page}>
+      <button
+        type="button"
+        className={`${styles.mobileConversationOverlay}${
+          mobileSidebarOpen ? ` ${styles.visible}` : ''
+        }`}
+        aria-label="Close conversations"
+        onClick={() => setMobileSidebarOpen(false)}
+      />
+
+      <section className={styles.mobileCopilotBar}>
+        <div>
+          <span>Elena Copilot</span>
+          <strong>
+            {mode === 'marketing-plan'
+              ? 'Marketing Plan'
+              : 'Chat mode'}
+          </strong>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          Conversations
+        </button>
+      </section>
+
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>
@@ -535,7 +579,29 @@ export function BrandCopilot() {
       </section>
 
       <section className={styles.layout}>
-        <aside className={styles.sidebar}>
+        <aside
+          className={`${styles.sidebar}${
+            mobileSidebarOpen
+              ? ` ${styles.mobileSidebarOpen}`
+              : ''
+          }`}
+        >
+          <div className={styles.mobileSidebarHeader}>
+            <div>
+              <span>Elena</span>
+              <strong>Conversations</strong>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Close conversations"
+              onClick={() =>
+                setMobileSidebarOpen(false)
+              }
+            >
+              ×
+            </button>
+          </div>
           <button
             className={styles.newChat}
             onClick={newChat}
