@@ -18,6 +18,26 @@ type Message = {
   content: string;
 };
 
+type MarketingPlan = {
+  campaignName: string;
+  objective: string;
+  audience: string;
+  hook: string;
+  keyMessage: string;
+  contentPillars: string[];
+  contentIdeas: string[];
+  facebook: string[];
+  telegram: string[];
+  reels: string[];
+  imagePrompts: string[];
+  schedule: Array<{
+    day: number;
+    platform: string;
+    contentType: string;
+    topic: string;
+  }>;
+};
+
 type CopilotMode = 'chat' | 'marketing-plan';
 
 const API =
@@ -39,6 +59,8 @@ export function BrandCopilot() {
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [marketingPlan, setMarketingPlan] =
+    useState<MarketingPlan | null>(null);
   const [status, setStatus] = useState(
     'Brand Brain is active.',
   );
@@ -86,52 +108,84 @@ export function BrandCopilot() {
     setStatus('Elena is thinking...');
 
     try {
-      const response = await fetch(
-        `${API}/copilot/chat`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      if (mode === 'marketing-plan') {
+        const response = await fetch(
+          `${API}/copilot/marketing-plan`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: text,
+              campaignId:
+                campaignId || undefined,
+            }),
           },
-          body: JSON.stringify({
-            campaignId:
-              campaignId || undefined,
-            mode,
-            messages: next.slice(-12),
-          }),
-        },
-      );
+        );
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok || !data.reply) {
-        throw new Error(
-          data.message ||
-            'Unable to get response.',
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              'Unable to generate marketing plan.',
+          );
+        }
+
+        setMarketingPlan(data);
+        setStatus('Marketing Plan generated.');
+
+        setMessages((current) => [
+          ...current,
+          {
+            role: 'assistant',
+            content:
+              'Marketing Plan 已生成，请查看下方结构化方案。',
+          },
+        ]);
+      } else {
+        const response = await fetch(
+          `${API}/copilot/chat`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              campaignId:
+                campaignId || undefined,
+              mode,
+              messages: next.slice(-12),
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.reply) {
+          throw new Error(
+            data.message ||
+              'Unable to get response.',
+          );
+        }
+
+        setMarketingPlan(null);
+
+        setMessages((current) => [
+          ...current,
+          {
+            role: 'assistant',
+            content: data.reply,
+          },
+        ]);
+
+        setStatus(
+          data.campaign
+            ? `Using ${data.campaign.name} · Chat`
+            : 'Using Brand Brain · Chat',
         );
       }
-
-      setMessages((current) => [
-        ...current,
-        {
-          role: 'assistant',
-          content: data.reply,
-        },
-      ]);
-
-      setStatus(
-        data.campaign
-          ? `Using ${data.campaign.name} · ${
-              mode === 'marketing-plan'
-                ? 'Marketing Plan'
-                : 'Chat'
-            }`
-          : `Using Brand Brain · ${
-              mode === 'marketing-plan'
-                ? 'Marketing Plan'
-                : 'Chat'
-            }`,
-      );
     } catch (error) {
       setMessages((current) => [
         ...current,
@@ -287,6 +341,90 @@ export function BrandCopilot() {
 
             <div ref={endRef} />
           </div>
+
+          {marketingPlan && (
+            <section
+              style={{
+                margin: '16px',
+                padding: '20px',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '16px',
+                background: 'rgba(255,255,255,0.03)',
+              }}
+            >
+              <p className={styles.eyebrow}>
+                Marketing Plan
+              </p>
+
+              <h2>{marketingPlan.campaignName}</h2>
+
+              <h3>Objective</h3>
+              <p>{marketingPlan.objective}</p>
+
+              <h3>Audience</h3>
+              <p>{marketingPlan.audience}</p>
+
+              <h3>Hook</h3>
+              <p>{marketingPlan.hook}</p>
+
+              <h3>Key Message</h3>
+              <p>{marketingPlan.keyMessage}</p>
+
+              <h3>Content Pillars</h3>
+              <ul>
+                {marketingPlan.contentPillars.map(
+                  (item) => (
+                    <li key={item}>{item}</li>
+                  ),
+                )}
+              </ul>
+
+              <h3>Content Ideas</h3>
+              <ol>
+                {marketingPlan.contentIdeas.map(
+                  (item) => (
+                    <li key={item}>{item}</li>
+                  ),
+                )}
+              </ol>
+
+              <h3>Facebook</h3>
+              {marketingPlan.facebook.map((item) => (
+                <p key={item}>{item}</p>
+              ))}
+
+              <h3>Telegram</h3>
+              {marketingPlan.telegram.map((item) => (
+                <p key={item}>{item}</p>
+              ))}
+
+              <h3>Reels</h3>
+              {marketingPlan.reels.map((item) => (
+                <p key={item}>{item}</p>
+              ))}
+
+              <h3>Image Prompts</h3>
+              {marketingPlan.imagePrompts.map(
+                (item) => (
+                  <p key={item}>{item}</p>
+                ),
+              )}
+
+              <h3>Schedule</h3>
+              <ul>
+                {marketingPlan.schedule.map(
+                  (item) => (
+                    <li
+                      key={`${item.day}-${item.platform}`}
+                    >
+                      Day {item.day} · {item.platform} ·{' '}
+                      {item.contentType} · {item.topic}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </section>
+          )}
 
           <form
             className={styles.composer}
