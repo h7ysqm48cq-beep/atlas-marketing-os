@@ -8,4 +8,8 @@ export class CreateMarketingPlanDto {
   @IsString()
   @IsOptional()
   campaignId?: string;
+
+  @IsString()
+  @IsOptional()
+  conversationId?: string;
 }

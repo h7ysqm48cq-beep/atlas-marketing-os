@@ -27,10 +27,50 @@ export class CopilotController {
   }
 
   @Post('marketing-plan')
-  marketingPlan(
+  async marketingPlan(
     @Body() dto: CreateMarketingPlanDto,
   ) {
-    return this.marketingPlanner.generate(dto);
+    const conversation =
+      await this.conversations.ensureConversation({
+        conversationId: dto.conversationId,
+        campaignId: dto.campaignId,
+        mode: 'marketing-plan',
+        firstMessage: dto.prompt,
+      });
+
+    await this.conversations.appendUserMessage(
+      conversation.id,
+      dto.prompt,
+    );
+
+    const plan =
+      await this.marketingPlanner.generate(dto);
+
+    const summary = [
+      `Marketing Plan: ${plan.campaignName}`,
+      `Objective: ${plan.objective}`,
+      `Audience: ${plan.audience}`,
+      `Hook: ${plan.hook}`,
+      `Key Message: ${plan.keyMessage}`,
+    ].join('\n');
+
+    await this.conversations.appendAssistantMessage(
+      conversation.id,
+      summary,
+      {
+        mode: 'marketing-plan',
+        campaignName: plan.campaignName,
+        marketingPlan: plan,
+      },
+    );
+
+    return {
+      ...plan,
+      conversation: {
+        id: conversation.id,
+        title: conversation.title,
+      },
+    };
   }
 
   @Post('conversations')

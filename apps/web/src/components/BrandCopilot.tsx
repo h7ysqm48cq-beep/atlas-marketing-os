@@ -395,6 +395,8 @@ export function BrandCopilot() {
               prompt: text,
               campaignId:
                 campaignId || undefined,
+              conversationId:
+                conversationId || undefined,
             }),
           },
         );
@@ -409,6 +411,15 @@ export function BrandCopilot() {
         }
 
         setMarketingPlan(data);
+
+        if (data.conversation?.id) {
+          setConversationId(
+            data.conversation.id,
+          );
+        }
+
+        await refreshConversations();
+
         setStatus('Marketing Plan generated.');
 
         setMessages((current) => [
