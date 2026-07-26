@@ -1,0 +1,294 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.hero h1 {
+  margin: 6px 0 8px;
+}
+
+.hero > div > p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--gold-light);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.primaryButton,
+.editor button,
+.card footer button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.primaryButton {
+  border: 1px solid rgba(209, 163, 63, 0.4);
+  background: rgba(209, 163, 63, 0.1);
+  color: var(--gold-light);
+}
+
+.editor,
+.toolbar,
+.card {
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--panel);
+}
+
+.editor {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+}
+
+.editorGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(180px, 0.35fr);
+  gap: 12px;
+}
+
+.editor label {
+  display: grid;
+  gap: 7px;
+}
+
+.editor label > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.editor input,
+.editor select,
+.editor textarea,
+.toolbar input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #090b10;
+  color: var(--text);
+}
+
+.editor input,
+.editor select,
+.toolbar input {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.editor textarea {
+  min-height: 130px;
+  padding: 11px;
+  resize: vertical;
+}
+
+.editorActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editorActions small,
+.status {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.editorActions button {
+  border: 0;
+  background: linear-gradient(
+    140deg,
+    var(--gold-light),
+    var(--gold)
+  );
+  color: #171106;
+}
+
+.toolbar {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.categories button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.categories .activeCategory {
+  border-color: rgba(209, 163, 63, 0.34);
+  background: rgba(209, 163, 63, 0.09);
+  color: var(--gold-light);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.card {
+  min-width: 0;
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  padding: 15px;
+}
+
+.card header,
+.card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.card header > span {
+  color: var(--gold-light);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.card header > button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.card h2 {
+  margin: 15px 0 9px;
+  font-size: 17px;
+}
+
+.card > p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #c9cfdb;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+}
+
+.card footer {
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.card footer button {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: rgba(8, 10, 15, 0.45);
+  color: var(--text);
+  font-size: 10px;
+}
+
+.card footer .useButton {
+  border-color: rgba(209, 163, 63, 0.35);
+  background: rgba(209, 163, 63, 0.08);
+  color: var(--gold-light);
+}
+
+.empty {
+  grid-column: 1 / -1;
+  padding: 45px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1050px) {
+  .grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    gap: 14px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryButton {
+    width: 100%;
+  }
+
+  .editorGrid,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editorActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .editorActions button {
+    width: 100%;
+  }
+
+  .toolbar {
+    padding: 11px;
+  }
+
+  .categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .categories button {
+    flex: 0 0 auto;
+  }
+
+  .card {
+    min-height: 230px;
+  }
+}

@@ -16,7 +16,7 @@ const mainItems = [
 
 const resourceItems = [
   ['Asset Library', '◇', '/assets'],
-  ['Prompt Library', '≡', '#'],
+  ['Prompt Library', '≡', '/prompts'],
   ['Brand Brain', '◆', '/brand-brain'],
   ['Knowledge', '◈', '/knowledge'],
   ['Settings', '⚙', '/settings'],
