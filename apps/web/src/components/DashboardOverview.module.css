@@ -683,3 +683,126 @@
     padding: 12px;
   }
 }
+
+
+/* Dashboard mobile v4 compact polish */
+@media (max-width: 700px) {
+  .mobileSummary {
+    gap: 10px;
+  }
+
+  .mobileHero {
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0 4px;
+  }
+
+  .mobileGreeting {
+    margin-bottom: 3px;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+  }
+
+  .mobileHero h1 {
+    font-size: 31px;
+    line-height: 0.98;
+  }
+
+  .mobileAttention {
+    margin-top: 7px;
+    font-size: 11px;
+  }
+
+  .mobileCreateButton {
+    min-width: 102px;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  .mobileRefreshButton {
+    min-height: 38px;
+    border-radius: 11px;
+    background: rgba(23, 27, 39, 0.62);
+    font-size: 11px;
+  }
+
+  .mobileKpiGrid {
+    gap: 9px;
+  }
+
+  .mobileKpiCard {
+    min-height: 94px;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 15px;
+  }
+
+  .mobileKpiCard span {
+    font-size: 10px;
+  }
+
+  .mobileKpiCard strong {
+    font-size: clamp(22px, 6.5vw, 28px);
+  }
+
+  .mobileKpiCard small {
+    font-size: 8px;
+  }
+
+  .mobileMoneyValue {
+    font-size: clamp(17px, 5vw, 23px) !important;
+  }
+
+  .mobileHealthValue {
+    font-size: clamp(14px, 4vw, 18px) !important;
+  }
+
+  .mainGrid {
+    gap: 12px;
+    margin-top: 0;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panelHeader {
+    margin-bottom: 12px;
+  }
+
+  .panelHeader h2 {
+    font-size: 17px;
+  }
+
+  .empty {
+    padding: 18px 14px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .listItem {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileHero {
+    padding-top: 8px;
+  }
+
+  .mobileHero h1 {
+    font-size: 29px;
+  }
+
+  .mobileCreateButton {
+    min-width: 96px;
+    min-height: 40px;
+  }
+
+  .mobileKpiCard {
+    min-height: 90px;
+    padding: 11px;
+  }
+}
