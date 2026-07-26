@@ -309,3 +309,377 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Dashboard mobile v2 */
+@media (max-width: 700px) {
+  .dashboard {
+    gap: 16px;
+  }
+
+  .hero {
+    gap: 16px;
+    padding-bottom: 2px;
+  }
+
+  .hero h1 {
+    margin: 4px 0 6px;
+    font-size: clamp(28px, 8vw, 34px);
+    line-height: 1.05;
+  }
+
+  .eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+  }
+
+  .subtitle {
+    max-width: 34rem;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .heroActions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 10px;
+  }
+
+  .heroActions a,
+  .heroActions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpiCard {
+    min-width: 0;
+    min-height: 116px;
+    gap: 6px;
+    padding: 14px;
+    border-radius: 15px;
+  }
+
+  .kpiCard span {
+    min-height: 30px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .kpiCard strong {
+    overflow-wrap: anywhere;
+    font-size: clamp(22px, 6.5vw, 28px);
+    line-height: 1.05;
+  }
+
+  .kpiCard small {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .healthValue {
+    font-size: clamp(17px, 4.6vw, 21px) !important;
+  }
+
+  .mainGrid {
+    gap: 14px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 15px;
+  }
+
+  .panelHeader {
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .panelHeader h2 {
+    margin-top: 4px;
+    font-size: 18px;
+  }
+
+  .panelHeader a {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .list {
+    gap: 8px;
+  }
+
+  .listItem {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .listItem > b {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .platformIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .workflowGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .workflowGrid div {
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .workflowGrid strong {
+    font-size: 20px;
+  }
+
+  .healthPanel {
+    padding: 13px;
+  }
+
+  .tableWrap {
+    margin: 0 -16px -16px;
+    padding: 0 16px 16px;
+  }
+
+  .tableWrap table {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 390px) {
+  .dashboard {
+    gap: 14px;
+  }
+
+  .hero h1 {
+    font-size: 27px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
+
+  .heroActions {
+    grid-template-columns: 1fr;
+  }
+
+  .kpiGrid {
+    gap: 8px;
+  }
+
+  .kpiCard {
+    min-height: 108px;
+    padding: 12px;
+  }
+
+  .kpiCard span {
+    min-height: 28px;
+    font-size: 10px;
+  }
+
+  .kpiCard strong {
+    font-size: clamp(20px, 6.2vw, 25px);
+  }
+
+  .kpiCard small {
+    font-size: 9px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panelHeader {
+    align-items: flex-start;
+  }
+
+  .panelHeader h2 {
+    font-size: 17px;
+  }
+
+  .tableWrap {
+    margin: 0 -14px -14px;
+    padding: 0 14px 14px;
+  }
+}
+
+
+/* Dashboard mobile v3 independent layout */
+.mobileSummary {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .desktopSummary {
+    display: none;
+  }
+
+  .mobileSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mobileHero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 4px 0 8px;
+  }
+
+  .mobileGreeting {
+    margin: 0 0 2px;
+    color: #8276ff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mobileHero h1 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .mobileAttention {
+    margin: 8px 0 0;
+    color: #8d94a7;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .mobileCreateButton {
+    display: inline-flex;
+    min-width: 108px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0 16px;
+    border: 1px solid #7868ff;
+    border-radius: 13px;
+    background: #7868ff;
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .mobileRefreshButton {
+    min-height: 40px;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    background: rgba(23, 27, 39, 0.76);
+    color: #b8bfce;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mobileRefreshButton:disabled {
+    opacity: 0.6;
+  }
+
+  .mobileKpiGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mobileKpiCard {
+    display: flex;
+    min-width: 0;
+    min-height: 108px;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background:
+      linear-gradient(
+        155deg,
+        rgba(20, 24, 35, 0.98),
+        rgba(15, 18, 27, 0.98)
+      );
+  }
+
+  .mobileKpiCard span {
+    color: #858c9f;
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  .mobileKpiCard strong {
+    max-width: 100%;
+    overflow: hidden;
+    color: #f7f3e8;
+    font-size: clamp(24px, 7vw, 31px);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileKpiCard small {
+    color: #747c8f;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .mobileMoneyValue {
+    font-size: clamp(18px, 5.3vw, 25px) !important;
+  }
+
+  .mobileHealthValue {
+    font-size: clamp(15px, 4.3vw, 20px) !important;
+  }
+
+  .mainGrid {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 370px) {
+  .mobileHero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mobileCreateButton {
+    width: 100%;
+  }
+
+  .mobileKpiGrid {
+    gap: 8px;
+  }
+
+  .mobileKpiCard {
+    min-height: 102px;
+    padding: 12px;
+  }
+}
