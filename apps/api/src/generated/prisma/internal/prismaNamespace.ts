@@ -410,7 +410,9 @@ export const ModelName = {
   SocialChannel: 'SocialChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
-  AutomationSetting: 'AutomationSetting'
+  AutomationSetting: 'AutomationSetting',
+  CopilotConversation: 'CopilotConversation',
+  CopilotConversationMessage: 'CopilotConversationMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting"
+    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1466,6 +1468,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CopilotConversation: {
+      payload: Prisma.$CopilotConversationPayload<ExtArgs>
+      fields: Prisma.CopilotConversationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CopilotConversationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CopilotConversationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        findFirst: {
+          args: Prisma.CopilotConversationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CopilotConversationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        findMany: {
+          args: Prisma.CopilotConversationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>[]
+        }
+        create: {
+          args: Prisma.CopilotConversationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        createMany: {
+          args: Prisma.CopilotConversationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CopilotConversationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>[]
+        }
+        delete: {
+          args: Prisma.CopilotConversationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        update: {
+          args: Prisma.CopilotConversationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        deleteMany: {
+          args: Prisma.CopilotConversationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CopilotConversationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CopilotConversationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>[]
+        }
+        upsert: {
+          args: Prisma.CopilotConversationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationPayload>
+        }
+        aggregate: {
+          args: Prisma.CopilotConversationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCopilotConversation>
+        }
+        groupBy: {
+          args: Prisma.CopilotConversationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CopilotConversationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationCountAggregateOutputType> | number
+        }
+      }
+    }
+    CopilotConversationMessage: {
+      payload: Prisma.$CopilotConversationMessagePayload<ExtArgs>
+      fields: Prisma.CopilotConversationMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CopilotConversationMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CopilotConversationMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.CopilotConversationMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CopilotConversationMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        findMany: {
+          args: Prisma.CopilotConversationMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>[]
+        }
+        create: {
+          args: Prisma.CopilotConversationMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        createMany: {
+          args: Prisma.CopilotConversationMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CopilotConversationMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.CopilotConversationMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        update: {
+          args: Prisma.CopilotConversationMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.CopilotConversationMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CopilotConversationMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CopilotConversationMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.CopilotConversationMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.CopilotConversationMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCopilotConversationMessage>
+        }
+        groupBy: {
+          args: Prisma.CopilotConversationMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CopilotConversationMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationMessageCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1765,6 +1915,32 @@ export const AutomationSettingScalarFieldEnum = {
 export type AutomationSettingScalarFieldEnum = (typeof AutomationSettingScalarFieldEnum)[keyof typeof AutomationSettingScalarFieldEnum]
 
 
+export const CopilotConversationScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  campaignId: 'campaignId',
+  title: 'title',
+  mode: 'mode',
+  isArchived: 'isArchived',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CopilotConversationScalarFieldEnum = (typeof CopilotConversationScalarFieldEnum)[keyof typeof CopilotConversationScalarFieldEnum]
+
+
+export const CopilotConversationMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  role: 'role',
+  content: 'content',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type CopilotConversationMessageScalarFieldEnum = (typeof CopilotConversationMessageScalarFieldEnum)[keyof typeof CopilotConversationMessageScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2021,6 +2197,20 @@ export type EnumPublishAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputT
 export type ListEnumPublishAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PublishAttemptStatus[]'>
     
 
+
+/**
+ * Reference to a field of type 'CopilotMessageRole'
+ */
+export type EnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CopilotMessageRole'>
+    
+
+
+/**
+ * Reference to a field of type 'CopilotMessageRole[]'
+ */
+export type ListEnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CopilotMessageRole[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2186,6 +2376,8 @@ export type GlobalOmitConfig = {
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit
   automationSetting?: Prisma.AutomationSettingOmit
+  copilotConversation?: Prisma.CopilotConversationOmit
+  copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
 }
 
 /* Types for Logging */

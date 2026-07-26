@@ -109,3 +109,13 @@ export type PublishAttempt = Prisma.PublishAttemptModel
  * 
  */
 export type AutomationSetting = Prisma.AutomationSettingModel
+/**
+ * Model CopilotConversation
+ * 
+ */
+export type CopilotConversation = Prisma.CopilotConversationModel
+/**
+ * Model CopilotConversationMessage
+ * 
+ */
+export type CopilotConversationMessage = Prisma.CopilotConversationMessageModel

@@ -64,7 +64,9 @@ export const ModelName = {
   SocialChannel: 'SocialChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
-  AutomationSetting: 'AutomationSetting'
+  AutomationSetting: 'AutomationSetting',
+  CopilotConversation: 'CopilotConversation',
+  CopilotConversationMessage: 'CopilotConversationMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -341,6 +343,32 @@ export const AutomationSettingScalarFieldEnum = {
 } as const
 
 export type AutomationSettingScalarFieldEnum = (typeof AutomationSettingScalarFieldEnum)[keyof typeof AutomationSettingScalarFieldEnum]
+
+
+export const CopilotConversationScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  campaignId: 'campaignId',
+  title: 'title',
+  mode: 'mode',
+  isArchived: 'isArchived',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CopilotConversationScalarFieldEnum = (typeof CopilotConversationScalarFieldEnum)[keyof typeof CopilotConversationScalarFieldEnum]
+
+
+export const CopilotConversationMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  role: 'role',
+  content: 'content',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type CopilotConversationMessageScalarFieldEnum = (typeof CopilotConversationMessageScalarFieldEnum)[keyof typeof CopilotConversationMessageScalarFieldEnum]
 
 
 export const SortOrder = {

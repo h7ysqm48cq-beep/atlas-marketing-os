@@ -98,3 +98,12 @@ export const PublishAttemptStatus = {
 } as const
 
 export type PublishAttemptStatus = (typeof PublishAttemptStatus)[keyof typeof PublishAttemptStatus]
+
+
+export const CopilotMessageRole = {
+  USER: 'USER',
+  ASSISTANT: 'ASSISTANT',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type CopilotMessageRole = (typeof CopilotMessageRole)[keyof typeof CopilotMessageRole]

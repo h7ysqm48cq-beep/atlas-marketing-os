@@ -1,14 +1,12 @@
-import type { ReactNode } from "react";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
-
-type AppLayoutProps = {
-  children: ReactNode;
-};
+import type { ReactNode } from 'react';
+import { Header } from '@/components/Header';
+import { Sidebar } from '@/components/Sidebar';
 
 export function AppLayout({
   children,
-}: AppLayoutProps) {
+}: {
+  children: ReactNode;
+}) {
   return (
     <div className="app-shell">
       <Sidebar />

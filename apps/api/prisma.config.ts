@@ -1,15 +1,5 @@
-import dotenv from "dotenv";
-import { defineConfig } from "prisma/config";
-
-dotenv.config({
-  path: ".env",
-});
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL was not loaded from apps/api/.env",
-  );
-}
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -17,6 +7,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: env("DATABASE_URL"),
   },
 });
