@@ -56,52 +56,54 @@ model Workspace {
 }
 
 model Brand {
-  id                 String              @id @default(cuid())
-  workspaceId        String
-  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name               String
-  website            String?
-  industry           String?
-  country            String              @default("Malaysia")
-  primaryLanguage    String              @default("Chinese")
-  targetAudience     String
-  brandVoice         String
-  visualStyle        String
-  contentGoals       String
-  callsToAction      String[]
-  keywords           String[]
-  forbiddenWords     String[]
-  brandRules         String[]
-  examplePosts       String[]
-  status             BrandStatus         @default(ACTIVE)
-  generations        GenerationHistory[]
-  campaigns          Campaign[]
-  assets             Asset[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  knowledgeDocuments KnowledgeDocument[]
-  socialChannels     SocialChannel[]
-  scheduledPosts     ScheduledPost[]
+  id                   String                @id @default(cuid())
+  workspaceId          String
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name                 String
+  website              String?
+  industry             String?
+  country              String                @default("Malaysia")
+  primaryLanguage      String                @default("Chinese")
+  targetAudience       String
+  brandVoice           String
+  visualStyle          String
+  contentGoals         String
+  callsToAction        String[]
+  keywords             String[]
+  forbiddenWords       String[]
+  brandRules           String[]
+  examplePosts         String[]
+  status               BrandStatus           @default(ACTIVE)
+  generations          GenerationHistory[]
+  campaigns            Campaign[]
+  assets               Asset[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  knowledgeDocuments   KnowledgeDocument[]
+  socialChannels       SocialChannel[]
+  scheduledPosts       ScheduledPost[]
+  copilotConversations CopilotConversation[]
 
   @@index([workspaceId])
 }
 
 model Campaign {
-  id             String              @id @default(cuid())
-  brandId        String
-  brand          Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  name           String
-  description    String?
-  objective      String?
-  status         CampaignStatus      @default(DRAFT)
-  startDate      DateTime?
-  endDate        DateTime?
-  ideas          CampaignIdea[]
-  generations    GenerationHistory[]
-  assets         Asset[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  scheduledPosts ScheduledPost[]
+  id                   String                @id @default(cuid())
+  brandId              String
+  brand                Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name                 String
+  description          String?
+  objective            String?
+  status               CampaignStatus        @default(DRAFT)
+  startDate            DateTime?
+  endDate              DateTime?
+  ideas                CampaignIdea[]
+  generations          GenerationHistory[]
+  assets               Asset[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  scheduledPosts       ScheduledPost[]
+  copilotConversations CopilotConversation[]
 
   @@index([brandId])
   @@index([status])
@@ -406,4 +408,47 @@ model AutomationSetting {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum CopilotMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model CopilotConversation {
+  id         String    @id @default(cuid())
+  brandId    String
+  brand      Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  title      String
+  mode       String  @default("chat")
+  isArchived Boolean @default(false)
+
+  messages CopilotConversationMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([updatedAt])
+  @@index([isArchived])
+}
+
+model CopilotConversationMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  conversation   CopilotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role     CopilotMessageRole
+  content  String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
 }

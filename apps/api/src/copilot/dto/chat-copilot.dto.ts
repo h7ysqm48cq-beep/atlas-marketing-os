@@ -28,6 +28,10 @@ export class ChatCopilotDto {
   @IsOptional()
   campaignId?: string;
 
+  @IsString()
+  @IsOptional()
+  conversationId?: string;
+
   @IsOptional()
   @IsIn(['chat', 'marketing-plan'])
   mode?: 'chat' | 'marketing-plan';

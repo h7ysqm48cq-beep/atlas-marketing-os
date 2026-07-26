@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { ConversationMemoryService } from './conversation-memory.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CopilotService {
     private readonly config: ConfigService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
+    private readonly conversations: ConversationMemoryService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -52,6 +54,39 @@ export class CopilotService {
     }
 
     const mode = dto.mode || 'chat';
+
+    const latestUserMessage = [...dto.messages]
+      .reverse()
+      .find(
+        (message) =>
+          message.role === 'user' &&
+          message.content.trim(),
+      );
+
+    if (!latestUserMessage) {
+      throw new InternalServerErrorException(
+        'A user message is required.',
+      );
+    }
+
+    const conversation =
+      await this.conversations.ensureConversation({
+        conversationId: dto.conversationId,
+        campaignId: dto.campaignId,
+        mode,
+        firstMessage: latestUserMessage.content,
+      });
+
+    await this.conversations.appendUserMessage(
+      conversation.id,
+      latestUserMessage.content,
+    );
+
+    const conversationMessages =
+      await this.conversations.recentMessages(
+        conversation.id,
+        20,
+      );
 
     const baseContext = [
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
@@ -126,16 +161,34 @@ Description: ${campaign.description || 'Not set'}`
             role: 'developer',
             content: context,
           },
-          ...dto.messages.map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
+          ...conversationMessages.map(
+            (message) => ({
+              role: message.role,
+              content: message.content,
+            }),
+          ),
         ],
       });
+
+      await this.conversations.appendAssistantMessage(
+        conversation.id,
+        response.output_text,
+        {
+          model:
+            this.config.get<string>(
+              'OPENAI_MODEL',
+            ) || 'gpt-4.1-mini',
+          mode,
+        },
+      );
 
       return {
         reply: response.output_text,
         mode,
+        conversation: {
+          id: conversation.id,
+          title: conversation.title,
+        },
         brand: {
           id: brand.id,
           name: brand.name,
