@@ -86,8 +86,11 @@ export async function proxy(
     );
 
   const {
-    data: { claims },
+    data: claimsData,
   } = await supabase.auth.getClaims();
+
+  const claims =
+    claimsData?.claims ?? null;
 
   const pathname =
     request.nextUrl.pathname;
