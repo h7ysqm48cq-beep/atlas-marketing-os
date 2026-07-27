@@ -83,6 +83,7 @@ model Brand {
   socialChannels       SocialChannel[]
   scheduledPosts       ScheduledPost[]
   copilotConversations CopilotConversation[]
+  promptTemplates      PromptTemplate[]
 
   @@index([workspaceId])
 }
@@ -451,4 +452,23 @@ model CopilotConversationMessage {
 
   @@index([conversationId])
   @@index([createdAt])
+}
+
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  title       String
+  category    String
+  content     String
+  description String?
+  isFavorite  Boolean  @default(false)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([brandId, category])
+  @@index([brandId, isFavorite])
+  @@index([updatedAt])
 }

@@ -412,7 +412,8 @@ export const ModelName = {
   PublishAttempt: 'PublishAttempt',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
-  CopilotConversationMessage: 'CopilotConversationMessage'
+  CopilotConversationMessage: 'CopilotConversationMessage',
+  PromptTemplate: 'PromptTemplate'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -428,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage"
+    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1616,6 +1617,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PromptTemplate: {
+      payload: Prisma.$PromptTemplatePayload<ExtArgs>
+      fields: Prisma.PromptTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PromptTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PromptTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.PromptTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PromptTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.PromptTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.PromptTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.PromptTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PromptTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.PromptTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        update: {
+          args: Prisma.PromptTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.PromptTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PromptTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PromptTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.PromptTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.PromptTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePromptTemplate>
+        }
+        groupBy: {
+          args: Prisma.PromptTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PromptTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1939,6 +2014,22 @@ export const CopilotConversationMessageScalarFieldEnum = {
 } as const
 
 export type CopilotConversationMessageScalarFieldEnum = (typeof CopilotConversationMessageScalarFieldEnum)[keyof typeof CopilotConversationMessageScalarFieldEnum]
+
+
+export const PromptTemplateScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  title: 'title',
+  category: 'category',
+  content: 'content',
+  description: 'description',
+  isFavorite: 'isFavorite',
+  usageCount: 'usageCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2378,6 +2469,7 @@ export type GlobalOmitConfig = {
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
+  promptTemplate?: Prisma.PromptTemplateOmit
 }
 
 /* Types for Logging */

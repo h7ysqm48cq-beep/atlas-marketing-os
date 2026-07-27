@@ -119,3 +119,8 @@ export type CopilotConversation = Prisma.CopilotConversationModel
  * 
  */
 export type CopilotConversationMessage = Prisma.CopilotConversationMessageModel
+/**
+ * Model PromptTemplate
+ * 
+ */
+export type PromptTemplate = Prisma.PromptTemplateModel
