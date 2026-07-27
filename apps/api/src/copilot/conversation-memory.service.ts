@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { MemoryFactExtractorService } from '../memory/memory-fact-extractor.service';
 import { CopilotMessageRole } from '../generated/prisma/client';
 
 type CreateConversationInput = {
@@ -15,9 +17,14 @@ type CreateConversationInput = {
 
 @Injectable()
 export class ConversationMemoryService {
+  private readonly logger = new Logger(
+    ConversationMemoryService.name,
+  );
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly brands: BrandsService,
+    private readonly memoryExtractor: MemoryFactExtractorService,
   ) {}
 
   async create(input: CreateConversationInput = {}) {
@@ -162,11 +169,29 @@ export class ConversationMemoryService {
     conversationId: string,
     content: string,
   ) {
-    return this.appendMessage(
+    const message = await this.appendMessage(
       conversationId,
       CopilotMessageRole.USER,
       content,
     );
+
+    try {
+      await this.memoryExtractor.extractFromMessage({
+        message: content,
+        sourceId: message.id,
+        conversationId,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Memory extraction skipped: ${
+          error instanceof Error
+            ? error.message
+            : 'Unknown error'
+        }`,
+      );
+    }
+
+    return message;
   }
 
   async appendAssistantMessage(
