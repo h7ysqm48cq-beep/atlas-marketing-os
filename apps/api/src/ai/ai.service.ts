@@ -10,6 +10,7 @@ import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
+import { MemoryFactsService } from '../memory/memory-facts.service';
 import { PromptChainService } from '../prompt-chain/prompt-chain.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 import type { TopicSuggestionsDto } from './dto/topic-suggestions.dto';
@@ -130,6 +131,7 @@ export class AiService {
     private readonly promptChainService: PromptChainService,
     private readonly historyService: HistoryService,
     private readonly knowledgeService: KnowledgeService,
+    private readonly memoryFacts: MemoryFactsService,
     private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -158,6 +160,16 @@ export class AiService {
 
     const outputContract = this.promptBuilder.build(dto, brand);
 
+
+    const confirmedMemoryContext =
+      await this.memoryFacts
+        .confirmedPromptContext()
+        .catch(() =>
+          [
+            'ELENA CONFIRMED MEMORY',
+            '- Confirmed memory could not be loaded.',
+          ].join('\\n'),
+        );
 
     const model =
       this.selectModel(dto);
@@ -217,6 +229,16 @@ export class AiService {
 
     const prompt = [
       compactMergedPrompt,
+      '',
+      'ELENA CONFIRMED LONG-TERM MEMORY',
+      confirmedMemoryContext,
+      '',
+      'MEMORY USAGE RULES',
+      '- Use only confirmed memory.',
+      '- The current explicit user request has highest priority.',
+      '- Brand Brain rules and forbidden words remain mandatory.',
+      '- Treat memory as reusable preference guidance.',
+      '- Never expose internal memory records to the user.',
       '',
       'ATLAS OUTPUT CONTRACT',
       outputContract,
