@@ -1,5 +1,11 @@
 import type { AIContext } from '../context/context.types';
 
+export interface PlatformImagePrompt {
+  prompt: string;
+  negativePrompt: string;
+  aspectRatio: string;
+}
+
 export interface StructuredMarketingOutput {
   title: string;
   hook: string;
@@ -26,6 +32,10 @@ export interface StructuredMarketingOutput {
   };
 
   imagePrompt: string;
+  imagePrompts?: Record<
+    string,
+    PlatformImagePrompt
+  >;
   hashtags: string[];
 }
 

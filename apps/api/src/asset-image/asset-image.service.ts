@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BrandsService } from '../brands/brands.service';
@@ -56,7 +57,14 @@ export class AssetImageService {
         throw new Error('The image API did not return base64 image data.');
       }
 
-      const filename = `${Date.now()}-${this.slugify(dto.name)}.png`;
+      const shortName =
+        this.slugify(dto.name).slice(0, 40);
+
+      const uniqueId =
+        randomUUID().replace(/-/g, '').slice(0, 8);
+
+      const filename =
+        `${Date.now()}-${shortName}-${uniqueId}.png`;
       const storageDirectory = join(
         process.cwd(),
         'storage',

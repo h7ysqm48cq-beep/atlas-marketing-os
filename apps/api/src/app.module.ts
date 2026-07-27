@@ -30,11 +30,19 @@ import { PromptsModule } from './prompts/prompts.module';
 import { PlannerModule } from './planner/planner.module';
 import { PromptBuilderModule } from './prompt-builder/prompt-builder.module';
 import { AiProviderModule } from './ai-provider/ai-provider.module';
+import { ContentEngineModule } from './content-engine/content-engine.module';
+import { ContentValidatorModule } from './content-validator/content-validator.module';
+import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engine.module';
+import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 @Module({
   imports: [
     PlannerModule,
     PromptBuilderModule,
     AiProviderModule,
+    ContentEngineModule,
+    ContentValidatorModule,
+    ImagePromptEngineModule,
+    AgentWorkflowModule,
     DashboardModule,
     StrategyModule,
     PromptsModule,
