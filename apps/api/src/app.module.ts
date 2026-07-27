@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AssetImageModule } from './asset-image/asset-image.module';
@@ -26,8 +27,15 @@ import { PromptChainModule } from './prompt-chain/prompt-chain.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StrategyModule } from './strategy/strategy.module';
 import { PromptsModule } from './prompts/prompts.module';
+import { PlannerModule } from './planner/planner.module';
+import { PromptBuilderModule } from './prompt-builder/prompt-builder.module';
+import { AiProviderModule } from './ai-provider/ai-provider.module';
 @Module({
   imports: [
+    PlannerModule,
+    PromptBuilderModule,
+    AiProviderModule,
+    DashboardModule,
     StrategyModule,
     PromptsModule,
     ScheduleModule.forRoot(), AutomationModule, WorkflowModule, AiUsageModule, 
