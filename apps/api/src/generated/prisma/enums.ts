@@ -107,3 +107,27 @@ export const CopilotMessageRole = {
 } as const
 
 export type CopilotMessageRole = (typeof CopilotMessageRole)[keyof typeof CopilotMessageRole]
+
+
+export const BrandMemoryFactType = {
+  PREFERENCE: 'PREFERENCE',
+  AVOIDANCE: 'AVOIDANCE',
+  AUDIENCE: 'AUDIENCE',
+  VOICE: 'VOICE',
+  VISUAL: 'VISUAL',
+  CONTENT: 'CONTENT',
+  PLATFORM: 'PLATFORM',
+  WORKFLOW: 'WORKFLOW',
+  OTHER: 'OTHER'
+} as const
+
+export type BrandMemoryFactType = (typeof BrandMemoryFactType)[keyof typeof BrandMemoryFactType]
+
+
+export const BrandMemoryFactStatus = {
+  CANDIDATE: 'CANDIDATE',
+  CONFIRMED: 'CONFIRMED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type BrandMemoryFactStatus = (typeof BrandMemoryFactStatus)[keyof typeof BrandMemoryFactStatus]

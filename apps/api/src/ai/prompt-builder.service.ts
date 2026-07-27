@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Brand } from '../generated/prisma/client';
 import { StrategyResult } from '../strategy/types/strategy';
+import { MemoryFactsService } from '../memory/memory-facts.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 
 type BrandWithWorkspace = Brand & {
@@ -55,6 +56,10 @@ type BuildMarketingPlanPromptInput = {
 
 @Injectable()
 export class PromptBuilderService {
+  constructor(
+    private readonly memoryFacts: MemoryFactsService,
+  ) {}
+
   build(
     dto: GenerateContentDto,
     brand: BrandWithWorkspace,
@@ -116,15 +121,25 @@ export class PromptBuilderService {
     ].join('\n');
   }
 
-  buildMarketingPlanPrompt(
+  async buildMarketingPlanPrompt(
     input: BuildMarketingPlanPromptInput,
-  ): string {
+  ): Promise<string> {
     const {
       brand,
       campaign,
       strategy,
       knowledge,
     } = input;
+
+    const confirmedMemory =
+      await this.memoryFacts
+        .confirmedPromptContext()
+        .catch(() =>
+          [
+            'ELENA CONFIRMED MEMORY',
+            '- Confirmed memory could not be loaded.',
+          ].join('\n'),
+        );
 
     return [
       'You are Elena, the senior AI marketing strategist inside Atlas Marketing OS.',
@@ -194,6 +209,17 @@ export class PromptBuilderService {
       '',
       '================ RELEVANT KNOWLEDGE ================',
       this.knowledgeContext(knowledge),
+      '',
+      '================ CONFIRMED LONG-TERM MEMORY ================',
+      confirmedMemory,
+      '',
+      '================ INSTRUCTION PRIORITY ================',
+      '1. The current explicit user request has the highest priority.',
+      '2. Brand Brain rules and forbidden-word restrictions are mandatory.',
+      '3. Selected campaign context and Strategy Brain guide the plan.',
+      '4. Confirmed Elena Memory provides reusable preferences.',
+      '5. Knowledge Library supplies supporting facts and context.',
+      '6. Never use candidate or rejected memories.',
       '',
       '================ STRATEGY RULES ================',
       '- Treat Strategy Brain as the primary planning direction.',

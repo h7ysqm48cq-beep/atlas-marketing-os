@@ -67,7 +67,8 @@ export const ModelName = {
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
-  PromptTemplate: 'PromptTemplate'
+  PromptTemplate: 'PromptTemplate',
+  BrandMemoryFact: 'BrandMemoryFact'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -386,6 +387,26 @@ export const PromptTemplateScalarFieldEnum = {
 } as const
 
 export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
+
+
+export const BrandMemoryFactScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  type: 'type',
+  key: 'key',
+  value: 'value',
+  description: 'description',
+  confidence: 'confidence',
+  status: 'status',
+  sourceType: 'sourceType',
+  sourceId: 'sourceId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  confirmedAt: 'confirmedAt',
+  rejectedAt: 'rejectedAt'
+} as const
+
+export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -283,6 +283,7 @@ export type BrandWhereInput = {
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
   copilotConversations?: Prisma.CopilotConversationListRelationFilter
   promptTemplates?: Prisma.PromptTemplateListRelationFilter
+  memoryFacts?: Prisma.BrandMemoryFactListRelationFilter
 }
 
 export type BrandOrderByWithRelationInput = {
@@ -314,6 +315,7 @@ export type BrandOrderByWithRelationInput = {
   scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
   copilotConversations?: Prisma.CopilotConversationOrderByRelationAggregateInput
   promptTemplates?: Prisma.PromptTemplateOrderByRelationAggregateInput
+  memoryFacts?: Prisma.BrandMemoryFactOrderByRelationAggregateInput
 }
 
 export type BrandWhereUniqueInput = Prisma.AtLeast<{
@@ -348,6 +350,7 @@ export type BrandWhereUniqueInput = Prisma.AtLeast<{
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
   copilotConversations?: Prisma.CopilotConversationListRelationFilter
   promptTemplates?: Prisma.PromptTemplateListRelationFilter
+  memoryFacts?: Prisma.BrandMemoryFactListRelationFilter
 }, "id">
 
 export type BrandOrderByWithAggregationInput = {
@@ -428,6 +431,7 @@ export type BrandCreateInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateInput = {
@@ -458,6 +462,7 @@ export type BrandUncheckedCreateInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUpdateInput = {
@@ -488,6 +493,7 @@ export type BrandUpdateInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateInput = {
@@ -518,6 +524,7 @@ export type BrandUncheckedUpdateInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateManyInput = {
@@ -871,6 +878,20 @@ export type BrandUpdateOneRequiredWithoutPromptTemplatesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutPromptTemplatesInput, Prisma.BrandUpdateWithoutPromptTemplatesInput>, Prisma.BrandUncheckedUpdateWithoutPromptTemplatesInput>
 }
 
+export type BrandCreateNestedOneWithoutMemoryFactsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutMemoryFactsInput, Prisma.BrandUncheckedCreateWithoutMemoryFactsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutMemoryFactsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutMemoryFactsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutMemoryFactsInput, Prisma.BrandUncheckedCreateWithoutMemoryFactsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutMemoryFactsInput
+  upsert?: Prisma.BrandUpsertWithoutMemoryFactsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutMemoryFactsInput, Prisma.BrandUpdateWithoutMemoryFactsInput>, Prisma.BrandUncheckedUpdateWithoutMemoryFactsInput>
+}
+
 export type BrandCreateWithoutWorkspaceInput = {
   id?: string
   name: string
@@ -898,6 +919,7 @@ export type BrandCreateWithoutWorkspaceInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutWorkspaceInput = {
@@ -927,6 +949,7 @@ export type BrandUncheckedCreateWithoutWorkspaceInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutWorkspaceInput = {
@@ -1007,6 +1030,7 @@ export type BrandCreateWithoutCampaignsInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutCampaignsInput = {
@@ -1036,6 +1060,7 @@ export type BrandUncheckedCreateWithoutCampaignsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutCampaignsInput = {
@@ -1081,6 +1106,7 @@ export type BrandUpdateWithoutCampaignsInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutCampaignsInput = {
@@ -1110,6 +1136,7 @@ export type BrandUncheckedUpdateWithoutCampaignsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutGenerationsInput = {
@@ -1139,6 +1166,7 @@ export type BrandCreateWithoutGenerationsInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutGenerationsInput = {
@@ -1168,6 +1196,7 @@ export type BrandUncheckedCreateWithoutGenerationsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutGenerationsInput = {
@@ -1213,6 +1242,7 @@ export type BrandUpdateWithoutGenerationsInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutGenerationsInput = {
@@ -1242,6 +1272,7 @@ export type BrandUncheckedUpdateWithoutGenerationsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutAssetsInput = {
@@ -1271,6 +1302,7 @@ export type BrandCreateWithoutAssetsInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutAssetsInput = {
@@ -1300,6 +1332,7 @@ export type BrandUncheckedCreateWithoutAssetsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutAssetsInput = {
@@ -1345,6 +1378,7 @@ export type BrandUpdateWithoutAssetsInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutAssetsInput = {
@@ -1374,6 +1408,7 @@ export type BrandUncheckedUpdateWithoutAssetsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutKnowledgeDocumentsInput = {
@@ -1403,6 +1438,7 @@ export type BrandCreateWithoutKnowledgeDocumentsInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutKnowledgeDocumentsInput = {
@@ -1432,6 +1468,7 @@ export type BrandUncheckedCreateWithoutKnowledgeDocumentsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutKnowledgeDocumentsInput = {
@@ -1477,6 +1514,7 @@ export type BrandUpdateWithoutKnowledgeDocumentsInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutKnowledgeDocumentsInput = {
@@ -1506,6 +1544,7 @@ export type BrandUncheckedUpdateWithoutKnowledgeDocumentsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutSocialChannelsInput = {
@@ -1535,6 +1574,7 @@ export type BrandCreateWithoutSocialChannelsInput = {
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutSocialChannelsInput = {
@@ -1564,6 +1604,7 @@ export type BrandUncheckedCreateWithoutSocialChannelsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutSocialChannelsInput = {
@@ -1609,6 +1650,7 @@ export type BrandUpdateWithoutSocialChannelsInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutSocialChannelsInput = {
@@ -1638,6 +1680,7 @@ export type BrandUncheckedUpdateWithoutSocialChannelsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutScheduledPostsInput = {
@@ -1667,6 +1710,7 @@ export type BrandCreateWithoutScheduledPostsInput = {
   socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutScheduledPostsInput = {
@@ -1696,6 +1740,7 @@ export type BrandUncheckedCreateWithoutScheduledPostsInput = {
   socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutScheduledPostsInput = {
@@ -1741,6 +1786,7 @@ export type BrandUpdateWithoutScheduledPostsInput = {
   socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutScheduledPostsInput = {
@@ -1770,6 +1816,7 @@ export type BrandUncheckedUpdateWithoutScheduledPostsInput = {
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutCopilotConversationsInput = {
@@ -1799,6 +1846,7 @@ export type BrandCreateWithoutCopilotConversationsInput = {
   socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutCopilotConversationsInput = {
@@ -1828,6 +1876,7 @@ export type BrandUncheckedCreateWithoutCopilotConversationsInput = {
   socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutCopilotConversationsInput = {
@@ -1873,6 +1922,7 @@ export type BrandUpdateWithoutCopilotConversationsInput = {
   socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutCopilotConversationsInput = {
@@ -1902,6 +1952,7 @@ export type BrandUncheckedUpdateWithoutCopilotConversationsInput = {
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutPromptTemplatesInput = {
@@ -1931,6 +1982,7 @@ export type BrandCreateWithoutPromptTemplatesInput = {
   socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
 }
 
 export type BrandUncheckedCreateWithoutPromptTemplatesInput = {
@@ -1960,6 +2012,7 @@ export type BrandUncheckedCreateWithoutPromptTemplatesInput = {
   socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
 }
 
 export type BrandCreateOrConnectWithoutPromptTemplatesInput = {
@@ -2005,6 +2058,7 @@ export type BrandUpdateWithoutPromptTemplatesInput = {
   socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutPromptTemplatesInput = {
@@ -2034,6 +2088,143 @@ export type BrandUncheckedUpdateWithoutPromptTemplatesInput = {
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutMemoryFactsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutMemoryFactsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutMemoryFactsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutMemoryFactsInput, Prisma.BrandUncheckedCreateWithoutMemoryFactsInput>
+}
+
+export type BrandUpsertWithoutMemoryFactsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutMemoryFactsInput, Prisma.BrandUncheckedUpdateWithoutMemoryFactsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutMemoryFactsInput, Prisma.BrandUncheckedCreateWithoutMemoryFactsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutMemoryFactsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutMemoryFactsInput, Prisma.BrandUncheckedUpdateWithoutMemoryFactsInput>
+}
+
+export type BrandUpdateWithoutMemoryFactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutMemoryFactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateManyWorkspaceInput = {
@@ -2084,6 +2275,7 @@ export type BrandUpdateWithoutWorkspaceInput = {
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateWithoutWorkspaceInput = {
@@ -2113,6 +2305,7 @@ export type BrandUncheckedUpdateWithoutWorkspaceInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
   promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -2150,6 +2343,7 @@ export type BrandCountOutputType = {
   scheduledPosts: number
   copilotConversations: number
   promptTemplates: number
+  memoryFacts: number
 }
 
 export type BrandCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2161,6 +2355,7 @@ export type BrandCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   scheduledPosts?: boolean | BrandCountOutputTypeCountScheduledPostsArgs
   copilotConversations?: boolean | BrandCountOutputTypeCountCopilotConversationsArgs
   promptTemplates?: boolean | BrandCountOutputTypeCountPromptTemplatesArgs
+  memoryFacts?: boolean | BrandCountOutputTypeCountMemoryFactsArgs
 }
 
 /**
@@ -2229,6 +2424,13 @@ export type BrandCountOutputTypeCountPromptTemplatesArgs<ExtArgs extends runtime
   where?: Prisma.PromptTemplateWhereInput
 }
 
+/**
+ * BrandCountOutputType without action
+ */
+export type BrandCountOutputTypeCountMemoryFactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BrandMemoryFactWhereInput
+}
+
 
 export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2259,6 +2461,7 @@ export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   scheduledPosts?: boolean | Prisma.Brand$scheduledPostsArgs<ExtArgs>
   copilotConversations?: boolean | Prisma.Brand$copilotConversationsArgs<ExtArgs>
   promptTemplates?: boolean | Prisma.Brand$promptTemplatesArgs<ExtArgs>
+  memoryFacts?: boolean | Prisma.Brand$memoryFactsArgs<ExtArgs>
   _count?: boolean | Prisma.BrandCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["brand"]>
 
@@ -2341,6 +2544,7 @@ export type BrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   scheduledPosts?: boolean | Prisma.Brand$scheduledPostsArgs<ExtArgs>
   copilotConversations?: boolean | Prisma.Brand$copilotConversationsArgs<ExtArgs>
   promptTemplates?: boolean | Prisma.Brand$promptTemplatesArgs<ExtArgs>
+  memoryFacts?: boolean | Prisma.Brand$memoryFactsArgs<ExtArgs>
   _count?: boolean | Prisma.BrandCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BrandIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2362,6 +2566,7 @@ export type $BrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
     copilotConversations: Prisma.$CopilotConversationPayload<ExtArgs>[]
     promptTemplates: Prisma.$PromptTemplatePayload<ExtArgs>[]
+    memoryFacts: Prisma.$BrandMemoryFactPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2786,6 +2991,7 @@ export interface Prisma__BrandClient<T, Null = never, ExtArgs extends runtime.Ty
   scheduledPosts<T extends Prisma.Brand$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   copilotConversations<T extends Prisma.Brand$copilotConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$copilotConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CopilotConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   promptTemplates<T extends Prisma.Brand$promptTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$promptTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PromptTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  memoryFacts<T extends Prisma.Brand$memoryFactsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Brand$memoryFactsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrandMemoryFactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3424,6 +3630,30 @@ export type Brand$promptTemplatesArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.PromptTemplateScalarFieldEnum | Prisma.PromptTemplateScalarFieldEnum[]
+}
+
+/**
+ * Brand.memoryFacts
+ */
+export type Brand$memoryFactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BrandMemoryFact
+   */
+  select?: Prisma.BrandMemoryFactSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BrandMemoryFact
+   */
+  omit?: Prisma.BrandMemoryFactOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BrandMemoryFactInclude<ExtArgs> | null
+  where?: Prisma.BrandMemoryFactWhereInput
+  orderBy?: Prisma.BrandMemoryFactOrderByWithRelationInput | Prisma.BrandMemoryFactOrderByWithRelationInput[]
+  cursor?: Prisma.BrandMemoryFactWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BrandMemoryFactScalarFieldEnum | Prisma.BrandMemoryFactScalarFieldEnum[]
 }
 
 /**

@@ -413,7 +413,8 @@ export const ModelName = {
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
-  PromptTemplate: 'PromptTemplate'
+  PromptTemplate: 'PromptTemplate',
+  BrandMemoryFact: 'BrandMemoryFact'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate"
+    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1691,6 +1692,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BrandMemoryFact: {
+      payload: Prisma.$BrandMemoryFactPayload<ExtArgs>
+      fields: Prisma.BrandMemoryFactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrandMemoryFactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrandMemoryFactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        findFirst: {
+          args: Prisma.BrandMemoryFactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrandMemoryFactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        findMany: {
+          args: Prisma.BrandMemoryFactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>[]
+        }
+        create: {
+          args: Prisma.BrandMemoryFactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        createMany: {
+          args: Prisma.BrandMemoryFactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrandMemoryFactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>[]
+        }
+        delete: {
+          args: Prisma.BrandMemoryFactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        update: {
+          args: Prisma.BrandMemoryFactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrandMemoryFactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrandMemoryFactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrandMemoryFactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrandMemoryFactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandMemoryFactPayload>
+        }
+        aggregate: {
+          args: Prisma.BrandMemoryFactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrandMemoryFact>
+        }
+        groupBy: {
+          args: Prisma.BrandMemoryFactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandMemoryFactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrandMemoryFactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandMemoryFactCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2032,6 +2107,26 @@ export const PromptTemplateScalarFieldEnum = {
 export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
 
 
+export const BrandMemoryFactScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  type: 'type',
+  key: 'key',
+  value: 'value',
+  description: 'description',
+  confidence: 'confidence',
+  status: 'status',
+  sourceType: 'sourceType',
+  sourceId: 'sourceId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  confirmedAt: 'confirmedAt',
+  rejectedAt: 'rejectedAt'
+} as const
+
+export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2302,6 +2397,34 @@ export type EnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputTyp
 export type ListEnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CopilotMessageRole[]'>
     
 
+
+/**
+ * Reference to a field of type 'BrandMemoryFactType'
+ */
+export type EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrandMemoryFactType'>
+    
+
+
+/**
+ * Reference to a field of type 'BrandMemoryFactType[]'
+ */
+export type ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrandMemoryFactType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrandMemoryFactStatus'
+ */
+export type EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrandMemoryFactStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrandMemoryFactStatus[]'
+ */
+export type ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrandMemoryFactStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2470,6 +2593,7 @@ export type GlobalOmitConfig = {
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
   promptTemplate?: Prisma.PromptTemplateOmit
+  brandMemoryFact?: Prisma.BrandMemoryFactOmit
 }
 
 /* Types for Logging */

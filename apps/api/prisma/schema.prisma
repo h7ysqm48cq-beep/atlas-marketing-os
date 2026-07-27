@@ -84,6 +84,7 @@ model Brand {
   scheduledPosts       ScheduledPost[]
   copilotConversations CopilotConversation[]
   promptTemplates      PromptTemplate[]
+  memoryFacts          BrandMemoryFact[]
 
   @@index([workspaceId])
 }
@@ -470,5 +471,50 @@ model PromptTemplate {
   @@index([brandId])
   @@index([brandId, category])
   @@index([brandId, isFavorite])
+  @@index([updatedAt])
+}
+
+enum BrandMemoryFactType {
+  PREFERENCE
+  AVOIDANCE
+  AUDIENCE
+  VOICE
+  VISUAL
+  CONTENT
+  PLATFORM
+  WORKFLOW
+  OTHER
+}
+
+enum BrandMemoryFactStatus {
+  CANDIDATE
+  CONFIRMED
+  REJECTED
+}
+
+model BrandMemoryFact {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  type        BrandMemoryFactType @default(PREFERENCE)
+  key         String
+  value       String
+  description String?
+
+  confidence Int                   @default(80)
+  status     BrandMemoryFactStatus @default(CANDIDATE)
+
+  sourceType String  @default("manual")
+  sourceId   String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  confirmedAt DateTime?
+  rejectedAt  DateTime?
+
+  @@index([brandId])
+  @@index([brandId, status])
+  @@index([brandId, type])
   @@index([updatedAt])
 }

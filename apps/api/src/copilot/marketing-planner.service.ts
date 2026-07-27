@@ -228,7 +228,7 @@ export class MarketingPlannerService {
     }
 
     const developerContext =
-      this.promptBuilder.buildMarketingPlanPrompt({
+      await this.promptBuilder.buildMarketingPlanPrompt({
         brand,
         campaign,
         strategy,
