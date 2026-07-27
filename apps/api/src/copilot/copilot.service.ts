@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { MemoryFactsService } from '../memory/memory-facts.service';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 
@@ -20,6 +21,7 @@ export class CopilotService {
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
+    private readonly memoryFacts: MemoryFactsService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -82,11 +84,16 @@ export class CopilotService {
       latestUserMessage.content,
     );
 
-    const conversationMessages =
-      await this.conversations.recentMessages(
+    const [
+      conversationMessages,
+      confirmedMemoryContext,
+    ] = await Promise.all([
+      this.conversations.recentMessages(
         conversation.id,
         20,
-      );
+      ),
+      this.memoryFacts.confirmedPromptContext(),
+    ]);
 
     const baseContext = [
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
@@ -105,6 +112,7 @@ export class CopilotService {
 Objective: ${campaign.objective || 'Not set'}
 Description: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
+      confirmedMemoryContext,
       'Preserve Malaysian Chinese context when relevant.',
       'Avoid unsupported claims, fake urgency and unverified current facts.',
       'When rewriting, provide the improved version before the explanation.',
