@@ -5,6 +5,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
+import { PromptBuilderService } from '../ai/prompt-builder.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import { PrismaService } from '../database/prisma.service';
 import { StrategyService } from '../strategy/strategy.service';
 import { StrategyResult } from '../strategy/types/strategy';
@@ -143,6 +145,8 @@ export class MarketingPlannerService {
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly strategyService: StrategyService,
+    private readonly promptBuilder: PromptBuilderService,
+    private readonly knowledgeService: KnowledgeService,
   ) {
     const apiKey =
       this.config.get<string>('OPENAI_API_KEY');
@@ -194,6 +198,25 @@ export class MarketingPlannerService {
       this.toText(brand.targetAudience),
     );
 
+    const relevantKnowledge =
+      await this.knowledgeService
+        .findRelevant({
+          topic: prompt,
+          platform: 'Facebook Telegram Reels',
+          style: this.toText(brand.brandVoice),
+          language: this.toText(
+            brand.primaryLanguage,
+          ),
+          limit: 3,
+        })
+        .catch(() => []);
+
+    this.knowledgeService.recordUsage(
+      relevantKnowledge.map(
+        (item) => item.document.id,
+      ),
+    );
+
     if (!this.client) {
       return {
         ...fallback,
@@ -204,62 +227,13 @@ export class MarketingPlannerService {
       };
     }
 
-    const developerContext = [
-      'You are Elena, the senior AI marketing strategist inside Atlas Marketing OS.',
-      'Create a practical, commercially useful multi-platform marketing plan.',
-      '',
-      `Brand name: ${this.toText(brand.name)}`,
-      `Country: ${this.toText(brand.country)}`,
-      `Target audience: ${this.toText(brand.targetAudience)}`,
-      `Brand voice: ${this.toText(brand.brandVoice)}`,
-      `Visual style: ${this.toText(brand.visualStyle)}`,
-      `Content goals: ${this.toText(brand.contentGoals)}`,
-      `Keywords: ${this.toList(brand.keywords)}`,
-      `Brand rules: ${this.toList(brand.brandRules)}`,
-      `Forbidden words: ${this.toList(brand.forbiddenWords)}`,
-      campaign
-        ? [
-            `Existing campaign: ${campaign.name}`,
-            `Campaign objective: ${campaign.objective || 'Not set'}`,
-            `Campaign description: ${campaign.description || 'Not set'}`,
-          ].join('\n')
-        : 'Existing campaign: none selected',
-      '',
-      'Elena Strategy Brain:',
-      `Detected intent: ${strategy.intent}`,
-      `Strategy confidence: ${strategy.confidence}`,
-      `Primary campaign goal: ${strategy.goal}`,
-      `Recommended audiences: ${strategy.audience.join(', ')}`,
-      `Recommended content pillars: ${strategy.pillars.join(', ')}`,
-      `Recommended KPIs: ${strategy.kpis.join(', ')}`,
-      `Decision notes: ${strategy.reasoning.join(' | ')}`,
-      '',
-      'Strategy alignment rules:',
-      '- Treat the Strategy Brain output as the primary planning direction.',
-      '- Align the objective, audience, content pillars, platform content and schedule with the selected goal.',
-      '- Keep the recommended KPIs measurable and relevant to the selected goal.',
-      '- Refine the strategy only when the user request, Brand Brain or selected campaign provides stronger evidence.',
-      '- Do not silently contradict the Strategy Brain.',
-      '',
-      'Requirements:',
-      '- Use the language requested by the user. For a Chinese request, use natural Simplified Chinese suitable for Malaysian Chinese audiences.',
-      '- Produce 4 to 6 distinct content pillars.',
-      '- Produce 10 practical content ideas.',
-      '- Produce 3 ready-to-use Facebook captions.',
-      '- Produce 3 concise Telegram captions.',
-      '- Produce 3 Reels concepts with hook, scene direction and ending CTA.',
-      '- Produce 3 detailed English image-generation prompts.',
-      '- Produce a realistic 7-day publishing schedule.',
-      '- Adapt each platform version instead of copying the same text.',
-      '- Avoid unsupported current claims, fake urgency and prohibited brand wording.',
-      '- Never invent a promotion, contest, giveaway, lucky draw, reward, bonus, discount, free credit or prize unless the user explicitly requests it.',
-      '- Never claim that an activity, offer, campaign or event exists unless it is provided by the user or selected campaign context.',
-      '- Do not use phrases such as limited time, claim now, guaranteed, instant reward or act now unless explicitly supported by the request.',
-      '- Do not instruct image generation to reproduce copyrighted television footage, screenshots, posters, logos, celebrity likenesses or identifiable real actors.',
-      '- Image prompts should use original fictional scenes and generic people. Do not add a logo unless the user explicitly asks for one.',
-      '- Keep promotional language natural and aligned with the Brand Brain.',
-      '- Return only data matching the required JSON schema.',
-    ].join('\n');
+    const developerContext =
+      this.promptBuilder.buildMarketingPlanPrompt({
+        brand,
+        campaign,
+        strategy,
+        knowledge: relevantKnowledge,
+      });
 
     try {
       const response =

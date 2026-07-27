@@ -16,5 +16,6 @@ import { ContentQualityService } from './content-quality.service';
     PromptBuilderService,
     ContentQualityService,
   ],
+  exports: [PromptBuilderService],
 })
 export class AiModule {}
