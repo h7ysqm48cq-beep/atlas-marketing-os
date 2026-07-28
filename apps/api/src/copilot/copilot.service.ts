@@ -9,7 +9,9 @@ import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryFactsService } from '../memory/memory-facts.service';
+import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { ConversationMemoryService } from './conversation-memory.service';
+import { PromptContextBuilder } from './prompt-context.builder';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 
 @Injectable()
@@ -22,6 +24,8 @@ export class CopilotService {
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
     private readonly memoryFacts: MemoryFactsService,
+    private readonly knowledgeRetrieval: KnowledgeRetrievalService,
+    private readonly promptContextBuilder: PromptContextBuilder,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -59,41 +63,53 @@ export class CopilotService {
 
     const latestUserMessage = [...dto.messages]
       .reverse()
-      .find(
-        (message) =>
-          message.role === 'user' &&
-          message.content.trim(),
-      );
+      .find((message) => message.role === 'user' && message.content.trim());
 
     if (!latestUserMessage) {
-      throw new InternalServerErrorException(
-        'A user message is required.',
-      );
+      throw new InternalServerErrorException('A user message is required.');
     }
 
-    const conversation =
-      await this.conversations.ensureConversation({
-        conversationId: dto.conversationId,
-        campaignId: dto.campaignId,
-        mode,
-        firstMessage: latestUserMessage.content,
-      });
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode,
+      firstMessage: latestUserMessage.content,
+    });
+
+    const attachments = this.cleanAttachments(dto.attachments);
 
     await this.conversations.appendUserMessage(
       conversation.id,
       latestUserMessage.content,
+      attachments.length
+        ? {
+            attachments,
+          }
+        : undefined,
     );
+
+    const attachmentDocumentIds = attachments
+      .filter(
+        (attachment) => attachment.kind === 'document' && attachment.documentId,
+      )
+      .map((attachment) => attachment.documentId as string);
 
     const [
       conversationMessages,
       confirmedMemoryContext,
+      attachmentKnowledgeMatches,
     ] = await Promise.all([
-      this.conversations.recentMessages(
-        conversation.id,
-        20,
-      ),
+      this.conversations.recentMessages(conversation.id, 20),
       this.memoryFacts.confirmedPromptContext(),
+      this.knowledgeRetrieval.searchAttachments({
+        query: latestUserMessage.content,
+        documentIds: attachmentDocumentIds,
+        limitPerDocument: 8,
+      }),
     ]);
+
+    const attachmentDocumentContext =
+      this.knowledgeRetrieval.buildPromptContext(attachmentKnowledgeMatches);
 
     const baseContext = [
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
@@ -113,6 +129,18 @@ Objective: ${campaign.objective || 'Not set'}
 Description: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
       confirmedMemoryContext,
+      attachmentDocumentContext,
+      attachmentKnowledgeMatches.length
+        ? 'Use the supplied KNOWLEDGE CONTEXT as the primary evidence for attached-document questions.'
+        : attachmentDocumentIds.length
+          ? 'No relevant document chunks were retrieved. Say clearly when the attached document does not provide enough evidence.'
+          : '',
+      attachmentKnowledgeMatches.length
+        ? 'When answering from a document, cite the relevant [Source N] and Chunk number.'
+        : '',
+      'Never invent clauses, figures, rules or document content that are absent from the retrieved chunks.',
+      'When images are attached, inspect the actual visual content instead of only describing the URL or filename.',
+      'For marketing visuals, assess composition, hierarchy, readability, branding, platform suitability and likely audience response.',
       'Preserve Malaysian Chinese context when relevant.',
       'Avoid unsupported claims, fake urgency and unverified current facts.',
       'When rewriting, provide the improved version before the explanation.',
@@ -161,32 +189,32 @@ Description: ${campaign.description || 'Not set'}`
 
     try {
       const response = await this.client.responses.create({
-        model:
-          this.config.get<string>('OPENAI_MODEL') ||
-          'gpt-4.1-mini',
-        input: [
-          {
-            role: 'developer',
-            content: context,
-          },
-          ...conversationMessages.map(
-            (message) => ({
-              role: message.role,
-              content: message.content,
-            }),
-          ),
-        ],
+        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
+        input: this.promptContextBuilder.build({
+          context,
+          conversationMessages,
+          latestUserMessage: latestUserMessage.content,
+          attachments,
+        }),
       });
 
       await this.conversations.appendAssistantMessage(
         conversation.id,
         response.output_text,
         {
-          model:
-            this.config.get<string>(
-              'OPENAI_MODEL',
-            ) || 'gpt-4.1-mini',
+          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
           mode,
+          knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
+            source: index + 1,
+            documentId: match.documentId,
+            title: match.title,
+            file: match.sourceFileName,
+            sourceUrl: match.sourceUrl,
+            chunkIndex: match.chunkIndex,
+            similarity: match.similarity,
+            similarityPercent: match.similarityPercent,
+            hybridScore: match.hybridScore,
+          })),
         },
       );
 
@@ -209,14 +237,108 @@ Description: ${campaign.description || 'Not set'}`
           : null,
       };
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
 
       throw new InternalServerErrorException(
         `Elena Copilot failed: ${message}`,
       );
     }
+  }
+
+  private cleanAttachments(attachments: ChatCopilotDto['attachments']) {
+    if (!attachments?.length) {
+      return [];
+    }
+
+    const allowedImageTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ]);
+
+    return attachments
+      .filter((attachment) => {
+        if (!attachment.url.startsWith('https://')) {
+          return false;
+        }
+
+        if (attachment.kind === 'image') {
+          return allowedImageTypes.has(attachment.mimeType.toLowerCase());
+        }
+
+        return Boolean(attachment.documentId);
+      })
+      .slice(0, 4)
+      .map((attachment) => ({
+        id: attachment.id,
+        kind: attachment.kind,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        url: attachment.url,
+        storageProvider: attachment.storageProvider,
+        storagePath: attachment.storagePath,
+        documentId: attachment.documentId,
+      }));
+  }
+
+  private buildVisionInput(input: {
+    context: string;
+    conversationMessages: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+    }>;
+    latestUserMessage: string;
+    attachments: Array<{
+      id: string;
+      kind: 'image' | 'document';
+      name: string;
+      mimeType: string;
+      url: string;
+      documentId?: string;
+    }>;
+  }) {
+    const history = input.conversationMessages.slice(0, -1);
+
+    const imageAttachments = input.attachments.filter(
+      (attachment) => attachment.kind === 'image',
+    );
+
+    const latestContent: Array<
+      | {
+          type: 'input_text';
+          text: string;
+        }
+      | {
+          type: 'input_image';
+          image_url: string;
+          detail: 'auto';
+        }
+    > = [
+      {
+        type: 'input_text',
+        text: input.latestUserMessage || 'Please review the attached image.',
+      },
+      ...imageAttachments.map((attachment) => ({
+        type: 'input_image' as const,
+        image_url: attachment.url,
+        detail: 'auto' as const,
+      })),
+    ];
+
+    return [
+      {
+        role: 'developer' as const,
+        content: input.context,
+      },
+      ...history.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      {
+        role: 'user' as const,
+        content: latestContent,
+      },
+    ];
   }
 }

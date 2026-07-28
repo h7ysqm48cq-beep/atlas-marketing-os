@@ -6,9 +6,15 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+
 import { ConversationMemoryService } from './conversation-memory.service';
 import { CopilotService } from './copilot.service';
+import { CopilotAttachmentService } from './copilot-attachment.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 import { CreateMarketingPlanDto } from './dto/create-marketing-plan.dto';
 import { MarketingPlannerService } from './marketing-planner.service';
@@ -19,7 +25,24 @@ export class CopilotController {
     private readonly service: CopilotService,
     private readonly marketingPlanner: MarketingPlannerService,
     private readonly conversations: ConversationMemoryService,
+    private readonly attachments: CopilotAttachmentService,
   ) {}
+
+  @Post('attachments/image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadImageAttachment(
+    @UploadedFile()
+    file: Express.Multer.File,
+  ) {
+    return this.attachments.uploadImage(file);
+  }
 
   @Post('chat')
   chat(@Body() dto: ChatCopilotDto) {
@@ -27,24 +50,17 @@ export class CopilotController {
   }
 
   @Post('marketing-plan')
-  async marketingPlan(
-    @Body() dto: CreateMarketingPlanDto,
-  ) {
-    const conversation =
-      await this.conversations.ensureConversation({
-        conversationId: dto.conversationId,
-        campaignId: dto.campaignId,
-        mode: 'marketing-plan',
-        firstMessage: dto.prompt,
-      });
+  async marketingPlan(@Body() dto: CreateMarketingPlanDto) {
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode: 'marketing-plan',
+      firstMessage: dto.prompt,
+    });
 
-    await this.conversations.appendUserMessage(
-      conversation.id,
-      dto.prompt,
-    );
+    await this.conversations.appendUserMessage(conversation.id, dto.prompt);
 
-    const plan =
-      await this.marketingPlanner.generate(dto);
+    const plan = await this.marketingPlanner.generate(dto);
 
     const summary = [
       `Marketing Plan: ${plan.campaignName}`,
@@ -54,15 +70,11 @@ export class CopilotController {
       `Key Message: ${plan.keyMessage}`,
     ].join('\n');
 
-    await this.conversations.appendAssistantMessage(
-      conversation.id,
-      summary,
-      {
-        mode: 'marketing-plan',
-        campaignName: plan.campaignName,
-        marketingPlan: plan,
-      },
-    );
+    await this.conversations.appendAssistantMessage(conversation.id, summary, {
+      mode: 'marketing-plan',
+      campaignName: plan.campaignName,
+      marketingPlan: plan,
+    });
 
     return {
       ...plan,
@@ -91,9 +103,7 @@ export class CopilotController {
   }
 
   @Get('conversations/:id')
-  getConversation(
-    @Param('id') id: string,
-  ) {
+  getConversation(@Param('id') id: string) {
     return this.conversations.get(id);
   }
 
@@ -102,16 +112,11 @@ export class CopilotController {
     @Param('id') id: string,
     @Body() body: { title?: string },
   ) {
-    return this.conversations.rename(
-      id,
-      body.title || '',
-    );
+    return this.conversations.rename(id, body.title || '');
   }
 
   @Delete('conversations/:id')
-  deleteConversation(
-    @Param('id') id: string,
-  ) {
+  deleteConversation(@Param('id') id: string) {
     return this.conversations.delete(id);
   }
 }
