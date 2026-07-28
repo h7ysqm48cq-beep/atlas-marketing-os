@@ -4,9 +4,7 @@ import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
 @Controller('asset-images')
 export class AssetImageController {
-  constructor(
-    private readonly assetImageService: AssetImageService,
-  ) {}
+  constructor(private readonly assetImageService: AssetImageService) {}
 
   @Post('generate')
   generate(@Body() dto: GenerateAssetImageDto) {
