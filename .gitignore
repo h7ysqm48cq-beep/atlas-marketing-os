@@ -52,3 +52,12 @@ apps/api/storage/
 # Local development backups
 *broken-backup*
 *.concatenated-backup
+
+# Local patch and recovery backups
+.patch-*
+.knowledge-*backup*
+.elena-*backup*
+.prompt-context-*backup*
+.supabase-*backup*
+.asset-*backup*
+.assets-*backup*
