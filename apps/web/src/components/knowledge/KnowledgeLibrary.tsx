@@ -1,12 +1,16 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  DragEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styles from "./KnowledgeLibrary.module.css";
-import { API_URL } from '@/lib/api';
-import type {
-  KnowledgeDocument,
-  KnowledgeForm,
-} from "./knowledge.types";
+import { API_URL } from "@/lib/api";
+import type { KnowledgeDocument, KnowledgeForm } from "./knowledge.types";
 
 const emptyForm: KnowledgeForm = {
   title: "",
@@ -43,18 +47,17 @@ function textToTags(value: string) {
 }
 
 export function KnowledgeLibrary() {
-  const [documents, setDocuments] =
-    useState<KnowledgeDocument[]>([]);
-  const [selected, setSelected] =
-    useState<KnowledgeDocument | null>(null);
+  const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const [selected, setSelected] = useState<KnowledgeDocument | null>(null);
   const [form, setForm] = useState<KnowledgeForm>(emptyForm);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] =
-    useState("ALL");
-  const [message, setMessage] =
-    useState("Loading knowledge documents...");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [message, setMessage] = useState("Loading knowledge documents...");
   const [isSaving, setIsSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     void load();
@@ -77,19 +80,13 @@ export function KnowledgeLibrary() {
     return documents.filter((document) => {
       const matchesSearch =
         !cleanSearch ||
-        [
-          document.title,
-          document.category,
-          document.content,
-          ...document.tags,
-        ]
+        [document.title, document.category, document.content, ...document.tags]
           .join(" ")
           .toLowerCase()
           .includes(cleanSearch);
 
       const matchesCategory =
-        categoryFilter === "ALL" ||
-        document.category === categoryFilter;
+        categoryFilter === "ALL" || document.category === categoryFilter;
 
       return matchesSearch && matchesCategory;
     });
@@ -102,8 +99,7 @@ export function KnowledgeLibrary() {
       });
 
       const data = (await response.json()) as
-        | KnowledgeDocument[]
-        | { message?: string };
+        KnowledgeDocument[] | { message?: string };
 
       if (!response.ok || !Array.isArray(data)) {
         throw new Error(
@@ -132,9 +128,7 @@ export function KnowledgeLibrary() {
       );
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to load knowledge.",
+        error instanceof Error ? error.message : "Unable to load knowledge.",
       );
     }
   }
@@ -162,24 +156,104 @@ export function KnowledgeLibrary() {
     setMessage("Creating a new knowledge document.");
   }
 
-  function updateField(
-    key: keyof KnowledgeForm,
-    value: string,
-  ) {
+  function updateField(key: keyof KnowledgeForm, value: string) {
     setForm((current) => ({
       ...current,
       [key]: value,
     }));
   }
 
+  async function uploadKnowledgeFile(file: File) {
+    const allowedExtensions = [".pdf", ".docx", ".txt", ".md", ".markdown"];
+
+    const lowerName = file.name.toLowerCase();
+    const supported = allowedExtensions.some((extension) =>
+      lowerName.endsWith(extension),
+    );
+
+    if (!supported) {
+      setMessage("Upload PDF, DOCX, TXT, MD or Markdown files only.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("File size must not exceed 10 MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage(`Uploading ${file.name}...`);
+
+    try {
+      const formData = new FormData();
+
+      formData.append("file", file);
+      formData.append("category", "Imported Document");
+      formData.append("tags", "Imported,Reference");
+
+      const response = await fetch(`${API_URL}/knowledge/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json()) as {
+        document?: KnowledgeDocument;
+        upload?: {
+          originalName?: string;
+          extractedCharacters?: number;
+          url?: string;
+        };
+        message?: string;
+      };
+
+      if (!response.ok || !data.document?.id) {
+        throw new Error(data.message || "Unable to upload document.");
+      }
+
+      await load(data.document.id);
+
+      setMessage(
+        `${data.upload?.originalName || file.name} uploaded. ` +
+          `${(
+            data.upload?.extractedCharacters || 0
+          ).toLocaleString()} characters extracted.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to upload document.",
+      );
+    } finally {
+      setIsUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  function handleFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      void uploadKnowledgeFile(file);
+    }
+  }
+
+  function handleFileDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingFile(false);
+
+    const file = event.dataTransfer.files?.[0];
+
+    if (file) {
+      void uploadKnowledgeFile(file);
+    }
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (
-      !form.title.trim() ||
-      !form.category.trim() ||
-      !form.content.trim()
-    ) {
+    if (!form.title.trim() || !form.category.trim() || !form.content.trim()) {
       setMessage("Title, category and content are required.");
       return;
     }
@@ -211,8 +285,7 @@ export function KnowledgeLibrary() {
       );
 
       const data = (await response.json()) as
-        | KnowledgeDocument
-        | { message?: string };
+        KnowledgeDocument | { message?: string };
 
       if (!response.ok || !("id" in data)) {
         throw new Error(
@@ -231,9 +304,7 @@ export function KnowledgeLibrary() {
       );
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to save knowledge.",
+        error instanceof Error ? error.message : "Unable to save knowledge.",
       );
     } finally {
       setIsSaving(false);
@@ -243,18 +314,13 @@ export function KnowledgeLibrary() {
   async function remove() {
     if (!selected) return;
 
-    const confirmed = window.confirm(
-      `Delete "${selected.title}"?`,
-    );
+    const confirmed = window.confirm(`Delete "${selected.title}"?`);
 
     if (!confirmed) return;
 
-    const response = await fetch(
-      `${API_URL}/knowledge/${selected.id}`,
-      {
-        method: "DELETE",
-      },
-    );
+    const response = await fetch(`${API_URL}/knowledge/${selected.id}`, {
+      method: "DELETE",
+    });
 
     if (!response.ok) {
       setMessage("Unable to delete knowledge document.");
@@ -273,19 +339,81 @@ export function KnowledgeLibrary() {
           <p className={styles.eyebrow}>Knowledge Library</p>
           <h1>Give Atlas the context behind every decision.</h1>
           <p>
-            Store brand rules, audience knowledge, platform guidance,
-            reusable prompts and marketing procedures in one source of truth.
+            Store brand rules, audience knowledge, platform guidance, reusable
+            prompts and marketing procedures in one source of truth.
           </p>
         </div>
 
-        <button
-          className={styles.primaryButton}
-          type="button"
-          onClick={startCreate}
-        >
-          + New document
-        </button>
+        <div className={styles.heroActions}>
+          <input
+            ref={fileInputRef}
+            className={styles.hiddenFileInput}
+            type="file"
+            accept=".pdf,.docx,.txt,.md,.markdown"
+            onChange={handleFileSelection}
+          />
+
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? "Uploading..." : "Upload file"}
+          </button>
+
+          <button
+            className={styles.primaryButton}
+            type="button"
+            onClick={startCreate}
+          >
+            + New document
+          </button>
+        </div>
       </section>
+
+      <div
+        className={`${styles.uploadZone} ${
+          isDraggingFile ? styles.uploadZoneActive : ""
+        }`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setIsDraggingFile(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setIsDraggingFile(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setIsDraggingFile(false);
+        }}
+        onDrop={handleFileDrop}
+        onClick={() => {
+          if (!isUploading) {
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            fileInputRef.current?.click();
+          }
+        }}
+      >
+        <div className={styles.uploadIcon}>↑</div>
+
+        <div>
+          <strong>
+            {isUploading
+              ? "Uploading and reading document..."
+              : "Drop a knowledge file here"}
+          </strong>
+
+          <span>PDF, DOCX, TXT or Markdown · Maximum 10 MB</span>
+        </div>
+      </div>
 
       <section className={styles.toolbar}>
         <input
@@ -296,9 +424,7 @@ export function KnowledgeLibrary() {
 
         <select
           value={categoryFilter}
-          onChange={(event) =>
-            setCategoryFilter(event.target.value)
-          }
+          onChange={(event) => setCategoryFilter(event.target.value)}
         >
           <option value="ALL">All categories</option>
 
@@ -329,9 +455,7 @@ export function KnowledgeLibrary() {
                 type="button"
                 key={document.id}
                 className={`${styles.documentCard} ${
-                  selected?.id === document.id
-                    ? styles.selectedCard
-                    : ""
+                  selected?.id === document.id ? styles.selectedCard : ""
                 }`}
                 onClick={() => selectDocument(document)}
               >
@@ -352,9 +476,7 @@ export function KnowledgeLibrary() {
                 <div className={styles.documentMetrics}>
                   <span>{document.tags.length} tags</span>
                   <span>{countWords(document.content)} words</span>
-                  <span>
-                    Used {document.usageCount || 0} times
-                  </span>
+                  <span>Used {document.usageCount || 0} times</span>
                 </div>
 
                 <div className={styles.usageMeta}>
@@ -389,32 +511,38 @@ export function KnowledgeLibrary() {
               </h2>
 
               {selected ? (
-                <p className={styles.editorMeta}>
-                  {selected.category} ·{" "}
-                  {countWords(selected.content)} words · Updated{" "}
-                  {formatDate(selected.updatedAt)}
-                </p>
+                <>
+                  <p className={styles.editorMeta}>
+                    {selected.category} · {countWords(selected.content)} words ·
+                    Updated {formatDate(selected.updatedAt)}
+                  </p>
+
+                  {selected.sourceUrl ? (
+                    <a
+                      className={styles.sourceFileLink}
+                      href={selected.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open original file
+                    </a>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </header>
 
           <div className={styles.twoColumns}>
-            <label
-              className={`${styles.field} ${styles.titleField}`}
-            >
+            <label className={`${styles.field} ${styles.titleField}`}>
               <span>Title</span>
               <input
                 value={form.title}
-                onChange={(event) =>
-                  updateField("title", event.target.value)
-                }
+                onChange={(event) => updateField("title", event.target.value)}
                 disabled={!selected && !isCreating}
               />
             </label>
 
-            <label
-              className={`${styles.field} ${styles.categoryField}`}
-            >
+            <label className={`${styles.field} ${styles.categoryField}`}>
               <span>Category</span>
               <input
                 list="knowledge-categories"
@@ -437,9 +565,7 @@ export function KnowledgeLibrary() {
             <span>Tags</span>
             <input
               value={form.tags}
-              onChange={(event) =>
-                updateField("tags", event.target.value)
-              }
+              onChange={(event) => updateField("tags", event.target.value)}
               placeholder="Malaysia, Facebook, Tone"
               disabled={!selected && !isCreating}
             />
@@ -449,9 +575,7 @@ export function KnowledgeLibrary() {
             <span>Knowledge content</span>
             <textarea
               value={form.content}
-              onChange={(event) =>
-                updateField("content", event.target.value)
-              }
+              onChange={(event) => updateField("content", event.target.value)}
               placeholder="Write the rules, context or source material Atlas should remember..."
               disabled={!selected && !isCreating}
             />
@@ -459,9 +583,7 @@ export function KnowledgeLibrary() {
 
           <footer className={styles.editorFooter}>
             <span>
-              {selected
-                ? `${countWords(form.content)} words`
-                : "Not saved yet"}
+              {selected ? `${countWords(form.content)} words` : "Not saved yet"}
             </span>
 
             <div className={styles.footerActions}>
@@ -478,9 +600,7 @@ export function KnowledgeLibrary() {
               <button
                 className={styles.primaryButton}
                 type="submit"
-                disabled={
-                  isSaving || (!selected && !isCreating)
-                }
+                disabled={isSaving || (!selected && !isCreating)}
               >
                 {isSaving
                   ? "Saving..."
@@ -502,11 +622,9 @@ function countWords(value: string) {
   if (!cleanValue) return 0;
 
   const latinWords =
-    cleanValue.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)
-      ?.length || 0;
+    cleanValue.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)?.length || 0;
 
-  const chineseCharacters =
-    cleanValue.match(/[\u3400-\u9fff]/g)?.length || 0;
+  const chineseCharacters = cleanValue.match(/[\u3400-\u9fff]/g)?.length || 0;
 
   return latinWords + chineseCharacters;
 }

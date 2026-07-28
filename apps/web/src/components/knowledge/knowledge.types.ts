@@ -7,6 +7,12 @@ export type KnowledgeDocument = {
   tags: string[];
   usageCount: number;
   lastUsedAt: string | null;
+  sourceFileName?: string | null;
+  sourceMimeType?: string | null;
+  sourceFileSize?: number | null;
+  sourceUrl?: string | null;
+  storageProvider?: string | null;
+  storagePath?: string | null;
   createdAt: string;
   updatedAt: string;
   brand: {

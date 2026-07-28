@@ -15,7 +15,7 @@
   color: var(--gold-light);
   font-size: 10px;
   font-weight: 850;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -34,7 +34,7 @@
 .primaryButton {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(209, 163, 63, .38);
+  border: 1px solid rgba(209, 163, 63, 0.38);
   border-radius: 10px;
   background: var(--gold-soft);
   color: var(--gold-light);
@@ -57,7 +57,7 @@
   min-height: 41px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(8, 10, 15, .48);
+  background: rgba(8, 10, 15, 0.48);
   color: var(--text);
   padding: 0 12px;
   outline: none;
@@ -91,8 +91,8 @@
   border-radius: 13px;
   background: linear-gradient(
     160deg,
-    rgba(21, 25, 34, .96),
-    rgba(13, 16, 22, .96)
+    rgba(21, 25, 34, 0.96),
+    rgba(13, 16, 22, 0.96)
   );
   color: var(--text);
   text-align: left;
@@ -100,7 +100,7 @@
 
 .documentCard:hover,
 .selectedCard {
-  border-color: rgba(209, 163, 63, .42);
+  border-color: rgba(209, 163, 63, 0.42);
 }
 
 .documentCard > div:first-child {
@@ -146,7 +146,7 @@
 .tags span {
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(124, 167, 255, .09);
+  background: rgba(124, 167, 255, 0.09);
   color: #abc1ee;
   font-size: 7px;
 }
@@ -160,8 +160,8 @@
   border-radius: 16px;
   background: linear-gradient(
     160deg,
-    rgba(21, 25, 34, .98),
-    rgba(13, 16, 22, .98)
+    rgba(21, 25, 34, 0.98),
+    rgba(13, 16, 22, 0.98)
   );
   box-shadow: var(--shadow);
 }
@@ -179,7 +179,7 @@
   color: var(--gold-light);
   font-size: 8px;
   font-weight: 850;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -191,9 +191,9 @@
 .deleteButton {
   min-height: 35px;
   padding: 0 11px;
-  border: 1px solid rgba(255, 120, 120, .25);
+  border: 1px solid rgba(255, 120, 120, 0.25);
   border-radius: 8px;
-  background: rgba(255, 120, 120, .05);
+  background: rgba(255, 120, 120, 0.05);
   color: #ffaaaa;
 }
 
@@ -213,7 +213,7 @@
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: rgba(7, 9, 13, .62);
+  background: rgba(7, 9, 13, 0.62);
   color: var(--text);
   padding: 11px;
   outline: none;
@@ -228,7 +228,7 @@
 
 .field input:disabled,
 .field textarea:disabled {
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .editorFooter {
@@ -327,7 +327,7 @@
 
 .deleteButton {
   min-height: 40px;
-  opacity: .75;
+  opacity: 0.75;
   font-size: 9px;
 }
 
@@ -370,4 +370,109 @@
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.secondaryButton {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(8, 10, 15, 0.5);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.secondaryButton:hover {
+  border-color: rgba(209, 163, 63, 0.42);
+}
+
+.secondaryButton:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.uploadZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  min-height: 92px;
+  padding: 18px;
+  border: 1px dashed rgba(209, 163, 63, 0.3);
+  border-radius: 14px;
+  background: rgba(209, 163, 63, 0.035);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.uploadZone:hover,
+.uploadZoneActive {
+  border-color: rgba(209, 163, 63, 0.72);
+  background: rgba(209, 163, 63, 0.08);
+  transform: translateY(-1px);
+}
+
+.uploadIcon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border: 1px solid rgba(209, 163, 63, 0.28);
+  border-radius: 11px;
+  background: var(--gold-soft);
+  color: var(--gold-light);
+  font-size: 20px;
+}
+
+.uploadZone > div:last-child {
+  display: grid;
+  gap: 5px;
+}
+
+.uploadZone strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.uploadZone span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.sourceFileLink {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  color: var(--gold-light);
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.sourceFileLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 680px) {
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .uploadZone {
+    justify-content: flex-start;
+  }
 }
