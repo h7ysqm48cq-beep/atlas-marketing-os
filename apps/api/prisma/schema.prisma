@@ -240,18 +240,24 @@ model Asset {
 }
 
 model KnowledgeDocument {
-  id         String              @id @default(cuid())
-  brandId    String
-  brand      Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  embedding  KnowledgeEmbedding?
-  title      String
-  category   String
-  content    String
-  tags       String[]
-  usageCount Int                 @default(0)
-  lastUsedAt DateTime?
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
+  id              String               @id @default(cuid())
+  brandId         String
+  brand           Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  embeddings      KnowledgeEmbedding[]
+  title           String
+  category        String
+  content         String
+  tags            String[]
+  sourceFileName  String?
+  sourceMimeType  String?
+  sourceFileSize  Int?
+  sourceUrl       String?
+  storageProvider String?
+  storagePath     String?
+  usageCount      Int                  @default(0)
+  lastUsedAt      DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   @@index([brandId])
   @@index([category])
@@ -260,9 +266,13 @@ model KnowledgeDocument {
 
 model KnowledgeEmbedding {
   id          String            @id @default(cuid())
-  documentId  String            @unique
+  documentId  String
   document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   brandId     String
+  chunkIndex  Int
+  chunkText   String
+  startOffset Int?
+  endOffset   Int?
   vector      Json
   model       String
   dimensions  Int
@@ -270,6 +280,8 @@ model KnowledgeEmbedding {
   embeddedAt  DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
   @@index([brandId])
   @@index([embeddedAt])
 }

@@ -30,6 +30,12 @@ export class KnowledgeService {
           category: dto.category.trim(),
           content: dto.content.trim(),
           tags: this.cleanTags(dto.tags),
+          sourceFileName: dto.sourceFileName,
+          sourceMimeType: dto.sourceMimeType,
+          sourceFileSize: dto.sourceFileSize,
+          sourceUrl: dto.sourceUrl,
+          storageProvider: dto.storageProvider,
+          storagePath: dto.storagePath,
         },
         include: this.documentInclude,
       });

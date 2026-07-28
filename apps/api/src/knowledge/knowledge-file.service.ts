@@ -3,10 +3,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import mammoth from 'mammoth';
-import { extname, parse as parsePath } from 'node:path';
+import {
+  extname,
+  parse as parsePath,
+} from 'node:path';
 import { PDFParse } from 'pdf-parse';
-import { KnowledgeService } from './knowledge.service';
+import { BrandsService } from '../brands/brands.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { UploadKnowledgeDocumentDto } from './dto/upload-knowledge-document.dto';
+import { KnowledgeService } from './knowledge.service';
 
 const SUPPORTED_EXTENSIONS = new Set([
   '.txt',
@@ -19,7 +24,12 @@ const SUPPORTED_EXTENSIONS = new Set([
 @Injectable()
 export class KnowledgeFileService {
   constructor(
-    private readonly knowledgeService: KnowledgeService,
+    private readonly knowledgeService:
+      KnowledgeService,
+    private readonly brandsService:
+      BrandsService,
+    private readonly storageService:
+      SupabaseStorageService,
   ) {}
 
   async upload(
@@ -27,10 +37,13 @@ export class KnowledgeFileService {
     dto: UploadKnowledgeDocumentDto,
   ) {
     if (!file) {
-      throw new BadRequestException('A file is required.');
+      throw new BadRequestException(
+        'A file is required.',
+      );
     }
 
-    const extension = extname(file.originalname).toLowerCase();
+    const extension =
+      extname(file.originalname).toLowerCase();
 
     if (!SUPPORTED_EXTENSIONS.has(extension)) {
       throw new BadRequestException(
@@ -38,8 +51,11 @@ export class KnowledgeFileService {
       );
     }
 
-    const content = await this.extractText(file, extension);
-    const cleanContent = this.cleanText(content);
+    const content =
+      await this.extractText(file, extension);
+
+    const cleanContent =
+      this.cleanText(content);
 
     if (!cleanContent) {
       throw new BadRequestException(
@@ -47,32 +63,99 @@ export class KnowledgeFileService {
       );
     }
 
+    const brand =
+      await this.brandsService.getActiveBrand();
+
     const title =
       dto.title?.trim() ||
       this.filenameToTitle(file.originalname);
 
     const category =
-      dto.category?.trim() || 'Imported Document';
+      dto.category?.trim() ||
+      'Imported Document';
 
-    const tags = this.parseTags(dto.tags, extension);
+    const tags =
+      this.parseTags(dto.tags, extension);
 
-    const document = await this.knowledgeService.create({
-      title,
-      category,
-      content: cleanContent,
-      tags,
-    });
+    const now = new Date();
+    const year =
+      String(now.getUTCFullYear());
+    const month =
+      String(now.getUTCMonth() + 1)
+        .padStart(2, '0');
 
-    return {
-      document,
-      upload: {
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        extension,
-        size: file.size,
-        extractedCharacters: cleanContent.length,
-      },
-    };
+    const safeFilename =
+      this.storageFilename(
+        file.originalname,
+      );
+
+    const storagePath = [
+      'brands',
+      brand.id,
+      'knowledge',
+      year,
+      month,
+      `${Date.now()}-${safeFilename}`,
+    ].join('/');
+
+    const uploaded =
+      await this.storageService.uploadFile({
+        buffer: file.buffer,
+        path: storagePath,
+        contentType:
+          file.mimetype ||
+          this.mimeTypeFor(extension),
+      });
+
+    try {
+      const document =
+        await this.knowledgeService.create({
+          title,
+          category,
+          content: cleanContent,
+          tags,
+          sourceFileName:
+            file.originalname,
+          sourceMimeType:
+            file.mimetype ||
+            this.mimeTypeFor(extension),
+          sourceFileSize:
+            file.size,
+          sourceUrl:
+            uploaded.publicUrl,
+          storageProvider:
+            uploaded.provider,
+          storagePath:
+            uploaded.path,
+        });
+
+      return {
+        document,
+        upload: {
+          originalName:
+            file.originalname,
+          mimeType:
+            file.mimetype,
+          extension,
+          size:
+            file.size,
+          extractedCharacters:
+            cleanContent.length,
+          storageProvider:
+            uploaded.provider,
+          storagePath:
+            uploaded.path,
+          url:
+            uploaded.publicUrl,
+        },
+      };
+    } catch (error) {
+      await this.storageService
+        .remove(uploaded.path)
+        .catch(() => {});
+
+      throw error;
+    }
   }
 
   private async extractText(
@@ -89,14 +172,17 @@ export class KnowledgeFileService {
 
     if (extension === '.docx') {
       try {
-        const result = await mammoth.extractRawText({
-          buffer: file.buffer,
-        });
+        const result =
+          await mammoth.extractRawText({
+            buffer: file.buffer,
+          });
 
         return result.value;
       } catch (error) {
         throw new BadRequestException(
-          `Unable to read DOCX file: ${this.errorMessage(error)}`,
+          `Unable to read DOCX file: ${
+            this.errorMessage(error)
+          }`,
         );
       }
     }
@@ -107,18 +193,24 @@ export class KnowledgeFileService {
       });
 
       try {
-        const result = await parser.getText();
+        const result =
+          await parser.getText();
+
         return result.text;
       } catch (error) {
         throw new BadRequestException(
-          `Unable to read PDF file: ${this.errorMessage(error)}`,
+          `Unable to read PDF file: ${
+            this.errorMessage(error)
+          }`,
         );
       } finally {
         await parser.destroy();
       }
     }
 
-    throw new BadRequestException('Unsupported file type.');
+    throw new BadRequestException(
+      'Unsupported file type.',
+    );
   }
 
   private parseTags(
@@ -133,19 +225,66 @@ export class KnowledgeFileService {
     return Array.from(
       new Set([
         'Imported',
-        extension.replace('.', '').toUpperCase(),
+        extension
+          .replace('.', '')
+          .toUpperCase(),
         ...suppliedTags,
       ]),
     );
   }
 
-  private filenameToTitle(filename: string) {
-    const name = parsePath(filename).name
-      .replace(/[-_]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+  private storageFilename(
+    filename: string,
+  ) {
+    const extension =
+      extname(filename).toLowerCase();
 
-    return name || 'Imported knowledge document';
+    const base =
+      parsePath(filename).name
+        .normalize('NFKD')
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase()
+        .slice(0, 80);
+
+    return `${
+      base || 'knowledge-document'
+    }${extension}`;
+  }
+
+  private filenameToTitle(
+    filename: string,
+  ) {
+    const name =
+      parsePath(filename).name
+        .replace(/[-_]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return (
+      name ||
+      'Imported knowledge document'
+    );
+  }
+
+  private mimeTypeFor(
+    extension: string,
+  ) {
+    const types: Record<string, string> = {
+      '.txt': 'text/plain',
+      '.md': 'text/markdown',
+      '.markdown': 'text/markdown',
+      '.docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.pdf': 'application/pdf',
+    };
+
+    return (
+      types[extension] ||
+      'application/octet-stream'
+    );
   }
 
   private cleanText(value: string) {
@@ -157,7 +296,9 @@ export class KnowledgeFileService {
       .trim();
   }
 
-  private errorMessage(error: unknown) {
+  private errorMessage(
+    error: unknown,
+  ) {
     return error instanceof Error
       ? error.message
       : 'Unknown parsing error';

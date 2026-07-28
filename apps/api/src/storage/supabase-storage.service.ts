@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UploadedFile, UploadImageInput } from './storage.types';
+import {
+  UploadedFile,
+  UploadFileInput,
+  UploadImageInput,
+} from './storage.types';
 
 @Injectable()
 export class SupabaseStorageService {
@@ -35,6 +39,10 @@ export class SupabaseStorageService {
   }
 
   async uploadImage(input: UploadImageInput): Promise<UploadedFile> {
+    return this.uploadFile(input);
+  }
+
+  async uploadFile(input: UploadFileInput): Promise<UploadedFile> {
     if (!this.client) {
       throw new ServiceUnavailableException(
         'Supabase Storage is not configured.',
