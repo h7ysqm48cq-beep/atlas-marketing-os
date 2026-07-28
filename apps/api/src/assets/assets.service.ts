@@ -29,6 +29,28 @@ export class AssetsService {
         provider: dto.provider,
         platform: dto.platform,
         prompt: dto.prompt,
+        revisedPrompt: dto.revisedPrompt,
+        negativePrompt: dto.negativePrompt,
+        generationModel: dto.generationModel,
+        generationSize: dto.generationSize,
+        generationQuality:
+          dto.generationQuality,
+        generationDurationMs:
+          dto.generationDurationMs,
+        storageProvider:
+          dto.storageProvider,
+        storagePath:
+          dto.storagePath,
+        fileSize:
+          dto.fileSize,
+        tags:
+          dto.tags,
+        collection:
+          dto.collection,
+        downloadCount:
+          dto.downloadCount,
+        usedCount:
+          dto.usedCount,
         url: dto.url,
         thumbnailUrl: dto.thumbnailUrl,
         mimeType: dto.mimeType,
@@ -45,17 +67,35 @@ export class AssetsService {
     type?: string;
     campaignId?: string;
     favorite?: string;
+    tag?: string;
+    collection?: string;
+    platform?: string;
+    provider?: string;
+    generationModel?: string;
+    storageProvider?: string;
+    sort?: string;
   }) {
-    const brand = await this.brandsService.getActiveBrand();
-    const search = query?.search?.trim();
+    const brand =
+      await this.brandsService.getActiveBrand();
+
+    const search =
+      query?.search?.trim();
 
     return this.prisma.asset.findMany({
       where: {
         brandId: brand.id,
-        campaignId: query?.campaignId || undefined,
+        campaignId:
+          query?.campaignId || undefined,
         type:
-          query?.type && query.type !== 'ALL'
-            ? (query.type as 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'TEMPLATE')
+          query?.type &&
+          query.type !== 'ALL'
+            ? (
+                query.type as
+                  | 'IMAGE'
+                  | 'VIDEO'
+                  | 'DOCUMENT'
+                  | 'TEMPLATE'
+              )
             : undefined,
         isFavorite:
           query?.favorite === 'true'
@@ -63,6 +103,24 @@ export class AssetsService {
             : query?.favorite === 'false'
               ? false
               : undefined,
+        platform:
+          query?.platform || undefined,
+        provider:
+          query?.provider || undefined,
+        generationModel:
+          query?.generationModel ||
+          undefined,
+        storageProvider:
+          query?.storageProvider ||
+          undefined,
+        collection:
+          query?.collection || undefined,
+        tags:
+          query?.tag
+            ? {
+                has: query.tag,
+              }
+            : undefined,
         OR: search
           ? [
               {
@@ -78,7 +136,25 @@ export class AssetsService {
                 },
               },
               {
+                revisedPrompt: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                negativePrompt: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
                 provider: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                collection: {
                   contains: search,
                   mode: 'insensitive',
                 },
@@ -86,9 +162,26 @@ export class AssetsService {
             ]
           : undefined,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy:
+        query?.sort === 'downloads'
+          ? {
+              downloadCount: 'desc',
+            }
+          : query?.sort === 'used'
+            ? {
+                usedCount: 'desc',
+              }
+            : query?.sort === 'oldest'
+              ? {
+                  createdAt: 'asc',
+                }
+              : query?.sort === 'name'
+                ? {
+                    name: 'asc',
+                  }
+                : {
+                    createdAt: 'desc',
+                  },
       include: this.assetInclude,
     });
   }
@@ -130,6 +223,28 @@ export class AssetsService {
         provider: dto.provider,
         platform: dto.platform,
         prompt: dto.prompt,
+        revisedPrompt: dto.revisedPrompt,
+        negativePrompt: dto.negativePrompt,
+        generationModel: dto.generationModel,
+        generationSize: dto.generationSize,
+        generationQuality:
+          dto.generationQuality,
+        generationDurationMs:
+          dto.generationDurationMs,
+        storageProvider:
+          dto.storageProvider,
+        storagePath:
+          dto.storagePath,
+        fileSize:
+          dto.fileSize,
+        tags:
+          dto.tags,
+        collection:
+          dto.collection,
+        downloadCount:
+          dto.downloadCount,
+        usedCount:
+          dto.usedCount,
         url: dto.url,
         thumbnailUrl: dto.thumbnailUrl,
         mimeType: dto.mimeType,

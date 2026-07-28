@@ -27,12 +27,28 @@ export class AssetsController {
     @Query('type') type?: string,
     @Query('campaignId') campaignId?: string,
     @Query('favorite') favorite?: string,
+    @Query('tag') tag?: string,
+    @Query('collection') collection?: string,
+    @Query('platform') platform?: string,
+    @Query('provider') provider?: string,
+    @Query('generationModel')
+    generationModel?: string,
+    @Query('storageProvider')
+    storageProvider?: string,
+    @Query('sort') sort?: string,
   ) {
     return this.assetsService.findAll({
       search,
       type,
       campaignId,
       favorite,
+      tag,
+      collection,
+      platform,
+      provider,
+      generationModel,
+      storageProvider,
+      sort,
     });
   }
 

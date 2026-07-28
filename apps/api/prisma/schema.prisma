@@ -187,31 +187,55 @@ model ContentVersion {
 }
 
 model Asset {
-  id           String             @id @default(cuid())
-  brandId      String
-  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  campaignId   String?
-  campaign     Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  historyId    String?
-  history      GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
-  name         String
-  type         AssetType          @default(IMAGE)
-  provider     String?
-  platform     String?
-  prompt       String?
-  url          String
-  thumbnailUrl String?
-  mimeType     String?
-  width        Int?
-  height       Int?
-  isFavorite   Boolean            @default(false)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id         String             @id @default(cuid())
+  brandId    String
+  brand      Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  historyId  String?
+  history    GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
+
+  name     String
+  type     AssetType @default(IMAGE)
+  provider String?
+  platform String?
+
+  prompt         String?
+  revisedPrompt  String?
+  negativePrompt String?
+
+  generationModel      String?
+  generationSize       String?
+  generationQuality    String?
+  generationDurationMs Int?
+
+  url             String
+  thumbnailUrl    String?
+  storageProvider String?
+  storagePath     String?
+  fileSize        Int?
+
+  mimeType String?
+  width    Int?
+  height   Int?
+
+  tags       String[] @default([])
+  collection String?
+  isFavorite Boolean  @default(false)
+
+  downloadCount Int       @default(0)
+  usedCount     Int       @default(0)
+  lastUsedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([brandId])
   @@index([campaignId])
   @@index([historyId])
   @@index([type])
+  @@index([collection])
+  @@index([isFavorite])
   @@index([createdAt])
 }
 

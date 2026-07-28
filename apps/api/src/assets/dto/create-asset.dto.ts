@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -39,6 +40,44 @@ export class CreateAssetDto {
   @IsOptional()
   prompt?: string;
 
+  @IsString()
+  @IsOptional()
+  revisedPrompt?: string;
+
+  @IsString()
+  @IsOptional()
+  negativePrompt?: string;
+
+  @IsString()
+  @IsOptional()
+  generationModel?: string;
+
+  @IsString()
+  @IsOptional()
+  generationSize?: string;
+
+  @IsString()
+  @IsOptional()
+  generationQuality?: string;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  generationDurationMs?: number;
+
+  @IsString()
+  @IsOptional()
+  storageProvider?: string;
+
+  @IsString()
+  @IsOptional()
+  storagePath?: string;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  fileSize?: number;
+
   @IsUrl({
     require_protocol: true,
   })
@@ -64,7 +103,26 @@ export class CreateAssetDto {
   @IsOptional()
   height?: number;
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+
+  @IsString()
+  @IsOptional()
+  collection?: string;
+
   @IsBoolean()
   @IsOptional()
   isFavorite?: boolean;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  downloadCount?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  usedCount?: number;
 }

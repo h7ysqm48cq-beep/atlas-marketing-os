@@ -40,6 +40,7 @@ export class AssetImageService {
       this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-1';
     const size = dto.size || '1024x1536';
     const quality = dto.quality || 'medium';
+    const generationStartedAt = Date.now();
 
     try {
       const response = await this.client.images.generate({
@@ -71,10 +72,13 @@ export class AssetImageService {
         'assets',
       );
 
+      const imageBuffer =
+        Buffer.from(base64, 'base64');
+
       await mkdir(storageDirectory, { recursive: true });
       await writeFile(
         join(storageDirectory, filename),
-        Buffer.from(base64, 'base64'),
+        imageBuffer,
       );
 
       const apiBaseUrl =
@@ -94,6 +98,24 @@ export class AssetImageService {
           provider: model,
           platform: dto.platform || 'Multi-platform',
           prompt: dto.prompt,
+          revisedPrompt:
+            'revised_prompt' in imageData
+              ? imageData.revised_prompt
+              : undefined,
+          generationModel: model,
+          generationSize: size,
+          generationQuality: quality,
+          generationDurationMs:
+            Date.now() - generationStartedAt,
+          storageProvider: 'railway-local',
+          storagePath:
+            `storage/assets/${filename}`,
+          fileSize: imageBuffer.length,
+          tags: [
+            'ai-generated',
+            dto.platform?.toLowerCase() ??
+              'multi-platform',
+          ],
           url,
           thumbnailUrl: url,
           mimeType: 'image/png',
