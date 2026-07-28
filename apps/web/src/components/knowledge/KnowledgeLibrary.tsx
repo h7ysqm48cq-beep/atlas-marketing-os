@@ -2,13 +2,11 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./KnowledgeLibrary.module.css";
+import { API_URL } from '@/lib/api';
 import type {
   KnowledgeDocument,
   KnowledgeForm,
 } from "./knowledge.types";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const emptyForm: KnowledgeForm = {
   title: "",
@@ -99,7 +97,7 @@ export function KnowledgeLibrary() {
 
   async function load(preferredId?: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge`, {
+      const response = await fetch(`${API_URL}/knowledge`, {
         cache: "no-store",
       });
 
@@ -196,8 +194,8 @@ export function KnowledgeLibrary() {
     try {
       const response = await fetch(
         selected
-          ? `${API_BASE_URL}/knowledge/${selected.id}`
-          : `${API_BASE_URL}/knowledge`,
+          ? `${API_URL}/knowledge/${selected.id}`
+          : `${API_URL}/knowledge`,
         {
           method: selected ? "PATCH" : "POST",
           headers: {
@@ -252,7 +250,7 @@ export function KnowledgeLibrary() {
     if (!confirmed) return;
 
     const response = await fetch(
-      `${API_BASE_URL}/knowledge/${selected.id}`,
+      `${API_URL}/knowledge/${selected.id}`,
       {
         method: "DELETE",
       },

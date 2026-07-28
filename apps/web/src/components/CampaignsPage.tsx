@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./CampaignsPage.module.css";
 
+import { API_URL } from '@/lib/api';
 type CampaignStatus =
   | "DRAFT"
   | "ACTIVE"
@@ -40,9 +41,6 @@ type CampaignForm = {
   startDate: string;
   endDate: string;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const emptyForm: CampaignForm = {
   name: "",
@@ -105,7 +103,7 @@ export function CampaignsPage() {
 
   async function loadCampaigns() {
     try {
-      const response = await fetch(`${API_BASE_URL}/campaigns`, {
+      const response = await fetch(`${API_URL}/campaigns`, {
         cache: "no-store",
       });
       const data = (await response.json()) as Campaign[] | { message?: string };
@@ -180,8 +178,8 @@ export function CampaignsPage() {
 
     try {
       const endpoint = selected
-        ? `${API_BASE_URL}/campaigns/${selected.id}`
-        : `${API_BASE_URL}/campaigns`;
+        ? `${API_URL}/campaigns/${selected.id}`
+        : `${API_URL}/campaigns`;
 
       const response = await fetch(endpoint, {
         method: selected ? "PATCH" : "POST",
@@ -231,7 +229,7 @@ export function CampaignsPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/campaigns/${campaign.id}`,
+        `${API_URL}/campaigns/${campaign.id}`,
         {
           method: "DELETE",
         },

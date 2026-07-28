@@ -11,10 +11,7 @@ import type {
 } from "react";
 import styles from "./ContentCalendar.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type Channel = {
   id: string;
   brandId: string;
@@ -307,19 +304,19 @@ export function ContentCalendar() {
         assetsResponse,
       ] = await Promise.all([
         fetch(
-          `${API_BASE_URL}/automation/posts`,
+          `${API_URL}/automation/posts`,
           { cache: "no-store" },
         ),
         fetch(
-          `${API_BASE_URL}/automation/channels`,
+          `${API_URL}/automation/channels`,
           { cache: "no-store" },
         ),
         fetch(
-          `${API_BASE_URL}/brands`,
+          `${API_URL}/brands`,
           { cache: "no-store" },
         ),
         fetch(
-          `${API_BASE_URL}/assets?type=IMAGE`,
+          `${API_URL}/assets?type=IMAGE`,
           { cache: "no-store" },
         ),
       ]);
@@ -534,7 +531,7 @@ export function ContentCalendar() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/run`,
+        `${API_URL}/automation/run`,
         {
           method: "POST",
         },
@@ -580,8 +577,8 @@ export function ContentCalendar() {
     try {
       const response = await fetch(
         editingPostId
-          ? `${API_BASE_URL}/automation/posts/${editingPostId}`
-          : `${API_BASE_URL}/automation/posts`,
+          ? `${API_URL}/automation/posts/${editingPostId}`
+          : `${API_URL}/automation/posts`,
         {
           method: editingPostId
             ? "PATCH"
@@ -754,7 +751,7 @@ export function ContentCalendar() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/posts/${post.id}`,
+        `${API_URL}/automation/posts/${post.id}`,
         {
           method: "DELETE",
         },
@@ -844,7 +841,7 @@ export function ContentCalendar() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/posts/${selectedPost.id}/${action}`,
+        `${API_URL}/automation/posts/${selectedPost.id}/${action}`,
         {
           method: "POST",
         },
@@ -963,7 +960,7 @@ export function ContentCalendar() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/posts/${post.id}`,
+        `${API_URL}/automation/posts/${post.id}`,
         {
           method: "PATCH",
           headers: {

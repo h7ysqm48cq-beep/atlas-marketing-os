@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./BrandBrain.module.css";
 
+import { API_URL } from '@/lib/api';
 type Brand = {
   id: string;
   name: string;
@@ -21,9 +22,6 @@ type Brand = {
   examplePosts: string[];
   updatedAt: string;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 function listToText(items: string[]) {
   return items.join("\n");
@@ -69,7 +67,7 @@ export function BrandBrain() {
 
   async function loadBrand() {
     try {
-      const response = await fetch(`${API_BASE_URL}/brands`);
+      const response = await fetch(`${API_URL}/brands`);
       const brands = (await response.json()) as Brand[];
 
       if (!response.ok || brands.length === 0) {
@@ -118,7 +116,7 @@ export function BrandBrain() {
     setStatus("Saving brand memory...");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/brands/${brand.id}`, {
+      const response = await fetch(`${API_URL}/brands/${brand.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

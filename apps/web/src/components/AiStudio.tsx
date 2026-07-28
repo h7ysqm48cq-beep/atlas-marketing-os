@@ -5,9 +5,7 @@ import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import { AiTopicSuggestions } from "./AiTopicSuggestions";
 import styles from "./AiStudio.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 const platformOptions = [
   "Facebook",
   "Telegram",
@@ -73,7 +71,7 @@ export function AiStudio() {
 
       try {
         const response = await fetch(
-          `${API_BASE_URL}/history/${historyParam}`,
+          `${API_URL}/history/${historyParam}`,
           {
             cache: "no-store",
           },
@@ -210,7 +208,7 @@ export function AiStudio() {
     setMessage("Reading Brand Brain and Campaign context...");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/generate`, {
+      const response = await fetch(`${API_URL}/ai/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

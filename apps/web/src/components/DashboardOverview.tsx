@@ -8,10 +8,7 @@ import {
 } from "react";
 import styles from "./DashboardOverview.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type AiUsageSummary = {
   last24Hours?: {
     calls: number;
@@ -129,19 +126,19 @@ export function DashboardOverview() {
 
     const requests = await Promise.allSettled([
       fetch(
-        `${API_BASE_URL}/ai-usage/summary?days=30`,
+        `${API_URL}/ai-usage/summary?days=30`,
         { cache: "no-store" },
       ),
       fetch(
-        `${API_BASE_URL}/automation/dashboard`,
+        `${API_URL}/automation/dashboard`,
         { cache: "no-store" },
       ),
       fetch(
-        `${API_BASE_URL}/history`,
+        `${API_URL}/history`,
         { cache: "no-store" },
       ),
       fetch(
-        `${API_BASE_URL}/campaigns`,
+        `${API_URL}/campaigns`,
         { cache: "no-store" },
       ),
     ]);

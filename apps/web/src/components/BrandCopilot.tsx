@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import styles from './BrandCopilot.module.css';
+import { API_URL } from '@/lib/api';
 
 type Campaign = {
   id: string;
@@ -64,10 +65,6 @@ type MarketingPlan = {
 
 type CopilotMode = 'chat' | 'marketing-plan';
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:3001';
-
 const INITIAL_MESSAGES: Message[] = [
   {
     role: 'assistant',
@@ -104,7 +101,7 @@ export function BrandCopilot() {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    void fetch(`${API}/campaigns`)
+    void fetch(`${API_URL}/campaigns`)
       .then((response) => response.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -142,7 +139,7 @@ export function BrandCopilot() {
   async function refreshConversations() {
     try {
       const response = await fetch(
-        `${API}/copilot/conversations`,
+        `${API_URL}/copilot/conversations`,
       );
 
       if (!response.ok) {
@@ -186,7 +183,7 @@ export function BrandCopilot() {
 
     try {
       const response = await fetch(
-        `${API}/copilot/conversations/${id}`,
+        `${API_URL}/copilot/conversations/${id}`,
       );
 
       const data =
@@ -275,7 +272,7 @@ export function BrandCopilot() {
 
     try {
       const response = await fetch(
-        `${API}/copilot/conversations/${conversation.id}`,
+        `${API_URL}/copilot/conversations/${conversation.id}`,
         {
           method: 'PATCH',
           headers: {
@@ -333,7 +330,7 @@ export function BrandCopilot() {
 
     try {
       const response = await fetch(
-        `${API}/copilot/conversations/${id}`,
+        `${API_URL}/copilot/conversations/${id}`,
         {
           method: 'DELETE',
         },
@@ -385,7 +382,7 @@ export function BrandCopilot() {
     try {
       if (mode === 'marketing-plan') {
         const response = await fetch(
-          `${API}/copilot/marketing-plan`,
+          `${API_URL}/copilot/marketing-plan`,
           {
             method: 'POST',
             headers: {
@@ -432,7 +429,7 @@ export function BrandCopilot() {
         ]);
       } else {
         const response = await fetch(
-          `${API}/copilot/chat`,
+          `${API_URL}/copilot/chat`,
           {
             method: 'POST',
             headers: {

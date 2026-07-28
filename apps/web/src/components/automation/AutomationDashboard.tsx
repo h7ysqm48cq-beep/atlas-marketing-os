@@ -7,10 +7,7 @@ import {
 } from "react";
 import styles from "./AutomationDashboard.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type Channel = {
   id: string;
   platform: "FACEBOOK" | "TELEGRAM";
@@ -95,11 +92,11 @@ export function AutomationDashboard() {
       const [dashboardResponse, settingsResponse] =
         await Promise.all([
           fetch(
-            `${API_BASE_URL}/automation/dashboard`,
+            `${API_URL}/automation/dashboard`,
             { cache: "no-store" },
           ),
           fetch(
-            `${API_BASE_URL}/automation/settings`,
+            `${API_URL}/automation/settings`,
             { cache: "no-store" },
           ),
         ]);

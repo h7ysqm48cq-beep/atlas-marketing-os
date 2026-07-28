@@ -20,9 +20,7 @@ import { ExecutiveSummary } from "./campaign-dashboard/ExecutiveSummary";
 import { MemoryInsights } from "./campaign-dashboard/MemoryInsights";
 import { QuickActions } from "./campaign-dashboard/QuickActions";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 export function CampaignDashboard({
   campaign,
   onOpenStrategy,
@@ -49,13 +47,13 @@ export function CampaignDashboard({
     try {
       const [ideasResponse, historyResponse, memoryResponse] =
         await Promise.all([
-          fetch(`${API_BASE_URL}/campaigns/${campaign.id}/plan`, {
+          fetch(`${API_URL}/campaigns/${campaign.id}/plan`, {
             cache: "no-store",
           }),
-          fetch(`${API_BASE_URL}/history`, {
+          fetch(`${API_URL}/history`, {
             cache: "no-store",
           }),
-          fetch(`${API_BASE_URL}/memory/summary`, {
+          fetch(`${API_URL}/memory/summary`, {
             cache: "no-store",
           }),
         ]);

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ApprovalState, ContentStatus } from "./AiWorkspace";
 import styles from "./PlatformCard.module.css";
 
+import { API_URL } from '@/lib/api';
 export type PlatformCardAction =
   | "copy"
   | "improve"
@@ -42,9 +43,6 @@ type RewriteGoal =
   | "Stronger CTA";
 
 type RewriteLength = "Auto" | "Short" | "Medium" | "Long";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const actionLabels: Record<PlatformCardAction, string> = {
   copy: "Copy",
@@ -161,7 +159,7 @@ export function PlatformCard({
     });
 
     const response = await fetch(
-      `${API_BASE_URL}/versions?${query}`,
+      `${API_URL}/versions?${query}`,
       { cache: "no-store" },
     );
 
@@ -182,7 +180,7 @@ export function PlatformCard({
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/versions`, {
+    const response = await fetch(`${API_URL}/versions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -225,7 +223,7 @@ export function PlatformCard({
     onMessage(`${actionLabels[action]} is running for ${title}...`);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/rewrite`, {
+      const response = await fetch(`${API_URL}/rewrite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -309,7 +307,7 @@ export function PlatformCard({
 
     setApprovalBusy(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/history/${historyId}/status`, {
+      const response = await fetch(`${API_URL}/history/${historyId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

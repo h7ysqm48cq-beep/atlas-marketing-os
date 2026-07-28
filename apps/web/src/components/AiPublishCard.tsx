@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceResult } from "./AiWorkspace";
 import styles from "./AiPublishCard.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type Platform = "FACEBOOK" | "TELEGRAM";
 
 type PublishResult = {
@@ -73,7 +71,7 @@ export function AiPublishCard({
     async function loadBrand() {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/brands`,
+          `${API_URL}/brands`,
           { cache: "no-store" },
         );
 
@@ -167,7 +165,7 @@ export function AiPublishCard({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/multi-publish`,
+        `${API_URL}/automation/multi-publish`,
         {
           method: "POST",
           headers: {

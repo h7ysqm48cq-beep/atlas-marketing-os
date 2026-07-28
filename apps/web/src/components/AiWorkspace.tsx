@@ -9,6 +9,7 @@ import { PlatformCard } from "./PlatformCard";
 import { PromptInspector } from "./prompt-inspector/PromptInspector";
 import styles from "./AiWorkspace.module.css";
 
+import { API_URL } from '@/lib/api';
 export type ContentStatus =
   | "DRAFT"
   | "AI_IMPROVED"
@@ -25,9 +26,6 @@ export type ApprovalState = {
   approvedAt?: string | null;
   publishedAt?: string | null;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export type WorkspaceResult = {
   facebook: string;
@@ -156,7 +154,7 @@ export function AiWorkspace({
     }
 
     let cancelled = false;
-    void fetch(`${API_BASE_URL}/history/${result.historyId}`, { cache: "no-store" })
+    void fetch(`${API_URL}/history/${result.historyId}`, { cache: "no-store" })
       .then((response) => response.json())
       .then((record: ApprovalState) => {
         if (!cancelled && record?.status) setApproval(record);

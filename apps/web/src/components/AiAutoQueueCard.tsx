@@ -10,10 +10,7 @@ import type {
 } from "./AiWorkspace";
 import styles from "./AiAutoQueueCard.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type Platform =
   | "FACEBOOK"
   | "TELEGRAM";
@@ -128,7 +125,7 @@ export function AiAutoQueueCard({
     async function loadBrand() {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/brands`,
+          `${API_URL}/brands`,
           {
             cache: "no-store",
           },
@@ -241,7 +238,7 @@ export function AiAutoQueueCard({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/workflow/auto-queue`,
+        `${API_URL}/workflow/auto-queue`,
         {
           method: "POST",
           headers: {

@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "./CampaignAssets.module.css";
 import { AssetDetailsDrawer } from "./campaign-assets/AssetDetailsDrawer";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type AssetType =
   | "IMAGE"
   | "VIDEO"
@@ -156,7 +154,7 @@ export function CampaignAssets({
       });
 
       const response = await fetch(
-        `${API_BASE_URL}/assets?${query.toString()}`,
+        `${API_URL}/assets?${query.toString()}`,
         {
           cache: "no-store",
         },
@@ -226,7 +224,7 @@ export function CampaignAssets({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/assets/${asset.id}`,
+        `${API_URL}/assets/${asset.id}`,
         {
           method: "DELETE",
         },

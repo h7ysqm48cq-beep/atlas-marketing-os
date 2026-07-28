@@ -6,9 +6,7 @@ import { CampaignStrategyResult } from "./campaign-strategy/campaign-strategy.ty
 import { StrategyContent } from "./campaign-strategy/StrategyContent";
 import { StrategyControls } from "./campaign-strategy/StrategyControls";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 export function CampaignStrategy({
   campaignId,
   campaignName,
@@ -72,7 +70,7 @@ export function CampaignStrategy({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/campaign-strategy/generate`,
+        `${API_URL}/campaign-strategy/generate`,
         {
           method: "POST",
           headers: {

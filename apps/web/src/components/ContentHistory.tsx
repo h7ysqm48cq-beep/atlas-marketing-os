@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./ContentHistory.module.css";
 
+import { API_URL } from '@/lib/api';
 type ContentStatus = "DRAFT" | "AI_IMPROVED" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "PUBLISHED";
 type Analysis = { summary?: string; viralScore?: number; discussionScore?: number; shareabilityScore?: number; brandFitScore?: number; bestPostingTime?: string; };
 type HistoryRecord = {
@@ -33,7 +34,6 @@ type HistoryRecord = {
   }>;
 };
 type OutputKey = "facebook" | "telegram" | "reels" | "imagePrompt";
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const statuses: Array<"ALL" | ContentStatus> = ["ALL","DRAFT","AI_IMPROVED","PENDING_REVIEW","APPROVED","REJECTED","PUBLISHED"];
 
 export function ContentHistory() {
@@ -72,7 +72,7 @@ export function ContentHistory() {
   },[filtered,selected]);
 
   async function load(){
-    try{ const response=await fetch(`${API_BASE_URL}/history`,{cache:"no-store"}); const data=await response.json() as HistoryRecord[]|{message?:string};
+    try{ const response=await fetch(`${API_URL}/history`,{cache:"no-store"}); const data=await response.json() as HistoryRecord[]|{message?:string};
       if(!response.ok || !Array.isArray(data)) throw new Error(!Array.isArray(data)&&data.message?data.message:"Unable to load history.");
       const requestedHistoryId =
         new URLSearchParams(window.location.search).get("historyId");
@@ -96,13 +96,13 @@ export function ContentHistory() {
 
   async function updateWorkflow(nextStatus:ContentStatus){
     if(!selected) return; setSaving(true);
-    try{ const response=await fetch(`${API_BASE_URL}/history/${selected.id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:nextStatus,reviewNote:reviewNote.trim()||undefined,reviewedBy:reviewer.trim()||"Loh"})});
+    try{ const response=await fetch(`${API_URL}/history/${selected.id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:nextStatus,reviewNote:reviewNote.trim()||undefined,reviewedBy:reviewer.trim()||"Loh"})});
       const data=await response.json() as HistoryRecord & {message?:string}; if(!response.ok||!data.status) throw new Error(data.message||"Unable to update workflow."); syncRecord(data); setStatus(`Workflow updated to ${formatStatus(data.status)}.`);
     }catch(error){ setStatus(error instanceof Error?error.message:"Unable to update workflow."); } finally{ setSaving(false); }
   }
 
-  async function toggleFavorite(record:HistoryRecord){ const response=await fetch(`${API_BASE_URL}/history/${record.id}/favorite`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({isFavorite:!record.isFavorite})}); if(response.ok) syncRecord({...record,isFavorite:!record.isFavorite}); }
-  async function remove(record:HistoryRecord){ if(!window.confirm(`Delete "${record.topic}" from history?`)) return; const response=await fetch(`${API_BASE_URL}/history/${record.id}`,{method:"DELETE"}); if(!response.ok)return; const remaining=records.filter((item)=>item.id!==record.id); setRecords(remaining); if(selected?.id===record.id)setSelected(remaining[0]||null); }
+  async function toggleFavorite(record:HistoryRecord){ const response=await fetch(`${API_URL}/history/${record.id}/favorite`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({isFavorite:!record.isFavorite})}); if(response.ok) syncRecord({...record,isFavorite:!record.isFavorite}); }
+  async function remove(record:HistoryRecord){ if(!window.confirm(`Delete "${record.topic}" from history?`)) return; const response=await fetch(`${API_URL}/history/${record.id}`,{method:"DELETE"}); if(!response.ok)return; const remaining=records.filter((item)=>item.id!==record.id); setRecords(remaining); if(selected?.id===record.id)setSelected(remaining[0]||null); }
   function getOutput(record:HistoryRecord){ return record[activeOutput]; }
   async function copySelected(){ if(selected) await navigator.clipboard.writeText(getOutput(selected)); }
 

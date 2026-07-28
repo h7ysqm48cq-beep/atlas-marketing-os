@@ -15,9 +15,7 @@ import {
 } from "./campaign-planner/campaign-planner.types";
 import { CampaignWorkspaceTabs } from "./campaign-planner/CampaignWorkspaceTabs";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 export function CampaignPlanner({
   campaignId,
 }: {
@@ -62,11 +60,11 @@ export function CampaignPlanner({
     try {
       const [campaignResponse, ideasResponse] =
         await Promise.all([
-          fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
+          fetch(`${API_URL}/campaigns/${campaignId}`, {
             cache: "no-store",
           }),
           fetch(
-            `${API_BASE_URL}/campaigns/${campaignId}/plan`,
+            `${API_URL}/campaigns/${campaignId}/plan`,
             {
               cache: "no-store",
             },
@@ -113,7 +111,7 @@ export function CampaignPlanner({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/campaigns/${campaignId}/plan/generate`,
+        `${API_URL}/campaigns/${campaignId}/plan/generate`,
         {
           method: "POST",
           headers: {
@@ -163,7 +161,7 @@ export function CampaignPlanner({
     if (!confirmed) return;
 
     const response = await fetch(
-      `${API_BASE_URL}/campaigns/${campaignId}/plan/${idea.id}`,
+      `${API_URL}/campaigns/${campaignId}/plan/${idea.id}`,
       {
         method: "DELETE",
       },

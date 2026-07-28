@@ -5,10 +5,7 @@ import {
 } from "react";
 import styles from "./AiTopicSuggestions.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type Suggestion = {
   title: string;
   angle: string;
@@ -58,7 +55,7 @@ export function AiTopicSuggestions({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/ai/topic-suggestions`,
+        `${API_URL}/ai/topic-suggestions`,
         {
           method: "POST",
           headers: {

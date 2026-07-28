@@ -8,10 +8,7 @@ import {
 } from "react";
 import styles from "./AiUsageDashboard.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type UsageTotals = {
   calls: number;
   promptTokens: number;
@@ -132,15 +129,15 @@ export function AiUsageDashboard() {
       const [summaryRes, recentRes, trendRes] =
         await Promise.all([
           fetch(
-            `${API_BASE_URL}/ai-usage/summary?days=${days}`,
+            `${API_URL}/ai-usage/summary?days=${days}`,
             { cache: "no-store" },
           ),
           fetch(
-            `${API_BASE_URL}/ai-usage/recent?limit=20`,
+            `${API_URL}/ai-usage/recent?limit=20`,
             { cache: "no-store" },
           ),
           fetch(
-            `${API_BASE_URL}/ai-usage/trend?days=${days}`,
+            `${API_URL}/ai-usage/trend?days=${days}`,
             { cache: "no-store" },
           ),
         ]);

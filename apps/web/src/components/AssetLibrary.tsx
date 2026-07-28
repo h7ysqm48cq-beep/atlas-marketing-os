@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./AssetLibrary.module.css";
 
+import { API_URL } from '@/lib/api';
 type AssetType = "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
 
 type Campaign = {
@@ -41,9 +42,6 @@ type AssetForm = {
   url: string;
   thumbnailUrl: string;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const emptyForm: AssetForm = {
   name: "",
@@ -117,8 +115,8 @@ export function AssetLibrary() {
   async function load() {
     try {
       const [assetResponse, campaignResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/assets`, { cache: "no-store" }),
-        fetch(`${API_BASE_URL}/campaigns`, { cache: "no-store" }),
+        fetch(`${API_URL}/assets`, { cache: "no-store" }),
+        fetch(`${API_URL}/campaigns`, { cache: "no-store" }),
       ]);
 
       const assetData = (await assetResponse.json()) as Asset[];
@@ -162,7 +160,7 @@ export function AssetLibrary() {
     setMessage("Saving asset...");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/assets`, {
+      const response = await fetch(`${API_URL}/assets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -203,7 +201,7 @@ export function AssetLibrary() {
   }
 
   async function toggleFavorite(asset: Asset) {
-    const response = await fetch(`${API_BASE_URL}/assets/${asset.id}`, {
+    const response = await fetch(`${API_URL}/assets/${asset.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -231,7 +229,7 @@ export function AssetLibrary() {
 
     if (!confirmed) return;
 
-    const response = await fetch(`${API_BASE_URL}/assets/${asset.id}`, {
+    const response = await fetch(`${API_URL}/assets/${asset.id}`, {
       method: "DELETE",
     });
 
@@ -241,41 +239,6 @@ export function AssetLibrary() {
       current.filter((item) => item.id !== asset.id),
     );
     setMessage("Asset deleted.");
-  }
-
-  async function copyPrompt(asset: Asset) {
-    if (!asset.prompt) {
-      setMessage(`"${asset.name}" has no saved prompt.`);
-      return;
-    }
-
-    await navigator.clipboard.writeText(asset.prompt);
-    setMessage(`Prompt copied from "${asset.name}".`);
-  }
-
-  function buildStudioHref(asset: Asset) {
-    const params = new URLSearchParams({
-      topic: asset.history?.topic || asset.name,
-    });
-
-    if (asset.prompt) {
-      params.set("imagePrompt", asset.prompt);
-    }
-
-    if (asset.platform) {
-      params.set("platform", asset.platform);
-    }
-
-    if (asset.campaign) {
-      params.set("campaignId", asset.campaign.id);
-      params.set("campaignName", asset.campaign.name);
-    }
-
-    if (asset.history) {
-      params.set("historyId", asset.history.id);
-    }
-
-    return `/ai-studio?${params.toString()}`;
   }
 
   return (
@@ -403,7 +366,7 @@ export function AssetLibrary() {
 
                 <div className={styles.cardFooter}>
                   <small>{formatDate(asset.createdAt)}</small>
-                  <div className={styles.workflowActions}>
+                  <div>
                     <a
                       href={asset.url}
                       target="_blank"
@@ -411,43 +374,44 @@ export function AssetLibrary() {
                     >
                       View
                     </a>
-
-                    <a href={asset.url} download>
-                      Download
-                    </a>
-
-                    {asset.campaign ? (
-                      <a
-                        href={`/campaigns/${encodeURIComponent(
-                          asset.campaign.id,
-                        )}?tab=assets`}
-                      >
-                        Campaign
-                      </a>
-                    ) : null}
-
-                    {asset.history ? (
-                      <a
-                        href={`/content-history?historyId=${encodeURIComponent(
-                          asset.history.id,
-                        )}`}
-                      >
-                        History
-                      </a>
-                    ) : null}
-
-                    <a href={buildStudioHref(asset)}>
-                      AI Studio
-                    </a>
-
                     <button
-                      type="button"
-                      disabled={!asset.prompt}
-                      onClick={() => void copyPrompt(asset)}
-                    >
-                      Copy prompt
-                    </button>
+  type="button"
+  onClick={async () => {
+    try {
+      const response = await fetch(asset.url);
 
+      if (!response.ok) {
+        throw new Error("Unable to download asset.");
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      const extension =
+        asset.mimeType === "image/png"
+          ? "png"
+          : asset.mimeType === "image/jpeg"
+            ? "jpg"
+            : asset.mimeType === "video/mp4"
+              ? "mp4"
+              : "file";
+
+      link.href = blobUrl;
+      link.download = `${asset.name || "atlas-asset"}.${extension}`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      setMessage("Unable to download asset.");
+    }
+  }}
+>
+  Download
+</button>
                     <button
                       className={styles.deleteButton}
                       onClick={() => void deleteAsset(asset)}

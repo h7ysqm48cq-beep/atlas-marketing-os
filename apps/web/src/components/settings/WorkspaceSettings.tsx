@@ -8,10 +8,7 @@ import {
 } from "react";
 import styles from "./WorkspaceSettings.module.css";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:3001";
-
+import { API_URL } from '@/lib/api';
 type AutomationSettings = {
   id: string;
   workspaceId: string;
@@ -98,15 +95,15 @@ export function WorkspaceSettings() {
         brandsResponse,
       ] = await Promise.all([
         fetch(
-          `${API_BASE_URL}/automation/settings`,
+          `${API_URL}/automation/settings`,
           { cache: "no-store" },
         ),
         fetch(
-          `${API_BASE_URL}/automation/channels`,
+          `${API_URL}/automation/channels`,
           { cache: "no-store" },
         ),
         fetch(
-          `${API_BASE_URL}/brands`,
+          `${API_URL}/brands`,
           { cache: "no-store" },
         ),
       ]);
@@ -196,7 +193,7 @@ export function WorkspaceSettings() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/automation/settings`,
+        `${API_URL}/automation/settings`,
         {
           method: "PATCH",
           headers: {

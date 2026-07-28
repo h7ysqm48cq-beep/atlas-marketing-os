@@ -3,6 +3,7 @@
 import { useState } from "react";
 import styles from "./ImageAssetPanel.module.css";
 
+import { API_URL } from '@/lib/api';
 type ImageAsset = {
   id: string;
   name: string;
@@ -25,9 +26,6 @@ type GenerateResponse = {
     quality: string;
   };
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export function ImageAssetPanel({
   prompt,
@@ -66,7 +64,7 @@ export function ImageAssetPanel({
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/asset-images/generate`,
+        `${API_URL}/asset-images/generate`,
         {
           method: "POST",
           headers: {
