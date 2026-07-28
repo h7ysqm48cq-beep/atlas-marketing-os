@@ -7,10 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
 @Injectable()
@@ -21,6 +20,7 @@ export class AssetImageService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
+    private readonly storageService: SupabaseStorageService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -58,34 +58,26 @@ export class AssetImageService {
         throw new Error('The image API did not return base64 image data.');
       }
 
-      const shortName =
-        this.slugify(dto.name).slice(0, 40);
+      const shortName = this.slugify(dto.name).slice(0, 40);
 
-      const uniqueId =
-        randomUUID().replace(/-/g, '').slice(0, 8);
+      const uniqueId = randomUUID().replace(/-/g, '').slice(0, 8);
 
-      const filename =
-        `${Date.now()}-${shortName}-${uniqueId}.png`;
-      const storageDirectory = join(
-        process.cwd(),
-        'storage',
-        'assets',
-      );
+      const filename = `${Date.now()}-${shortName}-${uniqueId}.png`;
+      const imageBuffer = Buffer.from(base64, 'base64');
 
-      const imageBuffer =
-        Buffer.from(base64, 'base64');
+      const now = new Date();
+      const year = String(now.getUTCFullYear());
+      const month = String(now.getUTCMonth() + 1).padStart(2, '0');
 
-      await mkdir(storageDirectory, { recursive: true });
-      await writeFile(
-        join(storageDirectory, filename),
-        imageBuffer,
-      );
+      const storagePath = ['brands', brand.id, year, month, filename].join('/');
 
-      const apiBaseUrl =
-        this.configService.get<string>('API_PUBLIC_URL') ||
-        `http://localhost:${this.configService.get<string>('PORT') || '3001'}`;
+      const uploaded = await this.storageService.uploadImage({
+        buffer: imageBuffer,
+        path: storagePath,
+        contentType: 'image/png',
+      });
 
-      const url = `${apiBaseUrl}/storage/assets/${filename}`;
+      const url = uploaded.publicUrl;
       const [width, height] = size.split('x').map(Number);
 
       const asset = await this.prisma.asset.create({
@@ -105,16 +97,13 @@ export class AssetImageService {
           generationModel: model,
           generationSize: size,
           generationQuality: quality,
-          generationDurationMs:
-            Date.now() - generationStartedAt,
-          storageProvider: 'railway-local',
-          storagePath:
-            `storage/assets/${filename}`,
-          fileSize: imageBuffer.length,
+          generationDurationMs: Date.now() - generationStartedAt,
+          storageProvider: uploaded.provider,
+          storagePath: uploaded.path,
+          fileSize: uploaded.size,
           tags: [
             'ai-generated',
-            dto.platform?.toLowerCase() ??
-              'multi-platform',
+            dto.platform?.toLowerCase() ?? 'multi-platform',
           ],
           url,
           thumbnailUrl: url,
@@ -158,7 +147,9 @@ export class AssetImageService {
       };
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Unknown image generation error';
+        error instanceof Error
+          ? error.message
+          : 'Unknown image generation error';
 
       throw new InternalServerErrorException(
         `Image generation failed: ${message}`,
