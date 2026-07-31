@@ -498,10 +498,12 @@ export class AiService {
       await this.prisma.aiUsage.create({
         data: {
           historyId: history.id,
+          feature: 'CONTENT_GENERATION',
           model,
           promptTokens,
           cachedInputTokens,
           completionTokens,
+          reasoningTokens: 0,
           totalTokens,
           estimatedCostUsd,
           estimatedCostMyr,

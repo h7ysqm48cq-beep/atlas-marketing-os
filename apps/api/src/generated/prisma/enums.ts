@@ -60,6 +60,16 @@ export const AssetType = {
 export type AssetType = (typeof AssetType)[keyof typeof AssetType]
 
 
+export const AiUsageFeature = {
+  CONTENT_GENERATION: 'CONTENT_GENERATION',
+  COPILOT_CHAT: 'COPILOT_CHAT',
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN',
+  OTHER: 'OTHER'
+} as const
+
+export type AiUsageFeature = (typeof AiUsageFeature)[keyof typeof AiUsageFeature]
+
+
 export const SocialPlatform = {
   FACEBOOK: 'FACEBOOK',
   TELEGRAM: 'TELEGRAM'

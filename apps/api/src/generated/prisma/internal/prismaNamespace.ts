@@ -1997,10 +1997,13 @@ export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalar
 export const AiUsageScalarFieldEnum = {
   id: 'id',
   historyId: 'historyId',
+  conversationId: 'conversationId',
+  feature: 'feature',
   model: 'model',
   promptTokens: 'promptTokens',
   cachedInputTokens: 'cachedInputTokens',
   completionTokens: 'completionTokens',
+  reasoningTokens: 'reasoningTokens',
   totalTokens: 'totalTokens',
   estimatedCostUsd: 'estimatedCostUsd',
   estimatedCostMyr: 'estimatedCostMyr',
@@ -2335,6 +2338,20 @@ export type EnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'AssetType[]'
  */
 export type ListEnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AiUsageFeature'
+ */
+export type EnumAiUsageFeatureFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiUsageFeature'>
+    
+
+
+/**
+ * Reference to a field of type 'AiUsageFeature[]'
+ */
+export type ListEnumAiUsageFeatureFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiUsageFeature[]'>
     
 
 

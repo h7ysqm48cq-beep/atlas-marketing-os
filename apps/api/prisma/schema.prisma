@@ -286,17 +286,28 @@ model KnowledgeEmbedding {
   @@index([embeddedAt])
 }
 
+enum AiUsageFeature {
+  CONTENT_GENERATION
+  COPILOT_CHAT
+  COPILOT_MARKETING_PLAN
+  OTHER
+}
+
 model AiUsage {
   id String @id @default(cuid())
 
   historyId String?
   history   GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
 
-  model String
+  conversationId String?
+
+  feature AiUsageFeature @default(OTHER)
+  model   String
 
   promptTokens      Int
   cachedInputTokens Int @default(0)
   completionTokens  Int
+  reasoningTokens   Int @default(0)
   totalTokens       Int
 
   estimatedCostUsd Float
@@ -307,6 +318,8 @@ model AiUsage {
   createdAt DateTime @default(now())
 
   @@index([historyId])
+  @@index([conversationId])
+  @@index([feature])
   @@index([model])
   @@index([createdAt])
 }

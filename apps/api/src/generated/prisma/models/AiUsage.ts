@@ -30,6 +30,7 @@ export type AiUsageAvgAggregateOutputType = {
   promptTokens: number | null
   cachedInputTokens: number | null
   completionTokens: number | null
+  reasoningTokens: number | null
   totalTokens: number | null
   estimatedCostUsd: number | null
   estimatedCostMyr: number | null
@@ -40,6 +41,7 @@ export type AiUsageSumAggregateOutputType = {
   promptTokens: number | null
   cachedInputTokens: number | null
   completionTokens: number | null
+  reasoningTokens: number | null
   totalTokens: number | null
   estimatedCostUsd: number | null
   estimatedCostMyr: number | null
@@ -49,10 +51,13 @@ export type AiUsageSumAggregateOutputType = {
 export type AiUsageMinAggregateOutputType = {
   id: string | null
   historyId: string | null
+  conversationId: string | null
+  feature: $Enums.AiUsageFeature | null
   model: string | null
   promptTokens: number | null
   cachedInputTokens: number | null
   completionTokens: number | null
+  reasoningTokens: number | null
   totalTokens: number | null
   estimatedCostUsd: number | null
   estimatedCostMyr: number | null
@@ -63,10 +68,13 @@ export type AiUsageMinAggregateOutputType = {
 export type AiUsageMaxAggregateOutputType = {
   id: string | null
   historyId: string | null
+  conversationId: string | null
+  feature: $Enums.AiUsageFeature | null
   model: string | null
   promptTokens: number | null
   cachedInputTokens: number | null
   completionTokens: number | null
+  reasoningTokens: number | null
   totalTokens: number | null
   estimatedCostUsd: number | null
   estimatedCostMyr: number | null
@@ -77,10 +85,13 @@ export type AiUsageMaxAggregateOutputType = {
 export type AiUsageCountAggregateOutputType = {
   id: number
   historyId: number
+  conversationId: number
+  feature: number
   model: number
   promptTokens: number
   cachedInputTokens: number
   completionTokens: number
+  reasoningTokens: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -94,6 +105,7 @@ export type AiUsageAvgAggregateInputType = {
   promptTokens?: true
   cachedInputTokens?: true
   completionTokens?: true
+  reasoningTokens?: true
   totalTokens?: true
   estimatedCostUsd?: true
   estimatedCostMyr?: true
@@ -104,6 +116,7 @@ export type AiUsageSumAggregateInputType = {
   promptTokens?: true
   cachedInputTokens?: true
   completionTokens?: true
+  reasoningTokens?: true
   totalTokens?: true
   estimatedCostUsd?: true
   estimatedCostMyr?: true
@@ -113,10 +126,13 @@ export type AiUsageSumAggregateInputType = {
 export type AiUsageMinAggregateInputType = {
   id?: true
   historyId?: true
+  conversationId?: true
+  feature?: true
   model?: true
   promptTokens?: true
   cachedInputTokens?: true
   completionTokens?: true
+  reasoningTokens?: true
   totalTokens?: true
   estimatedCostUsd?: true
   estimatedCostMyr?: true
@@ -127,10 +143,13 @@ export type AiUsageMinAggregateInputType = {
 export type AiUsageMaxAggregateInputType = {
   id?: true
   historyId?: true
+  conversationId?: true
+  feature?: true
   model?: true
   promptTokens?: true
   cachedInputTokens?: true
   completionTokens?: true
+  reasoningTokens?: true
   totalTokens?: true
   estimatedCostUsd?: true
   estimatedCostMyr?: true
@@ -141,10 +160,13 @@ export type AiUsageMaxAggregateInputType = {
 export type AiUsageCountAggregateInputType = {
   id?: true
   historyId?: true
+  conversationId?: true
+  feature?: true
   model?: true
   promptTokens?: true
   cachedInputTokens?: true
   completionTokens?: true
+  reasoningTokens?: true
   totalTokens?: true
   estimatedCostUsd?: true
   estimatedCostMyr?: true
@@ -242,10 +264,13 @@ export type AiUsageGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 export type AiUsageGroupByOutputType = {
   id: string
   historyId: string | null
+  conversationId: string | null
+  feature: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens: number
   completionTokens: number
+  reasoningTokens: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -279,10 +304,13 @@ export type AiUsageWhereInput = {
   NOT?: Prisma.AiUsageWhereInput | Prisma.AiUsageWhereInput[]
   id?: Prisma.StringFilter<"AiUsage"> | string
   historyId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  conversationId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  feature?: Prisma.EnumAiUsageFeatureFilter<"AiUsage"> | $Enums.AiUsageFeature
   model?: Prisma.StringFilter<"AiUsage"> | string
   promptTokens?: Prisma.IntFilter<"AiUsage"> | number
   cachedInputTokens?: Prisma.IntFilter<"AiUsage"> | number
   completionTokens?: Prisma.IntFilter<"AiUsage"> | number
+  reasoningTokens?: Prisma.IntFilter<"AiUsage"> | number
   totalTokens?: Prisma.IntFilter<"AiUsage"> | number
   estimatedCostUsd?: Prisma.FloatFilter<"AiUsage"> | number
   estimatedCostMyr?: Prisma.FloatFilter<"AiUsage"> | number
@@ -294,10 +322,13 @@ export type AiUsageWhereInput = {
 export type AiUsageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
+  conversationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  feature?: Prisma.SortOrder
   model?: Prisma.SortOrder
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -312,10 +343,13 @@ export type AiUsageWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.AiUsageWhereInput[]
   NOT?: Prisma.AiUsageWhereInput | Prisma.AiUsageWhereInput[]
   historyId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  conversationId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  feature?: Prisma.EnumAiUsageFeatureFilter<"AiUsage"> | $Enums.AiUsageFeature
   model?: Prisma.StringFilter<"AiUsage"> | string
   promptTokens?: Prisma.IntFilter<"AiUsage"> | number
   cachedInputTokens?: Prisma.IntFilter<"AiUsage"> | number
   completionTokens?: Prisma.IntFilter<"AiUsage"> | number
+  reasoningTokens?: Prisma.IntFilter<"AiUsage"> | number
   totalTokens?: Prisma.IntFilter<"AiUsage"> | number
   estimatedCostUsd?: Prisma.FloatFilter<"AiUsage"> | number
   estimatedCostMyr?: Prisma.FloatFilter<"AiUsage"> | number
@@ -327,10 +361,13 @@ export type AiUsageWhereUniqueInput = Prisma.AtLeast<{
 export type AiUsageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
+  conversationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  feature?: Prisma.SortOrder
   model?: Prisma.SortOrder
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -349,10 +386,13 @@ export type AiUsageScalarWhereWithAggregatesInput = {
   NOT?: Prisma.AiUsageScalarWhereWithAggregatesInput | Prisma.AiUsageScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"AiUsage"> | string
   historyId?: Prisma.StringNullableWithAggregatesFilter<"AiUsage"> | string | null
+  conversationId?: Prisma.StringNullableWithAggregatesFilter<"AiUsage"> | string | null
+  feature?: Prisma.EnumAiUsageFeatureWithAggregatesFilter<"AiUsage"> | $Enums.AiUsageFeature
   model?: Prisma.StringWithAggregatesFilter<"AiUsage"> | string
   promptTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
   cachedInputTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
   completionTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
+  reasoningTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
   totalTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
   estimatedCostUsd?: Prisma.FloatWithAggregatesFilter<"AiUsage"> | number
   estimatedCostMyr?: Prisma.FloatWithAggregatesFilter<"AiUsage"> | number
@@ -362,10 +402,13 @@ export type AiUsageScalarWhereWithAggregatesInput = {
 
 export type AiUsageCreateInput = {
   id?: string
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -377,10 +420,13 @@ export type AiUsageCreateInput = {
 export type AiUsageUncheckedCreateInput = {
   id?: string
   historyId?: string | null
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -390,10 +436,13 @@ export type AiUsageUncheckedCreateInput = {
 
 export type AiUsageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -405,10 +454,13 @@ export type AiUsageUpdateInput = {
 export type AiUsageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -419,10 +471,13 @@ export type AiUsageUncheckedUpdateInput = {
 export type AiUsageCreateManyInput = {
   id?: string
   historyId?: string | null
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -432,10 +487,13 @@ export type AiUsageCreateManyInput = {
 
 export type AiUsageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -446,10 +504,13 @@ export type AiUsageUpdateManyMutationInput = {
 export type AiUsageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -470,10 +531,13 @@ export type AiUsageOrderByRelationAggregateInput = {
 export type AiUsageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   historyId?: Prisma.SortOrder
+  conversationId?: Prisma.SortOrder
+  feature?: Prisma.SortOrder
   model?: Prisma.SortOrder
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -485,6 +549,7 @@ export type AiUsageAvgOrderByAggregateInput = {
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -494,10 +559,13 @@ export type AiUsageAvgOrderByAggregateInput = {
 export type AiUsageMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   historyId?: Prisma.SortOrder
+  conversationId?: Prisma.SortOrder
+  feature?: Prisma.SortOrder
   model?: Prisma.SortOrder
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -508,10 +576,13 @@ export type AiUsageMaxOrderByAggregateInput = {
 export type AiUsageMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   historyId?: Prisma.SortOrder
+  conversationId?: Prisma.SortOrder
+  feature?: Prisma.SortOrder
   model?: Prisma.SortOrder
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -523,6 +594,7 @@ export type AiUsageSumOrderByAggregateInput = {
   promptTokens?: Prisma.SortOrder
   cachedInputTokens?: Prisma.SortOrder
   completionTokens?: Prisma.SortOrder
+  reasoningTokens?: Prisma.SortOrder
   totalTokens?: Prisma.SortOrder
   estimatedCostUsd?: Prisma.SortOrder
   estimatedCostMyr?: Prisma.SortOrder
@@ -571,6 +643,10 @@ export type AiUsageUncheckedUpdateManyWithoutHistoryNestedInput = {
   deleteMany?: Prisma.AiUsageScalarWhereInput | Prisma.AiUsageScalarWhereInput[]
 }
 
+export type EnumAiUsageFeatureFieldUpdateOperationsInput = {
+  set?: $Enums.AiUsageFeature
+}
+
 export type FloatFieldUpdateOperationsInput = {
   set?: number
   increment?: number
@@ -581,10 +657,13 @@ export type FloatFieldUpdateOperationsInput = {
 
 export type AiUsageCreateWithoutHistoryInput = {
   id?: string
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -594,10 +673,13 @@ export type AiUsageCreateWithoutHistoryInput = {
 
 export type AiUsageUncheckedCreateWithoutHistoryInput = {
   id?: string
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -637,10 +719,13 @@ export type AiUsageScalarWhereInput = {
   NOT?: Prisma.AiUsageScalarWhereInput | Prisma.AiUsageScalarWhereInput[]
   id?: Prisma.StringFilter<"AiUsage"> | string
   historyId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  conversationId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
+  feature?: Prisma.EnumAiUsageFeatureFilter<"AiUsage"> | $Enums.AiUsageFeature
   model?: Prisma.StringFilter<"AiUsage"> | string
   promptTokens?: Prisma.IntFilter<"AiUsage"> | number
   cachedInputTokens?: Prisma.IntFilter<"AiUsage"> | number
   completionTokens?: Prisma.IntFilter<"AiUsage"> | number
+  reasoningTokens?: Prisma.IntFilter<"AiUsage"> | number
   totalTokens?: Prisma.IntFilter<"AiUsage"> | number
   estimatedCostUsd?: Prisma.FloatFilter<"AiUsage"> | number
   estimatedCostMyr?: Prisma.FloatFilter<"AiUsage"> | number
@@ -650,10 +735,13 @@ export type AiUsageScalarWhereInput = {
 
 export type AiUsageCreateManyHistoryInput = {
   id?: string
+  conversationId?: string | null
+  feature?: $Enums.AiUsageFeature
   model: string
   promptTokens: number
   cachedInputTokens?: number
   completionTokens: number
+  reasoningTokens?: number
   totalTokens: number
   estimatedCostUsd: number
   estimatedCostMyr: number
@@ -663,10 +751,13 @@ export type AiUsageCreateManyHistoryInput = {
 
 export type AiUsageUpdateWithoutHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -676,10 +767,13 @@ export type AiUsageUpdateWithoutHistoryInput = {
 
 export type AiUsageUncheckedUpdateWithoutHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -689,10 +783,13 @@ export type AiUsageUncheckedUpdateWithoutHistoryInput = {
 
 export type AiUsageUncheckedUpdateManyWithoutHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  conversationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  feature?: Prisma.EnumAiUsageFeatureFieldUpdateOperationsInput | $Enums.AiUsageFeature
   model?: Prisma.StringFieldUpdateOperationsInput | string
   promptTokens?: Prisma.IntFieldUpdateOperationsInput | number
   cachedInputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   completionTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  reasoningTokens?: Prisma.IntFieldUpdateOperationsInput | number
   totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
   estimatedCostUsd?: Prisma.FloatFieldUpdateOperationsInput | number
   estimatedCostMyr?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -705,10 +802,13 @@ export type AiUsageUncheckedUpdateManyWithoutHistoryInput = {
 export type AiUsageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   historyId?: boolean
+  conversationId?: boolean
+  feature?: boolean
   model?: boolean
   promptTokens?: boolean
   cachedInputTokens?: boolean
   completionTokens?: boolean
+  reasoningTokens?: boolean
   totalTokens?: boolean
   estimatedCostUsd?: boolean
   estimatedCostMyr?: boolean
@@ -720,10 +820,13 @@ export type AiUsageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type AiUsageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   historyId?: boolean
+  conversationId?: boolean
+  feature?: boolean
   model?: boolean
   promptTokens?: boolean
   cachedInputTokens?: boolean
   completionTokens?: boolean
+  reasoningTokens?: boolean
   totalTokens?: boolean
   estimatedCostUsd?: boolean
   estimatedCostMyr?: boolean
@@ -735,10 +838,13 @@ export type AiUsageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type AiUsageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   historyId?: boolean
+  conversationId?: boolean
+  feature?: boolean
   model?: boolean
   promptTokens?: boolean
   cachedInputTokens?: boolean
   completionTokens?: boolean
+  reasoningTokens?: boolean
   totalTokens?: boolean
   estimatedCostUsd?: boolean
   estimatedCostMyr?: boolean
@@ -750,10 +856,13 @@ export type AiUsageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type AiUsageSelectScalar = {
   id?: boolean
   historyId?: boolean
+  conversationId?: boolean
+  feature?: boolean
   model?: boolean
   promptTokens?: boolean
   cachedInputTokens?: boolean
   completionTokens?: boolean
+  reasoningTokens?: boolean
   totalTokens?: boolean
   estimatedCostUsd?: boolean
   estimatedCostMyr?: boolean
@@ -761,7 +870,7 @@ export type AiUsageSelectScalar = {
   createdAt?: boolean
 }
 
-export type AiUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "historyId" | "model" | "promptTokens" | "cachedInputTokens" | "completionTokens" | "totalTokens" | "estimatedCostUsd" | "estimatedCostMyr" | "durationMs" | "createdAt", ExtArgs["result"]["aiUsage"]>
+export type AiUsageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "historyId" | "conversationId" | "feature" | "model" | "promptTokens" | "cachedInputTokens" | "completionTokens" | "reasoningTokens" | "totalTokens" | "estimatedCostUsd" | "estimatedCostMyr" | "durationMs" | "createdAt", ExtArgs["result"]["aiUsage"]>
 export type AiUsageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   history?: boolean | Prisma.AiUsage$historyArgs<ExtArgs>
 }
@@ -780,10 +889,13 @@ export type $AiUsagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     historyId: string | null
+    conversationId: string | null
+    feature: $Enums.AiUsageFeature
     model: string
     promptTokens: number
     cachedInputTokens: number
     completionTokens: number
+    reasoningTokens: number
     totalTokens: number
     estimatedCostUsd: number
     estimatedCostMyr: number
@@ -1215,10 +1327,13 @@ export interface Prisma__AiUsageClient<T, Null = never, ExtArgs extends runtime.
 export interface AiUsageFieldRefs {
   readonly id: Prisma.FieldRef<"AiUsage", 'String'>
   readonly historyId: Prisma.FieldRef<"AiUsage", 'String'>
+  readonly conversationId: Prisma.FieldRef<"AiUsage", 'String'>
+  readonly feature: Prisma.FieldRef<"AiUsage", 'AiUsageFeature'>
   readonly model: Prisma.FieldRef<"AiUsage", 'String'>
   readonly promptTokens: Prisma.FieldRef<"AiUsage", 'Int'>
   readonly cachedInputTokens: Prisma.FieldRef<"AiUsage", 'Int'>
   readonly completionTokens: Prisma.FieldRef<"AiUsage", 'Int'>
+  readonly reasoningTokens: Prisma.FieldRef<"AiUsage", 'Int'>
   readonly totalTokens: Prisma.FieldRef<"AiUsage", 'Int'>
   readonly estimatedCostUsd: Prisma.FieldRef<"AiUsage", 'Float'>
   readonly estimatedCostMyr: Prisma.FieldRef<"AiUsage", 'Float'>

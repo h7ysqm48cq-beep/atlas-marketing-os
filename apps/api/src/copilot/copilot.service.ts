@@ -265,10 +265,16 @@ Description: ${campaign.description || 'Not set'}`
         await this.prisma.aiUsage.create({
           data: {
             historyId: null,
+            conversationId: conversation.id,
+            feature:
+              mode === 'marketing-plan'
+                ? 'COPILOT_MARKETING_PLAN'
+                : 'COPILOT_CHAT',
             model,
             promptTokens,
             cachedInputTokens,
             completionTokens,
+            reasoningTokens,
             totalTokens,
             estimatedCostUsd: cost.estimatedCostUsd,
             estimatedCostMyr: cost.estimatedCostMyr,

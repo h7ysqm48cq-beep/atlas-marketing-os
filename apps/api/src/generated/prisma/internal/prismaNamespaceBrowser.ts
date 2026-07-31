@@ -279,10 +279,13 @@ export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalar
 export const AiUsageScalarFieldEnum = {
   id: 'id',
   historyId: 'historyId',
+  conversationId: 'conversationId',
+  feature: 'feature',
   model: 'model',
   promptTokens: 'promptTokens',
   cachedInputTokens: 'cachedInputTokens',
   completionTokens: 'completionTokens',
+  reasoningTokens: 'reasoningTokens',
   totalTokens: 'totalTokens',
   estimatedCostUsd: 'estimatedCostUsd',
   estimatedCostMyr: 'estimatedCostMyr',
