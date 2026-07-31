@@ -69,6 +69,8 @@ export type AssetMinAggregateOutputType = {
   width: number | null
   height: number | null
   collection: string | null
+  remark: string | null
+  aiEnabled: boolean | null
   isFavorite: boolean | null
   downloadCount: number | null
   usedCount: number | null
@@ -102,6 +104,8 @@ export type AssetMaxAggregateOutputType = {
   width: number | null
   height: number | null
   collection: string | null
+  remark: string | null
+  aiEnabled: boolean | null
   isFavorite: boolean | null
   downloadCount: number | null
   usedCount: number | null
@@ -136,6 +140,8 @@ export type AssetCountAggregateOutputType = {
   height: number
   tags: number
   collection: number
+  remark: number
+  aiEnabled: number
   isFavorite: number
   downloadCount: number
   usedCount: number
@@ -189,6 +195,8 @@ export type AssetMinAggregateInputType = {
   width?: true
   height?: true
   collection?: true
+  remark?: true
+  aiEnabled?: true
   isFavorite?: true
   downloadCount?: true
   usedCount?: true
@@ -222,6 +230,8 @@ export type AssetMaxAggregateInputType = {
   width?: true
   height?: true
   collection?: true
+  remark?: true
+  aiEnabled?: true
   isFavorite?: true
   downloadCount?: true
   usedCount?: true
@@ -256,6 +266,8 @@ export type AssetCountAggregateInputType = {
   height?: true
   tags?: true
   collection?: true
+  remark?: true
+  aiEnabled?: true
   isFavorite?: true
   downloadCount?: true
   usedCount?: true
@@ -377,6 +389,8 @@ export type AssetGroupByOutputType = {
   height: number | null
   tags: string[]
   collection: string | null
+  remark: string | null
+  aiEnabled: boolean
   isFavorite: boolean
   downloadCount: number
   usedCount: number
@@ -434,6 +448,8 @@ export type AssetWhereInput = {
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
   tags?: Prisma.StringNullableListFilter<"Asset">
   collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
   downloadCount?: Prisma.IntFilter<"Asset"> | number
   usedCount?: Prisma.IntFilter<"Asset"> | number
@@ -471,6 +487,8 @@ export type AssetOrderByWithRelationInput = {
   height?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrder
   collection?: Prisma.SortOrderInput | Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
@@ -511,6 +529,8 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
   tags?: Prisma.StringNullableListFilter<"Asset">
   collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
   downloadCount?: Prisma.IntFilter<"Asset"> | number
   usedCount?: Prisma.IntFilter<"Asset"> | number
@@ -548,6 +568,8 @@ export type AssetOrderByWithAggregationInput = {
   height?: Prisma.SortOrderInput | Prisma.SortOrder
   tags?: Prisma.SortOrder
   collection?: Prisma.SortOrderInput | Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
@@ -590,6 +612,8 @@ export type AssetScalarWhereWithAggregatesInput = {
   height?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
   tags?: Prisma.StringNullableListFilter<"Asset">
   collection?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  remark?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   isFavorite?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   downloadCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
   usedCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
@@ -621,6 +645,8 @@ export type AssetCreateInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -658,6 +684,8 @@ export type AssetUncheckedCreateInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -689,6 +717,8 @@ export type AssetUpdateInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -726,6 +756,8 @@ export type AssetUncheckedUpdateInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -760,6 +792,8 @@ export type AssetCreateManyInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -791,6 +825,8 @@ export type AssetUpdateManyMutationInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -825,6 +861,8 @@ export type AssetUncheckedUpdateManyInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -869,6 +907,8 @@ export type AssetCountOrderByAggregateInput = {
   height?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   collection?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
@@ -911,6 +951,8 @@ export type AssetMaxOrderByAggregateInput = {
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
   collection?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
@@ -944,6 +986,8 @@ export type AssetMinOrderByAggregateInput = {
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
   collection?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
@@ -1131,6 +1175,8 @@ export type AssetCreateWithoutBrandInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1166,6 +1212,8 @@ export type AssetUncheckedCreateWithoutBrandInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1229,6 +1277,8 @@ export type AssetScalarWhereInput = {
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
   tags?: Prisma.StringNullableListFilter<"Asset">
   collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
   downloadCount?: Prisma.IntFilter<"Asset"> | number
   usedCount?: Prisma.IntFilter<"Asset"> | number
@@ -1260,6 +1310,8 @@ export type AssetCreateWithoutCampaignInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1295,6 +1347,8 @@ export type AssetUncheckedCreateWithoutCampaignInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1352,6 +1406,8 @@ export type AssetCreateWithoutHistoryInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1387,6 +1443,8 @@ export type AssetUncheckedCreateWithoutHistoryInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1446,6 +1504,8 @@ export type AssetCreateManyBrandInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1477,6 +1537,8 @@ export type AssetUpdateWithoutBrandInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1512,6 +1574,8 @@ export type AssetUncheckedUpdateWithoutBrandInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1545,6 +1609,8 @@ export type AssetUncheckedUpdateManyWithoutBrandInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1578,6 +1644,8 @@ export type AssetCreateManyCampaignInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1609,6 +1677,8 @@ export type AssetUpdateWithoutCampaignInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1644,6 +1714,8 @@ export type AssetUncheckedUpdateWithoutCampaignInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1677,6 +1749,8 @@ export type AssetUncheckedUpdateManyWithoutCampaignInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1710,6 +1784,8 @@ export type AssetCreateManyHistoryInput = {
   height?: number | null
   tags?: Prisma.AssetCreatetagsInput | string[]
   collection?: string | null
+  remark?: string | null
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: number
   usedCount?: number
@@ -1741,6 +1817,8 @@ export type AssetUpdateWithoutHistoryInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1776,6 +1854,8 @@ export type AssetUncheckedUpdateWithoutHistoryInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1809,6 +1889,8 @@ export type AssetUncheckedUpdateManyWithoutHistoryInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   tags?: Prisma.AssetUpdatetagsInput | string[]
   collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
   downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
   usedCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1845,6 +1927,8 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   height?: boolean
   tags?: boolean
   collection?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: boolean
   usedCount?: boolean
@@ -1882,6 +1966,8 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   height?: boolean
   tags?: boolean
   collection?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: boolean
   usedCount?: boolean
@@ -1919,6 +2005,8 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   height?: boolean
   tags?: boolean
   collection?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: boolean
   usedCount?: boolean
@@ -1956,6 +2044,8 @@ export type AssetSelectScalar = {
   height?: boolean
   tags?: boolean
   collection?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   isFavorite?: boolean
   downloadCount?: boolean
   usedCount?: boolean
@@ -1964,7 +2054,7 @@ export type AssetSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "historyId" | "name" | "type" | "provider" | "platform" | "prompt" | "revisedPrompt" | "negativePrompt" | "generationModel" | "generationSize" | "generationQuality" | "generationDurationMs" | "url" | "thumbnailUrl" | "storageProvider" | "storagePath" | "fileSize" | "mimeType" | "width" | "height" | "tags" | "collection" | "isFavorite" | "downloadCount" | "usedCount" | "lastUsedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "historyId" | "name" | "type" | "provider" | "platform" | "prompt" | "revisedPrompt" | "negativePrompt" | "generationModel" | "generationSize" | "generationQuality" | "generationDurationMs" | "url" | "thumbnailUrl" | "storageProvider" | "storagePath" | "fileSize" | "mimeType" | "width" | "height" | "tags" | "collection" | "remark" | "aiEnabled" | "isFavorite" | "downloadCount" | "usedCount" | "lastUsedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.Asset$campaignArgs<ExtArgs>
@@ -2014,6 +2104,8 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     height: number | null
     tags: string[]
     collection: string | null
+    remark: string | null
+    aiEnabled: boolean
     isFavorite: boolean
     downloadCount: number
     usedCount: number
@@ -2471,6 +2563,8 @@ export interface AssetFieldRefs {
   readonly height: Prisma.FieldRef<"Asset", 'Int'>
   readonly tags: Prisma.FieldRef<"Asset", 'String[]'>
   readonly collection: Prisma.FieldRef<"Asset", 'String'>
+  readonly remark: Prisma.FieldRef<"Asset", 'String'>
+  readonly aiEnabled: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly isFavorite: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly downloadCount: Prisma.FieldRef<"Asset", 'Int'>
   readonly usedCount: Prisma.FieldRef<"Asset", 'Int'>

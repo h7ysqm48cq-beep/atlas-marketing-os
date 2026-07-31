@@ -2,14 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./CampaignsPage.module.css";
+import { usePreferences } from "@/components/preferences";
 
-import { API_URL } from '@/lib/api';
-type CampaignStatus =
-  | "DRAFT"
-  | "ACTIVE"
-  | "PAUSED"
-  | "COMPLETED"
-  | "ARCHIVED";
+import { API_URL } from "@/lib/api";
+type CampaignStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "COMPLETED" | "ARCHIVED";
 
 type Campaign = {
   id: string;
@@ -60,6 +56,144 @@ const statusOptions: CampaignStatus[] = [
 ];
 
 export function CampaignsPage() {
+  const { language } = usePreferences();
+
+  const copy =
+    language === "zh"
+      ? {
+          eyebrow: "营销活动管理",
+          title: "规划、组织并管理每一个营销活动。",
+          description:
+            "每个营销活动都是独立工作区，统一管理内容、图片、历史记录、排程与分析。",
+          newCampaign: "新增营销活动",
+          totalCampaigns: "营销活动总数",
+          active: "进行中",
+          draft: "草稿",
+          completed: "已完成",
+          search: "搜索营销活动名称、说明或目标……",
+          allStatuses: "所有状态",
+          refresh: "刷新",
+          noMatching: "没有符合条件的营销活动",
+          emptyDescription: "请创建营销活动，或调整搜索与状态筛选。",
+          createCampaign: "创建营销活动",
+          noDescription: "尚未填写营销活动说明。",
+          objective: "目标",
+          notConfigured: "尚未设置",
+          start: "开始日期",
+          end: "结束日期",
+          updated: "更新于",
+          open: "打开",
+          edit: "编辑",
+          delete: "删除",
+          editCampaign: "编辑营销活动",
+          newCampaignLabel: "新增营销活动",
+          createWorkspace: "建立营销活动工作区",
+          campaignName: "营销活动名称",
+          campaignNamePlaceholder: "例如：港剧怀旧系列",
+          descriptionLabel: "说明",
+          descriptionPlaceholder: "这个营销活动的内容是什么？",
+          objectivePlaceholder: "例如：提高 Facebook 讨论与分享",
+          status: "状态",
+          startDate: "开始日期",
+          endDate: "结束日期",
+          cancel: "取消",
+          saving: "保存中……",
+          saveChanges: "保存修改",
+          close: "关闭",
+          loading: "正在加载营销活动……",
+          noCampaigns: "尚未建立营销活动。",
+          loadFailed: "无法加载营销活动。",
+          nameRequired: "请填写营销活动名称。",
+          updating: "正在更新营销活动……",
+          creating: "正在创建营销活动……",
+          saveFailed: "无法保存营销活动。",
+          updatedSuccess: "营销活动已更新。",
+          createdSuccess: "营销活动已创建。",
+          deleting: "正在删除营销活动……",
+          deleteFailed: "无法删除营销活动。",
+          deletedSuccess: "营销活动已删除。",
+          confirmDelete: (name: string) =>
+            `确定删除“${name}”吗？此操作无法撤销。`,
+          loadedCount: (count: number) => `已加载 ${count} 个营销活动。`,
+          notSet: "尚未设置",
+          statuses: {
+            DRAFT: "草稿",
+            ACTIVE: "进行中",
+            PAUSED: "已暂停",
+            COMPLETED: "已完成",
+            ARCHIVED: "已归档",
+          } as Record<CampaignStatus, string>,
+        }
+      : {
+          eyebrow: "Campaign OS",
+          title: "Plan, organise and manage every marketing initiative.",
+          description:
+            "Each campaign becomes a dedicated workspace for content, images, history, scheduling and analytics.",
+          newCampaign: "New campaign",
+          totalCampaigns: "Total campaigns",
+          active: "Active",
+          draft: "Draft",
+          completed: "Completed",
+          search: "Search campaign name, description or objective...",
+          allStatuses: "All statuses",
+          refresh: "Refresh",
+          noMatching: "No matching campaigns",
+          emptyDescription:
+            "Create a campaign or adjust your search and status filter.",
+          createCampaign: "Create campaign",
+          noDescription: "No campaign description yet.",
+          objective: "Objective",
+          notConfigured: "Not configured",
+          start: "Start",
+          end: "End",
+          updated: "Updated",
+          open: "Open",
+          edit: "Edit",
+          delete: "Delete",
+          editCampaign: "Edit campaign",
+          newCampaignLabel: "New campaign",
+          createWorkspace: "Create a campaign workspace",
+          campaignName: "Campaign name",
+          campaignNamePlaceholder: "Example: Nostalgic drama series",
+          descriptionLabel: "Description",
+          descriptionPlaceholder: "What is this campaign about?",
+          objectivePlaceholder:
+            "Example: Increase Facebook discussion and sharing",
+          status: "Status",
+          startDate: "Start date",
+          endDate: "End date",
+          cancel: "Cancel",
+          saving: "Saving...",
+          saveChanges: "Save changes",
+          close: "Close",
+          loading: "Loading campaigns...",
+          noCampaigns: "No campaigns yet.",
+          loadFailed: "Unable to load campaigns.",
+          nameRequired: "Campaign name is required.",
+          updating: "Updating campaign...",
+          creating: "Creating campaign...",
+          saveFailed: "Unable to save campaign.",
+          updatedSuccess: "Campaign updated.",
+          createdSuccess: "Campaign created.",
+          deleting: "Deleting campaign...",
+          deleteFailed: "Unable to delete campaign.",
+          deletedSuccess: "Campaign deleted.",
+          confirmDelete: (name: string) =>
+            `Delete "${name}"? This cannot be undone.`,
+          loadedCount: (count: number) =>
+            `${count} campaign${count === 1 ? "" : "s"} loaded.`,
+          notSet: "Not set",
+          statuses: {
+            DRAFT: "Draft",
+            ACTIVE: "Active",
+            PAUSED: "Paused",
+            COMPLETED: "Completed",
+            ARCHIVED: "Archived",
+          } as Record<CampaignStatus, string>,
+        };
+
+  const locale = language === "zh" ? "zh-CN" : "en-MY";
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | "ALL">(
@@ -69,7 +203,7 @@ export function CampaignsPage() {
   const [form, setForm] = useState<CampaignForm>(emptyForm);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState("Loading campaigns...");
+  const [message, setMessage] = useState(copy.loading);
 
   useEffect(() => {
     void loadCampaigns();
@@ -110,22 +244,16 @@ export function CampaignsPage() {
 
       if (!response.ok || !Array.isArray(data)) {
         throw new Error(
-          !Array.isArray(data) && data.message
-            ? data.message
-            : "Unable to load campaigns.",
+          !Array.isArray(data) && data.message ? data.message : copy.loadFailed,
         );
       }
 
       setCampaigns(data);
       setMessage(
-        data.length === 0
-          ? "No campaigns yet."
-          : `${data.length} campaign${data.length === 1 ? "" : "s"} loaded.`,
+        data.length === 0 ? copy.noCampaigns : copy.loadedCount(data.length),
       );
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to load campaigns.",
-      );
+      setMessage(error instanceof Error ? error.message : copy.loadFailed);
     }
   }
 
@@ -169,12 +297,12 @@ export function CampaignsPage() {
     event.preventDefault();
 
     if (!form.name.trim()) {
-      setMessage("Campaign name is required.");
+      setMessage(copy.nameRequired);
       return;
     }
 
     setIsSaving(true);
-    setMessage(selected ? "Updating campaign..." : "Creating campaign...");
+    setMessage(selected ? copy.updating : copy.creating);
 
     try {
       const endpoint = selected
@@ -200,54 +328,43 @@ export function CampaignsPage() {
 
       if (!response.ok) {
         throw new Error(
-          "message" in data && data.message
-            ? data.message
-            : "Unable to save campaign.",
+          "message" in data && data.message ? data.message : copy.saveFailed,
         );
       }
 
       await loadCampaigns();
       closeModal();
-      setMessage(selected ? "Campaign updated." : "Campaign created.");
+      setMessage(selected ? copy.updatedSuccess : copy.createdSuccess);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to save campaign.",
-      );
+      setMessage(error instanceof Error ? error.message : copy.saveFailed);
     } finally {
       setIsSaving(false);
     }
   }
 
   async function deleteCampaign(campaign: Campaign) {
-    const confirmed = window.confirm(
-      `Delete "${campaign.name}"? This cannot be undone.`,
-    );
+    const confirmed = window.confirm(copy.confirmDelete(campaign.name));
 
     if (!confirmed) return;
 
-    setMessage("Deleting campaign...");
+    setMessage(copy.deleting);
 
     try {
-      const response = await fetch(
-        `${API_URL}/campaigns/${campaign.id}`,
-        {
-          method: "DELETE",
-        },
-      );
+      const response = await fetch(`${API_URL}/campaigns/${campaign.id}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
         const data = (await response.json()) as { message?: string };
-        throw new Error(data.message || "Unable to delete campaign.");
+        throw new Error(data.message || copy.deleteFailed);
       }
 
       setCampaigns((current) =>
         current.filter((item) => item.id !== campaign.id),
       );
-      setMessage("Campaign deleted.");
+      setMessage(copy.deletedSuccess);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Unable to delete campaign.",
-      );
+      setMessage(error instanceof Error ? error.message : copy.deleteFailed);
     }
   }
 
@@ -255,12 +372,9 @@ export function CampaignsPage() {
     <div className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>Campaign OS</p>
-          <h1>Plan, organise and manage every marketing initiative.</h1>
-          <p>
-            Each campaign becomes a dedicated workspace for content, images,
-            history, scheduling and future analytics.
-          </p>
+          <p className={styles.eyebrow}>{copy.eyebrow}</p>
+          <h1>{copy.title}</h1>
+          <p>{copy.description}</p>
         </div>
 
         <button className={styles.primaryButton} onClick={openCreateModal}>
@@ -269,17 +383,17 @@ export function CampaignsPage() {
       </section>
 
       <section className={styles.statsGrid}>
-        <Stat label="Total campaigns" value={stats.total} />
-        <Stat label="Active" value={stats.active} />
-        <Stat label="Draft" value={stats.draft} />
-        <Stat label="Completed" value={stats.completed} />
+        <Stat label={copy.totalCampaigns} value={stats.total} />
+        <Stat label={copy.active} value={stats.active} />
+        <Stat label={copy.draft} value={stats.draft} />
+        <Stat label={copy.completed} value={stats.completed} />
       </section>
 
       <section className={styles.toolbar}>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search campaign name, description or objective..."
+          placeholder={copy.search}
         />
 
         <select
@@ -288,15 +402,15 @@ export function CampaignsPage() {
             setStatusFilter(event.target.value as CampaignStatus | "ALL")
           }
         >
-          <option value="ALL">All statuses</option>
+          <option value="ALL">{copy.allStatuses}</option>
           {statusOptions.map((status) => (
             <option key={status} value={status}>
-              {formatStatus(status)}
+              {copy.statuses[status]}
             </option>
           ))}
         </select>
 
-        <button onClick={() => void loadCampaigns()}>Refresh</button>
+        <button onClick={() => void loadCampaigns()}>{copy.refresh}</button>
       </section>
 
       <div className={styles.statusMessage}>{message}</div>
@@ -305,63 +419,70 @@ export function CampaignsPage() {
         {filteredCampaigns.length === 0 ? (
           <div className={styles.emptyState}>
             <span>◉</span>
-            <strong>No matching campaigns</strong>
-            <p>Create a campaign or adjust your search and status filter.</p>
-            <button onClick={openCreateModal}>Create campaign</button>
+            <strong>{copy.noMatching}</strong>
+            <p>{copy.emptyDescription}</p>
+            <button onClick={openCreateModal}>{copy.createCampaign}</button>
           </div>
         ) : (
           filteredCampaigns.map((campaign) => (
             <article className={styles.card} key={campaign.id}>
               <div className={styles.cardTop}>
-                <StatusBadge status={campaign.status} />
+                <StatusBadge
+                  status={campaign.status}
+                  label={copy.statuses[campaign.status]}
+                />
                 <span className={styles.brandName}>{campaign.brand.name}</span>
               </div>
 
               <h2>{campaign.name}</h2>
               <p className={styles.description}>
-                {campaign.description || "No campaign description yet."}
+                {campaign.description || copy.noDescription}
               </p>
 
               <div className={styles.objective}>
-                <span>Objective</span>
-                <strong>{campaign.objective || "Not configured"}</strong>
+                <span>{copy.objective}</span>
+                <strong>{campaign.objective || copy.notConfigured}</strong>
               </div>
 
               <div className={styles.dateRange}>
                 <div>
-                  <span>Start</span>
-                  <strong>{formatDate(campaign.startDate)}</strong>
+                  <span>{copy.start}</span>
+                  <strong>
+                    {formatDate(campaign.startDate, locale, copy.notSet)}
+                  </strong>
                 </div>
                 <div>
-                  <span>End</span>
-                  <strong>{formatDate(campaign.endDate)}</strong>
+                  <span>{copy.end}</span>
+                  <strong>
+                    {formatDate(campaign.endDate, locale, copy.notSet)}
+                  </strong>
                 </div>
               </div>
 
               <div className={styles.cardFooter}>
-  <small>Updated {formatDateTime(campaign.updatedAt)}</small>
+                <small>
+                  {copy.updated} {formatDateTime(campaign.updatedAt, locale)}
+                </small>
 
-  <div>
-    <button
-      onClick={() => {
-        window.location.href = `/campaigns/${campaign.id}`;
-      }}
-    >
-      Open
-    </button>
+                <div>
+                  <button
+                    onClick={() => {
+                      window.location.href = `/campaigns/${campaign.id}`;
+                    }}
+                  >
+                    Open
+                  </button>
 
-    <button onClick={() => openEditModal(campaign)}>
-      Edit
-    </button>
+                  <button onClick={() => openEditModal(campaign)}>Edit</button>
 
-    <button
-      className={styles.deleteButton}
-      onClick={() => void deleteCampaign(campaign)}
-    >
-      Delete
-    </button>
-  </div>
-</div>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => void deleteCampaign(campaign)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </article>
           ))
         )}
@@ -375,69 +496,68 @@ export function CampaignsPage() {
           >
             <div className={styles.modalHeader}>
               <div>
-                <span>{selected ? "Edit campaign" : "New campaign"}</span>
-                <h2>{selected?.name || "Create a campaign workspace"}</h2>
+                <span>
+                  {selected ? copy.editCampaign : copy.newCampaignLabel}
+                </span>
+                <h2>{selected?.name || copy.createWorkspace}</h2>
               </div>
-              <button onClick={closeModal} aria-label="Close">
+              <button onClick={closeModal} aria-label={copy.close}>
                 ×
               </button>
             </div>
 
             <form onSubmit={saveCampaign}>
               <label className={styles.field}>
-                <span>Campaign name</span>
+                <span>{copy.campaignName}</span>
                 <input
                   value={form.name}
                   onChange={(event) => updateForm("name", event.target.value)}
-                  placeholder="Example: 港剧怀旧系列"
+                  placeholder={copy.campaignNamePlaceholder}
                   required
                 />
               </label>
 
               <label className={styles.field}>
-                <span>Description</span>
+                <span>{copy.descriptionLabel}</span>
                 <textarea
                   value={form.description}
                   onChange={(event) =>
                     updateForm("description", event.target.value)
                   }
-                  placeholder="What is this campaign about?"
+                  placeholder={copy.descriptionPlaceholder}
                 />
               </label>
 
               <label className={styles.field}>
-                <span>Objective</span>
+                <span>{copy.objective}</span>
                 <textarea
                   value={form.objective}
                   onChange={(event) =>
                     updateForm("objective", event.target.value)
                   }
-                  placeholder="Example: Increase Facebook discussion and sharing"
+                  placeholder={copy.objectivePlaceholder}
                 />
               </label>
 
               <div className={styles.formGrid}>
                 <label className={styles.field}>
-                  <span>Status</span>
+                  <span>{copy.status}</span>
                   <select
                     value={form.status}
                     onChange={(event) =>
-                      updateForm(
-                        "status",
-                        event.target.value as CampaignStatus,
-                      )
+                      updateForm("status", event.target.value as CampaignStatus)
                     }
                   >
                     {statusOptions.map((status) => (
                       <option key={status} value={status}>
-                        {formatStatus(status)}
+                        {copy.statuses[status]}
                       </option>
                     ))}
                   </select>
                 </label>
 
                 <label className={styles.field}>
-                  <span>Start date</span>
+                  <span>{copy.startDate}</span>
                   <input
                     type="date"
                     value={form.startDate}
@@ -448,7 +568,7 @@ export function CampaignsPage() {
                 </label>
 
                 <label className={styles.field}>
-                  <span>End date</span>
+                  <span>{copy.endDate}</span>
                   <input
                     type="date"
                     value={form.endDate}
@@ -469,10 +589,10 @@ export function CampaignsPage() {
                   disabled={isSaving}
                 >
                   {isSaving
-                    ? "Saving..."
+                    ? copy.saving
                     : selected
-                      ? "Save changes"
-                      : "Create campaign"}
+                      ? copy.saveChanges
+                      : copy.createCampaign}
                 </button>
               </div>
             </form>
@@ -492,12 +612,16 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function StatusBadge({ status }: { status: CampaignStatus }) {
+function StatusBadge({
+  status,
+  label,
+}: {
+  status: CampaignStatus;
+  label: string;
+}) {
   return (
-    <span
-      className={`${styles.statusBadge} ${styles[`status${status}`]}`}
-    >
-      {formatStatus(status)}
+    <span className={`${styles.statusBadge} ${styles[`status${status}`]}`}>
+      {label}
     </span>
   );
 }
@@ -511,10 +635,10 @@ function toDateInput(value: string | null) {
   return value.slice(0, 10);
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "Not set";
+function formatDate(value: string | null, locale: string, emptyLabel: string) {
+  if (!value) return emptyLabel;
 
-  return new Intl.DateTimeFormat("en-MY", {
+  return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -522,8 +646,8 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-MY", {
+function formatDateTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));

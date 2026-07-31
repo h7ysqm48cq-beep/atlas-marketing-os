@@ -1,29 +1,34 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { usePreferences } from "@/components/preferences";
+import type { TranslationKey } from "@/components/preferences/translations";
 
-const mainItems = [
-  ['Dashboard', '⌂', '/'],
-  ['Campaigns', '◉', '/campaigns'],
-  ['Content History', '▤', '/content-history'],
-  ['Automation', '↻', '/automation'],
-  ['Calendar', '□', '/calendar'],
-  ['AI Studio', '✦', '/ai-studio'],
-  ['Brand Copilot', '◎', '/copilot'],
-  ['Analytics', '⌁', '/ai-usage'],
+type NavigationItem = [TranslationKey, string, string];
+
+const mainItems: NavigationItem[] = [
+  ["dashboard", "⌂", "/"],
+  ["campaigns", "◉", "/campaigns"],
+  ["contentHistory", "▤", "/content-history"],
+  ["automation", "↻", "/automation"],
+  ["calendar", "□", "/calendar"],
+  ["aiStudio", "✦", "/ai-studio"],
+  ["brandCopilot", "◎", "/copilot"],
+  ["analytics", "⌁", "/ai-usage"],
 ];
 
-const resourceItems = [
-  ['Asset Library', '◇', '/assets'],
-  ['Prompt Library', '≡', '/prompts'],
-  ['Brand Brain', '◆', '/brand-brain'],
-  ['Knowledge', '◈', '/knowledge'],
-  ['Settings', '⚙', '/settings'],
+const resourceItems: NavigationItem[] = [
+  ["assetLibrary", "◇", "/assets"],
+  ["promptLibrary", "≡", "/prompts"],
+  ["brandBrain", "◆", "/brand-brain"],
+  ["knowledge", "◈", "/knowledge"],
+  ["settings", "⚙", "/settings"],
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -36,42 +41,30 @@ export function Sidebar() {
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         closeSidebar();
       }
     }
 
-    window.addEventListener(
-      'atlas:toggle-mobile-navigation',
-      toggleSidebar,
-    );
-    window.addEventListener(
-      'atlas:close-mobile-navigation',
-      closeSidebar,
-    );
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("atlas:toggle-mobile-navigation", toggleSidebar);
+    window.addEventListener("atlas:close-mobile-navigation", closeSidebar);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       window.removeEventListener(
-        'atlas:toggle-mobile-navigation',
+        "atlas:toggle-mobile-navigation",
         toggleSidebar,
       );
-      window.removeEventListener(
-        'atlas:close-mobile-navigation',
-        closeSidebar,
-      );
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("atlas:close-mobile-navigation", closeSidebar);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle(
-      'mobile-nav-open',
-      mobileOpen,
-    );
+    document.body.classList.toggle("mobile-nav-open", mobileOpen);
 
     return () => {
-      document.body.classList.remove('mobile-nav-open');
+      document.body.classList.remove("mobile-nav-open");
     };
   }, [mobileOpen]);
 
@@ -80,11 +73,11 @@ export function Sidebar() {
   }, [pathname]);
 
   function isActive(href: string) {
-    if (href === '/') {
-      return pathname === '/';
+    if (href === "/") {
+      return pathname === "/";
     }
 
-    if (href === '#') {
+    if (href === "#") {
       return false;
     }
 
@@ -95,20 +88,20 @@ export function Sidebar() {
     setMobileOpen(false);
   }
 
-  function renderItems(items: string[][]) {
+  function renderItems(items: NavigationItem[]) {
     return items.map(([label, icon, href]) => {
       const active = isActive(href);
 
       return (
         <a
-          className={`nav-item${active ? ' active' : ''}`}
+          className={`nav-item${active ? " active" : ""}`}
           href={href}
-          key={label}
-          aria-current={active ? 'page' : undefined}
+          key={href}
+          aria-current={active ? "page" : undefined}
           onClick={closeMobileNavigation}
         >
           <span className="nav-icon">{icon}</span>
-          <span>{label}</span>
+          <span>{t(label)}</span>
         </a>
       );
     });
@@ -118,18 +111,14 @@ export function Sidebar() {
     <>
       <button
         type="button"
-        className={`mobile-nav-overlay${
-          mobileOpen ? ' visible' : ''
-        }`}
-        aria-label="Close navigation"
+        className={`mobile-nav-overlay${mobileOpen ? " visible" : ""}`}
+        aria-label={t("closeNavigation")}
         onClick={closeMobileNavigation}
       />
 
       <aside
-        className={`sidebar${
-          mobileOpen ? ' mobile-open' : ''
-        }`}
-        aria-label="Main navigation"
+        className={`sidebar${mobileOpen ? " mobile-open" : ""}`}
+        aria-label={t("mainNavigation")}
       >
         <div className="sidebar-mobile-header">
           <div className="brand sidebar-mobile-brand">
@@ -137,16 +126,14 @@ export function Sidebar() {
 
             <div>
               <div className="brand-title">Atlas</div>
-              <div className="brand-subtitle">
-                AI Marketing Suite
-              </div>
+              <div className="brand-subtitle">AI Marketing Suite</div>
             </div>
           </div>
 
           <button
             type="button"
             className="sidebar-close-button"
-            aria-label="Close navigation"
+            aria-label={t("closeNavigation")}
             onClick={closeMobileNavigation}
           >
             ×
@@ -158,35 +145,25 @@ export function Sidebar() {
 
           <div>
             <div className="brand-title">Atlas</div>
-            <div className="brand-subtitle">
-              AI Marketing Suite
-            </div>
+            <div className="brand-subtitle">AI Marketing Suite</div>
           </div>
         </div>
 
         <div className="sidebar-scroll-area">
-          <div className="nav-section-label">Workspace</div>
+          <div className="nav-section-label">{t("workspace")}</div>
 
-          <nav className="nav-list">
-            {renderItems(mainItems)}
-          </nav>
+          <nav className="nav-list">{renderItems(mainItems)}</nav>
 
-          <div className="nav-section-label">Resources</div>
+          <div className="nav-section-label">{t("resources")}</div>
 
-          <nav className="nav-list">
-            {renderItems(resourceItems)}
-          </nav>
+          <nav className="nav-list">{renderItems(resourceItems)}</nav>
         </div>
 
         <div className="sidebar-bottom">
           <div className="workspace-card">
-            <div className="workspace-label">
-              Current workspace
-            </div>
+            <div className="workspace-label">Current workspace</div>
             <div className="workspace-name">MGMBETMYR</div>
-            <div className="workspace-meta">
-              Enterprise plan
-            </div>
+            <div className="workspace-meta">Enterprise plan</div>
           </div>
         </div>
       </aside>

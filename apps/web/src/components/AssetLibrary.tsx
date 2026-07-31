@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./AssetLibrary.module.css";
+import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
 type AssetType = "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
@@ -58,6 +59,7 @@ const emptyForm: AssetForm = {
 };
 
 export function AssetLibrary() {
+  const { t } = usePreferences();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [search, setSearch] = useState("");
@@ -371,7 +373,7 @@ export function AssetLibrary() {
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>Asset Library</p>
-          <h1>Every image, video and creative asset in one workspace.</h1>
+          <h1>{t("assetLibraryTitle")}</h1>
           <p>
             Organise campaign visuals, generated images, source prompts and
             publishing formats without losing their campaign context.
@@ -404,7 +406,7 @@ export function AssetLibrary() {
               document.getElementById("asset-upload-input")?.click()
             }
           >
-            {isUploading ? "Uploading..." : "↑ Upload image"}
+            {isUploading ? "Uploading..." : `↑ ${t("uploadImage")}`}
           </button>
 
           <button
@@ -412,16 +414,16 @@ export function AssetLibrary() {
             type="button"
             onClick={() => setIsModalOpen(true)}
           >
-            + Add asset
+            + {t("addAsset")}
           </button>
         </div>
       </section>
 
       <section className={styles.stats}>
-        <Stat label="Total assets" value={stats.total} />
-        <Stat label="Images" value={stats.images} />
-        <Stat label="Campaigns" value={stats.campaigns} />
-        <Stat label="Favorites" value={stats.favorites} />
+        <Stat label={t("totalAssets")} value={stats.total} />
+        <Stat label={t("images")} value={stats.images} />
+        <Stat label={t("campaigns")} value={stats.campaigns} />
+        <Stat label={t("favorites")} value={stats.favorites} />
       </section>
 
       <section className={styles.toolbar}>
@@ -437,8 +439,8 @@ export function AssetLibrary() {
             setTypeFilter(event.target.value as AssetType | "ALL")
           }
         >
-          <option value="ALL">All types</option>
-          <option value="IMAGE">Images</option>
+          <option value="ALL">{t("allTypes")}</option>
+          <option value="IMAGE">{t("images")}</option>
           <option value="VIDEO">Videos</option>
           <option value="DOCUMENT">Documents</option>
           <option value="TEMPLATE">Templates</option>
@@ -448,7 +450,7 @@ export function AssetLibrary() {
           value={campaignFilter}
           onChange={(event) => setCampaignFilter(event.target.value)}
         >
-          <option value="ALL">All campaigns</option>
+          <option value="ALL">{t("allCampaigns")}</option>
           {campaigns.map((campaign) => (
             <option key={campaign.id} value={campaign.id}>
               {campaign.name}
@@ -460,10 +462,10 @@ export function AssetLibrary() {
           className={favoritesOnly ? styles.activeFilter : ""}
           onClick={() => setFavoritesOnly((current) => !current)}
         >
-          ★ Favorites
+          ★ {t("favorites")}
         </button>
 
-        <button onClick={() => void load()}>Refresh</button>
+        <button onClick={() => void load()}>{t("refresh")}</button>
       </section>
 
       <p className={styles.message}>{message}</p>

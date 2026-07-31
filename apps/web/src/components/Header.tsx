@@ -1,10 +1,10 @@
-'use client';
+"use client";
+import { usePreferences } from "@/components/preferences";
 
 export function Header() {
+  const { t } = usePreferences();
   function toggleMobileNavigation() {
-    window.dispatchEvent(
-      new CustomEvent('atlas:toggle-mobile-navigation'),
-    );
+    window.dispatchEvent(new CustomEvent("atlas:toggle-mobile-navigation"));
   }
 
   return (
@@ -22,7 +22,7 @@ export function Header() {
 
       <label className="search-box">
         <span>⌕</span>
-        <input placeholder="Search content, campaigns or prompts..." />
+        <input placeholder={t("searchPlaceholder")} />
         <span>⌘ K</span>
       </label>
 
@@ -32,10 +32,7 @@ export function Header() {
       </div>
 
       <div className="header-actions">
-        <button
-          className="icon-button"
-          aria-label="Notifications"
-        >
+        <button className="icon-button" aria-label="Notifications">
           ◌
         </button>
 
@@ -44,7 +41,7 @@ export function Header() {
 
           <div className="user-details">
             <div className="user-name">Loh</div>
-            <div className="user-role">Administrator</div>
+            <div className="user-role">{t("administrator")}</div>
           </div>
         </div>
       </div>

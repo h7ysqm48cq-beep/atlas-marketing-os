@@ -17,6 +17,10 @@ import type { TopicSuggestionsDto } from './dto/topic-suggestions.dto';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ContentQualityService } from './content-quality.service';
 import { AssetContextService } from './asset-context.service';
+import {
+  MarketingThinkingResult,
+  MarketingThinkingService,
+} from '../brain/marketing-thinking.service';
 
 type GeneratedContent = {
   facebook: string;
@@ -71,6 +75,7 @@ type GeneratedOutputs = GeneratedContent & {
     improvements: string[];
     reviewer: 'AI' | 'FALLBACK';
   };
+  marketingThinking: MarketingThinkingResult;
   promptChain: {
     loadedSourceCount: number;
     totalSourceCount: number;
@@ -134,6 +139,7 @@ export class AiService {
     private readonly knowledgeService: KnowledgeService,
     private readonly memoryFacts: MemoryFactsService,
     private readonly assetContextService: AssetContextService,
+    private readonly marketingThinkingService: MarketingThinkingService,
     private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -165,6 +171,35 @@ export class AiService {
       campaignId: dto.campaignId,
     });
     console.timeEnd('[AI] prompt-chain');
+
+    const marketingThinking = this.marketingThinkingService.think({
+      topic: dto.topic,
+      platforms: dto.platforms,
+      style: dto.style,
+      language: dto.language,
+      brandName: brand.name,
+      targetAudience: brand.targetAudience,
+      brandVoice: brand.brandVoice,
+      visualStyle: brand.visualStyle,
+      contentGoals: brand.contentGoals,
+      callsToAction: brand.callsToAction,
+      keywords: brand.keywords,
+      forbiddenWords: brand.forbiddenWords,
+      brandRules: brand.brandRules,
+      campaign: context.campaign
+        ? {
+            name: context.campaign.name,
+            objective: context.campaign.objective,
+          }
+        : null,
+      memory: {
+        preferredStyle: promptChain.queryUnderstanding.tone || dto.style,
+        bestPlatform:
+          promptChain.queryUnderstanding.platform || dto.platforms[0] || null,
+        bestPostingTime: null,
+        recommendations: [],
+      },
+    });
 
     const outputContract = this.promptBuilder.build(dto, brand);
 
@@ -238,6 +273,8 @@ export class AiService {
       '- Never expose internal memory records to the user.',
       '',
       assetContext.promptContext,
+      '',
+      marketingThinking.promptContext,
       '',
       'ATLAS OUTPUT CONTRACT',
       outputContract,
@@ -517,6 +554,7 @@ export class AiService {
             }
           : undefined,
         historyId: history.id,
+        marketingThinking,
         promptChain: {
           loadedSourceCount: promptChain.loadedSourceCount,
           totalSourceCount: promptChain.totalSourceCount,
@@ -791,6 +829,7 @@ export class AiService {
       select: {
         id: true,
         name: true,
+        objective: true,
       },
     });
 

@@ -29,7 +29,7 @@
 .subtitle {
   max-width: 650px;
   margin: 0;
-  color: #8d94a7;
+  color: var(--muted);
   line-height: 1.6;
 }
 
@@ -57,8 +57,8 @@
 }
 
 .secondaryButton {
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  background: #171b27;
+  border: 1px solid var(--border);
+  background: var(--panel);
   color: inherit;
   cursor: pointer;
 }
@@ -77,26 +77,23 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(
-    3,
-    minmax(0, 1fr)
-  );
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 15px;
 }
 
 .kpiCard,
 .panel {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 17px;
-  background: rgba(18, 21, 31, 0.92);
+  background: var(--panel);
 }
 
 .kpiCard {
   display: flex;
-  min-height: 128px;
+  min-height: 108px;
   flex-direction: column;
   gap: 8px;
-  padding: 20px;
+  padding: 17px;
 }
 
 .kpiCard span,
@@ -105,7 +102,7 @@
 .healthPanel span,
 .healthPanel small,
 .listContent span {
-  color: #858c9f;
+  color: var(--muted);
 }
 
 .kpiCard strong {
@@ -162,7 +159,7 @@
   gap: 13px;
   padding: 13px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--panel-soft);
 }
 
 .platformIcon {
@@ -196,8 +193,7 @@
 
 .workflowGrid {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 11px;
 }
 
@@ -207,7 +203,7 @@
   gap: 6px;
   padding: 14px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--panel-soft);
 }
 
 .workflowGrid strong {
@@ -242,19 +238,19 @@
 .tableWrap th,
 .tableWrap td {
   padding: 13px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   text-align: left;
 }
 
 .tableWrap th {
-  color: #747c8f;
+  color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .tableWrap td {
-  color: #c9cfdb;
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -275,14 +271,13 @@
 
 .empty {
   padding: 27px;
-  color: #747c8f;
+  color: var(--muted);
   text-align: center;
 }
 
 @media (max-width: 1100px) {
   .kpiGrid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mainGrid {
@@ -309,7 +304,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 /* Dashboard mobile v2 */
 @media (max-width: 700px) {
@@ -523,7 +517,6 @@
   }
 }
 
-
 /* Dashboard mobile v3 independent layout */
 .mobileSummary {
   display: none;
@@ -566,7 +559,7 @@
 
   .mobileAttention {
     margin: 8px 0 0;
-    color: #8d94a7;
+    color: var(--muted);
     font-size: 12px;
     line-height: 1.35;
   }
@@ -618,18 +611,17 @@
     gap: 5px;
     padding: 14px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
     border-radius: 16px;
-    background:
-      linear-gradient(
-        155deg,
-        rgba(20, 24, 35, 0.98),
-        rgba(15, 18, 27, 0.98)
-      );
+    background: linear-gradient(
+      155deg,
+      rgba(20, 24, 35, 0.98),
+      rgba(15, 18, 27, 0.98)
+    );
   }
 
   .mobileKpiCard span {
-    color: #858c9f;
+    color: var(--muted);
     font-size: 11px;
     font-weight: 650;
   }
@@ -646,7 +638,7 @@
   }
 
   .mobileKpiCard small {
-    color: #747c8f;
+    color: var(--muted);
     font-size: 9px;
     line-height: 1.25;
   }
@@ -683,7 +675,6 @@
     padding: 12px;
   }
 }
-
 
 /* Dashboard mobile v4 compact polish */
 @media (max-width: 700px) {
@@ -804,5 +795,75 @@
   .mobileKpiCard {
     min-height: 90px;
     padding: 11px;
+  }
+}
+
+/* Dashboard UI v2 */
+.desktopSummary {
+  display: grid;
+  gap: 18px;
+}
+
+.kpiCard,
+.panel,
+.secondaryButton,
+.listItem,
+.workflowGrid div {
+  color: var(--text);
+}
+
+.kpiCard strong,
+.panel h2,
+.listContent strong,
+.workflowGrid strong,
+.healthPanel strong,
+.tableWrap td strong {
+  color: var(--text);
+}
+
+.secondaryButton:hover {
+  border-color: rgba(120, 104, 255, 0.45);
+  background: var(--panel-soft);
+}
+
+.primaryButton:hover,
+.mobileCreateButton:hover {
+  filter: brightness(1.06);
+}
+
+.listItem {
+  border: 1px solid transparent;
+}
+
+.listItem:hover {
+  border-color: var(--border);
+}
+
+:global(html[data-theme="light"]) .kpiCard,
+:global(html[data-theme="light"]) .panel {
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .secondaryButton,
+:global(html[data-theme="light"]) .listItem,
+:global(html[data-theme="light"]) .workflowGrid div {
+  background: var(--panel-soft);
+}
+
+:global(html[data-theme="light"]) .mobileRefreshButton,
+:global(html[data-theme="light"]) .mobileKpiCard {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .mobileKpiCard strong {
+  color: var(--text);
+}
+
+@media (max-width: 1200px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

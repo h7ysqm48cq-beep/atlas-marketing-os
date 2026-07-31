@@ -56,7 +56,7 @@ export class KnowledgeRetrievalService {
   }): Promise<KnowledgeRetrievalMatch[]> {
     const documentIds = Array.from(
       new Set(input.documentIds.filter(Boolean)),
-    ).slice(0, 6);
+    ).slice(0, 4);
 
     if (!documentIds.length) {
       return [];
@@ -80,7 +80,7 @@ export class KnowledgeRetrievalService {
     return groups
       .flat()
       .sort((a, b) => b.hybridScore - a.hybridScore)
-      .slice(0, 24);
+      .slice(0, 8);
   }
 
   buildPromptContext(matches: KnowledgeRetrievalMatch[]): string {
@@ -94,18 +94,8 @@ export class KnowledgeRetrievalService {
       '=========================',
       '',
       ...matches.flatMap((match, index) => [
-        `[Source ${index + 1}]`,
-        `Document ID: ${match.documentId}`,
-        `Title: ${match.title}`,
-        `File: ${match.sourceFileName || 'Knowledge document'}`,
-        `Category: ${match.category}`,
-        `Chunk: ${match.chunkIndex}`,
-        `Similarity: ${match.similarityPercent}%`,
-        match.sourceUrl ? `Source URL: ${match.sourceUrl}` : '',
-        '',
+        `[Source ${index + 1} | ${match.title} | Chunk ${match.chunkIndex}]`,
         match.chunkText,
-        '',
-        '-------------------------',
         '',
       ]),
     ]

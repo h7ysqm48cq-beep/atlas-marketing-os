@@ -9,7 +9,7 @@ import { PlatformCard } from "./PlatformCard";
 import { PromptInspector } from "./prompt-inspector/PromptInspector";
 import styles from "./AiWorkspace.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 export type ContentStatus =
   | "DRAFT"
   | "AI_IMPROVED"
@@ -137,7 +137,9 @@ export function AiWorkspace({
   onMessage: (message: string) => void;
   onResultChange: (result: WorkspaceResult) => void;
 }) {
-  const [tab, setTab] = useState<"content" | "analysis" | "image" | "prompt">("content");
+  const [tab, setTab] = useState<"content" | "analysis" | "image" | "prompt">(
+    "content",
+  );
 
   const [copilotRequest, setCopilotRequest] = useState<{
     platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
@@ -161,27 +163,53 @@ export function AiWorkspace({
       })
       .catch(() => undefined);
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [result?.historyId]);
 
   const cards = useMemo(
     () =>
       [
-        ["Facebook", "Long-form discussion-led social post.", "facebook", result?.analysis.discussionScore],
-        ["Telegram", "Shorter conversational community post.", "telegram", result?.analysis.shareabilityScore],
-        ["Reels Script", "Scene-by-scene short-form video structure.", "reels", result?.analysis.viralScore],
-        ["Image Prompt", "Production-ready visual direction in English.", "image", result?.analysis.brandFitScore],
+        [
+          "Facebook",
+          "Long-form discussion-led social post.",
+          "facebook",
+          result?.analysis.discussionScore,
+        ],
+        [
+          "Telegram",
+          "Shorter conversational community post.",
+          "telegram",
+          result?.analysis.shareabilityScore,
+        ],
+        [
+          "Reels Script",
+          "Scene-by-scene short-form video structure.",
+          "reels",
+          result?.analysis.viralScore,
+        ],
+        [
+          "Image Prompt",
+          "Production-ready visual direction in English.",
+          "image",
+          result?.analysis.brandFitScore,
+        ],
       ] as const,
     [result],
   );
 
-  function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
+  function replace(
+    key: "facebook" | "telegram" | "reels" | "image",
+    content: string,
+  ) {
     if (!result) return;
     onResultChange({ ...result, [key]: content });
   }
 
   const fullyLoaded =
-    result?.promptChain?.loadedSourceCount === result?.promptChain?.totalSourceCount;
+    result?.promptChain?.loadedSourceCount ===
+    result?.promptChain?.totalSourceCount;
 
   return (
     <section className={styles.workspace}>
@@ -197,20 +225,22 @@ export function AiWorkspace({
         </div>
 
         <div className={styles.tabs}>
-          {(["content", "analysis", "image", "prompt"] as const).map((value) => (
-            <button
-              type="button"
-              key={value}
-              className={tab === value ? styles.activeTab : ""}
-              onClick={() => setTab(value)}
-            >
-              {value === "image"
-                ? "AI Image"
-                : value === "prompt"
-                  ? "Prompt"
-                  : value.charAt(0).toUpperCase() + value.slice(1)}
-            </button>
-          ))}
+          {(["content", "analysis", "image", "prompt"] as const).map(
+            (value) => (
+              <button
+                type="button"
+                key={value}
+                className={tab === value ? styles.activeTab : ""}
+                onClick={() => setTab(value)}
+              >
+                {value === "image"
+                  ? "AI Image"
+                  : value === "prompt"
+                    ? "Prompt"
+                    : value.charAt(0).toUpperCase() + value.slice(1)}
+              </button>
+            ),
+          )}
         </div>
       </div>
 
@@ -224,14 +254,21 @@ export function AiWorkspace({
             <div>
               <p className={styles.eyebrow}>Knowledge Engine</p>
               <h3>
-                {result.promptChain.loadedSourceCount} / {result.promptChain.totalSourceCount} sources loaded
+                {result.promptChain.loadedSourceCount} /{" "}
+                {result.promptChain.totalSourceCount} sources loaded
               </h3>
             </div>
             <div className={styles.knowledgeControls}>
-              <span className={fullyLoaded ? styles.readyStatus : styles.partialStatus}>
+              <span
+                className={
+                  fullyLoaded ? styles.readyStatus : styles.partialStatus
+                }
+              >
                 {fullyLoaded ? "Ready" : "Partial"}
               </span>
-              <span className={styles.chevron}>{knowledgeOpen ? "Hide" : "Show"}</span>
+              <span className={styles.chevron}>
+                {knowledgeOpen ? "Hide" : "Show"}
+              </span>
             </div>
           </button>
 
@@ -242,9 +279,7 @@ export function AiWorkspace({
                   <article
                     key={source.key}
                     className={
-                      source.loaded
-                        ? styles.loadedSource
-                        : styles.missingSource
+                      source.loaded ? styles.loadedSource : styles.missingSource
                     }
                   >
                     <strong>
@@ -311,16 +346,17 @@ export function AiWorkspace({
               key={key}
               title={title}
               description={description}
-              content={result?.[key] || `Generate content to create the ${title} version.`}
+              content={
+                result?.[key] ||
+                `Generate content to create the ${title} version.`
+              }
               score={score}
               campaignId={result?.campaignUsed?.id || campaignId}
               historyId={result?.historyId}
               approval={approval}
               onApprovalChange={setApproval}
               copilotRequest={
-                copilotRequest?.platform === title
-                  ? copilotRequest
-                  : null
+                copilotRequest?.platform === title ? copilotRequest : null
               }
               onReplace={(content) => replace(key, content)}
               onMessage={onMessage}
@@ -333,17 +369,30 @@ export function AiWorkspace({
         <div className={styles.analysis}>
           <div className={styles.summary}>
             <p className={styles.eyebrow}>AI Coach Summary</p>
-            <h3>{result?.analysis.summary || "Generate content to receive strategic analysis."}</h3>
+            <h3>
+              {result?.analysis.summary ||
+                "Generate content to receive strategic analysis."}
+            </h3>
             <p>
-              Recommended posting time: <strong>{result?.analysis.bestPostingTime || "—"}</strong>
+              Recommended posting time:{" "}
+              <strong>{result?.analysis.bestPostingTime || "—"}</strong>
             </p>
           </div>
 
           <div className={styles.scoreGrid}>
             <Score label="Viral" value={result?.analysis.viralScore || 0} />
-            <Score label="Discussion" value={result?.analysis.discussionScore || 0} />
-            <Score label="Shareability" value={result?.analysis.shareabilityScore || 0} />
-            <Score label="Brand fit" value={result?.analysis.brandFitScore || 0} />
+            <Score
+              label="Discussion"
+              value={result?.analysis.discussionScore || 0}
+            />
+            <Score
+              label="Shareability"
+              value={result?.analysis.shareabilityScore || 0}
+            />
+            <Score
+              label="Brand fit"
+              value={result?.analysis.brandFitScore || 0}
+            />
           </div>
         </div>
       ) : null}
@@ -378,6 +427,7 @@ export function AiWorkspace({
             campaignId={publishCampaignId}
             topic={publishTopic}
             onMessage={onMessage}
+            onResultChange={onResultChange}
           />
         </>
       ) : null}

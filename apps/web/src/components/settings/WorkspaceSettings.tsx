@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./WorkspaceSettings.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type AutomationSettings = {
   id: string;
   workspaceId: string;
@@ -26,11 +21,7 @@ type Channel = {
   platform: "FACEBOOK" | "TELEGRAM";
   name: string;
   username: string | null;
-  status:
-    | "DISCONNECTED"
-    | "CONNECTED"
-    | "EXPIRED"
-    | "ERROR";
+  status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
 };
 
 type Brand = {
@@ -53,76 +44,46 @@ type LocalPreferences = {
 
 const DEFAULT_LOCAL_PREFERENCES: LocalPreferences = {
   currency: "MYR",
-  defaultModel: "gpt-4.1-mini",
+  defaultModel: "gpt-5.6-luna",
   defaultLanguage: "Chinese and English",
 };
 
 export function WorkspaceSettings() {
-  const [settings, setSettings] =
-    useState<AutomationSettings | null>(null);
+  const [settings, setSettings] = useState<AutomationSettings | null>(null);
 
-  const [channels, setChannels] =
-    useState<Channel[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
 
-  const [brands, setBrands] =
-    useState<Brand[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
-  const [localPreferences, setLocalPreferences] =
-    useState<LocalPreferences>(
-      DEFAULT_LOCAL_PREFERENCES,
-    );
+  const [localPreferences, setLocalPreferences] = useState<LocalPreferences>(
+    DEFAULT_LOCAL_PREFERENCES,
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [
-        settingsResponse,
-        channelsResponse,
-        brandsResponse,
-      ] = await Promise.all([
-        fetch(
-          `${API_URL}/automation/settings`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `${API_URL}/automation/channels`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `${API_URL}/brands`,
-          { cache: "no-store" },
-        ),
-      ]);
+      const [settingsResponse, channelsResponse, brandsResponse] =
+        await Promise.all([
+          fetch(`${API_URL}/automation/settings`, { cache: "no-store" }),
+          fetch(`${API_URL}/automation/channels`, { cache: "no-store" }),
+          fetch(`${API_URL}/brands`, { cache: "no-store" }),
+        ]);
 
-      if (
-        !settingsResponse.ok ||
-        !channelsResponse.ok ||
-        !brandsResponse.ok
-      ) {
-        throw new Error(
-          "Unable to load workspace settings.",
-        );
+      if (!settingsResponse.ok || !channelsResponse.ok || !brandsResponse.ok) {
+        throw new Error("Unable to load workspace settings.");
       }
 
-      const [
-        settingsData,
-        channelsData,
-        brandsData,
-      ] = await Promise.all([
+      const [settingsData, channelsData, brandsData] = await Promise.all([
         settingsResponse.json() as Promise<AutomationSettings>,
         channelsResponse.json() as Promise<Channel[]>,
         brandsResponse.json() as Promise<Brand[]>,
@@ -132,10 +93,7 @@ export function WorkspaceSettings() {
       setChannels(channelsData);
       setBrands(brandsData);
 
-      const stored =
-        window.localStorage.getItem(
-          "atlas.settings.preferences",
-        );
+      const stored = window.localStorage.getItem("atlas.settings.preferences");
 
       if (stored) {
         try {
@@ -144,15 +102,12 @@ export function WorkspaceSettings() {
             ...JSON.parse(stored),
           });
         } catch {
-          setLocalPreferences(
-            DEFAULT_LOCAL_PREFERENCES,
-          );
+          setLocalPreferences(DEFAULT_LOCAL_PREFERENCES);
         }
       } else if (brandsData[0]) {
         setLocalPreferences((current) => ({
           ...current,
-          defaultLanguage:
-            brandsData[0].primaryLanguage,
+          defaultLanguage: brandsData[0].primaryLanguage,
         }));
       }
     } catch (loadError) {
@@ -174,11 +129,7 @@ export function WorkspaceSettings() {
   const activeBrand = brands[0];
 
   const connectedChannels = useMemo(
-    () =>
-      channels.filter(
-        (channel) =>
-          channel.status === "CONNECTED",
-      ).length,
+    () => channels.filter((channel) => channel.status === "CONNECTED").length,
     [channels],
   );
 
@@ -192,46 +143,29 @@ export function WorkspaceSettings() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/automation/settings`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            timezone: settings.timezone,
-            approvalRequired:
-              settings.approvalRequired,
-            autoPublishEnabled:
-              settings.autoPublishEnabled,
-            retryLimit:
-              Number(settings.retryLimit),
-            retryDelayMinutes:
-              Number(
-                settings.retryDelayMinutes,
-              ),
-            defaultFacebookTime:
-              settings.defaultFacebookTime,
-            defaultTelegramTime:
-              settings.defaultTelegramTime,
-          }),
+      const response = await fetch(`${API_URL}/automation/settings`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          timezone: settings.timezone,
+          approvalRequired: settings.approvalRequired,
+          autoPublishEnabled: settings.autoPublishEnabled,
+          retryLimit: Number(settings.retryLimit),
+          retryDelayMinutes: Number(settings.retryDelayMinutes),
+          defaultFacebookTime: settings.defaultFacebookTime,
+          defaultTelegramTime: settings.defaultTelegramTime,
+        }),
+      });
 
       if (!response.ok) {
-        const body =
-          await response.json();
+        const body = await response.json();
 
-        throw new Error(
-          body.message ||
-            "Unable to save settings.",
-        );
+        throw new Error(body.message || "Unable to save settings.");
       }
 
-      const updated =
-        await response.json() as AutomationSettings;
+      const updated = (await response.json()) as AutomationSettings;
 
       setSettings(updated);
 
@@ -240,9 +174,7 @@ export function WorkspaceSettings() {
         JSON.stringify(localPreferences),
       );
 
-      setMessage(
-        "Settings saved successfully.",
-      );
+      setMessage("Settings saved successfully.");
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -255,11 +187,7 @@ export function WorkspaceSettings() {
   }
 
   if (loading && !settings) {
-    return (
-      <section className={styles.state}>
-        Loading settings...
-      </section>
-    );
+    return <section className={styles.state}>Loading settings...</section>;
   }
 
   if (!settings) {
@@ -267,9 +195,7 @@ export function WorkspaceSettings() {
       <section className={styles.state}>
         <p>{error || "Settings unavailable."}</p>
 
-        <button onClick={() => void load()}>
-          Try again
-        </button>
+        <button onClick={() => void load()}>Try again</button>
       </section>
     );
   }
@@ -278,15 +204,12 @@ export function WorkspaceSettings() {
     <div className={styles.settingsPage}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>
-            Workspace Administration
-          </p>
+          <p className={styles.eyebrow}>Workspace Administration</p>
 
           <h1>Settings</h1>
 
           <p>
-            Manage workspace preferences,
-            publishing defaults and AI behaviour.
+            Manage workspace preferences, publishing defaults and AI behaviour.
           </p>
         </div>
 
@@ -295,43 +218,25 @@ export function WorkspaceSettings() {
           onClick={() => void saveSettings()}
           disabled={saving}
         >
-          {saving
-            ? "Saving..."
-            : "Save changes"}
+          {saving ? "Saving..." : "Save changes"}
         </button>
       </section>
 
-      {message ? (
-        <div className={styles.success}>
-          {message}
-        </div>
-      ) : null}
+      {message ? <div className={styles.success}>{message}</div> : null}
 
-      {error ? (
-        <div className={styles.error}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.summaryGrid}>
         <article>
           <span>Workspace</span>
-          <strong>
-            {workspace?.name || "Atlas"}
-          </strong>
-          <small>
-            {workspace?.slug || "workspace"}
-          </small>
+          <strong>{workspace?.name || "Atlas"}</strong>
+          <small>{workspace?.slug || "workspace"}</small>
         </article>
 
         <article>
           <span>Active brand</span>
-          <strong>
-            {activeBrand?.name || "No brand"}
-          </strong>
-          <small>
-            {activeBrand?.country || "Malaysia"}
-          </small>
+          <strong>{activeBrand?.name || "No brand"}</strong>
+          <small>{activeBrand?.country || "Malaysia"}</small>
         </article>
 
         <article>
@@ -347,9 +252,7 @@ export function WorkspaceSettings() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Workspace
-              </p>
+              <p className={styles.eyebrow}>Workspace</p>
               <h2>General preferences</h2>
             </div>
           </header>
@@ -357,22 +260,12 @@ export function WorkspaceSettings() {
           <div className={styles.formGrid}>
             <label>
               <span>Workspace name</span>
-              <input
-                value={
-                  workspace?.name || ""
-                }
-                disabled
-              />
+              <input value={workspace?.name || ""} disabled />
             </label>
 
             <label>
               <span>Default brand</span>
-              <input
-                value={
-                  activeBrand?.name || ""
-                }
-                disabled
-              />
+              <input value={activeBrand?.name || ""} disabled />
             </label>
 
             <label>
@@ -384,107 +277,64 @@ export function WorkspaceSettings() {
                     current
                       ? {
                           ...current,
-                          timezone:
-                            event.target.value,
+                          timezone: event.target.value,
                         }
                       : current,
                   )
                 }
               >
-                <option value="Asia/Kuala_Lumpur">
-                  Asia/Kuala_Lumpur
-                </option>
-                <option value="Asia/Singapore">
-                  Asia/Singapore
-                </option>
-                <option value="UTC">
-                  UTC
-                </option>
+                <option value="Asia/Kuala_Lumpur">Asia/Kuala_Lumpur</option>
+                <option value="Asia/Singapore">Asia/Singapore</option>
+                <option value="UTC">UTC</option>
               </select>
             </label>
 
             <label>
               <span>Currency</span>
               <select
-                value={
-                  localPreferences.currency
-                }
+                value={localPreferences.currency}
                 onChange={(event) =>
-                  setLocalPreferences(
-                    (current) => ({
-                      ...current,
-                      currency:
-                        event.target.value,
-                    }),
-                  )
+                  setLocalPreferences((current) => ({
+                    ...current,
+                    currency: event.target.value,
+                  }))
                 }
               >
-                <option value="MYR">
-                  MYR
-                </option>
-                <option value="USD">
-                  USD
-                </option>
-                <option value="SGD">
-                  SGD
-                </option>
+                <option value="MYR">MYR</option>
+                <option value="USD">USD</option>
+                <option value="SGD">SGD</option>
               </select>
             </label>
 
             <label>
               <span>Default language</span>
               <select
-                value={
-                  localPreferences
-                    .defaultLanguage
-                }
+                value={localPreferences.defaultLanguage}
                 onChange={(event) =>
-                  setLocalPreferences(
-                    (current) => ({
-                      ...current,
-                      defaultLanguage:
-                        event.target.value,
-                    }),
-                  )
+                  setLocalPreferences((current) => ({
+                    ...current,
+                    defaultLanguage: event.target.value,
+                  }))
                 }
               >
-                <option value="Chinese and English">
-                  Chinese and English
-                </option>
-                <option value="Chinese">
-                  Chinese
-                </option>
-                <option value="English">
-                  English
-                </option>
+                <option value="Chinese and English">Chinese and English</option>
+                <option value="Chinese">Chinese</option>
+                <option value="English">English</option>
               </select>
             </label>
 
             <label>
               <span>Default AI model</span>
               <select
-                value={
-                  localPreferences.defaultModel
-                }
+                value={localPreferences.defaultModel}
                 onChange={(event) =>
-                  setLocalPreferences(
-                    (current) => ({
-                      ...current,
-                      defaultModel:
-                        event.target.value,
-                    }),
-                  )
+                  setLocalPreferences((current) => ({
+                    ...current,
+                    defaultModel: event.target.value,
+                  }))
                 }
               >
-                <option value="gpt-4.1-mini">
-                  GPT-4.1 Mini
-                </option>
-                <option value="gpt-4.1">
-                  GPT-4.1
-                </option>
-                <option value="gpt-4.1-nano">
-                  GPT-4.1 Nano
-                </option>
+                <option value="gpt-5.6-luna">GPT-5.6 Luna</option>
               </select>
             </label>
           </div>
@@ -493,9 +343,7 @@ export function WorkspaceSettings() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Publishing
-              </p>
+              <p className={styles.eyebrow}>Publishing</p>
               <h2>Automation defaults</h2>
             </div>
           </header>
@@ -503,27 +351,19 @@ export function WorkspaceSettings() {
           <div className={styles.toggleList}>
             <label>
               <div>
-                <strong>
-                  Approval required
-                </strong>
-                <span>
-                  Require approval before
-                  scheduling content.
-                </span>
+                <strong>Approval required</strong>
+                <span>Require approval before scheduling content.</span>
               </div>
 
               <input
                 type="checkbox"
-                checked={
-                  settings.approvalRequired
-                }
+                checked={settings.approvalRequired}
                 onChange={(event) =>
                   setSettings((current) =>
                     current
                       ? {
                           ...current,
-                          approvalRequired:
-                            event.target.checked,
+                          approvalRequired: event.target.checked,
                         }
                       : current,
                   )
@@ -533,27 +373,19 @@ export function WorkspaceSettings() {
 
             <label>
               <div>
-                <strong>
-                  Auto publish
-                </strong>
-                <span>
-                  Automatically send queued
-                  posts when due.
-                </span>
+                <strong>Auto publish</strong>
+                <span>Automatically send queued posts when due.</span>
               </div>
 
               <input
                 type="checkbox"
-                checked={
-                  settings.autoPublishEnabled
-                }
+                checked={settings.autoPublishEnabled}
                 onChange={(event) =>
                   setSettings((current) =>
                     current
                       ? {
                           ...current,
-                          autoPublishEnabled:
-                            event.target.checked,
+                          autoPublishEnabled: event.target.checked,
                         }
                       : current,
                   )
@@ -564,21 +396,16 @@ export function WorkspaceSettings() {
 
           <div className={styles.formGrid}>
             <label>
-              <span>
-                Default Facebook time
-              </span>
+              <span>Default Facebook time</span>
               <input
                 type="time"
-                value={
-                  settings.defaultFacebookTime
-                }
+                value={settings.defaultFacebookTime}
                 onChange={(event) =>
                   setSettings((current) =>
                     current
                       ? {
                           ...current,
-                          defaultFacebookTime:
-                            event.target.value,
+                          defaultFacebookTime: event.target.value,
                         }
                       : current,
                   )
@@ -587,21 +414,16 @@ export function WorkspaceSettings() {
             </label>
 
             <label>
-              <span>
-                Default Telegram time
-              </span>
+              <span>Default Telegram time</span>
               <input
                 type="time"
-                value={
-                  settings.defaultTelegramTime
-                }
+                value={settings.defaultTelegramTime}
                 onChange={(event) =>
                   setSettings((current) =>
                     current
                       ? {
                           ...current,
-                          defaultTelegramTime:
-                            event.target.value,
+                          defaultTelegramTime: event.target.value,
                         }
                       : current,
                   )
@@ -621,10 +443,7 @@ export function WorkspaceSettings() {
                     current
                       ? {
                           ...current,
-                          retryLimit:
-                            Number(
-                              event.target.value,
-                            ),
+                          retryLimit: Number(event.target.value),
                         }
                       : current,
                   )
@@ -633,25 +452,18 @@ export function WorkspaceSettings() {
             </label>
 
             <label>
-              <span>
-                Retry delay (minutes)
-              </span>
+              <span>Retry delay (minutes)</span>
               <input
                 type="number"
                 min="1"
                 max="1440"
-                value={
-                  settings.retryDelayMinutes
-                }
+                value={settings.retryDelayMinutes}
                 onChange={(event) =>
                   setSettings((current) =>
                     current
                       ? {
                           ...current,
-                          retryDelayMinutes:
-                            Number(
-                              event.target.value,
-                            ),
+                          retryDelayMinutes: Number(event.target.value),
                         }
                       : current,
                   )
@@ -665,15 +477,11 @@ export function WorkspaceSettings() {
       <section className={styles.panel}>
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Connections
-            </p>
+            <p className={styles.eyebrow}>Connections</p>
             <h2>Social channels</h2>
           </div>
 
-          <a href="/automation">
-            Open automation
-          </a>
+          <a href="/automation">Open automation</a>
         </header>
 
         <div className={styles.channelGrid}>
@@ -681,31 +489,24 @@ export function WorkspaceSettings() {
             <article key={channel.id}>
               <div
                 className={`${styles.channelIcon} ${
-                  channel.platform ===
-                  "FACEBOOK"
+                  channel.platform === "FACEBOOK"
                     ? styles.facebook
                     : styles.telegram
                 }`}
               >
-                {channel.platform ===
-                "FACEBOOK"
-                  ? "f"
-                  : "✈"}
+                {channel.platform === "FACEBOOK" ? "f" : "✈"}
               </div>
 
               <div>
                 <strong>{channel.name}</strong>
                 <span>
-                  {channel.username
-                    ? `@${channel.username}`
-                    : "No username"}
+                  {channel.username ? `@${channel.username}` : "No username"}
                 </span>
               </div>
 
               <b
                 className={
-                  channel.status ===
-                  "CONNECTED"
+                  channel.status === "CONNECTED"
                     ? styles.connected
                     : styles.disconnected
                 }

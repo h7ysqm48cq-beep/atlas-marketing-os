@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceResult } from "./AiWorkspace";
 import styles from "./AiPublishCard.module.css";
+import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
 type Platform = "FACEBOOK" | "TELEGRAM";
@@ -37,6 +38,7 @@ type Props = {
   campaignId?: string;
   topic: string;
   onMessage?: (message: string) => void;
+  onResultChange: (result: WorkspaceResult) => void;
 };
 
 function defaultDateTime() {
@@ -51,7 +53,14 @@ function platformLabel(platform: Platform) {
   return platform === "FACEBOOK" ? "Facebook" : "Telegram";
 }
 
-export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
+export function AiPublishCard({
+  result,
+  campaignId,
+  topic,
+  onMessage,
+  onResultChange,
+}: Props) {
+  const { t } = usePreferences();
   const [brandId, setBrandId] = useState("");
   const [facebook, setFacebook] = useState(true);
   const [telegram, setTelegram] = useState(true);
@@ -67,6 +76,19 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
   const [publishResult, setPublishResult] = useState<PublishResult | null>(
     null,
   );
+
+  const [originalFacebook, setOriginalFacebook] = useState(result.facebook);
+  const [originalTelegram, setOriginalTelegram] = useState(result.telegram);
+  const [savedFacebook, setSavedFacebook] = useState(result.facebook);
+  const [savedTelegram, setSavedTelegram] = useState(result.telegram);
+  const [savingDraft, setSavingDraft] = useState(false);
+
+  useEffect(() => {
+    setOriginalFacebook(result.facebook);
+    setOriginalTelegram(result.telegram);
+    setSavedFacebook(result.facebook);
+    setSavedTelegram(result.telegram);
+  }, [result.historyId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +139,131 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
       result.analysis.shareabilityScore) /
       3,
   );
+
+  const facebookEdited = result.facebook !== originalFacebook;
+
+  const telegramEdited = result.telegram !== originalTelegram;
+
+  const hasUnsavedDraft =
+    result.facebook !== savedFacebook || result.telegram !== savedTelegram;
+
+  function updateFacebookDraft(content: string) {
+    onResultChange({
+      ...result,
+      facebook: content,
+    });
+  }
+
+  function updateTelegramDraft(content: string) {
+    onResultChange({
+      ...result,
+      telegram: content,
+    });
+  }
+
+  function resetDraft() {
+    onResultChange({
+      ...result,
+      facebook: originalFacebook,
+      telegram: originalTelegram,
+    });
+
+    setSavedFacebook(originalFacebook);
+    setSavedTelegram(originalTelegram);
+    setError("");
+    onMessage?.("Draft reset to the original AI version.");
+  }
+
+  async function saveDraft() {
+    setError("");
+
+    if (!result.historyId) {
+      setError(
+        "This workspace has no history record. Generate the content again before saving.",
+      );
+      return;
+    }
+
+    if (!result.facebook.trim() && !result.telegram.trim()) {
+      setError("Draft content cannot be empty.");
+      return;
+    }
+
+    setSavingDraft(true);
+    onMessage?.("Saving edited draft versions...");
+
+    try {
+      const versions: Array<{
+        platform: "Facebook" | "Telegram";
+        content: string;
+      }> = [];
+
+      if (result.facebook !== savedFacebook) {
+        versions.push({
+          platform: "Facebook",
+          content: result.facebook,
+        });
+      }
+
+      if (result.telegram !== savedTelegram) {
+        versions.push({
+          platform: "Telegram",
+          content: result.telegram,
+        });
+      }
+
+      if (!versions.length) {
+        onMessage?.("Draft is already saved.");
+        return;
+      }
+
+      const responses = await Promise.all(
+        versions.map((version) =>
+          fetch(`${API_URL}/versions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              historyId: result.historyId,
+              platform: version.platform,
+              content: version.content,
+              sourceAction: "manual-draft-edit",
+            }),
+          }),
+        ),
+      );
+
+      const failed = responses.find((response) => !response.ok);
+
+      if (failed) {
+        const data = (await failed.json()) as {
+          message?: string;
+        };
+
+        throw new Error(data.message || "Unable to save draft version.");
+      }
+
+      setSavedFacebook(result.facebook);
+      setSavedTelegram(result.telegram);
+
+      onMessage?.(
+        `${versions.length} edited draft version${
+          versions.length === 1 ? "" : "s"
+        } saved.`,
+      );
+    } catch (draftError) {
+      const message =
+        draftError instanceof Error
+          ? draftError.message
+          : "Unable to save draft.";
+
+      setError(message);
+      onMessage?.(message);
+    } finally {
+      setSavingDraft(false);
+    }
+  }
 
   function resetPublish() {
     setPublishResult(null);
@@ -174,6 +321,21 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
 
     if (!selectedPlatforms.length) {
       setError("Select at least one platform.");
+      return;
+    }
+
+    if (facebook && !result.facebook.trim()) {
+      setError("Facebook draft cannot be empty.");
+      return;
+    }
+
+    if (telegram && !result.telegram.trim()) {
+      setError("Telegram draft cannot be empty.");
+      return;
+    }
+
+    if (hasUnsavedDraft) {
+      setError("Save the edited draft before publishing or scheduling.");
       return;
     }
 
@@ -330,7 +492,88 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
       </div>
 
       <div className={styles.section}>
-        <span className={styles.sectionLabel}>Publish channels</span>
+        <div className={styles.draftEditorHeading}>
+          <div>
+            <span className={styles.sectionLabel}>{t("finalPostEditor")}</span>
+
+            <small>{t("finalPostEditorDescription")}</small>
+          </div>
+
+          <span
+            className={
+              hasUnsavedDraft ? styles.unsavedStatus : styles.savedStatus
+            }
+          >
+            {hasUnsavedDraft
+              ? t("unsavedChanges")
+              : facebookEdited || telegramEdited
+                ? t("editedDraftSaved")
+                : t("aiDraftSaved")}
+          </span>
+        </div>
+
+        <div className={styles.draftEditorGrid}>
+          <label className={styles.draftField}>
+            <div>
+              <strong>{t("facebookPost")}</strong>
+              <span>
+                {result.facebook.length.toLocaleString()} {t("characters")}
+              </span>
+            </div>
+
+            <textarea
+              value={result.facebook}
+              onChange={(event) => updateFacebookDraft(event.target.value)}
+              placeholder={`${t("facebookPost")}...`}
+            />
+          </label>
+
+          <label className={styles.draftField}>
+            <div>
+              <strong>{t("telegramPost")}</strong>
+              <span>
+                {result.telegram.length.toLocaleString()} {t("characters")}
+              </span>
+            </div>
+
+            <textarea
+              value={result.telegram}
+              onChange={(event) => updateTelegramDraft(event.target.value)}
+              placeholder={`${t("telegramPost")}...`}
+            />
+          </label>
+        </div>
+
+        <div className={styles.draftActions}>
+          <div>
+            <span>Facebook: {facebookEdited ? "Edited" : "Original"}</span>
+
+            <span>Telegram: {telegramEdited ? "Edited" : "Original"}</span>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={resetDraft}
+              disabled={savingDraft || (!facebookEdited && !telegramEdited)}
+            >
+              {t("resetAiVersion")}
+            </button>
+
+            <button
+              type="button"
+              className={styles.saveDraftButton}
+              onClick={() => void saveDraft()}
+              disabled={savingDraft || !hasUnsavedDraft}
+            >
+              {savingDraft ? "Saving draft..." : t("saveEditedDraft")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>{t("publishChannels")}</span>
 
         <div className={styles.platforms}>
           <label>
@@ -367,7 +610,7 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
 
       <div className={styles.section}>
         <div className={styles.assetHeading}>
-          <span className={styles.sectionLabel}>Attached image</span>
+          <span className={styles.sectionLabel}>{t("attachedImage")}</span>
 
           <button type="button" onClick={() => void openAssetPicker()}>
             + Choose from Asset Library
@@ -403,7 +646,7 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
       </div>
 
       <div className={styles.section}>
-        <span className={styles.sectionLabel}>Publishing time</span>
+        <span className={styles.sectionLabel}>{t("publishingTime")}</span>
 
         <div className={styles.mode}>
           <label className={mode === "NOW" ? styles.activeMode : ""}>
@@ -415,7 +658,7 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
             />
 
             <span>
-              <strong>Publish immediately</strong>
+              <strong>{t("publishImmediately")}</strong>
               <small>Send to the queue now</small>
             </span>
           </label>
@@ -453,16 +696,28 @@ export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
       <button
         type="button"
         className={styles.publishButton}
-        disabled={publishing || !brandId || selectedPlatforms.length === 0}
+        disabled={
+          publishing ||
+          savingDraft ||
+          hasUnsavedDraft ||
+          !brandId ||
+          selectedPlatforms.length === 0
+        }
         onClick={() => void publish()}
       >
         <span>↗</span>
 
         {publishing
           ? "Scheduling content..."
-          : `Publish to ${selectedPlatforms.length} platform${
-              selectedPlatforms.length === 1 ? "" : "s"
-            }`}
+          : hasUnsavedDraft
+            ? t("saveDraftBeforePublishing")
+            : mode === "NOW"
+              ? `Publish to ${selectedPlatforms.length} platform${
+                  selectedPlatforms.length === 1 ? "" : "s"
+                }`
+              : `Schedule ${selectedPlatforms.length} platform${
+                  selectedPlatforms.length === 1 ? "" : "s"
+                }`}
       </button>
       {assetPickerOpen ? (
         <div

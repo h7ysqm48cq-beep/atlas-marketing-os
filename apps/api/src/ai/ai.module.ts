@@ -4,6 +4,7 @@ import { HistoryModule } from '../history/history.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { MemoryModule } from '../memory/memory.module';
 import { PromptChainModule } from '../prompt-chain/prompt-chain.module';
+import { BrainModule } from '../brain/brain.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { PromptBuilderService } from './prompt-builder.service';
@@ -17,6 +18,7 @@ import { AssetContextService } from './asset-context.service';
     KnowledgeModule,
     MemoryModule,
     PromptChainModule,
+    BrainModule,
   ],
   controllers: [AiController],
   providers: [

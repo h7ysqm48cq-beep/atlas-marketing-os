@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePreferences } from "@/components/preferences";
+import { API_URL } from "@/lib/api";
 import styles from "./DashboardOverview.module.css";
 
-import { API_URL } from "@/lib/api";
 type AutomationDashboard = {
   channels: Array<{
     id: string;
@@ -46,18 +47,9 @@ type DashboardData = {
   campaigns: Campaign[];
 };
 
-function number(value: number) {
-  return new Intl.NumberFormat("en-MY").format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-MY", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 export function DashboardOverview() {
+  const { language, t } = usePreferences();
+
   const [data, setData] = useState<DashboardData>({
     automation: null,
     history: [],
@@ -65,17 +57,33 @@ export function DashboardOverview() {
   });
 
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
+
+  const locale = language === "zh" ? "zh-CN" : "en-MY";
+
+  const formatDate = useCallback(
+    (value: string) =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value)),
+    [locale],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
 
     const requests = await Promise.allSettled([
-      fetch(`${API_URL}/automation/dashboard`, { cache: "no-store" }),
-      fetch(`${API_URL}/history`, { cache: "no-store" }),
-      fetch(`${API_URL}/campaigns`, { cache: "no-store" }),
+      fetch(`${API_URL}/automation/dashboard`, {
+        cache: "no-store",
+      }),
+      fetch(`${API_URL}/history`, {
+        cache: "no-store",
+      }),
+      fetch(`${API_URL}/campaigns`, {
+        cache: "no-store",
+      }),
     ]);
 
     try {
@@ -110,17 +118,19 @@ export function DashboardOverview() {
 
       if (failed.length) {
         setError(
-          `${failed.length} dashboard source${
-            failed.length > 1 ? "s" : ""
-          } could not be loaded.`,
+          `${failed.length} ${
+            failed.length === 1
+              ? t("dashboardSourceFailed")
+              : t("dashboardSourcesFailed")
+          }`,
         );
       }
     } catch {
-      setError("Unable to load dashboard data.");
+      setError(t("dashboardLoadFailed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -142,6 +152,16 @@ export function DashboardOverview() {
     [data.campaigns],
   );
 
+  const publishedCount = useMemo(
+    () => data.history.filter((item) => item.status === "PUBLISHED").length,
+    [data.history],
+  );
+
+  const draftCount = useMemo(
+    () => data.history.filter((item) => item.status === "DRAFT").length,
+    [data.history],
+  );
+
   const connectedChannels =
     data.automation?.channels.filter((item) => item.status === "CONNECTED")
       .length ?? 0;
@@ -157,30 +177,50 @@ export function DashboardOverview() {
 
   const automationHealth =
     totalChannels === 0
-      ? "Not configured"
+      ? t("notConfigured")
       : connectedChannels === totalChannels
-        ? "Healthy"
+        ? t("healthy")
         : connectedChannels > 0
-          ? "Partial"
-          : "Disconnected";
+          ? t("partial")
+          : t("disconnected");
 
   const recentContent = data.history.slice(0, 5);
 
   const upcoming = data.automation?.upcoming.slice(0, 5) ?? [];
+
+  const hour = new Date().getHours();
+
+  const greeting =
+    hour < 12
+      ? t("goodMorning")
+      : hour < 18
+        ? t("goodAfternoon")
+        : t("goodEvening");
+
+  function displayStatus(status: string) {
+    const map: Record<string, string> = {
+      DRAFT: t("draft"),
+      PENDING_REVIEW: t("pendingReview"),
+      APPROVED: t("approved"),
+      PUBLISHED: t("published"),
+      SCHEDULED: t("scheduled"),
+      QUEUED: language === "zh" ? "队列中" : "Queued",
+      PUBLISHING: language === "zh" ? "发布中" : "Publishing",
+    };
+
+    return map[status] || status;
+  }
 
   return (
     <div className={styles.dashboard}>
       <div className={styles.desktopSummary}>
         <section className={styles.hero}>
           <div>
-            <p className={styles.eyebrow}>Marketing Command Center</p>
+            <p className={styles.eyebrow}>{t("marketingCommandCenter")}</p>
 
-            <h1>Good evening, Loh.</h1>
+            <h1>{greeting}，Loh。</h1>
 
-            <p className={styles.subtitle}>
-              Here is what needs your attention across content, campaigns and
-              publishing.
-            </p>
+            <p className={styles.subtitle}>{t("attentionSummary")}</p>
           </div>
 
           <div className={styles.heroActions}>
@@ -189,11 +229,11 @@ export function DashboardOverview() {
               onClick={() => void load()}
               disabled={loading}
             >
-              {loading ? "Refreshing..." : "Refresh"}
+              {loading ? t("refreshing") : t("refresh")}
             </button>
 
             <a className={styles.primaryButton} href="/ai-studio">
-              + Create content
+              + {t("createContent")}
             </a>
           </div>
         </section>
@@ -202,28 +242,34 @@ export function DashboardOverview() {
 
         <section className={styles.kpiGrid}>
           <article className={styles.kpiCard}>
-            <span>Pending approval</span>
+            <span>{t("pendingApproval")}</span>
             <strong>{pendingReview}</strong>
-            <small>{approved} approved and ready</small>
+            <small>
+              {approved} {t("approvedReady")}
+            </small>
           </article>
 
           <article className={styles.kpiCard}>
-            <span>Scheduled posts</span>
+            <span>{t("scheduledPosts")}</span>
             <strong>{scheduled}</strong>
-            <small>{publishingQueue} currently in queue</small>
+            <small>
+              {publishingQueue} {t("currentlyQueue")}
+            </small>
           </article>
 
           <article className={styles.kpiCard}>
-            <span>Active campaigns</span>
+            <span>{t("activeCampaigns")}</span>
             <strong>{activeCampaigns}</strong>
-            <small>{data.campaigns.length} campaigns total</small>
+            <small>
+              {data.campaigns.length} {t("campaignsTotal")}
+            </small>
           </article>
 
           <article className={styles.kpiCard}>
-            <span>Automation health</span>
+            <span>{t("automationHealth")}</span>
             <strong className={styles.healthValue}>{automationHealth}</strong>
             <small>
-              {connectedChannels}/{totalChannels} channels connected
+              {connectedChannels}/{totalChannels} {t("channelsConnected")}
             </small>
           </article>
         </section>
@@ -232,21 +278,19 @@ export function DashboardOverview() {
       <div className={styles.mobileSummary}>
         <section className={styles.mobileHero}>
           <div>
-            <p className={styles.mobileGreeting}>Good evening</p>
+            <p className={styles.mobileGreeting}>{greeting}</p>
 
-            <h1>Loh.</h1>
+            <h1>Loh。</h1>
 
             <p className={styles.mobileAttention}>
               {pendingReview > 0
-                ? `${pendingReview} item${
-                    pendingReview === 1 ? "" : "s"
-                  } need your attention`
-                : "Everything is under control"}
+                ? `${pendingReview} ${t("needsAttention")}`
+                : t("everythingUnderControl")}
             </p>
           </div>
 
           <a className={styles.mobileCreateButton} href="/ai-studio">
-            + Create
+            + {t("create")}
           </a>
         </section>
 
@@ -256,37 +300,43 @@ export function DashboardOverview() {
           onClick={() => void load()}
           disabled={loading}
         >
-          {loading ? "Refreshing..." : "Refresh dashboard"}
+          {loading ? t("refreshing") : t("refreshDashboard")}
         </button>
 
         {error ? <div className={styles.warning}>{error}</div> : null}
 
         <section className={styles.mobileKpiGrid}>
           <article className={styles.mobileKpiCard}>
-            <span>Pending</span>
+            <span>{t("pending")}</span>
             <strong>{pendingReview}</strong>
-            <small>{approved} approved</small>
+            <small>
+              {approved} {t("approvedCount")}
+            </small>
           </article>
 
           <article className={styles.mobileKpiCard}>
-            <span>Scheduled</span>
+            <span>{t("scheduled")}</span>
             <strong>{scheduled}</strong>
-            <small>{publishingQueue} in queue</small>
+            <small>
+              {publishingQueue} {t("inQueue")}
+            </small>
           </article>
 
           <article className={styles.mobileKpiCard}>
-            <span>Campaigns</span>
+            <span>{t("campaignsLabel")}</span>
             <strong>{activeCampaigns}</strong>
-            <small>{data.campaigns.length} total</small>
+            <small>
+              {data.campaigns.length} {t("total")}
+            </small>
           </article>
 
           <article className={styles.mobileKpiCard}>
-            <span>Automation</span>
+            <span>{t("automationLabel")}</span>
             <strong className={styles.mobileHealthValue}>
               {automationHealth}
             </strong>
             <small>
-              {connectedChannels}/{totalChannels} connected
+              {connectedChannels}/{totalChannels} {t("connected")}
             </small>
           </article>
         </section>
@@ -296,11 +346,11 @@ export function DashboardOverview() {
         <article className={styles.panel}>
           <header className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Publishing</p>
-              <h2>Upcoming posts</h2>
+              <p className={styles.eyebrow}>{t("publishing")}</p>
+              <h2>{t("upcomingPosts")}</h2>
             </div>
 
-            <a href="/automation">View automation</a>
+            <a href="/automation">{t("viewAutomation")}</a>
           </header>
 
           <div className={styles.list}>
@@ -318,15 +368,12 @@ export function DashboardOverview() {
                   </span>
                 </div>
 
-                <b>{post.status}</b>
+                <b>{displayStatus(post.status)}</b>
               </div>
             ))}
 
             {!upcoming.length ? (
-              <div className={styles.empty}>
-                No upcoming posts. Schedule your first Facebook or Telegram
-                post.
-              </div>
+              <div className={styles.empty}>{t("noUpcomingPosts")}</div>
             ) : null}
           </div>
         </article>
@@ -334,46 +381,39 @@ export function DashboardOverview() {
         <article className={styles.panel}>
           <header className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Workflow</p>
-              <h2>Content status</h2>
+              <p className={styles.eyebrow}>{t("workflow")}</p>
+              <h2>{t("contentStatus")}</h2>
             </div>
 
-            <a href="/content-history">Open history</a>
+            <a href="/content-history">{t("openHistory")}</a>
           </header>
 
           <div className={styles.workflowGrid}>
             <div>
-              <span>Draft</span>
-              <strong>
-                {data.history.filter((item) => item.status === "DRAFT").length}
-              </strong>
+              <span>{t("draft")}</span>
+              <strong>{draftCount}</strong>
             </div>
 
             <div>
-              <span>Pending review</span>
+              <span>{t("pendingReview")}</span>
               <strong>{pendingReview}</strong>
             </div>
 
             <div>
-              <span>Approved</span>
+              <span>{t("approved")}</span>
               <strong>{approved}</strong>
             </div>
 
             <div>
-              <span>Published</span>
-              <strong>
-                {
-                  data.history.filter((item) => item.status === "PUBLISHED")
-                    .length
-                }
-              </strong>
+              <span>{t("published")}</span>
+              <strong>{publishedCount}</strong>
             </div>
           </div>
 
           <div className={styles.healthPanel}>
-            <span>Automation status</span>
+            <span>{t("automationStatus")}</span>
             <strong>{automationHealth}</strong>
-            <small>Facebook and Telegram publishing channels</small>
+            <small>{t("publishingChannelsDescription")}</small>
           </div>
         </article>
       </section>
@@ -381,21 +421,21 @@ export function DashboardOverview() {
       <section className={styles.panel}>
         <header className={styles.panelHeader}>
           <div>
-            <p className={styles.eyebrow}>Recent activity</p>
-            <h2>Latest AI content</h2>
+            <p className={styles.eyebrow}>{t("recentActivity")}</p>
+            <h2>{t("latestAiContent")}</h2>
           </div>
 
-          <a href="/content-history">View all</a>
+          <a href="/content-history">{t("viewAll")}</a>
         </header>
 
         <div className={styles.tableWrap}>
           <table>
             <thead>
               <tr>
-                <th>Topic</th>
-                <th>Platforms</th>
-                <th>Status</th>
-                <th>Created</th>
+                <th>{t("topic")}</th>
+                <th>{t("platforms")}</th>
+                <th>{t("status")}</th>
+                <th>{t("created")}</th>
               </tr>
             </thead>
 
@@ -409,7 +449,9 @@ export function DashboardOverview() {
                   <td>{record.platforms.join(", ")}</td>
 
                   <td>
-                    <span className={styles.statusBadge}>{record.status}</span>
+                    <span className={styles.statusBadge}>
+                      {displayStatus(record.status)}
+                    </span>
                   </td>
 
                   <td>{formatDate(record.createdAt)}</td>
@@ -419,7 +461,7 @@ export function DashboardOverview() {
               {!recentContent.length ? (
                 <tr>
                   <td colSpan={4} className={styles.empty}>
-                    No generated content yet.
+                    {t("noGeneratedContent")}
                   </td>
                 </tr>
               ) : null}

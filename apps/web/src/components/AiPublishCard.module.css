@@ -547,3 +547,164 @@
     height: 58px;
   }
 }
+
+.draftEditorHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.draftEditorHeading > div {
+  display: grid;
+  gap: 5px;
+}
+
+.draftEditorHeading small {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.savedStatus,
+.unsavedStatus {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.savedStatus {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.unsavedStatus {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd34d;
+}
+
+.draftEditorGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.draftField {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.draftField > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.draftField strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.draftField span {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.draftField textarea {
+  width: 100%;
+  min-height: 240px;
+  padding: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: #0b1220;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  outline: none;
+  resize: vertical;
+}
+
+.draftField textarea:focus {
+  border-color: rgba(124, 92, 255, 0.78);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.11);
+}
+
+.draftActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.draftActions > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.draftActions > div:first-child span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.draftActions button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.draftActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.draftActions .saveDraftButton {
+  border-color: rgba(124, 92, 255, 0.55);
+  background: rgba(79, 70, 229, 0.16);
+  color: #ddd6fe;
+}
+
+@media (max-width: 900px) {
+  .draftEditorGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .draftEditorHeading,
+  .draftActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .draftEditorHeading > span {
+    align-self: flex-start;
+  }
+
+  .draftActions > div:last-child {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .draftActions button {
+    width: 100%;
+  }
+
+  .draftField textarea {
+    min-height: 200px;
+  }
+}

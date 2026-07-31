@@ -36,6 +36,9 @@ export type BrandMinAggregateOutputType = {
   brandVoice: string | null
   visualStyle: string | null
   contentGoals: string | null
+  primaryLogoAssetId: string | null
+  brandBannerAssetId: string | null
+  mascotAssetId: string | null
   status: $Enums.BrandStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -53,6 +56,9 @@ export type BrandMaxAggregateOutputType = {
   brandVoice: string | null
   visualStyle: string | null
   contentGoals: string | null
+  primaryLogoAssetId: string | null
+  brandBannerAssetId: string | null
+  mascotAssetId: string | null
   status: $Enums.BrandStatus | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -75,6 +81,10 @@ export type BrandCountAggregateOutputType = {
   forbiddenWords: number
   brandRules: number
   examplePosts: number
+  primaryLogoAssetId: number
+  brandBannerAssetId: number
+  mascotAssetId: number
+  referenceAssetIds: number
   status: number
   createdAt: number
   updatedAt: number
@@ -94,6 +104,9 @@ export type BrandMinAggregateInputType = {
   brandVoice?: true
   visualStyle?: true
   contentGoals?: true
+  primaryLogoAssetId?: true
+  brandBannerAssetId?: true
+  mascotAssetId?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -111,6 +124,9 @@ export type BrandMaxAggregateInputType = {
   brandVoice?: true
   visualStyle?: true
   contentGoals?: true
+  primaryLogoAssetId?: true
+  brandBannerAssetId?: true
+  mascotAssetId?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -133,6 +149,10 @@ export type BrandCountAggregateInputType = {
   forbiddenWords?: true
   brandRules?: true
   examplePosts?: true
+  primaryLogoAssetId?: true
+  brandBannerAssetId?: true
+  mascotAssetId?: true
+  referenceAssetIds?: true
   status?: true
   createdAt?: true
   updatedAt?: true
@@ -228,6 +248,10 @@ export type BrandGroupByOutputType = {
   forbiddenWords: string[]
   brandRules: string[]
   examplePosts: string[]
+  primaryLogoAssetId: string | null
+  brandBannerAssetId: string | null
+  mascotAssetId: string | null
+  referenceAssetIds: string[]
   status: $Enums.BrandStatus
   createdAt: Date
   updatedAt: Date
@@ -271,6 +295,10 @@ export type BrandWhereInput = {
   forbiddenWords?: Prisma.StringNullableListFilter<"Brand">
   brandRules?: Prisma.StringNullableListFilter<"Brand">
   examplePosts?: Prisma.StringNullableListFilter<"Brand">
+  primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
   status?: Prisma.EnumBrandStatusFilter<"Brand"> | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -303,6 +331,10 @@ export type BrandOrderByWithRelationInput = {
   forbiddenWords?: Prisma.SortOrder
   brandRules?: Prisma.SortOrder
   examplePosts?: Prisma.SortOrder
+  primaryLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  brandBannerAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mascotAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  referenceAssetIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -338,6 +370,10 @@ export type BrandWhereUniqueInput = Prisma.AtLeast<{
   forbiddenWords?: Prisma.StringNullableListFilter<"Brand">
   brandRules?: Prisma.StringNullableListFilter<"Brand">
   examplePosts?: Prisma.StringNullableListFilter<"Brand">
+  primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
   status?: Prisma.EnumBrandStatusFilter<"Brand"> | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -370,6 +406,10 @@ export type BrandOrderByWithAggregationInput = {
   forbiddenWords?: Prisma.SortOrder
   brandRules?: Prisma.SortOrder
   examplePosts?: Prisma.SortOrder
+  primaryLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  brandBannerAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  mascotAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  referenceAssetIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -398,6 +438,10 @@ export type BrandScalarWhereWithAggregatesInput = {
   forbiddenWords?: Prisma.StringNullableListFilter<"Brand">
   brandRules?: Prisma.StringNullableListFilter<"Brand">
   examplePosts?: Prisma.StringNullableListFilter<"Brand">
+  primaryLogoAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
+  brandBannerAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
+  mascotAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
+  referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
   status?: Prisma.EnumBrandStatusWithAggregatesFilter<"Brand"> | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Brand"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Brand"> | Date | string
@@ -419,6 +463,10 @@ export type BrandCreateInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -451,6 +499,10 @@ export type BrandUncheckedCreateInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -481,6 +533,10 @@ export type BrandUpdateInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -513,6 +569,10 @@ export type BrandUncheckedUpdateInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -544,6 +604,10 @@ export type BrandCreateManyInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -565,6 +629,10 @@ export type BrandUpdateManyMutationInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -587,6 +655,10 @@ export type BrandUncheckedUpdateManyInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -627,6 +699,10 @@ export type BrandCountOrderByAggregateInput = {
   forbiddenWords?: Prisma.SortOrder
   brandRules?: Prisma.SortOrder
   examplePosts?: Prisma.SortOrder
+  primaryLogoAssetId?: Prisma.SortOrder
+  brandBannerAssetId?: Prisma.SortOrder
+  mascotAssetId?: Prisma.SortOrder
+  referenceAssetIds?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -644,6 +720,9 @@ export type BrandMaxOrderByAggregateInput = {
   brandVoice?: Prisma.SortOrder
   visualStyle?: Prisma.SortOrder
   contentGoals?: Prisma.SortOrder
+  primaryLogoAssetId?: Prisma.SortOrder
+  brandBannerAssetId?: Prisma.SortOrder
+  mascotAssetId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -661,6 +740,9 @@ export type BrandMinOrderByAggregateInput = {
   brandVoice?: Prisma.SortOrder
   visualStyle?: Prisma.SortOrder
   contentGoals?: Prisma.SortOrder
+  primaryLogoAssetId?: Prisma.SortOrder
+  brandBannerAssetId?: Prisma.SortOrder
+  mascotAssetId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -733,6 +815,10 @@ export type BrandCreateexamplePostsInput = {
   set: string[]
 }
 
+export type BrandCreatereferenceAssetIdsInput = {
+  set: string[]
+}
+
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
@@ -758,6 +844,11 @@ export type BrandUpdatebrandRulesInput = {
 }
 
 export type BrandUpdateexamplePostsInput = {
+  set?: string[]
+  push?: string | string[]
+}
+
+export type BrandUpdatereferenceAssetIdsInput = {
   set?: string[]
   push?: string | string[]
 }
@@ -908,6 +999,10 @@ export type BrandCreateWithoutWorkspaceInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -938,6 +1033,10 @@ export type BrandUncheckedCreateWithoutWorkspaceInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -998,6 +1097,10 @@ export type BrandScalarWhereInput = {
   forbiddenWords?: Prisma.StringNullableListFilter<"Brand">
   brandRules?: Prisma.StringNullableListFilter<"Brand">
   examplePosts?: Prisma.StringNullableListFilter<"Brand">
+  primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
+  referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
   status?: Prisma.EnumBrandStatusFilter<"Brand"> | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -1019,6 +1122,10 @@ export type BrandCreateWithoutCampaignsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1050,6 +1157,10 @@ export type BrandUncheckedCreateWithoutCampaignsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1095,6 +1206,10 @@ export type BrandUpdateWithoutCampaignsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1126,6 +1241,10 @@ export type BrandUncheckedUpdateWithoutCampaignsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1155,6 +1274,10 @@ export type BrandCreateWithoutGenerationsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1186,6 +1309,10 @@ export type BrandUncheckedCreateWithoutGenerationsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1231,6 +1358,10 @@ export type BrandUpdateWithoutGenerationsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1262,6 +1393,10 @@ export type BrandUncheckedUpdateWithoutGenerationsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1291,6 +1426,10 @@ export type BrandCreateWithoutAssetsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1322,6 +1461,10 @@ export type BrandUncheckedCreateWithoutAssetsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1367,6 +1510,10 @@ export type BrandUpdateWithoutAssetsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1398,6 +1545,10 @@ export type BrandUncheckedUpdateWithoutAssetsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1427,6 +1578,10 @@ export type BrandCreateWithoutKnowledgeDocumentsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1458,6 +1613,10 @@ export type BrandUncheckedCreateWithoutKnowledgeDocumentsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1503,6 +1662,10 @@ export type BrandUpdateWithoutKnowledgeDocumentsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1534,6 +1697,10 @@ export type BrandUncheckedUpdateWithoutKnowledgeDocumentsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1563,6 +1730,10 @@ export type BrandCreateWithoutSocialChannelsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1594,6 +1765,10 @@ export type BrandUncheckedCreateWithoutSocialChannelsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1639,6 +1814,10 @@ export type BrandUpdateWithoutSocialChannelsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1670,6 +1849,10 @@ export type BrandUncheckedUpdateWithoutSocialChannelsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1699,6 +1882,10 @@ export type BrandCreateWithoutScheduledPostsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1730,6 +1917,10 @@ export type BrandUncheckedCreateWithoutScheduledPostsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1775,6 +1966,10 @@ export type BrandUpdateWithoutScheduledPostsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1806,6 +2001,10 @@ export type BrandUncheckedUpdateWithoutScheduledPostsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1835,6 +2034,10 @@ export type BrandCreateWithoutCopilotConversationsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1866,6 +2069,10 @@ export type BrandUncheckedCreateWithoutCopilotConversationsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1911,6 +2118,10 @@ export type BrandUpdateWithoutCopilotConversationsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1942,6 +2153,10 @@ export type BrandUncheckedUpdateWithoutCopilotConversationsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1971,6 +2186,10 @@ export type BrandCreateWithoutPromptTemplatesInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2002,6 +2221,10 @@ export type BrandUncheckedCreateWithoutPromptTemplatesInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2047,6 +2270,10 @@ export type BrandUpdateWithoutPromptTemplatesInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2078,6 +2305,10 @@ export type BrandUncheckedUpdateWithoutPromptTemplatesInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2107,6 +2338,10 @@ export type BrandCreateWithoutMemoryFactsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2138,6 +2373,10 @@ export type BrandUncheckedCreateWithoutMemoryFactsInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2183,6 +2422,10 @@ export type BrandUpdateWithoutMemoryFactsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2214,6 +2457,10 @@ export type BrandUncheckedUpdateWithoutMemoryFactsInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2243,6 +2490,10 @@ export type BrandCreateManyWorkspaceInput = {
   forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
   status?: $Enums.BrandStatus
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2264,6 +2515,10 @@ export type BrandUpdateWithoutWorkspaceInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2294,6 +2549,10 @@ export type BrandUncheckedUpdateWithoutWorkspaceInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2324,6 +2583,10 @@ export type BrandUncheckedUpdateManyWithoutWorkspaceInput = {
   forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
   brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
   examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
   status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2449,6 +2712,10 @@ export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   forbiddenWords?: boolean
   brandRules?: boolean
   examplePosts?: boolean
+  primaryLogoAssetId?: boolean
+  brandBannerAssetId?: boolean
+  mascotAssetId?: boolean
+  referenceAssetIds?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2482,6 +2749,10 @@ export type BrandSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   forbiddenWords?: boolean
   brandRules?: boolean
   examplePosts?: boolean
+  primaryLogoAssetId?: boolean
+  brandBannerAssetId?: boolean
+  mascotAssetId?: boolean
+  referenceAssetIds?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2505,6 +2776,10 @@ export type BrandSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   forbiddenWords?: boolean
   brandRules?: boolean
   examplePosts?: boolean
+  primaryLogoAssetId?: boolean
+  brandBannerAssetId?: boolean
+  mascotAssetId?: boolean
+  referenceAssetIds?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2528,12 +2803,16 @@ export type BrandSelectScalar = {
   forbiddenWords?: boolean
   brandRules?: boolean
   examplePosts?: boolean
+  primaryLogoAssetId?: boolean
+  brandBannerAssetId?: boolean
+  mascotAssetId?: boolean
+  referenceAssetIds?: boolean
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "website" | "industry" | "country" | "primaryLanguage" | "targetAudience" | "brandVoice" | "visualStyle" | "contentGoals" | "callsToAction" | "keywords" | "forbiddenWords" | "brandRules" | "examplePosts" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["brand"]>
+export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "website" | "industry" | "country" | "primaryLanguage" | "targetAudience" | "brandVoice" | "visualStyle" | "contentGoals" | "callsToAction" | "keywords" | "forbiddenWords" | "brandRules" | "examplePosts" | "primaryLogoAssetId" | "brandBannerAssetId" | "mascotAssetId" | "referenceAssetIds" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["brand"]>
 export type BrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   generations?: boolean | Prisma.Brand$generationsArgs<ExtArgs>
@@ -2585,6 +2864,10 @@ export type $BrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     forbiddenWords: string[]
     brandRules: string[]
     examplePosts: string[]
+    primaryLogoAssetId: string | null
+    brandBannerAssetId: string | null
+    mascotAssetId: string | null
+    referenceAssetIds: string[]
     status: $Enums.BrandStatus
     createdAt: Date
     updatedAt: Date
@@ -3037,6 +3320,10 @@ export interface BrandFieldRefs {
   readonly forbiddenWords: Prisma.FieldRef<"Brand", 'String[]'>
   readonly brandRules: Prisma.FieldRef<"Brand", 'String[]'>
   readonly examplePosts: Prisma.FieldRef<"Brand", 'String[]'>
+  readonly primaryLogoAssetId: Prisma.FieldRef<"Brand", 'String'>
+  readonly brandBannerAssetId: Prisma.FieldRef<"Brand", 'String'>
+  readonly mascotAssetId: Prisma.FieldRef<"Brand", 'String'>
+  readonly referenceAssetIds: Prisma.FieldRef<"Brand", 'String[]'>
   readonly status: Prisma.FieldRef<"Brand", 'BrandStatus'>
   readonly createdAt: Prisma.FieldRef<"Brand", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Brand", 'DateTime'>

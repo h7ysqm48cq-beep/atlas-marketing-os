@@ -1,23 +1,16 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "./AutomationDashboard.module.css";
+import { usePreferences } from "@/components/preferences";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type Channel = {
   id: string;
   platform: "FACEBOOK" | "TELEGRAM";
   name: string;
   username: string | null;
-  status:
-    | "DISCONNECTED"
-    | "CONNECTED"
-    | "EXPIRED"
-    | "ERROR";
+  status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
   lastConnectedAt: string | null;
   lastError: string | null;
   _count: {
@@ -63,24 +56,124 @@ type Settings = {
   defaultTelegramTime: string;
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-MY", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
 function platformLabel(platform: string) {
-  return platform === "FACEBOOK"
-    ? "Facebook"
-    : "Telegram";
+  return platform === "FACEBOOK" ? "Facebook" : "Telegram";
 }
 
 export function AutomationDashboard() {
-  const [dashboard, setDashboard] =
-    useState<DashboardResponse | null>(null);
-  const [settings, setSettings] =
-    useState<Settings | null>(null);
+  const { language } = usePreferences();
+
+  const copy =
+    language === "zh"
+      ? {
+          loading: "正在加载自动化仪表板……",
+          unavailable: "暂无自动化数据。",
+          tryAgain: "重试",
+          loadFailed: "无法加载自动化仪表板。",
+          publishing: "发布管理",
+          title: "社交平台自动化",
+          description: "管理 Facebook 与 Telegram 渠道、发布队列和排程帖子。",
+          refreshing: "刷新中……",
+          refresh: "刷新",
+          scheduled: "已排程",
+          scheduledHint: "等待发布时间",
+          queue: "队列",
+          queueHint: "等待处理",
+          published: "已发布",
+          publishedHint: "成功完成",
+          failed: "失败",
+          failedHint: "需要处理",
+          channels: "渠道",
+          connectedPlatforms: "已连接平台",
+          noUsername: "未设置用户名",
+          posts: "个帖子",
+          automation: "自动化",
+          publishingSettings: "发布设置",
+          timezone: "时区",
+          approvalRequired: "需要审批",
+          yes: "是",
+          no: "否",
+          autoPublish: "自动发布",
+          enabled: "已启用",
+          disabled: "已停用",
+          retryPolicy: "重试规则",
+          attempts: "次",
+          minutes: "分钟",
+          facebookTime: "Facebook 默认时间",
+          telegramTime: "Telegram 默认时间",
+          schedule: "排程",
+          upcomingPosts: "即将发布",
+          platform: "平台",
+          content: "内容",
+          campaign: "营销活动",
+          status: "状态",
+          scheduledTime: "排程时间",
+          untitled: "未命名帖子",
+          noScheduled: "尚未排程任何帖子。",
+          connected: "已连接",
+          disconnected: "未连接",
+        }
+      : {
+          loading: "Loading automation dashboard...",
+          unavailable: "No automation data available.",
+          tryAgain: "Try again",
+          loadFailed: "Unable to load automation dashboard.",
+          publishing: "Publishing",
+          title: "Social Automation",
+          description:
+            "Manage Facebook and Telegram channels, publishing queue and scheduled posts.",
+          refreshing: "Refreshing...",
+          refresh: "Refresh",
+          scheduled: "Scheduled",
+          scheduledHint: "Waiting for publish time",
+          queue: "Queue",
+          queueHint: "Ready for processing",
+          published: "Published",
+          publishedHint: "Successfully completed",
+          failed: "Failed",
+          failedHint: "Needs attention",
+          channels: "Channels",
+          connectedPlatforms: "Connected platforms",
+          noUsername: "No username",
+          posts: "posts",
+          automation: "Automation",
+          publishingSettings: "Publishing settings",
+          timezone: "Timezone",
+          approvalRequired: "Approval required",
+          yes: "Yes",
+          no: "No",
+          autoPublish: "Auto publish",
+          enabled: "Enabled",
+          disabled: "Disabled",
+          retryPolicy: "Retry policy",
+          attempts: "attempts",
+          minutes: "min",
+          facebookTime: "Facebook time",
+          telegramTime: "Telegram time",
+          schedule: "Schedule",
+          upcomingPosts: "Upcoming posts",
+          platform: "Platform",
+          content: "Content",
+          campaign: "Campaign",
+          status: "Status",
+          scheduledTime: "Scheduled",
+          untitled: "Untitled post",
+          noScheduled: "No posts scheduled yet.",
+          connected: "Connected",
+          disconnected: "Disconnected",
+        };
+
+  const locale = language === "zh" ? "zh-CN" : "en-MY";
+
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -89,40 +182,25 @@ export function AutomationDashboard() {
     setError("");
 
     try {
-      const [dashboardResponse, settingsResponse] =
-        await Promise.all([
-          fetch(
-            `${API_URL}/automation/dashboard`,
-            { cache: "no-store" },
-          ),
-          fetch(
-            `${API_URL}/automation/settings`,
-            { cache: "no-store" },
-          ),
-        ]);
+      const [dashboardResponse, settingsResponse] = await Promise.all([
+        fetch(`${API_URL}/automation/dashboard`, { cache: "no-store" }),
+        fetch(`${API_URL}/automation/settings`, { cache: "no-store" }),
+      ]);
 
-      if (
-        !dashboardResponse.ok ||
-        !settingsResponse.ok
-      ) {
-        throw new Error(
-          "Unable to load automation dashboard.",
-        );
+      if (!dashboardResponse.ok || !settingsResponse.ok) {
+        throw new Error(copy.loadFailed);
       }
 
-      const [dashboardData, settingsData] =
-        await Promise.all([
-          dashboardResponse.json() as Promise<DashboardResponse>,
-          settingsResponse.json() as Promise<Settings>,
-        ]);
+      const [dashboardData, settingsData] = await Promise.all([
+        dashboardResponse.json() as Promise<DashboardResponse>,
+        settingsResponse.json() as Promise<Settings>,
+      ]);
 
       setDashboard(dashboardData);
       setSettings(settingsData);
     } catch (loadError) {
       setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Unable to load automation dashboard.",
+        loadError instanceof Error ? loadError.message : copy.loadFailed,
       );
     } finally {
       setLoading(false);
@@ -144,11 +222,9 @@ export function AutomationDashboard() {
   if (!dashboard) {
     return (
       <section className={styles.state}>
-        <p>{error || "No automation data available."}</p>
+        <p>{error || copy.unavailable}</p>
 
-        <button onClick={() => void load()}>
-          Try again
-        </button>
+        <button onClick={() => void load()}>Try again</button>
       </section>
     );
   }
@@ -159,16 +235,11 @@ export function AutomationDashboard() {
     <div className={styles.dashboard}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>
-            Publishing
-          </p>
+          <p className={styles.eyebrow}>Publishing</p>
 
-          <h1>Social Automation</h1>
+          <h1>{copy.title}</h1>
 
-          <p>
-            Manage Facebook and Telegram channels,
-            publishing queue and scheduled posts.
-          </p>
+          <p>{copy.description}</p>
         </div>
 
         <button
@@ -176,39 +247,35 @@ export function AutomationDashboard() {
           onClick={() => void load()}
           disabled={loading}
         >
-          {loading ? "Refreshing..." : "Refresh"}
+          {loading ? copy.refreshing : copy.refresh}
         </button>
       </section>
 
-      {error ? (
-        <div className={styles.error}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.kpiGrid}>
         <article>
-          <span>Scheduled</span>
+          <span>{copy.scheduled}</span>
           <strong>{counts.SCHEDULED ?? 0}</strong>
-          <small>Waiting for publish time</small>
+          <small>{copy.scheduledHint}</small>
         </article>
 
         <article>
-          <span>Queue</span>
+          <span>{copy.queue}</span>
           <strong>{counts.QUEUED ?? 0}</strong>
-          <small>Ready for processing</small>
+          <small>{copy.queueHint}</small>
         </article>
 
         <article>
-          <span>Published</span>
+          <span>{copy.published}</span>
           <strong>{counts.PUBLISHED ?? 0}</strong>
-          <small>Successfully completed</small>
+          <small>{copy.publishedHint}</small>
         </article>
 
         <article>
-          <span>Failed</span>
+          <span>{copy.failed}</span>
           <strong>{counts.FAILED ?? 0}</strong>
-          <small>Needs attention</small>
+          <small>{copy.failedHint}</small>
         </article>
       </section>
 
@@ -216,23 +283,16 @@ export function AutomationDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Channels
-              </p>
-              <h2>Connected platforms</h2>
+              <p className={styles.eyebrow}>Channels</p>
+              <h2>{copy.connectedPlatforms}</h2>
             </div>
 
-            <strong>
-              {dashboard.channels.length}
-            </strong>
+            <strong>{dashboard.channels.length}</strong>
           </header>
 
           <div className={styles.channelList}>
             {dashboard.channels.map((channel) => (
-              <div
-                className={styles.channelCard}
-                key={channel.id}
-              >
+              <div className={styles.channelCard} key={channel.id}>
                 <div
                   className={`${styles.channelIcon} ${
                     channel.platform === "FACEBOOK"
@@ -240,9 +300,7 @@ export function AutomationDashboard() {
                       : styles.telegram
                   }`}
                 >
-                  {channel.platform === "FACEBOOK"
-                    ? "f"
-                    : "✈"}
+                  {channel.platform === "FACEBOOK" ? "f" : "✈"}
                 </div>
 
                 <div className={styles.channelMain}>
@@ -250,7 +308,7 @@ export function AutomationDashboard() {
                   <span>
                     {channel.username
                       ? `@${channel.username}`
-                      : "No username"}
+                      : copy.noUsername}
                   </span>
                 </div>
 
@@ -266,7 +324,7 @@ export function AutomationDashboard() {
                   </span>
 
                   <small>
-                    {channel._count.scheduledPosts} posts
+                    {channel._count.scheduledPosts} {copy.posts}
                   </small>
                 </div>
               </div>
@@ -277,58 +335,48 @@ export function AutomationDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Automation
-              </p>
-              <h2>Publishing settings</h2>
+              <p className={styles.eyebrow}>Automation</p>
+              <h2>{copy.publishingSettings}</h2>
             </div>
           </header>
 
           {settings ? (
             <div className={styles.settingsList}>
               <div>
-                <span>Timezone</span>
+                <span>{copy.timezone}</span>
                 <strong>{settings.timezone}</strong>
               </div>
 
               <div>
-                <span>Approval required</span>
+                <span>{copy.approvalRequired}</span>
                 <strong>
-                  {settings.approvalRequired
-                    ? "Yes"
-                    : "No"}
+                  {settings.approvalRequired ? copy.yes : copy.no}
                 </strong>
               </div>
 
               <div>
-                <span>Auto publish</span>
+                <span>{copy.autoPublish}</span>
                 <strong>
-                  {settings.autoPublishEnabled
-                    ? "Enabled"
-                    : "Disabled"}
+                  {settings.autoPublishEnabled ? copy.enabled : copy.disabled}
                 </strong>
               </div>
 
               <div>
-                <span>Retry policy</span>
+                <span>{copy.retryPolicy}</span>
                 <strong>
-                  {settings.retryLimit} attempts ·{" "}
-                  {settings.retryDelayMinutes} min
+                  {settings.retryLimit} {copy.attempts} ·{" "}
+                  {settings.retryDelayMinutes} {copy.minutes}
                 </strong>
               </div>
 
               <div>
-                <span>Facebook time</span>
-                <strong>
-                  {settings.defaultFacebookTime}
-                </strong>
+                <span>{copy.facebookTime}</span>
+                <strong>{settings.defaultFacebookTime}</strong>
               </div>
 
               <div>
-                <span>Telegram time</span>
-                <strong>
-                  {settings.defaultTelegramTime}
-                </strong>
+                <span>{copy.telegramTime}</span>
+                <strong>{settings.defaultTelegramTime}</strong>
               </div>
             </div>
           ) : null}
@@ -338,10 +386,8 @@ export function AutomationDashboard() {
       <section className={styles.panel}>
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Schedule
-            </p>
-            <h2>Upcoming posts</h2>
+            <p className={styles.eyebrow}>Schedule</p>
+            <h2>{copy.upcomingPosts}</h2>
           </div>
 
           <strong>{dashboard.upcoming.length}</strong>
@@ -351,11 +397,11 @@ export function AutomationDashboard() {
           <table>
             <thead>
               <tr>
-                <th>Platform</th>
-                <th>Content</th>
-                <th>Campaign</th>
-                <th>Status</th>
-                <th>Scheduled</th>
+                <th>{copy.platform}</th>
+                <th>{copy.content}</th>
+                <th>{copy.campaign}</th>
+                <th>{copy.status}</th>
+                <th>{copy.scheduledTime}</th>
               </tr>
             </thead>
 
@@ -370,31 +416,22 @@ export function AutomationDashboard() {
 
                   <td>
                     <div className={styles.contentCell}>
-                      <strong>
-                        {post.title || "Untitled post"}
-                      </strong>
+                      <strong>{post.title || copy.untitled}</strong>
                       <span>{post.content}</span>
                     </div>
                   </td>
 
-                  <td>
-                    {post.campaign?.name || "—"}
-                  </td>
+                  <td>{post.campaign?.name || "—"}</td>
 
                   <td>{post.status}</td>
 
-                  <td>
-                    {formatDate(post.scheduledAt)}
-                  </td>
+                  <td>{formatDate(post.scheduledAt, locale)}</td>
                 </tr>
               ))}
 
               {!dashboard.upcoming.length ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className={styles.empty}
-                  >
+                  <td colSpan={5} className={styles.empty}>
                     No posts scheduled yet.
                   </td>
                 </tr>
