@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./AiUsageDashboard.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type UsageTotals = {
   calls: number;
   promptTokens: number;
@@ -23,6 +18,16 @@ type UsageTotals = {
 type ModelUsage = UsageTotals & {
   model: string;
   totalDurationMs: number;
+};
+
+type FeatureUsage = UsageTotals & {
+  feature: string;
+  reasoningTokens: number;
+  totalDurationMs: number;
+  averagePromptTokens: number;
+  averageCompletionTokens: number;
+  averageTotalTokens: number;
+  averageCostPerCallMyr: number;
 };
 
 type SummaryResponse = {
@@ -46,6 +51,7 @@ type SummaryResponse = {
     projectedMonthlyCostMyr: number;
     projectedMonthlyCostUsd: number;
   };
+  features: FeatureUsage[];
   models: ModelUsage[];
 };
 
@@ -110,14 +116,26 @@ function dateTime(value: string) {
   }).format(new Date(value));
 }
 
+function featureName(feature: string) {
+  switch (feature) {
+    case "CONTENT_GENERATION":
+      return "Content Generation";
+    case "COPILOT_CHAT":
+      return "Copilot Chat";
+    case "COPILOT_MARKETING_PLAN":
+      return "Marketing Plan";
+    case "OTHER":
+      return "Other / Legacy";
+    default:
+      return feature;
+  }
+}
+
 export function AiUsageDashboard() {
   const [days, setDays] = useState(30);
-  const [summary, setSummary] =
-    useState<SummaryResponse | null>(null);
-  const [recent, setRecent] =
-    useState<RecentUsage[]>([]);
-  const [trend, setTrend] =
-    useState<TrendUsage[]>([]);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [recent, setRecent] = useState<RecentUsage[]>([]);
+  const [trend, setTrend] = useState<TrendUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -126,38 +144,23 @@ export function AiUsageDashboard() {
     setError("");
 
     try {
-      const [summaryRes, recentRes, trendRes] =
-        await Promise.all([
-          fetch(
-            `${API_URL}/ai-usage/summary?days=${days}`,
-            { cache: "no-store" },
-          ),
-          fetch(
-            `${API_URL}/ai-usage/recent?limit=20`,
-            { cache: "no-store" },
-          ),
-          fetch(
-            `${API_URL}/ai-usage/trend?days=${days}`,
-            { cache: "no-store" },
-          ),
-        ]);
+      const [summaryRes, recentRes, trendRes] = await Promise.all([
+        fetch(`${API_URL}/ai-usage/summary?days=${days}`, {
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/ai-usage/recent?limit=20`, { cache: "no-store" }),
+        fetch(`${API_URL}/ai-usage/trend?days=${days}`, { cache: "no-store" }),
+      ]);
 
-      if (
-        !summaryRes.ok ||
-        !recentRes.ok ||
-        !trendRes.ok
-      ) {
-        throw new Error(
-          "Unable to load AI usage data.",
-        );
+      if (!summaryRes.ok || !recentRes.ok || !trendRes.ok) {
+        throw new Error("Unable to load AI usage data.");
       }
 
-      const [summaryData, recentData, trendData] =
-        await Promise.all([
-          summaryRes.json() as Promise<SummaryResponse>,
-          recentRes.json() as Promise<RecentUsage[]>,
-          trendRes.json() as Promise<TrendUsage[]>,
-        ]);
+      const [summaryData, recentData, trendData] = await Promise.all([
+        summaryRes.json() as Promise<SummaryResponse>,
+        recentRes.json() as Promise<RecentUsage[]>,
+        trendRes.json() as Promise<TrendUsage[]>,
+      ]);
 
       setSummary(summaryData);
       setRecent(recentData);
@@ -178,22 +181,12 @@ export function AiUsageDashboard() {
   }, [load]);
 
   const maxTrendCost = useMemo(
-    () =>
-      Math.max(
-        ...trend.map(
-          (item) => item.estimatedCostMyr,
-        ),
-        0.000001,
-      ),
+    () => Math.max(...trend.map((item) => item.estimatedCostMyr), 0.000001),
     [trend],
   );
 
   if (loading && !summary) {
-    return (
-      <div className={styles.state}>
-        Loading AI usage dashboard...
-      </div>
-    );
+    return <div className={styles.state}>Loading AI usage dashboard...</div>;
   }
 
   if (!summary) {
@@ -201,9 +194,7 @@ export function AiUsageDashboard() {
       <div className={styles.state}>
         <p>{error || "No usage data available."}</p>
 
-        <button onClick={() => void load()}>
-          Try again
-        </button>
+        <button onClick={() => void load()}>Try again</button>
       </div>
     );
   }
@@ -212,94 +203,56 @@ export function AiUsageDashboard() {
     <div className={styles.dashboard}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>
-            Analytics
-          </p>
+          <p className={styles.eyebrow}>Analytics</p>
 
           <h1>AI Usage Dashboard</h1>
 
-          <p>
-            Monitor AI calls, tokens, costs and
-            response performance.
-          </p>
+          <p>Monitor AI calls, tokens, costs and response performance.</p>
         </div>
 
         <div className={styles.actions}>
           <select
             value={days}
-            onChange={(event) =>
-              setDays(Number(event.target.value))
-            }
+            onChange={(event) => setDays(Number(event.target.value))}
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>
-            <option value={365}>
-              Last 365 days
-            </option>
+            <option value={365}>Last 365 days</option>
           </select>
 
-          <button
-            onClick={() => void load()}
-            disabled={loading}
-          >
+          <button onClick={() => void load()} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </section>
 
-      {error ? (
-        <div className={styles.error}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.kpis}>
         <article>
           <span>Requests · last 24h</span>
-          <strong>
-            {number(summary.last24Hours.calls)}
-          </strong>
-          <small>
-            {number(summary.totals.calls)} in selected period
-          </small>
+          <strong>{number(summary.last24Hours.calls)}</strong>
+          <small>{number(summary.totals.calls)} in selected period</small>
         </article>
 
         <article>
           <span>Tokens · last 24h</span>
-          <strong>
-            {number(summary.last24Hours.totalTokens)}
-          </strong>
-          <small>
-            {number(summary.totals.totalTokens)} period total
-          </small>
+          <strong>{number(summary.last24Hours.totalTokens)}</strong>
+          <small>{number(summary.totals.totalTokens)} period total</small>
         </article>
 
         <article>
           <span>Cost · last 24h</span>
-          <strong>
-            {myr(
-              summary.last24Hours.estimatedCostMyr,
-            )}
-          </strong>
-          <small>
-            {usd(
-              summary.last24Hours.estimatedCostUsd,
-            )}
-          </small>
+          <strong>{myr(summary.last24Hours.estimatedCostMyr)}</strong>
+          <small>{usd(summary.last24Hours.estimatedCostUsd)}</small>
         </article>
 
         <article>
           <span>Average response · 24h</span>
-          <strong>
-            {duration(
-              summary.last24Hours.averageDurationMs,
-            )}
-          </strong>
+          <strong>{duration(summary.last24Hours.averageDurationMs)}</strong>
           <small>
-            {duration(
-              summary.totals.averageDurationMs,
-            )} period average
+            {duration(summary.totals.averageDurationMs)} period average
           </small>
         </article>
       </section>
@@ -308,37 +261,26 @@ export function AiUsageDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Cost trend
-              </p>
+              <p className={styles.eyebrow}>Cost trend</p>
               <h2>Daily MYR spending</h2>
             </div>
 
-            <strong>
-              {myr(
-                summary.totals.estimatedCostMyr,
-              )}
-            </strong>
+            <strong>{myr(summary.totals.estimatedCostMyr)}</strong>
           </header>
 
           <div className={styles.bars}>
             {trend.length ? (
               trend.map((item) => {
-                const height =
-                  Math.max(
-                    4,
-                    item.estimatedCostMyr /
-                      maxTrendCost *
-                      100,
-                  );
+                const height = Math.max(
+                  4,
+                  (item.estimatedCostMyr / maxTrendCost) * 100,
+                );
 
                 return (
                   <div
                     className={styles.barItem}
                     key={item.date}
-                    title={`${item.date}: ${myr(
-                      item.estimatedCostMyr,
-                    )}`}
+                    title={`${item.date}: ${myr(item.estimatedCostMyr)}`}
                   >
                     <div className={styles.barTrack}>
                       <div
@@ -349,16 +291,12 @@ export function AiUsageDashboard() {
                       />
                     </div>
 
-                    <span>
-                      {item.date.slice(5)}
-                    </span>
+                    <span>{item.date.slice(5)}</span>
                   </div>
                 );
               })
             ) : (
-              <p className={styles.empty}>
-                No trend data yet.
-              </p>
+              <p className={styles.empty}>No trend data yet.</p>
             )}
           </div>
         </article>
@@ -366,9 +304,7 @@ export function AiUsageDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Models
-              </p>
+              <p className={styles.eyebrow}>Models</p>
               <h2>Usage by model</h2>
             </div>
           </header>
@@ -377,27 +313,19 @@ export function AiUsageDashboard() {
             {summary.models.map((item) => {
               const percentage =
                 summary.totals.calls > 0
-                  ? item.calls /
-                    summary.totals.calls *
-                    100
+                  ? (item.calls / summary.totals.calls) * 100
                   : 0;
 
               return (
-                <div
-                  className={styles.model}
-                  key={item.model}
-                >
+                <div className={styles.model} key={item.model}>
                   <div>
                     <strong>{item.model}</strong>
                     <span>
-                      {item.calls} calls ·{" "}
-                      {myr(item.estimatedCostMyr)}
+                      {item.calls} calls · {myr(item.estimatedCostMyr)}
                     </span>
                   </div>
 
-                  <b>
-                    {percentage.toFixed(0)}%
-                  </b>
+                  <b>{percentage.toFixed(0)}%</b>
 
                   <div className={styles.progress}>
                     <div
@@ -409,9 +337,7 @@ export function AiUsageDashboard() {
 
                   <small>
                     {number(item.totalTokens)} tokens ·{" "}
-                    {duration(
-                      item.averageDurationMs,
-                    )} avg
+                    {duration(item.averageDurationMs)} avg
                   </small>
                 </div>
               );
@@ -420,13 +346,64 @@ export function AiUsageDashboard() {
         </article>
       </section>
 
+      <section className={styles.panel}>
+        <header>
+          <div>
+            <p className={styles.eyebrow}>Features</p>
+            <h2>Usage by feature</h2>
+          </div>
+
+          <strong>{summary.features?.length ?? 0}</strong>
+        </header>
+
+        <div className={styles.models}>
+          {summary.features?.length ? (
+            summary.features.map((item) => {
+              const percentage =
+                summary.totals.totalTokens > 0
+                  ? (item.totalTokens / summary.totals.totalTokens) * 100
+                  : 0;
+
+              return (
+                <div className={styles.model} key={item.feature}>
+                  <div>
+                    <strong>{featureName(item.feature)}</strong>
+
+                    <span>
+                      {number(item.calls)} requests ·{" "}
+                      {myr(item.estimatedCostMyr)}
+                    </span>
+                  </div>
+
+                  <b>{percentage.toFixed(1)}%</b>
+
+                  <div className={styles.progress}>
+                    <div
+                      style={{
+                        width: `${percentage}%`,
+                      }}
+                    />
+                  </div>
+
+                  <small>
+                    {number(item.totalTokens)} tokens ·{" "}
+                    {number(item.averageTotalTokens)} avg/request ·{" "}
+                    {duration(item.averageDurationMs)} avg response
+                  </small>
+                </div>
+              );
+            })
+          ) : (
+            <p className={styles.empty}>No feature usage data yet.</p>
+          )}
+        </div>
+      </section>
+
       <section className={styles.gridSmall}>
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Tokens
-              </p>
+              <p className={styles.eyebrow}>Tokens</p>
               <h2>Efficiency details</h2>
             </div>
           </header>
@@ -434,39 +411,22 @@ export function AiUsageDashboard() {
           <div className={styles.details}>
             <div>
               <span>Prompt</span>
-              <strong>
-                {number(
-                  summary.totals.promptTokens,
-                )}
-              </strong>
+              <strong>{number(summary.totals.promptTokens)}</strong>
             </div>
 
             <div>
               <span>Completion</span>
-              <strong>
-                {number(
-                  summary.totals.completionTokens,
-                )}
-              </strong>
+              <strong>{number(summary.totals.completionTokens)}</strong>
             </div>
 
             <div>
               <span>Cached</span>
-              <strong>
-                {number(
-                  summary.totals.cachedInputTokens,
-                )}
-              </strong>
+              <strong>{number(summary.totals.cachedInputTokens)}</strong>
             </div>
 
             <div>
               <span>Cache rate</span>
-              <strong>
-                {summary.totals.cacheRatePercent.toFixed(
-                  2,
-                )}
-                %
-              </strong>
+              <strong>{summary.totals.cacheRatePercent.toFixed(2)}%</strong>
             </div>
           </div>
         </article>
@@ -474,45 +434,25 @@ export function AiUsageDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Total cost
-              </p>
+              <p className={styles.eyebrow}>Total cost</p>
               <h2>{days}-day period</h2>
             </div>
           </header>
 
           <div className={styles.cost}>
-            <strong>
-              {myr(
-                summary.totals.estimatedCostMyr,
-              )}
-            </strong>
+            <strong>{myr(summary.totals.estimatedCostMyr)}</strong>
 
-            <span>
-              {usd(
-                summary.totals.estimatedCostUsd,
-              )}
-            </span>
+            <span>{usd(summary.totals.estimatedCostUsd)}</span>
 
             <div className={styles.costMetrics}>
               <div>
                 <small>Average per call</small>
-                <b>
-                  {myr(
-                    summary.totals
-                      .averageCostPerCallMyr,
-                  )}
-                </b>
+                <b>{myr(summary.totals.averageCostPerCallMyr)}</b>
               </div>
 
               <div>
                 <small>Monthly forecast</small>
-                <b>
-                  {myr(
-                    summary.totals
-                      .projectedMonthlyCostMyr,
-                  )}
-                </b>
+                <b>{myr(summary.totals.projectedMonthlyCostMyr)}</b>
               </div>
             </div>
           </div>
@@ -522,9 +462,7 @@ export function AiUsageDashboard() {
       <section className={styles.panel}>
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Activity
-            </p>
+            <p className={styles.eyebrow}>Activity</p>
             <h2>Recent AI requests</h2>
           </div>
 
@@ -551,53 +489,32 @@ export function AiUsageDashboard() {
                   <td>
                     <div className={styles.topic}>
                       <strong>
-                        {item.history?.topic ||
-                          "Unknown request"}
+                        {item.history?.topic || "Unknown request"}
                       </strong>
 
-                      <span>
-                        {item.history?.brand.name ||
-                          "No brand"}
-                      </span>
+                      <span>{item.history?.brand.name || "No brand"}</span>
                     </div>
                   </td>
 
                   <td>
-                    <span className={styles.badge}>
-                      {item.model}
-                    </span>
+                    <span className={styles.badge}>{item.model}</span>
                   </td>
 
-                  <td>
-                    {item.history?.platforms.join(
-                      ", ",
-                    ) || "—"}
-                  </td>
+                  <td>{item.history?.platforms.join(", ") || "—"}</td>
 
-                  <td>
-                    {number(item.totalTokens)}
-                  </td>
+                  <td>{number(item.totalTokens)}</td>
 
-                  <td>
-                    {myr(item.estimatedCostMyr)}
-                  </td>
+                  <td>{myr(item.estimatedCostMyr)}</td>
 
-                  <td>
-                    {duration(item.durationMs)}
-                  </td>
+                  <td>{duration(item.durationMs)}</td>
 
-                  <td>
-                    {dateTime(item.createdAt)}
-                  </td>
+                  <td>{dateTime(item.createdAt)}</td>
                 </tr>
               ))}
 
               {!recent.length ? (
                 <tr>
-                  <td
-                    className={styles.empty}
-                    colSpan={7}
-                  >
+                  <td className={styles.empty} colSpan={7}>
                     No requests recorded yet.
                   </td>
                 </tr>
