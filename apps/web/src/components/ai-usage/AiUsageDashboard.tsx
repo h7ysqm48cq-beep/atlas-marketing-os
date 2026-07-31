@@ -57,6 +57,9 @@ type SummaryResponse = {
 
 type RecentUsage = {
   id: string;
+  feature: string;
+  conversationId: string | null;
+  reasoningTokens: number;
   model: string;
   promptTokens: number;
   cachedInputTokens: number;
@@ -97,6 +100,14 @@ function number(value: number) {
 
 function myr(value: number) {
   return `RM ${value.toFixed(4)}`;
+}
+
+function shortId(value: string | null) {
+  if (!value) {
+    return "No conversation";
+  }
+
+  return `${value.slice(0, 10)}…`;
 }
 
 function usd(value: number) {
@@ -473,7 +484,8 @@ export function AiUsageDashboard() {
           <table>
             <thead>
               <tr>
-                <th>Topic</th>
+                <th>Request</th>
+                <th>Feature</th>
                 <th>Model</th>
                 <th>Platform</th>
                 <th>Tokens</th>
@@ -489,11 +501,27 @@ export function AiUsageDashboard() {
                   <td>
                     <div className={styles.topic}>
                       <strong>
-                        {item.history?.topic || "Unknown request"}
+                        {item.history?.topic ||
+                          (item.feature === "COPILOT_MARKETING_PLAN"
+                            ? "Marketing plan request"
+                            : item.feature === "COPILOT_CHAT"
+                              ? "Copilot conversation"
+                              : "Legacy AI request")}
                       </strong>
 
-                      <span>{item.history?.brand.name || "No brand"}</span>
+                      <span>
+                        {item.history?.brand.name ||
+                          (item.conversationId
+                            ? `Conversation ${shortId(item.conversationId)}`
+                            : "Legacy record")}
+                      </span>
                     </div>
+                  </td>
+
+                  <td>
+                    <span className={styles.badge}>
+                      {featureName(item.feature)}
+                    </span>
                   </td>
 
                   <td>
