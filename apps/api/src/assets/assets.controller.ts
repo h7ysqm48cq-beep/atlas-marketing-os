@@ -7,7 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
@@ -15,6 +18,41 @@ import { UpdateAssetDto } from './dto/update-asset.dto';
 @Controller('assets')
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
+
+  @Post('upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+      fileFilter: (_request, file, callback) => {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+          callback(
+            new Error('Only JPG, JPEG, PNG and WEBP images are allowed.'),
+            false,
+          );
+          return;
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
+  upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('name') name?: string,
+    @Body('collection') collection?: string,
+    @Body('campaignId') campaignId?: string,
+  ) {
+    return this.assetsService.upload({
+      file,
+      name,
+      collection,
+      campaignId,
+    });
+  }
 
   @Post()
   create(@Body() dto: CreateAssetDto) {

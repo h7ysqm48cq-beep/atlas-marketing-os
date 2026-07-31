@@ -16,6 +16,7 @@ import { GenerateContentDto } from './dto/generate-content.dto';
 import type { TopicSuggestionsDto } from './dto/topic-suggestions.dto';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ContentQualityService } from './content-quality.service';
+import { AssetContextService } from './asset-context.service';
 
 type GeneratedContent = {
   facebook: string;
@@ -132,6 +133,7 @@ export class AiService {
     private readonly historyService: HistoryService,
     private readonly knowledgeService: KnowledgeService,
     private readonly memoryFacts: MemoryFactsService,
+    private readonly assetContextService: AssetContextService,
     private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -148,6 +150,12 @@ export class AiService {
 
     const brand = await this.brandsService.getActiveBrand();
     const context = await this.resolveCampaignContext(dto, brand.id);
+
+    const assetContext = await this.assetContextService.resolve({
+      brand,
+      selectedAssetIds: dto.assetIds,
+    });
+
     console.time('[AI] prompt-chain');
     const promptChain = await this.promptChainService.preview({
       topic: dto.topic,
@@ -160,39 +168,29 @@ export class AiService {
 
     const outputContract = this.promptBuilder.build(dto, brand);
 
+    const confirmedMemoryContext = await this.memoryFacts
+      .confirmedPromptContext()
+      .catch(() =>
+        [
+          'ELENA CONFIRMED MEMORY',
+          '- Confirmed memory could not be loaded.',
+        ].join('\\n'),
+      );
 
-    const confirmedMemoryContext =
-      await this.memoryFacts
-        .confirmedPromptContext()
-        .catch(() =>
-          [
-            'ELENA CONFIRMED MEMORY',
-            '- Confirmed memory could not be loaded.',
-          ].join('\\n'),
-        );
+    const model = this.selectModel(dto);
 
-    const model =
-      this.selectModel(dto);
-
-    console.log(
-      `[AI] model: ${model}`,
-    );
+    console.log(`[AI] model: ${model}`);
 
     const selectedPlatforms = new Set(
-      dto.platforms.map((platform) =>
-        platform.trim().toLowerCase(),
-      ),
+      dto.platforms.map((platform) => platform.trim().toLowerCase()),
     );
 
-    const wantsFacebook =
-      selectedPlatforms.has('facebook');
+    const wantsFacebook = selectedPlatforms.has('facebook');
 
-    const wantsTelegram =
-      selectedPlatforms.has('telegram');
+    const wantsTelegram = selectedPlatforms.has('telegram');
 
     const wantsReels =
-      selectedPlatforms.has('reels') ||
-      selectedPlatforms.has('reel');
+      selectedPlatforms.has('reels') || selectedPlatforms.has('reel');
 
     const wantsImage =
       selectedPlatforms.has('image prompt') ||
@@ -218,10 +216,9 @@ export class AiService {
       '- Do not create content for unselected platforms.',
     ].join('\n');
 
-    const compactMergedPrompt =
-      this.compressPromptChainPrompt(
-        promptChain.mergedPrompt,
-      );
+    const compactMergedPrompt = this.compressPromptChainPrompt(
+      promptChain.mergedPrompt,
+    );
 
     console.log(
       `[AI] prompt-size: ${promptChain.mergedPrompt.length} -> ${compactMergedPrompt.length} chars`,
@@ -240,10 +237,19 @@ export class AiService {
       '- Treat memory as reusable preference guidance.',
       '- Never expose internal memory records to the user.',
       '',
+      assetContext.promptContext,
+      '',
       'ATLAS OUTPUT CONTRACT',
       outputContract,
       selectedOutputInstruction,
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const generationInput = this.assetContextService.buildVisionInput(
+      prompt,
+      assetContext.assets,
+    );
 
     const requestStartedAt = Date.now();
 
@@ -252,88 +258,88 @@ export class AiService {
       const createGeneration = () =>
         this.client!.responses.create({
           model,
-          input: prompt,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'atlas_content_package',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                facebook: wantsFacebook
-                  ? { type: 'string' }
-                  : {
-                      type: 'string',
-                      enum: [''],
+          input: generationInput,
+          text: {
+            format: {
+              type: 'json_schema',
+              name: 'atlas_content_package',
+              strict: true,
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  facebook: wantsFacebook
+                    ? { type: 'string' }
+                    : {
+                        type: 'string',
+                        enum: [''],
+                      },
+                  telegram: wantsTelegram
+                    ? { type: 'string' }
+                    : {
+                        type: 'string',
+                        enum: [''],
+                      },
+                  reels: wantsReels
+                    ? { type: 'string' }
+                    : {
+                        type: 'string',
+                        enum: [''],
+                      },
+                  image: wantsImage
+                    ? { type: 'string' }
+                    : {
+                        type: 'string',
+                        enum: [''],
+                      },
+                  analysis: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      summary: { type: 'string' },
+                      viralScore: {
+                        type: 'integer',
+                        minimum: 0,
+                        maximum: 100,
+                      },
+                      discussionScore: {
+                        type: 'integer',
+                        minimum: 0,
+                        maximum: 100,
+                      },
+                      shareabilityScore: {
+                        type: 'integer',
+                        minimum: 0,
+                        maximum: 100,
+                      },
+                      brandFitScore: {
+                        type: 'integer',
+                        minimum: 0,
+                        maximum: 100,
+                      },
+                      bestPostingTime: { type: 'string' },
                     },
-                telegram: wantsTelegram
-                  ? { type: 'string' }
-                  : {
-                      type: 'string',
-                      enum: [''],
-                    },
-                reels: wantsReels
-                  ? { type: 'string' }
-                  : {
-                      type: 'string',
-                      enum: [''],
-                    },
-                image: wantsImage
-                  ? { type: 'string' }
-                  : {
-                      type: 'string',
-                      enum: [''],
-                    },
-                analysis: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    summary: { type: 'string' },
-                    viralScore: {
-                      type: 'integer',
-                      minimum: 0,
-                      maximum: 100,
-                    },
-                    discussionScore: {
-                      type: 'integer',
-                      minimum: 0,
-                      maximum: 100,
-                    },
-                    shareabilityScore: {
-                      type: 'integer',
-                      minimum: 0,
-                      maximum: 100,
-                    },
-                    brandFitScore: {
-                      type: 'integer',
-                      minimum: 0,
-                      maximum: 100,
-                    },
-                    bestPostingTime: { type: 'string' },
+                    required: [
+                      'summary',
+                      'viralScore',
+                      'discussionScore',
+                      'shareabilityScore',
+                      'brandFitScore',
+                      'bestPostingTime',
+                    ],
                   },
-                  required: [
-                    'summary',
-                    'viralScore',
-                    'discussionScore',
-                    'shareabilityScore',
-                    'brandFitScore',
-                    'bestPostingTime',
-                  ],
                 },
+                required: [
+                  'facebook',
+                  'telegram',
+                  'reels',
+                  'image',
+                  'analysis',
+                ],
               },
-              required: [
-                'facebook',
-                'telegram',
-                'reels',
-                'image',
-                'analysis',
-              ],
             },
           },
-        },
-      });
+        });
 
       const withTimeout = async <T>(
         operation: Promise<T>,
@@ -348,9 +354,7 @@ export class AiService {
               timeout = setTimeout(
                 () =>
                   reject(
-                    new Error(
-                      `Generation timed out after ${timeoutMs}ms`,
-                    ),
+                    new Error(`Generation timed out after ${timeoutMs}ms`),
                   ),
                 timeoutMs,
               );
@@ -366,54 +370,38 @@ export class AiService {
       let response;
 
       try {
-        response = await withTimeout(
-          createGeneration(),
-          30000,
-        );
+        response = await withTimeout(createGeneration(), 30000);
       } catch (firstError) {
         console.warn(
           '[AI] generation retry:',
-          firstError instanceof Error
-            ? firstError.message
-            : 'Unknown error',
+          firstError instanceof Error ? firstError.message : 'Unknown error',
         );
 
-        response = await withTimeout(
-          createGeneration(),
-          30000,
-        );
+        response = await withTimeout(createGeneration(), 30000);
       }
 
       console.timeEnd('[AI] generation');
 
-      const generated = JSON.parse(
-        response.output_text,
-      ) as GeneratedContent;
+      const generated = JSON.parse(response.output_text) as GeneratedContent;
 
       console.time('[AI] unified-quality');
 
-      const inspected =
-        await this.contentQualityService.inspect({
-          topic: dto.topic,
-          style: dto.style,
-          language: dto.language,
-          brandName: brand.name,
-          brandAliases: [
-            brand.name,
-            'MGMBETMYR',
-            'MGM',
-            '满贯门',
-          ],
-          brandVoice: brand.brandVoice,
-          brandRules: brand.brandRules,
-          forbiddenWords: brand.forbiddenWords,
-          content: {
-            facebook: generated.facebook,
-            telegram: generated.telegram,
-            reels: generated.reels,
-            image: generated.image,
-          },
-        });
+      const inspected = await this.contentQualityService.inspect({
+        topic: dto.topic,
+        style: dto.style,
+        language: dto.language,
+        brandName: brand.name,
+        brandAliases: [brand.name, 'MGMBETMYR', 'MGM', '满贯门'],
+        brandVoice: brand.brandVoice,
+        brandRules: brand.brandRules,
+        forbiddenWords: brand.forbiddenWords,
+        content: {
+          facebook: generated.facebook,
+          telegram: generated.telegram,
+          reels: generated.reels,
+          image: generated.image,
+        },
+      });
 
       console.timeEnd('[AI] unified-quality');
 
@@ -441,14 +429,9 @@ export class AiService {
         analysis: generated.analysis,
       });
 
+      const usage = (response as any).usage ?? {};
 
-      const usage =
-        (response as any).usage ?? {};
-
-      const promptTokens =
-        usage.input_tokens ??
-        usage.prompt_tokens ??
-        0;
+      const promptTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
 
       const cachedInputTokens =
         usage.input_tokens_details?.cached_tokens ??
@@ -456,44 +439,27 @@ export class AiService {
         0;
 
       const completionTokens =
-        usage.output_tokens ??
-        usage.completion_tokens ??
-        0;
+        usage.output_tokens ?? usage.completion_tokens ?? 0;
 
-      const totalTokens =
-        usage.total_tokens ??
-        promptTokens + completionTokens;
+      const totalTokens = usage.total_tokens ?? promptTokens + completionTokens;
 
-      const durationMs =
-        Date.now() - requestStartedAt;
+      const durationMs = Date.now() - requestStartedAt;
 
-      const pricing =
-        this.getModelPricing(model);
+      const pricing = this.getModelPricing(model);
 
-      const regularInputTokens =
-        Math.max(
-          0,
-          promptTokens - cachedInputTokens,
-        );
+      const regularInputTokens = Math.max(0, promptTokens - cachedInputTokens);
 
       const estimatedCostUsd =
-        (
-          regularInputTokens *
-            pricing.inputPerMillion +
-          cachedInputTokens *
-            pricing.cachedInputPerMillion +
-          completionTokens *
-            pricing.outputPerMillion
-        ) / 1_000_000;
+        (regularInputTokens * pricing.inputPerMillion +
+          cachedInputTokens * pricing.cachedInputPerMillion +
+          completionTokens * pricing.outputPerMillion) /
+        1_000_000;
 
       const usdToMyrRate = Number(
-        this.configService.get<string>(
-          'USD_TO_MYR_RATE',
-        ) ?? '4.30',
+        this.configService.get<string>('USD_TO_MYR_RATE') ?? '4.30',
       );
 
-      const estimatedCostMyr =
-        estimatedCostUsd * usdToMyrRate;
+      const estimatedCostMyr = estimatedCostUsd * usdToMyrRate;
 
       await this.prisma.aiUsage.create({
         data: {
@@ -522,9 +488,7 @@ export class AiService {
 
       console.time('[AI] knowledge');
       await this.knowledgeService.recordUsage(
-        promptChain.knowledgeUsed.map(
-          (document) => document.id,
-        ),
+        promptChain.knowledgeUsed.map((document) => document.id),
       );
       console.timeEnd('[AI] knowledge');
 
@@ -557,8 +521,7 @@ export class AiService {
           loadedSourceCount: promptChain.loadedSourceCount,
           totalSourceCount: promptChain.totalSourceCount,
           sources: promptChain.sources,
-          queryUnderstanding:
-            promptChain.queryUnderstanding,
+          queryUnderstanding: promptChain.queryUnderstanding,
           knowledgeUsed: promptChain.knowledgeUsed,
           mergedPrompt: promptChain.mergedPrompt,
         },
@@ -573,17 +536,14 @@ export class AiService {
     }
   }
 
-  async suggestTopics(
-    dto: TopicSuggestionsDto,
-  ) {
+  async suggestTopics(dto: TopicSuggestionsDto) {
     if (!this.client) {
       throw new ServiceUnavailableException(
         'OPENAI_API_KEY is not configured in apps/api/.env',
       );
     }
 
-    const brand =
-      await this.brandsService.getActiveBrand();
+    const brand = await this.brandsService.getActiveBrand();
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -606,19 +566,18 @@ export class AiService {
       );
     }
 
-    const recentHistory =
-      await this.prisma.generationHistory.findMany({
-        where: {
-          brandId: brand.id,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 20,
-        select: {
-          topic: true,
-        },
-      });
+    const recentHistory = await this.prisma.generationHistory.findMany({
+      where: {
+        brandId: brand.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 20,
+      select: {
+        topic: true,
+      },
+    });
 
     const count = dto.count ?? 8;
 
@@ -659,9 +618,7 @@ export class AiService {
         : 'No campaign selected.',
       '',
       'RECENT TOPICS TO AVOID REPEATING',
-      recentTopics.length
-        ? recentTopics.join('\n')
-        : 'No recent topics.',
+      recentTopics.length ? recentTopics.join('\n') : 'No recent topics.',
       '',
       'Each suggestion must contain:',
       '- title: a concise usable topic',
@@ -673,65 +630,53 @@ export class AiService {
     ].join('\n');
 
     const model =
-      this.configService.get<string>(
-        'OPENAI_MODEL',
-      ) || 'gpt-5.6-luna';
+      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
 
     try {
-      const response =
-        await this.client.responses.create({
-          model,
-          input: prompt,
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'atlas_topic_suggestions',
-              strict: true,
-              schema: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  suggestions: {
-                    type: 'array',
-                    minItems: count,
-                    maxItems: count,
-                    items: {
-                      type: 'object',
-                      additionalProperties: false,
-                      properties: {
-                        title: {
-                          type: 'string',
-                        },
-                        angle: {
-                          type: 'string',
-                        },
-                        hook: {
-                          type: 'string',
-                        },
-                        reason: {
-                          type: 'string',
-                        },
+      const response = await this.client.responses.create({
+        model,
+        input: prompt,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'atlas_topic_suggestions',
+            strict: true,
+            schema: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                suggestions: {
+                  type: 'array',
+                  minItems: count,
+                  maxItems: count,
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                      title: {
+                        type: 'string',
                       },
-                      required: [
-                        'title',
-                        'angle',
-                        'hook',
-                        'reason',
-                      ],
+                      angle: {
+                        type: 'string',
+                      },
+                      hook: {
+                        type: 'string',
+                      },
+                      reason: {
+                        type: 'string',
+                      },
                     },
+                    required: ['title', 'angle', 'hook', 'reason'],
                   },
                 },
-                required: [
-                  'suggestions',
-                ],
               },
+              required: ['suggestions'],
             },
           },
-        });
+        },
+      });
 
-      const parsed = JSON.parse(
-        response.output_text,
-      ) as {
+      const parsed = JSON.parse(response.output_text) as {
         suggestions: Array<{
           title: string;
           angle: string;
@@ -742,8 +687,7 @@ export class AiService {
 
       return {
         success: true,
-        count:
-          parsed.suggestions.length,
+        count: parsed.suggestions.length,
         campaign: campaign
           ? {
               id: campaign.id,
@@ -751,8 +695,7 @@ export class AiService {
             }
           : null,
         avoidedTopics: recentTopics,
-        suggestions:
-          parsed.suggestions,
+        suggestions: parsed.suggestions,
       };
     } catch (error) {
       const message =
@@ -771,10 +714,7 @@ export class AiService {
     return this.promptBuilder.preview(dto, brand);
   }
 
-
-  private getModelPricing(
-    model: string,
-  ): {
+  private getModelPricing(model: string): {
     inputPerMillion: number;
     cachedInputPerMillion: number;
     outputPerMillion: number;
@@ -787,9 +727,7 @@ export class AiService {
       };
     }
 
-    console.warn(
-      `[AI] Missing pricing for model: ${model}`,
-    );
+    console.warn(`[AI] Missing pricing for model: ${model}`);
 
     return {
       inputPerMillion: 0,
@@ -798,20 +736,11 @@ export class AiService {
     };
   }
 
-  private selectModel(
-    _dto: GenerateContentDto,
-  ): string {
-    return (
-      this.configService.get<string>(
-        'OPENAI_MODEL',
-      ) ?? 'gpt-5.6-luna'
-    );
+  private selectModel(_dto: GenerateContentDto): string {
+    return this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-5.6-luna';
   }
 
-
-  private compressPromptChainPrompt(
-    prompt: string,
-  ): string {
+  private compressPromptChainPrompt(prompt: string): string {
     const removablePrefixes = [
       'Hybrid score:',
       'Semantic similarity:',
@@ -830,10 +759,7 @@ export class AiService {
       .filter((line) => {
         const trimmed = line.trim();
 
-        return !removablePrefixes.some(
-          (prefix) =>
-            trimmed.startsWith(prefix),
-        );
+        return !removablePrefixes.some((prefix) => trimmed.startsWith(prefix));
       })
       .join('\n')
       .replace(/\n{3,}/g, '\n\n')

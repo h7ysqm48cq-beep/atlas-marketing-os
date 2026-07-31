@@ -3,8 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { extname } from 'node:path';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 
@@ -13,7 +16,87 @@ export class AssetsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
+    private readonly storageService: SupabaseStorageService,
   ) {}
+
+  async upload(input: {
+    file?: Express.Multer.File;
+    name?: string;
+    collection?: string;
+    campaignId?: string;
+  }) {
+    if (!input.file) {
+      throw new BadRequestException('Image file is required.');
+    }
+
+    const brand = await this.brandsService.getActiveBrand();
+
+    if (input.campaignId) {
+      await this.validateRelations(brand.id, input.campaignId, undefined);
+    }
+
+    const originalExtension = extname(input.file.originalname).toLowerCase();
+
+    const safeExtension =
+      originalExtension === '.jpeg'
+        ? '.jpg'
+        : ['.jpg', '.png', '.webp'].includes(originalExtension)
+          ? originalExtension
+          : this.extensionFromMimeType(input.file.mimetype);
+
+    const storagePath = [
+      'brands',
+      brand.id,
+      'uploads',
+      new Date().getUTCFullYear().toString(),
+      String(new Date().getUTCMonth() + 1).padStart(2, '0'),
+      `${randomUUID()}${safeExtension}`,
+    ].join('/');
+
+    const uploaded = await this.storageService.uploadImage({
+      path: storagePath,
+      buffer: input.file.buffer,
+      contentType: input.file.mimetype,
+    });
+
+    try {
+      return await this.prisma.asset.create({
+        data: {
+          brandId: brand.id,
+          campaignId: input.campaignId || undefined,
+          name: input.name?.trim() || input.file.originalname,
+          type: 'IMAGE',
+          provider: 'user-upload',
+          url: uploaded.publicUrl,
+          thumbnailUrl: uploaded.publicUrl,
+          storageProvider: uploaded.provider,
+          storagePath: uploaded.path,
+          fileSize: uploaded.size,
+          mimeType: uploaded.contentType,
+          collection: input.collection?.trim() || 'Uploads',
+          tags: ['uploaded'],
+        },
+        include: this.assetInclude,
+      });
+    } catch (error) {
+      await this.storageService.remove(uploaded.path).catch(() => undefined);
+
+      throw error;
+    }
+  }
+
+  private extensionFromMimeType(mimeType: string): string {
+    switch (mimeType) {
+      case 'image/jpeg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/webp':
+        return '.webp';
+      default:
+        throw new BadRequestException('Unsupported image format.');
+    }
+  }
 
   async create(dto: CreateAssetDto) {
     const brand = await this.brandsService.getActiveBrand();
@@ -33,24 +116,15 @@ export class AssetsService {
         negativePrompt: dto.negativePrompt,
         generationModel: dto.generationModel,
         generationSize: dto.generationSize,
-        generationQuality:
-          dto.generationQuality,
-        generationDurationMs:
-          dto.generationDurationMs,
-        storageProvider:
-          dto.storageProvider,
-        storagePath:
-          dto.storagePath,
-        fileSize:
-          dto.fileSize,
-        tags:
-          dto.tags,
-        collection:
-          dto.collection,
-        downloadCount:
-          dto.downloadCount,
-        usedCount:
-          dto.usedCount,
+        generationQuality: dto.generationQuality,
+        generationDurationMs: dto.generationDurationMs,
+        storageProvider: dto.storageProvider,
+        storagePath: dto.storagePath,
+        fileSize: dto.fileSize,
+        tags: dto.tags,
+        collection: dto.collection,
+        downloadCount: dto.downloadCount,
+        usedCount: dto.usedCount,
         url: dto.url,
         thumbnailUrl: dto.thumbnailUrl,
         mimeType: dto.mimeType,
@@ -75,27 +149,17 @@ export class AssetsService {
     storageProvider?: string;
     sort?: string;
   }) {
-    const brand =
-      await this.brandsService.getActiveBrand();
+    const brand = await this.brandsService.getActiveBrand();
 
-    const search =
-      query?.search?.trim();
+    const search = query?.search?.trim();
 
     return this.prisma.asset.findMany({
       where: {
         brandId: brand.id,
-        campaignId:
-          query?.campaignId || undefined,
+        campaignId: query?.campaignId || undefined,
         type:
-          query?.type &&
-          query.type !== 'ALL'
-            ? (
-                query.type as
-                  | 'IMAGE'
-                  | 'VIDEO'
-                  | 'DOCUMENT'
-                  | 'TEMPLATE'
-              )
+          query?.type && query.type !== 'ALL'
+            ? (query.type as 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'TEMPLATE')
             : undefined,
         isFavorite:
           query?.favorite === 'true'
@@ -103,24 +167,16 @@ export class AssetsService {
             : query?.favorite === 'false'
               ? false
               : undefined,
-        platform:
-          query?.platform || undefined,
-        provider:
-          query?.provider || undefined,
-        generationModel:
-          query?.generationModel ||
-          undefined,
-        storageProvider:
-          query?.storageProvider ||
-          undefined,
-        collection:
-          query?.collection || undefined,
-        tags:
-          query?.tag
-            ? {
-                has: query.tag,
-              }
-            : undefined,
+        platform: query?.platform || undefined,
+        provider: query?.provider || undefined,
+        generationModel: query?.generationModel || undefined,
+        storageProvider: query?.storageProvider || undefined,
+        collection: query?.collection || undefined,
+        tags: query?.tag
+          ? {
+              has: query.tag,
+            }
+          : undefined,
         OR: search
           ? [
               {
@@ -227,24 +283,15 @@ export class AssetsService {
         negativePrompt: dto.negativePrompt,
         generationModel: dto.generationModel,
         generationSize: dto.generationSize,
-        generationQuality:
-          dto.generationQuality,
-        generationDurationMs:
-          dto.generationDurationMs,
-        storageProvider:
-          dto.storageProvider,
-        storagePath:
-          dto.storagePath,
-        fileSize:
-          dto.fileSize,
-        tags:
-          dto.tags,
-        collection:
-          dto.collection,
-        downloadCount:
-          dto.downloadCount,
-        usedCount:
-          dto.usedCount,
+        generationQuality: dto.generationQuality,
+        generationDurationMs: dto.generationDurationMs,
+        storageProvider: dto.storageProvider,
+        storagePath: dto.storagePath,
+        fileSize: dto.fileSize,
+        tags: dto.tags,
+        collection: dto.collection,
+        downloadCount: dto.downloadCount,
+        usedCount: dto.usedCount,
         url: dto.url,
         thumbnailUrl: dto.thumbnailUrl,
         mimeType: dto.mimeType,

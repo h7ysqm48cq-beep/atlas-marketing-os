@@ -4,8 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceResult } from "./AiWorkspace";
 import styles from "./AiPublishCard.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type Platform = "FACEBOOK" | "TELEGRAM";
+
+type PublishAsset = {
+  id: string;
+  name: string;
+  url: string;
+  thumbnailUrl: string | null;
+  collection: string | null;
+  remark: string | null;
+  aiEnabled: boolean;
+};
 
 type PublishResult = {
   success: boolean;
@@ -32,48 +42,40 @@ type Props = {
 function defaultDateTime() {
   const date = new Date(Date.now() + 5 * 60 * 1000);
 
-  const local = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60_000,
-  );
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
 
   return local.toISOString().slice(0, 16);
 }
 
 function platformLabel(platform: Platform) {
-  return platform === "FACEBOOK"
-    ? "Facebook"
-    : "Telegram";
+  return platform === "FACEBOOK" ? "Facebook" : "Telegram";
 }
 
-export function AiPublishCard({
-  result,
-  campaignId,
-  topic,
-  onMessage,
-}: Props) {
+export function AiPublishCard({ result, campaignId, topic, onMessage }: Props) {
   const [brandId, setBrandId] = useState("");
   const [facebook, setFacebook] = useState(true);
   const [telegram, setTelegram] = useState(true);
-  const [mode, setMode] = useState<"NOW" | "SCHEDULE">(
-    "SCHEDULE",
-  );
-  const [scheduledAt, setScheduledAt] = useState(
-    defaultDateTime,
-  );
+  const [mode, setMode] = useState<"NOW" | "SCHEDULE">("SCHEDULE");
+  const [scheduledAt, setScheduledAt] = useState(defaultDateTime);
   const [publishing, setPublishing] = useState(false);
+  const [availableAssets, setAvailableAssets] = useState<PublishAsset[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<PublishAsset | null>(null);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
+  const [loadingAssets, setLoadingAssets] = useState(false);
   const [error, setError] = useState("");
-  const [publishResult, setPublishResult] =
-    useState<PublishResult | null>(null);
+  const [publishResult, setPublishResult] = useState<PublishResult | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadBrand() {
       try {
-        const response = await fetch(
-          `${API_URL}/brands`,
-          { cache: "no-store" },
-        );
+        const response = await fetch(`${API_URL}/brands`, {
+          cache: "no-store",
+        });
 
         const brands = (await response.json()) as Array<{
           id: string;
@@ -81,8 +83,7 @@ export function AiPublishCard({
         }>;
 
         const brand =
-          brands.find((item) => item.status === "ACTIVE") ??
-          brands[0];
+          brands.find((item) => item.status === "ACTIVE") ?? brands[0];
 
         if (!cancelled && brand) {
           setBrandId(brand.id);
@@ -111,17 +112,56 @@ export function AiPublishCard({
   }, [facebook, telegram]);
 
   const confidence = Math.round(
-    (
-      result.analysis.brandFitScore +
+    (result.analysis.brandFitScore +
       result.analysis.discussionScore +
-      result.analysis.shareabilityScore
-    ) / 3,
+      result.analysis.shareabilityScore) /
+      3,
   );
 
   function resetPublish() {
     setPublishResult(null);
     setError("");
     setScheduledAt(defaultDateTime());
+  }
+
+  async function openAssetPicker() {
+    setAssetPickerOpen(true);
+
+    if (availableAssets.length) {
+      return;
+    }
+
+    setLoadingAssets(true);
+
+    try {
+      const response = await fetch(`${API_URL}/assets?type=IMAGE`, {
+        cache: "no-store",
+      });
+
+      const data = (await response.json()) as
+        | PublishAsset[]
+        | {
+            message?: string;
+          };
+
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(
+          !Array.isArray(data) && data.message
+            ? data.message
+            : "Unable to load Asset Library.",
+        );
+      }
+
+      setAvailableAssets(data.filter((asset) => asset.aiEnabled));
+    } catch (assetError) {
+      setError(
+        assetError instanceof Error
+          ? assetError.message
+          : "Unable to load Asset Library.",
+      );
+    } finally {
+      setLoadingAssets(false);
+    }
   }
 
   async function publish() {
@@ -137,10 +177,7 @@ export function AiPublishCard({
       return;
     }
 
-    if (
-      mode === "SCHEDULE" &&
-      Number.isNaN(new Date(scheduledAt).getTime())
-    ) {
+    if (mode === "SCHEDULE" && Number.isNaN(new Date(scheduledAt).getTime())) {
       setError("Choose a valid schedule time.");
       return;
     }
@@ -151,6 +188,17 @@ export function AiPublishCard({
         : new Date(scheduledAt).toISOString();
 
     const contents: Partial<Record<Platform, string>> = {};
+    const mediaUrls: Partial<Record<Platform, string[]>> = {};
+
+    if (selectedAsset) {
+      if (facebook) {
+        mediaUrls.FACEBOOK = [selectedAsset.url];
+      }
+
+      if (telegram) {
+        mediaUrls.TELEGRAM = [selectedAsset.url];
+      }
+    }
 
     if (facebook) {
       contents.FACEBOOK = result.facebook;
@@ -164,30 +212,27 @@ export function AiPublishCard({
     onMessage?.("Creating multi-platform scheduled posts...");
 
     try {
-      const response = await fetch(
-        `${API_URL}/automation/multi-publish`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            brandId,
-            campaignId: campaignId || undefined,
-            historyId: result.historyId || undefined,
-            title: topic.trim() || "AI Studio Content",
-            contents,
-            platforms: selectedPlatforms,
-            scheduledAt: finalScheduledAt,
-            timezone: "Asia/Kuala_Lumpur",
-            queueImmediately: true,
-          }),
+      const response = await fetch(`${API_URL}/automation/multi-publish`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          brandId,
+          campaignId: campaignId || undefined,
+          historyId: result.historyId || undefined,
+          title: topic.trim() || "AI Studio Content",
+          contents,
+          mediaUrls,
+          platforms: selectedPlatforms,
+          scheduledAt: finalScheduledAt,
+          timezone: "Asia/Kuala_Lumpur",
+          queueImmediately: true,
+        }),
+      });
 
       const data = (await response.json()) as
-        | PublishResult
-        | { message?: string };
+        PublishResult | { message?: string };
 
       if (!response.ok || !("posts" in data)) {
         throw new Error(
@@ -198,9 +243,7 @@ export function AiPublishCard({
       }
 
       setPublishResult(data);
-      onMessage?.(
-        `${data.count} platform post(s) successfully queued.`,
-      );
+      onMessage?.(`${data.count} platform post(s) successfully queued.`);
     } catch (publishError) {
       const message =
         publishError instanceof Error
@@ -223,10 +266,7 @@ export function AiPublishCard({
           <div>
             <p>Publishing workflow completed</p>
             <h3>Content successfully queued</h3>
-            <span>
-              Atlas will publish each post at the selected
-              time.
-            </span>
+            <span>Atlas will publish each post at the selected time.</span>
           </div>
         </div>
 
@@ -238,31 +278,21 @@ export function AiPublishCard({
               </div>
 
               <div>
-                <strong>
-                  {platformLabel(post.platform)}
-                </strong>
+                <strong>{platformLabel(post.platform)}</strong>
                 <span>{post.channel.name}</span>
               </div>
 
-              <span className={styles.queuedStatus}>
-                {post.status}
-              </span>
+              <span className={styles.queuedStatus}>{post.status}</span>
             </article>
           ))}
         </div>
 
         <div className={styles.successActions}>
-          <a
-            className={styles.calendarButton}
-            href="/calendar"
-          >
+          <a className={styles.calendarButton} href="/calendar">
             Open Content Calendar
           </a>
 
-          <button
-            type="button"
-            onClick={resetPublish}
-          >
+          <button type="button" onClick={resetPublish}>
             Publish another
           </button>
         </div>
@@ -276,14 +306,10 @@ export function AiPublishCard({
         <div>
           <p>Final publishing step</p>
           <h3>Ready to publish?</h3>
-          <span>
-            Review the selected platforms and schedule.
-          </span>
+          <span>Review the selected platforms and schedule.</span>
         </div>
 
-        <span className={styles.ready}>
-          Ready
-        </span>
+        <span className={styles.ready}>Ready</span>
       </div>
 
       <div className={styles.scoreGrid}>
@@ -294,32 +320,24 @@ export function AiPublishCard({
 
         <article>
           <span>Brand fit</span>
-          <strong>
-            {result.analysis.brandFitScore}%
-          </strong>
+          <strong>{result.analysis.brandFitScore}%</strong>
         </article>
 
         <article>
           <span>Discussion</span>
-          <strong>
-            {result.analysis.discussionScore}%
-          </strong>
+          <strong>{result.analysis.discussionScore}%</strong>
         </article>
       </div>
 
       <div className={styles.section}>
-        <span className={styles.sectionLabel}>
-          Publish channels
-        </span>
+        <span className={styles.sectionLabel}>Publish channels</span>
 
         <div className={styles.platforms}>
           <label>
             <input
               type="checkbox"
               checked={facebook}
-              onChange={(event) =>
-                setFacebook(event.target.checked)
-              }
+              onChange={(event) => setFacebook(event.target.checked)}
             />
 
             <span className={styles.platformIcon}>f</span>
@@ -334,9 +352,7 @@ export function AiPublishCard({
             <input
               type="checkbox"
               checked={telegram}
-              onChange={(event) =>
-                setTelegram(event.target.checked)
-              }
+              onChange={(event) => setTelegram(event.target.checked)}
             />
 
             <span className={styles.platformIcon}>✈</span>
@@ -350,16 +366,47 @@ export function AiPublishCard({
       </div>
 
       <div className={styles.section}>
-        <span className={styles.sectionLabel}>
-          Publishing time
-        </span>
+        <div className={styles.assetHeading}>
+          <span className={styles.sectionLabel}>Attached image</span>
+
+          <button type="button" onClick={() => void openAssetPicker()}>
+            + Choose from Asset Library
+          </button>
+        </div>
+
+        {selectedAsset ? (
+          <div className={styles.selectedAsset}>
+            <img
+              src={selectedAsset.thumbnailUrl || selectedAsset.url}
+              alt={selectedAsset.name}
+            />
+
+            <div>
+              <strong>{selectedAsset.name}</strong>
+              <small>{selectedAsset.collection || "No collection"}</small>
+              <p>{selectedAsset.remark || "No AI remark saved."}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedAsset(null)}
+              aria-label={`Remove ${selectedAsset.name}`}
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <p className={styles.noAsset}>
+            No image attached. The post will be published as text only.
+          </p>
+        )}
+      </div>
+
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>Publishing time</span>
 
         <div className={styles.mode}>
-          <label
-            className={
-              mode === "NOW" ? styles.activeMode : ""
-            }
-          >
+          <label className={mode === "NOW" ? styles.activeMode : ""}>
             <input
               type="radio"
               name="publish-mode"
@@ -373,11 +420,7 @@ export function AiPublishCard({
             </span>
           </label>
 
-          <label
-            className={
-              mode === "SCHEDULE" ? styles.activeMode : ""
-            }
-          >
+          <label className={mode === "SCHEDULE" ? styles.activeMode : ""}>
             <input
               type="radio"
               name="publish-mode"
@@ -399,26 +442,18 @@ export function AiPublishCard({
             <input
               type="datetime-local"
               value={scheduledAt}
-              onChange={(event) =>
-                setScheduledAt(event.target.value)
-              }
+              onChange={(event) => setScheduledAt(event.target.value)}
             />
           </label>
         ) : null}
       </div>
 
-      {error ? (
-        <p className={styles.error}>{error}</p>
-      ) : null}
+      {error ? <p className={styles.error}>{error}</p> : null}
 
       <button
         type="button"
         className={styles.publishButton}
-        disabled={
-          publishing ||
-          !brandId ||
-          selectedPlatforms.length === 0
-        }
+        disabled={publishing || !brandId || selectedPlatforms.length === 0}
         onClick={() => void publish()}
       >
         <span>↗</span>
@@ -429,6 +464,84 @@ export function AiPublishCard({
               selectedPlatforms.length === 1 ? "" : "s"
             }`}
       </button>
+      {assetPickerOpen ? (
+        <div
+          className={styles.assetModalBackdrop}
+          onMouseDown={() => setAssetPickerOpen(false)}
+        >
+          <div
+            className={styles.assetModal}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.assetModalHeader}>
+              <div>
+                <p>Asset Library</p>
+                <h3>Choose publishing image</h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAssetPickerOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <input
+              className={styles.assetSearch}
+              value={assetSearch}
+              onChange={(event) => setAssetSearch(event.target.value)}
+              placeholder="Search name, collection or remark..."
+            />
+
+            {loadingAssets ? (
+              <p className={styles.assetMessage}>Loading Asset Library...</p>
+            ) : (
+              <div className={styles.assetGrid}>
+                {availableAssets
+                  .filter((asset) => {
+                    const query = assetSearch.trim().toLowerCase();
+
+                    if (!query) return true;
+
+                    return [
+                      asset.name,
+                      asset.collection || "",
+                      asset.remark || "",
+                    ].some((value) => value.toLowerCase().includes(query));
+                  })
+                  .map((asset) => (
+                    <button
+                      className={
+                        selectedAsset?.id === asset.id
+                          ? styles.assetCardSelected
+                          : styles.assetCard
+                      }
+                      type="button"
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset);
+                        setAssetPickerOpen(false);
+                      }}
+                    >
+                      <img
+                        src={asset.thumbnailUrl || asset.url}
+                        alt={asset.name}
+                      />
+
+                      <div>
+                        <strong>{asset.name}</strong>
+                        <small>{asset.collection || "No collection"}</small>
+                        <p>{asset.remark || "No AI remark saved."}</p>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

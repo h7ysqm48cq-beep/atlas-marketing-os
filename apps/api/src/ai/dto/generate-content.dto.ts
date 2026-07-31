@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsNotEmpty,
   IsOptional,
@@ -29,4 +31,11 @@ export class GenerateContentDto {
   @IsString()
   @IsOptional()
   ideaId?: string;
+
+  @IsArray()
+  @ArrayMaxSize(4)
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsOptional()
+  assetIds?: string[];
 }

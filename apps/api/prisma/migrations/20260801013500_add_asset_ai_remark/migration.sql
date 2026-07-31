@@ -1,0 +1,3 @@
+ALTER TABLE "Asset"
+ADD COLUMN "remark" TEXT,
+ADD COLUMN "aiEnabled" BOOLEAN NOT NULL DEFAULT true;

@@ -61,4 +61,21 @@ export class CreateBrandDto {
   @IsArray()
   @IsString({ each: true })
   examplePosts!: string[];
+
+  @IsString()
+  @IsOptional()
+  primaryLogoAssetId?: string;
+
+  @IsString()
+  @IsOptional()
+  brandBannerAssetId?: string;
+
+  @IsString()
+  @IsOptional()
+  mascotAssetId?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  referenceAssetIds?: string[];
 }

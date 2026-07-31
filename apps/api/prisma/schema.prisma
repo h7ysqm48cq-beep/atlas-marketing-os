@@ -73,6 +73,12 @@ model Brand {
   forbiddenWords       String[]
   brandRules           String[]
   examplePosts         String[]
+
+  primaryLogoAssetId   String?
+  brandBannerAssetId   String?
+  mascotAssetId        String?
+  referenceAssetIds    String[]              @default([])
+
   status               BrandStatus           @default(ACTIVE)
   generations          GenerationHistory[]
   campaigns            Campaign[]
@@ -221,6 +227,8 @@ model Asset {
 
   tags       String[] @default([])
   collection String?
+  remark     String?
+  aiEnabled  Boolean  @default(true)
   isFavorite Boolean  @default(false)
 
   downloadCount Int       @default(0)

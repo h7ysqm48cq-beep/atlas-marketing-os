@@ -5,7 +5,7 @@ import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import { AiTopicSuggestions } from "./AiTopicSuggestions";
 import styles from "./AiStudio.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 const platformOptions = [
   "Facebook",
   "Telegram",
@@ -13,22 +13,36 @@ const platformOptions = [
   "Image Prompt",
 ] as const;
 
-type StudioPlatform =
-  (typeof platformOptions)[number];
+type StudioPlatform = (typeof platformOptions)[number];
+
+type StudioAsset = {
+  id: string;
+  name: string;
+  url: string;
+  thumbnailUrl: string | null;
+  mimeType: string | null;
+  collection: string | null;
+  remark: string | null;
+  aiEnabled: boolean;
+};
 
 export function AiStudio() {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState("Nostalgia");
   const [language, setLanguage] = useState("Chinese");
-  const [platforms, setPlatforms] =
-    useState<StudioPlatform[]>([
-      ...platformOptions,
-    ]);
+  const [platforms, setPlatforms] = useState<StudioPlatform[]>([
+    ...platformOptions,
+  ]);
   const [campaignId, setCampaignId] = useState("");
   const [ideaId, setIdeaId] = useState("");
   const [campaignName, setCampaignName] = useState("");
   const [ideaTitle, setIdeaTitle] = useState("");
   const [result, setResult] = useState<WorkspaceResult | null>(null);
+  const [availableAssets, setAvailableAssets] = useState<StudioAsset[]>([]);
+  const [selectedAssets, setSelectedAssets] = useState<StudioAsset[]>([]);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState(
     "Enter a topic and click Generate content.",
@@ -59,9 +73,7 @@ export function AiStudio() {
 
       if (!historyParam) {
         if (campaignParam || ideaParam) {
-          setMessage(
-            "Campaign context loaded. Ready to generate.",
-          );
+          setMessage("Campaign context loaded. Ready to generate.");
         }
 
         return;
@@ -70,12 +82,9 @@ export function AiStudio() {
       setMessage("Restoring saved AI workspace...");
 
       try {
-        const response = await fetch(
-          `${API_URL}/history/${historyParam}`,
-          {
-            cache: "no-store",
-          },
-        );
+        const response = await fetch(`${API_URL}/history/${historyParam}`, {
+          cache: "no-store",
+        });
 
         const record = (await response.json()) as {
           id: string;
@@ -99,9 +108,7 @@ export function AiStudio() {
         };
 
         if (!response.ok || !record.id) {
-          throw new Error(
-            record.message || "Unable to restore workspace.",
-          );
+          throw new Error(record.message || "Unable to restore workspace.");
         }
 
         if (cancelled) return;
@@ -169,26 +176,83 @@ export function AiStudio() {
     };
   }, []);
 
-  function togglePlatform(
-    platform: StudioPlatform,
-  ) {
+  function togglePlatform(platform: StudioPlatform) {
     setPlatforms((current) => {
       if (current.includes(platform)) {
         if (current.length === 1) {
-          setMessage(
-            "Select at least one platform.",
-          );
+          setMessage("Select at least one platform.");
 
           return current;
         }
 
-        return current.filter(
-          (item) => item !== platform,
-        );
+        return current.filter((item) => item !== platform);
       }
 
       return [...current, platform];
     });
+  }
+
+  async function openAssetPicker() {
+    setIsAssetPickerOpen(true);
+
+    if (availableAssets.length) {
+      return;
+    }
+
+    setIsLoadingAssets(true);
+
+    try {
+      const response = await fetch(`${API_URL}/assets?type=IMAGE`, {
+        cache: "no-store",
+      });
+
+      const data = (await response.json()) as
+        | StudioAsset[]
+        | {
+            message?: string;
+          };
+
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(
+          !Array.isArray(data) && data.message
+            ? data.message
+            : "Unable to load Asset Library.",
+        );
+      }
+
+      setAvailableAssets(data.filter((asset) => asset.aiEnabled));
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to load Asset Library.",
+      );
+    } finally {
+      setIsLoadingAssets(false);
+    }
+  }
+
+  function toggleAsset(asset: StudioAsset) {
+    setSelectedAssets((current) => {
+      const exists = current.some((item) => item.id === asset.id);
+
+      if (exists) {
+        return current.filter((item) => item.id !== asset.id);
+      }
+
+      if (current.length >= 4) {
+        setMessage("You can attach up to 4 assets.");
+        return current;
+      }
+
+      return [...current, asset];
+    });
+  }
+
+  function removeSelectedAsset(assetId: string) {
+    setSelectedAssets((current) =>
+      current.filter((asset) => asset.id !== assetId),
+    );
   }
 
   async function generateContent() {
@@ -198,9 +262,7 @@ export function AiStudio() {
     }
 
     if (!platforms.length) {
-      setMessage(
-        "Select at least one platform.",
-      );
+      setMessage("Select at least one platform.");
       return;
     }
 
@@ -220,14 +282,14 @@ export function AiStudio() {
           language,
           campaignId: campaignId || undefined,
           ideaId: ideaId || undefined,
+          assetIds: selectedAssets.map((asset) => asset.id),
         }),
       });
 
       setMessage("Building platform-specific outputs...");
 
       const data = (await response.json()) as
-        | WorkspaceResult
-        | { message?: string };
+        WorkspaceResult | { message?: string };
 
       if (!response.ok || !("facebook" in data)) {
         throw new Error(
@@ -278,9 +340,7 @@ export function AiStudio() {
               </a>
 
               <a
-                href={`/campaigns/${encodeURIComponent(
-                  campaignId,
-                )}?tab=assets`}
+                href={`/campaigns/${encodeURIComponent(campaignId)}?tab=assets`}
               >
                 Campaign assets
               </a>
@@ -322,33 +382,24 @@ export function AiStudio() {
           <div className={styles.platforms}>
             <span>Platforms</span>
             <div>
-              {platformOptions.map(
-                (platform) => {
-                  const selected =
-                    platforms.includes(platform);
+              {platformOptions.map((platform) => {
+                const selected = platforms.includes(platform);
 
-                  return (
-                    <button
-                      type="button"
-                      key={platform}
-                      aria-pressed={selected}
-                      className={
-                        selected
-                          ? styles.activePlatform
-                          : styles.inactivePlatform
-                      }
-                      onClick={() =>
-                        togglePlatform(platform)
-                      }
-                    >
-                      <span>
-                        {selected ? "✓" : "+"}
-                      </span>
-                      {platform}
-                    </button>
-                  );
-                },
-              )}
+                return (
+                  <button
+                    type="button"
+                    key={platform}
+                    aria-pressed={selected}
+                    className={
+                      selected ? styles.activePlatform : styles.inactivePlatform
+                    }
+                    onClick={() => togglePlatform(platform)}
+                  >
+                    <span>{selected ? "✓" : "+"}</span>
+                    {platform}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -379,11 +430,54 @@ export function AiStudio() {
             </select>
           </label>
 
+          <div className={styles.assetSection}>
+            <div className={styles.assetSectionHeader}>
+              <div>
+                <span>Attached assets</span>
+                <small>Choose up to 4 AI-enabled images.</small>
+              </div>
+
+              <button type="button" onClick={() => void openAssetPicker()}>
+                + Choose assets
+              </button>
+            </div>
+
+            {selectedAssets.length ? (
+              <div className={styles.selectedAssets}>
+                {selectedAssets.map((asset) => (
+                  <div className={styles.selectedAsset} key={asset.id}>
+                    <img
+                      src={asset.thumbnailUrl || asset.url}
+                      alt={asset.name}
+                    />
+
+                    <div>
+                      <strong>{asset.name}</strong>
+                      <small>{asset.collection || "No collection"}</small>
+                    </div>
+
+                    <button
+                      type="button"
+                      aria-label={`Remove ${asset.name}`}
+                      onClick={() => removeSelectedAsset(asset.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.noAssets}>No assets attached.</p>
+            )}
+          </div>
+
           {campaignId ? (
             <div className={styles.linkedContext}>
               <span>Linked workflow</span>
               <strong>{campaignName || campaignId}</strong>
-              <small>{ideaTitle || ideaId || "Campaign-level generation"}</small>
+              <small>
+                {ideaTitle || ideaId || "Campaign-level generation"}
+              </small>
 
               <div className={styles.linkedMeta}>
                 <span>
@@ -399,9 +493,7 @@ export function AiStudio() {
                 <span>
                   History
                   <strong>
-                    {result?.historyId
-                      ? "Saved"
-                      : "Created after generation"}
+                    {result?.historyId ? "Saved" : "Created after generation"}
                   </strong>
                 </span>
               </div>
@@ -417,7 +509,6 @@ export function AiStudio() {
           </button>
 
           <p className={styles.message}>{message}</p>
-
         </aside>
 
         <AiWorkspace
@@ -432,6 +523,109 @@ export function AiStudio() {
           onResultChange={setResult}
         />
       </section>
+      {isAssetPickerOpen ? (
+        <div
+          className={styles.assetModalBackdrop}
+          onMouseDown={() => setIsAssetPickerOpen(false)}
+        >
+          <div
+            className={styles.assetModal}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.assetModalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Asset Library</p>
+                <h2>Choose AI assets</h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAssetPickerOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <input
+              className={styles.assetSearch}
+              value={assetSearch}
+              onChange={(event) => setAssetSearch(event.target.value)}
+              placeholder="Search asset name, collection or remark..."
+            />
+
+            <p className={styles.assetPickerStatus}>
+              {selectedAssets.length}/4 selected
+            </p>
+
+            {isLoadingAssets ? (
+              <p className={styles.assetPickerMessage}>
+                Loading Asset Library...
+              </p>
+            ) : (
+              <div className={styles.assetPickerGrid}>
+                {availableAssets
+                  .filter((asset) => {
+                    const query = assetSearch.trim().toLowerCase();
+
+                    if (!query) return true;
+
+                    return [
+                      asset.name,
+                      asset.collection || "",
+                      asset.remark || "",
+                    ].some((value) => value.toLowerCase().includes(query));
+                  })
+                  .map((asset) => {
+                    const selected = selectedAssets.some(
+                      (item) => item.id === asset.id,
+                    );
+
+                    return (
+                      <button
+                        className={
+                          selected
+                            ? styles.assetPickerCardSelected
+                            : styles.assetPickerCard
+                        }
+                        type="button"
+                        key={asset.id}
+                        onClick={() => toggleAsset(asset)}
+                      >
+                        <img
+                          src={asset.thumbnailUrl || asset.url}
+                          alt={asset.name}
+                        />
+
+                        <div>
+                          <strong>{asset.name}</strong>
+                          <small>{asset.collection || "No collection"}</small>
+                          <p>{asset.remark || "No AI remark saved."}</p>
+                        </div>
+
+                        <span>{selected ? "✓" : "+"}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+
+            <div className={styles.assetModalActions}>
+              <button type="button" onClick={() => setSelectedAssets([])}>
+                Clear
+              </button>
+
+              <button
+                className={styles.generateButton}
+                type="button"
+                onClick={() => setIsAssetPickerOpen(false)}
+              >
+                Use selected assets
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

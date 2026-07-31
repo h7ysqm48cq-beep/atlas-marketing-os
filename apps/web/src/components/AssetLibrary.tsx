@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./AssetLibrary.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type AssetType = "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
 
 type Campaign = {
@@ -18,11 +18,14 @@ type Asset = {
   provider: string | null;
   platform: string | null;
   prompt: string | null;
+  collection: string | null;
   url: string;
   thumbnailUrl: string | null;
   mimeType: string | null;
   width: number | null;
   height: number | null;
+  remark: string | null;
+  aiEnabled: boolean;
   isFavorite: boolean;
   createdAt: string;
   campaign: Campaign | null;
@@ -64,6 +67,11 @@ export function AssetLibrary() {
   const [form, setForm] = useState<AssetForm>(emptyForm);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [editingRemark, setEditingRemark] = useState("");
+  const [editingAiEnabled, setEditingAiEnabled] = useState(true);
+  const [isUpdatingAiNotes, setIsUpdatingAiNotes] = useState(false);
   const [message, setMessage] = useState("Loading assets...");
 
   useEffect(() => {
@@ -80,21 +88,14 @@ export function AssetLibrary() {
         asset.prompt?.toLowerCase().includes(cleanSearch) ||
         asset.provider?.toLowerCase().includes(cleanSearch);
 
-      const matchesType =
-        typeFilter === "ALL" || asset.type === typeFilter;
+      const matchesType = typeFilter === "ALL" || asset.type === typeFilter;
 
       const matchesCampaign =
-        campaignFilter === "ALL" ||
-        asset.campaign?.id === campaignFilter;
+        campaignFilter === "ALL" || asset.campaign?.id === campaignFilter;
 
       const matchesFavorite = !favoritesOnly || asset.isFavorite;
 
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesCampaign &&
-        matchesFavorite
-      );
+      return matchesSearch && matchesType && matchesCampaign && matchesFavorite;
     });
   }, [assets, campaignFilter, favoritesOnly, search, typeFilter]);
 
@@ -144,14 +145,72 @@ export function AssetLibrary() {
     }
   }
 
-  function updateForm<K extends keyof AssetForm>(
-    key: K,
-    value: AssetForm[K],
-  ) {
+  function updateForm<K extends keyof AssetForm>(key: K, value: AssetForm[K]) {
     setForm((current) => ({
       ...current,
       [key]: value,
     }));
+  }
+
+  async function uploadAsset(file: File) {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setMessage("Only JPG, PNG and WEBP images are supported.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("The selected image exceeds the 10MB limit.");
+      return;
+    }
+
+    setIsUploading(true);
+    setMessage(`Uploading ${file.name}...`);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", file.name);
+      formData.append("collection", "Uploads");
+
+      const response = await fetch(`${API_URL}/assets/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json()) as
+        | Asset
+        | {
+            message?: string | string[];
+          };
+
+      if (!response.ok || !("id" in data)) {
+        const responseMessage =
+          "message" in data
+            ? Array.isArray(data.message)
+              ? data.message.join(" ")
+              : typeof data.message === "string"
+                ? data.message
+                : undefined
+            : undefined;
+
+        throw new Error(responseMessage ?? "Unable to upload image.");
+      }
+
+      setAssets((current) => [
+        data,
+        ...current.filter((asset) => asset.id !== data.id),
+      ]);
+
+      setMessage(`${file.name} uploaded successfully.`);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to upload image.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   async function createAsset(event: FormEvent<HTMLFormElement>) {
@@ -215,11 +274,79 @@ export function AssetLibrary() {
 
     setAssets((current) =>
       current.map((item) =>
-        item.id === asset.id
-          ? { ...item, isFavorite: !item.isFavorite }
-          : item,
+        item.id === asset.id ? { ...item, isFavorite: !item.isFavorite } : item,
       ),
     );
+  }
+
+  function openAiNotes(asset: Asset) {
+    setEditingAsset(asset);
+    setEditingRemark(asset.remark || "");
+    setEditingAiEnabled(asset.aiEnabled);
+  }
+
+  function closeAiNotes() {
+    if (isUpdatingAiNotes) return;
+
+    setEditingAsset(null);
+    setEditingRemark("");
+    setEditingAiEnabled(true);
+  }
+
+  async function saveAiNotes(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingAsset) return;
+
+    setIsUpdatingAiNotes(true);
+    setMessage(`Saving AI notes for ${editingAsset.name}...`);
+
+    try {
+      const response = await fetch(`${API_URL}/assets/${editingAsset.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          remark: editingRemark.trim() || null,
+          aiEnabled: editingAiEnabled,
+        }),
+      });
+
+      const data = (await response.json()) as
+        | Asset
+        | {
+            message?: string | string[];
+          };
+
+      if (!response.ok || !("id" in data)) {
+        const responseMessage =
+          "message" in data
+            ? Array.isArray(data.message)
+              ? data.message.join(" ")
+              : typeof data.message === "string"
+                ? data.message
+                : undefined
+            : undefined;
+
+        throw new Error(responseMessage ?? "Unable to save AI notes.");
+      }
+
+      setAssets((current) =>
+        current.map((asset) => (asset.id === data.id ? data : asset)),
+      );
+
+      setEditingAsset(null);
+      setEditingRemark("");
+      setEditingAiEnabled(true);
+      setMessage("AI notes saved.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to save AI notes.",
+      );
+    } finally {
+      setIsUpdatingAiNotes(false);
+    }
   }
 
   async function deleteAsset(asset: Asset) {
@@ -235,9 +362,7 @@ export function AssetLibrary() {
 
     if (!response.ok) return;
 
-    setAssets((current) =>
-      current.filter((item) => item.id !== asset.id),
-    );
+    setAssets((current) => current.filter((item) => item.id !== asset.id));
     setMessage("Asset deleted.");
   }
 
@@ -253,12 +378,43 @@ export function AssetLibrary() {
           </p>
         </div>
 
-        <button
-          className={styles.primaryButton}
-          onClick={() => setIsModalOpen(true)}
-        >
-          + Add asset
-        </button>
+        <div className={styles.heroActions}>
+          <input
+            id="asset-upload-input"
+            className={styles.fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={isUploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+
+              if (file) {
+                void uploadAsset(file);
+              }
+
+              event.target.value = "";
+            }}
+          />
+
+          <button
+            className={styles.uploadButton}
+            type="button"
+            disabled={isUploading}
+            onClick={() =>
+              document.getElementById("asset-upload-input")?.click()
+            }
+          >
+            {isUploading ? "Uploading..." : "↑ Upload image"}
+          </button>
+
+          <button
+            className={styles.primaryButton}
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+          >
+            + Add asset
+          </button>
+        </div>
       </section>
 
       <section className={styles.stats}>
@@ -316,12 +472,8 @@ export function AssetLibrary() {
         <section className={styles.emptyState}>
           <span>◇</span>
           <strong>No matching assets</strong>
-          <p>
-            Add your first asset or adjust the current filters.
-          </p>
-          <button onClick={() => setIsModalOpen(true)}>
-            Add asset
-          </button>
+          <p>Add your first asset or adjust the current filters.</p>
+          <button onClick={() => setIsModalOpen(true)}>Add asset</button>
         </section>
       ) : (
         <section className={styles.grid}>
@@ -329,10 +481,7 @@ export function AssetLibrary() {
             <article className={styles.card} key={asset.id}>
               <div className={styles.preview}>
                 {asset.type === "IMAGE" ? (
-                  <img
-                    src={asset.thumbnailUrl || asset.url}
-                    alt={asset.name}
-                  />
+                  <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
                 ) : (
                   <div className={styles.filePreview}>
                     <span>{asset.type}</span>
@@ -362,56 +511,70 @@ export function AssetLibrary() {
                 <div className={styles.meta}>
                   <span>{asset.campaign?.name || "No campaign"}</span>
                   <span>{asset.platform || "No platform"}</span>
+                  <span
+                    className={
+                      asset.aiEnabled
+                        ? styles.aiReadyBadge
+                        : styles.aiDisabledBadge
+                    }
+                  >
+                    {asset.aiEnabled ? "AI Ready" : "AI Disabled"}
+                  </span>
+                </div>
+
+                <div className={styles.aiNotePreview}>
+                  <strong>AI Remark</strong>
+                  <p>{asset.remark || "No AI usage instruction saved yet."}</p>
                 </div>
 
                 <div className={styles.cardFooter}>
                   <small>{formatDate(asset.createdAt)}</small>
                   <div>
-                    <a
-                      href={asset.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <a href={asset.url} target="_blank" rel="noreferrer">
                       View
                     </a>
                     <button
-  type="button"
-  onClick={async () => {
-    try {
-      const response = await fetch(asset.url);
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(asset.url);
 
-      if (!response.ok) {
-        throw new Error("Unable to download asset.");
-      }
+                          if (!response.ok) {
+                            throw new Error("Unable to download asset.");
+                          }
 
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+                          const blob = await response.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
 
-      const extension =
-        asset.mimeType === "image/png"
-          ? "png"
-          : asset.mimeType === "image/jpeg"
-            ? "jpg"
-            : asset.mimeType === "video/mp4"
-              ? "mp4"
-              : "file";
+                          const extension =
+                            asset.mimeType === "image/png"
+                              ? "png"
+                              : asset.mimeType === "image/jpeg"
+                                ? "jpg"
+                                : asset.mimeType === "video/mp4"
+                                  ? "mp4"
+                                  : "file";
 
-      link.href = blobUrl;
-      link.download = `${asset.name || "atlas-asset"}.${extension}`;
+                          link.href = blobUrl;
+                          link.download = `${asset.name || "atlas-asset"}.${extension}`;
 
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
 
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      setMessage("Unable to download asset.");
-    }
-  }}
->
-  Download
-</button>
+                          URL.revokeObjectURL(blobUrl);
+                        } catch {
+                          setMessage("Unable to download asset.");
+                        }
+                      }}
+                    >
+                      Download
+                    </button>
+                    <button type="button" onClick={() => openAiNotes(asset)}>
+                      Edit AI Notes
+                    </button>
+
                     <button
                       className={styles.deleteButton}
                       onClick={() => void deleteAsset(asset)}
@@ -425,6 +588,98 @@ export function AssetLibrary() {
           ))}
         </section>
       )}
+
+      {editingAsset ? (
+        <div className={styles.modalBackdrop} onMouseDown={closeAiNotes}>
+          <div
+            className={styles.modal}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Asset intelligence</p>
+                <h2>Edit AI notes</h2>
+              </div>
+
+              <button type="button" onClick={closeAiNotes} aria-label="Close">
+                ×
+              </button>
+            </div>
+
+            <div className={styles.assetEditorSummary}>
+              {editingAsset.type === "IMAGE" ? (
+                <img
+                  src={editingAsset.thumbnailUrl || editingAsset.url}
+                  alt={editingAsset.name}
+                />
+              ) : (
+                <div className={styles.filePreview}>{editingAsset.type}</div>
+              )}
+
+              <div>
+                <strong>{editingAsset.name}</strong>
+                <span>{editingAsset.collection || "No collection"}</span>
+              </div>
+            </div>
+
+            <form onSubmit={saveAiNotes}>
+              <label className={styles.field}>
+                <span>Comment / Remark for AI</span>
+                <textarea
+                  value={editingRemark}
+                  onChange={(event) => setEditingRemark(event.target.value)}
+                  placeholder="Explain what this asset is, when AI should use it, placement rules, visual restrictions and anything AI must avoid."
+                />
+              </label>
+
+              <label className={styles.aiToggle}>
+                <input
+                  type="checkbox"
+                  checked={editingAiEnabled}
+                  onChange={(event) =>
+                    setEditingAiEnabled(event.target.checked)
+                  }
+                />
+
+                <span>
+                  <strong>Allow AI to use this asset</strong>
+                  <small>
+                    When enabled, the asset and its remark can be included in AI
+                    context.
+                  </small>
+                </span>
+              </label>
+
+              <div className={styles.aiRemarkExample}>
+                <strong>Example</strong>
+                <p>
+                  Official brand logo. Always place at the bottom centre. Keep
+                  the original aspect ratio. Do not crop, recolour or enlarge
+                  it.
+                </p>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={closeAiNotes}
+                  disabled={isUpdatingAiNotes}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className={styles.primaryButton}
+                  type="submit"
+                  disabled={isUpdatingAiNotes}
+                >
+                  {isUpdatingAiNotes ? "Saving..." : "Save AI notes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       {isModalOpen ? (
         <div
@@ -440,10 +695,7 @@ export function AssetLibrary() {
                 <p className={styles.eyebrow}>New asset</p>
                 <h2>Add creative asset</h2>
               </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close"
-              >
+              <button onClick={() => setIsModalOpen(false)} aria-label="Close">
                 ×
               </button>
             </div>
@@ -454,9 +706,7 @@ export function AssetLibrary() {
                   <span>Name</span>
                   <input
                     value={form.name}
-                    onChange={(event) =>
-                      updateForm("name", event.target.value)
-                    }
+                    onChange={(event) => updateForm("name", event.target.value)}
                     required
                   />
                 </label>
@@ -466,10 +716,7 @@ export function AssetLibrary() {
                   <select
                     value={form.type}
                     onChange={(event) =>
-                      updateForm(
-                        "type",
-                        event.target.value as AssetType,
-                      )
+                      updateForm("type", event.target.value as AssetType)
                     }
                   >
                     <option value="IMAGE">Image</option>
@@ -522,9 +769,7 @@ export function AssetLibrary() {
                 <input
                   type="url"
                   value={form.url}
-                  onChange={(event) =>
-                    updateForm("url", event.target.value)
-                  }
+                  onChange={(event) => updateForm("url", event.target.value)}
                   placeholder="https://..."
                   required
                 />
@@ -546,17 +791,12 @@ export function AssetLibrary() {
                 <span>Prompt or source notes</span>
                 <textarea
                   value={form.prompt}
-                  onChange={(event) =>
-                    updateForm("prompt", event.target.value)
-                  }
+                  onChange={(event) => updateForm("prompt", event.target.value)}
                 />
               </label>
 
               <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)}>
                   Cancel
                 </button>
                 <button
@@ -575,13 +815,7 @@ export function AssetLibrary() {
   );
 }
 
-function Stat({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
+function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className={styles.stat}>
       <span>{label}</span>

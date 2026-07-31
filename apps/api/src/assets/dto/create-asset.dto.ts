@@ -112,6 +112,14 @@ export class CreateAssetDto {
   @IsOptional()
   collection?: string;
 
+  @IsString()
+  @IsOptional()
+  remark?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  aiEnabled?: boolean;
+
   @IsBoolean()
   @IsOptional()
   isFavorite?: boolean;
