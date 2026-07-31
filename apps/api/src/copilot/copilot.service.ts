@@ -1,11 +1,13 @@
 import {
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { calculateAiCost } from '../ai-cost/ai-cost';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryFactsService } from '../memory/memory-facts.service';
@@ -17,6 +19,7 @@ import { ChatCopilotDto } from './dto/chat-copilot.dto';
 
 @Injectable()
 export class CopilotService {
+  private readonly logger = new Logger(CopilotService.name);
   private readonly client: OpenAI | null;
 
   constructor(
@@ -101,12 +104,12 @@ export class CopilotService {
       confirmedMemoryContext,
       attachmentKnowledgeMatches,
     ] = await Promise.all([
-      this.conversations.recentMessages(conversation.id, 20),
+      this.conversations.recentMessages(conversation.id, 10),
       this.memoryFacts.confirmedPromptContext(),
       this.knowledgeRetrieval.searchAttachments({
         query: latestUserMessage.content,
         documentIds: attachmentDocumentIds,
-        limitPerDocument: 8,
+        limitPerDocument: 4,
       }),
     ]);
 
@@ -190,8 +193,12 @@ Description: ${campaign.description || 'Not set'}`
     const context = [...baseContext, ...modeContext].join('\n');
 
     try {
+      const requestStartedAt = Date.now();
+
+      const model = this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
+
       const response = await this.client.responses.create({
-        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+        model,
         input: this.promptContextBuilder.build({
           context,
           conversationMessages,
@@ -200,11 +207,93 @@ Description: ${campaign.description || 'Not set'}`
         }),
       });
 
+      const usage = response.usage;
+
+      const promptTokens = usage?.input_tokens ?? 0;
+
+      const cachedInputTokens = usage?.input_tokens_details?.cached_tokens ?? 0;
+
+      const completionTokens = usage?.output_tokens ?? 0;
+
+      const reasoningTokens =
+        usage?.output_tokens_details?.reasoning_tokens ?? 0;
+
+      const totalTokens =
+        usage?.total_tokens ?? promptTokens + completionTokens;
+
+      const durationMs = Date.now() - requestStartedAt;
+
+      const cost = calculateAiCost({
+        model,
+        promptTokens,
+        cachedInputTokens,
+        completionTokens,
+        usdToMyrRate: Number(
+          this.config.get<string>('USD_TO_MYR_RATE') ?? '4.30',
+        ),
+      });
+
+      if (!cost.pricingMatched) {
+        this.logger.warn(`Missing AI pricing for model: ${model}`);
+      }
+
+      this.logger.log(
+        JSON.stringify({
+          event: 'copilot_openai_usage',
+          responseId: response.id,
+          conversationId: conversation.id,
+          brandId: brand.id,
+          campaignId: campaign?.id ?? null,
+          mode,
+          model,
+          inputTokens: promptTokens,
+          cachedInputTokens,
+          outputTokens: completionTokens,
+          reasoningTokens,
+          totalTokens,
+          estimatedCostUsd: cost.estimatedCostUsd,
+          estimatedCostMyr: cost.estimatedCostMyr,
+          durationMs,
+          conversationMessageCount: conversationMessages.length,
+          attachmentCount: attachments.length,
+          attachmentDocumentCount: attachmentDocumentIds.length,
+          knowledgeChunkCount: attachmentKnowledgeMatches.length,
+        }),
+      );
+
+      try {
+        await this.prisma.aiUsage.create({
+          data: {
+            historyId: null,
+            model,
+            promptTokens,
+            cachedInputTokens,
+            completionTokens,
+            totalTokens,
+            estimatedCostUsd: cost.estimatedCostUsd,
+            estimatedCostMyr: cost.estimatedCostMyr,
+            durationMs,
+          },
+        });
+      } catch (usageError) {
+        this.logger.warn(
+          JSON.stringify({
+            event: 'copilot_ai_usage_persist_failed',
+            responseId: response.id,
+            conversationId: conversation.id,
+            message:
+              usageError instanceof Error
+                ? usageError.message
+                : 'Unknown persistence error',
+          }),
+        );
+      }
+
       await this.conversations.appendAssistantMessage(
         conversation.id,
         response.output_text,
         {
-          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+          model,
           mode,
           knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
             source: index + 1,
