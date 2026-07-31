@@ -34,7 +34,7 @@ export class ContentGuardService {
 
     this.model =
       this.configService.get<string>('OPENAI_MODEL') ||
-      'gpt-4.1-mini';
+      'gpt-5.6-luna';
   }
 
   async guard(input: {

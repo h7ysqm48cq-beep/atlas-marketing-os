@@ -12,6 +12,7 @@ import { MemoryFactsService } from '../memory/memory-facts.service';
 import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { PromptContextBuilder } from './prompt-context.builder';
+import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 
 @Injectable()
@@ -26,6 +27,7 @@ export class CopilotService {
     private readonly memoryFacts: MemoryFactsService,
     private readonly knowledgeRetrieval: KnowledgeRetrievalService,
     private readonly promptContextBuilder: PromptContextBuilder,
+    private readonly promptContextPipeline: PromptContextPipelineService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -189,7 +191,7 @@ Description: ${campaign.description || 'Not set'}`
 
     try {
       const response = await this.client.responses.create({
-        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
+        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
         input: this.promptContextBuilder.build({
           context,
           conversationMessages,
@@ -202,7 +204,7 @@ Description: ${campaign.description || 'Not set'}`
         conversation.id,
         response.output_text,
         {
-          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
+          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
           mode,
           knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
             source: index + 1,

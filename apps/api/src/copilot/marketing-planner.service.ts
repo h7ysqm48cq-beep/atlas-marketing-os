@@ -241,7 +241,7 @@ export class MarketingPlannerService {
           model:
             this.config.get<string>(
               'OPENAI_MODEL',
-            ) || 'gpt-4o-mini',
+            ) || 'gpt-5.6-luna',
           input: [
             {
               role: 'developer',

@@ -165,7 +165,7 @@ export class CampaignStrategyService {
     ].join('\n');
 
     const model =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
+      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
 
     try {
       const response = await this.client.responses.create({

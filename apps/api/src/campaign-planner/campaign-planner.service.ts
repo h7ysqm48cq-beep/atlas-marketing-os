@@ -48,7 +48,7 @@ export class CampaignPlannerService {
 
     const campaign = await this.getCampaign(campaignId);
     const model =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini';
+      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
 
     const prompt = [
       'You are Atlas, an AI campaign strategist.',

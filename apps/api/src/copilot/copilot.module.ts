@@ -10,6 +10,7 @@ import { CopilotController } from './copilot.controller';
 import { CopilotAttachmentService } from './copilot-attachment.service';
 import { CopilotService } from './copilot.service';
 import { PromptContextBuilder } from './prompt-context.builder';
+import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { MarketingPlannerService } from './marketing-planner.service';
 
 @Module({
@@ -29,6 +30,7 @@ import { MarketingPlannerService } from './marketing-planner.service';
     ConversationMemoryService,
 
     PromptContextBuilder,
+    PromptContextPipelineService,
   ],
 })
 export class CopilotModule {}

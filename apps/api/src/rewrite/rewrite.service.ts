@@ -160,7 +160,7 @@ export class RewriteService {
       const response = await this.client.responses.create({
         model:
           this.config.get<string>('OPENAI_MODEL') ||
-          'gpt-4.1-mini',
+          'gpt-5.6-luna',
         input: prompt,
       });
 

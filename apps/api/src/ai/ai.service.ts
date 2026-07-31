@@ -673,7 +673,7 @@ export class AiService {
     const model =
       this.configService.get<string>(
         'OPENAI_MODEL',
-      ) || 'gpt-4.1-mini';
+      ) || 'gpt-5.6-luna';
 
     try {
       const response =
@@ -777,34 +777,12 @@ export class AiService {
     cachedInputPerMillion: number;
     outputPerMillion: number;
   } {
-    const pricing = {
-      'gpt-4.1': {
-        inputPerMillion: 2,
-        cachedInputPerMillion: 0.5,
-        outputPerMillion: 8,
-      },
-      'gpt-4.1-mini': {
-        inputPerMillion: 0.4,
+    if (model.startsWith('gpt-5.6-luna')) {
+      return {
+        inputPerMillion: 1,
         cachedInputPerMillion: 0.1,
-        outputPerMillion: 1.6,
-      },
-      'gpt-4.1-nano': {
-        inputPerMillion: 0.1,
-        cachedInputPerMillion: 0.025,
-        outputPerMillion: 0.4,
-      },
-    } as const;
-
-    if (model.startsWith('gpt-4.1-nano')) {
-      return pricing['gpt-4.1-nano'];
-    }
-
-    if (model.startsWith('gpt-4.1-mini')) {
-      return pricing['gpt-4.1-mini'];
-    }
-
-    if (model.startsWith('gpt-4.1')) {
-      return pricing['gpt-4.1'];
+        outputPerMillion: 6,
+      };
     }
 
     console.warn(
@@ -819,47 +797,12 @@ export class AiService {
   }
 
   private selectModel(
-    dto: GenerateContentDto,
+    _dto: GenerateContentDto,
   ): string {
-    const platform =
-      dto.platforms.join(",").toLowerCase();
-
-    const topic =
-      dto.topic.toLowerCase();
-
-    if (
-      platform.includes("rewrite")
-    ) {
-      return "gpt-4.1-nano";
-    }
-
-    if (
-      platform.includes("image")
-    ) {
-      return "gpt-4.1-nano";
-    }
-
-    if (
-      topic.includes("translate") ||
-      topic.includes("grammar") ||
-      topic.includes("rewrite")
-    ) {
-      return "gpt-4.1-nano";
-    }
-
-    if (
-      topic.includes("campaign") ||
-      topic.includes("strategy") ||
-      topic.includes("planner")
-    ) {
-      return "gpt-4.1";
-    }
-
     return (
       this.configService.get<string>(
-        "OPENAI_MODEL",
-      ) ??
-      "gpt-4.1-mini"
+        'OPENAI_MODEL',
+      ) ?? 'gpt-5.6-luna'
     );
   }
 

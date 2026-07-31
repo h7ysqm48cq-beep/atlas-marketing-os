@@ -47,7 +47,7 @@ export class OpenAiProvider implements AiProvider {
       this.configService.get<string>(
         'OPENAI_MODEL',
       ) ??
-      'gpt-4.1-mini';
+      'gpt-5.6-luna';
 
     const response =
       await this.client.responses.create({
