@@ -196,6 +196,11 @@ export function AiUsageDashboard() {
     [trend],
   );
 
+  const maxTrendTokens = useMemo(
+    () => Math.max(...trend.map((item) => item.totalTokens), 1),
+    [trend],
+  );
+
   if (loading && !summary) {
     return <div className={styles.state}>Loading AI usage dashboard...</div>;
   }
@@ -269,6 +274,49 @@ export function AiUsageDashboard() {
       </section>
 
       <section className={styles.grid}>
+        <article className={styles.panel}>
+          <header>
+            <div>
+              <p className={styles.eyebrow}>Token trend</p>
+              <h2>Daily token usage</h2>
+            </div>
+
+            <strong>{number(summary.totals.totalTokens)}</strong>
+          </header>
+
+          <div className={styles.bars}>
+            {trend.length ? (
+              trend.map((item) => {
+                const height = Math.max(
+                  4,
+                  (item.totalTokens / maxTrendTokens) * 100,
+                );
+
+                return (
+                  <div
+                    className={styles.barItem}
+                    key={`tokens-${item.date}`}
+                    title={`${item.date}: ${number(item.totalTokens)} tokens`}
+                  >
+                    <div className={styles.barTrack}>
+                      <div
+                        className={styles.barFill}
+                        style={{
+                          height: `${height}%`,
+                        }}
+                      />
+                    </div>
+
+                    <span>{item.date.slice(5)}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className={styles.empty}>No trend data yet.</p>
+            )}
+          </div>
+        </article>
+
         <article className={styles.panel}>
           <header>
             <div>
