@@ -9,6 +9,7 @@ import {
   SocialPlatform,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
+import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 import { PublisherService } from './publisher.service';
 
 type CreateChannelInput = {
@@ -17,6 +18,8 @@ type CreateChannelInput = {
   name: string;
   externalId?: string;
   username?: string;
+  accessToken?: string;
+  tokenExpiresAt?: string | null;
 };
 
 type CreatePostInput = {
@@ -42,6 +45,8 @@ export class AutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly publisher: PublisherService,
+    private readonly socialTokenCrypto:
+      SocialTokenCryptoService,
   ) {}
 
   async dashboard() {
@@ -186,20 +191,45 @@ export class AutomationService {
         },
       });
 
-    return this.prisma.socialChannel.create({
-      data: {
-        workspaceId: brand.workspaceId,
-        brandId: input.brandId,
-        platform: input.platform,
-        name: input.name.trim(),
-        externalId:
-          input.externalId?.trim() || null,
-        username:
-          input.username?.trim() || null,
-        status:
-          SocialChannelStatus.DISCONNECTED,
-      },
-    });
+    const accessToken =
+      input.accessToken?.trim();
+
+    const channel =
+      await this.prisma.socialChannel.create({
+        data: {
+          workspaceId: brand.workspaceId,
+          brandId: input.brandId,
+          platform: input.platform,
+          name: input.name.trim(),
+          externalId:
+            input.externalId?.trim() || null,
+          username:
+            input.username?.trim() || null,
+          accessTokenEncrypted:
+            accessToken
+              ? this.socialTokenCrypto.encrypt(
+                  accessToken,
+                )
+              : null,
+          tokenExpiresAt:
+            this.parseOptionalDate(
+              input.tokenExpiresAt,
+            ),
+          status:
+            accessToken &&
+            input.externalId?.trim()
+              ? SocialChannelStatus.CONNECTED
+              : SocialChannelStatus.DISCONNECTED,
+          lastConnectedAt:
+            accessToken &&
+            input.externalId?.trim()
+              ? new Date()
+              : null,
+          lastError: null,
+        },
+      });
+
+    return this.sanitizeChannel(channel);
   }
 
 
@@ -209,30 +239,111 @@ export class AutomationService {
       name?: string;
       externalId?: string;
       username?: string | null;
+      accessToken?: string | null;
+      tokenExpiresAt?: string | null;
     },
   ) {
     await this.ensureChannel(id);
 
-    return this.prisma.socialChannel.update({
-      where: {
-        id,
-      },
-      data: {
-        name:
-          input.name !== undefined
-            ? input.name.trim()
-            : undefined,
-        externalId:
-          input.externalId !== undefined
-            ? input.externalId.trim() || null
-            : undefined,
-        username:
-          input.username !== undefined
-            ? input.username?.trim() || null
-            : undefined,
-      },
-    });
+    const accessToken =
+      input.accessToken === undefined
+        ? undefined
+        : input.accessToken?.trim() || null;
+
+    const channel =
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          name:
+            input.name !== undefined
+              ? input.name.trim()
+              : undefined,
+          externalId:
+            input.externalId !== undefined
+              ? input.externalId.trim() || null
+              : undefined,
+          username:
+            input.username !== undefined
+              ? input.username?.trim() || null
+              : undefined,
+          accessTokenEncrypted:
+            accessToken === undefined
+              ? undefined
+              : accessToken
+                ? this.socialTokenCrypto.encrypt(
+                    accessToken,
+                  )
+                : null,
+          tokenExpiresAt:
+            input.tokenExpiresAt === undefined
+              ? undefined
+              : this.parseOptionalDate(
+                  input.tokenExpiresAt,
+                ),
+          status:
+            accessToken
+              ? SocialChannelStatus.CONNECTED
+              : accessToken === null
+                ? SocialChannelStatus.DISCONNECTED
+                : undefined,
+          lastConnectedAt:
+            accessToken
+              ? new Date()
+              : undefined,
+          lastError:
+            accessToken
+              ? null
+              : undefined,
+        },
+      });
+
+    return this.sanitizeChannel(channel);
   }
+
+  private parseOptionalDate(
+    value?: string | null,
+  ) {
+    if (!value?.trim()) {
+      return null;
+    }
+
+    const parsed = new Date(value);
+
+    if (
+      Number.isNaN(
+        parsed.getTime(),
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid tokenExpiresAt value.',
+      );
+    }
+
+    return parsed;
+  }
+
+  private sanitizeChannel<
+    T extends {
+      accessTokenEncrypted:
+        string | null;
+    },
+  >(channel: T) {
+    const {
+      accessTokenEncrypted,
+      ...safeChannel
+    } = channel;
+
+    return {
+      ...safeChannel,
+      hasAccessToken:
+        Boolean(
+          accessTokenEncrypted,
+        ),
+    };
+  }
+
 
   async updateChannelStatus(
     id: string,

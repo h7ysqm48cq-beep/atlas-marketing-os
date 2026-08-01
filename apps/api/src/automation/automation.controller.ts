@@ -47,6 +47,8 @@ export class AutomationController {
       name: string;
       externalId?: string;
       username?: string;
+      accessToken?: string;
+      tokenExpiresAt?: string | null;
     },
   ) {
     return this.automationService.createChannel(
@@ -63,6 +65,8 @@ export class AutomationController {
       name?: string;
       externalId?: string;
       username?: string | null;
+      accessToken?: string | null;
+      tokenExpiresAt?: string | null;
     },
   ) {
     return this.automationService.updateChannel(
