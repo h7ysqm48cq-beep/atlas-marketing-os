@@ -11,6 +11,7 @@ import {
 import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 import { PublisherService } from './publisher.service';
+import { FacebookConnectorService } from './facebook-connector.service';
 
 type CreateChannelInput = {
   brandId: string;
@@ -47,6 +48,8 @@ export class AutomationService {
     private readonly publisher: PublisherService,
     private readonly socialTokenCrypto:
       SocialTokenCryptoService,
+    private readonly facebookConnector:
+      FacebookConnectorService,
   ) {}
 
   async dashboard() {
@@ -262,6 +265,242 @@ export class AutomationService {
   }
 
 
+  async getChannel(id: string) {
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              scheduledPosts: true,
+            },
+          },
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+
+    return this.sanitizeChannel(
+      channel,
+    );
+  }
+
+  async testChannel(id: string) {
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+
+    if (
+      channel.platform !==
+      SocialPlatform.FACEBOOK
+    ) {
+      throw new BadRequestException(
+        'Channel testing currently supports Facebook only.',
+      );
+    }
+
+    const pageId =
+      channel.externalId?.trim();
+
+    const encryptedToken =
+      channel.accessTokenEncrypted?.trim();
+
+    if (!pageId) {
+      throw new BadRequestException(
+        'Facebook Page ID is not configured.',
+      );
+    }
+
+    if (!encryptedToken) {
+      throw new BadRequestException(
+        'Facebook access token is not configured.',
+      );
+    }
+
+    if (
+      channel.tokenExpiresAt &&
+      channel.tokenExpiresAt <=
+        new Date()
+    ) {
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          status:
+            SocialChannelStatus.EXPIRED,
+          lastError:
+            'Facebook access token has expired.',
+        },
+      });
+
+      throw new BadRequestException(
+        'Facebook access token has expired. Reconnect this Page.',
+      );
+    }
+
+    try {
+      const accessToken =
+        this.socialTokenCrypto.decrypt(
+          encryptedToken,
+        );
+
+      const result =
+        await this.facebookConnector
+          .testConnection({
+            pageId,
+            accessToken,
+          });
+
+      const updated =
+        await this.prisma.socialChannel.update({
+          where: {
+            id,
+          },
+          data: {
+            name:
+              result.page.name ||
+              channel.name,
+            username:
+              result.page.username ??
+              channel.username,
+            status:
+              SocialChannelStatus.CONNECTED,
+            lastConnectedAt:
+              new Date(),
+            lastError:
+              null,
+          },
+        });
+
+      return {
+        channel:
+          this.sanitizeChannel(
+            updated,
+          ),
+        connection: result,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Facebook connection test failed.';
+
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          status:
+            SocialChannelStatus.ERROR,
+          lastError:
+            message.slice(0, 500),
+        },
+      });
+
+      throw error;
+    }
+  }
+
+  async disconnectChannel(
+    id: string,
+  ) {
+    await this.ensureChannel(id);
+
+    const channel =
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          accessTokenEncrypted:
+            null,
+          tokenExpiresAt:
+            null,
+          status:
+            SocialChannelStatus.DISCONNECTED,
+          lastError:
+            null,
+        },
+      });
+
+    return this.sanitizeChannel(
+      channel,
+    );
+  }
+
+  async removeChannel(
+    id: string,
+  ) {
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          _count: {
+            select: {
+              scheduledPosts: true,
+            },
+          },
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel not found.',
+      );
+    }
+
+    if (
+      channel._count.scheduledPosts >
+      0
+    ) {
+      throw new BadRequestException(
+        [
+          'This channel cannot be deleted because',
+          `it has ${channel._count.scheduledPosts}`,
+          'scheduled or historical post record(s).',
+          'Disconnect it instead.',
+        ].join(' '),
+      );
+    }
+
+    await this.prisma.socialChannel.delete({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      deleted: true,
+      id,
+      name: channel.name,
+    };
+  }
+
+
   async updateChannel(
     id: string,
     input: {
@@ -381,20 +620,25 @@ export class AutomationService {
   ) {
     await this.ensureChannel(id);
 
-    return this.prisma.socialChannel.update({
-      where: {
-        id,
-      },
-      data: {
-        status,
-        lastError:
-          lastError?.trim() || null,
-        lastConnectedAt:
-          status === SocialChannelStatus.CONNECTED
-            ? new Date()
-            : undefined,
-      },
-    });
+    const channel =
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          status,
+          lastError:
+            lastError?.trim() || null,
+          lastConnectedAt:
+            status === SocialChannelStatus.CONNECTED
+              ? new Date()
+              : undefined,
+        },
+      });
+
+    return this.sanitizeChannel(
+      channel,
+    );
   }
 
   listPosts(status?: ScheduledPostStatus) {

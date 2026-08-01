@@ -44,6 +44,39 @@ export class AutomationController {
     return this.automationService.listChannels();
   }
 
+  @Get('channels/:id')
+  getChannel(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .getChannel(id);
+  }
+
+  @Post('channels/:id/test')
+  testChannel(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .testChannel(id);
+  }
+
+  @Post('channels/:id/disconnect')
+  disconnectChannel(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .disconnectChannel(id);
+  }
+
+  @Delete('channels/:id')
+  removeChannel(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .removeChannel(id);
+  }
+
+
   @Post('channels')
   createChannel(
     @Body()
