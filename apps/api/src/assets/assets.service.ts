@@ -75,6 +75,8 @@ export class AssetsService {
           mimeType: uploaded.contentType,
           collection: input.collection?.trim() || 'Uploads',
           tags: ['uploaded'],
+          remark: null,
+          aiEnabled: false,
         },
         include: this.assetInclude,
       });
@@ -123,6 +125,8 @@ export class AssetsService {
         fileSize: dto.fileSize,
         tags: dto.tags,
         collection: dto.collection,
+        remark: dto.remark?.trim() || null,
+        aiEnabled: dto.aiEnabled ?? false,
         downloadCount: dto.downloadCount,
         usedCount: dto.usedCount,
         url: dto.url,
@@ -290,6 +294,11 @@ export class AssetsService {
         fileSize: dto.fileSize,
         tags: dto.tags,
         collection: dto.collection,
+        remark:
+          dto.remark === undefined
+            ? undefined
+            : dto.remark?.trim() || null,
+        aiEnabled: dto.aiEnabled,
         downloadCount: dto.downloadCount,
         usedCount: dto.usedCount,
         url: dto.url,

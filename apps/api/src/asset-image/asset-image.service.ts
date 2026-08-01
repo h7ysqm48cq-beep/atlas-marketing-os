@@ -125,6 +125,8 @@ export class AssetImageService {
           storageProvider: uploaded.provider,
           storagePath: uploaded.path,
           fileSize: uploaded.size,
+          remark: null,
+          aiEnabled: false,
           tags: [
             'ai-generated',
             dto.platform?.toLowerCase() ?? 'multi-platform',

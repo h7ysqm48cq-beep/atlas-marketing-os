@@ -72,7 +72,7 @@ export function AssetLibrary() {
   const [isUploading, setIsUploading] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [editingRemark, setEditingRemark] = useState("");
-  const [editingAiEnabled, setEditingAiEnabled] = useState(true);
+  const [editingAiEnabled, setEditingAiEnabled] = useState(false);
   const [isUpdatingAiNotes, setIsUpdatingAiNotes] = useState(false);
   const [message, setMessage] = useState("Loading assets...");
 
@@ -292,7 +292,7 @@ export function AssetLibrary() {
 
     setEditingAsset(null);
     setEditingRemark("");
-    setEditingAiEnabled(true);
+    setEditingAiEnabled(false);
   }
 
   async function saveAiNotes(event: FormEvent<HTMLFormElement>) {
@@ -340,7 +340,7 @@ export function AssetLibrary() {
 
       setEditingAsset(null);
       setEditingRemark("");
-      setEditingAiEnabled(true);
+      setEditingAiEnabled(false);
       setMessage("AI notes saved.");
     } catch (error) {
       setMessage(
