@@ -40,6 +40,9 @@ export function ImageAssetPanel({
 }) {
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
+  const [logoMode, setLogoMode] = useState<
+    "AUTO" | "ALWAYS" | "NEVER"
+  >("AUTO");
   const [asset, setAsset] = useState<ImageAsset | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState(
@@ -78,6 +81,7 @@ export function ImageAssetPanel({
             platform: "Multi-platform",
             size,
             quality,
+            logoMode,
           }),
         },
       );
@@ -139,6 +143,31 @@ export function ImageAssetPanel({
             <option value="medium">Medium</option>
             <option value="high">High</option>
             <option value="auto">Auto</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Brand logo</span>
+          <select
+            value={logoMode}
+            onChange={(event) =>
+              setLogoMode(
+                event.target.value as
+                  | "AUTO"
+                  | "ALWAYS"
+                  | "NEVER",
+              )
+            }
+          >
+            <option value="AUTO">
+              Auto · Recommended
+            </option>
+            <option value="ALWAYS">
+              Always include
+            </option>
+            <option value="NEVER">
+              Never include
+            </option>
           </select>
         </label>
 

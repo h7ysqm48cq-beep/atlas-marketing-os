@@ -67,15 +67,28 @@ export class AssetImageService {
       const imageBuffer = Buffer.from(base64, 'base64');
       const [width, height] = size.split('x').map(Number);
 
-      const finalImageBuffer =
-        await this.applyPrimaryLogo({
-          brandId: brand.id,
-          primaryLogoAssetId:
-            brand.primaryLogoAssetId,
-          imageBuffer,
-          width,
-          height,
+      const logoMode =
+        dto.logoMode ?? 'AUTO';
+
+      const shouldOverlayLogo =
+        this.shouldOverlayLogo({
+          mode: logoMode,
+          platform: dto.platform,
+          name: dto.name,
+          prompt: dto.prompt,
         });
+
+      const finalImageBuffer =
+        shouldOverlayLogo
+          ? await this.applyPrimaryLogo({
+              brandId: brand.id,
+              primaryLogoAssetId:
+                brand.primaryLogoAssetId,
+              imageBuffer,
+              width,
+              height,
+            })
+          : imageBuffer;
 
       const now = new Date();
       const year = String(now.getUTCFullYear());
@@ -115,6 +128,10 @@ export class AssetImageService {
           tags: [
             'ai-generated',
             dto.platform?.toLowerCase() ?? 'multi-platform',
+            shouldOverlayLogo
+              ? 'logo-overlay'
+              : 'logo-skipped',
+            `logo-mode-${logoMode.toLowerCase()}`,
           ],
           url,
           thumbnailUrl: url,
@@ -167,6 +184,69 @@ export class AssetImageService {
       );
     }
   }
+
+  private shouldOverlayLogo(input: {
+    mode: 'AUTO' | 'ALWAYS' | 'NEVER';
+    platform?: string;
+    name: string;
+    prompt: string;
+  }): boolean {
+    if (input.mode === 'ALWAYS') {
+      return true;
+    }
+
+    if (input.mode === 'NEVER') {
+      return false;
+    }
+
+    const searchableText = [
+      input.platform,
+      input.name,
+      input.prompt,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    /*
+     * Raw assets and design references should remain clean.
+     * Marketing-ready visuals receive the official logo by default.
+     */
+    const skipKeywords = [
+      'background only',
+      'plain background',
+      'background asset',
+      'reference image',
+      'style reference',
+      'visual reference',
+      'moodboard',
+      'mood board',
+      'texture',
+      'raw portrait',
+      'portrait reference',
+      'editing source',
+      'source image',
+      'transparent asset',
+      'transparent background',
+      'product cutout',
+      'cutout',
+      'mask image',
+      'image mask',
+      'logo design',
+      'design a logo',
+      'create a logo',
+      'unbranded',
+      'without branding',
+      'without logo',
+      'no logo',
+    ];
+
+    return !skipKeywords.some(
+      (keyword) =>
+        searchableText.includes(keyword),
+    );
+  }
+
 
   private async applyPrimaryLogo(input: {
     brandId: string;

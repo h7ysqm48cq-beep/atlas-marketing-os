@@ -33,4 +33,8 @@ export class GenerateAssetImageDto {
   @IsIn(['low', 'medium', 'high', 'auto'])
   @IsOptional()
   quality?: 'low' | 'medium' | 'high' | 'auto';
+
+  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
+  @IsOptional()
+  logoMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
 }
