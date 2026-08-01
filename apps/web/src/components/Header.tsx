@@ -1,5 +1,6 @@
 "use client";
 import { usePreferences } from "@/components/preferences";
+import { UserMenu } from "@/components/UserMenu";
 
 export function Header() {
   const { t } = usePreferences();
@@ -36,14 +37,7 @@ export function Header() {
           ◌
         </button>
 
-        <div className="user-chip">
-          <div className="avatar">L</div>
-
-          <div className="user-details">
-            <div className="user-name">Loh</div>
-            <div className="user-role">{t("administrator")}</div>
-          </div>
-        </div>
+        <UserMenu />
       </div>
     </header>
   );
