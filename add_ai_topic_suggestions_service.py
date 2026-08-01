@@ -140,7 +140,7 @@ if "async suggestTopics(" not in text:
     const model =
       this.configService.get<string>(
         'OPENAI_MODEL',
-      ) || 'gpt-4.1-mini';
+      ) || 'gpt-5.6-luna';
 
     try {
       const response =

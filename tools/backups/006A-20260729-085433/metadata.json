@@ -1,0 +1,17 @@
+{
+  "patch": {
+    "id": "006A",
+    "name": "Install Atlas Upgrade Framework",
+    "version": "1.0.0",
+    "requires": [
+      "005"
+    ],
+    "build": [],
+    "description": "Verifies the patch framework and installs repository ignore rules."
+  },
+  "changedFiles": [
+    ".gitignore",
+    "tools/.framework-installed"
+  ],
+  "createdAt": "2026-07-29T08:54:33"
+}

@@ -116,11 +116,7 @@
 
 .editorActions button {
   border: 0;
-  background: linear-gradient(
-    140deg,
-    var(--gold-light),
-    var(--gold)
-  );
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
   color: #171106;
 }
 
@@ -155,8 +151,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 13px;
 }
 
@@ -241,8 +236,7 @@
 
 @media (max-width: 1050px) {
   .grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -292,3 +286,263 @@
     min-height: 230px;
   }
 }
+
+/* ===== Prompt Library compact mobile polish ===== */
+
+.page {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.primaryButton {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.editor,
+.toolbar,
+.card,
+.empty {
+  border-radius: 18px;
+}
+
+.editor {
+  padding: 20px;
+}
+
+.toolbar {
+  gap: 10px;
+}
+
+.toolbar input,
+.categories button {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.grid {
+  gap: 14px;
+}
+
+.card {
+  padding: 18px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .editor,
+:global(html[data-theme="light"]) .toolbar,
+:global(html[data-theme="light"]) .card,
+:global(html[data-theme="light"]) .empty {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .editor input,
+:global(html[data-theme="light"]) .editor select,
+:global(html[data-theme="light"]) .editor textarea,
+:global(html[data-theme="light"]) .toolbar input {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .categories button,
+:global(html[data-theme="light"]) .card footer button,
+:global(html[data-theme="light"]) .editorActions button {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .categories .activeCategory {
+  border-color: rgba(182, 134, 37, 0.5) !important;
+  background: var(--gold-soft) !important;
+  color: var(--gold-light) !important;
+}
+
+:global(html[data-theme="light"]) .card h2,
+:global(html[data-theme="light"]) .card strong,
+:global(html[data-theme="light"]) .editor strong,
+:global(html[data-theme="light"]) .empty strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .card > p,
+:global(html[data-theme="light"]) .card small,
+:global(html[data-theme="light"]) .editor label > span,
+:global(html[data-theme="light"]) .editorActions small,
+:global(html[data-theme="light"]) .status,
+:global(html[data-theme="light"]) .empty p {
+  color: var(--muted) !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .primaryButton {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .editor {
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .editorGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .editor input,
+  .editor select,
+  .editor textarea {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .editor input,
+  .editor select {
+    min-height: 46px;
+  }
+
+  .editor textarea {
+    min-height: 150px;
+  }
+
+  .editorActions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .editorActions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .toolbar input {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .categories {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .categories button {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .card header,
+  .card footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card h2 {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .card > p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .card footer {
+    align-items: stretch;
+  }
+
+  .card footer button {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .empty {
+    min-height: 240px;
+    padding: 28px 18px;
+    border-radius: 17px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .categories {
+    grid-template-columns: 1fr;
+  }
+
+  .editor,
+  .card {
+    padding: 15px;
+  }
+}
+
+/* ===== End Prompt Library compact mobile polish ===== */

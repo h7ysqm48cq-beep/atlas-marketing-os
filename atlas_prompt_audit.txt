@@ -1,0 +1,877 @@
+===== copilot.service.ts =====
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import OpenAI from 'openai';
+import { BrandsService } from '../brands/brands.service';
+import { PrismaService } from '../database/prisma.service';
+import { MemoryFactsService } from '../memory/memory-facts.service';
+import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
+import { ConversationMemoryService } from './conversation-memory.service';
+import { PromptContextBuilder } from './prompt-context.builder';
+import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
+import { ChatCopilotDto } from './dto/chat-copilot.dto';
+
+@Injectable()
+export class CopilotService {
+  private readonly client: OpenAI | null;
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly brands: BrandsService,
+    private readonly prisma: PrismaService,
+    private readonly conversations: ConversationMemoryService,
+    private readonly memoryFacts: MemoryFactsService,
+    private readonly knowledgeRetrieval: KnowledgeRetrievalService,
+    private readonly promptContextBuilder: PromptContextBuilder,
+    private readonly promptContextPipeline: PromptContextPipelineService,
+  ) {
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+  }
+
+  async chat(dto: ChatCopilotDto) {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'OPENAI_API_KEY is not configured.',
+      );
+    }
+
+    const brand = await this.brands.getActiveBrand();
+
+    const campaign = dto.campaignId
+      ? await this.prisma.campaign.findFirst({
+          where: {
+            id: dto.campaignId,
+            brandId: brand.id,
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            objective: true,
+          },
+        })
+      : null;
+
+    if (dto.campaignId && !campaign) {
+      throw new NotFoundException('Campaign not found.');
+    }
+
+    const mode = dto.mode || 'chat';
+
+    const latestUserMessage = [...dto.messages]
+      .reverse()
+      .find((message) => message.role === 'user' && message.content.trim());
+
+    if (!latestUserMessage) {
+      throw new InternalServerErrorException('A user message is required.');
+    }
+
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode,
+      firstMessage: latestUserMessage.content,
+    });
+
+    const attachments = this.cleanAttachments(dto.attachments);
+
+    await this.conversations.appendUserMessage(
+      conversation.id,
+      latestUserMessage.content,
+      attachments.length
+        ? {
+            attachments,
+          }
+        : undefined,
+    );
+
+    const attachmentDocumentIds = attachments
+      .filter(
+        (attachment) => attachment.kind === 'document' && attachment.documentId,
+      )
+      .map((attachment) => attachment.documentId as string);
+
+    const [
+      conversationMessages,
+      confirmedMemoryContext,
+      attachmentKnowledgeMatches,
+    ] = await Promise.all([
+      this.conversations.recentMessages(conversation.id, 20),
+      this.memoryFacts.confirmedPromptContext(),
+      this.knowledgeRetrieval.searchAttachments({
+        query: latestUserMessage.content,
+        documentIds: attachmentDocumentIds,
+        limitPerDocument: 8,
+      }),
+    ]);
+
+    const attachmentDocumentContext =
+      this.knowledgeRetrieval.buildPromptContext(attachmentKnowledgeMatches);
+
+    const baseContext = [
+      'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
+      'You are practical, commercially aware, creative and direct.',
+      `Brand: ${brand.name}`,
+      `Country: ${brand.country}`,
+      `Audience: ${brand.targetAudience}`,
+      `Voice: ${brand.brandVoice}`,
+      `Visual style: ${brand.visualStyle}`,
+      `Content goals: ${brand.contentGoals}`,
+      `Keywords: ${brand.keywords.join(', ')}`,
+      `Rules: ${brand.brandRules.join(' | ')}`,
+      `Forbidden words: ${brand.forbiddenWords.join(', ')}`,
+      campaign
+        ? `Campaign: ${campaign.name}
+Objective: ${campaign.objective || 'Not set'}
+Description: ${campaign.description || 'Not set'}`
+        : 'Campaign: none selected',
+      confirmedMemoryContext,
+      attachmentDocumentContext,
+      attachmentKnowledgeMatches.length
+        ? 'Use the supplied KNOWLEDGE CONTEXT as the primary evidence for attached-document questions.'
+        : attachmentDocumentIds.length
+          ? 'No relevant document chunks were retrieved. Say clearly when the attached document does not provide enough evidence.'
+          : '',
+      attachmentKnowledgeMatches.length
+        ? 'When answering from a document, cite the relevant [Source N] and Chunk number.'
+        : '',
+      'Never invent clauses, figures, rules or document content that are absent from the retrieved chunks.',
+      'When images are attached, inspect the actual visual content instead of only describing the URL or filename.',
+      'For marketing visuals, assess composition, hierarchy, readability, branding, platform suitability and likely audience response.',
+      'Preserve Malaysian Chinese context when relevant.',
+      'Avoid unsupported claims, fake urgency and unverified current facts.',
+      'When rewriting, provide the improved version before the explanation.',
+      'Keep outputs ready to copy and use.',
+    ];
+
+    const modeContext =
+      mode === 'marketing-plan'
+        ? [
+            'The user has selected MARKETING PLAN mode.',
+            'Always produce a complete marketing package using this exact structure:',
+            '',
+            '## 核心创意',
+            'Explain the central idea in 2 to 4 concise sentences.',
+            '',
+            '## Facebook 文案',
+            'Write a natural Facebook-ready caption.',
+            '',
+            '## Telegram 文案',
+            'Write a shorter, more direct Telegram version.',
+            '',
+            '## Reels Hook',
+            'Give 3 strong opening hooks suitable for short video.',
+            '',
+            '## CTA',
+            'Give one clear but natural call to action.',
+            '',
+            '## Hashtags',
+            'Give 5 to 10 relevant hashtags.',
+            '',
+            '## 图片 Prompt',
+            'Write one detailed English image-generation prompt.',
+            '',
+            '## 风险检查',
+            'Mention any brand, compliance, factual or platform risk. Write "无明显风险" when appropriate.',
+            '',
+            'Use clear headings and do not omit any section.',
+          ]
+        : [
+            'The user has selected CHAT mode.',
+            'Answer naturally as an ongoing marketing conversation.',
+            'Do not force the full marketing-plan structure unless the user asks for a complete package.',
+          ];
+
+    const context = [...baseContext, ...modeContext].join('\n');
+
+    try {
+      const response = await this.client.responses.create({
+        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+        input: this.promptContextBuilder.build({
+          context,
+          conversationMessages,
+          latestUserMessage: latestUserMessage.content,
+          attachments,
+        }),
+      });
+
+      await this.conversations.appendAssistantMessage(
+        conversation.id,
+        response.output_text,
+        {
+          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+          mode,
+          knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
+            source: index + 1,
+            documentId: match.documentId,
+            title: match.title,
+            file: match.sourceFileName,
+            sourceUrl: match.sourceUrl,
+            chunkIndex: match.chunkIndex,
+            similarity: match.similarity,
+            similarityPercent: match.similarityPercent,
+            hybridScore: match.hybridScore,
+          })),
+        },
+      );
+
+      return {
+        reply: response.output_text,
+        mode,
+        conversation: {
+          id: conversation.id,
+          title: conversation.title,
+        },
+        brand: {
+          id: brand.id,
+          name: brand.name,
+        },
+        campaign: campaign
+          ? {
+              id: campaign.id,
+              name: campaign.name,
+            }
+          : null,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      throw new InternalServerErrorException(
+        `Elena Copilot failed: ${message}`,
+      );
+    }
+  }
+
+  private cleanAttachments(attachments: ChatCopilotDto['attachments']) {
+    if (!attachments?.length) {
+      return [];
+    }
+
+    const allowedImageTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ]);
+
+    return attachments
+      .filter((attachment) => {
+        if (!attachment.url.startsWith('https://')) {
+          return false;
+        }
+
+        if (attachment.kind === 'image') {
+          return allowedImageTypes.has(attachment.mimeType.toLowerCase());
+        }
+
+        return Boolean(attachment.documentId);
+      })
+      .slice(0, 4)
+      .map((attachment) => ({
+        id: attachment.id,
+        kind: attachment.kind,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        url: attachment.url,
+        storageProvider: attachment.storageProvider,
+        storagePath: attachment.storagePath,
+        documentId: attachment.documentId,
+      }));
+  }
+
+  private buildVisionInput(input: {
+    context: string;
+    conversationMessages: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+    }>;
+    latestUserMessage: string;
+    attachments: Array<{
+      id: string;
+      kind: 'image' | 'document';
+      name: string;
+      mimeType: string;
+      url: string;
+      documentId?: string;
+    }>;
+  }) {
+    const history = input.conversationMessages.slice(0, -1);
+
+    const imageAttachments = input.attachments.filter(
+      (attachment) => attachment.kind === 'image',
+    );
+
+    const latestContent: Array<
+      | {
+          type: 'input_text';
+          text: string;
+        }
+      | {
+          type: 'input_image';
+          image_url: string;
+          detail: 'auto';
+        }
+    > = [
+      {
+
+===== prompt-context-pipeline.service.ts =====
+import { Injectable } from '@nestjs/common';
+import {
+  BuildUnifiedPromptContextInput,
+  UnifiedPromptContext,
+} from './prompt-context.types';
+
+@Injectable()
+export class PromptContextPipelineService {
+  build(
+    input: BuildUnifiedPromptContextInput,
+  ): UnifiedPromptContext {
+    return {
+      systemInstructions: this.cleanStrings(
+        input.systemInstructions ?? [],
+      ),
+
+      brandContext: this.cleanText(input.brandContext),
+      campaignContext: this.cleanText(input.campaignContext),
+      memoryContext: this.cleanText(input.memoryContext),
+      knowledgeContext: this.cleanText(input.knowledgeContext),
+      attachmentContext: this.cleanText(input.attachmentContext),
+
+      conversationMessages:
+        input.conversationMessages ?? [],
+
+      latestUserMessage:
+        input.latestUserMessage.trim(),
+
+      attachments: input.attachments ?? [],
+      knowledgeSources:
+        input.knowledgeSources ?? [],
+    };
+  }
+
+  buildSystemContext(
+    context: UnifiedPromptContext,
+  ): string {
+    const sections: string[] = [];
+
+    this.push(
+      sections,
+      'SYSTEM INSTRUCTIONS',
+      context.systemInstructions.join('\n'),
+    );
+
+    this.push(
+      sections,
+      'BRAND CONTEXT',
+      context.brandContext,
+    );
+
+    this.push(
+      sections,
+      'CAMPAIGN CONTEXT',
+      context.campaignContext,
+    );
+
+    this.push(
+      sections,
+      'MEMORY CONTEXT',
+      context.memoryContext,
+    );
+
+    this.push(
+      sections,
+      'KNOWLEDGE CONTEXT',
+      context.knowledgeContext,
+    );
+
+    this.push(
+      sections,
+      'ATTACHMENT CONTEXT',
+      context.attachmentContext,
+    );
+
+    return sections.join('\n\n');
+  }
+
+  private push(
+    sections: string[],
+    title: string,
+    value?: string,
+  ): void {
+    if (!value) {
+      return;
+    }
+
+    sections.push(`${title}\n${value}`);
+  }
+
+  private cleanStrings(
+    values: string[],
+  ): string[] {
+    return values
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  private cleanText(
+    value?: string,
+  ): string | undefined {
+    const cleaned = value?.trim();
+
+    return cleaned || undefined;
+  }
+}
+
+===== prompt-context.types.ts =====
+export type PromptKnowledgeSource = {
+  index: number;
+  documentId?: string;
+  documentName?: string;
+  chunkId?: string;
+  score?: number;
+  content?: string;
+};
+
+export type PromptAttachment = {
+  id?: string;
+  kind?: string;
+  name?: string;
+  url?: string;
+  documentId?: string;
+  storageProvider?: string;
+  storagePath?: string;
+};
+
+export type PromptConversationMessage = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+};
+
+export type UnifiedPromptContext = {
+  systemInstructions: string[];
+
+  brandContext?: string;
+  campaignContext?: string;
+  memoryContext?: string;
+  knowledgeContext?: string;
+  attachmentContext?: string;
+
+  conversationMessages: PromptConversationMessage[];
+  latestUserMessage: string;
+  attachments: PromptAttachment[];
+
+  knowledgeSources: PromptKnowledgeSource[];
+};
+
+export type BuildUnifiedPromptContextInput = {
+  brandId?: string;
+  campaignId?: string;
+  conversationId?: string;
+
+  latestUserMessage: string;
+  conversationMessages?: PromptConversationMessage[];
+  attachments?: PromptAttachment[];
+
+  brandContext?: string;
+  campaignContext?: string;
+  memoryContext?: string;
+  knowledgeContext?: string;
+  attachmentContext?: string;
+
+  systemInstructions?: string[];
+  knowledgeSources?: PromptKnowledgeSource[];
+};
+
+===== knowledge-retrieval.service.ts =====
+import { Injectable } from '@nestjs/common';
+import { KnowledgeEmbeddingService } from './knowledge-embedding.service';
+
+export type KnowledgeRetrievalMatch = {
+  documentId: string;
+  title: string;
+  category: string;
+  sourceFileName: string | null;
+  sourceUrl: string | null;
+  chunkIndex: number;
+  chunkText: string;
+  similarity: number;
+  similarityPercent: number;
+  hybridScore: number;
+};
+
+@Injectable()
+export class KnowledgeRetrievalService {
+  constructor(private readonly embeddings: KnowledgeEmbeddingService) {}
+
+  async searchBrandKnowledge(input: {
+    query: string;
+    limit?: number;
+    threshold?: number;
+  }): Promise<KnowledgeRetrievalMatch[]> {
+    const results = await this.embeddings.semanticSearch({
+      query: input.query,
+      limit: Math.min(Math.max(input.limit || 8, 1), 25),
+      threshold: typeof input.threshold === 'number' ? input.threshold : 0.2,
+    });
+
+    return results.map((item) => this.toMatch(item));
+  }
+
+  async searchDocumentKnowledge(input: {
+    documentId: string;
+    query: string;
+    limit?: number;
+    threshold?: number;
+  }): Promise<KnowledgeRetrievalMatch[]> {
+    const results = await this.searchBrandKnowledge({
+      query: input.query,
+      limit: Math.min(Math.max((input.limit || 8) * 5, 20), 100),
+      threshold: typeof input.threshold === 'number' ? input.threshold : 0.1,
+    });
+
+    return results
+      .filter((item) => item.documentId === input.documentId)
+      .slice(0, input.limit || 8);
+  }
+
+  async searchAttachments(input: {
+    query: string;
+    documentIds: string[];
+    limitPerDocument?: number;
+  }): Promise<KnowledgeRetrievalMatch[]> {
+    const documentIds = Array.from(
+      new Set(input.documentIds.filter(Boolean)),
+    ).slice(0, 6);
+
+    if (!documentIds.length) {
+      return [];
+    }
+
+    const limitPerDocument = Math.min(
+      Math.max(input.limitPerDocument || 6, 1),
+      10,
+    );
+
+    const groups = await Promise.all(
+      documentIds.map((documentId) =>
+        this.searchDocumentKnowledge({
+          documentId,
+          query: input.query,
+          limit: limitPerDocument,
+        }),
+      ),
+    );
+
+    return groups
+      .flat()
+      .sort((a, b) => b.hybridScore - a.hybridScore)
+      .slice(0, 24);
+  }
+
+  buildPromptContext(matches: KnowledgeRetrievalMatch[]): string {
+    if (!matches.length) {
+      return '';
+    }
+
+    return [
+      '=========================',
+      'KNOWLEDGE CONTEXT',
+      '=========================',
+      '',
+      ...matches.flatMap((match, index) => [
+        `[Source ${index + 1}]`,
+        `Document ID: ${match.documentId}`,
+        `Title: ${match.title}`,
+        `File: ${match.sourceFileName || 'Knowledge document'}`,
+        `Category: ${match.category}`,
+        `Chunk: ${match.chunkIndex}`,
+        `Similarity: ${match.similarityPercent}%`,
+        match.sourceUrl ? `Source URL: ${match.sourceUrl}` : '',
+        '',
+        match.chunkText,
+        '',
+        '-------------------------',
+        '',
+      ]),
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private toMatch(item: any): KnowledgeRetrievalMatch {
+    return {
+      documentId: item.document.id,
+      title: item.document.title,
+      category: item.document.category,
+      sourceFileName: item.document.sourceFileName || null,
+      sourceUrl: item.document.sourceUrl || null,
+      chunkIndex: item.embedding?.chunkIndex ?? item.chunkIndex ?? 0,
+      chunkText:
+        item.embedding?.chunkText ?? item.chunkText ?? item.document.content,
+      similarity: item.similarity ?? 0,
+      similarityPercent:
+        item.similarityPercent ?? Math.round((item.similarity || 0) * 100),
+      hybridScore: item.hybridScore ?? item.similarityPercent ?? 0,
+    };
+  }
+}
+
+===== semanticSearch section =====
+      embedded: results.filter((item) => item.embedded).length,
+      skipped: results.filter((item) => item.skipped).length,
+      failed: results.filter((item) => !item.embedded && !item.skipped).length,
+      results,
+    };
+  }
+
+  async semanticSearch(input: {
+    query: string;
+    limit?: number;
+    threshold?: number;
+  }) {
+    const query = input.query?.trim();
+
+    if (!query) {
+      throw new BadRequestException('Search query is required.');
+    }
+
+    const [brand, queryVector] = await Promise.all([
+      this.brandsService.getActiveBrand(),
+      this.getCachedQueryEmbedding(query),
+    ]);
+
+    const rows = await this.prisma.knowledgeEmbedding.findMany({
+      where: {
+        brandId: brand.id,
+      },
+      include: {
+        document: {
+          include: {
+            brand: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const threshold =
+      typeof input.threshold === 'number'
+        ? Math.min(Math.max(input.threshold, -1), 1)
+        : 0.2;
+
+    const limit = Math.min(Math.max(input.limit || 5, 1), 25);
+
+    const stopWords = new Set([
+      'a',
+      'an',
+      'and',
+      'are',
+      'as',
+      'at',
+      'be',
+      'by',
+      'for',
+      'from',
+      'in',
+      'is',
+      'it',
+      'of',
+      'on',
+      'or',
+      'that',
+      'the',
+      'this',
+      'to',
+      'with',
+      'content',
+      'create',
+      'generate',
+      'marketing',
+      'post',
+      'social',
+    ]);
+
+    const queryTerms = Array.from(
+      new Set(
+        query
+          .toLowerCase()
+          .split(/[^\p{L}\p{N}]+/u)
+          .map((term) => term.trim())
+          .filter((term) => term.length >= 2 && !stopWords.has(term)),
+      ),
+    );
+
+    const now = Date.now();
+
+    return rows
+      .map((row) => {
+        const storedVector = this.readVector(row.vector);
+
+        const similarity = this.cosineSimilarity(queryVector, storedVector);
+
+        const document = row.document;
+        const title = document.title.toLowerCase();
+        const category = document.category.toLowerCase();
+        const content = row.chunkText.toLowerCase();
+        const tags = document.tags.map((tag) => tag.toLowerCase());
+
+        const matchedTerms = queryTerms.filter(
+          (term) =>
+            title.includes(term) ||
+            category.includes(term) ||
+            content.includes(term) ||
+            tags.some((tag) => tag.includes(term)),
+        );
+
+        const rawKeywordScore = matchedTerms.reduce((total, term) => {
+          let score = total;
+
+          if (title.includes(term)) score += 10;
+          if (tags.some((tag) => tag.includes(term))) {
+            score += 8;
+          }
+          if (category.includes(term)) {
+            score += 6;
+          }
+          if (content.includes(term)) {
+            score += 3;
+          }
+
+          return score;
+        }, 0);
+
+        const keywordScore = Math.min(20, rawKeywordScore);
+
+        const semanticScore = Math.max(0, Math.min(65, similarity * 65));
+
+        const usageScore = Math.min(7, Math.log2(document.usageCount + 1) * 2);
+
+        const ageInDays = Math.max(
+          0,
+          (now - document.updatedAt.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        const freshnessScore = Math.max(0, 5 - ageInDays / 60);
+
+        const qualityScore = Math.min(
+          3,
+          [
+            document.title.trim().length >= 8,
+            document.content.trim().length >= 120,
+            document.tags.length >= 2,
+          ].filter(Boolean).length,
+        );
+
+        const hybridScore = Math.min(
+          100,
+          semanticScore +
+            keywordScore +
+            usageScore +
+            freshnessScore +
+            qualityScore,
+        );
+
+        const reasons: string[] = [
+          `Semantic similarity ${Math.round(similarity * 100)}%`,
+        ];
+
+        if (matchedTerms.length > 0) {
+          reasons.push(
+            `Matched ${matchedTerms.length} keyword${
+              matchedTerms.length === 1 ? '' : 's'
+            }`,
+          );
+        }
+
+        if (document.usageCount > 0) {
+          reasons.push(`Used ${document.usageCount} times`);
+        }
+
+        if (freshnessScore >= 4) {
+          reasons.push('Recently updated');
+        }
+
+        return {
+          document,
+          similarity: Math.round(similarity * 10000) / 10000,
+          similarityPercent: Math.round(similarity * 100),
+          hybridScore: Math.round(hybridScore * 100) / 100,
+          scoreBreakdown: {
+            semantic: Math.round(semanticScore * 100) / 100,
+            keyword: Math.round(keywordScore * 100) / 100,
+            usage: Math.round(usageScore * 100) / 100,
+            freshness: Math.round(freshnessScore * 100) / 100,
+            quality: Math.round(qualityScore * 100) / 100,
+          },
+          matchedTerms,
+          reasons,
+          chunk: {
+            index: row.chunkIndex,
+            text: row.chunkText,
+            startOffset: row.startOffset,
+            endOffset: row.endOffset,
+          },
+          embedding: {
+            model: row.model,
+            dimensions: row.dimensions,
+            embeddedAt: row.embeddedAt,
+          },
+        };
+      })
+      .filter(
+        (item) => item.similarity >= threshold || item.matchedTerms.length > 0,
+      )
+      .sort((a, b) => {
+        if (b.hybridScore !== a.hybridScore) {
+          return b.hybridScore - a.hybridScore;
+        }
+
+        return b.similarity - a.similarity;
+      })
+      .slice(0, limit);
+  }
+
+  private async embed(document: KnowledgeDocumentInput) {
+    const chunks = this.buildDocumentChunks(document);
+
+
+===== copilot conversation service search =====
+apps/api/src/copilot/prompt-context.builder.ts:3:export type PromptConversationMessage = {
+apps/api/src/copilot/prompt-context.builder.ts:19:  conversationMessages: PromptConversationMessage[];
+apps/api/src/copilot/prompt-context.builder.ts:27:    const history =
+apps/api/src/copilot/prompt-context.builder.ts:28:      input.conversationMessages.slice(0, -1);
+apps/api/src/copilot/prompt-context.builder.ts:67:      ...history.map((message) => ({
+apps/api/src/copilot/marketing-planner.service.ts:210:          limit: 3,
+apps/api/src/copilot/copilot.controller.ts:61:    await this.conversations.appendUserMessage(conversation.id, dto.prompt);
+apps/api/src/copilot/copilot.controller.ts:73:    await this.conversations.appendAssistantMessage(conversation.id, summary, {
+apps/api/src/copilot/prompt/prompt-context-pipeline.service.ts:23:      conversationMessages:
+apps/api/src/copilot/prompt/prompt-context-pipeline.service.ts:24:        input.conversationMessages ?? [],
+apps/api/src/copilot/prompt/prompt-context.types.ts:20:export type PromptConversationMessage = {
+apps/api/src/copilot/prompt/prompt-context.types.ts:34:  conversationMessages: PromptConversationMessage[];
+apps/api/src/copilot/prompt/prompt-context.types.ts:47:  conversationMessages?: PromptConversationMessage[];
+apps/api/src/copilot/copilot.service.ts:83:    await this.conversations.appendUserMessage(
+apps/api/src/copilot/copilot.service.ts:100:      conversationMessages,
+apps/api/src/copilot/copilot.service.ts:104:      this.conversations.recentMessages(conversation.id, 20),
+apps/api/src/copilot/copilot.service.ts:197:          conversationMessages,
+apps/api/src/copilot/copilot.service.ts:203:      await this.conversations.appendAssistantMessage(
+apps/api/src/copilot/copilot.service.ts:289:    conversationMessages: Array<{
+apps/api/src/copilot/copilot.service.ts:303:    const history = input.conversationMessages.slice(0, -1);
+apps/api/src/copilot/copilot.service.ts:336:      ...history.map((message) => ({
+apps/api/src/copilot/conversation-memory.service.ts:81:      orderBy: {
+apps/api/src/copilot/conversation-memory.service.ts:84:      take: 100,
+apps/api/src/copilot/conversation-memory.service.ts:108:            orderBy: {
+apps/api/src/copilot/conversation-memory.service.ts:217:      await this.prisma.copilotConversationMessage.findMany({
+apps/api/src/copilot/conversation-memory.service.ts:225:        orderBy: {
+apps/api/src/copilot/conversation-memory.service.ts:228:        take: Math.min(
+apps/api/src/copilot/conversation-memory.service.ts:337:        'Conversation message cannot be empty.',
+apps/api/src/copilot/conversation-memory.service.ts:342:      await this.prisma.copilotConversationMessage.create({

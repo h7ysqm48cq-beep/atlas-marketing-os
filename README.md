@@ -33,7 +33,7 @@ npm run dev
 
 ```env
 OPENAI_API_KEY=你的APIKey
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.6-luna
 ```
 
 没有填写 API Key 也能运行，只会使用内置示例生成器。

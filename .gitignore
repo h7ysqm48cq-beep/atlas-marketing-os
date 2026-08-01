@@ -61,3 +61,32 @@ apps/api/storage/
 .supabase-*backup*
 .asset-*backup*
 .assets-*backup*
+
+# Atlas local patch framework
+        tools/backups/
+        __pycache__/
+        *.pyc
+
+# Atlas analyzer generated output
+tools/project-manifest.json
+
+# Atlas dependency analyzer generated output
+tools/dependency-graph.json
+
+# Local environment and secret backups
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.env.backup*
+
+# Local environment and secret backups
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.env.backup*

@@ -1,0 +1,25 @@
+{
+  "patch": {
+    "id": "010A",
+    "name": "Constructor Parameter IR",
+    "version": "1.0.0",
+    "requires": [
+      "009B"
+    ],
+    "description": "Adds the Atlas ConstructorParameter intermediate representation and TypeScript renderer.",
+    "build": [
+      [
+        "python3",
+        "-m",
+        "unittest",
+        "tools.tests.test_constructor_parameter"
+      ]
+    ]
+  },
+  "changedFiles": [
+    "tools/modifier/__init__.py",
+    "tools/modifier/constructor_parameter.py",
+    "tools/tests/test_constructor_parameter.py"
+  ],
+  "createdAt": "2026-07-30T03:47:56"
+}

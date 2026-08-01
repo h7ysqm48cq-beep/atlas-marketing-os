@@ -367,7 +367,7 @@
   color: var(--text);
 }
 
-:global(html[data-theme="light"]) .kpiGrid article,
+:global(html[data-theme="light"]) .kpis article,
 :global(html[data-theme="light"]) .panel,
 :global(html[data-theme="light"]) .state {
   border-color: var(--border) !important;
@@ -376,14 +376,14 @@
   box-shadow: var(--shadow);
 }
 
-:global(html[data-theme="light"]) .kpiGrid strong,
+:global(html[data-theme="light"]) .kpis strong,
 :global(html[data-theme="light"]) .panel h2,
 :global(html[data-theme="light"]) .panel strong {
   color: var(--text) !important;
 }
 
-:global(html[data-theme="light"]) .kpiGrid span,
-:global(html[data-theme="light"]) .kpiGrid small,
+:global(html[data-theme="light"]) .kpis span,
+:global(html[data-theme="light"]) .kpis small,
 :global(html[data-theme="light"]) .panel span,
 :global(html[data-theme="light"]) .panel small {
   color: var(--muted) !important;
@@ -452,3 +452,285 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== AI Usage compact mobile polish ===== */
+
+.dashboard {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.actions {
+  gap: 10px;
+}
+
+.actions select,
+.actions button {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.kpis {
+  gap: 14px;
+}
+
+.kpis article {
+  min-height: 138px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.grid,
+.gridSmall {
+  gap: 14px;
+}
+
+.panel {
+  border-radius: 18px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .kpis article,
+:global(html[data-theme="light"]) .panel,
+:global(html[data-theme="light"]) .state {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .kpis strong,
+:global(html[data-theme="light"]) .panel h2,
+:global(html[data-theme="light"]) .panel strong,
+:global(html[data-theme="light"]) .topic strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .kpis span,
+:global(html[data-theme="light"]) .kpis small,
+:global(html[data-theme="light"]) .panel span,
+:global(html[data-theme="light"]) .panel small,
+:global(html[data-theme="light"]) .topic span {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .actions select,
+:global(html[data-theme="light"]) .actions button {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .barTrack,
+:global(html[data-theme="light"]) .progress {
+  background: #edf0f4 !important;
+}
+
+:global(html[data-theme="light"]) .model,
+:global(html[data-theme="light"]) .details div,
+:global(html[data-theme="light"]) .costMetrics div {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .tableWrap table,
+:global(html[data-theme="light"]) .tableWrap th,
+:global(html[data-theme="light"]) .tableWrap td {
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .tableWrap thead {
+  background: var(--panel-soft) !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .dashboard {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .actions select,
+  .actions button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpis article {
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .kpis span {
+    font-size: 12px;
+  }
+
+  .kpis strong {
+    margin-top: auto;
+    font-size: 31px;
+    line-height: 1;
+  }
+
+  .kpis small {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .grid,
+  .gridSmall {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .panel {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .panel header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .panel h2 {
+    font-size: 18px;
+  }
+
+  .bars {
+    gap: 12px;
+  }
+
+  .barItem {
+    grid-template-columns: 72px minmax(0, 1fr) 70px;
+    gap: 8px;
+  }
+
+  .model {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .details {
+    grid-template-columns: 1fr;
+  }
+
+  .cost {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cost strong {
+    font-size: 30px;
+  }
+
+  .costMetrics {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .tableWrap {
+    overflow-x: auto;
+    margin: 0 -17px -17px;
+    padding: 0 17px 17px;
+  }
+
+  .tableWrap table {
+    min-width: 860px;
+  }
+
+  .tableWrap th,
+  .tableWrap td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .kpis {
+    gap: 8px;
+  }
+
+  .kpis article {
+    min-height: 116px;
+    padding: 14px;
+  }
+
+  .kpis strong {
+    font-size: 28px;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .barItem {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .barItem > span:last-child {
+    grid-column: 2;
+  }
+
+  .tableWrap {
+    margin-right: -15px;
+    margin-bottom: -15px;
+    margin-left: -15px;
+    padding-right: 15px;
+    padding-bottom: 15px;
+    padding-left: 15px;
+  }
+}
+
+/* ===== End AI Usage compact mobile polish ===== */

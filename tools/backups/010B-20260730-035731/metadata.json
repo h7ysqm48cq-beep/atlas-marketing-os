@@ -1,0 +1,25 @@
+{
+  "patch": {
+    "id": "010B",
+    "name": "TypeScript AST Navigator",
+    "version": "1.0.0",
+    "requires": [
+      "010A"
+    ],
+    "description": "Adds reusable navigation helpers for classes, constructors and parameters returned by TypeScriptBridge.",
+    "build": [
+      [
+        "python3",
+        "-m",
+        "unittest",
+        "tools.tests.test_ast_navigator"
+      ]
+    ]
+  },
+  "changedFiles": [
+    "tools/modifier/__init__.py",
+    "tools/modifier/ast_navigator.py",
+    "tools/tests/test_ast_navigator.py"
+  ],
+  "createdAt": "2026-07-30T03:57:31"
+}

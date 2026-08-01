@@ -1,0 +1,21 @@
+{
+  "patch": {
+    "id": "009B",
+    "name": "TypeScript Bridge Editor",
+    "version": "0.9.1",
+    "requires": [
+      "009A"
+    ],
+    "description": "Connects TypeScript AST UTF-16 source positions to the Atlas text edit engine.",
+    "build": [
+      [
+        "python3",
+        "-m",
+        "unittest",
+        "tools.tests.test_bridge_editor"
+      ]
+    ]
+  },
+  "changedFiles": [],
+  "createdAt": "2026-07-30T02:04:27"
+}

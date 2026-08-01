@@ -1,0 +1,92 @@
+ M .gitignore
+ M README.md
+ M add_ai_topic_suggestions_service.py
+ M apps/api/src/ai/ai.module.ts
+ M apps/api/src/ai/ai.service.ts
+ M apps/api/src/asset-image/asset-image.service.ts
+ M apps/api/src/generated/prisma/internal/class.ts
+ M apps/api/src/generated/prisma/internal/prismaNamespace.ts
+ M apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts
+ M apps/api/src/generated/prisma/models/Asset.ts
+ M apps/api/src/generated/prisma/models/Brand.ts
+ M apps/api/src/knowledge/knowledge-retrieval.service.ts
+ M apps/web/src/app/globals.css
+ M apps/web/src/app/layout.tsx
+ M apps/web/src/components/AiPublishCard.module.css
+ M apps/web/src/components/AiPublishCard.tsx
+ M apps/web/src/components/AiStudio.tsx
+ M apps/web/src/components/AiWorkspace.tsx
+ M apps/web/src/components/AppLayout.tsx
+ M apps/web/src/components/AssetLibrary.tsx
+ M apps/web/src/components/CampaignsPage.tsx
+ M apps/web/src/components/ContentHistory.tsx
+ M apps/web/src/components/DashboardOverview.module.css
+ M apps/web/src/components/DashboardOverview.tsx
+ M apps/web/src/components/Header.tsx
+ M apps/web/src/components/Sidebar.tsx
+ M apps/web/src/components/automation/AutomationDashboard.tsx
+ M apps/web/src/components/calendar/ContentCalendar.tsx
+ M apps/web/src/components/settings/WorkspaceSettings.tsx
+ M src/services/ai.js
+ M tools/modifier/typescript.py
+?? .atlas-backups/
+?? .atlas-bridge-5eiksscn.ts
+?? .atlas/
+?? .cursor/
+?? .env.backup-before-gpt56-luna
+?? apps/api/.env.backup-before-gpt56-luna
+?? apps/api/prisma/schema.prisma.bak-before-ai-usage-feature
+?? apps/api/src/brain/
+?? apps/api/src/copilot/copilot.service.ts.bak-before-ai-usage
+?? apps/web/src/components/ai-usage/AiUsageDashboard.tsx.bak-before-feature-panel
+?? apps/web/src/components/ai-usage/AiUsageDashboard.tsx.bak-before-token-trend
+?? apps/web/src/components/preferences/
+?? atlas_prompt_audit.txt
+?? pytest.ini
+?? tmp/
+?? tmp3n4xe8f9/
+?? tools/.framework-installed
+?? tools/README.md
+?? tools/__pycache__/
+?? tools/backups/
+?? tools/dependency_graph.py
+?? tools/dependency_scanner.py
+?? tools/ir/
+?? tools/modifier/__init__.py
+?? tools/modifier/__pycache__/
+?? tools/modifier/ast_navigator.py
+?? tools/modifier/bridge.py
+?? tools/modifier/bridge_editor.py
+?? tools/modifier/class_update.py
+?? tools/modifier/constructor_parameter.py
+?? tools/modifier/declaration_add.py
+?? tools/modifier/declaration_export_modifier.py
+?? tools/modifier/declaration_move.py
+?? tools/modifier/declaration_removal.py
+?? tools/modifier/declaration_rename.py
+?? tools/modifier/enum_update.py
+?? tools/modifier/exceptions.py
+?? tools/modifier/export_insertion.py
+?? tools/modifier/export_removal.py
+?? tools/modifier/function_update.py
+?? tools/modifier/import_node.py
+?? tools/modifier/interface_update.py
+?? tools/modifier/member_add.py
+?? tools/modifier/member_move.py
+?? tools/modifier/member_removal.py
+?? tools/modifier/member_rename.py
+?? tools/modifier/member_update.py
+?? tools/modifier/parameter_insertion.py
+?? tools/modifier/parameter_removal.py
+?? tools/modifier/parser.js
+?? tools/modifier/text_edit.py
+?? tools/modifier/type_alias_update.py
+?? tools/modifier/typescript_constructor.py
+?? tools/modifier/variable_update.py
+?? tools/modifier/workspace.py
+?? tools/patch_lib.py
+?? tools/patch_runner.py
+?? tools/patches/
+?? tools/project_analyzer.py
+?? tools/runtime/
+?? tools/tests/

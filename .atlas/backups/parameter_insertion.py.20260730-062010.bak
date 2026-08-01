@@ -1,0 +1,365 @@
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
+
+from .constructor_parameter import ConstructorParameter
+
+
+class ConstructorShape(str, Enum):
+    """Supported constructor formatting shapes."""
+
+    EMPTY = "empty"
+    MULTILINE_WITH_PARAMETERS = (
+        "multiline_with_parameters"
+    )
+    SINGLE_LINE_WITH_PARAMETERS = (
+        "single_line_with_parameters"
+    )
+
+
+@dataclass(frozen=True)
+class ParameterInsertionContext:
+    """
+    Information required to choose and execute an
+    insertion strategy.
+
+    Source positions use Python string indexes.
+    """
+
+    source: str
+    constructor_start: int
+    body_start: int
+    constructor_indent: str
+    parameter: ConstructorParameter
+    last_parameter_start: int | None = None
+    last_parameter_end: int | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.source, str):
+            raise TypeError("source must be a string")
+
+        if not isinstance(
+            self.parameter,
+            ConstructorParameter,
+        ):
+            raise TypeError(
+                "parameter must be a ConstructorParameter"
+            )
+
+        for name in (
+            "constructor_start",
+            "body_start",
+        ):
+            value = getattr(self, name)
+
+            if not isinstance(value, int):
+                raise TypeError(
+                    f"{name} must be an integer"
+                )
+
+            if value < 0:
+                raise ValueError(
+                    f"{name} must not be negative"
+                )
+
+        if self.body_start > len(self.source):
+            raise ValueError(
+                "body_start exceeds source length"
+            )
+
+        if (
+            self.constructor_start
+            > self.body_start
+        ):
+            raise ValueError(
+                "constructor_start must not be "
+                "after body_start"
+            )
+
+
+@dataclass(frozen=True)
+class ParameterInsertion:
+    """A planned source insertion."""
+
+    index: int
+    text: str
+    shape: ConstructorShape
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.index, int):
+            raise TypeError(
+                "index must be an integer"
+            )
+
+        if self.index < 0:
+            raise ValueError(
+                "index must not be negative"
+            )
+
+        if not isinstance(self.text, str):
+            raise TypeError(
+                "text must be a string"
+            )
+
+        if not self.text:
+            raise ValueError(
+                "text must not be empty"
+            )
+
+
+class ParameterInsertionStrategy(ABC):
+    """Base class for constructor insertion strategies."""
+
+    @abstractmethod
+    def supports(
+        self,
+        context: ParameterInsertionContext,
+    ) -> bool:
+        """Return whether this strategy supports the context."""
+
+    @abstractmethod
+    def plan(
+        self,
+        context: ParameterInsertionContext,
+    ) -> ParameterInsertion:
+        """Create an insertion plan without editing source."""
+
+
+def constructor_header(
+    context: ParameterInsertionContext,
+) -> str:
+    return context.source[
+        context.constructor_start:
+        context.body_start
+    ]
+
+
+def constructor_parentheses(
+    context: ParameterInsertionContext,
+) -> tuple[int, int]:
+    """
+    Return absolute Python indexes for the constructor
+    opening and closing parentheses.
+    """
+
+    header = constructor_header(context)
+
+    opening_relative = header.find("(")
+    closing_relative = header.rfind(")")
+
+    if (
+        opening_relative < 0
+        or closing_relative < 0
+        or closing_relative <= opening_relative
+    ):
+        raise ValueError(
+            "Unable to locate constructor parentheses"
+        )
+
+    return (
+        context.constructor_start
+        + opening_relative,
+        context.constructor_start
+        + closing_relative,
+    )
+
+
+class EmptyConstructorInsertionStrategy(
+    ParameterInsertionStrategy
+):
+    """Insert the first parameter into an empty constructor."""
+
+    def supports(
+        self,
+        context: ParameterInsertionContext,
+    ) -> bool:
+        if context.last_parameter_end is not None:
+            return False
+
+        opening, closing = constructor_parentheses(
+            context
+        )
+
+        content = context.source[
+            opening + 1:
+            closing
+        ]
+
+        return not content.strip()
+
+    def plan(
+        self,
+        context: ParameterInsertionContext,
+    ) -> ParameterInsertion:
+        if not self.supports(context):
+            raise ValueError(
+                "Empty constructor strategy does not "
+                "support this context"
+            )
+
+        opening, _ = constructor_parentheses(
+            context
+        )
+
+        parameter_indent = (
+            context.constructor_indent + "  "
+        )
+
+        rendered = (
+            context.parameter.render_typescript()
+        )
+
+        return ParameterInsertion(
+            index=opening + 1,
+            text=(
+                "\n"
+                f"{parameter_indent}"
+                f"{rendered},"
+                "\n"
+                f"{context.constructor_indent}"
+            ),
+            shape=ConstructorShape.EMPTY,
+        )
+
+
+class MultilineParameterInsertionStrategy(
+    ParameterInsertionStrategy
+):
+    """
+    Insert after the final parameter in a multiline
+    constructor.
+    """
+
+    def supports(
+        self,
+        context: ParameterInsertionContext,
+    ) -> bool:
+        if (
+            context.last_parameter_start is None
+            or context.last_parameter_end is None
+        ):
+            return False
+
+        header = constructor_header(context)
+
+        return "\n" in header
+
+    def plan(
+        self,
+        context: ParameterInsertionContext,
+    ) -> ParameterInsertion:
+        if not self.supports(context):
+            raise ValueError(
+                "Multiline strategy does not support "
+                "this context"
+            )
+
+        assert (
+            context.last_parameter_start is not None
+        )
+        assert (
+            context.last_parameter_end is not None
+        )
+
+        line_start = context.source.rfind(
+            "\n",
+            0,
+            context.last_parameter_start,
+        ) + 1
+
+        cursor = line_start
+
+        while (
+            cursor < len(context.source)
+            and context.source[cursor]
+            in (" ", "\t")
+        ):
+            cursor += 1
+
+        parameter_indent = context.source[
+            line_start:cursor
+        ]
+
+        rendered = (
+            context.parameter.render_typescript()
+        )
+
+        tail = context.source[
+            context.last_parameter_end:
+            context.body_start
+        ]
+
+        comma_relative: int | None = None
+
+        for index, character in enumerate(tail):
+            if character.isspace():
+                continue
+
+            if character == ",":
+                comma_relative = index
+
+            break
+
+        if comma_relative is not None:
+            insertion_index = (
+                context.last_parameter_end
+                + comma_relative
+                + 1
+            )
+
+            insertion_text = (
+                "\n"
+                f"{parameter_indent}"
+                f"{rendered},"
+            )
+        else:
+            insertion_index = (
+                context.last_parameter_end
+            )
+
+            insertion_text = (
+                ",\n"
+                f"{parameter_indent}"
+                f"{rendered}"
+            )
+
+        return ParameterInsertion(
+            index=insertion_index,
+            text=insertion_text,
+            shape=(
+                ConstructorShape
+                .MULTILINE_WITH_PARAMETERS
+            ),
+        )
+
+
+class ParameterInsertionPlanner:
+    """Select the first compatible insertion strategy."""
+
+    def __init__(
+        self,
+        strategies: list[
+            ParameterInsertionStrategy
+        ]
+        | None = None,
+    ) -> None:
+        self.strategies = strategies or [
+            EmptyConstructorInsertionStrategy(),
+            MultilineParameterInsertionStrategy(),
+        ]
+
+    def plan(
+        self,
+        context: ParameterInsertionContext,
+    ) -> ParameterInsertion:
+        for strategy in self.strategies:
+            if strategy.supports(context):
+                return strategy.plan(context)
+
+        raise ValueError(
+            "No parameter insertion strategy supports "
+            "this constructor"
+        )

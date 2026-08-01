@@ -498,3 +498,350 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Campaigns compact mobile polish ===== */
+
+.page {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.primaryButton {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.statsGrid {
+  gap: 14px;
+}
+
+.statCard {
+  min-height: 138px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.toolbar {
+  gap: 10px;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.campaignGrid {
+  gap: 14px;
+}
+
+.card {
+  padding: 20px;
+  border-radius: 18px;
+}
+
+.modal {
+  border-radius: 20px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .statCard,
+:global(html[data-theme="light"]) .card,
+:global(html[data-theme="light"]) .emptyState,
+:global(html[data-theme="light"]) .modal {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .toolbar input,
+:global(html[data-theme="light"]) .toolbar select,
+:global(html[data-theme="light"]) .toolbar button,
+:global(html[data-theme="light"]) .field input,
+:global(html[data-theme="light"]) .field select,
+:global(html[data-theme="light"]) .field textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .card h2,
+:global(html[data-theme="light"]) .card strong,
+:global(html[data-theme="light"]) .statCard strong,
+:global(html[data-theme="light"]) .modal h2 {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .description,
+:global(html[data-theme="light"]) .card small,
+:global(html[data-theme="light"]) .statusMessage,
+:global(html[data-theme="light"]) .field > span,
+:global(html[data-theme="light"]) .modalHeader > div > span {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .objective,
+:global(html[data-theme="light"]) .dateRange > div {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+}
+
+:global(html[data-theme="light"]) .modalBackdrop {
+  background: rgba(28, 34, 45, 0.42);
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .hero .primaryButton {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .statCard {
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .statCard span {
+    font-size: 12px;
+  }
+
+  .statCard strong {
+    margin-top: auto;
+    font-size: 31px;
+    line-height: 1;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .campaignGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .cardTop {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .card h2 {
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  .description {
+    min-height: 0;
+    font-size: 13px;
+    line-height: 1.58;
+  }
+
+  .objective {
+    padding: 13px;
+    border-radius: 12px;
+  }
+
+  .objective span,
+  .dateRange span {
+    font-size: 10px;
+  }
+
+  .objective strong,
+  .dateRange strong {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .dateRange {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .dateRange > div {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .cardFooter {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cardFooter > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 7px;
+  }
+
+  .cardFooter button {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .emptyState {
+    min-height: 240px;
+    padding: 28px 18px;
+    border-radius: 17px;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    padding: 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modalHeader {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .modalHeader h2 {
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  .modalHeader > button {
+    flex: 0 0 auto;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .field input,
+  .field select {
+    min-height: 46px;
+  }
+
+  .field textarea {
+    min-height: 120px;
+  }
+
+  .modalActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .modalActions button {
+    width: 100%;
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .statsGrid {
+    gap: 8px;
+  }
+
+  .statCard {
+    min-height: 116px;
+    padding: 14px;
+  }
+
+  .statCard strong {
+    font-size: 28px;
+  }
+
+  .dateRange {
+    grid-template-columns: 1fr;
+  }
+
+  .cardFooter > div {
+    grid-template-columns: 1fr;
+  }
+
+  .cardFooter button {
+    min-height: 42px;
+  }
+
+  .modalActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== End Campaigns compact mobile polish ===== */

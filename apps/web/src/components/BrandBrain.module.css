@@ -26,7 +26,7 @@
   margin: 0;
   color: var(--gold-light) !important;
   font-size: 11px;
-  letter-spacing: .15em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 850;
 }
@@ -81,7 +81,11 @@
 .saveCard {
   border: 1px solid var(--border);
   border-radius: 17px;
-  background: linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, 0.98),
+    rgba(13, 16, 22, 0.98)
+  );
   box-shadow: var(--shadow);
 }
 
@@ -144,7 +148,7 @@
   color: var(--muted);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: .09em;
+  letter-spacing: 0.09em;
   font-weight: 800;
 }
 
@@ -155,7 +159,7 @@
   border-radius: 11px;
   outline: none;
   color: var(--text);
-  background: rgba(7,9,13,.56);
+  background: rgba(7, 9, 13, 0.56);
   padding: 11px 12px;
 }
 
@@ -171,8 +175,8 @@
 
 .field input:focus,
 .field textarea:focus {
-  border-color: rgba(209,163,63,.55);
-  box-shadow: 0 0 0 3px rgba(209,163,63,.08);
+  border-color: rgba(209, 163, 63, 0.55);
+  box-shadow: 0 0 0 3px rgba(209, 163, 63, 0.08);
 }
 
 .summary {
@@ -191,12 +195,12 @@
   display: inline-flex;
   color: var(--gold-light);
   background: var(--gold-soft);
-  border: 1px solid rgba(209,163,63,.18);
+  border: 1px solid rgba(209, 163, 63, 0.18);
   border-radius: 999px;
   padding: 6px 9px;
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
   font-weight: 850;
 }
 
@@ -220,7 +224,7 @@
 .summaryBlock strong {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   color: var(--gold-light);
 }
 
@@ -254,7 +258,7 @@
 }
 
 .saveCard button:disabled {
-  opacity: .55;
+  opacity: 0.55;
 }
 
 @media (max-width: 1050px) {
@@ -282,3 +286,247 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Brand Brain compact mobile polish ===== */
+
+.page {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.completionCard {
+  min-width: 250px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.card,
+.summaryCard,
+.saveCard {
+  border-radius: 18px;
+}
+
+.card {
+  padding: 20px;
+}
+
+.summaryCard,
+.saveCard {
+  padding: 18px;
+}
+
+.field input,
+.field textarea {
+  border-radius: 12px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .completionCard,
+:global(html[data-theme="light"]) .card,
+:global(html[data-theme="light"]) .summaryCard,
+:global(html[data-theme="light"]) .saveCard {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .completionCard > div {
+  background: #edf0f4 !important;
+}
+
+:global(html[data-theme="light"]) .cardHeading h2,
+:global(html[data-theme="light"]) .summaryCard h2,
+:global(html[data-theme="light"]) .summaryBlock strong,
+:global(html[data-theme="light"]) .completionCard strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .cardHeading p,
+:global(html[data-theme="light"]) .summaryCard > p,
+:global(html[data-theme="light"]) .summaryBlock span,
+:global(html[data-theme="light"]) .summaryBlock li,
+:global(html[data-theme="light"]) .saveCard p,
+:global(html[data-theme="light"]) .completionCard span {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .field input,
+:global(html[data-theme="light"]) .field textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .field input::placeholder,
+:global(html[data-theme="light"]) .field textarea::placeholder {
+  color: #8a93a3 !important;
+}
+
+:global(html[data-theme="light"]) .badge,
+:global(html[data-theme="light"]) .cardHeading > div > span {
+  color: var(--gold-light) !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .completionCard {
+    width: 100%;
+    min-width: 0;
+    padding: 17px;
+  }
+
+  .completionCard strong {
+    font-size: 28px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .editor {
+    gap: 14px;
+  }
+
+  .card {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .cardHeading {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .cardHeading h2 {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+
+  .cardHeading p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .twoColumns {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .field {
+    gap: 7px;
+  }
+
+  .field > span {
+    font-size: 10px;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .field input {
+    min-height: 46px;
+    padding: 0 13px;
+  }
+
+  .field textarea {
+    min-height: 150px;
+    padding: 13px;
+    line-height: 1.6;
+  }
+
+  .summary {
+    position: static;
+    gap: 14px;
+  }
+
+  .summaryCard,
+  .saveCard {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .summaryCard h2 {
+    font-size: 19px;
+  }
+
+  .summaryBlock {
+    padding-top: 12px;
+  }
+
+  .summaryBlock strong {
+    font-size: 12px;
+  }
+
+  .summaryBlock span,
+  .summaryBlock li {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .saveCard button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 13px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 430px) {
+  .card,
+  .summaryCard,
+  .saveCard,
+  .completionCard {
+    padding: 15px;
+  }
+
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .completionCard strong {
+    font-size: 25px;
+  }
+}
+
+/* ===== End Brand Brain compact mobile polish ===== */

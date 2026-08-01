@@ -1,0 +1,613 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from .ast_navigator import (
+    ASTNavigator,
+    ASTNodeNotFound,
+    ClassNode,
+    ConstructorNode,
+    ParameterNode,
+)
+from .bridge import TypeScriptBridge
+from .bridge_editor import (
+    BridgeEditor,
+    utf16_offset_to_python_index,
+)
+from .constructor_parameter import ConstructorParameter
+from .parameter_insertion import (
+    ParameterInsertion,
+    ParameterInsertionContext,
+    ParameterInsertionPlanner,
+)
+
+
+from .parameter_removal import (
+    ParameterRemovalContext,
+    ParameterRemovalPlanner,
+)
+
+
+class ConstructorModifierError(RuntimeError):
+    """Base error raised by ConstructorModifier."""
+
+
+class ConstructorNotFound(ConstructorModifierError):
+    """Raised when the target class has no constructor."""
+
+
+class UnsupportedConstructorShape(ConstructorModifierError):
+    """Raised when the constructor shape is not supported yet."""
+
+
+class ConstructorModifier:
+    """
+    Read and inspect a TypeScript class constructor.
+
+    Patch 011A provides the stable read layer only. Source modification
+    will be implemented in the next patch.
+
+    Example:
+
+        modifier = ConstructorModifier(
+            "src/app.service.ts",
+            class_name="AppService",
+        )
+
+        for parameter in modifier.parameters():
+            print(parameter.name, parameter.type)
+    """
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        class_name: str | None = None,
+        project_root: str | Path = ".",
+        bridge: Any | None = None,
+    ) -> None:
+        self.path = Path(path)
+        self.class_name = class_name
+        self.project_root = Path(project_root)
+
+        self.bridge = (
+            bridge
+            if bridge is not None
+            else TypeScriptBridge(
+                project_root=self.project_root
+            )
+        )
+
+        self._source = ""
+        self._original_source = ""
+        self._bridge_result: Any | None = None
+
+        self._insertion_planner = ParameterInsertionPlanner()
+        self._removal_planner = ParameterRemovalPlanner()
+
+        self.load()
+
+    def load(self) -> "ConstructorModifier":
+        """
+        Reload the TypeScript file from disk and parse its AST.
+
+        Any unsaved in-memory state is discarded.
+        """
+
+        if not self.path.exists():
+            raise FileNotFoundError(
+                f"TypeScript file does not exist: {self.path}"
+            )
+
+        if not self.path.is_file():
+            raise ConstructorModifierError(
+                f"TypeScript path is not a file: {self.path}"
+            )
+
+        source = self.path.read_text(
+            encoding="utf-8"
+        )
+
+        self._source = source
+        self._original_source = source
+        self._bridge_result = self.bridge.parse(
+            self.path
+        )
+
+        return self
+
+    def reset(self) -> "ConstructorModifier":
+        """
+        Discard in-memory state and reload the file from disk.
+        """
+
+        return self.load()
+
+    def source(self) -> str:
+        """Return the current in-memory TypeScript source."""
+
+        return self._source
+
+    def original_source(self) -> str:
+        """Return the source loaded from disk."""
+
+        return self._original_source
+
+    def has_changes(self) -> bool:
+        """Return whether the in-memory source differs from disk state."""
+
+        return self._source != self._original_source
+
+    def bridge_result(self) -> Any:
+        """Return the latest TypeScriptBridge parse result."""
+
+        if self._bridge_result is None:
+            raise ConstructorModifierError(
+                "TypeScript source has not been parsed"
+            )
+
+        return self._bridge_result
+
+    def navigator(self) -> ASTNavigator:
+        """Create a navigator for the latest parse result."""
+
+        return ASTNavigator(
+            self.bridge_result()
+        )
+
+    def class_node(self) -> ClassNode:
+        """
+        Return the target class.
+
+        When class_name is None, ASTNavigator requires the file to
+        contain exactly one class.
+        """
+
+        class_node = self.navigator().class_(
+            self.class_name
+        )
+
+        if class_node is None:
+            raise ConstructorModifierError(
+                "Target TypeScript class could not be resolved"
+            )
+
+        return class_node
+
+    def constructor_node(self) -> ConstructorNode:
+        """Return the constructor belonging to the target class."""
+
+        class_node = self.class_node()
+
+        try:
+            constructor = class_node.constructor()
+        except ASTNodeNotFound as error:
+            raise ConstructorNotFound(
+                f"Class {class_node.name!r} does not contain "
+                "a constructor"
+            ) from error
+
+        if constructor is None:
+            raise ConstructorNotFound(
+                f"Class {class_node.name!r} does not contain "
+                "a constructor"
+            )
+
+        return constructor
+
+    def parameters(self) -> tuple[ParameterNode, ...]:
+        """Return all constructor parameters in source order."""
+
+        return self.constructor_node().parameters()
+
+    def find_parameter(
+        self,
+        name: str,
+    ) -> ParameterNode | None:
+        """Find a constructor parameter by name."""
+
+        return self.constructor_node().parameter(
+            name,
+            required=False,
+        )
+
+    def has_parameter(
+        self,
+        name: str,
+    ) -> bool:
+        """Return whether the constructor contains a named parameter."""
+
+        return self.find_parameter(name) is not None
+
+    def save(self) -> bool:
+        """
+        Save the current in-memory source.
+
+        Patch 011A does not yet expose a modification method, but save()
+        is established now so later patches can reuse the same lifecycle.
+
+        Returns False when nothing changed.
+        """
+
+        if not self.has_changes():
+            return False
+
+        self.path.write_text(
+            self._source,
+            encoding="utf-8",
+        )
+
+        self._original_source = self._source
+        self._bridge_result = self.bridge.parse(
+            self.path
+        )
+
+        return True
+
+    def _parse_current_source(self) -> None:
+        """
+        Parse the current in-memory source without permanently saving it.
+
+        TypeScriptBridge currently parses from a file path, so the
+        in-memory source is written temporarily and the original disk
+        content is restored immediately afterwards.
+        """
+
+        disk_source = self.path.read_text(
+            encoding="utf-8"
+        )
+
+        if disk_source == self._source:
+            self._bridge_result = self.bridge.parse(
+                self.path
+            )
+            return
+
+        self.path.write_text(
+            self._source,
+            encoding="utf-8",
+        )
+
+        try:
+            self._bridge_result = self.bridge.parse(
+                self.path
+            )
+        finally:
+            self.path.write_text(
+                disk_source,
+                encoding="utf-8",
+            )
+
+    def _commit_editor(
+        self,
+        editor: BridgeEditor,
+    ) -> bool:
+        changed = editor.apply()
+
+        if not changed:
+            return False
+
+        self._source = editor.source()
+        self._parse_current_source()
+
+        return True
+
+    def _python_index(
+        self,
+        utf16_position: int,
+    ) -> int:
+        """Convert a TypeScript UTF-16 position into a Python index."""
+
+        return utf16_offset_to_python_index(
+            self._source,
+            utf16_position,
+        )
+
+    def _line_indent(
+        self,
+        python_index: int,
+    ) -> str:
+        """Return the whitespace indentation of the containing line."""
+
+        line_start = self._source.rfind(
+            "\n",
+            0,
+            python_index,
+        ) + 1
+
+        cursor = line_start
+
+        while (
+            cursor < len(self._source)
+            and self._source[cursor] in (" ", "\t")
+        ):
+            cursor += 1
+
+        return self._source[
+            line_start:cursor
+        ]
+
+    def _utf16_position(
+        self,
+        python_index: int,
+    ) -> int:
+        """Convert a Python source index into a UTF-16 position."""
+
+        return (
+            len(
+                self._source[
+                    :python_index
+                ].encode("utf-16-le")
+            )
+            // 2
+        )
+
+    def _build_parameter_insertion_context(
+        self,
+        constructor: ConstructorNode,
+        parameter: ConstructorParameter,
+    ) -> ParameterInsertionContext:
+        """
+        Build the source context required by the
+        parameter insertion planner.
+
+        All positions stored in the context use Python
+        string indexes rather than UTF-16 offsets.
+        """
+
+        constructor_start = self._python_index(
+            constructor.start
+        )
+
+        body_start = self._python_index(
+            constructor.body_start
+        )
+
+        last_parameter = (
+            constructor.last_parameter()
+        )
+
+        last_parameter_start: int | None = None
+        last_parameter_end: int | None = None
+
+        if last_parameter is not None:
+            last_parameter_start = (
+                self._python_index(
+                    last_parameter.start
+                )
+            )
+
+            last_parameter_end = (
+                self._python_index(
+                    last_parameter.end
+                )
+            )
+
+        return ParameterInsertionContext(
+            source=self._source,
+            constructor_start=constructor_start,
+            body_start=body_start,
+            constructor_indent=self._line_indent(
+                constructor_start
+            ),
+            parameter=parameter,
+            last_parameter_start=(
+                last_parameter_start
+            ),
+            last_parameter_end=(
+                last_parameter_end
+            ),
+        )
+
+    def _apply_parameter_insertion(
+        self,
+        insertion: ParameterInsertion,
+    ) -> bool:
+        """
+        Apply a planned parameter insertion and reparse
+        the updated TypeScript source.
+        """
+
+        editor = BridgeEditor(
+            source=self._source,
+            bridge_result=self.bridge_result(),
+        )
+
+        if insertion.replace_end is None:
+            editor.insert(
+                position=self._utf16_position(
+                    insertion.index
+                ),
+                text=insertion.text,
+            )
+        else:
+            editor.replace(
+                start=self._utf16_position(
+                    insertion.index
+                ),
+                end=self._utf16_position(
+                    insertion.replace_end
+                ),
+                text=insertion.text,
+            )
+
+        return self._commit_editor(editor)
+
+    def _build_parameter_removal_context(
+        self,
+        constructor,
+        parameter_name: str,
+    ) -> ParameterRemovalContext:
+        """
+        Build planner context for parameter removal.
+
+        This converts the current constructor AST
+        into the immutable context required by
+        ParameterRemovalPlanner.
+        """
+
+        parameter_starts = []
+        parameter_ends = []
+
+        target_index = None
+
+        for index, parameter in enumerate(
+            constructor.parameters()
+        ):
+            parameter_starts.append(
+                self._python_index(
+                    parameter.start
+                )
+            )
+
+            parameter_ends.append(
+                self._python_index(
+                    parameter.end
+                )
+            )
+
+            if (
+                parameter.name
+                == parameter_name
+            ):
+                target_index = index
+
+        if target_index is None:
+            raise ValueError(
+                "parameter not found"
+            )
+
+        return ParameterRemovalContext(
+            source=self._source,
+            constructor_start=self._python_index(
+                constructor.start
+            ),
+            body_start=self._python_index(
+                constructor.body_start
+            ),
+            parameter_starts=tuple(
+                parameter_starts
+            ),
+            parameter_ends=tuple(
+                parameter_ends
+            ),
+            target_index=target_index,
+        )
+
+
+
+    def add_parameter(
+        self,
+        parameter: ConstructorParameter,
+    ) -> bool:
+        """
+        Add a parameter to a supported constructor.
+
+        Formatting and insertion-position decisions are
+        delegated to ParameterInsertionPlanner.
+
+        Returns False when a parameter with the same
+        name already exists.
+        """
+
+        if not isinstance(
+            parameter,
+            ConstructorParameter,
+        ):
+            raise TypeError(
+                "parameter must be a "
+                "ConstructorParameter"
+            )
+
+        constructor = self.constructor_node()
+
+        if constructor.has_parameter(
+            parameter.name
+        ):
+            return False
+
+        context = (
+            self._build_parameter_insertion_context(
+                constructor,
+                parameter,
+            )
+        )
+
+        try:
+            insertion = (
+                self._insertion_planner.plan(
+                    context
+                )
+            )
+        except ValueError as error:
+            raise UnsupportedConstructorShape(
+                str(error)
+            ) from error
+
+        return self._apply_parameter_insertion(
+            insertion
+        )
+
+    def remove_parameter(
+        self,
+        name: str,
+    ) -> bool:
+        """
+        Remove a constructor parameter by name.
+
+        Returns True when the parameter is removed and
+        False when no parameter with the supplied name
+        exists.
+
+        Patch 014B Step 1 establishes the public API
+        contract only. Planning and source editing are
+        implemented in subsequent steps.
+        """
+
+        if not isinstance(name, str):
+            raise TypeError(
+                "name must be a string"
+            )
+
+        if not name:
+            raise ValueError(
+                "name must not be empty"
+            )
+
+        constructor = self.constructor_node()
+
+        if not constructor.has_parameter(
+            name
+        ):
+            return False
+
+        context = (
+            self._build_parameter_removal_context(
+                constructor,
+                name,
+            )
+        )
+
+        removal = (
+            self._removal_planner.plan(
+                context
+            )
+        )
+
+        editor = BridgeEditor(
+            source=self._source,
+            bridge_result=self.bridge_result(),
+        )
+
+        editor.delete(
+            start=self._utf16_position(
+                removal.start
+            ),
+            end=self._utf16_position(
+                removal.end
+            ),
+        )
+
+        return self._commit_editor(editor)
+

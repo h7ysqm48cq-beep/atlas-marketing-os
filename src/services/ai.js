@@ -15,7 +15,7 @@ export async function generateContent({ topic, platform = 'Facebook', audience =
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const response = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    model: process.env.OPENAI_MODEL || 'gpt-5.6-luna',
     response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: 'You are a Malaysia social media strategist. Return valid JSON only. Avoid gambling promotion, minors, guaranteed-profit claims, or hard selling.' },

@@ -694,3 +694,429 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Asset Library compact mobile polish ===== */
+
+.page {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.heroActions {
+  gap: 10px;
+}
+
+.heroActions button,
+.primaryButton,
+.uploadButton {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.stats {
+  gap: 14px;
+}
+
+.stat {
+  min-height: 138px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.toolbar {
+  gap: 10px;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.grid {
+  gap: 14px;
+}
+
+.card {
+  border-radius: 18px;
+}
+
+.preview {
+  border-radius: 17px 17px 0 0;
+}
+
+.modal {
+  border-radius: 20px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .stat,
+:global(html[data-theme="light"]) .card,
+:global(html[data-theme="light"]) .emptyState,
+:global(html[data-theme="light"]) .modal,
+:global(html[data-theme="light"]) .assetEditorSummary,
+:global(html[data-theme="light"]) .aiRemarkExample {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .preview {
+  background: var(--panel-soft) !important;
+}
+
+:global(html[data-theme="light"]) .filePreview {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .toolbar input,
+:global(html[data-theme="light"]) .toolbar select,
+:global(html[data-theme="light"]) .toolbar button,
+:global(html[data-theme="light"]) .field input,
+:global(html[data-theme="light"]) .field select,
+:global(html[data-theme="light"]) .field textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .cardBody h2,
+:global(html[data-theme="light"]) .cardBody strong,
+:global(html[data-theme="light"]) .stat strong,
+:global(html[data-theme="light"]) .modal h2,
+:global(html[data-theme="light"]) .assetEditorSummary strong,
+:global(html[data-theme="light"]) .aiRemarkExample strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .cardBody > p,
+:global(html[data-theme="light"]) .cardTop small,
+:global(html[data-theme="light"]) .cardFooter small,
+:global(html[data-theme="light"]) .meta span,
+:global(html[data-theme="light"]) .message,
+:global(html[data-theme="light"]) .field > span,
+:global(html[data-theme="light"]) .assetEditorSummary span,
+:global(html[data-theme="light"]) .aiToggle small,
+:global(html[data-theme="light"]) .aiRemarkExample p {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .aiNotePreview,
+:global(html[data-theme="light"]) .aiToggle {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .cardFooter a,
+:global(html[data-theme="light"]) .cardFooter button,
+:global(html[data-theme="light"]) .workflowActions a,
+:global(html[data-theme="light"]) .workflowActions button,
+:global(html[data-theme="light"]) .modalActions button {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .modalBackdrop {
+  background: rgba(28, 34, 45, 0.42);
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .heroActions button,
+  .primaryButton,
+  .uploadButton {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat {
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .stat span {
+    font-size: 12px;
+  }
+
+  .stat strong {
+    margin-top: auto;
+    font-size: 31px;
+    line-height: 1;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    min-width: 0;
+    border-radius: 17px;
+  }
+
+  .preview {
+    min-height: 150px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .preview img {
+    min-height: 150px;
+  }
+
+  .cardBody {
+    padding: 13px;
+  }
+
+  .cardBody h2 {
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  .cardBody > p {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .cardTop,
+  .meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .aiNotePreview {
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .aiNotePreview p {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .cardFooter {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .cardFooter > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 7px;
+  }
+
+  .cardFooter a,
+  .cardFooter button {
+    width: 100%;
+    min-height: 38px;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  .emptyState {
+    min-height: 250px;
+    padding: 28px 18px;
+    border-radius: 17px;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    padding: 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modalHeader {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .modalHeader h2 {
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  .formGrid,
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .field input,
+  .field select {
+    min-height: 46px;
+  }
+
+  .field textarea {
+    min-height: 120px;
+  }
+
+  .assetEditorSummary {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 11px;
+    padding: 12px;
+  }
+
+  .assetEditorSummary img,
+  .assetEditorSummary .filePreview {
+    width: 72px;
+    height: 72px;
+  }
+
+  .aiToggle {
+    align-items: flex-start;
+    padding: 13px;
+  }
+
+  .aiRemarkExample {
+    padding: 13px;
+  }
+
+  .modalActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .modalActions button {
+    width: 100%;
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .stats {
+    gap: 8px;
+  }
+
+  .stat {
+    min-height: 116px;
+    padding: 14px;
+  }
+
+  .stat strong {
+    font-size: 28px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview,
+  .preview img {
+    min-height: 210px;
+  }
+
+  .cardBody {
+    padding: 15px;
+  }
+
+  .assetEditorSummary {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .assetEditorSummary img,
+  .assetEditorSummary .filePreview {
+    width: 58px;
+    height: 58px;
+  }
+
+  .modalActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== End Asset Library compact mobile polish ===== */

@@ -1,0 +1,458 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+
+from tools.modifier import (
+    ConstructorModifier,
+    ConstructorParameter,
+    UnsupportedConstructorShape,
+)
+
+
+def utf16_offset(
+    source: str,
+    python_index: int,
+) -> int:
+    return (
+        len(
+            source[:python_index].encode(
+                "utf-16-le"
+            )
+        )
+        // 2
+    )
+
+
+class FakeBridge:
+    def parse(self, path: Path) -> dict:
+        source = Path(path).read_text(
+            encoding="utf-8"
+        )
+
+        class_start = source.index(
+            "export class AppService"
+        )
+
+        constructor_start = source.index(
+            "constructor"
+        )
+
+        opening = source.index(
+            "(",
+            constructor_start,
+        )
+
+        closing = source.index(
+            ")",
+            opening,
+        )
+
+        body_start = source.index(
+            "{",
+            closing,
+        )
+
+        body_end = source.index(
+            "}",
+            body_start,
+        ) + 1
+
+        interior = source[
+            opening + 1:
+            closing
+        ]
+
+        parameters = []
+
+        for name, parameter_type in (
+            ("config", "ConfigService"),
+            ("logger", "Logger"),
+            ("atlasBrain", "AtlasBrainService"),
+        ):
+            name_relative = interior.find(name)
+
+            if name_relative < 0:
+                continue
+
+            name_index = (
+                opening
+                + 1
+                + name_relative
+            )
+
+            parameter_start = name_index
+
+            while (
+                parameter_start > opening + 1
+                and source[
+                    parameter_start - 1
+                ] not in (",", "\n")
+            ):
+                parameter_start -= 1
+
+            while (
+                parameter_start < name_index
+                and source[
+                    parameter_start
+                ].isspace()
+            ):
+                parameter_start += 1
+
+            parameter_end = name_index
+
+            while (
+                parameter_end < closing
+                and source[
+                    parameter_end
+                ] not in (",", "\n")
+            ):
+                parameter_end += 1
+
+            parameters.append(
+                {
+                    "name": name,
+                    "type": parameter_type,
+                    "start": utf16_offset(
+                        source,
+                        parameter_start,
+                    ),
+                    "end": utf16_offset(
+                        source,
+                        parameter_end,
+                    ),
+                    "modifiers": [
+                        "private",
+                        "readonly",
+                    ],
+                    "decorators": [],
+                }
+            )
+
+        parameters.sort(
+            key=lambda value: value["start"]
+        )
+
+        return {
+            "file": {
+                "lineCount": (
+                    source.count("\n") + 1
+                ),
+            },
+            "classes": [
+                {
+                    "name": "AppService",
+                    "start": utf16_offset(
+                        source,
+                        class_start,
+                    ),
+                    "end": utf16_offset(
+                        source,
+                        len(source),
+                    ),
+                    "constructors": [
+                        {
+                            "start": utf16_offset(
+                                source,
+                                constructor_start,
+                            ),
+                            "end": utf16_offset(
+                                source,
+                                body_end,
+                            ),
+                            "bodyStart": utf16_offset(
+                                source,
+                                body_start,
+                            ),
+                            "bodyEnd": utf16_offset(
+                                source,
+                                body_end,
+                            ),
+                            "parameters": parameters,
+                        }
+                    ],
+                }
+            ],
+        }
+
+
+class ConstructorModifierInsertTests(
+    unittest.TestCase
+):
+    def setUp(self) -> None:
+        self.temporary_directory = (
+            tempfile.TemporaryDirectory()
+        )
+
+        self.root = Path(
+            self.temporary_directory.name
+        )
+
+        self.path = (
+            self.root / "app.service.ts"
+        )
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def create_modifier(
+        self,
+        source: str,
+    ) -> ConstructorModifier:
+        self.path.write_text(
+            source,
+            encoding="utf-8",
+        )
+
+        return ConstructorModifier(
+            self.path,
+            class_name="AppService",
+            project_root=self.root,
+            bridge=FakeBridge(),
+        )
+
+    def test_add_parameter_with_trailing_comma(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        changed = modifier.add_parameter(
+            ConstructorParameter(
+                name="logger",
+                type="Logger",
+            )
+        )
+
+        self.assertTrue(changed)
+
+        self.assertEqual(
+            modifier.source(),
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly logger: Logger,
+  ) {}
+}
+""",
+        )
+
+    def test_add_parameter_without_trailing_comma(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService
+  ) {}
+}
+"""
+        )
+
+        changed = modifier.add_parameter(
+            ConstructorParameter(
+                name="logger",
+                type="Logger",
+            )
+        )
+
+        self.assertTrue(changed)
+
+        self.assertEqual(
+            modifier.source(),
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly logger: Logger
+  ) {}
+}
+""",
+        )
+
+    def test_duplicate_returns_false(self) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        changed = modifier.add_parameter(
+            ConstructorParameter(
+                name="config",
+                type="AnotherConfig",
+            )
+        )
+
+        self.assertFalse(changed)
+        self.assertFalse(
+            modifier.has_changes()
+        )
+
+    def test_added_parameter_is_reparsed(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        modifier.add_parameter(
+            ConstructorParameter(
+                name="logger",
+                type="Logger",
+            )
+        )
+
+        self.assertTrue(
+            modifier.has_parameter("logger")
+        )
+
+        self.assertEqual(
+            [
+                parameter.name
+                for parameter
+                in modifier.parameters()
+            ],
+            [
+                "config",
+                "logger",
+            ],
+        )
+
+    def test_change_is_not_saved_automatically(
+        self,
+    ) -> None:
+        source = """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+
+        modifier = self.create_modifier(source)
+
+        modifier.add_parameter(
+            ConstructorParameter(
+                name="logger",
+                type="Logger",
+            )
+        )
+
+        self.assertEqual(
+            self.path.read_text(
+                encoding="utf-8"
+            ),
+            source,
+        )
+
+        self.assertTrue(
+            modifier.has_changes()
+        )
+
+    def test_save_writes_change(self) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        modifier.add_parameter(
+            ConstructorParameter(
+                name="logger",
+                type="Logger",
+            )
+        )
+
+        self.assertTrue(
+            modifier.save()
+        )
+
+        self.assertEqual(
+            self.path.read_text(
+                encoding="utf-8"
+            ),
+            modifier.source(),
+        )
+
+        self.assertFalse(
+            modifier.has_changes()
+        )
+
+    def test_single_line_is_supported(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(private readonly config: ConfigService) {}
+}
+"""
+        )
+
+        self.assertTrue(
+            modifier.add_parameter(
+                ConstructorParameter(
+                    name="logger",
+                    type="Logger",
+                )
+            )
+        )
+
+        self.assertIn(
+            "private readonly logger: Logger",
+            modifier.source(),
+        )
+
+    def test_wrong_parameter_type_is_rejected(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        with self.assertRaises(TypeError):
+            modifier.add_parameter(
+                "private readonly logger: Logger"
+            )
+
+    def test_remove_parameter_is_reserved_for_014b(
+        self,
+    ) -> None:
+        modifier = self.create_modifier(
+            """export class AppService {
+  constructor(
+    private readonly config: ConfigService,
+  ) {}
+}
+"""
+        )
+
+        with self.assertRaises(
+            NotImplementedError
+        ):
+            modifier.remove_parameter(
+                "config"
+            )
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,25 @@
+{
+  "patch": {
+    "id": "011A",
+    "name": "Constructor Modifier Read Layer",
+    "version": "1.0.0",
+    "requires": [
+      "010B"
+    ],
+    "description": "Builds the read-only foundation of ConstructorModifier using TypeScriptBridge and ASTNavigator.",
+    "build": [
+      [
+        "python3",
+        "-m",
+        "unittest",
+        "tools.tests.test_constructor_modifier_read"
+      ]
+    ]
+  },
+  "changedFiles": [
+    "tools/modifier/__init__.py",
+    "tools/modifier/typescript_constructor.py",
+    "tools/tests/test_constructor_modifier_read.py"
+  ],
+  "createdAt": "2026-07-30T04:16:47"
+}

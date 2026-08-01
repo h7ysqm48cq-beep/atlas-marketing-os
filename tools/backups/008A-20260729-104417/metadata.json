@@ -1,0 +1,18 @@
+{
+  "patch": {
+    "id": "008A",
+    "name": "Atlas Project Analyzer",
+    "version": "0.8.0",
+    "requires": [
+      "006A",
+      "007A"
+    ],
+    "description": "Adds a repository analyzer that detects workspace scripts, NestJS modules, controllers, services and TypeScript imports.",
+    "build": []
+  },
+  "changedFiles": [
+    ".gitignore",
+    "tools/project_analyzer.py"
+  ],
+  "createdAt": "2026-07-29T10:44:17"
+}

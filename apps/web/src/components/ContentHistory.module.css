@@ -13,7 +13,7 @@
 .eyebrow {
   color: var(--gold-light) !important;
   font-size: 11px;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 850;
   margin: 0;
@@ -61,7 +61,7 @@
   min-height: 42px;
   border: 1px solid var(--border);
   border-radius: 11px;
-  background: rgba(8,10,15,.48);
+  background: rgba(8, 10, 15, 0.48);
   color: var(--text);
   padding: 0 13px;
   outline: none;
@@ -82,7 +82,7 @@
 .toolbar button:hover,
 .actions button:hover,
 .activeFilter {
-  border-color: rgba(209,163,63,.42) !important;
+  border-color: rgba(209, 163, 63, 0.42) !important;
   color: var(--gold-light) !important;
   background: var(--gold-soft) !important;
 }
@@ -107,17 +107,25 @@
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: linear-gradient(160deg, rgba(21,25,34,.96), rgba(13,16,22,.96));
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, 0.96),
+    rgba(13, 16, 22, 0.96)
+  );
   color: var(--text);
   padding: 15px;
 }
 
 .historyCard:hover,
 .selectedCard {
-  border-color: rgba(209,163,63,.45);
+  border-color: rgba(209, 163, 63, 0.45);
   background:
-    radial-gradient(circle at top right, rgba(209,163,63,.08), transparent 38%),
-    linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+    radial-gradient(
+      circle at top right,
+      rgba(209, 163, 63, 0.08),
+      transparent 38%
+    ),
+    linear-gradient(160deg, rgba(21, 25, 34, 0.98), rgba(13, 16, 22, 0.98));
 }
 
 .cardTop {
@@ -132,7 +140,7 @@
   border-radius: 999px;
   color: var(--gold-light);
   background: var(--gold-soft);
-  border: 1px solid rgba(209,163,63,.18);
+  border: 1px solid rgba(209, 163, 63, 0.18);
   font-size: 9px;
   font-weight: 800;
 }
@@ -159,7 +167,7 @@
   padding: 5px 7px;
   border-radius: 999px;
   color: #9fb9ec;
-  background: rgba(124,167,255,.1);
+  background: rgba(124, 167, 255, 0.1);
   font-size: 8px;
 }
 
@@ -167,7 +175,11 @@
   min-height: 610px;
   border: 1px solid var(--border);
   border-radius: 17px;
-  background: linear-gradient(160deg, rgba(21,25,34,.98), rgba(13,16,22,.98));
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, 0.98),
+    rgba(13, 16, 22, 0.98)
+  );
   box-shadow: var(--shadow);
   padding: 20px;
 }
@@ -203,7 +215,7 @@
 
 .scoreGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
   margin: 20px 0;
 }
@@ -211,7 +223,7 @@
 .score {
   border: 1px solid var(--border);
   border-radius: 11px;
-  background: rgba(8,10,15,.36);
+  background: rgba(8, 10, 15, 0.36);
   padding: 11px;
   display: grid;
   gap: 3px;
@@ -226,7 +238,7 @@
   color: var(--muted);
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .tabs {
@@ -259,7 +271,7 @@
   resize: vertical;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(7,9,13,.64);
+  background: rgba(7, 9, 13, 0.64);
   color: var(--text);
   padding: 16px;
   line-height: 1.75;
@@ -298,7 +310,7 @@
 
   .list {
     max-height: none;
-    grid-template-columns: repeat(2, minmax(0,1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -328,16 +340,141 @@
   }
 }
 
-
-.toolbar select { min-height:42px; border:1px solid var(--border); border-radius:11px; background:rgba(8,10,15,.48); color:var(--text); padding:0 12px; }
-.viewerBadges { display:flex; gap:8px; flex-wrap:wrap; }
-.statusBadge { display:inline-flex; padding:5px 8px; border-radius:999px; border:1px solid var(--border); font-size:8px; font-weight:850; }
-.statusDRAFT { color:#c4cbd8; } .statusAI_IMPROVED { color:#abc1ee; background:rgba(124,167,255,.08); } .statusPENDING_REVIEW { color:var(--gold-light); background:rgba(209,163,63,.08); } .statusAPPROVED { color:#8fe0b5; background:rgba(77,190,134,.09); } .statusREJECTED { color:#ffaaaa; background:rgba(255,120,120,.07); } .statusPUBLISHED { color:#c9b7ff; background:rgba(166,132,255,.08); }
-.workflowPanel { display:grid; gap:12px; margin:18px 0; padding:14px; border:1px solid rgba(209,163,63,.22); border-radius:12px; background:rgba(209,163,63,.035); }
-.workflowTitle { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; } .workflowTitle > div { display:grid; gap:4px; } .workflowTitle span,.reviewFields label>span { color:var(--gold-light); font-size:8px; font-weight:850; text-transform:uppercase; letter-spacing:.07em; } .workflowTitle strong { font-size:13px; } .workflowTitle small { color:var(--muted); font-size:8px; }
-.reviewFields { display:grid; grid-template-columns:180px minmax(0,1fr); gap:10px; } .reviewFields label { display:grid; gap:7px; } .reviewFields input,.reviewFields textarea { width:100%; border:1px solid var(--border); border-radius:8px; background:#0b0f15; color:var(--text); padding:9px 10px; font:inherit; font-size:9px; outline:none; } .reviewFields textarea { min-height:72px; resize:vertical; }
-.workflowActions { display:flex; flex-wrap:wrap; gap:7px; } .workflowActions button { min-height:32px; border:1px solid var(--border); border-radius:8px; background:rgba(7,9,13,.5); color:var(--text); padding:0 9px; font-size:8px; font-weight:780; } .workflowActions .approveButton { color:#8fe0b5; border-color:rgba(77,190,134,.3); } .workflowActions .rejectButton { color:#ffaaaa; border-color:rgba(255,120,120,.28); } .workflowActions button:disabled { opacity:.45; cursor:not-allowed; }
-@media(max-width:680px){ .reviewFields { grid-template-columns:1fr; } }
+.toolbar select {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(8, 10, 15, 0.48);
+  color: var(--text);
+  padding: 0 12px;
+}
+.viewerBadges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.statusBadge {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 8px;
+  font-weight: 850;
+}
+.statusDRAFT {
+  color: #c4cbd8;
+}
+.statusAI_IMPROVED {
+  color: #abc1ee;
+  background: rgba(124, 167, 255, 0.08);
+}
+.statusPENDING_REVIEW {
+  color: var(--gold-light);
+  background: rgba(209, 163, 63, 0.08);
+}
+.statusAPPROVED {
+  color: #8fe0b5;
+  background: rgba(77, 190, 134, 0.09);
+}
+.statusREJECTED {
+  color: #ffaaaa;
+  background: rgba(255, 120, 120, 0.07);
+}
+.statusPUBLISHED {
+  color: #c9b7ff;
+  background: rgba(166, 132, 255, 0.08);
+}
+.workflowPanel {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid rgba(209, 163, 63, 0.22);
+  border-radius: 12px;
+  background: rgba(209, 163, 63, 0.035);
+}
+.workflowTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.workflowTitle > div {
+  display: grid;
+  gap: 4px;
+}
+.workflowTitle span,
+.reviewFields label > span {
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.workflowTitle strong {
+  font-size: 13px;
+}
+.workflowTitle small {
+  color: var(--muted);
+  font-size: 8px;
+}
+.reviewFields {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px;
+}
+.reviewFields label {
+  display: grid;
+  gap: 7px;
+}
+.reviewFields input,
+.reviewFields textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0b0f15;
+  color: var(--text);
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 9px;
+  outline: none;
+}
+.reviewFields textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.workflowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.workflowActions button {
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 9, 13, 0.5);
+  color: var(--text);
+  padding: 0 9px;
+  font-size: 8px;
+  font-weight: 780;
+}
+.workflowActions .approveButton {
+  color: #8fe0b5;
+  border-color: rgba(77, 190, 134, 0.3);
+}
+.workflowActions .rejectButton {
+  color: #ffaaaa;
+  border-color: rgba(255, 120, 120, 0.28);
+}
+.workflowActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 680px) {
+  .reviewFields {
+    grid-template-columns: 1fr;
+  }
+}
 
 .actions a {
   display: grid;
@@ -354,11 +491,10 @@
 }
 
 .actions a:hover {
-  border-color: rgba(209,163,63,.42);
+  border-color: rgba(209, 163, 63, 0.42);
   background: var(--gold-soft);
   color: var(--gold-light);
 }
-
 
 /* ===== Published Read-only UI ===== */
 
@@ -437,7 +573,6 @@
   }
 }
 
-
 /* ===== Published Post Records ===== */
 
 .publishedPostList {
@@ -515,7 +650,6 @@
   }
 }
 
-
 /* ===== Published Platform Links ===== */
 
 .publishPlatform {
@@ -547,7 +681,6 @@
   color: var(--muted);
   font-size: 8px;
 }
-
 
 /* ===== Publish Result States ===== */
 
@@ -588,3 +721,385 @@
 .calendarFallbackLink:hover {
   background: rgba(209, 163, 63, 0.13);
 }
+
+/* ===== Content History compact mobile polish ===== */
+
+.page {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.countCard,
+.historyCard,
+.viewer,
+.workflowPanel,
+.score,
+.emptyState,
+.emptyViewer {
+  border-radius: 18px;
+}
+
+.toolbar {
+  gap: 10px;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbar button {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.layout {
+  gap: 14px;
+}
+
+.historyCard {
+  padding: 17px;
+}
+
+.viewer {
+  padding: 20px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .countCard,
+:global(html[data-theme="light"]) .historyCard,
+:global(html[data-theme="light"]) .viewer,
+:global(html[data-theme="light"]) .workflowPanel,
+:global(html[data-theme="light"]) .score,
+:global(html[data-theme="light"]) .emptyState,
+:global(html[data-theme="light"]) .emptyViewer {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .selectedCard {
+  border-color: rgba(182, 134, 37, 0.58) !important;
+  background:
+    linear-gradient(140deg, rgba(182, 134, 37, 0.08), transparent), var(--panel) !important;
+}
+
+:global(html[data-theme="light"]) .toolbar input,
+:global(html[data-theme="light"]) .toolbar select,
+:global(html[data-theme="light"]) .toolbar button,
+:global(html[data-theme="light"]) .reviewFields input,
+:global(html[data-theme="light"]) .reviewFields textarea,
+:global(html[data-theme="light"]) .output {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .workflowActions button,
+:global(html[data-theme="light"]) .actions button,
+:global(html[data-theme="light"]) .actions a,
+:global(html[data-theme="light"]) .publishedActions a {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .historyCard h2,
+:global(html[data-theme="light"]) .viewer h2,
+:global(html[data-theme="light"]) .workflowPanel strong,
+:global(html[data-theme="light"]) .score strong,
+:global(html[data-theme="light"]) .publishedDetails strong,
+:global(html[data-theme="light"]) .publishedPostList strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .historyCard p,
+:global(html[data-theme="light"]) .historyCard small,
+:global(html[data-theme="light"]) .viewer p,
+:global(html[data-theme="light"]) .workflowPanel small,
+:global(html[data-theme="light"]) .score span,
+:global(html[data-theme="light"]) .meta,
+:global(html[data-theme="light"]) .publishedDetails span,
+:global(html[data-theme="light"]) .publishedPostList small {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .publishedDetails article,
+:global(html[data-theme="light"]) .publishedPostList article {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .countCard {
+    width: 100%;
+    min-height: 124px;
+    padding: 17px;
+  }
+
+  .countCard strong {
+    font-size: 31px;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .list {
+    max-height: none;
+    gap: 10px;
+  }
+
+  .historyCard {
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .historyCard h2 {
+    font-size: 18px;
+    line-height: 1.35;
+  }
+
+  .historyCard p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .viewer {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .viewerHeader {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .viewerHeader h2 {
+    font-size: 20px;
+    line-height: 1.35;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .actions button,
+  .actions a {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .workflowPanel {
+    padding: 15px;
+    border-radius: 15px;
+  }
+
+  .workflowTitle {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .reviewFields {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+
+  .reviewFields input,
+  .reviewFields textarea {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .reviewFields input {
+    min-height: 44px;
+  }
+
+  .reviewFields textarea {
+    min-height: 110px;
+  }
+
+  .workflowActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .workflowActions button {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .publishedDetails {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .publishedDetails article {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .publishedPostList {
+    gap: 9px;
+  }
+
+  .publishedPostList article {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 13px;
+    border-radius: 12px;
+  }
+
+  .publishedPostList article > a {
+    width: 100%;
+    min-height: 38px;
+    justify-content: center;
+  }
+
+  .publishedActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .publishedActions a {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .scoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .score {
+    min-height: 100px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .score strong {
+    font-size: 25px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 6px;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .output {
+    min-height: 280px;
+    padding: 13px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .countCard {
+    min-height: 116px;
+    padding: 15px;
+  }
+
+  .countCard strong {
+    font-size: 28px;
+  }
+
+  .viewer,
+  .historyCard {
+    padding: 15px;
+  }
+
+  .workflowActions {
+    grid-template-columns: 1fr;
+  }
+
+  .scoreGrid {
+    gap: 8px;
+  }
+
+  .score {
+    min-height: 92px;
+    padding: 12px;
+  }
+}
+
+/* ===== End Content History compact mobile polish ===== */
