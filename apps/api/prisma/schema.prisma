@@ -56,28 +56,28 @@ model Workspace {
 }
 
 model Brand {
-  id                   String                @id @default(cuid())
-  workspaceId          String
-  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name                 String
-  website              String?
-  industry             String?
-  country              String                @default("Malaysia")
-  primaryLanguage      String                @default("Chinese")
-  targetAudience       String
-  brandVoice           String
-  visualStyle          String
-  contentGoals         String
-  callsToAction        String[]
-  keywords             String[]
-  forbiddenWords       String[]
-  brandRules           String[]
-  examplePosts         String[]
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  website         String?
+  industry        String?
+  country         String    @default("Malaysia")
+  primaryLanguage String    @default("Chinese")
+  targetAudience  String
+  brandVoice      String
+  visualStyle     String
+  contentGoals    String
+  callsToAction   String[]
+  keywords        String[]
+  forbiddenWords  String[]
+  brandRules      String[]
+  examplePosts    String[]
 
-  primaryLogoAssetId   String?
-  brandBannerAssetId   String?
-  mascotAssetId        String?
-  referenceAssetIds    String[]              @default([])
+  primaryLogoAssetId String?
+  brandBannerAssetId String?
+  mascotAssetId      String?
+  referenceAssetIds  String[] @default([])
 
   status               BrandStatus           @default(ACTIVE)
   generations          GenerationHistory[]
@@ -139,36 +139,37 @@ model CampaignIdea {
 }
 
 model GenerationHistory {
-  versions       ContentVersion[]
-  id             String           @id @default(cuid())
-  brandId        String
-  brand          Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  campaignId     String?
-  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  ideaId         String?
-  idea           CampaignIdea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
-  topic          String
-  platforms      String[]
-  style          String
-  language       String
-  facebook       String
-  telegram       String
-  reels          String
-  imagePrompt    String
-  analysis       Json
-  isFavorite     Boolean          @default(false)
-  status         ContentStatus    @default(DRAFT)
-  reviewNote     String?
-  reviewedBy     String?
-  reviewedAt     DateTime?
-  approvedAt     DateTime?
-  publishedAt    DateTime?
-  usageLogs      AiUsage[]
-  assets         Asset[]
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  scheduledPosts ScheduledPost[]
-  runtimeProfile SocialChannelRuntimeProfile?
+  versions                      ContentVersion[]
+  id                            String                       @id @default(cuid())
+  brandId                       String
+  brand                         Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId                    String?
+  campaign                      Campaign?                    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  ideaId                        String?
+  idea                          CampaignIdea?                @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+  topic                         String
+  platforms                     String[]
+  style                         String
+  language                      String
+  facebook                      String
+  telegram                      String
+  reels                         String
+  imagePrompt                   String
+  analysis                      Json
+  isFavorite                    Boolean                      @default(false)
+  status                        ContentStatus                @default(DRAFT)
+  reviewNote                    String?
+  reviewedBy                    String?
+  reviewedAt                    DateTime?
+  approvedAt                    DateTime?
+  publishedAt                   DateTime?
+  usageLogs                     AiUsage[]
+  assets                        Asset[]
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  scheduledPosts                ScheduledPost[]
+  runtimeProfile                SocialChannelRuntimeProfile? @relation(fields: [socialChannelRuntimeProfileId], references: [id])
+  socialChannelRuntimeProfileId String?
 
   @@index([brandId])
   @@index([campaignId])
@@ -381,8 +382,9 @@ model SocialChannel {
 
   scheduledPosts ScheduledPost[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  socialChannelRuntimeProfile SocialChannelRuntimeProfile?
 
   @@unique([brandId, platform, externalId])
   @@index([workspaceId])
@@ -399,13 +401,9 @@ enum SocialProxyType {
 }
 
 model SocialChannelRuntimeProfile {
-  id        String @id @default(cuid())
-  channelId String @unique
-  channel   SocialChannel @relation(
-    fields: [channelId],
-    references: [id],
-    onDelete: Cascade
-  )
+  id        String        @id @default(cuid())
+  channelId String        @unique
+  channel   SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   browserProfileKey  String @unique
   browserProfileName String
@@ -421,13 +419,14 @@ model SocialChannelRuntimeProfile {
   proxyPasswordEncrypted String?
   proxyCountry           String?
 
-  lastKnownIp             String?
-  lastConnectionStatus    String?
-  lastConnectionError     String?
-  lastConnectionTestAt    DateTime?
+  lastKnownIp          String?
+  lastConnectionStatus String?
+  lastConnectionError  String?
+  lastConnectionTestAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  generationHistories GenerationHistory[]
 
   @@index([proxyType])
   @@index([proxyCountry])
