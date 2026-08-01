@@ -587,7 +587,21 @@
   }
 
   .quickStats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .quickStats article {
+    min-height: 150px;
+    padding: 18px;
+  }
+
+  .quickStats strong {
+    font-size: 40px;
+  }
+
+  .quickStats small {
+    line-height: 1.45;
   }
 
   .searchInput {
