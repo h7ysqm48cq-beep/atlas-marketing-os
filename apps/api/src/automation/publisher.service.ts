@@ -133,7 +133,29 @@ export class PublisherService {
               post.mediaUrls,
             );
 
+        } else {
+
+          throw new Error(
+            `Unsupported social platform: ${post.platform}`,
+          );
+
         }
+
+        this.logger.log(
+          [
+            `Publish succeeded.`,
+            `Post: ${post.id}.`,
+            `Platform: ${post.platform}.`,
+            `External ID: ${
+              result?.postId ??
+              result?.post_id ??
+              result?.id ??
+              result?.messageId ??
+              result?.message_id ??
+              "none"
+            }.`,
+          ].join(" "),
+        );
 
         await this.prisma.publishAttempt.update({
           where: {
@@ -189,6 +211,43 @@ export class PublisherService {
 
       } catch (e: any) {
 
+        const errorMessage =
+          e?.message ??
+          "Unknown Error";
+
+        const responseData =
+          e?.response?.data ??
+          e?.response ??
+          e?.cause ??
+          null;
+
+        const errorDetails = {
+          postId: post.id,
+          platform: post.platform,
+          channelId: post.channelId,
+          channelName: post.channel?.name ?? null,
+          scheduledAt:
+            post.scheduledAt?.toISOString?.() ??
+            post.scheduledAt,
+          mediaCount:
+            post.mediaUrls?.length ?? 0,
+          retryAttempt:
+            post.retryCount + 1,
+          message: errorMessage,
+          name: e?.name ?? null,
+          status:
+            e?.status ??
+            e?.statusCode ??
+            e?.response?.status ??
+            null,
+          response: responseData,
+        };
+
+        this.logger.error(
+          `Publish failed: ${JSON.stringify(errorDetails)}`,
+          e?.stack,
+        );
+
         await this.prisma.publishAttempt.update({
           where: {
             id: attempt.id,
@@ -196,9 +255,13 @@ export class PublisherService {
           data: {
             status:
               PublishAttemptStatus.FAILED,
-            errorMessage:
-              e?.message ??
-              "Unknown Error",
+            errorMessage,
+            responsePayload:
+              responseData
+                ? JSON.parse(
+                    JSON.stringify(responseData),
+                  )
+                : undefined,
             completedAt:
               new Date(),
           },
@@ -214,8 +277,7 @@ export class PublisherService {
             retryCount:
               post.retryCount + 1,
             lastError:
-              e?.message ??
-              "Unknown Error",
+              errorMessage,
           },
         });
 
