@@ -1516,3 +1516,559 @@ button {
 :root[data-theme="light"] [class*="AiPublishCard_"] h3 {
   color: var(--text);
 }
+
+/* =========================================================
+   Atlas full-site light theme hardening
+   Keep this section last so it overrides legacy dark colours.
+========================================================= */
+
+:root[data-theme="light"] {
+  --atlas-card-bg: #ffffff;
+  --atlas-soft-bg: #f7f8fb;
+  --atlas-input-bg: #ffffff;
+  --atlas-overlay-bg: rgba(25, 32, 45, 0.46);
+  --atlas-text: #171b24;
+  --atlas-muted: #697386;
+  --atlas-border: #dce1e9;
+  --atlas-shadow: 0 14px 36px rgba(35, 42, 55, 0.09);
+  --atlas-modal-shadow: 0 30px 80px rgba(35, 42, 55, 0.2);
+}
+
+/* ---------- Shared module surfaces ---------- */
+
+:root[data-theme="light"] [class*="AiStudio_contextCard"],
+:root[data-theme="light"] [class*="AiStudio_formCard"],
+:root[data-theme="light"] [class*="AiStudio_analysisCard"],
+:root[data-theme="light"] [class*="AiStudio_score"],
+:root[data-theme="light"] [class*="AiStudio_workspaceCard"],
+:root[data-theme="light"] [class*="AiStudio_assetSection"],
+:root[data-theme="light"] [class*="AiStudio_selectedAsset"],
+:root[data-theme="light"] [class*="AiStudio_assetModal"],
+:root[data-theme="light"] [class*="AiStudio_assetPickerCard"],
+:root[data-theme="light"] [class*="AiWorkspace_workspaceHeader"],
+:root[data-theme="light"] [class*="AiWorkspace_summary"],
+:root[data-theme="light"] [class*="AiWorkspace_scoreCard"],
+:root[data-theme="light"] [class*="AiWorkspace_knowledgePanel"],
+:root[data-theme="light"] [class*="AiWorkspace_sourceGrid"] article,
+:root[data-theme="light"] [class*="AiWorkspace_knowledgeDocumentGrid"] article,
+:root[data-theme="light"] [class*="AiPublishCard_card"],
+:root[data-theme="light"] [class*="AiPublishCard_scoreGrid"] article,
+:root[data-theme="light"] [class*="AiPublishCard_platforms"] label,
+:root[data-theme="light"] [class*="AiPublishCard_mode"] label,
+:root[data-theme="light"] [class*="AiPublishCard_resultList"] article,
+:root[data-theme="light"] [class*="AiPublishCard_selectedAsset"],
+:root[data-theme="light"] [class*="AiPublishCard_assetModal"],
+:root[data-theme="light"] [class*="AiPublishCard_assetCard"],
+:root[data-theme="light"] [class*="AiPublishCard_draftActions"] button,
+:root[data-theme="light"] [class*="AiTopicSuggestions_modal"],
+:root[data-theme="light"] [class*="AiTopicSuggestions_suggestion"],
+:root[data-theme="light"] [class*="CampaignsPage_statCard"],
+:root[data-theme="light"] [class*="CampaignsPage_toolbar"],
+:root[data-theme="light"] [class*="CampaignsPage_card"],
+:root[data-theme="light"] [class*="CampaignsPage_emptyState"],
+:root[data-theme="light"] [class*="CampaignsPage_modal"],
+:root[data-theme="light"] [class*="ContentHistory_countCard"],
+:root[data-theme="light"] [class*="ContentHistory_toolbar"],
+:root[data-theme="light"] [class*="ContentHistory_historyCard"],
+:root[data-theme="light"] [class*="ContentHistory_viewer"],
+:root[data-theme="light"] [class*="ContentHistory_workflowPanel"],
+:root[data-theme="light"] [class*="ContentHistory_score"],
+:root[data-theme="light"] [class*="ContentHistory_publishedPostList"] article,
+:root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article,
+:root[data-theme="light"] [class*="AutomationDashboard_panel"],
+:root[data-theme="light"] [class*="AutomationDashboard_channelCard"],
+:root[data-theme="light"] [class*="ContentCalendar_quickStats"] article,
+:root[data-theme="light"] [class*="ContentCalendar_toolbar"],
+:root[data-theme="light"] [class*="ContentCalendar_calendarPanel"],
+:root[data-theme="light"] [class*="ContentCalendar_sidebarPanel"],
+:root[data-theme="light"] [class*="ContentCalendar_dayCell"],
+:root[data-theme="light"] [class*="ContentCalendar_healthPanel"],
+:root[data-theme="light"] [class*="ContentCalendar_dayPopover"],
+:root[data-theme="light"] [class*="ContentCalendar_modal"],
+:root[data-theme="light"] [class*="ContentCalendar_mediaField"],
+:root[data-theme="light"] [class*="ContentCalendar_assetPicker"],
+:root[data-theme="light"] [class*="ContentCalendar_assetCard"],
+:root[data-theme="light"] [class*="ContentCalendar_previewSection"],
+:root[data-theme="light"] [class*="AssetLibrary_stat"],
+:root[data-theme="light"] [class*="AssetLibrary_toolbar"],
+:root[data-theme="light"] [class*="AssetLibrary_card"],
+:root[data-theme="light"] [class*="AssetLibrary_modal"],
+:root[data-theme="light"] [class*="BrandBrain_card"],
+:root[data-theme="light"] [class*="BrandBrain_summary"],
+:root[data-theme="light"] [class*="BrandBrain_modal"],
+:root[data-theme="light"] [class*="BrandBrain_assetModal"],
+:root[data-theme="light"] [class*="PromptLibrary_card"],
+:root[data-theme="light"] [class*="PromptLibrary_modal"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_toolbar"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_card"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_modal"],
+:root[data-theme="light"] [class*="WorkspaceSettings_summaryGrid"] article,
+:root[data-theme="light"] [class*="WorkspaceSettings_panel"],
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article,
+:root[data-theme="light"] [class*="AiUsageDashboard_panel"],
+:root[data-theme="light"] [class*="CampaignPlanner_hero"],
+:root[data-theme="light"] [class*="CampaignPlanner_workspace"],
+:root[data-theme="light"] [class*="CampaignPlanner_panel"],
+:root[data-theme="light"] [class*="CampaignDashboard_card"],
+:root[data-theme="light"] [class*="CampaignDashboard_panel"],
+:root[data-theme="light"] [class*="CampaignAssets_card"],
+:root[data-theme="light"] [class*="CampaignAssets_panel"],
+:root[data-theme="light"] [class*="CampaignAssets_modal"],
+:root[data-theme="light"] [class*="CampaignStrategy_card"],
+:root[data-theme="light"] [class*="CampaignStrategy_panel"],
+:root[data-theme="light"] [class*="PlatformCard_card"],
+:root[data-theme="light"] [class*="PlatformCard_panel"],
+:root[data-theme="light"] [class*="PlatformCard_drawer"],
+:root[data-theme="light"] [class*="ImageAssetPanel_card"],
+:root[data-theme="light"] [class*="ImageAssetPanel_modal"],
+:root[data-theme="light"] [class*="PromptInspector_card"],
+:root[data-theme="light"] [class*="PromptInspector_panel"],
+:root[data-theme="light"] [class*="BrandCopilot_sidebar"],
+:root[data-theme="light"] [class*="BrandCopilot_chat"],
+:root[data-theme="light"] [class*="BrandCopilot_panel"],
+:root[data-theme="light"] [class*="BrandCopilot_modal"],
+:root[data-theme="light"] [class*="AtlasCopilot_card"],
+:root[data-theme="light"] [class*="AtlasCopilot_panel"],
+:root[data-theme="light"] [class*="AtlasCopilot_modal"] {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-card-bg) !important;
+  color: var(--atlas-text) !important;
+  box-shadow: var(--atlas-shadow);
+}
+
+/* ---------- Soft nested surfaces ---------- */
+
+:root[data-theme="light"] [class*="AiStudio_contextActions"] a,
+:root[data-theme="light"] [class*="AiStudio_inactivePlatform"],
+:root[data-theme="light"] [class*="AiStudio_selectedAsset"] button,
+:root[data-theme="light"] [class*="AiStudio_assetPickerCard"],
+:root[data-theme="light"] [class*="AiWorkspace_tabs"] button,
+:root[data-theme="light"] [class*="AiWorkspace_sourceGrid"] article,
+:root[data-theme="light"] [class*="AiPublishCard_platforms"] label,
+:root[data-theme="light"] [class*="AiPublishCard_mode"] label,
+:root[data-theme="light"] [class*="AiPublishCard_resultList"] article,
+:root[data-theme="light"] [class*="AiPublishCard_selectedAsset"],
+:root[data-theme="light"] [class*="AiPublishCard_assetCard"],
+:root[data-theme="light"] [class*="AiPublishCard_draftActions"] button,
+:root[data-theme="light"] [class*="AiTopicSuggestions_suggestion"],
+:root[data-theme="light"] [class*="ContentHistory_workflowActions"] button,
+:root[data-theme="light"] [class*="ContentHistory_output"],
+:root[data-theme="light"] [class*="ContentCalendar_dayCell"],
+:root[data-theme="light"] [class*="ContentCalendar_upcomingList"] button,
+:root[data-theme="light"] [class*="ContentCalendar_selectedMediaItem"],
+:root[data-theme="light"] [class*="ContentCalendar_assetCard"],
+:root[data-theme="light"] [class*="ContentCalendar_contentPreview"] {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-soft-bg) !important;
+  color: var(--atlas-text) !important;
+}
+
+/* ---------- Inputs and editors ---------- */
+
+:root[data-theme="light"] [class*="AiStudio_"] input,
+:root[data-theme="light"] [class*="AiStudio_"] select,
+:root[data-theme="light"] [class*="AiStudio_"] textarea,
+:root[data-theme="light"] [class*="AiPublishCard_"] input,
+:root[data-theme="light"] [class*="AiPublishCard_"] select,
+:root[data-theme="light"] [class*="AiPublishCard_"] textarea,
+:root[data-theme="light"] [class*="AiTopicSuggestions_"] input,
+:root[data-theme="light"] [class*="CampaignsPage_"] input,
+:root[data-theme="light"] [class*="CampaignsPage_"] select,
+:root[data-theme="light"] [class*="CampaignsPage_"] textarea,
+:root[data-theme="light"] [class*="ContentHistory_"] input,
+:root[data-theme="light"] [class*="ContentHistory_"] select,
+:root[data-theme="light"] [class*="ContentHistory_"] textarea,
+:root[data-theme="light"] [class*="ContentCalendar_"] input,
+:root[data-theme="light"] [class*="ContentCalendar_"] select,
+:root[data-theme="light"] [class*="ContentCalendar_"] textarea,
+:root[data-theme="light"] [class*="AssetLibrary_"] input,
+:root[data-theme="light"] [class*="AssetLibrary_"] select,
+:root[data-theme="light"] [class*="AssetLibrary_"] textarea,
+:root[data-theme="light"] [class*="BrandBrain_"] input,
+:root[data-theme="light"] [class*="BrandBrain_"] select,
+:root[data-theme="light"] [class*="BrandBrain_"] textarea,
+:root[data-theme="light"] [class*="PromptLibrary_"] input,
+:root[data-theme="light"] [class*="PromptLibrary_"] select,
+:root[data-theme="light"] [class*="PromptLibrary_"] textarea,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] input,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] select,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] textarea,
+:root[data-theme="light"] [class*="WorkspaceSettings_"] input,
+:root[data-theme="light"] [class*="WorkspaceSettings_"] select,
+:root[data-theme="light"] [class*="WorkspaceSettings_"] textarea,
+:root[data-theme="light"] [class*="BrandCopilot_"] input,
+:root[data-theme="light"] [class*="BrandCopilot_"] select,
+:root[data-theme="light"] [class*="BrandCopilot_"] textarea {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-input-bg) !important;
+  color: var(--atlas-text) !important;
+}
+
+:root[data-theme="light"] textarea::placeholder,
+:root[data-theme="light"] input::placeholder {
+  color: #8b95a7 !important;
+}
+
+/* ---------- Modal and overlay handling ---------- */
+
+:root[data-theme="light"] [class*="Backdrop"],
+:root[data-theme="light"] [class*="_backdrop"],
+:root[data-theme="light"] [class*="_overlay"] {
+  background: var(--atlas-overlay-bg) !important;
+}
+
+:root[data-theme="light"] [class*="_modal"]:not([class*="Backdrop"]),
+:root[data-theme="light"] [class*="_drawer"],
+:root[data-theme="light"] [class*="_popover"] {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-card-bg) !important;
+  color: var(--atlas-text) !important;
+  box-shadow: var(--atlas-modal-shadow) !important;
+}
+
+/* ---------- Typography ---------- */
+
+:root[data-theme="light"] [class*="AiStudio_"] h1,
+:root[data-theme="light"] [class*="AiStudio_"] h2,
+:root[data-theme="light"] [class*="AiStudio_"] h3,
+:root[data-theme="light"] [class*="AiWorkspace_"] h2,
+:root[data-theme="light"] [class*="AiWorkspace_"] h3,
+:root[data-theme="light"] [class*="AiPublishCard_"] h3,
+:root[data-theme="light"] [class*="AiPublishCard_"] strong,
+:root[data-theme="light"] [class*="ContentCalendar_"] h2,
+:root[data-theme="light"] [class*="ContentHistory_"] h2,
+:root[data-theme="light"] [class*="CampaignsPage_"] h2,
+:root[data-theme="light"] [class*="BrandCopilot_"] h2,
+:root[data-theme="light"] [class*="BrandCopilot_"] h3 {
+  color: var(--atlas-text) !important;
+}
+
+:root[data-theme="light"] [class*="_description"],
+:root[data-theme="light"] [class*="_subtitle"],
+:root[data-theme="light"] [class*="_message"],
+:root[data-theme="light"] [class*="_meta"],
+:root[data-theme="light"] [class*="_noAssets"],
+:root[data-theme="light"] [class*="_noAsset"],
+:root[data-theme="light"] [class*="_assetMessage"],
+:root[data-theme="light"] small {
+  color: var(--atlas-muted);
+}
+
+/* ---------- AI Studio platform buttons ---------- */
+
+:root[data-theme="light"] [class*="AiStudio_inactivePlatform"] {
+  border-color: #d9dee8 !important;
+  background: #f3f5f8 !important;
+  color: #697386 !important;
+}
+
+:root[data-theme="light"] [class*="AiStudio_inactivePlatform"] span {
+  background: #e8ebf0 !important;
+  color: #697386 !important;
+}
+
+:root[data-theme="light"] [class*="AiStudio_activePlatform"] {
+  border-color: rgba(182, 134, 37, 0.5) !important;
+  background: rgba(182, 134, 37, 0.1) !important;
+  color: #8a641b !important;
+}
+
+/* ---------- Calendar-specific readability ---------- */
+
+:root[data-theme="light"] [class*="ContentCalendar_outside"] {
+  background: #f5f6f8 !important;
+  color: #9aa3b1 !important;
+}
+
+:root[data-theme="light"] [class*="ContentCalendar_today"] {
+  background: rgba(182, 134, 37, 0.08) !important;
+}
+
+:root[data-theme="light"] [class*="ContentCalendar_hoverPreview"] {
+  border-color: var(--atlas-border) !important;
+  background: #ffffff !important;
+  color: var(--atlas-text) !important;
+  box-shadow: var(--atlas-modal-shadow) !important;
+}
+
+/* ---------- Preserve branded primary actions ---------- */
+
+:root[data-theme="light"] [class*="_primaryButton"],
+:root[data-theme="light"] [class*="_generateButton"],
+:root[data-theme="light"] [class*="_publishButton"],
+:root[data-theme="light"] [class*="_calendarButton"] {
+  color: #ffffff;
+}
+
+:root[data-theme="light"] [class*="AiStudio_generateButton"] {
+  color: #171106 !important;
+}
+
+/* =========================================================
+   Knowledge Library light-theme fixes
+========================================================= */
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_page"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_library"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_layout"] {
+  color: var(--text);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_hero"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_card"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_panel"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_emptyState"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_details"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_document"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_modal"] {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_toolbar"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_filter"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_search"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_metadata"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_tag"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_chunk"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_preview"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_content"] {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] input,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] select,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] input::placeholder,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] textarea::placeholder {
+  color: var(--muted) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h1,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h2,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h3,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h4,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] strong {
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] p,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] small,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] span {
+  color: var(--muted);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_eyebrow"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_category"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_active"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_selected"] {
+  color: var(--gold-light) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_modalBackdrop"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_backdrop"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_overlay"] {
+  background: rgba(25, 32, 45, 0.46) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_modal"] {
+  box-shadow: 0 28px 76px rgba(35, 42, 55, 0.2) !important;
+}
+
+/* =========================================================
+   Sidebar touch and active-state fix
+========================================================= */
+
+/* Touch devices must not retain desktop hover state */
+@media (hover: none), (pointer: coarse) {
+  .nav-item:hover:not(.active) {
+    color: var(--muted);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .nav-item:active:not(.active) {
+    color: var(--text);
+    background: var(--panel-soft);
+  }
+}
+
+/* Apply hover only on devices with a real pointer */
+@media (hover: hover) and (pointer: fine) {
+  .nav-item:hover:not(.active) {
+    color: var(--text);
+    background: var(--panel-soft);
+  }
+}
+
+/* Current route always has one clear active state */
+.nav-item.active,
+.nav-item.active:hover,
+.nav-item.active:focus,
+.nav-item.active:active {
+  color: var(--gold-light);
+  background: var(--gold-soft);
+  box-shadow: inset 0 0 0 1px rgba(209, 163, 63, 0.18);
+}
+
+/* Remove persistent browser focus background after tapping */
+.nav-item:focus {
+  outline: none;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid rgba(209, 163, 63, 0.48);
+  outline-offset: 2px;
+}
+
+/* Improve touch response */
+.nav-item {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* =========================================================
+   Knowledge Library light-theme fixes
+========================================================= */
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_page"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_library"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_layout"] {
+  color: var(--text);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_hero"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_card"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_panel"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_emptyState"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_details"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_document"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_modal"] {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_toolbar"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_filter"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_search"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_metadata"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_tag"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_chunk"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_preview"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_content"] {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] input,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] select,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] input::placeholder,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] textarea::placeholder {
+  color: var(--muted) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h1,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h2,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h3,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] h4,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] strong {
+  color: var(--text) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] p,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] small,
+:root[data-theme="light"] [class*="KnowledgeLibrary_"] span {
+  color: var(--muted);
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_eyebrow"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_category"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_active"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_selected"] {
+  color: var(--gold-light) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_modalBackdrop"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_backdrop"],
+:root[data-theme="light"] [class*="KnowledgeLibrary_overlay"] {
+  background: rgba(25, 32, 45, 0.46) !important;
+}
+
+:root[data-theme="light"] [class*="KnowledgeLibrary_modal"] {
+  box-shadow: 0 28px 76px rgba(35, 42, 55, 0.2) !important;
+}
+
+/* =========================================================
+   Campaigns mobile light-theme correction
+========================================================= */
+
+:root[data-theme="light"]
+  [class*="CampaignsPage_statsGrid"]
+  [class*="CampaignsPage_statCard"] {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08) !important;
+}
+
+:root[data-theme="light"] [class*="CampaignsPage_statCard"] span {
+  color: var(--muted) !important;
+}
+
+:root[data-theme="light"] [class*="CampaignsPage_statCard"] strong {
+  color: var(--gold-light) !important;
+}
+
+:root[data-theme="light"] [class*="CampaignsPage_toolbar"] {
+  border-color: var(--border) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="light"] [class*="CampaignsPage_toolbar"] input,
+:root[data-theme="light"] [class*="CampaignsPage_toolbar"] select,
+:root[data-theme="light"] [class*="CampaignsPage_toolbar"] button {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+}
+
+@media (max-width: 760px) {
+  [class*="CampaignsPage_hero"] {
+    align-items: stretch !important;
+  }
+
+  [class*="CampaignsPage_primaryButton"] {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  [class*="CampaignsPage_statsGrid"] {
+    gap: 12px !important;
+  }
+
+  [class*="CampaignsPage_statCard"] {
+    min-height: 106px !important;
+  }
+}

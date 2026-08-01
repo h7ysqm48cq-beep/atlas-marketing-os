@@ -378,7 +378,7 @@ export function CampaignsPage() {
         </div>
 
         <button className={styles.primaryButton} onClick={openCreateModal}>
-          + New campaign
+          + {copy.newCampaign}
         </button>
       </section>
 
