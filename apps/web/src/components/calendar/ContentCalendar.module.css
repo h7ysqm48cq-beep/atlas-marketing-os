@@ -1575,3 +1575,201 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Canonical Calendar mobile layout
+========================================================= */
+
+@media (max-width: 760px) {
+  .toolbar {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .monthNav {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 70px 44px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .monthNav h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1.2;
+    text-align: center;
+    letter-spacing: -0.025em;
+  }
+
+  .monthNav button {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--panel-soft);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: none;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .platformToggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel-soft);
+  }
+
+  .platformToggle button {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .platformToggle .activeToggle {
+    background: var(--gold-soft);
+    color: var(--gold-light);
+    box-shadow: inset 0 0 0 1px rgba(209, 163, 63, 0.24);
+  }
+
+  .searchInput,
+  .filters select {
+    width: 100%;
+    min-height: 44px;
+    max-width: none;
+    padding: 0 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--surface-input);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .calendarPanel {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .weekdays,
+  .monthGrid {
+    min-width: 720px;
+  }
+
+  .weekdays > div {
+    min-height: 50px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+  }
+
+  .dayCell {
+    min-height: 170px;
+    padding: 12px;
+  }
+
+  .dayNumber {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .dayCount {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .dayPosts {
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .event {
+    min-height: 34px;
+    padding: 7px 8px;
+    border-radius: 9px;
+    font-size: 9px;
+  }
+
+  .morePostsButton {
+    margin-top: 5px;
+    color: var(--gold-light);
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  :global(html[data-theme="light"]) .toolbar,
+  :global(html[data-theme="light"]) .calendarPanel {
+    border-color: #d6dde8;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(36, 45, 62, 0.055);
+  }
+
+  :global(html[data-theme="light"]) .monthNav button,
+  :global(html[data-theme="light"]) .platformToggle {
+    border-color: #d6dde8;
+    background: #f6f8fb;
+  }
+
+  :global(html[data-theme="light"]) .searchInput,
+  :global(html[data-theme="light"]) .filters select {
+    border-color: #d6dde8;
+    background: #ffffff;
+    color: #171b24;
+  }
+
+  :global(html[data-theme="light"]) .dayCell {
+    border-color: #e1e6ee;
+    background: #ffffff;
+    color: #171b24;
+  }
+
+  :global(html[data-theme="light"]) .outside {
+    background: #f7f8fa;
+  }
+}
+
+@media (max-width: 430px) {
+  .monthNav {
+    grid-template-columns: 42px minmax(0, 1fr) 64px 42px;
+  }
+
+  .monthNav button {
+    min-width: 42px;
+    height: 42px;
+    font-size: 11px;
+  }
+
+  .monthNav h2 {
+    font-size: 18px;
+  }
+}

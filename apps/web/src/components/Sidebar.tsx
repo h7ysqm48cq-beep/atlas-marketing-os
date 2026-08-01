@@ -132,11 +132,12 @@ export function Sidebar() {
 
           <button
             type="button"
-            className="sidebar-close-button"
+            className="mobile-icon-button sidebar-close-button"
             aria-label={t("closeNavigation")}
             onClick={closeMobileNavigation}
           >
-            ×
+            <span className="mobile-close-line mobile-close-line-first" />
+            <span className="mobile-close-line mobile-close-line-second" />
           </button>
         </div>
 

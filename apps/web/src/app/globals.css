@@ -2072,3 +2072,297 @@ button {
     min-height: 106px !important;
   }
 }
+
+/* =========================================================
+   Unified light KPI cards
+   Matches the main dashboard mobile card style
+========================================================= */
+
+:root[data-theme="light"] {
+  --light-kpi-background: #ffffff;
+  --light-kpi-border: #d6dde8;
+  --light-kpi-title: #718096;
+  --light-kpi-value: #171b24;
+  --light-kpi-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* Campaigns */
+:root[data-theme="light"] [class*="CampaignsPage_statsGrid"]
+[class*="CampaignsPage_statCard"],
+
+/* Settings */
+:root[data-theme="light"] [class*="WorkspaceSettings_summaryGrid"] article,
+
+/* Knowledge Library */
+:root[data-theme="light"] [class*="KnowledgeLibrary_statsGrid"] article,
+:root[data-theme="light"] [class*="KnowledgeLibrary_summaryGrid"] article,
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"],
+
+/* AI Usage */
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article,
+
+/* Automation */
+:root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article,
+
+/* Content Calendar */
+:root[data-theme="light"] [class*="ContentCalendar_quickStats"] article,
+
+/* Asset Library */
+:root[data-theme="light"] [class*="AssetLibrary_statsGrid"]
+[class*="AssetLibrary_stat"],
+:root[data-theme="light"] [class*="AssetLibrary_stat"] {
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 22px !important;
+  border: 1px solid var(--light-kpi-border) !important;
+  border-radius: 20px !important;
+  background: var(--light-kpi-background) !important;
+  color: var(--light-kpi-value) !important;
+  box-shadow: var(--light-kpi-shadow) !important;
+}
+
+/* KPI labels */
+:root[data-theme="light"] [class*="CampaignsPage_statCard"] span,
+:root[data-theme="light"]
+  [class*="WorkspaceSettings_summaryGrid"]
+  article
+  > span,
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"] span,
+:root[data-theme="light"] [class*="KnowledgeLibrary_statsGrid"] article > span,
+:root[data-theme="light"]
+  [class*="KnowledgeLibrary_summaryGrid"]
+  article
+  > span,
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article > span,
+:root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article > span,
+:root[data-theme="light"] [class*="ContentCalendar_quickStats"] article > span,
+:root[data-theme="light"] [class*="AssetLibrary_stat"] span {
+  color: var(--light-kpi-title) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.35;
+}
+
+/* KPI main values */
+:root[data-theme="light"] [class*="CampaignsPage_statCard"] strong,
+:root[data-theme="light"]
+  [class*="WorkspaceSettings_summaryGrid"]
+  article
+  > strong,
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"] strong,
+:root[data-theme="light"]
+  [class*="KnowledgeLibrary_statsGrid"]
+  article
+  > strong,
+:root[data-theme="light"]
+  [class*="KnowledgeLibrary_summaryGrid"]
+  article
+  > strong,
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article > strong,
+:root[data-theme="light"]
+  [class*="AutomationDashboard_kpiGrid"]
+  article
+  > strong,
+:root[data-theme="light"]
+  [class*="ContentCalendar_quickStats"]
+  article
+  > strong,
+:root[data-theme="light"] [class*="AssetLibrary_stat"] strong {
+  color: var(--light-kpi-value) !important;
+  font-size: clamp(30px, 7vw, 42px) !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.035em;
+}
+
+/* Supporting text */
+:root[data-theme="light"]
+  [class*="WorkspaceSettings_summaryGrid"]
+  article
+  > small,
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"] small,
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article > small,
+:root[data-theme="light"]
+  [class*="AutomationDashboard_kpiGrid"]
+  article
+  > small,
+:root[data-theme="light"] [class*="ContentCalendar_quickStats"] article > small,
+:root[data-theme="light"] [class*="AssetLibrary_stat"] small {
+  color: var(--muted) !important;
+  font-size: 13px !important;
+  line-height: 1.4;
+}
+
+/* Keep selected accent values gold where appropriate */
+:root[data-theme="light"] [class*="CampaignsPage_statCard"] strong,
+:root[data-theme="light"] [class*="AssetLibrary_stat"] strong {
+  color: var(--gold-light) !important;
+}
+
+/* Remove old dark gradients */
+:root[data-theme="light"] [class*="CampaignsPage_statCard"]::before,
+:root[data-theme="light"]
+  [class*="WorkspaceSettings_summaryGrid"]
+  article::before,
+:root[data-theme="light"] [class*="KnowledgeLibrary_stat"]::before,
+:root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article::before,
+:root[data-theme="light"]
+  [class*="AutomationDashboard_kpiGrid"]
+  article::before,
+:root[data-theme="light"] [class*="ContentCalendar_quickStats"] article::before,
+:root[data-theme="light"] [class*="AssetLibrary_stat"]::before {
+  display: none !important;
+}
+
+/* Mobile layout */
+@media (max-width: 760px) {
+  :root[data-theme="light"] [class*="CampaignsPage_statsGrid"],
+  :root[data-theme="light"] [class*="WorkspaceSettings_summaryGrid"],
+  :root[data-theme="light"] [class*="KnowledgeLibrary_statsGrid"],
+  :root[data-theme="light"] [class*="KnowledgeLibrary_summaryGrid"],
+  :root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"],
+  :root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"],
+  :root[data-theme="light"] [class*="ContentCalendar_quickStats"],
+  :root[data-theme="light"] [class*="AssetLibrary_statsGrid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  :root[data-theme="light"] [class*="CampaignsPage_statCard"],
+  :root[data-theme="light"] [class*="WorkspaceSettings_summaryGrid"] article,
+  :root[data-theme="light"] [class*="KnowledgeLibrary_stat"],
+  :root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article,
+  :root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article,
+  :root[data-theme="light"] [class*="ContentCalendar_quickStats"] article,
+  :root[data-theme="light"] [class*="AssetLibrary_stat"] {
+    min-height: 142px !important;
+    padding: 18px !important;
+    border-radius: 20px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  :root[data-theme="light"] [class*="CampaignsPage_statsGrid"],
+  :root[data-theme="light"] [class*="WorkspaceSettings_summaryGrid"],
+  :root[data-theme="light"] [class*="KnowledgeLibrary_statsGrid"],
+  :root[data-theme="light"] [class*="KnowledgeLibrary_summaryGrid"],
+  :root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"],
+  :root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"],
+  :root[data-theme="light"] [class*="ContentCalendar_quickStats"],
+  :root[data-theme="light"] [class*="AssetLibrary_statsGrid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   Atlas canonical mobile header controls
+========================================================= */
+
+.mobile-icon-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  position: relative;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-button {
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mobile-menu-line {
+  width: 19px;
+  height: 2px;
+  display: block;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.mobile-menu-button .mobile-menu-line:nth-child(2) {
+  width: 15px;
+}
+
+.sidebar-close-button {
+  position: relative;
+  font-size: 0;
+}
+
+.mobile-close-line {
+  width: 19px;
+  height: 2px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.mobile-close-line-first {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.mobile-close-line-second {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media (max-width: 780px) {
+  .mobile-icon-button,
+  .mobile-menu-button,
+  .sidebar-close-button {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+    display: flex;
+    padding: 0;
+    border-radius: 14px;
+  }
+
+  .mobile-menu-button,
+  .icon-button,
+  .user-chip {
+    border-color: var(--border);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .user-chip {
+    min-width: 44px;
+    padding: 5px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  :root[data-theme="light"] .mobile-menu-button,
+  :root[data-theme="light"] .sidebar-close-button,
+  :root[data-theme="light"] .icon-button,
+  :root[data-theme="light"] .user-chip {
+    border-color: #d6dde8;
+    background: #ffffff;
+    color: #202632;
+    box-shadow: 0 7px 20px rgba(36, 45, 62, 0.07);
+  }
+}

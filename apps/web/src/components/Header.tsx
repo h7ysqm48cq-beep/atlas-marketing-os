@@ -11,13 +11,13 @@ export function Header() {
     <header className="header">
       <button
         type="button"
-        className="mobile-menu-button"
-        aria-label="Open navigation"
+        className="mobile-icon-button mobile-menu-button"
+        aria-label={t("mainNavigation")}
         onClick={toggleMobileNavigation}
       >
-        <span />
-        <span />
-        <span />
+        <span className="mobile-menu-line" />
+        <span className="mobile-menu-line" />
+        <span className="mobile-menu-line" />
       </button>
 
       <label className="search-box">
