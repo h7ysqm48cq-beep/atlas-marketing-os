@@ -1,4 +1,4 @@
-# MGMBETMYR Marketing OS V4 Pro
+# Marketing OS V4 Pro
 
 可直接运行的本地营销管理系统 Starter，包含：
 
