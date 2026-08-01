@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
@@ -64,6 +65,17 @@ export class AssetImageService {
 
       const filename = `${Date.now()}-${shortName}-${uniqueId}.png`;
       const imageBuffer = Buffer.from(base64, 'base64');
+      const [width, height] = size.split('x').map(Number);
+
+      const finalImageBuffer =
+        await this.applyPrimaryLogo({
+          brandId: brand.id,
+          primaryLogoAssetId:
+            brand.primaryLogoAssetId,
+          imageBuffer,
+          width,
+          height,
+        });
 
       const now = new Date();
       const year = String(now.getUTCFullYear());
@@ -72,13 +84,12 @@ export class AssetImageService {
       const storagePath = ['brands', brand.id, year, month, filename].join('/');
 
       const uploaded = await this.storageService.uploadImage({
-        buffer: imageBuffer,
+        buffer: finalImageBuffer,
         path: storagePath,
         contentType: 'image/png',
       });
 
       const url = uploaded.publicUrl;
-      const [width, height] = size.split('x').map(Number);
 
       const asset = await this.prisma.asset.create({
         data: {
@@ -156,6 +167,144 @@ export class AssetImageService {
       );
     }
   }
+
+  private async applyPrimaryLogo(input: {
+    brandId: string;
+    primaryLogoAssetId?: string | null;
+    imageBuffer: Buffer;
+    width: number;
+    height: number;
+  }): Promise<Buffer> {
+    const logoAssetId =
+      input.primaryLogoAssetId?.trim();
+
+    if (!logoAssetId) {
+      return input.imageBuffer;
+    }
+
+    const logoAsset =
+      await this.prisma.asset.findFirst({
+        where: {
+          id: logoAssetId,
+          brandId: input.brandId,
+          type: 'IMAGE',
+          aiEnabled: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          url: true,
+          mimeType: true,
+        },
+      });
+
+    if (
+      !logoAsset?.url ||
+      !logoAsset.url.startsWith('https://')
+    ) {
+      return input.imageBuffer;
+    }
+
+    try {
+      const logoResponse =
+        await fetch(logoAsset.url);
+
+      if (!logoResponse.ok) {
+        throw new Error(
+          `Logo download returned HTTP ${logoResponse.status}.`,
+        );
+      }
+
+      const logoBuffer =
+        Buffer.from(
+          await logoResponse.arrayBuffer(),
+        );
+
+      /*
+       * Keep the logo intentionally small and unobtrusive.
+       * For a 1024px image this resolves to about 92px wide.
+       */
+      const targetLogoWidth =
+        Math.max(
+          72,
+          Math.min(
+            140,
+            Math.round(input.width * 0.09),
+          ),
+        );
+
+      const resizedLogo =
+        await sharp(logoBuffer)
+          .resize({
+            width: targetLogoWidth,
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .png()
+          .toBuffer();
+
+      const logoMetadata =
+        await sharp(resizedLogo).metadata();
+
+      const actualLogoWidth =
+        logoMetadata.width ??
+        targetLogoWidth;
+
+      const actualLogoHeight =
+        logoMetadata.height ??
+        Math.round(targetLogoWidth * 0.4);
+
+      const bottomMargin =
+        Math.max(
+          24,
+          Math.round(input.height * 0.025),
+        );
+
+      const left =
+        Math.max(
+          0,
+          Math.round(
+            (input.width - actualLogoWidth) / 2,
+          ),
+        );
+
+      const top =
+        Math.max(
+          0,
+          input.height -
+            actualLogoHeight -
+            bottomMargin,
+        );
+
+      return await sharp(input.imageBuffer)
+        .composite([
+          {
+            input: resizedLogo,
+            left,
+            top,
+          },
+        ])
+        .png()
+        .toBuffer();
+    } catch (error) {
+      /*
+       * Logo failure must not destroy the generated visual.
+       * Return the original image and record the issue.
+       */
+      console.warn(
+        [
+          '[AssetImageService]',
+          'Primary logo overlay skipped.',
+          error instanceof Error
+            ? error.message
+            : 'Unknown logo processing error.',
+        ].join(' '),
+      );
+
+      return input.imageBuffer;
+    }
+  }
+
 
   private async validateRelations(
     brandId: string,
