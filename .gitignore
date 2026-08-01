@@ -90,3 +90,20 @@ tools/dependency-graph.json
 **/.env.*
 !**/.env.example
 *.env.backup*
+
+# Local backup files
+*.bak
+*.bak.*
+*.save
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
