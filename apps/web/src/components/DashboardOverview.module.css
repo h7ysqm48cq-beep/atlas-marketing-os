@@ -867,3 +867,152 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ===== Dashboard responsive summary visibility fix ===== */
+
+/*
+ * Desktop and mobile summaries contain similar information.
+ * Only one version must be visible at each breakpoint.
+ */
+.desktopSummary {
+  display: grid;
+  gap: 24px;
+}
+
+.mobileSummary {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .desktopSummary {
+    display: none !important;
+  }
+
+  .mobileSummary {
+    display: grid !important;
+    gap: 18px;
+  }
+
+  .mobileHero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .mobileHero > div {
+    min-width: 0;
+  }
+
+  .mobileGreeting {
+    margin: 0 0 6px;
+    color: var(--gold-light);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .mobileHero h1 {
+    margin: 0;
+    font-size: clamp(34px, 10vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .mobileAttention {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .mobileCreateButton {
+    flex: 0 0 auto;
+    min-height: 48px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #7868ff, #6657f5);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .mobileRefreshButton {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  .mobileKpiGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .mobileKpiCard {
+    min-width: 0;
+    min-height: 136px;
+    display: grid;
+    align-content: space-between;
+    gap: 14px;
+    padding: 17px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .mobileKpiCard span,
+  .mobileKpiCard small {
+    color: var(--muted);
+  }
+
+  .mobileKpiCard span {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mobileKpiCard strong {
+    color: var(--text);
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .mobileKpiCard small {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .mobileHealthValue {
+    font-size: 23px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileHero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mobileCreateButton {
+    width: 100%;
+  }
+
+  .mobileKpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mobileKpiCard {
+    min-height: 120px;
+  }
+}
+
+/* ===== End Dashboard responsive summary visibility fix ===== */

@@ -1120,3 +1120,121 @@
 }
 
 /* ===== End Asset Library compact mobile polish ===== */
+
+/* ===== Asset Library mobile density v3 ===== */
+
+@media (max-width: 760px) {
+  .page {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 22px;
+    padding-top: 4px;
+  }
+
+  .hero > div:first-child {
+    min-width: 0;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  .hero h1 {
+    max-width: 12ch;
+    margin: 8px 0 0;
+    font-size: clamp(30px, 8.2vw, 38px);
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .hero > div:first-child > p:last-child {
+    max-width: 34rem;
+    margin-top: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .heroActions button,
+  .uploadButton,
+  .primaryButton {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .stat {
+    min-height: 142px;
+    display: grid;
+    align-content: space-between;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .stat span {
+    font-size: 12px;
+  }
+
+  .stat strong {
+    font-size: 34px;
+    line-height: 1;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .hero h1 {
+    max-width: 11ch;
+    font-size: 31px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stat {
+    min-height: 126px;
+  }
+}
+
+/* ===== End Asset Library mobile density v3 ===== */
