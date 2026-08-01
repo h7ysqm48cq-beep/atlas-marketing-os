@@ -18,10 +18,24 @@ type AutomationSettings = {
 
 type Channel = {
   id: string;
+  brandId?: string;
   platform: "FACEBOOK" | "TELEGRAM";
   name: string;
+  externalId?: string | null;
   username: string | null;
-  status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
+  status:
+    | "DISCONNECTED"
+    | "CONNECTED"
+    | "EXPIRED"
+    | "ERROR";
+  hasAccessToken?: boolean;
+  tokenExpiresAt?: string | null;
+  lastConnectedAt?: string | null;
+  lastError?: string | null;
+  brand?: {
+    id: string;
+    name: string;
+  };
 };
 
 type Brand = {
@@ -62,6 +76,11 @@ export function WorkspaceSettings() {
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
+
+  const [
+    connectingFacebook,
+    setConnectingFacebook,
+  ] = useState(false);
 
   const [message, setMessage] = useState("");
 
@@ -125,6 +144,55 @@ export function WorkspaceSettings() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    const facebookStatus =
+      params.get("facebook");
+
+    if (facebookStatus === "connected") {
+      const imported =
+        params.get("imported") || "0";
+
+      setMessage(
+        `Facebook connected successfully. ${imported} Page(s) imported.`,
+      );
+
+      void load();
+
+      const cleanUrl =
+        new URL(
+          window.location.href,
+        );
+
+      cleanUrl.searchParams.delete(
+        "facebook",
+      );
+      cleanUrl.searchParams.delete(
+        "imported",
+      );
+      cleanUrl.searchParams.delete(
+        "brandId",
+      );
+
+      window.history.replaceState(
+        {},
+        "",
+        cleanUrl.toString(),
+      );
+    }
+
+    if (facebookStatus === "error") {
+      setError(
+        params.get("message") ||
+          "Unable to connect Facebook.",
+      );
+    }
+  }, [load]);
+
   const workspace = brands[0]?.workspace;
   const activeBrand = brands[0];
 
@@ -132,6 +200,63 @@ export function WorkspaceSettings() {
     () => channels.filter((channel) => channel.status === "CONNECTED").length,
     [channels],
   );
+
+  async function connectFacebook() {
+    const brandId =
+      activeBrand?.id;
+
+    if (!brandId) {
+      setError(
+        "Create or select a brand before connecting Facebook.",
+      );
+      return;
+    }
+
+    setConnectingFacebook(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/automation/facebook/connect?brandId=${encodeURIComponent(
+            brandId,
+          )}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+      const body =
+        (await response.json()) as {
+          authorizationUrl?: string;
+          message?: string;
+        };
+
+      if (
+        !response.ok ||
+        !body.authorizationUrl
+      ) {
+        throw new Error(
+          body.message ||
+            "Unable to start Facebook connection.",
+        );
+      }
+
+      window.location.assign(
+        body.authorizationUrl,
+      );
+    } catch (connectError) {
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Unable to connect Facebook.",
+      );
+
+      setConnectingFacebook(false);
+    }
+  }
+
 
   async function saveSettings() {
     if (!settings) {
@@ -481,7 +606,23 @@ export function WorkspaceSettings() {
             <h2>Social channels</h2>
           </div>
 
-          <a href="/automation">Open automation</a>
+          <div className={styles.connectionActions}>
+            <button
+              type="button"
+              onClick={() =>
+                void connectFacebook()
+              }
+              disabled={connectingFacebook}
+            >
+              {connectingFacebook
+                ? "Connecting..."
+                : "+ Connect Facebook"}
+            </button>
+
+            <a href="/automation">
+              Open automation
+            </a>
+          </div>
         </header>
 
         <div className={styles.channelGrid}>
@@ -500,8 +641,23 @@ export function WorkspaceSettings() {
               <div>
                 <strong>{channel.name}</strong>
                 <span>
-                  {channel.username ? `@${channel.username}` : "No username"}
+                  {channel.username
+                    ? `@${channel.username}`
+                    : channel.externalId
+                      ? `Page ID: ${channel.externalId}`
+                      : "No Page ID"}
                 </span>
+
+                {channel.platform === "FACEBOOK" ? (
+                  <small>
+                    {channel.hasAccessToken
+                      ? "Token configured"
+                      : "Token not configured"}
+                    {channel.brand?.name
+                      ? ` · ${channel.brand.name}`
+                      : ""}
+                  </small>
+                ) : null}
               </div>
 
               <b

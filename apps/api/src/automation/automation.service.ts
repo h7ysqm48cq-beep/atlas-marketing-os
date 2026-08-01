@@ -149,33 +149,62 @@ export class AutomationService {
     }
 
     return {
-      channels,
+      channels: channels.map(
+        (channel) =>
+          this.sanitizeChannel(channel),
+      ),
       statusCounts,
-      upcoming,
-      recentAttempts,
+      upcoming: upcoming.map(
+        (post) => ({
+          ...post,
+          channel:
+            this.sanitizeChannel(
+              post.channel,
+            ),
+        }),
+      ),
+      recentAttempts:
+        recentAttempts.map(
+          (attempt) => ({
+            ...attempt,
+            scheduledPost: {
+              ...attempt.scheduledPost,
+              channel:
+                this.sanitizeChannel(
+                  attempt.scheduledPost.channel,
+                ),
+            },
+          }),
+        ),
     };
   }
 
-  listChannels() {
-    return this.prisma.socialChannel.findMany({
-      orderBy: [
-        { platform: 'asc' },
-        { createdAt: 'asc' },
-      ],
-      include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
+  async listChannels() {
+    const channels =
+      await this.prisma.socialChannel.findMany({
+        orderBy: [
+          { platform: 'asc' },
+          { createdAt: 'asc' },
+        ],
+        include: {
+          brand: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              scheduledPosts: true,
+            },
           },
         },
-        _count: {
-          select: {
-            scheduledPosts: true,
-          },
-        },
-      },
-    });
+      });
+
+    return channels.map(
+      (channel) =>
+        this.sanitizeChannel(channel),
+    );
   }
 
   async createChannel(input: CreateChannelInput) {
