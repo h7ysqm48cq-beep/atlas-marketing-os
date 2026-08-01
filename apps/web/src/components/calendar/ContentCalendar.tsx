@@ -319,6 +319,41 @@ export function ContentCalendar() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void load();
+    }, 15000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    if (!selectedPost) {
+      return;
+    }
+
+    const latestPost =
+      posts.find(
+        (post) => post.id === selectedPost.id,
+      );
+
+    if (
+      latestPost &&
+      (
+        latestPost.status !== selectedPost.status ||
+        latestPost.externalPostId !== selectedPost.externalPostId ||
+        latestPost.externalPostUrl !== selectedPost.externalPostUrl
+      )
+    ) {
+      setSelectedPost(latestPost);
+    }
+  }, [
+    posts,
+    selectedPost,
+  ]);
+
   const filteredPosts = useMemo(
     () =>
       posts.filter((post) => {
