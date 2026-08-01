@@ -34,6 +34,18 @@ type FacebookPhotoResult = {
   post_id?: string;
 };
 
+export type FacebookChannelCredentials = {
+  pageId: string;
+  accessToken: string;
+};
+
+export type FacebookPublishInput =
+  FacebookChannelCredentials & {
+    message: string;
+    mediaUrls?: string[];
+    link?: string;
+  };
+
 @Injectable()
 export class FacebookConnectorService {
   constructor(
@@ -41,20 +53,27 @@ export class FacebookConnectorService {
       ConfigService,
   ) {}
 
-  async testConnection() {
-    const page = await this.graphGet<FacebookPage>(
-      this.getPageId(),
-      {
-        fields: [
-          'id',
-          'name',
-          'username',
-          'link',
-          'category',
-          'fan_count',
-        ].join(','),
-      },
-    );
+  async testConnection(
+    credentials?: FacebookChannelCredentials,
+  ) {
+    const resolved =
+      this.requireCredentials(credentials);
+
+    const page =
+      await this.graphGet<FacebookPage>(
+        resolved.pageId,
+        {
+          fields: [
+            'id',
+            'name',
+            'username',
+            'link',
+            'category',
+            'fan_count',
+          ].join(','),
+        },
+        resolved.accessToken,
+      );
 
     return {
       connected: true,
@@ -75,49 +94,65 @@ export class FacebookConnectorService {
     };
   }
 
-  async sendTestPost() {
-    const result = await this.publishPost(
-      '✅ Atlas Facebook connection test successful.',
-    );
+  async sendTestPost(
+    credentials?: FacebookChannelCredentials,
+  ) {
+    const resolved =
+      this.requireCredentials(credentials);
+
+    const result =
+      await this.publishPost({
+        ...resolved,
+        message:
+          '✅ Atlas Facebook connection test successful.',
+      });
 
     return {
       published: true,
       postId: result.id,
-      pageId: this.getPageId(),
+      pageId: resolved.pageId,
       publishedAt:
         new Date().toISOString(),
     };
   }
 
   async publish(
-    message: string,
-    mediaUrls: string[] = [],
-    link?: string,
+    input: FacebookPublishInput,
   ) {
+    const credentials =
+      this.requireCredentials(input);
+
     const firstMediaUrl =
-      mediaUrls
+      (input.mediaUrls ?? [])
         .map((url) => url?.trim())
         .find(Boolean);
 
     if (firstMediaUrl) {
-      return this.publishPhoto(
-        message,
-        firstMediaUrl,
-      );
+      return this.publishPhoto({
+        ...credentials,
+        caption: input.message,
+        mediaUrl: firstMediaUrl,
+      });
     }
 
-    return this.publishPost(
-      message,
-      link,
-    );
+    return this.publishPost({
+      ...credentials,
+      message: input.message,
+      link: input.link,
+    });
   }
 
   async publishPhoto(
-    caption: string,
-    mediaUrl: string,
+    input: FacebookChannelCredentials & {
+      caption: string;
+      mediaUrl: string;
+    },
   ) {
+    const credentials =
+      this.requireCredentials(input);
+
     const cleanCaption =
-      caption?.trim();
+      input.caption?.trim();
 
     if (!cleanCaption) {
       throw new BadRequestException(
@@ -126,7 +161,9 @@ export class FacebookConnectorService {
     }
 
     const media =
-      await this.fetchMedia(mediaUrl);
+      await this.fetchMedia(
+        input.mediaUrl,
+      );
 
     const form =
       new FormData();
@@ -138,7 +175,7 @@ export class FacebookConnectorService {
 
     form.set(
       'access_token',
-      this.getAccessToken(),
+      credentials.accessToken,
     );
 
     form.set(
@@ -149,7 +186,11 @@ export class FacebookConnectorService {
 
     const response =
       await fetch(
-        `${this.getBaseUrl()}/${this.getPageId()}/photos`,
+        [
+          this.getBaseUrl(),
+          credentials.pageId,
+          'photos',
+        ].join('/'),
         {
           method: 'POST',
           body: form,
@@ -169,11 +210,16 @@ export class FacebookConnectorService {
   }
 
   async publishPost(
-    message: string,
-    link?: string,
+    input: FacebookChannelCredentials & {
+      message: string;
+      link?: string;
+    },
   ) {
+    const credentials =
+      this.requireCredentials(input);
+
     const cleanMessage =
-      message?.trim();
+      input.message?.trim();
 
     if (!cleanMessage) {
       throw new BadRequestException(
@@ -186,14 +232,44 @@ export class FacebookConnectorService {
         message: cleanMessage,
       };
 
-    if (link?.trim()) {
-      payload.link = link.trim();
+    if (input.link?.trim()) {
+      payload.link =
+        input.link.trim();
     }
 
     return this.graphPost<FacebookPostResult>(
-      `${this.getPageId()}/feed`,
+      `${credentials.pageId}/feed`,
       payload,
+      credentials.accessToken,
     );
+  }
+
+  private requireCredentials(
+    credentials?:
+      Partial<FacebookChannelCredentials>,
+  ): FacebookChannelCredentials {
+    const pageId =
+      credentials?.pageId?.trim();
+
+    const accessToken =
+      credentials?.accessToken?.trim();
+
+    if (!pageId) {
+      throw new BadRequestException(
+        'Facebook channel Page ID is required.',
+      );
+    }
+
+    if (!accessToken) {
+      throw new BadRequestException(
+        'Facebook channel access token is required.',
+      );
+    }
+
+    return {
+      pageId,
+      accessToken,
+    };
   }
 
   private async fetchMedia(
@@ -269,44 +345,6 @@ export class FacebookConnectorService {
     };
   }
 
-  private getPageId() {
-    const pageId =
-      this.configService.get<string>(
-        'FACEBOOK_PAGE_ID',
-      );
-
-    if (
-      !pageId?.trim() ||
-      pageId ===
-        'PASTE_YOUR_PAGE_ID_HERE'
-    ) {
-      throw new BadRequestException(
-        'FACEBOOK_PAGE_ID is not configured.',
-      );
-    }
-
-    return pageId.trim();
-  }
-
-  private getAccessToken() {
-    const token =
-      this.configService.get<string>(
-        'FACEBOOK_PAGE_ACCESS_TOKEN',
-      );
-
-    if (
-      !token?.trim() ||
-      token ===
-        'PASTE_YOUR_PAGE_ACCESS_TOKEN_HERE'
-    ) {
-      throw new BadRequestException(
-        'FACEBOOK_PAGE_ACCESS_TOKEN is not configured.',
-      );
-    }
-
-    return token.trim();
-  }
-
   private getApiVersion() {
     const value =
       this.configService.get<string>(
@@ -315,7 +353,7 @@ export class FacebookConnectorService {
 
     return (
       value?.trim() ||
-      'v23.0'
+      'v25.0'
     );
   }
 
@@ -330,10 +368,12 @@ export class FacebookConnectorService {
     path: string,
     query:
       Record<string, string>,
+    accessToken: string,
   ): Promise<T> {
-    const url = new URL(
-      `${this.getBaseUrl()}/${path}`,
-    );
+    const url =
+      new URL(
+        `${this.getBaseUrl()}/${path}`,
+      );
 
     for (
       const [key, value]
@@ -347,14 +387,15 @@ export class FacebookConnectorService {
 
     url.searchParams.set(
       'access_token',
-      this.getAccessToken(),
+      accessToken,
     );
 
     const response =
       await fetch(url);
 
     const body =
-      (await response.json()) as FacebookApiResponse<T>;
+      (await response.json()) as
+        FacebookApiResponse<T>;
 
     this.throwFacebookError(
       response.ok,
@@ -368,6 +409,7 @@ export class FacebookConnectorService {
     path: string,
     payload:
       Record<string, string>,
+    accessToken: string,
   ): Promise<T> {
     const body =
       new URLSearchParams();
@@ -381,7 +423,7 @@ export class FacebookConnectorService {
 
     body.set(
       'access_token',
-      this.getAccessToken(),
+      accessToken,
     );
 
     const response =
@@ -398,7 +440,8 @@ export class FacebookConnectorService {
       );
 
     const result =
-      (await response.json()) as FacebookApiResponse<T>;
+      (await response.json()) as
+        FacebookApiResponse<T>;
 
     this.throwFacebookError(
       response.ok,

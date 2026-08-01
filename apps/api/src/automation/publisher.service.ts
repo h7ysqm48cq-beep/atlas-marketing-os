@@ -4,6 +4,7 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../database/prisma.service";
+import { SocialTokenCryptoService } from "../common/social-token-crypto.service";
 
 import {
   ScheduledPostStatus,
@@ -25,6 +26,8 @@ export class PublisherService {
     private readonly prisma: PrismaService,
     private readonly facebook: FacebookConnectorService,
     private readonly telegram: TelegramConnectorService,
+    private readonly socialTokenCrypto:
+      SocialTokenCryptoService,
   ) {}
 
   private buildFacebookPostUrl(
@@ -116,11 +119,64 @@ export class PublisherService {
           SocialPlatform.FACEBOOK
         ) {
 
-          result =
-            await this.facebook.publish(
-              post.content,
-              post.mediaUrls,
+          const pageId =
+            post.channel.externalId?.trim();
+
+          const encryptedToken =
+            post.channel
+              .accessTokenEncrypted
+              ?.trim();
+
+          if (!pageId) {
+            throw new Error(
+              [
+                `Facebook channel ${post.channel.id}`,
+                `(${post.channel.name})`,
+                "does not have a Page ID.",
+              ].join(" "),
             );
+          }
+
+          if (!encryptedToken) {
+            throw new Error(
+              [
+                `Facebook channel ${post.channel.id}`,
+                `(${post.channel.name})`,
+                "does not have an access token.",
+              ].join(" "),
+            );
+          }
+
+          if (
+            post.channel.tokenExpiresAt &&
+            post.channel.tokenExpiresAt <=
+              new Date()
+          ) {
+            throw new Error(
+              [
+                `Facebook access token for`,
+                `${post.channel.name}`,
+                `expired at`,
+                post.channel
+                  .tokenExpiresAt
+                  .toISOString(),
+              ].join(" "),
+            );
+          }
+
+          const accessToken =
+            this.socialTokenCrypto.decrypt(
+              encryptedToken,
+            );
+
+          result =
+            await this.facebook.publish({
+              pageId,
+              accessToken,
+              message: post.content,
+              mediaUrls:
+                post.mediaUrls,
+            });
 
         } else if (
           post.platform ===

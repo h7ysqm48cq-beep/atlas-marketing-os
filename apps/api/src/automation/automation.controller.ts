@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -221,11 +222,13 @@ export class AutomationController {
       link?: string;
     },
   ) {
-    return this.facebookConnector
-      .publishPost(
-        body.content,
-        body.link,
-      );
+    throw new BadRequestException(
+      [
+        'Direct Facebook publishing is disabled.',
+        'Create or select a Facebook social channel',
+        'and publish through the channel-based automation flow.',
+      ].join(' '),
+    );
   }
 
   @Post('telegram/test')
