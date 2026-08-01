@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ScheduledPostStatus,
   SocialChannelStatus,
@@ -17,6 +19,7 @@ import {
 import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { FacebookOAuthService } from './facebook-oauth.service';
 
 @Controller('automation')
 export class AutomationController {
@@ -27,6 +30,8 @@ export class AutomationController {
       TelegramConnectorService,
     private readonly facebookConnector:
       FacebookConnectorService,
+    private readonly facebookOAuth:
+      FacebookOAuthService,
   ) {}
 
   @Get('dashboard')
@@ -199,6 +204,65 @@ export class AutomationController {
     @Param('id') id: string,
   ) {
     return this.automationService.cancelPost(id);
+  }
+
+
+  @Get('facebook/connect')
+  connectFacebook(
+    @Query('brandId')
+    brandId: string,
+  ) {
+    return this.facebookOAuth
+      .createAuthorizationUrl(
+        brandId,
+      );
+  }
+
+  @Get('facebook/callback')
+  async facebookCallback(
+    @Query('code')
+    code: string | undefined,
+    @Query('state')
+    state: string | undefined,
+    @Query('error')
+    error: string | undefined,
+    @Query('error_description')
+    errorDescription: string | undefined,
+    @Res()
+    response: Response,
+  ) {
+    try {
+      const result =
+        await this.facebookOAuth
+          .handleCallback({
+            code,
+            state,
+            error,
+            errorDescription,
+          });
+
+      return response.redirect(
+        this.facebookOAuth
+          .buildSuccessRedirect({
+            importedCount:
+              result.imported.length,
+            brandId:
+              result.brand.id,
+          }),
+      );
+    } catch (callbackError) {
+      const message =
+        callbackError instanceof Error
+          ? callbackError.message
+          : 'Facebook connection failed.';
+
+      return response.redirect(
+        this.facebookOAuth
+          .buildErrorRedirect(
+            message,
+          ),
+      );
+    }
   }
 
 

@@ -3,6 +3,7 @@ import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { FacebookOAuthService } from './facebook-oauth.service';
 import { PublisherService } from './publisher.service';
 import { AutomationSchedulerService } from './automation-scheduler.service';
 
@@ -15,6 +16,7 @@ import { AutomationSchedulerService } from './automation-scheduler.service';
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,
+    FacebookOAuthService,
     PublisherService,
   ],
   exports: [
