@@ -82,6 +82,25 @@ export function WorkspaceSettings() {
     setConnectingFacebook,
   ] = useState(false);
 
+  const [
+    activeChannelAction,
+    setActiveChannelAction,
+  ] = useState<string | null>(null);
+
+  const [
+    channelDiagnostics,
+    setChannelDiagnostics,
+  ] = useState<
+    Record<
+      string,
+      {
+        followers: number | null;
+        category: string | null;
+        link: string | null;
+      }
+    >
+  >({});
+
   const [message, setMessage] = useState("");
 
   const [error, setError] = useState("");
@@ -254,6 +273,266 @@ export function WorkspaceSettings() {
       );
 
       setConnectingFacebook(false);
+    }
+  }
+
+
+  async function testChannel(
+    channel: Channel,
+  ) {
+    setActiveChannelAction(
+      `${channel.id}:test`,
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${channel.id}/test`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body = (await response.json()) as {
+        message?: string;
+        channel?: Channel;
+        connection?: {
+          page?: {
+            followers?: number | null;
+            category?: string | null;
+            link?: string | null;
+          };
+        };
+      };
+
+      if (!response.ok || !body.channel) {
+        throw new Error(
+          body.message ||
+            "Unable to test this channel.",
+        );
+      }
+
+      setChannels((current) =>
+        current.map((item) =>
+          item.id === channel.id
+            ? {
+                ...item,
+                ...body.channel,
+              }
+            : item,
+        ),
+      );
+
+      setChannelDiagnostics(
+        (current) => ({
+          ...current,
+          [channel.id]: {
+            followers:
+              body.connection?.page
+                ?.followers ?? null,
+            category:
+              body.connection?.page
+                ?.category ?? null,
+            link:
+              body.connection?.page
+                ?.link ?? null,
+          },
+        }),
+      );
+
+      setMessage(
+        `${body.channel.name} connection is healthy.`,
+      );
+    } catch (channelError) {
+      setError(
+        channelError instanceof Error
+          ? channelError.message
+          : "Unable to test this channel.",
+      );
+
+      await load();
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function reconnectChannel(
+    channel: Channel,
+  ) {
+    const brandId =
+      channel.brandId ||
+      channel.brand?.id ||
+      activeBrand?.id;
+
+    if (!brandId) {
+      setError(
+        "This channel does not have a valid brand.",
+      );
+      return;
+    }
+
+    setActiveChannelAction(
+      `${channel.id}:reconnect`,
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/facebook/connect?brandId=${encodeURIComponent(
+          brandId,
+        )}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      const body = (await response.json()) as {
+        authorizationUrl?: string;
+        message?: string;
+      };
+
+      if (
+        !response.ok ||
+        !body.authorizationUrl
+      ) {
+        throw new Error(
+          body.message ||
+            "Unable to reconnect Facebook.",
+        );
+      }
+
+      window.location.assign(
+        body.authorizationUrl,
+      );
+    } catch (channelError) {
+      setError(
+        channelError instanceof Error
+          ? channelError.message
+          : "Unable to reconnect Facebook.",
+      );
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function disconnectChannel(
+    channel: Channel,
+  ) {
+    const confirmed = window.confirm(
+      `Disconnect ${channel.name}? Scheduled posts will remain, but publishing will stop until the Page is reconnected.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActiveChannelAction(
+      `${channel.id}:disconnect`,
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${channel.id}/disconnect`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body = (await response.json()) as
+        | Channel
+        | { message?: string };
+
+      if (!response.ok) {
+        throw new Error(
+          "message" in body && body.message
+            ? body.message
+            : "Unable to disconnect channel.",
+        );
+      }
+
+      setChannels((current) =>
+        current.map((item) =>
+          item.id === channel.id
+            ? {
+                ...item,
+                ...(body as Channel),
+              }
+            : item,
+        ),
+      );
+
+      setMessage(
+        `${channel.name} disconnected.`,
+      );
+    } catch (channelError) {
+      setError(
+        channelError instanceof Error
+          ? channelError.message
+          : "Unable to disconnect channel.",
+      );
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function deleteChannel(
+    channel: Channel,
+  ) {
+    const confirmed = window.confirm(
+      `Permanently delete ${channel.name}? This cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActiveChannelAction(
+      `${channel.id}:delete`,
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${channel.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const body = (await response.json()) as {
+        deleted?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !body.deleted) {
+        throw new Error(
+          body.message ||
+            "Unable to delete channel.",
+        );
+      }
+
+      setChannels((current) =>
+        current.filter(
+          (item) =>
+            item.id !== channel.id,
+        ),
+      );
+
+      setMessage(
+        `${channel.name} deleted.`,
+      );
+    } catch (channelError) {
+      setError(
+        channelError instanceof Error
+          ? channelError.message
+          : "Unable to delete channel.",
+      );
+    } finally {
+      setActiveChannelAction(null);
     }
   }
 
@@ -626,51 +905,177 @@ export function WorkspaceSettings() {
         </header>
 
         <div className={styles.channelGrid}>
-          {channels.map((channel) => (
-            <article key={channel.id}>
-              <div
-                className={`${styles.channelIcon} ${
-                  channel.platform === "FACEBOOK"
-                    ? styles.facebook
-                    : styles.telegram
-                }`}
+          {channels.map((channel) => {
+            const diagnostics =
+              channelDiagnostics[channel.id];
+
+            const channelBusy =
+              activeChannelAction?.startsWith(
+                `${channel.id}:`,
+              ) ?? false;
+
+            return (
+              <article
+                key={channel.id}
+                className={styles.channelCard}
               >
-                {channel.platform === "FACEBOOK" ? "f" : "✈"}
-              </div>
+                <div className={styles.channelTop}>
+                  <div
+                    className={`${styles.channelIcon} ${
+                      channel.platform === "FACEBOOK"
+                        ? styles.facebook
+                        : styles.telegram
+                    }`}
+                  >
+                    {channel.platform === "FACEBOOK"
+                      ? "f"
+                      : "✈"}
+                  </div>
 
-              <div>
-                <strong>{channel.name}</strong>
-                <span>
-                  {channel.username
-                    ? `@${channel.username}`
-                    : channel.externalId
-                      ? `Page ID: ${channel.externalId}`
-                      : "No Page ID"}
-                </span>
+                  <div className={styles.channelIdentity}>
+                    <strong>{channel.name}</strong>
 
-                {channel.platform === "FACEBOOK" ? (
-                  <small>
-                    {channel.hasAccessToken
-                      ? "Token configured"
-                      : "Token not configured"}
-                    {channel.brand?.name
-                      ? ` · ${channel.brand.name}`
-                      : ""}
-                  </small>
+                    <span>
+                      {channel.username
+                        ? `@${channel.username}`
+                        : channel.externalId
+                          ? `Page ID: ${channel.externalId}`
+                          : "No Page ID"}
+                    </span>
+
+                    <small>
+                      {channel.hasAccessToken
+                        ? "Token configured"
+                        : "Token not configured"}
+                      {channel.brand?.name
+                        ? ` · ${channel.brand.name}`
+                        : ""}
+                    </small>
+                  </div>
+
+                  <b
+                    className={
+                      channel.status === "CONNECTED"
+                        ? styles.connected
+                        : styles.disconnected
+                    }
+                  >
+                    {channel.status}
+                  </b>
+                </div>
+
+                <div className={styles.channelMeta}>
+                  <div>
+                    <span>Last connected</span>
+                    <strong>
+                      {channel.lastConnectedAt
+                        ? new Date(
+                            channel.lastConnectedAt,
+                          ).toLocaleString()
+                        : "Never"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Token expiry</span>
+                    <strong>
+                      {channel.tokenExpiresAt
+                        ? new Date(
+                            channel.tokenExpiresAt,
+                          ).toLocaleString()
+                        : "Not provided"}
+                    </strong>
+                  </div>
+
+                  {diagnostics ? (
+                    <>
+                      <div>
+                        <span>Followers</span>
+                        <strong>
+                          {diagnostics.followers ??
+                            "Unavailable"}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Category</span>
+                        <strong>
+                          {diagnostics.category ??
+                            "Unavailable"}
+                        </strong>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+
+                {channel.lastError ? (
+                  <p className={styles.channelError}>
+                    {channel.lastError}
+                  </p>
                 ) : null}
-              </div>
 
-              <b
-                className={
-                  channel.status === "CONNECTED"
-                    ? styles.connected
-                    : styles.disconnected
-                }
-              >
-                {channel.status}
-              </b>
-            </article>
-          ))}
+                <div className={styles.channelActions}>
+                  {channel.platform === "FACEBOOK" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void testChannel(channel)
+                        }
+                        disabled={channelBusy}
+                      >
+                        {activeChannelAction ===
+                        `${channel.id}:test`
+                          ? "Testing..."
+                          : "Test"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void reconnectChannel(
+                            channel,
+                          )
+                        }
+                        disabled={channelBusy}
+                      >
+                        Reconnect
+                      </button>
+
+                      {channel.status !==
+                      "DISCONNECTED" ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void disconnectChannel(
+                              channel,
+                            )
+                          }
+                          disabled={channelBusy}
+                        >
+                          Disconnect
+                        </button>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    className={styles.dangerButton}
+                    onClick={() =>
+                      void deleteChannel(channel)
+                    }
+                    disabled={channelBusy}
+                  >
+                    {activeChannelAction ===
+                    `${channel.id}:delete`
+                      ? "Deleting..."
+                      : "Delete"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>
