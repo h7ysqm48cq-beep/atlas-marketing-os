@@ -168,6 +168,7 @@ model GenerationHistory {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   scheduledPosts ScheduledPost[]
+  runtimeProfile SocialChannelRuntimeProfile?
 
   @@index([brandId])
   @@index([campaignId])
@@ -388,6 +389,48 @@ model SocialChannel {
   @@index([brandId])
   @@index([platform])
   @@index([status])
+}
+
+enum SocialProxyType {
+  DIRECT
+  HTTP
+  HTTPS
+  SOCKS5
+}
+
+model SocialChannelRuntimeProfile {
+  id        String @id @default(cuid())
+  channelId String @unique
+  channel   SocialChannel @relation(
+    fields: [channelId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  browserProfileKey  String @unique
+  browserProfileName String
+
+  locale   String @default("en-MY")
+  timezone String @default("Asia/Kuala_Lumpur")
+
+  proxyType SocialProxyType @default(DIRECT)
+  proxyHost String?
+  proxyPort Int?
+
+  proxyUsernameEncrypted String?
+  proxyPasswordEncrypted String?
+  proxyCountry           String?
+
+  lastKnownIp             String?
+  lastConnectionStatus    String?
+  lastConnectionError     String?
+  lastConnectionTestAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([proxyType])
+  @@index([proxyCountry])
 }
 
 model ScheduledPost {
