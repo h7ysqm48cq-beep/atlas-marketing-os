@@ -375,14 +375,32 @@ export function DashboardOverview() {
       </div>
 
       <section className={styles.mainGrid}>
-        <article className={styles.panel}>
+        <article
+          className={`${styles.panel} ${styles.clickablePanel}`}
+          role="link"
+          tabIndex={0}
+          onClick={() => {
+            window.location.href = "/automation";
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              window.location.href = "/automation";
+            }
+          }}
+        >
           <header className={styles.panelHeader}>
             <div>
               <p className={styles.eyebrow}>{t("publishing")}</p>
               <h2>{t("upcomingPosts")}</h2>
             </div>
 
-            <a href="/automation">{t("viewAutomation")}</a>
+            <a
+              href="/automation"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {t("viewAutomation")}
+            </a>
           </header>
 
           <div className={styles.list}>
@@ -410,14 +428,32 @@ export function DashboardOverview() {
           </div>
         </article>
 
-        <article className={styles.panel}>
+        <article
+          className={`${styles.panel} ${styles.clickablePanel}`}
+          role="link"
+          tabIndex={0}
+          onClick={() => {
+            window.location.href = "/content-history";
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              window.location.href = "/content-history";
+            }
+          }}
+        >
           <header className={styles.panelHeader}>
             <div>
               <p className={styles.eyebrow}>{t("workflow")}</p>
               <h2>{t("contentStatus")}</h2>
             </div>
 
-            <a href="/content-history">{t("openHistory")}</a>
+            <a
+              href="/content-history"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {t("openHistory")}
+            </a>
           </header>
 
           <div className={styles.workflowGrid}>

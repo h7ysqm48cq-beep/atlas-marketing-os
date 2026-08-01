@@ -1056,3 +1056,51 @@
     transform: none;
   }
 }
+
+
+/* Clickable dashboard information panels */
+
+.clickablePanel {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.clickablePanel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124, 92, 255, 0.38);
+  box-shadow: 0 16px 38px rgba(20, 25, 40, 0.14);
+}
+
+.clickablePanel:active {
+  transform: scale(0.992);
+}
+
+.clickablePanel:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.28);
+  outline-offset: 3px;
+}
+
+.clickablePanel a,
+.clickablePanel button {
+  position: relative;
+  z-index: 2;
+}
+
+:global(html[data-theme="light"]) .clickablePanel:hover {
+  border-color: rgba(124, 92, 255, 0.3);
+  box-shadow: 0 16px 38px rgba(44, 52, 72, 0.1);
+}
+
+@media (max-width: 760px) {
+  .clickablePanel:hover {
+    transform: none;
+  }
+
+  .clickablePanel:active {
+    transform: scale(0.985);
+  }
+}
