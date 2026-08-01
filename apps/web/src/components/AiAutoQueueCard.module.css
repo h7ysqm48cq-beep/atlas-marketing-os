@@ -274,3 +274,114 @@
       repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ===================================================
+   Light theme
+=================================================== */
+
+:global(html[data-theme="light"]) .card {
+  border-color: #e2e7ef;
+  background: #ffffff;
+  box-shadow:
+    0 14px 36px rgba(30, 41, 59, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:global(html[data-theme="light"]) .heading p,
+:global(html[data-theme="light"]) .successHeader p {
+  color: #b18425;
+}
+
+:global(html[data-theme="light"]) .heading h3,
+:global(html[data-theme="light"]) .successHeader h3,
+:global(html[data-theme="light"]) .platforms strong,
+:global(html[data-theme="light"]) .results strong {
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .heading span,
+:global(html[data-theme="light"]) .successHeader small,
+:global(html[data-theme="light"]) .platforms small,
+:global(html[data-theme="light"]) .scheduleGrid span,
+:global(html[data-theme="light"]) .days > span,
+:global(html[data-theme="light"]) .results small {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .heading b {
+  background: #f7edcf;
+  color: #9a721e;
+}
+
+:global(html[data-theme="light"]) .platforms label,
+:global(html[data-theme="light"]) .results article {
+  border-color: #dde3ec;
+  background: #f8fafc;
+}
+
+:global(html[data-theme="light"]) .platforms label:has(input:checked) {
+  border-color: #c89a2b;
+  background: #fff8e6;
+}
+
+:global(html[data-theme="light"]) .scheduleGrid input {
+  border-color: #d6dde8;
+  background: #f8fafc;
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .days button {
+  border-color: #d8dee8;
+  background: #f8fafc;
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .days .activeDay {
+  border-color: #c89a2b;
+  background: #fff4d6;
+  color: #9a721e;
+}
+
+:global(html[data-theme="light"]) .queueButton {
+  background: linear-gradient(
+    135deg,
+    #d0a43c,
+    #b88620
+  );
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(184, 134, 32, 0.22);
+}
+
+:global(html[data-theme="light"]) .queueButton:disabled {
+  background: #d8c18a;
+  color: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+}
+
+:global(html[data-theme="light"]) .results article > span {
+  color: #9a721e;
+}
+
+:global(html[data-theme="light"]) .actions a {
+  background: #fff4d6;
+  color: #9a721e;
+}
+
+:global(html[data-theme="light"]) .actions button {
+  border-color: #d8dee8;
+  background: #f8fafc;
+  color: #334155;
+}
+
+:global(html[data-theme="light"]) .successHeader > span {
+  background: #eaf8ef;
+  color: #2f9e5b;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .card {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+}

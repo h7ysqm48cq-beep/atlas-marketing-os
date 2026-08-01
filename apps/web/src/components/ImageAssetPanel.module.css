@@ -145,3 +145,78 @@
     width: 100%;
   }
 }
+
+/* ===================================================
+   Light theme
+=================================================== */
+
+:global(html[data-theme="light"]) .panel {
+  border-color: #e2e7ef;
+  background: #ffffff;
+  box-shadow:
+    0 14px 36px rgba(30, 41, 59, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:global(html[data-theme="light"]) .header h3,
+:global(html[data-theme="light"]) .result h3 {
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .header span,
+:global(html[data-theme="light"]) .result > div > span,
+:global(html[data-theme="light"]) .controls label > span {
+  color: #b18425;
+}
+
+:global(html[data-theme="light"]) .header > a,
+:global(html[data-theme="light"]) .actions a,
+:global(html[data-theme="light"]) .actions button {
+  border-color: #d8dee8;
+  background: #f8fafc;
+  color: #253047;
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.04);
+}
+
+:global(html[data-theme="light"]) .controls select {
+  border-color: #d6dde8;
+  background: #f8fafc;
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .controls button {
+  background: linear-gradient(140deg, #d0a43c, #b88620);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(184, 134, 32, 0.22);
+}
+
+:global(html[data-theme="light"]) .controls button:disabled {
+  background: #d8c18a;
+  color: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+}
+
+:global(html[data-theme="light"]) .message,
+:global(html[data-theme="light"]) .result p {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .result {
+  border-top-color: #e3e8f0;
+}
+
+:global(html[data-theme="light"]) .result img {
+  border-color: #d9e0e9;
+  background: #f1f4f8;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .panel {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  :global(html[data-theme="light"]) .controls button {
+    min-height: 48px;
+  }
+}
