@@ -1016,3 +1016,43 @@
 }
 
 /* ===== End Dashboard responsive summary visibility fix ===== */
+
+
+/* Clickable dashboard KPI cards */
+
+.kpiLink {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.kpiLink:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124, 92, 255, 0.42);
+  box-shadow: 0 14px 34px rgba(20, 25, 40, 0.14);
+}
+
+.kpiLink:active {
+  transform: scale(0.985);
+}
+
+.kpiLink:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.3);
+  outline-offset: 3px;
+}
+
+:global(html[data-theme="light"]) .kpiLink:hover {
+  border-color: rgba(124, 92, 255, 0.36);
+  box-shadow: 0 14px 34px rgba(44, 52, 72, 0.1);
+}
+
+@media (max-width: 760px) {
+  .kpiLink:hover {
+    transform: none;
+  }
+}

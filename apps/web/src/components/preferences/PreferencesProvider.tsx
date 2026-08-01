@@ -26,6 +26,7 @@ type PreferencesContextValue = {
 };
 
 const STORAGE_KEY = "atlas.interface.preferences";
+const COOKIE_KEY = "atlas_interface_preferences";
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 
@@ -71,7 +72,26 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     let nextLanguage: AtlasLanguage = "en";
     let nextTheme: AtlasTheme = "dark";
 
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const localStored =
+      window.localStorage.getItem(STORAGE_KEY);
+
+    const cookieStored =
+      document.cookie
+        .split("; ")
+        .find((item) =>
+          item.startsWith(`${COOKIE_KEY}=`)
+        )
+        ?.split("=")
+        .slice(1)
+        .join("=");
+
+    const stored =
+      localStored ||
+      (
+        cookieStored
+          ? decodeURIComponent(cookieStored)
+          : null
+      );
 
     if (stored) {
       try {
@@ -116,13 +136,31 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, [applyPreferences, language, theme]);
 
   function persist(nextLanguage: AtlasLanguage, nextTheme: AtlasTheme) {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        language: nextLanguage,
-        theme: nextTheme,
-      }),
-    );
+    const serialized = JSON.stringify({
+      language: nextLanguage,
+      theme: nextTheme,
+    });
+
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        serialized,
+      );
+    } catch {
+      // Storage may be restricted in private browsing.
+    }
+
+    document.cookie = [
+      `${COOKIE_KEY}=${encodeURIComponent(serialized)}`,
+      "path=/",
+      "max-age=31536000",
+      "samesite=lax",
+      window.location.protocol === "https:"
+        ? "secure"
+        : "",
+    ]
+      .filter(Boolean)
+      .join("; ");
   }
 
   function setLanguage(nextLanguage: AtlasLanguage) {

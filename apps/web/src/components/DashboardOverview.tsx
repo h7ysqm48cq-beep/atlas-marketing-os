@@ -241,37 +241,53 @@ export function DashboardOverview() {
         {error ? <div className={styles.warning}>{error}</div> : null}
 
         <section className={styles.kpiGrid}>
-          <article className={styles.kpiCard}>
+          <a
+            className={`${styles.kpiCard} ${styles.kpiLink}`}
+            href="/content-history?status=PENDING_REVIEW"
+            aria-label={t("pendingApproval")}
+          >
             <span>{t("pendingApproval")}</span>
             <strong>{pendingReview}</strong>
             <small>
               {approved} {t("approvedReady")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.kpiCard}>
+          <a
+            className={`${styles.kpiCard} ${styles.kpiLink}`}
+            href="/calendar?status=SCHEDULED"
+            aria-label={t("scheduledPosts")}
+          >
             <span>{t("scheduledPosts")}</span>
             <strong>{scheduled}</strong>
             <small>
               {publishingQueue} {t("currentlyQueue")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.kpiCard}>
+          <a
+            className={`${styles.kpiCard} ${styles.kpiLink}`}
+            href="/campaigns"
+            aria-label={t("activeCampaigns")}
+          >
             <span>{t("activeCampaigns")}</span>
             <strong>{activeCampaigns}</strong>
             <small>
               {data.campaigns.length} {t("campaignsTotal")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.kpiCard}>
+          <a
+            className={`${styles.kpiCard} ${styles.kpiLink}`}
+            href="/automation"
+            aria-label={t("automationHealth")}
+          >
             <span>{t("automationHealth")}</span>
             <strong className={styles.healthValue}>{automationHealth}</strong>
             <small>
               {connectedChannels}/{totalChannels} {t("channelsConnected")}
             </small>
-          </article>
+          </a>
         </section>
       </div>
 
@@ -306,31 +322,47 @@ export function DashboardOverview() {
         {error ? <div className={styles.warning}>{error}</div> : null}
 
         <section className={styles.mobileKpiGrid}>
-          <article className={styles.mobileKpiCard}>
+          <a
+            className={`${styles.mobileKpiCard} ${styles.kpiLink}`}
+            href="/content-history?status=PENDING_REVIEW"
+            aria-label={t("pending")}
+          >
             <span>{t("pending")}</span>
             <strong>{pendingReview}</strong>
             <small>
               {approved} {t("approvedCount")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.mobileKpiCard}>
+          <a
+            className={`${styles.mobileKpiCard} ${styles.kpiLink}`}
+            href="/calendar?status=SCHEDULED"
+            aria-label={t("scheduled")}
+          >
             <span>{t("scheduled")}</span>
             <strong>{scheduled}</strong>
             <small>
               {publishingQueue} {t("inQueue")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.mobileKpiCard}>
+          <a
+            className={`${styles.mobileKpiCard} ${styles.kpiLink}`}
+            href="/campaigns"
+            aria-label={t("campaignsLabel")}
+          >
             <span>{t("campaignsLabel")}</span>
             <strong>{activeCampaigns}</strong>
             <small>
               {data.campaigns.length} {t("total")}
             </small>
-          </article>
+          </a>
 
-          <article className={styles.mobileKpiCard}>
+          <a
+            className={`${styles.mobileKpiCard} ${styles.kpiLink}`}
+            href="/automation"
+            aria-label={t("automationLabel")}
+          >
             <span>{t("automationLabel")}</span>
             <strong className={styles.mobileHealthValue}>
               {automationHealth}
@@ -338,7 +370,7 @@ export function DashboardOverview() {
             <small>
               {connectedChannels}/{totalChannels} {t("connected")}
             </small>
-          </article>
+          </a>
         </section>
       </div>
 
