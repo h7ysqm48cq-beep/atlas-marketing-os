@@ -16,7 +16,6 @@ import { AutomationSchedulerService } from './automation-scheduler.service';
     TelegramConnectorService,
     FacebookConnectorService,
     PublisherService,
-    PublisherService,
   ],
   exports: [
     AutomationService,
