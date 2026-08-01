@@ -275,3 +275,86 @@
     align-items: flex-start;
   }
 }
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .kpiGrid article,
+:global(html[data-theme="light"]) .panel,
+:global(html[data-theme="light"]) .channelCard,
+:global(html[data-theme="light"]) .state {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .kpiGrid strong,
+:global(html[data-theme="light"]) .panel h2,
+:global(html[data-theme="light"]) .panel strong,
+:global(html[data-theme="light"]) .channelCard strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .kpiGrid span,
+:global(html[data-theme="light"]) .kpiGrid small,
+:global(html[data-theme="light"]) .panel span,
+:global(html[data-theme="light"]) .panel small {
+  color: var(--muted) !important;
+}
+
+/* ===== Dashboard-style light KPI cards ===== */
+
+:global(html[data-theme="light"]) .kpiGrid article {
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border: 1px solid #d6dde8;
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > span,
+:global(html[data-theme="light"]) .kpiGrid article > small {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > strong {
+  color: var(--text);
+  font-size: clamp(30px, 7vw, 42px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > small {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  :global(html[data-theme="light"]) .kpiGrid article {
+    min-height: 142px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 390px) {
+  :global(html[data-theme="light"]) .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+}
