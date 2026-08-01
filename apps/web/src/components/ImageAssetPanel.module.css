@@ -220,3 +220,302 @@
     min-height: 48px;
   }
 }
+
+/* ===================================================
+   Image revisions and version history
+=================================================== */
+
+.versionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.versionBar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.versionBar span,
+.revisionHeader span {
+  color: var(--gold-light);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.versionBar small,
+.revisionHeader small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.versionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.versionButtons button {
+  min-width: 38px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(7, 9, 13, 0.45);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.versionButtons .activeVersion {
+  border-color: rgba(209, 163, 63, 0.55);
+  background: rgba(209, 163, 63, 0.13);
+  color: var(--gold-light);
+}
+
+.revisionSummary {
+  max-width: 620px;
+  padding: 10px 12px;
+  border-left: 3px solid rgba(209, 163, 63, 0.55);
+  background: rgba(209, 163, 63, 0.07);
+  border-radius: 0 9px 9px 0;
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.revisionPanel {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.revisionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.revisionHeader h4 {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.revisionHeader small {
+  max-width: 220px;
+  text-align: right;
+  line-height: 1.45;
+}
+
+.presetGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presetGrid button {
+  min-height: 35px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(7, 9, 13, 0.45);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.presetGrid button:hover {
+  border-color: rgba(209, 163, 63, 0.5);
+  background: rgba(209, 163, 63, 0.09);
+  color: var(--gold-light);
+}
+
+.presetGrid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.revisionPanel textarea {
+  width: 100%;
+  min-height: 118px;
+  resize: vertical;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(7, 9, 13, 0.52);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.revisionPanel textarea::placeholder {
+  color: var(--muted);
+}
+
+.revisionPanel textarea:focus {
+  border-color: rgba(209, 163, 63, 0.58);
+  outline: 3px solid rgba(209, 163, 63, 0.1);
+}
+
+.revisionActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.revisionActions button {
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.clearButton {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+
+.regenerateButton {
+  border: 0;
+  background:
+    linear-gradient(
+      140deg,
+      var(--gold-light),
+      var(--gold)
+    );
+  color: #171106;
+}
+
+.revisionActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+/* Light theme revisions */
+
+:global(html[data-theme="light"]) .versionBar,
+:global(html[data-theme="light"]) .revisionPanel {
+  border-top-color: #e3e8f0;
+}
+
+:global(html[data-theme="light"]) .versionBar span,
+:global(html[data-theme="light"]) .revisionHeader span {
+  color: #b18425;
+}
+
+:global(html[data-theme="light"]) .versionBar small,
+:global(html[data-theme="light"]) .revisionHeader small {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .versionButtons button,
+:global(html[data-theme="light"]) .presetGrid button {
+  border-color: #d8dee8;
+  background: #f8fafc;
+  color: #4b5870;
+}
+
+:global(html[data-theme="light"]) .versionButtons .activeVersion {
+  border-color: #c89a2b;
+  background: #fff4d6;
+  color: #946b17;
+}
+
+:global(html[data-theme="light"]) .presetGrid button:hover {
+  border-color: #c89a2b;
+  background: #fff8e8;
+  color: #946b17;
+}
+
+:global(html[data-theme="light"]) .revisionHeader h4 {
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .revisionSummary {
+  border-left-color: #c89a2b;
+  background: #fff8e8;
+  color: #56627a;
+}
+
+:global(html[data-theme="light"]) .revisionPanel textarea {
+  border-color: #d6dde8;
+  background: #f8fafc;
+  color: #172033;
+}
+
+:global(html[data-theme="light"]) .revisionPanel textarea:focus {
+  border-color: #c89a2b;
+  outline-color: rgba(200, 154, 43, 0.13);
+}
+
+:global(html[data-theme="light"]) .clearButton {
+  border-color: #d8dee8;
+  background: #f8fafc;
+  color: #4b5870;
+}
+
+:global(html[data-theme="light"]) .regenerateButton {
+  background:
+    linear-gradient(
+      140deg,
+      #d0a43c,
+      #b88620
+    );
+  color: #ffffff;
+  box-shadow:
+    0 8px 20px
+    rgba(184, 134, 32, 0.2);
+}
+
+@media (max-width: 760px) {
+  .versionBar,
+  .revisionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .versionButtons {
+    justify-content: flex-start;
+  }
+
+  .revisionHeader small {
+    max-width: none;
+    text-align: left;
+  }
+
+  .presetGrid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .presetGrid button {
+    border-radius: 10px;
+  }
+
+  .revisionActions {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 0.7fr)
+      minmax(0, 1.3fr);
+  }
+
+  .revisionActions button {
+    width: 100%;
+  }
+}
