@@ -210,14 +210,10 @@
   font-size: 18px;
 }
 
-.conversationItem:hover
-  .renameConversation,
-.conversationItem:hover
-  .deleteConversation,
-.activeConversation
-  .renameConversation,
-.activeConversation
-  .deleteConversation {
+.conversationItem:hover .renameConversation,
+.conversationItem:hover .deleteConversation,
+.activeConversation .renameConversation,
+.activeConversation .deleteConversation {
   opacity: 1;
 }
 
@@ -351,11 +347,7 @@
   padding: 0 16px;
   border: 0;
   border-radius: 10px;
-  background: linear-gradient(
-    140deg,
-    var(--gold-light),
-    var(--gold)
-  );
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
   color: #171106;
   font-weight: 850;
 }
@@ -403,7 +395,6 @@
     opacity: 1;
   }
 }
-
 
 /* Copilot mobile v1 */
 .mobileCopilotBar,
@@ -501,11 +492,8 @@
 
   .sidebar {
     position: fixed;
-    inset:
-      max(12px, env(safe-area-inset-top))
-      auto
-      max(12px, env(safe-area-inset-bottom))
-      12px;
+    inset: max(12px, env(safe-area-inset-top)) auto
+      max(12px, env(safe-area-inset-bottom)) 12px;
     z-index: 80;
     width: min(86vw, 340px);
     max-height: none;
@@ -614,10 +602,7 @@
     bottom: 0;
     z-index: 5;
     gap: 8px;
-    padding:
-      12px
-      12px
-      calc(12px + env(safe-area-inset-bottom));
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
     background: rgba(13, 16, 22, 0.98);
     backdrop-filter: blur(14px);
   }
@@ -669,7 +654,6 @@
   }
 }
 
-
 /* Copilot mobile v2 chat-first */
 .mobileControls {
   display: none;
@@ -714,8 +698,7 @@
 
   .mobileControls {
     display: grid;
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 10px;
     border: 1px solid var(--border);
@@ -760,24 +743,13 @@
   }
 
   .chat {
-    min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 88px
-      - env(safe-area-inset-bottom)
-    );
+    min-height: calc(100dvh - 68px - 58px - 88px - env(safe-area-inset-bottom));
     border-radius: 14px;
   }
 
   .messages {
     min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 88px
-      - 132px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 88px - 132px - env(safe-area-inset-bottom)
     );
     padding: 12px;
     gap: 12px;
@@ -801,10 +773,7 @@
     bottom: 0;
     z-index: 8;
     gap: 7px;
-    padding:
-      10px
-      10px
-      calc(10px + env(safe-area-inset-bottom));
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
     background: rgba(13, 16, 22, 0.98);
   }
 
@@ -845,35 +814,21 @@
 
   .chat {
     min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 132px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 132px - env(safe-area-inset-bottom)
     );
   }
 
   .messages {
     min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 132px
-      - 122px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 132px - 122px - env(safe-area-inset-bottom)
     );
   }
 }
 
-
 /* Copilot mobile v3 fixed composer */
 @media (max-width: 720px) {
   .page {
-    min-height: calc(
-      100dvh
-      - 68px
-      - env(safe-area-inset-bottom)
-    );
+    min-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
   }
 
   .layout {
@@ -883,20 +838,10 @@
   .chat {
     position: relative;
     min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 90px
-      - 32px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 90px - 32px - env(safe-area-inset-bottom)
     );
     max-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 90px
-      - 32px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 90px - 32px - env(safe-area-inset-bottom)
     );
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
@@ -951,20 +896,10 @@
 @media (max-width: 390px) {
   .chat {
     min-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 134px
-      - 24px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 134px - 24px - env(safe-area-inset-bottom)
     );
     max-height: calc(
-      100dvh
-      - 68px
-      - 58px
-      - 134px
-      - 24px
-      - env(safe-area-inset-bottom)
+      100dvh - 68px - 58px - 134px - 24px - env(safe-area-inset-bottom)
     );
   }
 
@@ -973,17 +908,13 @@
   }
 
   .composer {
-    padding:
-      9px
-      9px
-      calc(9px + env(safe-area-inset-bottom));
+    padding: 9px 9px calc(9px + env(safe-area-inset-bottom));
   }
 
   .composer textarea {
     min-height: 52px;
   }
 }
-
 
 /* Marketing plan card system v4 */
 .marketingPlan {
@@ -993,12 +924,11 @@
   padding: 20px;
   border: 1px solid var(--border);
   border-radius: 17px;
-  background:
-    linear-gradient(
-      160deg,
-      rgba(21, 25, 34, 0.98),
-      rgba(13, 16, 22, 0.98)
-    );
+  background: linear-gradient(
+    160deg,
+    rgba(21, 25, 34, 0.98),
+    rgba(13, 16, 22, 0.98)
+  );
 }
 
 .planHeader,
@@ -1030,8 +960,7 @@
 
 .planSummaryGrid {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1128,8 +1057,7 @@
 
 .platformPlanGrid {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1303,7 +1231,6 @@
   }
 }
 
-
 .attachmentInput {
   display: none;
 }
@@ -1422,4 +1349,432 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .page,
+:global(html[data-theme="light"]) .chatLayout {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .sidebar,
+:global(html[data-theme="light"]) .chat,
+:global(html[data-theme="light"]) .panel,
+:global(html[data-theme="light"]) .composer,
+:global(html[data-theme="light"]) .message,
+:global(html[data-theme="light"]) .modal {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .assistantMessage,
+:global(html[data-theme="light"]) .conversationItem,
+:global(html[data-theme="light"]) .contextPanel {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .page input,
+:global(html[data-theme="light"]) .page select,
+:global(html[data-theme="light"]) .page textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .message p,
+:global(html[data-theme="light"]) .message span,
+:global(html[data-theme="light"]) .message small {
+  color: var(--muted);
+}
+
+/* ===== Copilot mobile final layout v5 ===== */
+
+@media (max-width: 720px) {
+  .page {
+    gap: 14px;
+  }
+
+  .mobileCopilotBar {
+    min-height: 76px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel);
+  }
+
+  .mobileCopilotBar button {
+    min-height: 44px;
+    padding: 0 15px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .mobileControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel-elevated);
+  }
+
+  .mobileControls label {
+    min-width: 0;
+  }
+
+  .mobileControls select {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .mobileControls small {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .chatLayout {
+    display: block;
+    min-height: 0;
+  }
+
+  .chat {
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel-elevated);
+  }
+
+  .messages {
+    min-height: 260px !important;
+    max-height: min(52dvh, 540px) !important;
+    height: auto !important;
+    overflow-y: auto;
+    padding: 14px;
+    scroll-padding-bottom: 16px;
+  }
+
+  .message {
+    width: min(94%, 620px);
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+  }
+
+  .assistant {
+    margin-right: auto;
+    background: var(--panel-soft);
+  }
+
+  .user {
+    margin-left: auto;
+    background: var(--gold-soft);
+    border-color: rgba(209, 163, 63, 0.3);
+  }
+
+  .message > div:first-child {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .message > div:first-child button {
+    min-height: 32px;
+    padding: 0 9px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .message p {
+    margin-top: 10px;
+    line-height: 1.65;
+  }
+
+  .composer {
+    position: static !important;
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 17px 17px;
+    background: var(--panel-elevated);
+  }
+
+  .composer textarea {
+    width: 100%;
+    min-height: 92px !important;
+    max-height: 180px;
+    padding: 13px;
+    border-radius: 13px;
+    resize: vertical;
+  }
+
+  .composer > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+  }
+
+  .composerTools {
+    min-width: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .composerTools small {
+    display: none;
+  }
+
+  .attachButton,
+  .composer > div > button {
+    min-height: 44px;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .attachButton {
+    padding: 0 14px;
+  }
+
+  .composer > div > button {
+    min-width: 142px;
+    padding: 0 16px;
+  }
+
+  .attachmentTray {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .attachmentCard {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .mobileControls {
+    grid-template-columns: 1fr;
+  }
+
+  .mobileControls small {
+    grid-column: auto;
+  }
+
+  .messages {
+    min-height: 220px !important;
+    max-height: 48dvh !important;
+    padding: 11px;
+  }
+
+  .message {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .composer > div {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .attachButton,
+  .composer > div > button {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+}
+
+/* Copilot final light theme */
+
+:global(html[data-theme="light"]) .mobileCopilotBar,
+:global(html[data-theme="light"]) .mobileControls,
+:global(html[data-theme="light"]) .chat,
+:global(html[data-theme="light"]) .composer {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .message.assistant {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+  box-shadow: none;
+}
+
+:global(html[data-theme="light"]) .message.user {
+  border-color: rgba(182, 134, 37, 0.28) !important;
+  background: var(--gold-soft) !important;
+  color: var(--text) !important;
+  box-shadow: none;
+}
+
+:global(html[data-theme="light"]) .message p,
+:global(html[data-theme="light"]) .message strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .message button,
+:global(html[data-theme="light"]) .message span,
+:global(html[data-theme="light"]) .message small {
+  color: var(--muted);
+}
+
+:global(html[data-theme="light"]) .composer textarea,
+:global(html[data-theme="light"]) .mobileControls select {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .attachButton {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .attachmentCard {
+  border-color: var(--border);
+  background: var(--panel-soft);
+}
+
+/* ===== Copilot mobile final correction v6 ===== */
+
+@media (max-width: 720px) {
+  .chatLayout {
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .chat {
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    display: block !important;
+    grid-template-rows: none !important;
+    overflow: hidden !important;
+  }
+
+  .messages {
+    width: 100%;
+    min-height: 220px !important;
+    height: 360px !important;
+    max-height: 360px !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    padding: 14px !important;
+  }
+
+  .message {
+    min-height: 0 !important;
+    height: auto !important;
+    opacity: 1 !important;
+  }
+
+  .composer {
+    position: static !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .messages {
+    min-height: 200px !important;
+    height: 300px !important;
+    max-height: 300px !important;
+  }
+}
+
+/* ===== Copilot complete light mode ===== */
+
+:global(html[data-theme="light"]) .mobileCopilotBar,
+:global(html[data-theme="light"]) .mobileControls,
+:global(html[data-theme="light"]) .chat,
+:global(html[data-theme="light"]) .messages,
+:global(html[data-theme="light"]) .composer {
+  border-color: var(--border) !important;
+  background: #ffffff !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .mobileControls {
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .mobileControls span,
+:global(html[data-theme="light"]) .mobileControls small {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .mobileControls select {
+  border-color: var(--border) !important;
+  background: #ffffff !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .message {
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+:global(html[data-theme="light"]) .message.assistant {
+  border-color: var(--border) !important;
+  background: #f7f8fb !important;
+  color: #171b24 !important;
+}
+
+:global(html[data-theme="light"]) .message.user {
+  border-color: rgba(182, 134, 37, 0.3) !important;
+  background: rgba(182, 134, 37, 0.1) !important;
+  color: #171b24 !important;
+}
+
+:global(html[data-theme="light"]) .message p,
+:global(html[data-theme="light"]) .message strong {
+  color: #171b24 !important;
+  opacity: 1 !important;
+}
+
+:global(html[data-theme="light"]) .message span,
+:global(html[data-theme="light"]) .message small,
+:global(html[data-theme="light"]) .message button {
+  color: #697386 !important;
+  opacity: 1 !important;
+}
+
+:global(html[data-theme="light"]) .composer {
+  border-top-color: var(--border) !important;
+}
+
+:global(html[data-theme="light"]) .composer textarea {
+  border-color: var(--border) !important;
+  background: #ffffff !important;
+  color: #171b24 !important;
+  box-shadow: none !important;
+}
+
+:global(html[data-theme="light"]) .composer textarea::placeholder {
+  color: #8a93a3 !important;
+}
+
+:global(html[data-theme="light"]) .attachButton {
+  border-color: rgba(182, 134, 37, 0.38) !important;
+  background: rgba(182, 134, 37, 0.1) !important;
+  color: #9b6f1c !important;
+}
+
+:global(html[data-theme="light"]) .composer > div > button {
+  color: #171106 !important;
 }

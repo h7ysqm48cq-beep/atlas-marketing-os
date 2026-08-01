@@ -874,3 +874,42 @@
     align-self: flex-start;
   }
 }
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .formCard,
+:global(html[data-theme="light"]) .contextCard,
+:global(html[data-theme="light"]) .analysisCard,
+:global(html[data-theme="light"]) .workspaceCard,
+:global(html[data-theme="light"]) .score,
+:global(html[data-theme="light"]) .assetSection,
+:global(html[data-theme="light"]) .selectedAsset,
+:global(html[data-theme="light"]) .assetModal,
+:global(html[data-theme="light"]) .assetPickerCard,
+:global(html[data-theme="light"]) .assetPickerCardSelected {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .field textarea,
+:global(html[data-theme="light"]) .field select,
+:global(html[data-theme="light"]) .assetSearch {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .inactivePlatform {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .selectedAsset > button,
+:global(html[data-theme="light"]) .contextActions a,
+:global(html[data-theme="light"]) .assetModalActions > button:first-child {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
