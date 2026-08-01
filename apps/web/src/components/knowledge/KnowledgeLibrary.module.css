@@ -476,3 +476,255 @@
     justify-content: flex-start;
   }
 }
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .page {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .card,
+:global(html[data-theme="light"]) .modal,
+:global(html[data-theme="light"]) .emptyState,
+:global(html[data-theme="light"]) .uploadZone {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .toolbar,
+:global(html[data-theme="light"]) .preview,
+:global(html[data-theme="light"]) .metadata {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .card h2,
+:global(html[data-theme="light"]) .card h3,
+:global(html[data-theme="light"]) .card strong,
+:global(html[data-theme="light"]) .modal h2,
+:global(html[data-theme="light"]) .modal strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .card p,
+:global(html[data-theme="light"]) .card small,
+:global(html[data-theme="light"]) .metadata,
+:global(html[data-theme="light"]) .message {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .page input,
+:global(html[data-theme="light"]) .page select,
+:global(html[data-theme="light"]) .page textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+/* ===== Knowledge Library light theme refinement ===== */
+
+:global(html[data-theme="light"]) .page {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .toolbar {
+  border-color: var(--border);
+}
+
+:global(html[data-theme="light"]) .toolbar input,
+:global(html[data-theme="light"]) .toolbar select,
+:global(html[data-theme="light"]) .toolbar button {
+  border-color: #d6dde8;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: 0 6px 18px rgba(36, 45, 62, 0.04);
+}
+
+:global(html[data-theme="light"]) .toolbar input::placeholder {
+  color: #98a1b2;
+}
+
+:global(html[data-theme="light"]) .toolbar button:hover {
+  border-color: rgba(182, 134, 37, 0.45);
+  background: #faf7ef;
+}
+
+:global(html[data-theme="light"]) .uploadZone {
+  border-color: rgba(182, 134, 37, 0.42);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(182, 134, 37, 0.08),
+      transparent 42%
+    ),
+    #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 10px 28px rgba(36, 45, 62, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:global(html[data-theme="light"]) .uploadZone:hover,
+:global(html[data-theme="light"]) .uploadZoneActive {
+  border-color: var(--gold);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(182, 134, 37, 0.12),
+      transparent 44%
+    ),
+    #fffdf8;
+}
+
+:global(html[data-theme="light"]) .uploadIcon {
+  border-color: rgba(182, 134, 37, 0.38);
+  background: #faf7ef;
+  color: var(--gold-light);
+}
+
+:global(html[data-theme="light"]) .uploadZone strong {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .uploadZone span {
+  color: var(--muted);
+}
+
+:global(html[data-theme="light"]) .documentCard {
+  border-color: #d6dde8;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 10px 26px rgba(36, 45, 62, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+:global(html[data-theme="light"]) .documentCard:hover {
+  border-color: rgba(182, 134, 37, 0.45);
+  background: #fffdf8;
+  transform: translateY(-1px);
+}
+
+:global(html[data-theme="light"]) .selectedCard {
+  border-color: rgba(182, 134, 37, 0.72);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(182, 134, 37, 0.055),
+      rgba(182, 134, 37, 0.015)
+    ),
+    #ffffff;
+  box-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07),
+    0 0 0 2px rgba(182, 134, 37, 0.08);
+}
+
+:global(html[data-theme="light"]) .documentCard h2,
+:global(html[data-theme="light"]) .documentCard strong {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .documentCard p,
+:global(html[data-theme="light"]) .documentCard small,
+:global(html[data-theme="light"]) .usageMeta,
+:global(html[data-theme="light"]) .documentMetrics {
+  color: var(--muted);
+}
+
+:global(html[data-theme="light"]) .tags span {
+  border: 1px solid #dce2ec;
+  background: #f4f6fa;
+  color: #657188;
+}
+
+:global(html[data-theme="light"]) .editor {
+  border-color: #d6dde8;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 14px 34px rgba(36, 45, 62, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:global(html[data-theme="light"]) .editorHeader,
+:global(html[data-theme="light"]) .editorFooter {
+  border-color: var(--border);
+}
+
+:global(html[data-theme="light"]) .editorHeader h2 {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .editorHeader span,
+:global(html[data-theme="light"]) .field > span,
+:global(html[data-theme="light"]) .editorMeta,
+:global(html[data-theme="light"]) .editorFooter span {
+  color: var(--muted);
+}
+
+:global(html[data-theme="light"]) .field input,
+:global(html[data-theme="light"]) .field textarea {
+  border-color: #d6dde8;
+  background: #ffffff;
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .field input::placeholder,
+:global(html[data-theme="light"]) .field textarea::placeholder {
+  color: #98a1b2;
+}
+
+:global(html[data-theme="light"]) .field input:focus,
+:global(html[data-theme="light"]) .field textarea:focus {
+  border-color: rgba(182, 134, 37, 0.58);
+  box-shadow: 0 0 0 3px rgba(182, 134, 37, 0.09);
+}
+
+:global(html[data-theme="light"]) .field input:disabled,
+:global(html[data-theme="light"]) .field textarea:disabled {
+  background: #f4f6f9;
+  color: #7b8494;
+}
+
+:global(html[data-theme="light"]) .emptyList {
+  border-color: #d6dde8;
+  background: #ffffff;
+  color: var(--muted);
+}
+
+:global(html[data-theme="light"]) .emptyList strong {
+  color: var(--text);
+}
+
+:global(html[data-theme="light"]) .sourceFileLink {
+  color: var(--gold-light);
+}
+
+:global(html[data-theme="light"]) .secondaryButton {
+  border-color: rgba(182, 134, 37, 0.42);
+  background: #fffdf8;
+  color: var(--gold-light);
+}
+
+:global(html[data-theme="light"]) .secondaryButton:hover {
+  border-color: var(--gold);
+  background: #faf3e4;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .documentCard,
+  :global(html[data-theme="light"]) .editor,
+  :global(html[data-theme="light"]) .uploadZone {
+    border-radius: 20px;
+  }
+
+  :global(html[data-theme="light"]) .documentCard {
+    padding: 18px;
+  }
+
+  :global(html[data-theme="light"]) .editor {
+    padding: 18px;
+  }
+}
