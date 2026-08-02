@@ -734,6 +734,39 @@
   }
 }
 
+/* Clickable KPI cards must follow the active theme too. */
+:global(html[data-theme="light"]) .kpiGrid .kpiAction {
+  border-color: #d6dde8 !important;
+  background: #ffffff !important;
+  color: var(--text) !important;
+  box-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+}
+
+:global(html[data-theme="light"]) .kpiGrid .kpiAction > span,
+:global(html[data-theme="light"]) .kpiGrid .kpiAction > small {
+  color: #718096 !important;
+}
+
+:global(html[data-theme="light"]) .kpiGrid .kpiAction > strong {
+  color: #171b25 !important;
+}
+
+@media (max-width: 560px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    margin-inline: 0;
+    padding: 0;
+  }
+
+  .kpiGrid .kpiAction {
+    min-width: 0;
+    min-height: 116px;
+  }
+}
+
 /* ===== End Automation compact mobile polish ===== */
 
 .browserDraftPanel {
