@@ -573,14 +573,6 @@ export type EnumCampaignIdeaStatusFieldUpdateOperationsInput = {
   set?: $Enums.CampaignIdeaStatus
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CampaignIdeaCreateNestedOneWithoutGenerationsInput = {
   create?: Prisma.XOR<Prisma.CampaignIdeaCreateWithoutGenerationsInput, Prisma.CampaignIdeaUncheckedCreateWithoutGenerationsInput>
   connectOrCreate?: Prisma.CampaignIdeaCreateOrConnectWithoutGenerationsInput
