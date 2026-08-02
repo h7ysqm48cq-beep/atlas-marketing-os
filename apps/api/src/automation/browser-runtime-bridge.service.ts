@@ -27,7 +27,6 @@ export class BrowserRuntimeBridgeService {
       {
         method: 'GET',
       },
-      false,
     );
   }
 
@@ -125,18 +124,64 @@ export class BrowserRuntimeBridgeService {
   }
 
   private getWorkerUrl() {
-    const value =
-      this.configService.get<string>(
-        'BROWSER_WORKER_URL',
-      );
+    const configuredValue =
+      this.configService
+        .get<string>(
+          'BROWSER_WORKER_URL',
+        )
+        ?.trim();
 
-    return (
-      value?.trim().replace(
+    let workerUrl =
+      configuredValue ||
+      'http://localhost:4010';
+
+    if (
+      !workerUrl.startsWith(
+        'http://',
+      ) &&
+      !workerUrl.startsWith(
+        'https://',
+      )
+    ) {
+      workerUrl =
+        `https://${workerUrl}`;
+    }
+
+    workerUrl =
+      workerUrl.replace(
         /\/+$/,
         '',
-      ) ||
-      'http://localhost:4010'
-    );
+      );
+
+    try {
+      const parsed =
+        new URL(
+          workerUrl,
+        );
+
+      if (
+        ![
+          'http:',
+          'https:',
+        ].includes(
+          parsed.protocol,
+        )
+      ) {
+        throw new Error(
+          'Unsupported protocol.',
+        );
+      }
+
+      return parsed.toString()
+        .replace(
+          /\/+$/,
+          '',
+        );
+    } catch {
+      throw new ServiceUnavailableException(
+        'Browser Worker URL is invalid.',
+      );
+    }
   }
 
   private getWorkerToken() {
