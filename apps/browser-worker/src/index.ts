@@ -16,6 +16,11 @@ import path from "node:path";
 import {
   handleDialogs,
 } from "./browser-core/dialog-engine.js";
+import {
+  fillFacebookComposerCaption,
+  resetFacebookComposer,
+  waitForFacebookComposerStable,
+} from "./facebook/composer.js";
 
 type ProxyType =
   | "DIRECT"
@@ -209,6 +214,7 @@ async function handleFacebookOnboarding(
     },
   );
 }
+
 
 
 function safeSession(
@@ -555,6 +561,442 @@ app.post(
 );
 
 app.post(
+  "/profiles/:profileKey/facebook/debug-fill-caption",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    const input =
+      request.body as {
+        caption?: string;
+      };
+
+    const caption =
+      input.caption?.trim();
+
+    if (!caption) {
+      response.status(400).json({
+        success: false,
+        message:
+          "Caption is required.",
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1) ||
+        (await session.context.newPage());
+
+      const editors =
+        page.locator(
+          '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"][aria-placeholder*="mind" i]',
+        );
+
+      const count =
+        await editors.count();
+
+      const visibleEditors = [];
+
+      for (
+        let index = 0;
+        index < count;
+        index += 1
+      ) {
+        const editor =
+          editors.nth(index);
+
+        if (
+          await editor
+            .isVisible()
+            .catch(() => false)
+        ) {
+          visibleEditors.push({
+            index,
+            editor,
+          });
+        }
+      }
+
+      if (!visibleEditors.length) {
+        throw new Error(
+          "No visible Facebook caption editor was found.",
+        );
+      }
+
+      const target =
+        visibleEditors[
+          visibleEditors.length - 1
+        ].editor;
+
+      const before = {
+        innerText:
+          await target
+            .innerText()
+            .catch(() => ""),
+        textContent:
+          await target
+            .textContent()
+            .catch(() => ""),
+        ariaPlaceholder:
+          await target
+            .getAttribute(
+              "aria-placeholder",
+            ),
+      };
+
+      await target.fill(
+        caption,
+        {
+          force: true,
+        },
+      );
+
+      await page.waitForTimeout(
+        1200,
+      );
+
+      const after = {
+        innerText:
+          await target
+            .innerText()
+            .catch(() => ""),
+        textContent:
+          await target
+            .textContent()
+            .catch(() => ""),
+        html:
+          await target
+            .innerHTML()
+            .catch(() => ""),
+      };
+
+      const screenshot =
+        await page.screenshot({
+          type: "jpeg",
+          quality: 70,
+          fullPage: false,
+        });
+
+      response.json({
+        success:
+          after.innerText.includes(
+            caption,
+          ) ||
+          (
+            after.textContent || ""
+          ).includes(
+            caption,
+          ),
+        strategy:
+          "playwright-contenteditable-fill",
+        editorCount:
+          count,
+        visibleEditorCount:
+          visibleEditors.length,
+        before,
+        after,
+        screenshot: {
+          mimeType:
+            "image/jpeg",
+          base64:
+            screenshot.toString(
+              "base64",
+            ),
+        },
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to test Facebook caption input.",
+      });
+    }
+  },
+);
+
+
+app.post(
+  "/profiles/:profileKey/facebook/debug-editor",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(
+        profileKey,
+      );
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1) ||
+        (await session.context.newPage());
+
+      const dialogs =
+        page.locator(
+          '[role="dialog"]',
+        );
+
+      const dialogCount =
+        await dialogs
+          .count()
+          .catch(() => 0);
+
+      const dialogSummaries = [];
+
+      for (
+        let index = 0;
+        index < dialogCount;
+        index += 1
+      ) {
+        const dialog =
+          dialogs.nth(index);
+
+        const visible =
+          await dialog
+            .isVisible()
+            .catch(() => false);
+
+        if (!visible) {
+          continue;
+        }
+
+        dialogSummaries.push({
+          index,
+          text:
+            (
+              await dialog
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(
+                /\s+/g,
+                " ",
+              )
+              .trim()
+              .slice(
+                0,
+                1500,
+              ),
+          ariaLabel:
+            await dialog
+              .getAttribute(
+                "aria-label",
+              )
+              .catch(() => null),
+        });
+      }
+
+      const editors =
+        await page.locator(
+          '[contenteditable="true"], [role="textbox"]',
+        ).evaluateAll(
+          (elements) =>
+            elements.map(
+              (
+                element,
+                index,
+              ) => {
+                const html =
+                  element as HTMLElement;
+
+                const style =
+                  window.getComputedStyle(
+                    html,
+                  );
+
+                const rect =
+                  html.getBoundingClientRect();
+
+                const attributes:
+                  Record<
+                    string,
+                    string
+                  > = {};
+
+                for (
+                  const attribute
+                  of Array.from(
+                    html.attributes,
+                  )
+                ) {
+                  attributes[
+                    attribute.name
+                  ] =
+                    attribute.value;
+                }
+
+                return {
+                  index,
+                  tag:
+                    html.tagName
+                      .toLowerCase(),
+                  visible:
+                    style.display !==
+                      "none" &&
+                    style.visibility !==
+                      "hidden" &&
+                    rect.width > 0 &&
+                    rect.height > 0,
+                  role:
+                    html.getAttribute(
+                      "role",
+                    ),
+                  ariaLabel:
+                    html.getAttribute(
+                      "aria-label",
+                    ),
+                  ariaPlaceholder:
+                    html.getAttribute(
+                      "aria-placeholder",
+                    ),
+                  placeholder:
+                    html.getAttribute(
+                      "placeholder",
+                    ),
+                  contentEditable:
+                    html.getAttribute(
+                      "contenteditable",
+                    ),
+                  lexicalEditor:
+                    html.getAttribute(
+                      "data-lexical-editor",
+                    ),
+                  offsetKey:
+                    html.getAttribute(
+                      "data-offset-key",
+                    ),
+                  innerText:
+                    (
+                      html.innerText ||
+                      ""
+                    )
+                      .replace(
+                        /\s+/g,
+                        " ",
+                      )
+                      .trim()
+                      .slice(
+                        0,
+                        1000,
+                      ),
+                  textContent:
+                    (
+                      html.textContent ||
+                      ""
+                    )
+                      .replace(
+                        /\s+/g,
+                        " ",
+                      )
+                      .trim()
+                      .slice(
+                        0,
+                        1000,
+                      ),
+                  rect: {
+                    x:
+                      Math.round(
+                        rect.x,
+                      ),
+                    y:
+                      Math.round(
+                        rect.y,
+                      ),
+                    width:
+                      Math.round(
+                        rect.width,
+                      ),
+                    height:
+                      Math.round(
+                        rect.height,
+                      ),
+                  },
+                  attributes,
+                  outerHTML:
+                    html.outerHTML
+                      .slice(
+                        0,
+                        4000,
+                      ),
+                };
+              },
+            ),
+        );
+
+      const screenshot =
+        await page.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: false,
+        });
+
+      response.json({
+        success: true,
+        page: {
+          title:
+            await page.title(),
+          url:
+            page.url(),
+        },
+        dialogs:
+          dialogSummaries,
+        editors,
+        screenshot: {
+          mimeType:
+            "image/jpeg",
+          base64:
+            screenshot.toString(
+              "base64",
+            ),
+        },
+        inspectedAt:
+          new Date()
+            .toISOString(),
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to inspect Facebook editor.",
+      });
+    }
+  },
+);
+
+
+app.post(
   "/profiles/:profileKey/facebook/prepare-post",
   async (request, response) => {
     const profileKey =
@@ -650,6 +1092,11 @@ app.post(
       const page =
         pages.at(-1) ||
         (await session.context.newPage());
+
+      const composerReset =
+        await resetFacebookComposer(
+          page,
+        );
 
       const currentUrl =
         page.url();
@@ -1156,6 +1603,82 @@ app.post(
           page,
         );
 
+      await page.waitForTimeout(
+        700,
+      );
+
+      const composerStability =
+        await waitForFacebookComposerStable(
+          page,
+        );
+
+      const captionResult =
+        await fillFacebookComposerCaption(
+          page,
+          caption,
+        );
+
+      await page.waitForTimeout(
+        1000,
+      );
+
+      const finalEditors =
+        page.locator(
+          '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+        );
+
+      const finalEditorCount =
+        await finalEditors
+          .count()
+          .catch(() => 0);
+
+      let finalCaptionText =
+        "";
+
+      for (
+        let index =
+          finalEditorCount - 1;
+        index >= 0;
+        index -= 1
+      ) {
+        const editor =
+          finalEditors.nth(index);
+
+        if (
+          !await editor
+            .isVisible()
+            .catch(() => false)
+        ) {
+          continue;
+        }
+
+        finalCaptionText =
+          (
+            await editor
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(
+              /\s+/g,
+              " ",
+            )
+            .trim();
+
+        if (finalCaptionText) {
+          break;
+        }
+      }
+
+      if (
+        !finalCaptionText.includes(
+          caption,
+        )
+      ) {
+        throw new Error(
+          "Facebook caption disappeared after final verification.",
+        );
+      }
+
       const screenshot =
         await page.screenshot({
           type: "jpeg",
@@ -1171,14 +1694,19 @@ app.post(
         browserProfileKey:
           session.browserProfileKey,
         composerOpened: true,
-        captionFilled: true,
+        composerReset,
+        captionFilled:
+          captionResult.filled,
+        composerStability,
+        finalCaptionLength:
+          finalCaptionText.length,
+        captionLength:
+          captionResult.writtenLength,
         imageAttached,
         readyForReview: true,
         published: false,
         dialogHandling:
           onboardingHandled,
-        captionLength:
-          caption.length,
         page: {
           title:
             await page.title(),
