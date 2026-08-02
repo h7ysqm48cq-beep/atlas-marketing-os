@@ -92,6 +92,15 @@ export class AutomationController {
   }
 
 
+  @Post('channels/:id/runtime-profile/test-proxy')
+  testRuntimeProfileProxy(
+    @Param('id') id: string,
+  ) {
+    return this.runtimeProfiles
+      .testProxy(id);
+  }
+
+
   @Post('channels/:id/test')
   testChannel(
     @Param('id') id: string,

@@ -6,6 +6,16 @@ import {
 import {
   SocialProxyType,
 } from '../generated/prisma/enums';
+import {
+  get as httpsGet,
+  type Agent as HttpsAgent,
+} from 'node:https';
+import {
+  HttpsProxyAgent,
+} from 'https-proxy-agent';
+import {
+  SocksProxyAgent,
+} from 'socks-proxy-agent';
 import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 
@@ -238,6 +248,340 @@ export class RuntimeProfileService {
         ),
     };
   }
+
+  async testProxy(
+    channelId: string,
+  ) {
+    await this.ensureChannel(
+      channelId,
+    );
+
+    const profile =
+      await this.prisma
+        .socialChannelRuntimeProfile
+        .findUnique({
+          where: {
+            channelId,
+          },
+        });
+
+    if (!profile) {
+      throw new BadRequestException(
+        'Save the runtime profile before testing the connection.',
+      );
+    }
+
+    const startedAt =
+      Date.now();
+
+    try {
+      const proxyUrl =
+        this.buildProxyUrl(
+          profile,
+        );
+
+      const result =
+        await this.fetchPublicIp(
+          proxyUrl,
+        );
+
+      const latencyMs =
+        Date.now() -
+        startedAt;
+
+      const updated =
+        await this.prisma
+          .socialChannelRuntimeProfile
+          .update({
+            where: {
+              channelId,
+            },
+            data: {
+              lastKnownIp:
+                result.ip,
+              lastConnectionStatus:
+                'CONNECTED',
+              lastConnectionError:
+                null,
+              lastConnectionTestAt:
+                new Date(),
+            },
+          });
+
+      return {
+        success: true,
+        connection: {
+          mode:
+            profile.proxyType,
+          ip:
+            result.ip,
+          latencyMs,
+          testedAt:
+            updated
+              .lastConnectionTestAt,
+        },
+        profile:
+          this.sanitizeProfile(
+            updated,
+          ),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Proxy connection test failed.';
+
+      const updated =
+        await this.prisma
+          .socialChannelRuntimeProfile
+          .update({
+            where: {
+              channelId,
+            },
+            data: {
+              lastConnectionStatus:
+                'ERROR',
+              lastConnectionError:
+                message.slice(
+                  0,
+                  500,
+                ),
+              lastConnectionTestAt:
+                new Date(),
+            },
+          });
+
+      throw new BadRequestException({
+        message:
+          'Proxy connection test failed.',
+        details:
+          message,
+        profile:
+          this.sanitizeProfile(
+            updated,
+          ),
+      });
+    }
+  }
+
+  private buildProxyUrl(
+    profile: {
+      proxyType:
+        SocialProxyType;
+      proxyHost:
+        string | null;
+      proxyPort:
+        number | null;
+      proxyUsernameEncrypted:
+        string | null;
+      proxyPasswordEncrypted:
+        string | null;
+    },
+  ) {
+    if (
+      profile.proxyType ===
+      SocialProxyType.DIRECT
+    ) {
+      return null;
+    }
+
+    const host =
+      profile.proxyHost?.trim();
+
+    const port =
+      profile.proxyPort;
+
+    if (!host || !port) {
+      throw new BadRequestException(
+        'Proxy host and port are required.',
+      );
+    }
+
+    const protocolMap:
+      Record<
+        Exclude<
+          SocialProxyType,
+          'DIRECT'
+        >,
+        string
+      > = {
+        HTTP: 'http',
+        HTTPS: 'https',
+        SOCKS5: 'socks5',
+      };
+
+    const protocol =
+      protocolMap[
+        profile.proxyType
+      ];
+
+    const username =
+      profile
+        .proxyUsernameEncrypted
+        ? this.socialTokenCrypto
+            .decrypt(
+              profile
+                .proxyUsernameEncrypted,
+            )
+        : '';
+
+    const password =
+      profile
+        .proxyPasswordEncrypted
+        ? this.socialTokenCrypto
+            .decrypt(
+              profile
+                .proxyPasswordEncrypted,
+            )
+        : '';
+
+    const credentials =
+      username
+        ? `${encodeURIComponent(
+            username,
+          )}:${encodeURIComponent(
+            password,
+          )}@`
+        : '';
+
+    return [
+      `${protocol}://`,
+      credentials,
+      host,
+      ':',
+      String(port),
+    ].join('');
+  }
+
+  private fetchPublicIp(
+    proxyUrl: string | null,
+  ): Promise<{
+    ip: string;
+  }> {
+    return new Promise(
+      (resolve, reject) => {
+        let agent:
+          HttpsAgent | undefined;
+
+        if (proxyUrl) {
+          const protocol =
+            new URL(
+              proxyUrl,
+            ).protocol;
+
+          agent =
+            protocol === 'socks5:'
+              ? new SocksProxyAgent(
+                  proxyUrl,
+                )
+              : new HttpsProxyAgent(
+                  proxyUrl,
+                );
+        }
+
+        const request =
+          httpsGet(
+            'https://api.ipify.org?format=json',
+            {
+              agent,
+              timeout:
+                15000,
+              headers: {
+                Accept:
+                  'application/json',
+                'User-Agent':
+                  'Atlas-Marketing-OS/1.0',
+              },
+            },
+            (response) => {
+              let body = '';
+
+              response.setEncoding(
+                'utf8',
+              );
+
+              response.on(
+                'data',
+                (chunk) => {
+                  body += chunk;
+                },
+              );
+
+              response.on(
+                'end',
+                () => {
+                  if (
+                    !response.statusCode ||
+                    response.statusCode <
+                      200 ||
+                    response.statusCode >=
+                      300
+                  ) {
+                    reject(
+                      new Error(
+                        `IP service returned HTTP ${response.statusCode ?? 'unknown'}.`,
+                      ),
+                    );
+                    return;
+                  }
+
+                  try {
+                    const parsed =
+                      JSON.parse(
+                        body,
+                      ) as {
+                        ip?: string;
+                      };
+
+                    if (
+                      !parsed.ip
+                        ?.trim()
+                    ) {
+                      throw new Error(
+                        'No public IP was returned.',
+                      );
+                    }
+
+                    resolve({
+                      ip:
+                        parsed.ip.trim(),
+                    });
+                  } catch (
+                    parseError
+                  ) {
+                    reject(
+                      parseError instanceof
+                        Error
+                        ? parseError
+                        : new Error(
+                            'Invalid IP service response.',
+                          ),
+                    );
+                  }
+                },
+              );
+            },
+          );
+
+        request.on(
+          'timeout',
+          () => {
+            request.destroy(
+              new Error(
+                'Proxy connection timed out after 15 seconds.',
+              ),
+            );
+          },
+        );
+
+        request.on(
+          'error',
+          reject,
+        );
+      },
+    );
+  }
+
 
   private async ensureChannel(
     channelId: string,
