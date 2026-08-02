@@ -240,6 +240,44 @@ export class AutomationService {
     const accessToken =
       input.accessToken?.trim();
 
+    const externalId =
+      input.externalId?.trim() || null;
+
+    const existingChannel = externalId
+      ? await this.prisma.socialChannel.findFirst({
+          where: {
+            brandId: input.brandId,
+            platform: input.platform,
+            externalId,
+          },
+        })
+      : null;
+
+    if (existingChannel) {
+      const updated = await this.prisma.socialChannel.update({
+        where: { id: existingChannel.id },
+        data: {
+          name: input.name.trim() || existingChannel.name,
+          username: input.username?.trim() || existingChannel.username,
+          accessTokenEncrypted: accessToken
+            ? this.socialTokenCrypto.encrypt(accessToken)
+            : existingChannel.accessTokenEncrypted,
+          tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+          status:
+            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+              ? SocialChannelStatus.CONNECTED
+              : SocialChannelStatus.DISCONNECTED,
+          lastConnectedAt:
+            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+              ? new Date()
+              : existingChannel.lastConnectedAt,
+          lastError: null,
+        },
+      });
+
+      return this.sanitizeChannel(updated);
+    }
+
     const channel =
       await this.prisma.socialChannel.create({
         data: {
@@ -248,7 +286,7 @@ export class AutomationService {
           platform: input.platform,
           name: input.name.trim(),
           externalId:
-            input.externalId?.trim() || null,
+            externalId,
           username:
             input.username?.trim() || null,
           accessTokenEncrypted:
