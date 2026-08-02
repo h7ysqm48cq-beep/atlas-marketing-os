@@ -1177,69 +1177,6 @@ app.post(
         timeout: 10000,
       });
 
-      await page.waitForTimeout(
-        2500,
-      );
-
-      const composerStillVisible =
-        await composer
-          .isVisible()
-          .catch(() => false);
-
-      const visibleAlerts =
-        page.locator(
-          '[role="alert"]:visible, [role="status"]:visible',
-        );
-
-      const alertCount =
-        await visibleAlerts
-          .count()
-          .catch(() => 0);
-
-      const alertTexts:
-        string[] = [];
-
-      for (
-        let index = 0;
-        index < alertCount;
-        index += 1
-      ) {
-        const text =
-          (
-            await visibleAlerts
-              .nth(index)
-              .innerText()
-              .catch(() => "")
-          )
-            .replace(
-              /\s+/g,
-              " ",
-            )
-            .trim();
-
-        if (text) {
-          alertTexts.push(
-            text.slice(
-              0,
-              500,
-            ),
-          );
-        }
-      }
-
-      const pageText =
-        (
-          await page
-            .locator("body")
-            .innerText()
-            .catch(() => "")
-        )
-          .replace(
-            /\s+/g,
-            " ",
-          )
-          .trim();
-
       const successPatterns = [
         /your post (?:is|was) (?:now )?published/i,
         /post published/i,
@@ -1261,30 +1198,127 @@ app.post(
         /tidak dapat menerbitkan/i,
       ];
 
-      const combinedFeedback =
-        [
-          ...alertTexts,
-          pageText.slice(
-            0,
-            12000,
-          ),
-        ].join(" ");
+      let composerStillVisible =
+        true;
 
-      const successSignal =
-        successPatterns.some(
-          (pattern) =>
-            pattern.test(
-              combinedFeedback,
-            ),
-        );
+      let alertTexts:
+        string[] = [];
 
-      const errorSignal =
-        errorPatterns.some(
-          (pattern) =>
-            pattern.test(
-              combinedFeedback,
+      let pageText =
+        "";
+
+      let successSignal =
+        false;
+
+      let errorSignal =
+        false;
+
+      const verificationStartedAt =
+        Date.now();
+
+      const verificationTimeoutMs =
+        15000;
+
+      while (
+        Date.now() -
+          verificationStartedAt <
+        verificationTimeoutMs
+      ) {
+        composerStillVisible =
+          await composer
+            .isVisible()
+            .catch(() => false);
+
+        const visibleAlerts =
+          page.locator(
+            '[role="alert"]:visible, [role="status"]:visible',
+          );
+
+        const alertCount =
+          await visibleAlerts
+            .count()
+            .catch(() => 0);
+
+        alertTexts = [];
+
+        for (
+          let index = 0;
+          index < alertCount;
+          index += 1
+        ) {
+          const alertText =
+            (
+              await visibleAlerts
+                .nth(index)
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(
+                /\s+/g,
+                " ",
+              )
+              .trim();
+
+          if (alertText) {
+            alertTexts.push(
+              alertText.slice(
+                0,
+                500,
+              ),
+            );
+          }
+        }
+
+        pageText =
+          (
+            await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(
+              /\s+/g,
+              " ",
+            )
+            .trim();
+
+        const combinedFeedback =
+          [
+            ...alertTexts,
+            pageText.slice(
+              0,
+              12000,
             ),
+          ].join(" ");
+
+        successSignal =
+          successPatterns.some(
+            (pattern) =>
+              pattern.test(
+                combinedFeedback,
+              ),
+          );
+
+        errorSignal =
+          errorPatterns.some(
+            (pattern) =>
+              pattern.test(
+                combinedFeedback,
+              ),
+          );
+
+        if (
+          errorSignal ||
+          successSignal ||
+          !composerStillVisible
+        ) {
+          break;
+        }
+
+        await page.waitForTimeout(
+          750,
         );
+      }
 
       const verificationStatus =
         errorSignal
@@ -1322,6 +1356,11 @@ app.post(
         verification: {
           status:
             verificationStatus,
+          waitedMs:
+            Date.now() -
+            verificationStartedAt,
+          timeoutMs:
+            verificationTimeoutMs,
           composerClosed:
             !composerStillVisible,
           successSignal,
