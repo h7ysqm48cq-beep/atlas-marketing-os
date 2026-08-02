@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./WorkspaceSettings.module.css";
+import { RuntimeProfileEditor } from "./RuntimeProfileEditor";
 
 import { API_URL } from "@/lib/api";
 type AutomationSettings = {
@@ -1012,6 +1013,12 @@ export function WorkspaceSettings() {
                   <p className={styles.channelError}>
                     {channel.lastError}
                   </p>
+                ) : null}
+
+                {channel.platform === "FACEBOOK" ? (
+                  <RuntimeProfileEditor
+                    channelId={channel.id}
+                  />
                 ) : null}
 
                 <div className={styles.channelActions}>
