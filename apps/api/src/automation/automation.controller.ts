@@ -22,6 +22,7 @@ import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
+import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 
 @Controller('automation')
 export class AutomationController {
@@ -36,6 +37,8 @@ export class AutomationController {
       FacebookOAuthService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
+    private readonly browserRuntime:
+      BrowserRuntimeBridgeService,
   ) {}
 
   @Get('dashboard')
@@ -55,6 +58,53 @@ export class AutomationController {
     return this.automationService
       .getChannel(id);
   }
+
+  @Get('browser-worker/health')
+  browserWorkerHealth() {
+    return this.browserRuntime
+      .health();
+  }
+
+  @Post('channels/:id/browser/open')
+  openChannelBrowser(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      headless?: boolean;
+      startUrl?: string;
+    },
+  ) {
+    return this.browserRuntime
+      .open(
+        id,
+        body,
+      );
+  }
+
+  @Get('channels/:id/browser/status')
+  channelBrowserStatus(
+    @Param('id') id: string,
+  ) {
+    return this.browserRuntime
+      .status(id);
+  }
+
+  @Post('channels/:id/browser/check-ip')
+  checkChannelBrowserIp(
+    @Param('id') id: string,
+  ) {
+    return this.browserRuntime
+      .checkIp(id);
+  }
+
+  @Post('channels/:id/browser/close')
+  closeChannelBrowser(
+    @Param('id') id: string,
+  ) {
+    return this.browserRuntime
+      .close(id);
+  }
+
 
   @Post('runtime-profiles/backfill')
   backfillRuntimeProfiles() {

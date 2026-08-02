@@ -343,6 +343,67 @@ export class RuntimeProfileService {
     };
   }
 
+  async getBrowserLaunchProfile(
+    channelId: string,
+  ): Promise<{
+    channelId: string;
+    browserProfileKey: string;
+    browserProfileName: string;
+    locale: string;
+    timezone: string;
+    proxyType:
+      | 'DIRECT'
+      | 'HTTP'
+      | 'HTTPS'
+      | 'SOCKS5';
+    proxyHost: string | null;
+    proxyPort: number | null;
+    proxyUsername: string | null;
+    proxyPassword: string | null;
+  }> {
+    const channel =
+      await this.ensureChannel(
+        channelId,
+      );
+
+    const profile =
+      await this.ensureForChannel(
+        channelId,
+        channel.name,
+      );
+
+    return {
+      channelId,
+      browserProfileKey:
+        profile.browserProfileKey,
+      browserProfileName:
+        profile.browserProfileName,
+      locale:
+        profile.locale,
+      timezone:
+        profile.timezone,
+      proxyType:
+        profile.proxyType,
+      proxyHost:
+        profile.proxyHost,
+      proxyPort:
+        profile.proxyPort,
+      proxyUsername:
+        profile.proxyUsernameEncrypted
+          ? this.socialTokenCrypto.decrypt(
+              profile.proxyUsernameEncrypted,
+            )
+          : null,
+      proxyPassword:
+        profile.proxyPasswordEncrypted
+          ? this.socialTokenCrypto.decrypt(
+              profile.proxyPasswordEncrypted,
+            )
+          : null,
+    };
+  }
+
+
   async getPublishNetwork(
     channelId: string,
   ): Promise<{
