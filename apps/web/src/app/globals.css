@@ -1403,7 +1403,7 @@ button {
 
 /* Asset Library */
 :root[data-theme="light"] [class*="AssetLibrary_card"],
-:root[data-theme="light"] [class*="AssetLibrary_stat"],
+:root[data-theme="light"] [class*="AssetLibrary_stat__"],
 :root[data-theme="light"] [class*="AssetLibrary_modal"] {
   border-color: var(--border);
   background: var(--panel);
@@ -1613,7 +1613,7 @@ button {
 :root[data-theme="light"] [class*="ContentCalendar_assetPicker"],
 :root[data-theme="light"] [class*="ContentCalendar_assetCard"],
 :root[data-theme="light"] [class*="ContentCalendar_previewSection"],
-:root[data-theme="light"] [class*="AssetLibrary_stat"],
+:root[data-theme="light"] [class*="AssetLibrary_stat__"],
 :root[data-theme="light"] [class*="AssetLibrary_toolbar"],
 :root[data-theme="light"] [class*="AssetLibrary_card"],
 :root[data-theme="light"] [class*="AssetLibrary_modal"],
@@ -2181,8 +2181,8 @@ button {
 
 /* Asset Library */
 :root[data-theme="light"] [class*="AssetLibrary_statsGrid"]
-[class*="AssetLibrary_stat"],
-:root[data-theme="light"] [class*="AssetLibrary_stat"] {
+[class*="AssetLibrary_stat__"],
+:root[data-theme="light"] [class*="AssetLibrary_stat__"] {
   min-height: 132px;
   display: flex;
   flex-direction: column;
@@ -2210,7 +2210,7 @@ button {
 :root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article > span,
 :root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article > span,
 :root[data-theme="light"] [class*="ContentCalendar_quickStats"] article > span,
-:root[data-theme="light"] [class*="AssetLibrary_stat"] span {
+:root[data-theme="light"] [class*="AssetLibrary_stat__"] span {
   color: var(--light-kpi-title) !important;
   font-size: 15px !important;
   font-weight: 600 !important;
@@ -2241,7 +2241,7 @@ button {
   [class*="ContentCalendar_quickStats"]
   article
   > strong,
-:root[data-theme="light"] [class*="AssetLibrary_stat"] strong {
+:root[data-theme="light"] [class*="AssetLibrary_stat__"] strong {
   color: var(--light-kpi-value) !important;
   font-size: clamp(30px, 7vw, 42px) !important;
   font-weight: 800 !important;
@@ -2261,7 +2261,7 @@ button {
   article
   > small,
 :root[data-theme="light"] [class*="ContentCalendar_quickStats"] article > small,
-:root[data-theme="light"] [class*="AssetLibrary_stat"] small {
+:root[data-theme="light"] [class*="AssetLibrary_stat__"] small {
   color: var(--muted) !important;
   font-size: 13px !important;
   line-height: 1.4;
@@ -2269,7 +2269,7 @@ button {
 
 /* Keep selected accent values gold where appropriate */
 :root[data-theme="light"] [class*="CampaignsPage_statCard"] strong,
-:root[data-theme="light"] [class*="AssetLibrary_stat"] strong {
+:root[data-theme="light"] [class*="AssetLibrary_stat__"] strong {
   color: var(--gold-light) !important;
 }
 
@@ -2284,7 +2284,7 @@ button {
   [class*="AutomationDashboard_kpiGrid"]
   article::before,
 :root[data-theme="light"] [class*="ContentCalendar_quickStats"] article::before,
-:root[data-theme="light"] [class*="AssetLibrary_stat"]::before {
+:root[data-theme="light"] [class*="AssetLibrary_stat__"]::before {
   display: none !important;
 }
 
@@ -2308,7 +2308,7 @@ button {
   :root[data-theme="light"] [class*="AiUsageDashboard_kpiGrid"] article,
   :root[data-theme="light"] [class*="AutomationDashboard_kpiGrid"] article,
   :root[data-theme="light"] [class*="ContentCalendar_quickStats"] article,
-  :root[data-theme="light"] [class*="AssetLibrary_stat"] {
+  :root[data-theme="light"] [class*="AssetLibrary_stat__"] {
     min-height: 142px !important;
     padding: 18px !important;
     border-radius: 20px !important;
