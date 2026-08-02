@@ -46,6 +46,32 @@ type DashboardResponse = {
   recentAttempts: unknown[];
 };
 
+type BrowserStatusResponse = {
+  running: boolean;
+  browserProfileKey?: string;
+  session?: {
+    browserProfileKey: string;
+    currentUrl: string | null;
+    openedAt: string;
+  };
+};
+
+type BrowserDraftResponse = {
+  success: boolean;
+  browserProfileKey?: string;
+  composerOpened?: boolean;
+  captionFilled?: boolean;
+  imageAttached?: boolean;
+  readyForReview?: boolean;
+  published?: boolean;
+  preparedAt?: string;
+  message?: string;
+  screenshot?: {
+    mimeType: string;
+    base64?: string;
+  };
+};
+
 type Settings = {
   timezone: string;
   approvalRequired: boolean;
@@ -119,6 +145,40 @@ export function AutomationDashboard() {
           noScheduled: "尚未排程任何帖子。",
           connected: "已连接",
           disconnected: "未连接",
+          browserDraft: "Facebook 浏览器草稿",
+          browserDraftDescription:
+            "在你的 Mac 浏览器中准备文案与图片，停在发布前供人工确认。",
+          facebookChannel: "Facebook 渠道",
+          captionLabel: "文案",
+          captionPlaceholder: "输入要放入 Facebook 帖子的文案……",
+          imagePathLabel: "Mac 图片路径",
+          imagePathPlaceholder:
+            "/Users/your-name/Downloads/image.png",
+          openBrowser: "打开浏览器",
+          openingBrowser: "正在打开……",
+          checkStatus: "检查状态",
+          checkingStatus: "检查中……",
+          closeBrowser: "关闭浏览器",
+          closingBrowser: "正在关闭……",
+          prepareDraft: "准备浏览器草稿",
+          preparingDraft: "正在准备草稿……",
+          browserRunning: "浏览器运行中",
+          browserStopped: "浏览器未运行",
+          draftReady: "草稿已准备完成，请在浏览器中检查。",
+          browserDraftFailed: "无法准备浏览器草稿。",
+          noFacebookChannel: "没有可用的 Facebook 渠道。",
+          screenshotPreview: "草稿预览",
+          localPathHint:
+            "当前版本使用 Browser Worker 所在 Mac 的本地文件路径。",
+          publishPost: "发布帖子",
+          publishingPost: "正在发布……",
+          publishConfirmTitle: "确认发布 Facebook 帖子？",
+          publishConfirmText:
+            "这会真实点击 Facebook 的 Post 按钮并立即发布。",
+          cancelPublish: "取消",
+          confirmPublish: "确认发布",
+          publishedSuccessfully: "Facebook 帖子已成功发布。",
+          publishFailed: "无法发布 Facebook 帖子。",
         }
       : {
           loading: "Loading automation dashboard...",
@@ -168,6 +228,47 @@ export function AutomationDashboard() {
           noScheduled: "No posts scheduled yet.",
           connected: "Connected",
           disconnected: "Disconnected",
+          browserDraft: "Facebook Browser Draft",
+          browserDraftDescription:
+            "Prepare a caption and image in your Mac browser, then stop before publishing for manual review.",
+          facebookChannel: "Facebook channel",
+          captionLabel: "Caption",
+          captionPlaceholder:
+            "Enter the Facebook post caption...",
+          imagePathLabel: "Mac image path",
+          imagePathPlaceholder:
+            "/Users/your-name/Downloads/image.png",
+          openBrowser: "Open browser",
+          openingBrowser: "Opening...",
+          checkStatus: "Check status",
+          checkingStatus: "Checking...",
+          closeBrowser: "Close browser",
+          closingBrowser: "Closing...",
+          prepareDraft: "Prepare browser draft",
+          preparingDraft: "Preparing draft...",
+          browserRunning: "Browser running",
+          browserStopped: "Browser stopped",
+          draftReady:
+            "Draft is ready. Review it in the browser.",
+          browserDraftFailed:
+            "Unable to prepare browser draft.",
+          noFacebookChannel:
+            "No Facebook channel is available.",
+          screenshotPreview: "Draft preview",
+          localPathHint:
+            "This version uses a local file path on the Mac running Browser Worker.",
+          publishPost: "Publish post",
+          publishingPost: "Publishing...",
+          publishConfirmTitle:
+            "Publish this Facebook post?",
+          publishConfirmText:
+            "This will click Facebook's Post button and publish the post immediately.",
+          cancelPublish: "Cancel",
+          confirmPublish: "Confirm publish",
+          publishedSuccessfully:
+            "Facebook post published successfully.",
+          publishFailed:
+            "Unable to publish Facebook post.",
         };
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
@@ -176,6 +277,44 @@ export function AutomationDashboard() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [
+    selectedFacebookChannelId,
+    setSelectedFacebookChannelId,
+  ] = useState("");
+
+  const [browserCaption, setBrowserCaption] =
+    useState("");
+
+  const [browserImagePath, setBrowserImagePath] =
+    useState("");
+
+  const [browserRunning, setBrowserRunning] =
+    useState(false);
+
+  const [browserAction, setBrowserAction] =
+    useState<
+      | "open"
+      | "status"
+      | "close"
+      | "prepare"
+      | null
+    >(null);
+
+  const [browserMessage, setBrowserMessage] =
+    useState("");
+
+  const [browserError, setBrowserError] =
+    useState("");
+
+  const [draftScreenshot, setDraftScreenshot] =
+    useState<string | null>(null);
+
+  const [draftReady, setDraftReady] =
+    useState(false);
+
+  const [publishConfirmOpen, setPublishConfirmOpen] =
+    useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -210,6 +349,337 @@ export function AutomationDashboard() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (
+      selectedFacebookChannelId ||
+      !dashboard
+    ) {
+      return;
+    }
+
+    const facebookChannel =
+      dashboard.channels.find(
+        (channel) =>
+          channel.platform === "FACEBOOK",
+      );
+
+    if (facebookChannel) {
+      setSelectedFacebookChannelId(
+        facebookChannel.id,
+      );
+    }
+  }, [
+    dashboard,
+    selectedFacebookChannelId,
+  ]);
+
+  async function openBrowser() {
+    if (!selectedFacebookChannelId) {
+      setBrowserError(
+        copy.noFacebookChannel,
+      );
+      return;
+    }
+
+    setBrowserAction("open");
+    setBrowserError("");
+    setBrowserMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/open`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            headless: false,
+            startUrl:
+              "https://www.facebook.com/",
+          }),
+        },
+      );
+
+      const body =
+        (await response.json()) as {
+          opened?: boolean;
+          alreadyRunning?: boolean;
+          message?: string;
+        };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            copy.browserDraftFailed,
+        );
+      }
+
+      setBrowserRunning(true);
+      setBrowserMessage(
+        copy.browserRunning,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.browserDraftFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+    }
+  }
+
+  async function checkBrowserStatus() {
+    if (!selectedFacebookChannelId) {
+      return;
+    }
+
+    setBrowserAction("status");
+    setBrowserError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/status`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      const body =
+        (await response.json()) as
+          BrowserStatusResponse;
+
+      if (!response.ok) {
+        throw new Error(
+          copy.browserDraftFailed,
+        );
+      }
+
+      setBrowserRunning(
+        Boolean(body.running),
+      );
+
+      setBrowserMessage(
+        body.running
+          ? copy.browserRunning
+          : copy.browserStopped,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.browserDraftFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+    }
+  }
+
+  async function closeBrowser() {
+    if (!selectedFacebookChannelId) {
+      return;
+    }
+
+    setBrowserAction("close");
+    setBrowserError("");
+    setBrowserMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/close`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body =
+        (await response.json()) as {
+          message?: string;
+        };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            copy.browserDraftFailed,
+        );
+      }
+
+      setBrowserRunning(false);
+      setBrowserMessage(
+        copy.browserStopped,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.browserDraftFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+    }
+  }
+
+  async function prepareBrowserDraft() {
+    if (
+      !selectedFacebookChannelId ||
+      !browserCaption.trim()
+    ) {
+      setBrowserError(
+        copy.browserDraftFailed,
+      );
+      return;
+    }
+
+    setBrowserAction("prepare");
+    setBrowserError("");
+    setBrowserMessage("");
+    setDraftScreenshot(null);
+    setDraftReady(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/prepare-post`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            caption:
+              browserCaption.trim(),
+            imagePath:
+              browserImagePath.trim() ||
+              null,
+          }),
+        },
+      );
+
+      const body =
+        (await response.json()) as
+          BrowserDraftResponse;
+
+      if (
+        !response.ok ||
+        !body.success
+      ) {
+        throw new Error(
+          body.message ||
+            copy.browserDraftFailed,
+        );
+      }
+
+      const encoded =
+        body.screenshot?.base64;
+
+      if (
+        encoded &&
+        body.screenshot?.mimeType
+      ) {
+        setDraftScreenshot(
+          `data:${body.screenshot.mimeType};base64,${encoded}`,
+        );
+      }
+
+      setBrowserRunning(true);
+      setBrowserMessage(
+        copy.draftReady,
+      );
+
+      setDraftReady(true);
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.browserDraftFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+    }
+  }
+
+  async function publishBrowserDraft() {
+    if (
+      !selectedFacebookChannelId ||
+      !draftReady
+    ) {
+      return;
+    }
+
+    setBrowserAction("prepare");
+    setBrowserError("");
+    setBrowserMessage("");
+    setPublishConfirmOpen(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/publish-post`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            confirmation:
+              "PUBLISH",
+          }),
+        },
+      );
+
+      const body =
+        (await response.json()) as {
+          success?: boolean;
+          published?: boolean;
+          message?: string;
+          screenshots?: {
+            after?: {
+              mimeType?: string;
+              base64?: string;
+            };
+          };
+        };
+
+      if (
+        !response.ok ||
+        !body.success ||
+        !body.published
+      ) {
+        throw new Error(
+          body.message ||
+            copy.publishFailed,
+        );
+      }
+
+      const after =
+        body.screenshots?.after;
+
+      if (
+        after?.base64 &&
+        after.mimeType
+      ) {
+        setDraftScreenshot(
+          `data:${after.mimeType};base64,${after.base64}`,
+        );
+      }
+
+      setDraftReady(false);
+      setBrowserMessage(
+        copy.publishedSuccessfully,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.publishFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+    }
+  }
 
   if (loading && !dashboard) {
     return (
@@ -382,6 +852,269 @@ export function AutomationDashboard() {
           ) : null}
         </article>
       </section>
+
+      <section
+        className={`${styles.panel} ${styles.browserDraftPanel}`}
+      >
+        <header>
+          <div>
+            <p className={styles.eyebrow}>
+              Browser Agent
+            </p>
+
+            <h2>{copy.browserDraft}</h2>
+
+            <p className={styles.panelDescription}>
+              {copy.browserDraftDescription}
+            </p>
+          </div>
+
+          <span
+            className={`${styles.browserStatus} ${
+              browserRunning
+                ? styles.browserOnline
+                : styles.browserOffline
+            }`}
+          >
+            {browserRunning
+              ? copy.browserRunning
+              : copy.browserStopped}
+          </span>
+        </header>
+
+        <div className={styles.browserDraftGrid}>
+          <div className={styles.browserDraftForm}>
+            <label>
+              <span>{copy.facebookChannel}</span>
+
+              <select
+                value={selectedFacebookChannelId}
+                onChange={(event) => {
+                  setSelectedFacebookChannelId(
+                    event.target.value,
+                  );
+                  setBrowserMessage("");
+                  setBrowserError("");
+                  setDraftScreenshot(null);
+                }}
+              >
+                {dashboard.channels
+                  .filter(
+                    (channel) =>
+                      channel.platform ===
+                      "FACEBOOK",
+                  )
+                  .map((channel) => (
+                    <option
+                      key={channel.id}
+                      value={channel.id}
+                    >
+                      {channel.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <label>
+              <span>{copy.captionLabel}</span>
+
+              <textarea
+                value={browserCaption}
+                onChange={(event) =>
+                  setBrowserCaption(
+                    event.target.value,
+                  )
+                }
+                placeholder={
+                  copy.captionPlaceholder
+                }
+                rows={7}
+              />
+
+              <small>
+                {browserCaption.length} / 10000
+              </small>
+            </label>
+
+            <label>
+              <span>{copy.imagePathLabel}</span>
+
+              <input
+                type="text"
+                value={browserImagePath}
+                onChange={(event) =>
+                  setBrowserImagePath(
+                    event.target.value,
+                  )
+                }
+                placeholder={
+                  copy.imagePathPlaceholder
+                }
+              />
+
+              <small>{copy.localPathHint}</small>
+            </label>
+
+            <div className={styles.browserActions}>
+              <button
+                type="button"
+                onClick={() =>
+                  void openBrowser()
+                }
+                disabled={
+                  browserAction !== null ||
+                  !selectedFacebookChannelId
+                }
+              >
+                {browserAction === "open"
+                  ? copy.openingBrowser
+                  : copy.openBrowser}
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  void checkBrowserStatus()
+                }
+                disabled={
+                  browserAction !== null ||
+                  !selectedFacebookChannelId
+                }
+              >
+                {browserAction === "status"
+                  ? copy.checkingStatus
+                  : copy.checkStatus}
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  void closeBrowser()
+                }
+                disabled={
+                  browserAction !== null ||
+                  !selectedFacebookChannelId
+                }
+              >
+                {browserAction === "close"
+                  ? copy.closingBrowser
+                  : copy.closeBrowser}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={styles.prepareDraftButton}
+              onClick={() =>
+                void prepareBrowserDraft()
+              }
+              disabled={
+                browserAction !== null ||
+                !selectedFacebookChannelId ||
+                !browserCaption.trim()
+              }
+            >
+              {browserAction === "prepare"
+                ? copy.preparingDraft
+                : copy.prepareDraft}
+            </button>
+
+            <button
+              type="button"
+              className={styles.publishDraftButton}
+              onClick={() =>
+                setPublishConfirmOpen(true)
+              }
+              disabled={
+                browserAction !== null ||
+                !draftReady
+              }
+            >
+              {browserAction === "prepare" &&
+              draftReady
+                ? copy.publishingPost
+                : copy.publishPost}
+            </button>
+
+            {browserMessage ? (
+              <div className={styles.browserSuccess}>
+                {browserMessage}
+              </div>
+            ) : null}
+
+            {browserError ? (
+              <div className={styles.browserError}>
+                {browserError}
+              </div>
+            ) : null}
+          </div>
+
+          <div className={styles.browserPreview}>
+            <div className={styles.previewHeader}>
+              <strong>{copy.screenshotPreview}</strong>
+            </div>
+
+            {draftScreenshot ? (
+              <img
+                src={draftScreenshot}
+                alt={copy.screenshotPreview}
+              />
+            ) : (
+              <div className={styles.previewEmpty}>
+                <span>Facebook</span>
+                <small>
+                  {copy.browserDraftDescription}
+                </small>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {publishConfirmOpen ? (
+        <div
+          className={styles.confirmOverlay}
+          role="presentation"
+        >
+          <div
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+          >
+            <h3>
+              {copy.publishConfirmTitle}
+            </h3>
+
+            <p>
+              {copy.publishConfirmText}
+            </p>
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setPublishConfirmOpen(false)
+                }
+              >
+                {copy.cancelPublish}
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmPublishButton}
+                onClick={() =>
+                  void publishBrowserDraft()
+                }
+              >
+                {copy.confirmPublish}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className={styles.panel}>
         <header>

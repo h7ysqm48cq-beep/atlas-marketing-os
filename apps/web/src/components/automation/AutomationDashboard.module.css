@@ -631,3 +631,346 @@
 }
 
 /* ===== End Automation compact mobile polish ===== */
+
+.browserDraftPanel {
+  overflow: hidden;
+}
+
+.panelDescription {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.browserStatus {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.browserOnline {
+  border-color: rgba(56, 189, 122, 0.35);
+  background: rgba(56, 189, 122, 0.1);
+  color: var(--success);
+}
+
+.browserOffline {
+  background: var(--panel-soft);
+  color: var(--text-muted);
+}
+
+.browserDraftGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(360px, 1.1fr);
+  gap: 24px;
+  margin-top: 22px;
+}
+
+.browserDraftForm {
+  display: grid;
+  gap: 17px;
+}
+
+.browserDraftForm label {
+  display: grid;
+  gap: 8px;
+}
+
+.browserDraftForm label > span {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.browserDraftForm select,
+.browserDraftForm input,
+.browserDraftForm textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.browserDraftForm select,
+.browserDraftForm input {
+  min-height: 44px;
+  padding: 0 13px;
+}
+
+.browserDraftForm textarea {
+  min-height: 150px;
+  padding: 13px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.browserDraftForm select:focus,
+.browserDraftForm input:focus,
+.browserDraftForm textarea:focus {
+  border-color: var(--accent);
+}
+
+.browserDraftForm small {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.browserActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.browserActions button,
+.prepareDraftButton {
+  min-height: 42px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 15px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.browserActions button {
+  background: var(--accent);
+  color: white;
+}
+
+.browserActions .secondaryButton {
+  border: 1px solid var(--border);
+  background: var(--panel-soft);
+  color: var(--text);
+}
+
+.prepareDraftButton {
+  min-height: 48px;
+  background: var(--accent);
+  color: white;
+}
+
+.browserActions button:disabled,
+.prepareDraftButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.browserSuccess,
+.browserError {
+  padding: 12px 14px;
+  border-radius: 11px;
+  line-height: 1.5;
+}
+
+.browserSuccess {
+  border: 1px solid rgba(56, 189, 122, 0.3);
+  background: rgba(56, 189, 122, 0.09);
+  color: var(--success);
+}
+
+.browserError {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--danger);
+}
+
+.browserPreview {
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--panel-soft);
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.browserPreview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 620px;
+  object-fit: contain;
+  background: #111827;
+}
+
+.previewEmpty {
+  min-height: 370px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  padding: 28px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.previewEmpty span {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.previewEmpty small {
+  max-width: 360px;
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  .browserDraftGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .browserPreview {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 560px) {
+  .browserActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .browserActions button,
+  .prepareDraftButton {
+    width: 100%;
+  }
+
+  .browserDraftPanel > header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+:global(html[data-theme="light"]) .browserDraftForm select,
+:global(html[data-theme="light"]) .browserDraftForm input,
+:global(html[data-theme="light"]) .browserDraftForm textarea,
+:global(html[data-theme="light"]) .browserPreview,
+:global(html[data-theme="light"]) .browserActions .secondaryButton {
+  background: var(--panel-soft) !important;
+}
+
+/* Browser Agent primary actions */
+.browserActions > button:first-child,
+.prepareDraftButton {
+  border: 1px solid #6d5dfc !important;
+  background: #6d5dfc !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(109, 93, 252, 0.2);
+}
+
+.browserActions > button:first-child:hover,
+.prepareDraftButton:hover {
+  background: #5c4bea !important;
+  border-color: #5c4bea !important;
+}
+
+.browserActions > button:first-child:disabled,
+.prepareDraftButton:disabled {
+  background: #8f84f8 !important;
+  border-color: #8f84f8 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: none;
+}
+
+.browserActions .secondaryButton {
+  border: 1px solid var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+.publishDraftButton {
+  min-height: 48px;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  border-radius: 11px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #ef4444;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.publishDraftButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.confirmDialog {
+  width: min(100%, 440px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--panel);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.confirmDialog h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.confirmDialog p {
+  margin: 12px 0 22px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirmActions button {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirmPublishButton {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+@media (max-width: 560px) {
+  .confirmActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .confirmActions button {
+    width: 100%;
+  }
+}

@@ -85,6 +85,88 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
+  async prepareFacebookPost(
+    browserProfileKey: string,
+    input: {
+      caption: string;
+      imagePath?: string | null;
+    },
+  ) {
+    const caption =
+      input.caption?.trim();
+
+    if (!caption) {
+      throw new BadRequestException(
+        'Caption is required.',
+      );
+    }
+
+    if (
+      caption.length > 10000
+    ) {
+      throw new BadRequestException(
+        'Caption is too long.',
+      );
+    }
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        browserProfileKey,
+      )}/facebook/prepare-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          caption,
+          imagePath:
+            input.imagePath?.trim() ||
+            null,
+        }),
+      },
+    );
+  }
+
+
+  async publishFacebookPost(
+    channelId: string,
+    confirmation: string,
+  ) {
+    if (
+      confirmation !==
+      'PUBLISH'
+    ) {
+      throw new BadRequestException(
+        'Explicit confirmation "PUBLISH" is required.',
+      );
+    }
+
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          channelId,
+        );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/publish-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          confirmation,
+        }),
+      },
+    );
+  }
+
+
   async checkIp(
     channelId: string,
   ) {

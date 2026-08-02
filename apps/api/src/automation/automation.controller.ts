@@ -89,6 +89,54 @@ export class AutomationController {
       .status(id);
   }
 
+  @Post(
+    'channels/:id/browser/facebook/prepare-post',
+  )
+  async prepareFacebookBrowserPost(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      caption?: string;
+      imagePath?: string | null;
+    },
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          id,
+        );
+
+    return this.browserRuntime
+      .prepareFacebookPost(
+        profile.browserProfileKey,
+        {
+          caption:
+            body.caption || '',
+          imagePath:
+            body.imagePath || null,
+        },
+      );
+  }
+
+
+  @Post(
+    'channels/:id/browser/facebook/publish-post',
+  )
+  publishFacebookBrowserPost(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      confirmation?: string;
+    },
+  ) {
+    return this.browserRuntime
+      .publishFacebookPost(
+        id,
+        body.confirmation || '',
+      );
+  }
+
+
   @Post('channels/:id/browser/check-ip')
   checkChannelBrowserIp(
     @Param('id') id: string,

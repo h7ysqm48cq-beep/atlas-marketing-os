@@ -997,6 +997,250 @@ app.post(
 
 
 app.post(
+  "/profiles/:profileKey/facebook/publish-post",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    const input =
+      request.body as {
+        confirmation?: string;
+      };
+
+    if (
+      input.confirmation !==
+      "PUBLISH"
+    ) {
+      response.status(400).json({
+        success: false,
+        message:
+          'Explicit confirmation "PUBLISH" is required.',
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1);
+
+      if (!page) {
+        throw new Error(
+          "No active browser page was found.",
+        );
+      }
+
+      const dialogs =
+        page.locator(
+          '[role="dialog"]',
+        );
+
+      const dialogCount =
+        await dialogs
+          .count()
+          .catch(() => 0);
+
+      let composer:
+        import("playwright-core").Locator
+        | null = null;
+
+      for (
+        let index =
+          dialogCount - 1;
+        index >= 0;
+        index -= 1
+      ) {
+        const candidate =
+          dialogs.nth(index);
+
+        if (
+          !await candidate
+            .isVisible()
+            .catch(() => false)
+        ) {
+          continue;
+        }
+
+        const editorCount =
+          await candidate
+            .locator(
+              '[contenteditable="true"][role="textbox"]',
+            )
+            .count()
+            .catch(() => 0);
+
+        const text =
+          await candidate
+            .innerText()
+            .catch(() => "");
+
+        if (
+          editorCount > 0 &&
+          /create post/i.test(text)
+        ) {
+          composer =
+            candidate;
+          break;
+        }
+      }
+
+      if (!composer) {
+        throw new Error(
+          "No prepared Facebook draft was found.",
+        );
+      }
+
+      const editor =
+        composer.locator(
+          '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+        ).last();
+
+      const caption =
+        (
+          await editor
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const imageCount =
+        await composer
+          .locator("img")
+          .count()
+          .catch(() => 0);
+
+      if (
+        !caption &&
+        imageCount === 0
+      ) {
+        throw new Error(
+          "The Facebook draft is empty.",
+        );
+      }
+
+      const postButton =
+        composer
+          .getByRole(
+            "button",
+            {
+              name: /^Post$/i,
+            },
+          )
+          .last();
+
+      if (
+        !await postButton
+          .isVisible()
+          .catch(() => false)
+      ) {
+        throw new Error(
+          "Facebook Post button was not found.",
+        );
+      }
+
+      if (
+        !await postButton
+          .isEnabled()
+          .catch(() => false)
+      ) {
+        throw new Error(
+          "Facebook Post button is disabled.",
+        );
+      }
+
+      const beforeScreenshot =
+        await page.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: false,
+        });
+
+      await postButton.click({
+        timeout: 10000,
+      });
+
+      await page.waitForTimeout(
+        2500,
+      );
+
+      const composerStillVisible =
+        await composer
+          .isVisible()
+          .catch(() => false);
+
+      const afterScreenshot =
+        await page.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: false,
+        });
+
+      response.json({
+        success: true,
+        published:
+          !composerStillVisible,
+        browserProfileKey:
+          session.browserProfileKey,
+        captionLength:
+          caption.length,
+        imageCount,
+        composerClosed:
+          !composerStillVisible,
+        screenshots: {
+          before: {
+            mimeType:
+              "image/jpeg",
+            base64:
+              beforeScreenshot.toString(
+                "base64",
+              ),
+          },
+          after: {
+            mimeType:
+              "image/jpeg",
+            base64:
+              afterScreenshot.toString(
+                "base64",
+              ),
+          },
+        },
+        publishedAt:
+          new Date()
+            .toISOString(),
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        published: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to publish Facebook post.",
+      });
+    }
+  },
+);
+
+
+app.post(
   "/profiles/:profileKey/facebook/prepare-post",
   async (request, response) => {
     const profileKey =
