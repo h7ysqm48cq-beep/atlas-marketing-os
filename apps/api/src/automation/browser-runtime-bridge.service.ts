@@ -9,11 +9,31 @@ import { RuntimeProfileService } from './runtime-profile.service';
 
 type WorkerResponse = {
   message?: string;
+  running?: boolean;
+  status?: string;
   [key: string]: unknown;
 };
 
+type BrowserLaunchProfile = Awaited<
+  ReturnType<
+    RuntimeProfileService[
+      'getBrowserLaunchProfile'
+    ]
+  >
+>;
+
 @Injectable()
 export class BrowserRuntimeBridgeService {
+  /**
+   * Prevent two simultaneous requests from opening
+   * the same browser profile more than once.
+   */
+  private readonly profileLaunches =
+    new Map<
+      string,
+      Promise<BrowserLaunchProfile>
+    >();
+
   constructor(
     private readonly configService:
       ConfigService,
@@ -43,6 +63,307 @@ export class BrowserRuntimeBridgeService {
           channelId,
         );
 
+    return this.openProfile(
+      profile,
+      input,
+    );
+  }
+
+  async status(
+    channelId: string,
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          channelId,
+        );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/status`,
+      {
+        method: 'GET',
+      },
+    );
+  }
+
+  /**
+   * Browser Runtime V2:
+   *
+   * Return the existing browser profile when it is
+   * running. If the Worker reports that the profile
+   * is not running, automatically reopen it using
+   * the same persistent browser profile.
+   */
+  async ensureProfile(
+    channelId: string,
+    input?: {
+      headless?: boolean;
+      startUrl?: string;
+    },
+  ): Promise<BrowserLaunchProfile> {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          channelId,
+        );
+
+    const existingLaunch =
+      this.profileLaunches.get(
+        profile.browserProfileKey,
+      );
+
+    if (existingLaunch) {
+      return existingLaunch;
+    }
+
+    const launchPromise =
+      this.ensureProfileInternal(
+        profile,
+        input,
+      );
+
+    this.profileLaunches.set(
+      profile.browserProfileKey,
+      launchPromise,
+    );
+
+    try {
+      return await launchPromise;
+    } finally {
+      this.profileLaunches.delete(
+        profile.browserProfileKey,
+      );
+    }
+  }
+
+  /**
+   * Existing low-level PREPARE method.
+   *
+   * This remains available for callers that already
+   * know that the browser profile is running.
+   */
+  async prepareFacebookPost(
+    browserProfileKey: string,
+    input: {
+      caption: string;
+      imagePath?: string | null;
+    },
+  ) {
+    const normalizedInput =
+      this.normalizePrepareInput(
+        input,
+      );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        browserProfileKey,
+      )}/facebook/prepare-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify(
+          normalizedInput,
+        ),
+      },
+    );
+  }
+
+  /**
+   * Preferred V2 PREPARE method.
+   *
+   * It automatically ensures that the browser profile
+   * is running before preparing the Facebook draft.
+   */
+  async prepareFacebookPostForChannel(
+    channelId: string,
+    input: {
+      caption: string;
+      imagePath?: string | null;
+    },
+  ) {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    return this.prepareFacebookPost(
+      profile.browserProfileKey,
+      input,
+    );
+  }
+
+  async discardFacebookPost(
+    channelId: string,
+  ) {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/discard-post`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
+  async publishFacebookPost(
+    channelId: string,
+    confirmation: string,
+  ) {
+    if (
+      confirmation !==
+      'PUBLISH'
+    ) {
+      throw new BadRequestException(
+        'Explicit confirmation "PUBLISH" is required.',
+      );
+    }
+
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/publish-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          confirmation,
+        }),
+      },
+    );
+  }
+
+  async checkIp(
+    channelId: string,
+  ) {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+        },
+      );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/check-ip`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
+  async close(
+    channelId: string,
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          channelId,
+        );
+
+    this.profileLaunches.delete(
+      profile.browserProfileKey,
+    );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/close`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
+  private async ensureProfileInternal(
+    profile: BrowserLaunchProfile,
+    input?: {
+      headless?: boolean;
+      startUrl?: string;
+    },
+  ): Promise<BrowserLaunchProfile> {
+    try {
+      const workerStatus =
+        await this.request(
+          `/profiles/${encodeURIComponent(
+            profile.browserProfileKey,
+          )}/status`,
+          {
+            method: 'GET',
+          },
+        );
+
+      if (
+        this.workerStatusIndicatesStopped(
+          workerStatus,
+        )
+      ) {
+        await this.openProfile(
+          profile,
+          input,
+        );
+      }
+
+      return profile;
+    } catch (error) {
+      if (
+        !this.isProfileNotRunningError(
+          error,
+        )
+      ) {
+        throw error;
+      }
+
+      await this.openProfile(
+        profile,
+        input,
+      );
+
+      return profile;
+    }
+  }
+
+  private async openProfile(
+    profile: BrowserLaunchProfile,
+    input?: {
+      headless?: boolean;
+      startUrl?: string;
+    },
+  ) {
     const startUrl =
       input?.startUrl?.trim() ||
       'https://www.facebook.com/';
@@ -66,27 +387,7 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
-  async status(
-    channelId: string,
-  ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          channelId,
-        );
-
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/status`,
-      {
-        method: 'GET',
-      },
-    );
-  }
-
-  async prepareFacebookPost(
-    browserProfileKey: string,
+  private normalizePrepareInput(
     input: {
       caption: string;
       imagePath?: string | null;
@@ -102,106 +403,85 @@ export class BrowserRuntimeBridgeService {
     }
 
     if (
-      caption.length > 10000
+      caption.length >
+      10000
     ) {
       throw new BadRequestException(
         'Caption is too long.',
       );
     }
 
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        browserProfileKey,
-      )}/facebook/prepare-post`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-        body: JSON.stringify({
-          caption,
-          imagePath:
-            input.imagePath?.trim() ||
-            null,
-        }),
-      },
-    );
+    return {
+      caption,
+      imagePath:
+        input.imagePath?.trim() ||
+        null,
+    };
   }
 
-
-  async publishFacebookPost(
-    channelId: string,
-    confirmation: string,
+  private workerStatusIndicatesStopped(
+    body: WorkerResponse,
   ) {
     if (
-      confirmation !==
-      'PUBLISH'
+      body.running === false
     ) {
-      throw new BadRequestException(
-        'Explicit confirmation "PUBLISH" is required.',
-      );
+      return true;
     }
 
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          channelId,
-        );
+    const status =
+      typeof body.status ===
+      'string'
+        ? body.status
+            .trim()
+            .toUpperCase()
+        : '';
 
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/facebook/publish-post`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-        body: JSON.stringify({
-          confirmation,
-        }),
-      },
+    return [
+      'STOPPED',
+      'CLOSED',
+      'NOT_RUNNING',
+      'NOT FOUND',
+    ].includes(
+      status,
     );
   }
 
-
-  async checkIp(
-    channelId: string,
+  private isProfileNotRunningError(
+    error: unknown,
   ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          channelId,
-        );
+    if (
+      !(
+        error instanceof
+        BadGatewayException
+      )
+    ) {
+      return false;
+    }
 
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/check-ip`,
-      {
-        method: 'POST',
-      },
-    );
-  }
+    const response =
+      error.getResponse();
 
-  async close(
-    channelId: string,
-  ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          channelId,
-        );
+    const serialized =
+      typeof response ===
+      'string'
+        ? response
+        : JSON.stringify(
+            response,
+          );
 
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/close`,
-      {
-        method: 'POST',
-      },
+    const normalized =
+      serialized.toLowerCase();
+
+    return (
+      normalized.includes(
+        'browser profile is not running',
+      ) ||
+      normalized.includes(
+        'profile is not running',
+      ) ||
+      normalized.includes(
+        'profile was not found',
+      )
     );
   }
 
@@ -254,7 +534,8 @@ export class BrowserRuntimeBridgeService {
         );
       }
 
-      return parsed.toString()
+      return parsed
+        .toString()
         .replace(
           /\/+$/,
           '',
@@ -360,6 +641,8 @@ export class BrowserRuntimeBridgeService {
             'Browser Worker request failed.',
           workerStatus:
             response.status,
+          workerResponse:
+            body,
         });
       }
 
@@ -367,7 +650,7 @@ export class BrowserRuntimeBridgeService {
     } catch (error) {
       if (
         error instanceof
-          BadGatewayException
+        BadGatewayException
       ) {
         throw error;
       }

@@ -1753,3 +1753,164 @@
     justify-self: start;
   }
 }
+
+.traceDiagnostics {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.traceDiagnosticsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.traceDiagnosticsHeader > span {
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--panel-soft);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.traceDiagnosticsList {
+  display: grid;
+  gap: 9px;
+}
+
+.traceDiagnosticItem {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: var(--panel-soft);
+}
+
+.traceDiagnosticIcon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.traceDiagnosticItem > div {
+  min-width: 0;
+}
+
+.traceDiagnosticItem strong {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.traceDiagnosticItem p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.traceDiagnosticItem code {
+  display: inline-block;
+  margin-top: 7px;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.traceDiagnosticCritical {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.07);
+}
+
+.traceDiagnosticCritical
+.traceDiagnosticIcon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.traceDiagnosticWarning {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.07);
+}
+
+.traceDiagnosticWarning
+.traceDiagnosticIcon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.traceDiagnosticInfo
+.traceDiagnosticIcon {
+  background: rgba(99, 102, 241, 0.14);
+  color: #818cf8;
+}
+
+.traceDiagnosticHealthy {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.07);
+}
+
+.traceDiagnosticHealthy
+.traceDiagnosticIcon {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22c55e;
+}
+
+@media (max-width: 680px) {
+  .traceDiagnosticsHeader {
+    align-items: flex-start;
+  }
+}
+
+.replayBrowserActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.replayBrowserActionButton:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--panel);
+  transform: translateY(-1px);
+}
+
+.replayBrowserActionButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.replayBrowserActionButton:disabled {
+  cursor: wait;
+  opacity: 0.6;
+  transform: none;
+}
+
+@media (max-width: 680px) {
+  .replayBrowserActionButton {
+    width: 100%;
+  }
+}
+

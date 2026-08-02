@@ -176,6 +176,129 @@ function formatDate(value: string, locale: string) {
   }).format(new Date(value));
 }
 
+type BrowserTraceDiagnostic = {
+  severity:
+    | "CRITICAL"
+    | "WARNING"
+    | "INFO"
+    | "HEALTHY";
+  title: string;
+  message: string;
+  stepKey?: string;
+};
+
+function analyzeBrowserTrace(
+  traces: BrowserActionTraceItem[],
+): BrowserTraceDiagnostic[] {
+  if (!traces.length) {
+    return [];
+  }
+
+  const diagnostics:
+    BrowserTraceDiagnostic[] = [];
+
+  const failedSteps =
+    traces.filter(
+      (trace) =>
+        trace.status === "FAILED",
+    );
+
+  for (const trace of failedSteps) {
+    diagnostics.push({
+      severity:
+        "CRITICAL",
+      title:
+        `${trace.stepName} failed`,
+      message:
+        trace.errorMessage ||
+        "The browser step did not complete successfully.",
+      stepKey:
+        trace.stepKey,
+    });
+  }
+
+  const verySlowSteps =
+    traces.filter(
+      (trace) =>
+        trace.status === "SUCCESS" &&
+        (trace.durationMs || 0) >=
+          5000,
+    );
+
+  for (const trace of verySlowSteps) {
+    diagnostics.push({
+      severity:
+        "WARNING",
+      title:
+        `${trace.stepName} was very slow`,
+      message:
+        `This step took ${formatTraceDuration(
+          trace.durationMs,
+        )}. Check browser responsiveness, network latency, or page state.`,
+      stepKey:
+        trace.stepKey,
+    });
+  }
+
+  const slowSteps =
+    traces.filter(
+      (trace) =>
+        trace.status === "SUCCESS" &&
+        (trace.durationMs || 0) >=
+          2000 &&
+        (trace.durationMs || 0) <
+          5000,
+    );
+
+  for (const trace of slowSteps) {
+    diagnostics.push({
+      severity:
+        "INFO",
+      title:
+        `${trace.stepName} was slower than usual`,
+      message:
+        `This step took ${formatTraceDuration(
+          trace.durationMs,
+        )}.`,
+      stepKey:
+        trace.stepKey,
+    });
+  }
+
+  const skippedSteps =
+    traces.filter(
+      (trace) =>
+        trace.status === "SKIPPED",
+    );
+
+  for (const trace of skippedSteps) {
+    diagnostics.push({
+      severity:
+        "INFO",
+      title:
+        `${trace.stepName} was skipped`,
+      message:
+        trace.errorMessage ||
+        "This optional step was not required.",
+      stepKey:
+        trace.stepKey,
+    });
+  }
+
+  if (!diagnostics.length) {
+    diagnostics.push({
+      severity:
+        "HEALTHY",
+      title:
+        "Execution completed normally",
+      message:
+        "No failed or unusually slow browser steps were detected.",
+    });
+  }
+
+  return diagnostics;
+}
+
 function formatTraceDuration(
   durationMs: number | null,
 ) {
@@ -653,6 +776,13 @@ export function AutomationDashboard() {
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
 
+  const [
+    replayingBrowserActionId,
+    setReplayingBrowserActionId,
+  ] = useState<string | null>(
+    null,
+  );
+
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -781,6 +911,100 @@ export function AutomationDashboard() {
       setLoading(false);
     }
   }, []);
+
+  async function replayBrowserAction(
+    actionId: string,
+  ) {
+    if (replayingBrowserActionId) {
+      return;
+    }
+
+    setReplayingBrowserActionId(
+      actionId,
+    );
+
+    try {
+      const apiOrigin =
+        process.env
+          .NEXT_PUBLIC_API_URL ||
+        "http://localhost:3001";
+
+      const response =
+        await fetch(
+          `${apiOrigin}/automation/browser-actions/${actionId}/replay`,
+          {
+            method:
+              "POST",
+            headers: {
+              Accept:
+                "application/json",
+              "Content-Type":
+                "application/json",
+            },
+          },
+        );
+
+      const responseText =
+        await response.text();
+
+      let payload:
+        Record<string, unknown> | null =
+        null;
+
+      if (responseText) {
+        try {
+          payload =
+            JSON.parse(
+              responseText,
+            ) as Record<
+              string,
+              unknown
+            >;
+        } catch {
+          payload =
+            null;
+        }
+      }
+
+      if (!response.ok) {
+        const message =
+          typeof payload?.message ===
+          "string"
+            ? payload.message
+            : typeof payload?.error ===
+                "string"
+              ? payload.error
+              : responseText ||
+                `Replay failed with HTTP ${response.status}.`;
+
+        throw new Error(
+          message,
+        );
+      }
+
+      await loadBrowserActions();
+
+      setSelectedBrowserHistoryItem(
+        null,
+      );
+    } catch (error) {
+      console.error(
+        "Browser Action replay failed:",
+        error,
+      );
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Unable to replay browser action.",
+      );
+    } finally {
+      setReplayingBrowserActionId(
+        null,
+      );
+    }
+  }
+
 
   async function loadBrowserActions() {
     setBrowserActionsLoading(true);
@@ -2384,6 +2608,35 @@ export function AutomationDashboard() {
               </section>
             ) : null}
 
+              {selectedBrowserHistoryItem
+                .action ===
+              "PREPARE" ? (
+                <button
+                  type="button"
+                  className={
+                    styles
+                      .replayBrowserActionButton
+                  }
+                  disabled={
+                    replayingBrowserActionId ===
+                    selectedBrowserHistoryItem
+                      .id
+                  }
+                  onClick={() =>
+                    void replayBrowserAction(
+                      selectedBrowserHistoryItem
+                        .id,
+                    )
+                  }
+                >
+                  {replayingBrowserActionId ===
+                  selectedBrowserHistoryItem
+                    .id
+                    ? "Replaying..."
+                    : "Replay PREPARE"}
+                </button>
+              ) : null}
+
             {(
               selectedBrowserHistoryItem
                 .traces || []
@@ -2393,6 +2646,102 @@ export function AutomationDashboard() {
                   styles.historyModalSection
                 }
               >
+                <div
+                  className={
+                    styles.traceDiagnostics
+                  }
+                >
+                  <div
+                    className={
+                      styles.traceDiagnosticsHeader
+                    }
+                  >
+                    <strong>
+                      Trace Diagnostics
+                    </strong>
+
+                    <span>
+                      {
+                        analyzeBrowserTrace(
+                          selectedBrowserHistoryItem
+                            .traces || [],
+                        ).length
+                      }{" "}
+                      findings
+                    </span>
+                  </div>
+
+                  <div
+                    className={
+                      styles.traceDiagnosticsList
+                    }
+                  >
+                    {analyzeBrowserTrace(
+                      selectedBrowserHistoryItem
+                        .traces || [],
+                    ).map(
+                      (
+                        diagnostic,
+                        diagnosticIndex,
+                      ) => (
+                        <div
+                          key={`${diagnostic.stepKey || "flow"}-${diagnosticIndex}`}
+                          className={`${styles.traceDiagnosticItem} ${
+                            diagnostic.severity ===
+                            "CRITICAL"
+                              ? styles.traceDiagnosticCritical
+                              : diagnostic.severity ===
+                                  "WARNING"
+                                ? styles.traceDiagnosticWarning
+                                : diagnostic.severity ===
+                                    "HEALTHY"
+                                  ? styles.traceDiagnosticHealthy
+                                  : styles.traceDiagnosticInfo
+                          }`}
+                        >
+                          <span
+                            className={
+                              styles.traceDiagnosticIcon
+                            }
+                            aria-hidden="true"
+                          >
+                            {diagnostic.severity ===
+                            "CRITICAL"
+                              ? "×"
+                              : diagnostic.severity ===
+                                  "WARNING"
+                                ? "!"
+                                : diagnostic.severity ===
+                                    "HEALTHY"
+                                  ? "✓"
+                                  : "i"}
+                          </span>
+
+                          <div>
+                            <strong>
+                              {diagnostic.title}
+                            </strong>
+
+                            <p>
+                              {
+                                diagnostic.message
+                              }
+                            </p>
+
+                            {diagnostic.stepKey ? (
+                              <code>
+                                {
+                                  diagnostic.stepKey
+                                }
+                              </code>
+                            ) : null}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+
                 <div
                   className={
                     styles.executionTraceHeader

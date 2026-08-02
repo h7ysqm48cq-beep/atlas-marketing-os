@@ -639,6 +639,169 @@ export class AutomationController {
 
 
   @Post(
+    'browser-actions/:actionId/replay',
+  )
+  async replayFacebookBrowserAction(
+    @Param('actionId')
+    actionId: string,
+  ) {
+    const previous =
+      await this.browserActionHistory
+        .getRequired(
+          actionId,
+        );
+
+    if (
+      previous.action !==
+      BrowserActionType.PREPARE
+    ) {
+      throw new BadRequestException(
+        'Replay v1 currently supports PREPARE actions only.',
+      );
+    }
+
+    const caption =
+      previous.caption?.trim() ||
+      '';
+
+    if (!caption) {
+      throw new BadRequestException(
+        'The selected PREPARE action does not contain a caption.',
+      );
+    }
+
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          previous.channelId,
+        );
+
+    const replayAction =
+      await this.browserActionHistory
+        .start({
+          channelId:
+            previous.channelId,
+          flowId:
+            randomUUID(),
+          action:
+            BrowserActionType.PREPARE,
+          browserProfileKey:
+            profile.browserProfileKey,
+          caption,
+          imagePath:
+            previous.imagePath,
+          requestPayload: {
+            replayOfActionId:
+              previous.id,
+            caption,
+            imagePath:
+              previous.imagePath,
+          },
+        });
+
+    const replayRequestTrace =
+      await this.browserActionTrace
+        .startStep({
+          browserActionId:
+            replayAction.id,
+          stepKey:
+            'REPLAY_REQUEST',
+          stepName:
+            'Replay Facebook draft request',
+          stepOrder:
+            0,
+          metadata: {
+            replayOfActionId:
+              previous.id,
+            originalFlowId:
+              previous.flowId,
+            channelId:
+              previous.channelId,
+            browserProfileKey:
+              profile.browserProfileKey,
+          },
+        });
+
+    try {
+      const result =
+        await this.browserRuntime
+          .prepareFacebookPostForChannel(
+            previous.channelId,
+            {
+              caption,
+              imagePath:
+                previous.imagePath,
+            },
+          );
+
+      const replayResult =
+        result as {
+          executionTrace?: unknown;
+        };
+
+      await this.browserActionTrace
+        .importWorkerTrace(
+          replayAction.id,
+          replayResult.executionTrace,
+        );
+
+      await this.browserActionTrace
+        .succeedStep(
+          replayRequestTrace.id,
+          {
+            metadata: {
+              replayOfActionId:
+                previous.id,
+              browserProfileKey:
+                profile.browserProfileKey,
+              resultReceived:
+                true,
+            },
+          },
+        );
+
+      await this.browserActionHistory
+        .succeed(
+          replayAction.id,
+          {
+            responsePayload:
+              sanitizeBrowserActionResponse(
+                result,
+              ),
+          },
+        );
+
+      return {
+        success: true,
+        replayed:
+          true,
+        replayOfActionId:
+          previous.id,
+        actionId:
+          replayAction.id,
+        flowId:
+          replayAction.flowId,
+        result,
+      };
+    } catch (error) {
+      await this.browserActionTrace
+        .failStep(
+          replayRequestTrace.id,
+          error,
+        );
+
+      await this.browserActionHistory
+        .fail(
+          replayAction.id,
+          error,
+        );
+
+      throw error;
+    }
+  }
+
+
+  @Post(
     'channels/:id/browser/facebook/discard-post',
   )
   async discardFacebookBrowserPost(
