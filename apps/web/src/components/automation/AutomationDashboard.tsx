@@ -70,6 +70,7 @@ type BrowserActionHistoryItem = {
   caption: string | null;
   imagePath: string | null;
   errorMessage: string | null;
+  responsePayload: unknown;
   startedAt: string;
   completedAt: string | null;
   durationMs: number | null;
@@ -223,9 +224,27 @@ export function AutomationDashboard() {
           actionPending: "处理中",
           actionSuccess: "成功",
           actionFailed: "失败",
+          retryAction: "重新尝试",
+          retryingAction: "正在重试……",
+          retrySucceeded:
+            "失败操作已重新准备为草稿，请检查浏览器。",
+          retryFailed:
+            "无法重新尝试这个 Browser Agent 操作。",
+          openBrowserBeforeRetry:
+            "请先打开对应的浏览器，再重新尝试。",
           duration: "耗时",
           viewCaption: "文案",
           imagePath: "图片路径",
+          filterAll: "全部",
+          filterAction: "操作类型",
+          filterStatus: "状态",
+          showDetails: "查看详情",
+          hideDetails: "收起详情",
+          startedAt: "开始时间",
+          completedAt: "完成时间",
+          browserProfile: "浏览器 Profile",
+          errorDetails: "错误详情",
+          responseDetails: "响应详情",
         }
       : {
           loading: "Loading automation dashboard...",
@@ -339,9 +358,27 @@ export function AutomationDashboard() {
           actionPending: "Pending",
           actionSuccess: "Success",
           actionFailed: "Failed",
+          retryAction: "Retry",
+          retryingAction: "Retrying...",
+          retrySucceeded:
+            "The failed action was prepared again. Review it in the browser.",
+          retryFailed:
+            "Unable to retry this Browser Agent action.",
+          openBrowserBeforeRetry:
+            "Open the corresponding browser before retrying.",
           duration: "Duration",
           viewCaption: "Caption",
           imagePath: "Image path",
+          filterAll: "All",
+          filterAction: "Action",
+          filterStatus: "Status",
+          showDetails: "Show details",
+          hideDetails: "Hide details",
+          startedAt: "Started",
+          completedAt: "Completed",
+          browserProfile: "Browser profile",
+          errorDetails: "Error details",
+          responseDetails: "Response details",
         };
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
@@ -373,6 +410,7 @@ export function AutomationDashboard() {
       | "prepare"
       | "publish"
       | "discard"
+      | "retry"
       | null
     >(null);
 
@@ -406,6 +444,36 @@ export function AutomationDashboard() {
     setBrowserActionsLoading,
   ] = useState(false);
 
+  const [
+    retryingBrowserActionId,
+    setRetryingBrowserActionId,
+  ] = useState<string | null>(null);
+
+  const [
+    browserActionFilter,
+    setBrowserActionFilter,
+  ] = useState<
+    | "ALL"
+    | "PREPARE"
+    | "PUBLISH"
+    | "DISCARD"
+  >("ALL");
+
+  const [
+    browserStatusFilter,
+    setBrowserStatusFilter,
+  ] = useState<
+    | "ALL"
+    | "PENDING"
+    | "SUCCESS"
+    | "FAILED"
+  >("ALL");
+
+  const [
+    expandedBrowserActionId,
+    setExpandedBrowserActionId,
+  ] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -427,6 +495,7 @@ export function AutomationDashboard() {
 
       setDashboard(dashboardData);
       setSettings(settingsData);
+      void loadBrowserActions();
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : copy.loadFailed,
@@ -458,7 +527,11 @@ export function AutomationDashboard() {
           BrowserActionHistoryItem[];
 
       setBrowserActions(body);
-    } catch {
+    } catch (loadError) {
+      console.error(
+        "Unable to load Browser Agent history:",
+        loadError,
+      );
       setBrowserActions([]);
     } finally {
       setBrowserActionsLoading(false);
@@ -641,6 +714,102 @@ export function AutomationDashboard() {
       setBrowserAction(null);
     }
   }
+
+  async function retryBrowserAction(
+    item: BrowserActionHistoryItem,
+  ) {
+    if (
+      item.status !== "FAILED" ||
+      item.action !== "PREPARE"
+    ) {
+      return;
+    }
+
+    setBrowserAction("retry");
+    setRetryingBrowserActionId(item.id);
+    setBrowserError("");
+    setBrowserMessage("");
+    setDraftReady(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/browser-actions/${item.id}/retry`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body =
+        (await response.json()) as {
+          success?: boolean;
+          retried?: boolean;
+          message?: string;
+          result?: BrowserDraftResponse;
+        };
+
+      if (
+        !response.ok ||
+        !body.success ||
+        !body.retried
+      ) {
+        if (
+          body.message ===
+          "Browser profile is not running."
+        ) {
+          throw new Error(
+            copy.openBrowserBeforeRetry,
+          );
+        }
+
+        throw new Error(
+          body.message ||
+            copy.retryFailed,
+        );
+      }
+
+      const result =
+        body.result;
+
+      if (
+        result?.screenshot?.base64 &&
+        result.screenshot.mimeType
+      ) {
+        setDraftScreenshot(
+          `data:${result.screenshot.mimeType};base64,${result.screenshot.base64}`,
+        );
+      }
+
+      setSelectedFacebookChannelId(
+        item.channel.id,
+      );
+
+      setBrowserCaption(
+        item.caption || "",
+      );
+
+      setBrowserImagePath(
+        item.imagePath || "",
+      );
+
+      setBrowserRunning(true);
+      setDraftReady(true);
+
+      setBrowserMessage(
+        copy.retrySucceeded,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.retryFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+      setRetryingBrowserActionId(null);
+      void loadBrowserActions();
+    }
+  }
+
 
   async function prepareBrowserDraft() {
     if (
@@ -874,6 +1043,26 @@ export function AutomationDashboard() {
     }
   }
 
+  const filteredBrowserActions =
+    browserActions.filter(
+      (item) => {
+        const actionMatches =
+          browserActionFilter === "ALL" ||
+          item.action ===
+            browserActionFilter;
+
+        const statusMatches =
+          browserStatusFilter === "ALL" ||
+          item.status ===
+            browserStatusFilter;
+
+        return (
+          actionMatches &&
+          statusMatches
+        );
+      },
+    );
+
   if (loading && !dashboard) {
     return (
       <section className={styles.state}>
@@ -887,7 +1076,10 @@ export function AutomationDashboard() {
       <section className={styles.state}>
         <p>{error || copy.unavailable}</p>
 
-        <button onClick={() => void load()}>Try again</button>
+        <button onClick={() => {
+              void load();
+              void loadBrowserActions();
+            }}>Try again</button>
       </section>
     );
   }
@@ -1303,8 +1495,76 @@ export function AutomationDashboard() {
           </strong>
         </header>
 
+        <div className={styles.historyFilters}>
+          <label>
+            <span>{copy.filterAction}</span>
+
+            <select
+              value={browserActionFilter}
+              onChange={(event) =>
+                setBrowserActionFilter(
+                  event.target.value as
+                    | "ALL"
+                    | "PREPARE"
+                    | "PUBLISH"
+                    | "DISCARD",
+                )
+              }
+            >
+              <option value="ALL">
+                {copy.filterAll}
+              </option>
+
+              <option value="PREPARE">
+                {copy.actionPrepare}
+              </option>
+
+              <option value="PUBLISH">
+                {copy.actionPublish}
+              </option>
+
+              <option value="DISCARD">
+                {copy.actionDiscard}
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>{copy.filterStatus}</span>
+
+            <select
+              value={browserStatusFilter}
+              onChange={(event) =>
+                setBrowserStatusFilter(
+                  event.target.value as
+                    | "ALL"
+                    | "PENDING"
+                    | "SUCCESS"
+                    | "FAILED",
+                )
+              }
+            >
+              <option value="ALL">
+                {copy.filterAll}
+              </option>
+
+              <option value="PENDING">
+                {copy.actionPending}
+              </option>
+
+              <option value="SUCCESS">
+                {copy.actionSuccess}
+              </option>
+
+              <option value="FAILED">
+                {copy.actionFailed}
+              </option>
+            </select>
+          </label>
+        </div>
+
         <div className={styles.browserHistoryList}>
-          {browserActions.map((item) => {
+          {filteredBrowserActions.map((item) => {
             const actionLabel =
               item.action === "PREPARE"
                 ? copy.actionPrepare
@@ -1361,6 +1621,45 @@ export function AutomationDashboard() {
                     ) : null}
                   </div>
 
+                  <button
+                    type="button"
+                    className={styles.historyDetailsButton}
+                    onClick={() =>
+                      setExpandedBrowserActionId(
+                        expandedBrowserActionId ===
+                          item.id
+                          ? null
+                          : item.id,
+                      )
+                    }
+                  >
+                    {expandedBrowserActionId ===
+                    item.id
+                      ? copy.hideDetails
+                      : copy.showDetails}
+                  </button>
+
+                  {item.status === "FAILED" &&
+                  item.action === "PREPARE" ? (
+                    <button
+                      type="button"
+                      className={styles.retryHistoryButton}
+                      onClick={() =>
+                        void retryBrowserAction(
+                          item,
+                        )
+                      }
+                      disabled={
+                        browserAction !== null
+                      }
+                    >
+                      {retryingBrowserActionId ===
+                      item.id
+                        ? copy.retryingAction
+                        : copy.retryAction}
+                    </button>
+                  ) : null}
+
                   {item.caption ? (
                     <p className={styles.historyCaption}>
                       {item.caption}
@@ -1379,12 +1678,65 @@ export function AutomationDashboard() {
                       {item.errorMessage}
                     </small>
                   ) : null}
+
+                  {expandedBrowserActionId ===
+                  item.id ? (
+                    <div className={styles.historyDetails}>
+                      <dl>
+                        <div>
+                          <dt>{copy.startedAt}</dt>
+                          <dd>
+                            {formatDate(
+                              item.startedAt,
+                              locale,
+                            )}
+                          </dd>
+                        </div>
+
+                        <div>
+                          <dt>{copy.completedAt}</dt>
+                          <dd>
+                            {item.completedAt
+                              ? formatDate(
+                                  item.completedAt,
+                                  locale,
+                                )
+                              : "-"}
+                          </dd>
+                        </div>
+
+                        <div>
+                          <dt>{copy.browserProfile}</dt>
+                          <dd>
+                            {item.browserProfileKey ||
+                              "-"}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      {item.responsePayload ? (
+                        <div className={styles.historyPayload}>
+                          <strong>
+                            {copy.responseDetails}
+                          </strong>
+
+                          <pre>
+                            {JSON.stringify(
+                              item.responsePayload,
+                              null,
+                              2,
+                            )}
+                          </pre>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
           })}
 
-          {!browserActions.length &&
+          {!filteredBrowserActions.length &&
           !browserActionsLoading ? (
             <div className={styles.historyEmpty}>
               {copy.noBrowserActions}

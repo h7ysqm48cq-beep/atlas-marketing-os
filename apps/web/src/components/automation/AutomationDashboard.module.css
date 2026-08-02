@@ -1094,3 +1094,152 @@
     display: grid;
   }
 }
+
+.historyFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.historyFilters label {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.historyFilters label > span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.historyFilters select {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+}
+
+.historyDetailsButton {
+  margin-top: 10px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.historyDetails {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.historyDetails dl {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.historyDetails dl > div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.historyDetails dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.historyDetails dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+
+.historyPayload {
+  margin-top: 14px;
+}
+
+.historyPayload pre {
+  max-height: 280px;
+  overflow: auto;
+  margin: 8px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .historyFilters {
+    display: grid;
+  }
+
+  .historyFilters label {
+    min-width: 0;
+  }
+
+  .historyDetails dl > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
+
+.retryHistoryButton {
+  margin-top: 10px;
+  min-height: 34px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 9px;
+  padding: 0 12px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.retryHistoryButton:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.retryHistoryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.retryHistoryButton {
+  margin-top: 10px;
+  min-height: 34px;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 9px;
+  padding: 0 12px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.retryHistoryButton:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.retryHistoryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

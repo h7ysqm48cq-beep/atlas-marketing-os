@@ -154,6 +154,115 @@ export class AutomationController {
   }
 
 
+  @Post(
+    'browser-actions/:id/retry',
+  )
+  async retryBrowserAction(
+    @Param('id') id: string,
+  ) {
+    const previous =
+      await this.browserActionHistory
+        .getRequired(id);
+
+    if (
+      previous.status !==
+      'FAILED'
+    ) {
+      throw new BadRequestException(
+        'Only failed Browser Agent actions can be retried.',
+      );
+    }
+
+    if (
+      previous.action !==
+      BrowserActionType.PREPARE
+    ) {
+      throw new BadRequestException(
+        'Only failed PREPARE actions currently support retry.',
+      );
+    }
+
+    const caption =
+      previous.caption?.trim() ||
+      '';
+
+    if (!caption) {
+      throw new BadRequestException(
+        'The failed action does not contain a caption to retry.',
+      );
+    }
+
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          previous.channelId,
+        );
+
+    const retryAction =
+      await this.browserActionHistory
+        .start({
+          channelId:
+            previous.channelId,
+          action:
+            BrowserActionType.PREPARE,
+          browserProfileKey:
+            profile.browserProfileKey,
+          caption,
+          imagePath:
+            previous.imagePath,
+          requestPayload: {
+            retryOfActionId:
+              previous.id,
+            caption,
+            imagePath:
+              previous.imagePath,
+          },
+        });
+
+    try {
+      const result =
+        await this.browserRuntime
+          .prepareFacebookPost(
+            profile.browserProfileKey,
+            {
+              caption,
+              imagePath:
+                previous.imagePath,
+            },
+          );
+
+      await this.browserActionHistory
+        .succeed(
+          retryAction.id,
+          {
+            responsePayload:
+              sanitizeBrowserActionResponse(
+                result,
+              ),
+          },
+        );
+
+      return {
+        success: true,
+        retried: true,
+        retryOfActionId:
+          previous.id,
+        actionId:
+          retryAction.id,
+        result,
+      };
+    } catch (error) {
+      await this.browserActionHistory
+        .fail(
+          retryAction.id,
+          error,
+        );
+
+      throw error;
+    }
+  }
+
+
   @Get('browser-worker/health')
   browserWorkerHealth() {
     return this.browserRuntime

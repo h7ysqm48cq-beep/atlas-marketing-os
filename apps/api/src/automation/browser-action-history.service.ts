@@ -1,5 +1,6 @@
 import {
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   BrowserActionStatus,
@@ -159,6 +160,38 @@ export class BrowserActionHistoryService {
         },
       });
   }
+
+  async getRequired(
+    id: string,
+  ) {
+    const action =
+      await this.prisma
+        .browserActionHistory
+        .findUnique({
+          where: {
+            id,
+          },
+          include: {
+            channel: {
+              select: {
+                id: true,
+                name: true,
+                platform: true,
+                username: true,
+              },
+            },
+          },
+        });
+
+    if (!action) {
+      throw new NotFoundException(
+        'Browser Agent action was not found.',
+      );
+    }
+
+    return action;
+  }
+
 
   async listRecent(
     input: {
