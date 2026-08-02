@@ -134,6 +134,7 @@ export function ContentHistory() {
     ui("Loading generation history...", "正在加载内容历史……"),
   );
   const [saving, setSaving] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
   useEffect(() => {
     void load();
@@ -195,6 +196,9 @@ export function ContentHistory() {
           data[0] ||
           null,
       );
+      if (requestedHistoryId) {
+        setMobileDetailOpen(true);
+      }
       setStatus(
         data.length
           ? ui(
@@ -312,6 +316,21 @@ export function ContentHistory() {
     return `/ai-studio?${params.toString()}`;
   }
 
+  function openRecord(record: HistoryRecord) {
+    setSelected(record);
+    setMobileDetailOpen(true);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  function closeMobileDetail() {
+    setMobileDetailOpen(false);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
@@ -336,7 +355,9 @@ export function ContentHistory() {
           <small>{status}</small>
         </div>
       </section>
-      <section className={styles.toolbar}>
+      <section
+        className={`${styles.toolbar} ${mobileDetailOpen ? styles.mobileToolbarHidden : ""}`}
+      >
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -368,7 +389,18 @@ export function ContentHistory() {
         <button onClick={() => void load()}>{ui("Refresh", "刷新")}</button>
       </section>
       <section className={styles.layout}>
-        <div className={styles.list}>
+        <div
+          className={`${styles.list} ${mobileDetailOpen ? styles.mobileListHidden : ""}`}
+        >
+          <div className={styles.mobileListSummary}>
+            <strong>
+              {ui(
+                `${filtered.length} records`,
+                `${filtered.length} 条记录`,
+              )}
+            </strong>
+            <span>{ui("Tap to view details", "点击记录查看详情")}</span>
+          </div>
           {filtered.length === 0 ? (
             <div className={styles.emptyState}>
               <strong>
@@ -386,7 +418,7 @@ export function ContentHistory() {
               <button
                 key={record.id}
                 className={`${styles.historyCard} ${selected?.id === record.id ? styles.selectedCard : ""}`}
-                onClick={() => setSelected(record)}
+                onClick={() => openRecord(record)}
               >
                 <div className={styles.cardTop}>
                   <span className={styles.brandBadge}>{record.brand.name}</span>
@@ -410,7 +442,9 @@ export function ContentHistory() {
             ))
           )}
         </div>
-        <div className={styles.viewer}>
+        <div
+          className={`${styles.viewer} ${!mobileDetailOpen ? styles.mobileViewerHidden : ""}`}
+        >
           {!selected ? (
             <div className={styles.emptyViewer}>
               {ui(
@@ -420,6 +454,12 @@ export function ContentHistory() {
             </div>
           ) : (
             <>
+              <div className={styles.mobileDetailBar}>
+                <button type="button" onClick={closeMobileDetail}>
+                  ← {ui("Back to history", "返回内容历史")}
+                </button>
+                <span>{contentStatusLabel(selected.status)}</span>
+              </div>
               <div className={styles.viewerHeader}>
                 <div>
                   <div className={styles.viewerBadges}>

@@ -102,6 +102,11 @@
   padding-right: 4px;
 }
 
+.mobileListSummary,
+.mobileDetailBar {
+  display: none;
+}
+
 .historyCard {
   width: 100%;
   text-align: left;
@@ -853,6 +858,10 @@
     padding-top: 8px;
   }
 
+  .hero:has(+ .mobileToolbarHidden) {
+    display: none;
+  }
+
   .hero h1 {
     margin-top: 8px;
     font-size: clamp(35px, 9.5vw, 48px);
@@ -896,6 +905,29 @@
     gap: 14px;
   }
 
+  .mobileToolbarHidden,
+  .mobileListHidden,
+  .mobileViewerHidden {
+    display: none;
+  }
+
+  .mobileListSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 2px 6px;
+  }
+
+  .mobileListSummary strong {
+    font-size: 14px;
+  }
+
+  .mobileListSummary span {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
   .list {
     max-height: none;
     gap: 10px;
@@ -904,6 +936,26 @@
   .historyCard {
     padding: 16px;
     border-radius: 17px;
+  }
+
+  .historyCard {
+    position: relative;
+    padding-right: 42px;
+  }
+
+  .historyCard::after {
+    content: "›";
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    translate: 0 -50%;
+    color: var(--gold-light);
+    font-size: 27px;
+    font-weight: 300;
+  }
+
+  .selectedCard {
+    border-color: var(--border);
   }
 
   .historyCard h2 {
@@ -917,8 +969,45 @@
   }
 
   .viewer {
-    padding: 17px;
+    min-height: 0;
+    padding: 0 17px 17px;
     border-radius: 17px;
+  }
+
+  .mobileDetailBar {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 -17px 16px;
+    padding: 12px 17px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 17px 17px 0 0;
+    background: rgba(13, 16, 22, .96);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobileDetailBar button {
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .mobileDetailBar span {
+    max-width: 42%;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .viewerHeader {
@@ -1049,6 +1138,16 @@
     padding-bottom: 6px;
   }
 
+  .tabs {
+    position: sticky;
+    z-index: 4;
+    top: 64px;
+    margin-inline: -17px;
+    padding-inline: 17px;
+    background: rgba(13, 16, 22, .96);
+    backdrop-filter: blur(14px);
+  }
+
   .tabs button {
     flex: 0 0 auto;
     min-height: 40px;
@@ -1066,6 +1165,13 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
+  }
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .mobileDetailBar,
+  :global(html[data-theme="light"]) .tabs {
+    background: rgba(255, 255, 255, .96) !important;
   }
 }
 

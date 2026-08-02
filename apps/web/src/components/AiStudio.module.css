@@ -75,6 +75,106 @@
   gap: 20px;
 }
 
+.recentSection {
+  display: grid;
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(21, 25, 34, 0.98), rgba(13, 16, 22, 0.98));
+}
+
+.recentHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recentHeader h2 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.recentHeader > a {
+  color: var(--gold-light);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.recentList {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.recentCard {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(7, 9, 13, 0.42);
+  color: var(--text);
+  transition: border-color .18s ease, transform .18s ease;
+}
+
+.recentCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(209, 163, 63, .45);
+}
+
+.activeRecentCard {
+  border-color: rgba(209, 163, 63, .72);
+  background: rgba(209, 163, 63, .08);
+}
+
+.recentCard > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.recentCard span,
+.recentCard small,
+.recentCard p,
+.recentCard time {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentCard span {
+  color: var(--gold-light);
+  font-weight: 800;
+}
+
+.recentCard strong {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 34px;
+  font-size: 11px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.recentCard p {
+  margin: 0;
+}
+
+.recentMessage {
+  margin: 0;
+  padding: 9px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .formCard {
   position: sticky;
   top: 94px;
@@ -892,6 +992,13 @@
   box-shadow: var(--shadow);
 }
 
+:global(html[data-theme="light"]) .recentSection,
+:global(html[data-theme="light"]) .recentCard {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+}
+
 :global(html[data-theme="light"]) .field textarea,
 :global(html[data-theme="light"]) .field select,
 :global(html[data-theme="light"]) .assetSearch {
@@ -912,4 +1019,103 @@
   border-color: var(--border) !important;
   background: var(--panel-soft) !important;
   color: var(--text) !important;
+}
+
+@media (max-width: 760px) {
+  .page {
+    gap: 16px;
+  }
+
+  .hero {
+    gap: 14px;
+  }
+
+  .hero h1 {
+    margin-bottom: 7px;
+    font-size: clamp(29px, 8.5vw, 38px);
+    line-height: 1.08;
+  }
+
+  .hero > div > p:last-child {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .recentSection {
+    gap: 11px;
+    margin-inline: -2px;
+    padding: 14px;
+  }
+
+  .recentHeader {
+    align-items: center;
+  }
+
+  .recentHeader h2 {
+    font-size: 16px;
+  }
+
+  .recentHeader > a {
+    flex: 0 0 auto;
+  }
+
+  .recentList {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(210px, 78vw);
+    grid-auto-flow: column;
+    overflow-x: auto;
+    margin-inline: -14px;
+    padding: 0 14px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .recentList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .recentCard {
+    min-height: 122px;
+    scroll-snap-align: start;
+  }
+
+  .formCard {
+    max-height: none;
+    overflow: visible;
+    padding: 15px;
+  }
+
+  .field textarea {
+    min-height: 104px;
+  }
+
+  .platforms > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platforms button {
+    justify-content: flex-start;
+    min-height: 42px;
+  }
+
+  .generateButton {
+    position: sticky;
+    z-index: 6;
+    bottom: 10px;
+    min-height: 50px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+  }
+
+  .assetModalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .assetModal {
+    width: 100%;
+    max-height: 88dvh;
+    padding: 16px;
+    border-radius: 18px 18px 0 0;
+  }
 }

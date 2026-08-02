@@ -29,6 +29,18 @@ type StudioAsset = {
   aiEnabled: boolean;
 };
 
+type RecentHistory = {
+  id: string;
+  topic: string;
+  style: string;
+  language: string;
+  status: string;
+  createdAt: string;
+  brand: {
+    name: string;
+  };
+};
+
 export function AiStudio() {
   const { language: interfaceLanguage } = usePreferences();
 
@@ -86,6 +98,8 @@ export function AiStudio() {
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [recentHistory, setRecentHistory] = useState<RecentHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [message, setMessage] = useState(
     ui("Enter a topic and click Generate content.", "输入主题后点击生成内容。"),
   );
@@ -229,6 +243,34 @@ export function AiStudio() {
 
     void initialiseWorkspace();
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRecentHistory() {
+      try {
+        const response = await fetch(`${API_URL}/history`, {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as RecentHistory[] | { message?: string };
+
+        if (!response.ok || !Array.isArray(data)) {
+          throw new Error("Unable to load history.");
+        }
+
+        if (!cancelled) setRecentHistory(data.slice(0, 6));
+      } catch {
+        if (!cancelled) setRecentHistory([]);
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    }
+
+    void loadRecentHistory();
     return () => {
       cancelled = true;
     };
@@ -476,6 +518,51 @@ export function AiStudio() {
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section className={styles.recentSection}>
+        <div className={styles.recentHeader}>
+          <div>
+            <p className={styles.eyebrow}>{ui("Recent work", "最近生成")}</p>
+            <h2>{ui("Continue from history", "继续之前的内容")}</h2>
+          </div>
+          <a href="/content-history">{ui("View all history", "查看全部历史")} →</a>
+        </div>
+
+        {isLoadingHistory ? (
+          <p className={styles.recentMessage}>{ui("Loading history...", "正在加载历史记录……")}</p>
+        ) : recentHistory.length ? (
+          <div className={styles.recentList}>
+            {recentHistory.map((record) => (
+              <a
+                className={`${styles.recentCard} ${result?.historyId === record.id ? styles.activeRecentCard : ""}`}
+                href={`/ai-studio?historyId=${encodeURIComponent(record.id)}`}
+                key={record.id}
+              >
+                <div>
+                  <span>{record.brand.name}</span>
+                  <small>{record.status}</small>
+                </div>
+                <strong>{record.topic}</strong>
+                <p>
+                  {styleLabel(record.style)} · {contentLanguageLabel(record.language)}
+                </p>
+                <time dateTime={record.createdAt}>
+                  {new Intl.DateTimeFormat(interfaceLanguage === "zh" ? "zh-CN" : "en-MY", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(new Date(record.createdAt))}
+                </time>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.recentMessage}>
+            {ui("No previous generations yet.", "还没有之前的生成记录。")}
+          </p>
+        )}
       </section>
 
       <section className={styles.layout}>
