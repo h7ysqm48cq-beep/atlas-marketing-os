@@ -216,6 +216,14 @@ export class AutomationService {
     );
   }
 
+  async inspectTelegramBot(botToken: string) {
+    if (!botToken?.trim()) {
+      throw new BadRequestException('Telegram Bot Token is required.');
+    }
+
+    return this.telegramConnector.inspectBot(botToken.trim());
+  }
+
   async createChannel(input: CreateChannelInput) {
     await this.ensureBrand(input.brandId);
 

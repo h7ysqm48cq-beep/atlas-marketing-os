@@ -1202,6 +1202,13 @@ export class AutomationController {
     );
   }
 
+  @Post('telegram/inspect-bot')
+  inspectTelegramBot(
+    @Body() body: { botToken: string },
+  ) {
+    return this.automationService.inspectTelegramBot(body.botToken);
+  }
+
 
   @Patch('channels/:id')
   updateChannel(

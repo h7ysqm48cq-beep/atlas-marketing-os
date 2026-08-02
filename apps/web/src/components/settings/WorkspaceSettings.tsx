@@ -85,6 +85,11 @@ export function WorkspaceSettings() {
 
   const [showTelegramForm, setShowTelegramForm] = useState(false);
   const [connectingTelegram, setConnectingTelegram] = useState(false);
+  const [verifyingTelegram, setVerifyingTelegram] = useState(false);
+  const [verifiedTelegramBot, setVerifiedTelegramBot] = useState<{
+    name: string;
+    username: string | null;
+  } | null>(null);
   const [telegramForm, setTelegramForm] = useState({
     brandId: "",
     name: "",
@@ -342,6 +347,46 @@ export function WorkspaceSettings() {
       );
     } finally {
       setConnectingTelegram(false);
+    }
+  }
+
+  async function verifyTelegramBot() {
+    if (!telegramForm.botToken.trim()) {
+      setError("Paste the Bot Token first.");
+      return;
+    }
+
+    setVerifyingTelegram(true);
+    setVerifiedTelegramBot(null);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/automation/telegram/inspect-bot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botToken: telegramForm.botToken.trim() }),
+      });
+      const bot = (await response.json()) as {
+        name?: string;
+        username?: string | null;
+        message?: string;
+      };
+
+      if (!response.ok || !bot.name) {
+        throw new Error(bot.message || "Bot Token is invalid.");
+      }
+
+      setVerifiedTelegramBot({ name: bot.name, username: bot.username ?? null });
+      setTelegramForm((current) => ({
+        ...current,
+        name: current.name || bot.name || "Telegram Channel",
+      }));
+    } catch (verifyError) {
+      setError(
+        verifyError instanceof Error ? verifyError.message : "Unable to verify Bot.",
+      );
+    } finally {
+      setVerifyingTelegram(false);
     }
   }
 
@@ -982,6 +1027,60 @@ export function WorkspaceSettings() {
 
         {showTelegramForm ? (
           <div className={styles.telegramConnectForm}>
+            <div className={styles.telegramGuideHeader}>
+              <div><b>1</b><span>Verify Bot</span></div>
+              <i>→</i>
+              <div><b>2</b><span>Add channel</span></div>
+              <i>→</i>
+              <div><b>3</b><span>Auto-test</span></div>
+            </div>
+
+            <div className={styles.telegramBotStep}>
+              <div>
+                <strong>Connect your Telegram Bot</strong>
+                <p>
+                  Create or open a bot in @BotFather, copy its token and paste it below.
+                  Atlas only stores it after the channel connection succeeds.
+                </p>
+              </div>
+
+              <div className={styles.telegramTokenRow}>
+                <input
+                  type="password"
+                  value={telegramForm.botToken}
+                  placeholder="Paste Bot Token"
+                  onChange={(event) => {
+                    setVerifiedTelegramBot(null);
+                    setTelegramForm((current) => ({
+                      ...current,
+                      botToken: event.target.value,
+                    }));
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void verifyTelegramBot()}
+                  disabled={verifyingTelegram}
+                >
+                  {verifyingTelegram ? "Verifying..." : "Verify Bot"}
+                </button>
+              </div>
+
+              {verifiedTelegramBot ? (
+                <div className={styles.verifiedTelegramBot}>
+                  <span>✓</span>
+                  <div>
+                    <strong>{verifiedTelegramBot.name}</strong>
+                    <small>
+                      {verifiedTelegramBot.username
+                        ? `@${verifiedTelegramBot.username}`
+                        : "Verified Telegram Bot"}
+                    </small>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <div className={styles.formGrid}>
               <label>
                 <span>Brand</span>
@@ -1030,20 +1129,10 @@ export function WorkspaceSettings() {
                 />
               </label>
 
-              <label>
-                <span>Bot Token</span>
-                <input
-                  type="password"
-                  value={telegramForm.botToken}
-                  placeholder="Stored encrypted"
-                  onChange={(event) =>
-                    setTelegramForm((current) => ({
-                      ...current,
-                      botToken: event.target.value,
-                    }))
-                  }
-                />
-              </label>
+              <div className={styles.telegramAdminHint}>
+                <strong>Before connecting</strong>
+                <span>Add this Bot to the target channel as an administrator with permission to post messages.</span>
+              </div>
             </div>
 
             <div className={styles.telegramFormActions}>
@@ -1053,7 +1142,7 @@ export function WorkspaceSettings() {
               <button
                 type="button"
                 onClick={() => void connectTelegram()}
-                disabled={connectingTelegram}
+                disabled={connectingTelegram || !verifiedTelegramBot}
               >
                 {connectingTelegram ? "Connecting..." : "Connect Telegram"}
               </button>

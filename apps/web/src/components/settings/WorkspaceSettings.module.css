@@ -390,6 +390,113 @@
   background: var(--panel-soft);
 }
 
+.telegramGuideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.telegramGuideHeader > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.telegramGuideHeader b {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(34, 158, 217, .14);
+  color: #229ed9;
+}
+
+.telegramGuideHeader i {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.telegramBotStep {
+  display: grid;
+  gap: 12px;
+}
+
+.telegramBotStep p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.telegramTokenRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.telegramTokenRow input,
+.telegramTokenRow button {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 11px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.telegramTokenRow button {
+  border-color: #229ed9;
+  color: #229ed9;
+  font-weight: 800;
+}
+
+.verifiedTelegramBot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid rgba(34, 197, 94, .28);
+  border-radius: 11px;
+  background: rgba(34, 197, 94, .08);
+}
+
+.verifiedTelegramBot > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #22c55e;
+  color: white;
+}
+
+.verifiedTelegramBot div {
+  display: grid;
+  gap: 3px;
+}
+
+.verifiedTelegramBot small,
+.telegramAdminHint span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.telegramAdminHint {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 11px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
 .telegramFormActions {
   display: flex;
   justify-content: flex-end;
@@ -413,6 +520,21 @@
 }
 
 @media (max-width: 560px) {
+  .telegramGuideHeader {
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .telegramGuideHeader > div {
+    display: grid;
+    justify-items: center;
+    font-size: 9px;
+  }
+
+  .telegramTokenRow {
+    grid-template-columns: 1fr;
+  }
+
   .telegramFormActions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

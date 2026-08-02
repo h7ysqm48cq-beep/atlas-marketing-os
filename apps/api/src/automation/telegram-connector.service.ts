@@ -43,6 +43,20 @@ export class TelegramConnectorService {
     private readonly configService: ConfigService,
   ) {}
 
+  async inspectBot(botToken: string) {
+    const bot = await this.call<TelegramUser>(
+      'getMe',
+      {},
+      botToken,
+    );
+
+    return {
+      id: bot.id,
+      name: bot.first_name,
+      username: bot.username ?? null,
+    };
+  }
+
   async testConnection(
     credentials?: TelegramChannelCredentials,
   ) {
