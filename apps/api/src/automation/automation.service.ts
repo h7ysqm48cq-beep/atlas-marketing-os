@@ -12,6 +12,7 @@ import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 import { PublisherService } from './publisher.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { RuntimeProfileService } from './runtime-profile.service';
 
 type CreateChannelInput = {
   brandId: string;
@@ -50,6 +51,8 @@ export class AutomationService {
       SocialTokenCryptoService,
     private readonly facebookConnector:
       FacebookConnectorService,
+    private readonly runtimeProfiles:
+      RuntimeProfileService,
   ) {}
 
   async dashboard() {
@@ -366,11 +369,31 @@ export class AutomationService {
           encryptedToken,
         );
 
+      const publishNetwork =
+        await this.runtimeProfiles
+          .getPublishNetwork(id);
+
+      if (
+        publishNetwork.proxyType ===
+        'SOCKS5'
+      ) {
+        throw new BadRequestException(
+          [
+            'SOCKS5 is not supported by',
+            'Facebook Native API testing.',
+            'Use DIRECT, HTTP or HTTPS,',
+            'or wait for Browser Runtime support.',
+          ].join(' '),
+        );
+      }
+
       const result =
         await this.facebookConnector
           .testConnection({
             pageId,
             accessToken,
+            proxyUrl:
+              publishNetwork.proxyUrl,
           });
 
       const updated =
@@ -399,7 +422,19 @@ export class AutomationService {
           this.sanitizeChannel(
             updated,
           ),
-        connection: result,
+        connection: {
+          ...result,
+          runtime: {
+            proxyType:
+              publishNetwork.proxyType,
+            browserProfileKey:
+              publishNetwork.browserProfileKey,
+            locale:
+              publishNetwork.locale,
+            timezone:
+              publishNetwork.timezone,
+          },
+        },
       };
     } catch (error) {
       const message =
