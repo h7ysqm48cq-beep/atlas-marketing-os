@@ -29,8 +29,8 @@ export * from "./enums.js"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Workspaces
- * const workspaces = await prisma.workspace.findMany()
+ * // Fetch zero or more BackgroundJobs
+ * const backgroundJobs = await prisma.backgroundJob.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -39,6 +39,11 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
+/**
+ * Model BackgroundJob
+ * 
+ */
+export type BackgroundJob = Prisma.BackgroundJobModel
 /**
  * Model Workspace
  * 
@@ -95,6 +100,11 @@ export type AiUsage = Prisma.AiUsageModel
  */
 export type SocialChannel = Prisma.SocialChannelModel
 /**
+ * Model SocialChannelRuntimeProfile
+ * 
+ */
+export type SocialChannelRuntimeProfile = Prisma.SocialChannelRuntimeProfileModel
+/**
  * Model ScheduledPost
  * 
  */
@@ -104,6 +114,16 @@ export type ScheduledPost = Prisma.ScheduledPostModel
  * 
  */
 export type PublishAttempt = Prisma.PublishAttemptModel
+/**
+ * Model BrowserActionHistory
+ * 
+ */
+export type BrowserActionHistory = Prisma.BrowserActionHistoryModel
+/**
+ * Model BrowserActionTrace
+ * 
+ */
+export type BrowserActionTrace = Prisma.BrowserActionTraceModel
 /**
  * Model AutomationSetting
  * 

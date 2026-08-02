@@ -18,6 +18,11 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
+ * Model BackgroundJob
+ * 
+ */
+export type BackgroundJob = Prisma.BackgroundJobModel
+/**
  * Model Workspace
  * 
  */
@@ -73,6 +78,11 @@ export type AiUsage = Prisma.AiUsageModel
  */
 export type SocialChannel = Prisma.SocialChannelModel
 /**
+ * Model SocialChannelRuntimeProfile
+ * 
+ */
+export type SocialChannelRuntimeProfile = Prisma.SocialChannelRuntimeProfileModel
+/**
  * Model ScheduledPost
  * 
  */
@@ -82,6 +92,16 @@ export type ScheduledPost = Prisma.ScheduledPostModel
  * 
  */
 export type PublishAttempt = Prisma.PublishAttemptModel
+/**
+ * Model BrowserActionHistory
+ * 
+ */
+export type BrowserActionHistory = Prisma.BrowserActionHistoryModel
+/**
+ * Model BrowserActionTrace
+ * 
+ */
+export type BrowserActionTrace = Prisma.BrowserActionTraceModel
 /**
  * Model AutomationSetting
  * 

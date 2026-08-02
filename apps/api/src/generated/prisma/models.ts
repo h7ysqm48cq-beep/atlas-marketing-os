@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/BackgroundJob.js'
 export type * from './models/Workspace.js'
 export type * from './models/Brand.js'
 export type * from './models/Campaign.js'
@@ -19,8 +20,11 @@ export type * from './models/KnowledgeDocument.js'
 export type * from './models/KnowledgeEmbedding.js'
 export type * from './models/AiUsage.js'
 export type * from './models/SocialChannel.js'
+export type * from './models/SocialChannelRuntimeProfile.js'
 export type * from './models/ScheduledPost.js'
 export type * from './models/PublishAttempt.js'
+export type * from './models/BrowserActionHistory.js'
+export type * from './models/BrowserActionTrace.js'
 export type * from './models/AutomationSetting.js'
 export type * from './models/CopilotConversation.js'
 export type * from './models/CopilotConversationMessage.js'

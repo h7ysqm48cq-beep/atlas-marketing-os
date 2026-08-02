@@ -44,6 +44,36 @@ enum AssetType {
   TEMPLATE
 }
 
+enum BackgroundJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum BackgroundJobType {
+  AI_STUDIO
+  COPILOT_CHAT
+  COPILOT_MARKETING_PLAN
+}
+
+model BackgroundJob {
+  id          String              @id @default(cuid())
+  type        BackgroundJobType
+  status      BackgroundJobStatus @default(QUEUED)
+  payload     Json
+  result      Json?
+  error       String?
+  attempts    Int                 @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([type, status, createdAt])
+  @@index([createdAt])
+}
+
 model Workspace {
   id                String             @id @default(cuid())
   name              String
@@ -567,11 +597,11 @@ model BrowserActionTrace {
 
   createdAt DateTime @default(now())
 
+  @@unique([browserActionId, stepOrder])
   @@index([browserActionId])
   @@index([status])
   @@index([stepKey])
   @@index([createdAt])
-  @@unique([browserActionId, stepOrder])
 }
 
 model AutomationSetting {

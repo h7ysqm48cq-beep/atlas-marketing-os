@@ -7,6 +7,8 @@ import styles from "./AiStudio.module.css";
 import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
+import { waitForBackgroundJob } from "@/lib/background-job";
+const AI_STUDIO_JOB_KEY = "atlas-ai-studio-background-job";
 const platformOptions = [
   "Facebook",
   "Telegram",
@@ -232,6 +234,42 @@ export function AiStudio() {
     };
   }, []);
 
+  useEffect(() => {
+    const pendingJobId = window.localStorage.getItem(AI_STUDIO_JOB_KEY);
+    if (!pendingJobId) return;
+
+    setIsGenerating(true);
+    setMessage("Restoring AI task running in the background...");
+    void completeJob(pendingJobId);
+  }, []);
+
+  async function completeJob(jobId: string) {
+    try {
+      const data = await waitForBackgroundJob<WorkspaceResult>(
+        `${API_URL}/ai/jobs/${jobId}`,
+      );
+      window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
+      setResult(data);
+      setMessage(
+        data.campaignUsed
+          ? `Workspace complete · Saved to ${data.campaignUsed.name}`
+          : "Workspace complete · Saved to Content History",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to generate content.",
+      );
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes("still running")
+      ) {
+        window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   function togglePlatform(platform: StudioPlatform) {
     setPlatforms((current) => {
       if (current.includes(platform)) {
@@ -335,7 +373,7 @@ export function AiStudio() {
     );
 
     try {
-      const response = await fetch(`${API_URL}/ai/generate`, {
+      const response = await fetch(`${API_URL}/ai/jobs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -351,33 +389,26 @@ export function AiStudio() {
         }),
       });
 
-      setMessage(
-        ui("Building platform-specific outputs...", "正在生成各平台专属内容……"),
-      );
+      const job = (await response.json()) as {
+        id?: string;
+        message?: string;
+      };
 
-      const data = (await response.json()) as
-        WorkspaceResult | { message?: string };
-
-      if (!response.ok || !("facebook" in data)) {
+      if (!response.ok || !job.id) {
         throw new Error(
-          "message" in data && data.message
-            ? data.message
+          job.message
+            ? job.message
             : ui("Unable to generate content.", "无法生成内容。"),
         );
       }
-
-      setResult(data);
+      window.localStorage.setItem(AI_STUDIO_JOB_KEY, job.id);
       setMessage(
-        data.campaignUsed
-          ? ui(
-              `Workspace complete · Saved to ${data.campaignUsed.name}`,
-              `工作区已完成 · 已保存至 ${data.campaignUsed.name}`,
-            )
-          : ui(
-              "Workspace complete · Saved to Content History",
-              "工作区已完成 · 已保存至内容历史",
-            ),
+        ui(
+          "AI task is running safely in the background...",
+          "AI 任务正在后台安全运行……",
+        ),
       );
+      await completeJob(job.id);
     } catch (error) {
       setMessage(
         error instanceof Error

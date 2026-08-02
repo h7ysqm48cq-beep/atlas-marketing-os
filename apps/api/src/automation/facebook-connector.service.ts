@@ -137,10 +137,11 @@ export class FacebookConnectorService {
         .find(Boolean);
 
     if (firstMediaUrl) {
-      return this.publishPhoto({
+      return this.publishPostWithPhoto({
         ...credentials,
-        caption: input.message,
+        message: input.message,
         mediaUrl: firstMediaUrl,
+        link: input.link,
       });
     }
 
@@ -149,6 +150,70 @@ export class FacebookConnectorService {
       message: input.message,
       link: input.link,
     });
+  }
+
+  /**
+   * Upload the image as unpublished media, then attach it to a Page feed
+   * post. Posting directly to /photos makes Facebook classify the item as a
+   * Photo instead of a normal Page post.
+   */
+  async publishPostWithPhoto(
+    input: FacebookChannelCredentials & {
+      message: string;
+      mediaUrl: string;
+      link?: string;
+    },
+  ) {
+    const credentials = this.requireCredentials(input);
+    const media = await this.uploadUnpublishedPhoto(input);
+    const payload: Record<string, string> = {
+      message: input.message?.trim(),
+      'attached_media[0]': JSON.stringify({
+        media_fbid: media.id,
+      }),
+    };
+
+    if (!payload.message) {
+      throw new BadRequestException(
+        'Facebook message cannot be empty.',
+      );
+    }
+
+    if (input.link?.trim()) {
+      payload.link = input.link.trim();
+    }
+
+    return this.graphPost<FacebookPostResult>(
+      `${credentials.pageId}/feed`,
+      payload,
+      credentials.accessToken,
+      credentials.proxyUrl,
+    );
+  }
+
+  private async uploadUnpublishedPhoto(
+    input: FacebookChannelCredentials & {
+      mediaUrl: string;
+    },
+  ) {
+    const credentials = this.requireCredentials(input);
+    const media = await this.fetchMedia(input.mediaUrl);
+    const form = new UndiciFormData();
+
+    form.set('published', 'false');
+    form.set('access_token', credentials.accessToken);
+    form.set('source', media.file);
+
+    const response = await this.request(
+      `${this.getBaseUrl()}/${credentials.pageId}/photos`,
+      { method: 'POST', body: form },
+      credentials.proxyUrl,
+    );
+    const result =
+      (await response.json()) as FacebookApiResponse<FacebookPhotoResult>;
+
+    this.throwFacebookError(response.ok, result.error);
+    return result;
   }
 
   async publishPhoto(

@@ -257,6 +257,8 @@ export type SocialChannelWhereInput = {
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
+  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
 }
 
 export type SocialChannelOrderByWithRelationInput = {
@@ -277,6 +279,8 @@ export type SocialChannelOrderByWithRelationInput = {
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
   brand?: Prisma.BrandOrderByWithRelationInput
   scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
+  browserActionHistory?: Prisma.BrowserActionHistoryOrderByRelationAggregateInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOrderByWithRelationInput
 }
 
 export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -301,6 +305,8 @@ export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
+  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
 }, "id" | "brandId_platform_externalId">
 
 export type SocialChannelOrderByWithAggregationInput = {
@@ -359,6 +365,8 @@ export type SocialChannelCreateInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelUncheckedCreateInput = {
@@ -377,6 +385,8 @@ export type SocialChannelUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelUpdateInput = {
@@ -395,6 +405,8 @@ export type SocialChannelUpdateInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateInput = {
@@ -413,6 +425,8 @@ export type SocialChannelUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelCreateManyInput = {
@@ -628,6 +642,20 @@ export type EnumSocialChannelStatusFieldUpdateOperationsInput = {
   set?: $Enums.SocialChannelStatus
 }
 
+export type SocialChannelCreateNestedOneWithoutSocialChannelRuntimeProfileInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSocialChannelRuntimeProfileInput
+  connect?: Prisma.SocialChannelWhereUniqueInput
+}
+
+export type SocialChannelUpdateOneRequiredWithoutSocialChannelRuntimeProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSocialChannelRuntimeProfileInput
+  upsert?: Prisma.SocialChannelUpsertWithoutSocialChannelRuntimeProfileInput
+  connect?: Prisma.SocialChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput>, Prisma.SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput>
+}
+
 export type SocialChannelCreateNestedOneWithoutScheduledPostsInput = {
   create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutScheduledPostsInput, Prisma.SocialChannelUncheckedCreateWithoutScheduledPostsInput>
   connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutScheduledPostsInput
@@ -640,6 +668,20 @@ export type SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput = {
   upsert?: Prisma.SocialChannelUpsertWithoutScheduledPostsInput
   connect?: Prisma.SocialChannelWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutScheduledPostsInput, Prisma.SocialChannelUpdateWithoutScheduledPostsInput>, Prisma.SocialChannelUncheckedUpdateWithoutScheduledPostsInput>
+}
+
+export type SocialChannelCreateNestedOneWithoutBrowserActionHistoryInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutBrowserActionHistoryInput
+  connect?: Prisma.SocialChannelWhereUniqueInput
+}
+
+export type SocialChannelUpdateOneRequiredWithoutBrowserActionHistoryNestedInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutBrowserActionHistoryInput
+  upsert?: Prisma.SocialChannelUpsertWithoutBrowserActionHistoryInput
+  connect?: Prisma.SocialChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutBrowserActionHistoryInput, Prisma.SocialChannelUpdateWithoutBrowserActionHistoryInput>, Prisma.SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput>
 }
 
 export type SocialChannelCreateWithoutWorkspaceInput = {
@@ -657,6 +699,8 @@ export type SocialChannelCreateWithoutWorkspaceInput = {
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
@@ -674,6 +718,8 @@ export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutWorkspaceInput = {
@@ -737,6 +783,8 @@ export type SocialChannelCreateWithoutBrandInput = {
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrandInput = {
@@ -754,6 +802,8 @@ export type SocialChannelUncheckedCreateWithoutBrandInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrandInput = {
@@ -782,6 +832,98 @@ export type SocialChannelUpdateManyWithWhereWithoutBrandInput = {
   data: Prisma.XOR<Prisma.SocialChannelUpdateManyMutationInput, Prisma.SocialChannelUncheckedUpdateManyWithoutBrandInput>
 }
 
+export type SocialChannelCreateWithoutSocialChannelRuntimeProfileInput = {
+  id?: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+}
+
+export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput = {
+  id?: string
+  workspaceId: string
+  brandId: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+}
+
+export type SocialChannelCreateOrConnectWithoutSocialChannelRuntimeProfileInput = {
+  where: Prisma.SocialChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput>
+}
+
+export type SocialChannelUpsertWithoutSocialChannelRuntimeProfileInput = {
+  update: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput>
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput>
+  where?: Prisma.SocialChannelWhereInput
+}
+
+export type SocialChannelUpdateToOneWithWhereWithoutSocialChannelRuntimeProfileInput = {
+  where?: Prisma.SocialChannelWhereInput
+  data: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput, Prisma.SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput>
+}
+
+export type SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+}
+
+export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+}
+
 export type SocialChannelCreateWithoutScheduledPostsInput = {
   id?: string
   platform: $Enums.SocialPlatform
@@ -797,6 +939,8 @@ export type SocialChannelCreateWithoutScheduledPostsInput = {
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
@@ -814,6 +958,8 @@ export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutScheduledPostsInput = {
@@ -847,6 +993,8 @@ export type SocialChannelUpdateWithoutScheduledPostsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
@@ -864,6 +1012,100 @@ export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+}
+
+export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
+  id?: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+}
+
+export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
+  id?: string
+  workspaceId: string
+  brandId: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+}
+
+export type SocialChannelCreateOrConnectWithoutBrowserActionHistoryInput = {
+  where: Prisma.SocialChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput>
+}
+
+export type SocialChannelUpsertWithoutBrowserActionHistoryInput = {
+  update: Prisma.XOR<Prisma.SocialChannelUpdateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput>
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput>
+  where?: Prisma.SocialChannelWhereInput
+}
+
+export type SocialChannelUpdateToOneWithWhereWithoutBrowserActionHistoryInput = {
+  where?: Prisma.SocialChannelWhereInput
+  data: Prisma.XOR<Prisma.SocialChannelUpdateWithoutBrowserActionHistoryInput, Prisma.SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput>
+}
+
+export type SocialChannelUpdateWithoutBrowserActionHistoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+}
+
+export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelCreateManyWorkspaceInput = {
@@ -897,6 +1139,8 @@ export type SocialChannelUpdateWithoutWorkspaceInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
@@ -914,6 +1158,8 @@ export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -963,6 +1209,8 @@ export type SocialChannelUpdateWithoutBrandInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrandInput = {
@@ -980,6 +1228,8 @@ export type SocialChannelUncheckedUpdateWithoutBrandInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
@@ -1005,10 +1255,12 @@ export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
 
 export type SocialChannelCountOutputType = {
   scheduledPosts: number
+  browserActionHistory: number
 }
 
 export type SocialChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scheduledPosts?: boolean | SocialChannelCountOutputTypeCountScheduledPostsArgs
+  browserActionHistory?: boolean | SocialChannelCountOutputTypeCountBrowserActionHistoryArgs
 }
 
 /**
@@ -1026,6 +1278,13 @@ export type SocialChannelCountOutputTypeDefaultArgs<ExtArgs extends runtime.Type
  */
 export type SocialChannelCountOutputTypeCountScheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ScheduledPostWhereInput
+}
+
+/**
+ * SocialChannelCountOutputType without action
+ */
+export type SocialChannelCountOutputTypeCountBrowserActionHistoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BrowserActionHistoryWhereInput
 }
 
 
@@ -1047,6 +1306,8 @@ export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.Interna
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
+  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
+  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
 
@@ -1110,6 +1371,8 @@ export type SocialChannelInclude<ExtArgs extends runtime.Types.Extensions.Intern
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
+  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
+  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SocialChannelIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1127,6 +1390,8 @@ export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.Inter
     workspace: Prisma.$WorkspacePayload<ExtArgs>
     brand: Prisma.$BrandPayload<ExtArgs>
     scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
+    browserActionHistory: Prisma.$BrowserActionHistoryPayload<ExtArgs>[]
+    socialChannelRuntimeProfile: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1540,6 +1805,8 @@ export interface Prisma__SocialChannelClient<T, Null = never, ExtArgs extends ru
   workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   scheduledPosts<T extends Prisma.SocialChannel$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  browserActionHistory<T extends Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserActionHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  socialChannelRuntimeProfile<T extends Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>>): Prisma.Prisma__SocialChannelRuntimeProfileClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2005,6 +2272,49 @@ export type SocialChannel$scheduledPostsArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.ScheduledPostScalarFieldEnum | Prisma.ScheduledPostScalarFieldEnum[]
+}
+
+/**
+ * SocialChannel.browserActionHistory
+ */
+export type SocialChannel$browserActionHistoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BrowserActionHistory
+   */
+  select?: Prisma.BrowserActionHistorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BrowserActionHistory
+   */
+  omit?: Prisma.BrowserActionHistoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BrowserActionHistoryInclude<ExtArgs> | null
+  where?: Prisma.BrowserActionHistoryWhereInput
+  orderBy?: Prisma.BrowserActionHistoryOrderByWithRelationInput | Prisma.BrowserActionHistoryOrderByWithRelationInput[]
+  cursor?: Prisma.BrowserActionHistoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BrowserActionHistoryScalarFieldEnum | Prisma.BrowserActionHistoryScalarFieldEnum[]
+}
+
+/**
+ * SocialChannel.socialChannelRuntimeProfile
+ */
+export type SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannelRuntimeProfile
+   */
+  select?: Prisma.SocialChannelRuntimeProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannelRuntimeProfile
+   */
+  omit?: Prisma.SocialChannelRuntimeProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelRuntimeProfileInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelRuntimeProfileWhereInput
 }
 
 /**

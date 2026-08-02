@@ -10,6 +10,7 @@ import { AiService } from './ai.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ContentQualityService } from './content-quality.service';
 import { AssetContextService } from './asset-context.service';
+import { AiBackgroundJobService } from './ai-background-job.service';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AssetContextService } from './asset-context.service';
     PromptBuilderService,
     ContentQualityService,
     AssetContextService,
+    AiBackgroundJobService,
   ],
   exports: [PromptBuilderService],
 })

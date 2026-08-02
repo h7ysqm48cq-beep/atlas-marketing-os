@@ -236,6 +236,49 @@
   line-height: 1.78;
 }
 
+.promptEditor {
+  display: grid;
+  gap: 10px;
+}
+
+.promptEditor textarea {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid rgba(209, 163, 63, .35);
+  border-radius: 10px;
+  background: rgba(7, 9, 13, .72);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.7;
+  outline: none;
+}
+
+.promptEditor > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.promptEditor span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.promptEditor button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+  font-size: 9px;
+  font-weight: 800;
+}
+
 .secondaryToolbar {
   justify-content: space-between;
   flex-wrap: wrap;

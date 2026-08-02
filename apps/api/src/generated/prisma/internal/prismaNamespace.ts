@@ -397,6 +397,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  BackgroundJob: 'BackgroundJob',
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
@@ -408,8 +409,11 @@ export const ModelName = {
   KnowledgeEmbedding: 'KnowledgeEmbedding',
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
+  SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
+  BrowserActionHistory: 'BrowserActionHistory',
+  BrowserActionTrace: 'BrowserActionTrace',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
@@ -430,10 +434,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    BackgroundJob: {
+      payload: Prisma.$BackgroundJobPayload<ExtArgs>
+      fields: Prisma.BackgroundJobFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackgroundJobFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackgroundJobFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findFirst: {
+          args: Prisma.BackgroundJobFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackgroundJobFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findMany: {
+          args: Prisma.BackgroundJobFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        create: {
+          args: Prisma.BackgroundJobCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        createMany: {
+          args: Prisma.BackgroundJobCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackgroundJobCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        delete: {
+          args: Prisma.BackgroundJobDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        update: {
+          args: Prisma.BackgroundJobUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackgroundJobDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackgroundJobUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackgroundJobUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackgroundJobUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        aggregate: {
+          args: Prisma.BackgroundJobAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackgroundJob>
+        }
+        groupBy: {
+          args: Prisma.BackgroundJobGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackgroundJobCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobCountAggregateOutputType> | number
+        }
+      }
+    }
     Workspace: {
       payload: Prisma.$WorkspacePayload<ExtArgs>
       fields: Prisma.WorkspaceFieldRefs
@@ -1248,6 +1326,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SocialChannelRuntimeProfile: {
+      payload: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>
+      fields: Prisma.SocialChannelRuntimeProfileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SocialChannelRuntimeProfileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SocialChannelRuntimeProfileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        findFirst: {
+          args: Prisma.SocialChannelRuntimeProfileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SocialChannelRuntimeProfileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        findMany: {
+          args: Prisma.SocialChannelRuntimeProfileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        create: {
+          args: Prisma.SocialChannelRuntimeProfileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        createMany: {
+          args: Prisma.SocialChannelRuntimeProfileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SocialChannelRuntimeProfileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        delete: {
+          args: Prisma.SocialChannelRuntimeProfileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        update: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        deleteMany: {
+          args: Prisma.SocialChannelRuntimeProfileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        upsert: {
+          args: Prisma.SocialChannelRuntimeProfileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        aggregate: {
+          args: Prisma.SocialChannelRuntimeProfileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSocialChannelRuntimeProfile>
+        }
+        groupBy: {
+          args: Prisma.SocialChannelRuntimeProfileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SocialChannelRuntimeProfileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SocialChannelRuntimeProfileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SocialChannelRuntimeProfileCountAggregateOutputType> | number
+        }
+      }
+    }
     ScheduledPost: {
       payload: Prisma.$ScheduledPostPayload<ExtArgs>
       fields: Prisma.ScheduledPostFieldRefs
@@ -1393,6 +1545,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PublishAttemptCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PublishAttemptCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserActionHistory: {
+      payload: Prisma.$BrowserActionHistoryPayload<ExtArgs>
+      fields: Prisma.BrowserActionHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserActionHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserActionHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserActionHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserActionHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserActionHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserActionHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserActionHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserActionHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserActionHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        update: {
+          args: Prisma.BrowserActionHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserActionHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserActionHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserActionHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserActionHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserActionHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserActionHistory>
+        }
+        groupBy: {
+          args: Prisma.BrowserActionHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserActionHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserActionTrace: {
+      payload: Prisma.$BrowserActionTracePayload<ExtArgs>
+      fields: Prisma.BrowserActionTraceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserActionTraceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserActionTraceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserActionTraceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserActionTraceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        findMany: {
+          args: Prisma.BrowserActionTraceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        create: {
+          args: Prisma.BrowserActionTraceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        createMany: {
+          args: Prisma.BrowserActionTraceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserActionTraceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserActionTraceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        update: {
+          args: Prisma.BrowserActionTraceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserActionTraceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserActionTraceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserActionTraceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserActionTraceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserActionTraceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserActionTrace>
+        }
+        groupBy: {
+          args: Prisma.BrowserActionTraceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionTraceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserActionTraceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionTraceCountAggregateOutputType> | number
         }
       }
     }
@@ -1805,6 +2105,23 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  payload: 'payload',
+  result: 'result',
+  error: 'error',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
+
+
 export const WorkspaceScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1901,7 +2218,8 @@ export const GenerationHistoryScalarFieldEnum = {
   approvedAt: 'approvedAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  socialChannelRuntimeProfileId: 'socialChannelRuntimeProfileId'
 } as const
 
 export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
@@ -2040,6 +2358,30 @@ export const SocialChannelScalarFieldEnum = {
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
 
 
+export const SocialChannelRuntimeProfileScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  lastKnownIp: 'lastKnownIp',
+  lastConnectionStatus: 'lastConnectionStatus',
+  lastConnectionError: 'lastConnectionError',
+  lastConnectionTestAt: 'lastConnectionTestAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
+
+
 export const ScheduledPostScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -2079,6 +2421,47 @@ export const PublishAttemptScalarFieldEnum = {
 } as const
 
 export type PublishAttemptScalarFieldEnum = (typeof PublishAttemptScalarFieldEnum)[keyof typeof PublishAttemptScalarFieldEnum]
+
+
+export const BrowserActionHistoryScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  action: 'action',
+  status: 'status',
+  flowId: 'flowId',
+  browserProfileKey: 'browserProfileKey',
+  caption: 'caption',
+  imagePath: 'imagePath',
+  screenshotPath: 'screenshotPath',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionHistoryScalarFieldEnum = (typeof BrowserActionHistoryScalarFieldEnum)[keyof typeof BrowserActionHistoryScalarFieldEnum]
+
+
+export const BrowserActionTraceScalarFieldEnum = {
+  id: 'id',
+  browserActionId: 'browserActionId',
+  stepKey: 'stepKey',
+  stepName: 'stepName',
+  stepOrder: 'stepOrder',
+  status: 'status',
+  metadata: 'metadata',
+  errorMessage: 'errorMessage',
+  screenshotPath: 'screenshotPath',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
@@ -2191,14 +2574,6 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -2206,6 +2581,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -2225,6 +2608,62 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType'
+ */
+export type EnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType[]'
+ */
+export type ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus'
+ */
+export type EnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus[]'
+ */
+export type ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2281,34 +2720,6 @@ export type EnumCampaignIdeaStatusFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'CampaignIdeaStatus[]'
  */
 export type ListEnumCampaignIdeaStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignIdeaStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2404,6 +2815,20 @@ export type ListEnumSocialChannelStatusFieldRefInput<$PrismaModel> = FieldRefInp
 
 
 /**
+ * Reference to a field of type 'SocialProxyType'
+ */
+export type EnumSocialProxyTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialProxyType'>
+    
+
+
+/**
+ * Reference to a field of type 'SocialProxyType[]'
+ */
+export type ListEnumSocialProxyTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialProxyType[]'>
+    
+
+
+/**
  * Reference to a field of type 'ScheduledPostStatus'
  */
 export type EnumScheduledPostStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledPostStatus'>
@@ -2428,6 +2853,48 @@ export type EnumPublishAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputT
  * Reference to a field of type 'PublishAttemptStatus[]'
  */
 export type ListEnumPublishAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PublishAttemptStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionType'
+ */
+export type EnumBrowserActionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionType'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionType[]'
+ */
+export type ListEnumBrowserActionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionStatus'
+ */
+export type EnumBrowserActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionStatus[]'
+ */
+export type ListEnumBrowserActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserTraceStatus'
+ */
+export type EnumBrowserTraceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserTraceStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserTraceStatus[]'
+ */
+export type ListEnumBrowserTraceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserTraceStatus[]'>
     
 
 
@@ -2623,6 +3090,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
+  backgroundJob?: Prisma.BackgroundJobOmit
   workspace?: Prisma.WorkspaceOmit
   brand?: Prisma.BrandOmit
   campaign?: Prisma.CampaignOmit
@@ -2634,8 +3102,11 @@ export type GlobalOmitConfig = {
   knowledgeEmbedding?: Prisma.KnowledgeEmbeddingOmit
   aiUsage?: Prisma.AiUsageOmit
   socialChannel?: Prisma.SocialChannelOmit
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOmit
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit
+  browserActionHistory?: Prisma.BrowserActionHistoryOmit
+  browserActionTrace?: Prisma.BrowserActionTraceOmit
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit

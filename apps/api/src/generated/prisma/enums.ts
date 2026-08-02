@@ -60,6 +60,25 @@ export const AssetType = {
 export type AssetType = (typeof AssetType)[keyof typeof AssetType]
 
 
+export const BackgroundJobStatus = {
+  QUEUED: 'QUEUED',
+  RUNNING: 'RUNNING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED'
+} as const
+
+export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof BackgroundJobStatus]
+
+
+export const BackgroundJobType = {
+  AI_STUDIO: 'AI_STUDIO',
+  COPILOT_CHAT: 'COPILOT_CHAT',
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN'
+} as const
+
+export type BackgroundJobType = (typeof BackgroundJobType)[keyof typeof BackgroundJobType]
+
+
 export const AiUsageFeature = {
   CONTENT_GENERATION: 'CONTENT_GENERATION',
   COPILOT_CHAT: 'COPILOT_CHAT',
@@ -108,6 +127,44 @@ export const PublishAttemptStatus = {
 } as const
 
 export type PublishAttemptStatus = (typeof PublishAttemptStatus)[keyof typeof PublishAttemptStatus]
+
+
+export const SocialProxyType = {
+  DIRECT: 'DIRECT',
+  HTTP: 'HTTP',
+  HTTPS: 'HTTPS',
+  SOCKS5: 'SOCKS5'
+} as const
+
+export type SocialProxyType = (typeof SocialProxyType)[keyof typeof SocialProxyType]
+
+
+export const BrowserActionType = {
+  PREPARE: 'PREPARE',
+  PUBLISH: 'PUBLISH',
+  DISCARD: 'DISCARD'
+} as const
+
+export type BrowserActionType = (typeof BrowserActionType)[keyof typeof BrowserActionType]
+
+
+export const BrowserActionStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+} as const
+
+export type BrowserActionStatus = (typeof BrowserActionStatus)[keyof typeof BrowserActionStatus]
+
+
+export const BrowserTraceStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED'
+} as const
+
+export type BrowserTraceStatus = (typeof BrowserTraceStatus)[keyof typeof BrowserTraceStatus]
 
 
 export const CopilotMessageRole = {

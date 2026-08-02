@@ -3,6 +3,9 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
 import { API_URL } from "@/lib/api";
+import { waitForBackgroundJob } from "@/lib/background-job";
+
+const COPILOT_JOB_KEY = "atlas-copilot-background-job";
 
 type Campaign = {
   id: string;
@@ -118,6 +121,15 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
+    const pendingJobId = window.localStorage.getItem(COPILOT_JOB_KEY);
+    if (!pendingJobId) return;
+
+    setBusy(true);
+    setStatus("Restoring Copilot task running in the background...");
+    void completeCopilotJob(pendingJobId);
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({
       behavior: "smooth",
     });
@@ -149,6 +161,64 @@ export function BrandCopilot() {
       setStatus("Unable to load conversation history.");
     } finally {
       setLoadingConversations(false);
+    }
+  }
+
+  async function completeCopilotJob(jobId: string) {
+    try {
+      const data = await waitForBackgroundJob<
+        (MarketingPlan & { conversation?: { id: string } }) | {
+          reply: string;
+          campaign?: { name: string } | null;
+          conversation?: { id: string };
+        }
+      >(`${API_URL}/copilot/jobs/${jobId}`);
+
+      window.localStorage.removeItem(COPILOT_JOB_KEY);
+      const nextConversationId = data.conversation?.id;
+      if (nextConversationId) {
+        setConversationId(nextConversationId);
+        const response = await fetch(
+          `${API_URL}/copilot/conversations/${nextConversationId}`,
+          { cache: "no-store" },
+        );
+        const conversation = (await response.json()) as ConversationDetail;
+        if (response.ok) {
+          setMessages(
+            conversation.messages
+              .filter((message) => message.role !== "SYSTEM")
+              .map((message) => ({
+                role: message.role === "USER" ? "user" : "assistant",
+                content: message.content,
+              })),
+          );
+        }
+      }
+
+      if ("reply" in data) {
+        setMarketingPlan(null);
+        setStatus(
+          data.campaign
+            ? `Using ${data.campaign.name} · Chat`
+            : "Using Brand Brain · Chat",
+        );
+      } else {
+        setMarketingPlan(data);
+        setStatus("Marketing Plan generated.");
+      }
+      await refreshConversations();
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "Background task failed.",
+      );
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes("still running")
+      ) {
+        window.localStorage.removeItem(COPILOT_JOB_KEY);
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -495,7 +565,7 @@ export function BrandCopilot() {
 
     try {
       if (mode === "marketing-plan") {
-        const response = await fetch(`${API_URL}/copilot/marketing-plan`, {
+        const response = await fetch(`${API_URL}/copilot/marketing-plan/jobs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -507,31 +577,16 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = await response.json();
+        const data = (await response.json()) as { id?: string; message?: string };
 
-        if (!response.ok) {
+        if (!response.ok || !data.id) {
           throw new Error(data.message || "Unable to generate marketing plan.");
         }
-
-        setMarketingPlan(data);
-
-        if (data.conversation?.id) {
-          setConversationId(data.conversation.id);
-        }
-
-        await refreshConversations();
-
-        setStatus("Marketing Plan generated.");
-
-        setMessages((current) => [
-          ...current,
-          {
-            role: "assistant",
-            content: "Marketing Plan 已生成，请查看下方结构化方案。",
-          },
-        ]);
+        window.localStorage.setItem(COPILOT_JOB_KEY, data.id);
+        setStatus("Marketing Plan is running safely in the background...");
+        await completeCopilotJob(data.id);
       } else {
-        const response = await fetch(`${API_URL}/copilot/chat`, {
+        const response = await fetch(`${API_URL}/copilot/chat/jobs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -546,33 +601,14 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = await response.json();
+        const data = (await response.json()) as { id?: string; message?: string };
 
-        if (!response.ok || !data.reply) {
+        if (!response.ok || !data.id) {
           throw new Error(data.message || "Unable to get response.");
         }
-
-        setMarketingPlan(null);
-
-        if (data.conversation?.id) {
-          setConversationId(data.conversation.id);
-        }
-
-        setMessages((current) => [
-          ...current,
-          {
-            role: "assistant",
-            content: data.reply,
-          },
-        ]);
-
-        await refreshConversations();
-
-        setStatus(
-          data.campaign
-            ? `Using ${data.campaign.name} · Chat`
-            : "Using Brand Brain · Chat",
-        );
+        window.localStorage.setItem(COPILOT_JOB_KEY, data.id);
+        setStatus("Elena is working safely in the background...");
+        await completeCopilotJob(data.id);
       }
     } catch (error) {
       setMessages((current) => [

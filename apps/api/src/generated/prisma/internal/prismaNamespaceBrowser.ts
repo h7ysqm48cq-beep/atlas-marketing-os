@@ -51,6 +51,7 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  BackgroundJob: 'BackgroundJob',
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
@@ -62,8 +63,11 @@ export const ModelName = {
   KnowledgeEmbedding: 'KnowledgeEmbedding',
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
+  SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
+  BrowserActionHistory: 'BrowserActionHistory',
+  BrowserActionTrace: 'BrowserActionTrace',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
@@ -85,6 +89,23 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  payload: 'payload',
+  result: 'result',
+  error: 'error',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
 
 
 export const WorkspaceScalarFieldEnum = {
@@ -183,7 +204,8 @@ export const GenerationHistoryScalarFieldEnum = {
   approvedAt: 'approvedAt',
   publishedAt: 'publishedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  socialChannelRuntimeProfileId: 'socialChannelRuntimeProfileId'
 } as const
 
 export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
@@ -322,6 +344,30 @@ export const SocialChannelScalarFieldEnum = {
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
 
 
+export const SocialChannelRuntimeProfileScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  lastKnownIp: 'lastKnownIp',
+  lastConnectionStatus: 'lastConnectionStatus',
+  lastConnectionError: 'lastConnectionError',
+  lastConnectionTestAt: 'lastConnectionTestAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
+
+
 export const ScheduledPostScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -361,6 +407,47 @@ export const PublishAttemptScalarFieldEnum = {
 } as const
 
 export type PublishAttemptScalarFieldEnum = (typeof PublishAttemptScalarFieldEnum)[keyof typeof PublishAttemptScalarFieldEnum]
+
+
+export const BrowserActionHistoryScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  action: 'action',
+  status: 'status',
+  flowId: 'flowId',
+  browserProfileKey: 'browserProfileKey',
+  caption: 'caption',
+  imagePath: 'imagePath',
+  screenshotPath: 'screenshotPath',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionHistoryScalarFieldEnum = (typeof BrowserActionHistoryScalarFieldEnum)[keyof typeof BrowserActionHistoryScalarFieldEnum]
+
+
+export const BrowserActionTraceScalarFieldEnum = {
+  id: 'id',
+  browserActionId: 'browserActionId',
+  stepKey: 'stepKey',
+  stepName: 'stepName',
+  stepOrder: 'stepOrder',
+  status: 'status',
+  metadata: 'metadata',
+  errorMessage: 'errorMessage',
+  screenshotPath: 'screenshotPath',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
@@ -473,14 +560,6 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -488,4 +567,12 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

@@ -45,6 +45,7 @@ export type GenerationHistoryMinAggregateOutputType = {
   publishedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  socialChannelRuntimeProfileId: string | null
 }
 
 export type GenerationHistoryMaxAggregateOutputType = {
@@ -68,6 +69,7 @@ export type GenerationHistoryMaxAggregateOutputType = {
   publishedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  socialChannelRuntimeProfileId: string | null
 }
 
 export type GenerationHistoryCountAggregateOutputType = {
@@ -93,6 +95,7 @@ export type GenerationHistoryCountAggregateOutputType = {
   publishedAt: number
   createdAt: number
   updatedAt: number
+  socialChannelRuntimeProfileId: number
   _all: number
 }
 
@@ -118,6 +121,7 @@ export type GenerationHistoryMinAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  socialChannelRuntimeProfileId?: true
 }
 
 export type GenerationHistoryMaxAggregateInputType = {
@@ -141,6 +145,7 @@ export type GenerationHistoryMaxAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  socialChannelRuntimeProfileId?: true
 }
 
 export type GenerationHistoryCountAggregateInputType = {
@@ -166,6 +171,7 @@ export type GenerationHistoryCountAggregateInputType = {
   publishedAt?: true
   createdAt?: true
   updatedAt?: true
+  socialChannelRuntimeProfileId?: true
   _all?: true
 }
 
@@ -264,6 +270,7 @@ export type GenerationHistoryGroupByOutputType = {
   publishedAt: Date | null
   createdAt: Date
   updatedAt: Date
+  socialChannelRuntimeProfileId: string | null
   _count: GenerationHistoryCountAggregateOutputType | null
   _min: GenerationHistoryMinAggregateOutputType | null
   _max: GenerationHistoryMaxAggregateOutputType | null
@@ -310,6 +317,7 @@ export type GenerationHistoryWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"GenerationHistory"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
+  socialChannelRuntimeProfileId?: Prisma.StringNullableFilter<"GenerationHistory"> | string | null
   versions?: Prisma.ContentVersionListRelationFilter
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
@@ -317,6 +325,7 @@ export type GenerationHistoryWhereInput = {
   usageLogs?: Prisma.AiUsageListRelationFilter
   assets?: Prisma.AssetListRelationFilter
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  runtimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
 }
 
 export type GenerationHistoryOrderByWithRelationInput = {
@@ -342,6 +351,7 @@ export type GenerationHistoryOrderByWithRelationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  socialChannelRuntimeProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
   versions?: Prisma.ContentVersionOrderByRelationAggregateInput
   brand?: Prisma.BrandOrderByWithRelationInput
   campaign?: Prisma.CampaignOrderByWithRelationInput
@@ -349,6 +359,7 @@ export type GenerationHistoryOrderByWithRelationInput = {
   usageLogs?: Prisma.AiUsageOrderByRelationAggregateInput
   assets?: Prisma.AssetOrderByRelationAggregateInput
   scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileOrderByWithRelationInput
 }
 
 export type GenerationHistoryWhereUniqueInput = Prisma.AtLeast<{
@@ -377,6 +388,7 @@ export type GenerationHistoryWhereUniqueInput = Prisma.AtLeast<{
   publishedAt?: Prisma.DateTimeNullableFilter<"GenerationHistory"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
+  socialChannelRuntimeProfileId?: Prisma.StringNullableFilter<"GenerationHistory"> | string | null
   versions?: Prisma.ContentVersionListRelationFilter
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
@@ -384,6 +396,7 @@ export type GenerationHistoryWhereUniqueInput = Prisma.AtLeast<{
   usageLogs?: Prisma.AiUsageListRelationFilter
   assets?: Prisma.AssetListRelationFilter
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  runtimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
 }, "id">
 
 export type GenerationHistoryOrderByWithAggregationInput = {
@@ -409,6 +422,7 @@ export type GenerationHistoryOrderByWithAggregationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  socialChannelRuntimeProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.GenerationHistoryCountOrderByAggregateInput
   _max?: Prisma.GenerationHistoryMaxOrderByAggregateInput
   _min?: Prisma.GenerationHistoryMinOrderByAggregateInput
@@ -440,6 +454,7 @@ export type GenerationHistoryScalarWhereWithAggregatesInput = {
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GenerationHistory"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"GenerationHistory"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"GenerationHistory"> | Date | string
+  socialChannelRuntimeProfileId?: Prisma.StringNullableWithAggregatesFilter<"GenerationHistory"> | string | null
 }
 
 export type GenerationHistoryCreateInput = {
@@ -469,6 +484,7 @@ export type GenerationHistoryCreateInput = {
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateInput = {
@@ -494,6 +510,7 @@ export type GenerationHistoryUncheckedCreateInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
@@ -527,6 +544,7 @@ export type GenerationHistoryUpdateInput = {
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateInput = {
@@ -552,6 +570,7 @@ export type GenerationHistoryUncheckedUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
@@ -581,6 +600,7 @@ export type GenerationHistoryCreateManyInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
 }
 
 export type GenerationHistoryUpdateManyMutationInput = {
@@ -628,6 +648,7 @@ export type GenerationHistoryUncheckedUpdateManyInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type GenerationHistoryListRelationFilter = {
@@ -663,6 +684,7 @@ export type GenerationHistoryCountOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  socialChannelRuntimeProfileId?: Prisma.SortOrder
 }
 
 export type GenerationHistoryMaxOrderByAggregateInput = {
@@ -686,6 +708,7 @@ export type GenerationHistoryMaxOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  socialChannelRuntimeProfileId?: Prisma.SortOrder
 }
 
 export type GenerationHistoryMinOrderByAggregateInput = {
@@ -709,6 +732,7 @@ export type GenerationHistoryMinOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  socialChannelRuntimeProfileId?: Prisma.SortOrder
 }
 
 export type GenerationHistoryScalarRelationFilter = {
@@ -910,6 +934,48 @@ export type GenerationHistoryUpdateOneWithoutUsageLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.GenerationHistoryUpdateToOneWithWhereWithoutUsageLogsInput, Prisma.GenerationHistoryUpdateWithoutUsageLogsInput>, Prisma.GenerationHistoryUncheckedUpdateWithoutUsageLogsInput>
 }
 
+export type GenerationHistoryCreateNestedManyWithoutRuntimeProfileInput = {
+  create?: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput> | Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput[] | Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput[]
+  connectOrCreate?: Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput | Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput[]
+  createMany?: Prisma.GenerationHistoryCreateManyRuntimeProfileInputEnvelope
+  connect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+}
+
+export type GenerationHistoryUncheckedCreateNestedManyWithoutRuntimeProfileInput = {
+  create?: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput> | Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput[] | Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput[]
+  connectOrCreate?: Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput | Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput[]
+  createMany?: Prisma.GenerationHistoryCreateManyRuntimeProfileInputEnvelope
+  connect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+}
+
+export type GenerationHistoryUpdateManyWithoutRuntimeProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput> | Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput[] | Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput[]
+  connectOrCreate?: Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput | Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput[]
+  upsert?: Prisma.GenerationHistoryUpsertWithWhereUniqueWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpsertWithWhereUniqueWithoutRuntimeProfileInput[]
+  createMany?: Prisma.GenerationHistoryCreateManyRuntimeProfileInputEnvelope
+  set?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  disconnect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  delete?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  connect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  update?: Prisma.GenerationHistoryUpdateWithWhereUniqueWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpdateWithWhereUniqueWithoutRuntimeProfileInput[]
+  updateMany?: Prisma.GenerationHistoryUpdateManyWithWhereWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpdateManyWithWhereWithoutRuntimeProfileInput[]
+  deleteMany?: Prisma.GenerationHistoryScalarWhereInput | Prisma.GenerationHistoryScalarWhereInput[]
+}
+
+export type GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput> | Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput[] | Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput[]
+  connectOrCreate?: Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput | Prisma.GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput[]
+  upsert?: Prisma.GenerationHistoryUpsertWithWhereUniqueWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpsertWithWhereUniqueWithoutRuntimeProfileInput[]
+  createMany?: Prisma.GenerationHistoryCreateManyRuntimeProfileInputEnvelope
+  set?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  disconnect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  delete?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  connect?: Prisma.GenerationHistoryWhereUniqueInput | Prisma.GenerationHistoryWhereUniqueInput[]
+  update?: Prisma.GenerationHistoryUpdateWithWhereUniqueWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpdateWithWhereUniqueWithoutRuntimeProfileInput[]
+  updateMany?: Prisma.GenerationHistoryUpdateManyWithWhereWithoutRuntimeProfileInput | Prisma.GenerationHistoryUpdateManyWithWhereWithoutRuntimeProfileInput[]
+  deleteMany?: Prisma.GenerationHistoryScalarWhereInput | Prisma.GenerationHistoryScalarWhereInput[]
+}
+
 export type GenerationHistoryCreateNestedOneWithoutScheduledPostsInput = {
   create?: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutScheduledPostsInput, Prisma.GenerationHistoryUncheckedCreateWithoutScheduledPostsInput>
   connectOrCreate?: Prisma.GenerationHistoryCreateOrConnectWithoutScheduledPostsInput
@@ -952,6 +1018,7 @@ export type GenerationHistoryCreateWithoutBrandInput = {
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutBrandInput = {
@@ -976,6 +1043,7 @@ export type GenerationHistoryUncheckedCreateWithoutBrandInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
@@ -1034,6 +1102,7 @@ export type GenerationHistoryScalarWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"GenerationHistory"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"GenerationHistory"> | Date | string
+  socialChannelRuntimeProfileId?: Prisma.StringNullableFilter<"GenerationHistory"> | string | null
 }
 
 export type GenerationHistoryCreateWithoutCampaignInput = {
@@ -1062,6 +1131,7 @@ export type GenerationHistoryCreateWithoutCampaignInput = {
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutCampaignInput = {
@@ -1086,6 +1156,7 @@ export type GenerationHistoryUncheckedCreateWithoutCampaignInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
@@ -1144,6 +1215,7 @@ export type GenerationHistoryCreateWithoutIdeaInput = {
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutIdeaInput = {
@@ -1168,6 +1240,7 @@ export type GenerationHistoryUncheckedCreateWithoutIdeaInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
@@ -1226,6 +1299,7 @@ export type GenerationHistoryCreateWithoutVersionsInput = {
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutVersionsInput = {
@@ -1251,6 +1325,7 @@ export type GenerationHistoryUncheckedCreateWithoutVersionsInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutHistoryInput
@@ -1298,6 +1373,7 @@ export type GenerationHistoryUpdateWithoutVersionsInput = {
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutVersionsInput = {
@@ -1323,6 +1399,7 @@ export type GenerationHistoryUncheckedUpdateWithoutVersionsInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutHistoryNestedInput
@@ -1354,6 +1431,7 @@ export type GenerationHistoryCreateWithoutAssetsInput = {
   idea?: Prisma.CampaignIdeaCreateNestedOneWithoutGenerationsInput
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutAssetsInput = {
@@ -1379,6 +1457,7 @@ export type GenerationHistoryUncheckedCreateWithoutAssetsInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutHistoryInput
@@ -1426,6 +1505,7 @@ export type GenerationHistoryUpdateWithoutAssetsInput = {
   idea?: Prisma.CampaignIdeaUpdateOneWithoutGenerationsNestedInput
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutAssetsInput = {
@@ -1451,6 +1531,7 @@ export type GenerationHistoryUncheckedUpdateWithoutAssetsInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutHistoryNestedInput
@@ -1482,6 +1563,7 @@ export type GenerationHistoryCreateWithoutUsageLogsInput = {
   idea?: Prisma.CampaignIdeaCreateNestedOneWithoutGenerationsInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutUsageLogsInput = {
@@ -1507,6 +1589,7 @@ export type GenerationHistoryUncheckedCreateWithoutUsageLogsInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutHistoryInput
@@ -1554,6 +1637,7 @@ export type GenerationHistoryUpdateWithoutUsageLogsInput = {
   idea?: Prisma.CampaignIdeaUpdateOneWithoutGenerationsNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutUsageLogsInput = {
@@ -1579,9 +1663,94 @@ export type GenerationHistoryUncheckedUpdateWithoutUsageLogsInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutHistoryNestedInput
+}
+
+export type GenerationHistoryCreateWithoutRuntimeProfileInput = {
+  id?: string
+  topic: string
+  platforms?: Prisma.GenerationHistoryCreateplatformsInput | string[]
+  style: string
+  language: string
+  facebook: string
+  telegram: string
+  reels: string
+  imagePrompt: string
+  analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: boolean
+  status?: $Enums.ContentStatus
+  reviewNote?: string | null
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  approvedAt?: Date | string | null
+  publishedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  versions?: Prisma.ContentVersionCreateNestedManyWithoutHistoryInput
+  brand: Prisma.BrandCreateNestedOneWithoutGenerationsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutGenerationsInput
+  idea?: Prisma.CampaignIdeaCreateNestedOneWithoutGenerationsInput
+  usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
+  assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutHistoryInput
+}
+
+export type GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput = {
+  id?: string
+  brandId: string
+  campaignId?: string | null
+  ideaId?: string | null
+  topic: string
+  platforms?: Prisma.GenerationHistoryCreateplatformsInput | string[]
+  style: string
+  language: string
+  facebook: string
+  telegram: string
+  reels: string
+  imagePrompt: string
+  analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: boolean
+  status?: $Enums.ContentStatus
+  reviewNote?: string | null
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  approvedAt?: Date | string | null
+  publishedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
+  usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutHistoryInput
+}
+
+export type GenerationHistoryCreateOrConnectWithoutRuntimeProfileInput = {
+  where: Prisma.GenerationHistoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput>
+}
+
+export type GenerationHistoryCreateManyRuntimeProfileInputEnvelope = {
+  data: Prisma.GenerationHistoryCreateManyRuntimeProfileInput | Prisma.GenerationHistoryCreateManyRuntimeProfileInput[]
+  skipDuplicates?: boolean
+}
+
+export type GenerationHistoryUpsertWithWhereUniqueWithoutRuntimeProfileInput = {
+  where: Prisma.GenerationHistoryWhereUniqueInput
+  update: Prisma.XOR<Prisma.GenerationHistoryUpdateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedUpdateWithoutRuntimeProfileInput>
+  create: Prisma.XOR<Prisma.GenerationHistoryCreateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput>
+}
+
+export type GenerationHistoryUpdateWithWhereUniqueWithoutRuntimeProfileInput = {
+  where: Prisma.GenerationHistoryWhereUniqueInput
+  data: Prisma.XOR<Prisma.GenerationHistoryUpdateWithoutRuntimeProfileInput, Prisma.GenerationHistoryUncheckedUpdateWithoutRuntimeProfileInput>
+}
+
+export type GenerationHistoryUpdateManyWithWhereWithoutRuntimeProfileInput = {
+  where: Prisma.GenerationHistoryScalarWhereInput
+  data: Prisma.XOR<Prisma.GenerationHistoryUpdateManyMutationInput, Prisma.GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileInput>
 }
 
 export type GenerationHistoryCreateWithoutScheduledPostsInput = {
@@ -1610,6 +1779,7 @@ export type GenerationHistoryCreateWithoutScheduledPostsInput = {
   idea?: Prisma.CampaignIdeaCreateNestedOneWithoutGenerationsInput
   usageLogs?: Prisma.AiUsageCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetCreateNestedManyWithoutHistoryInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput
 }
 
 export type GenerationHistoryUncheckedCreateWithoutScheduledPostsInput = {
@@ -1635,6 +1805,7 @@ export type GenerationHistoryUncheckedCreateWithoutScheduledPostsInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
   versions?: Prisma.ContentVersionUncheckedCreateNestedManyWithoutHistoryInput
   usageLogs?: Prisma.AiUsageUncheckedCreateNestedManyWithoutHistoryInput
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutHistoryInput
@@ -1682,6 +1853,7 @@ export type GenerationHistoryUpdateWithoutScheduledPostsInput = {
   idea?: Prisma.CampaignIdeaUpdateOneWithoutGenerationsNestedInput
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutScheduledPostsInput = {
@@ -1707,6 +1879,7 @@ export type GenerationHistoryUncheckedUpdateWithoutScheduledPostsInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
@@ -1734,6 +1907,7 @@ export type GenerationHistoryCreateManyBrandInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
 }
 
 export type GenerationHistoryUpdateWithoutBrandInput = {
@@ -1762,6 +1936,7 @@ export type GenerationHistoryUpdateWithoutBrandInput = {
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutBrandInput = {
@@ -1786,6 +1961,7 @@ export type GenerationHistoryUncheckedUpdateWithoutBrandInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
@@ -1814,6 +1990,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutBrandInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type GenerationHistoryCreateManyCampaignInput = {
@@ -1838,6 +2015,7 @@ export type GenerationHistoryCreateManyCampaignInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
 }
 
 export type GenerationHistoryUpdateWithoutCampaignInput = {
@@ -1866,6 +2044,7 @@ export type GenerationHistoryUpdateWithoutCampaignInput = {
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutCampaignInput = {
@@ -1890,6 +2069,7 @@ export type GenerationHistoryUncheckedUpdateWithoutCampaignInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
@@ -1918,6 +2098,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutCampaignInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type GenerationHistoryCreateManyIdeaInput = {
@@ -1942,6 +2123,7 @@ export type GenerationHistoryCreateManyIdeaInput = {
   publishedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  socialChannelRuntimeProfileId?: string | null
 }
 
 export type GenerationHistoryUpdateWithoutIdeaInput = {
@@ -1970,6 +2152,7 @@ export type GenerationHistoryUpdateWithoutIdeaInput = {
   usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+  runtimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutGenerationHistoriesNestedInput
 }
 
 export type GenerationHistoryUncheckedUpdateWithoutIdeaInput = {
@@ -1994,6 +2177,7 @@ export type GenerationHistoryUncheckedUpdateWithoutIdeaInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
   usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
   assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
@@ -2004,6 +2188,115 @@ export type GenerationHistoryUncheckedUpdateManyWithoutIdeaInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
   campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  topic?: Prisma.StringFieldUpdateOperationsInput | string
+  platforms?: Prisma.GenerationHistoryUpdateplatformsInput | string[]
+  style?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  facebook?: Prisma.StringFieldUpdateOperationsInput | string
+  telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  reels?: Prisma.StringFieldUpdateOperationsInput | string
+  imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
+  analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumContentStatusFieldUpdateOperationsInput | $Enums.ContentStatus
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  socialChannelRuntimeProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type GenerationHistoryCreateManyRuntimeProfileInput = {
+  id?: string
+  brandId: string
+  campaignId?: string | null
+  ideaId?: string | null
+  topic: string
+  platforms?: Prisma.GenerationHistoryCreateplatformsInput | string[]
+  style: string
+  language: string
+  facebook: string
+  telegram: string
+  reels: string
+  imagePrompt: string
+  analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: boolean
+  status?: $Enums.ContentStatus
+  reviewNote?: string | null
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  approvedAt?: Date | string | null
+  publishedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type GenerationHistoryUpdateWithoutRuntimeProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  topic?: Prisma.StringFieldUpdateOperationsInput | string
+  platforms?: Prisma.GenerationHistoryUpdateplatformsInput | string[]
+  style?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  facebook?: Prisma.StringFieldUpdateOperationsInput | string
+  telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  reels?: Prisma.StringFieldUpdateOperationsInput | string
+  imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
+  analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumContentStatusFieldUpdateOperationsInput | $Enums.ContentStatus
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.ContentVersionUpdateManyWithoutHistoryNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutGenerationsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutGenerationsNestedInput
+  idea?: Prisma.CampaignIdeaUpdateOneWithoutGenerationsNestedInput
+  usageLogs?: Prisma.AiUsageUpdateManyWithoutHistoryNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutHistoryNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutHistoryNestedInput
+}
+
+export type GenerationHistoryUncheckedUpdateWithoutRuntimeProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ideaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  topic?: Prisma.StringFieldUpdateOperationsInput | string
+  platforms?: Prisma.GenerationHistoryUpdateplatformsInput | string[]
+  style?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  facebook?: Prisma.StringFieldUpdateOperationsInput | string
+  telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  reels?: Prisma.StringFieldUpdateOperationsInput | string
+  imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
+  analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumContentStatusFieldUpdateOperationsInput | $Enums.ContentStatus
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.ContentVersionUncheckedUpdateManyWithoutHistoryNestedInput
+  usageLogs?: Prisma.AiUsageUncheckedUpdateManyWithoutHistoryNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutHistoryNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutHistoryNestedInput
+}
+
+export type GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ideaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   topic?: Prisma.StringFieldUpdateOperationsInput | string
   platforms?: Prisma.GenerationHistoryUpdateplatformsInput | string[]
   style?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2105,6 +2398,7 @@ export type GenerationHistorySelect<ExtArgs extends runtime.Types.Extensions.Int
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  socialChannelRuntimeProfileId?: boolean
   versions?: boolean | Prisma.GenerationHistory$versionsArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.GenerationHistory$campaignArgs<ExtArgs>
@@ -2112,6 +2406,7 @@ export type GenerationHistorySelect<ExtArgs extends runtime.Types.Extensions.Int
   usageLogs?: boolean | Prisma.GenerationHistory$usageLogsArgs<ExtArgs>
   assets?: boolean | Prisma.GenerationHistory$assetsArgs<ExtArgs>
   scheduledPosts?: boolean | Prisma.GenerationHistory$scheduledPostsArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
   _count?: boolean | Prisma.GenerationHistoryCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["generationHistory"]>
 
@@ -2138,9 +2433,11 @@ export type GenerationHistorySelectCreateManyAndReturn<ExtArgs extends runtime.T
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  socialChannelRuntimeProfileId?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.GenerationHistory$campaignArgs<ExtArgs>
   idea?: boolean | Prisma.GenerationHistory$ideaArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
 }, ExtArgs["result"]["generationHistory"]>
 
 export type GenerationHistorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2166,9 +2463,11 @@ export type GenerationHistorySelectUpdateManyAndReturn<ExtArgs extends runtime.T
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  socialChannelRuntimeProfileId?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.GenerationHistory$campaignArgs<ExtArgs>
   idea?: boolean | Prisma.GenerationHistory$ideaArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
 }, ExtArgs["result"]["generationHistory"]>
 
 export type GenerationHistorySelectScalar = {
@@ -2194,9 +2493,10 @@ export type GenerationHistorySelectScalar = {
   publishedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  socialChannelRuntimeProfileId?: boolean
 }
 
-export type GenerationHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "ideaId" | "topic" | "platforms" | "style" | "language" | "facebook" | "telegram" | "reels" | "imagePrompt" | "analysis" | "isFavorite" | "status" | "reviewNote" | "reviewedBy" | "reviewedAt" | "approvedAt" | "publishedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["generationHistory"]>
+export type GenerationHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "ideaId" | "topic" | "platforms" | "style" | "language" | "facebook" | "telegram" | "reels" | "imagePrompt" | "analysis" | "isFavorite" | "status" | "reviewNote" | "reviewedBy" | "reviewedAt" | "approvedAt" | "publishedAt" | "createdAt" | "updatedAt" | "socialChannelRuntimeProfileId", ExtArgs["result"]["generationHistory"]>
 export type GenerationHistoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   versions?: boolean | Prisma.GenerationHistory$versionsArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -2205,17 +2505,20 @@ export type GenerationHistoryInclude<ExtArgs extends runtime.Types.Extensions.In
   usageLogs?: boolean | Prisma.GenerationHistory$usageLogsArgs<ExtArgs>
   assets?: boolean | Prisma.GenerationHistory$assetsArgs<ExtArgs>
   scheduledPosts?: boolean | Prisma.GenerationHistory$scheduledPostsArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
   _count?: boolean | Prisma.GenerationHistoryCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type GenerationHistoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.GenerationHistory$campaignArgs<ExtArgs>
   idea?: boolean | Prisma.GenerationHistory$ideaArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
 }
 export type GenerationHistoryIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.GenerationHistory$campaignArgs<ExtArgs>
   idea?: boolean | Prisma.GenerationHistory$ideaArgs<ExtArgs>
+  runtimeProfile?: boolean | Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>
 }
 
 export type $GenerationHistoryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2228,6 +2531,7 @@ export type $GenerationHistoryPayload<ExtArgs extends runtime.Types.Extensions.I
     usageLogs: Prisma.$AiUsagePayload<ExtArgs>[]
     assets: Prisma.$AssetPayload<ExtArgs>[]
     scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
+    runtimeProfile: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2252,6 +2556,7 @@ export type $GenerationHistoryPayload<ExtArgs extends runtime.Types.Extensions.I
     publishedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    socialChannelRuntimeProfileId: string | null
   }, ExtArgs["result"]["generationHistory"]>
   composites: {}
 }
@@ -2653,6 +2958,7 @@ export interface Prisma__GenerationHistoryClient<T, Null = never, ExtArgs extend
   usageLogs<T extends Prisma.GenerationHistory$usageLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.GenerationHistory$usageLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assets<T extends Prisma.GenerationHistory$assetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.GenerationHistory$assetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   scheduledPosts<T extends Prisma.GenerationHistory$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.GenerationHistory$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  runtimeProfile<T extends Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.GenerationHistory$runtimeProfileArgs<ExtArgs>>): Prisma.Prisma__SocialChannelRuntimeProfileClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2704,6 +3010,7 @@ export interface GenerationHistoryFieldRefs {
   readonly publishedAt: Prisma.FieldRef<"GenerationHistory", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"GenerationHistory", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"GenerationHistory", 'DateTime'>
+  readonly socialChannelRuntimeProfileId: Prisma.FieldRef<"GenerationHistory", 'String'>
 }
     
 
@@ -3236,6 +3543,25 @@ export type GenerationHistory$scheduledPostsArgs<ExtArgs extends runtime.Types.E
   take?: number
   skip?: number
   distinct?: Prisma.ScheduledPostScalarFieldEnum | Prisma.ScheduledPostScalarFieldEnum[]
+}
+
+/**
+ * GenerationHistory.runtimeProfile
+ */
+export type GenerationHistory$runtimeProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannelRuntimeProfile
+   */
+  select?: Prisma.SocialChannelRuntimeProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannelRuntimeProfile
+   */
+  omit?: Prisma.SocialChannelRuntimeProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelRuntimeProfileInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelRuntimeProfileWhereInput
 }
 
 /**
