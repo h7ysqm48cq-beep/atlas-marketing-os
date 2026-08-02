@@ -265,6 +265,23 @@
   color: var(--gold-light) !important;
 }
 
+.preview[role="link"],
+.studioContent[role="link"] {
+  cursor: pointer;
+}
+
+.studioContent {
+  display: grid;
+  gap: 12px;
+  border-radius: 12px;
+}
+
+.preview[role="link"]:focus-visible,
+.studioContent[role="link"]:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 3px;
+}
+
 .emptyState {
   min-height: 390px;
   display: grid;
@@ -1149,6 +1166,19 @@
   .modalActions button {
     width: 100%;
     min-height: 46px;
+  }
+
+  .cardFooter > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .cardFooter a,
+  .cardFooter button {
+    min-height: 44px;
+    padding-inline: 8px;
+    font-size: 11px;
+    text-align: center;
   }
 }
 

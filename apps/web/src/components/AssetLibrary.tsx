@@ -382,6 +382,10 @@ export function AssetLibrary() {
     return `/ai-studio?${params.toString()}`;
   }
 
+  function openInStudio(asset: Asset) {
+    window.location.assign(buildStudioHref(asset));
+  }
+
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
@@ -495,7 +499,19 @@ export function AssetLibrary() {
         <section className={styles.grid}>
           {filteredAssets.map((asset) => (
             <article className={styles.card} key={asset.id}>
-              <div className={styles.preview}>
+              <div
+                className={styles.preview}
+                role="link"
+                tabIndex={0}
+                aria-label={`Use ${asset.name} in AI Studio`}
+                onClick={() => openInStudio(asset)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openInStudio(asset);
+                  }
+                }}
+              >
                 {asset.type === "IMAGE" ? (
                   <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
                 ) : (
@@ -506,7 +522,10 @@ export function AssetLibrary() {
 
                 <button
                   className={asset.isFavorite ? styles.favoriteActive : ""}
-                  onClick={() => void toggleFavorite(asset)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void toggleFavorite(asset);
+                  }}
                   aria-label="Toggle favorite"
                 >
                   ★
@@ -514,44 +533,52 @@ export function AssetLibrary() {
               </div>
 
               <div className={styles.cardBody}>
-                <div className={styles.cardTop}>
-                  <span>{asset.type}</span>
-                  <small>{asset.provider || "Unknown provider"}</small>
-                </div>
-
-                <h2>{asset.name}</h2>
-                <p>
-                  {asset.prompt || "No source prompt saved for this asset."}
-                </p>
-
-                <div className={styles.meta}>
-                  <span>{asset.campaign?.name || "No campaign"}</span>
-                  <span>{asset.platform || "No platform"}</span>
-                  <span
-                    className={
-                      asset.aiEnabled
-                        ? styles.aiReadyBadge
-                        : styles.aiDisabledBadge
+                <div
+                  className={styles.studioContent}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Use ${asset.name} in AI Studio`}
+                  onClick={() => openInStudio(asset)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openInStudio(asset);
                     }
-                  >
-                    {asset.aiEnabled ? "AI Ready" : "AI Disabled"}
-                  </span>
-                </div>
+                  }}
+                >
+                  <div className={styles.cardTop}>
+                    <span>{asset.type}</span>
+                    <small>{asset.provider || "Unknown provider"}</small>
+                  </div>
 
-                <div className={styles.aiNotePreview}>
-                  <strong>AI Remark</strong>
-                  <p>{asset.remark || "No AI usage instruction saved yet."}</p>
+                  <h2>{asset.name}</h2>
+                  <p>
+                    {asset.prompt || "No source prompt saved for this asset."}
+                  </p>
+
+                  <div className={styles.meta}>
+                    <span>{asset.campaign?.name || "No campaign"}</span>
+                    <span>{asset.platform || "No platform"}</span>
+                    <span
+                      className={
+                        asset.aiEnabled
+                          ? styles.aiReadyBadge
+                          : styles.aiDisabledBadge
+                      }
+                    >
+                      {asset.aiEnabled ? "AI Ready" : "AI Disabled"}
+                    </span>
+                  </div>
+
+                  <div className={styles.aiNotePreview}>
+                    <strong>AI Remark</strong>
+                    <p>{asset.remark || "No AI usage instruction saved yet."}</p>
+                  </div>
                 </div>
 
                 <div className={styles.cardFooter}>
                   <small>{formatDate(asset.createdAt)}</small>
                   <div>
-                    <a
-                      className={styles.studioAction}
-                      href={buildStudioHref(asset)}
-                    >
-                      ✦ Use in AI Studio
-                    </a>
                     <a href={asset.url} target="_blank" rel="noreferrer">
                       View
                     </a>
