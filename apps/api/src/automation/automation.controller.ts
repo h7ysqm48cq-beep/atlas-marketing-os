@@ -56,6 +56,13 @@ export class AutomationController {
       .getChannel(id);
   }
 
+  @Post('runtime-profiles/backfill')
+  backfillRuntimeProfiles() {
+    return this.runtimeProfiles
+      .backfillMissingProfiles();
+  }
+
+
   @Get('channels/:id/runtime-profile')
   getRuntimeProfile(
     @Param('id') id: string,

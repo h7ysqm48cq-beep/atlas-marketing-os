@@ -41,6 +41,100 @@ export class RuntimeProfileService {
       SocialTokenCryptoService,
   ) {}
 
+  async ensureForChannel(
+    channelId: string,
+    channelName?: string,
+  ) {
+    const channel =
+      await this.ensureChannel(
+        channelId,
+      );
+
+    const resolvedName =
+      channelName?.trim() ||
+      channel.name;
+
+    return this.prisma
+      .socialChannelRuntimeProfile
+      .upsert({
+        where: {
+          channelId,
+        },
+        create: {
+          channelId,
+          browserProfileKey:
+            this.buildProfileKey(
+              channelId,
+            ),
+          browserProfileName:
+            `${resolvedName} Browser`,
+          locale:
+            'en-MY',
+          timezone:
+            'Asia/Kuala_Lumpur',
+          proxyType:
+            SocialProxyType.DIRECT,
+        },
+        update: {},
+      });
+  }
+
+  async backfillMissingProfiles() {
+    const channels =
+      await this.prisma
+        .socialChannel
+        .findMany({
+          where: {
+            socialChannelRuntimeProfile:
+              null,
+          },
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+          },
+        });
+
+    const created: Array<{
+      channelId: string;
+      channelName: string;
+      platform: string;
+      profileId: string;
+      browserProfileKey: string;
+    }> = [];
+
+    for (
+      const channel
+      of channels
+    ) {
+      const profile =
+        await this.ensureForChannel(
+          channel.id,
+          channel.name,
+        );
+
+      created.push({
+        channelId:
+          channel.id,
+        channelName:
+          channel.name,
+        platform:
+          channel.platform,
+        profileId:
+          profile.id,
+        browserProfileKey:
+          profile.browserProfileKey,
+      });
+    }
+
+    return {
+      createdCount:
+        created.length,
+      created,
+    };
+  }
+
+
   async getForChannel(
     channelId: string,
   ) {

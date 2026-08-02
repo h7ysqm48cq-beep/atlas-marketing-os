@@ -16,6 +16,7 @@ import {
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
+import { RuntimeProfileService } from './runtime-profile.service';
 
 type FacebookOAuthTokenResponse = {
   access_token?: string;
@@ -66,6 +67,8 @@ export class FacebookOAuthService {
       PrismaService,
     private readonly socialTokenCrypto:
       SocialTokenCryptoService,
+    private readonly runtimeProfiles:
+      RuntimeProfileService,
   ) {}
 
   async createAuthorizationUrl(
@@ -303,6 +306,12 @@ export class FacebookOAuthService {
               null,
           },
         });
+
+      await this.runtimeProfiles
+        .ensureForChannel(
+          channel.id,
+          channel.name,
+        );
 
       imported.push({
         id: channel.id,
