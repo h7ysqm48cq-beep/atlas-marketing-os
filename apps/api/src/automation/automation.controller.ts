@@ -745,14 +745,69 @@ export class AutomationController {
             confirmation,
           );
 
+      const publishResult =
+        result as {
+          success?: boolean;
+          published?: boolean;
+          executionTrace?: unknown;
+          verification?: {
+            status?: string;
+          };
+        };
+
+      await this.browserActionTrace
+        .importWorkerTrace(
+          action.id,
+          publishResult.executionTrace,
+        );
+
+      const sanitizedResult =
+        sanitizeBrowserActionResponse(
+          result,
+        );
+
+      const verificationStatus =
+        publishResult.verification
+          ?.status;
+
+      const publishConfirmed =
+        publishResult.published ===
+          true &&
+        (
+          verificationStatus ===
+            "CONFIRMED" ||
+          verificationStatus ===
+            "COMPOSER_CLOSED"
+        );
+
+      if (!publishConfirmed) {
+        const publishError =
+          new Error(
+            verificationStatus ===
+              "UNCONFIRMED"
+              ? "Facebook publishing could not be confirmed."
+              : verificationStatus ===
+                  "FAILED"
+                ? "Facebook publishing failed."
+                : "Facebook did not confirm that the post was published.",
+          );
+
+        await this.browserActionHistory
+          .fail(
+            action.id,
+            publishError,
+            sanitizedResult,
+          );
+
+        return result;
+      }
+
       await this.browserActionHistory
         .succeed(
           action.id,
           {
             responsePayload:
-              sanitizeBrowserActionResponse(
-                result,
-              ),
+              sanitizedResult,
           },
         );
 

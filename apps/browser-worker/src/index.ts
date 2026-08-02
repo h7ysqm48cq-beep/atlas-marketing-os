@@ -1034,6 +1034,84 @@ app.post(
       return;
     }
 
+    type WorkerExecutionTraceStep = {
+      stepKey: string;
+      stepName: string;
+      stepOrder: number;
+      status:
+        | "SUCCESS"
+        | "FAILED"
+        | "SKIPPED";
+      startedAt: string;
+      completedAt: string;
+      durationMs: number;
+      metadata?: Record<
+        string,
+        unknown
+      >;
+      errorMessage?: string | null;
+      screenshotPath?: string | null;
+    };
+
+    const executionTrace:
+      WorkerExecutionTraceStep[] = [];
+
+    const completeTraceStep = (
+      input: {
+        stepKey: string;
+        stepName: string;
+        stepOrder: number;
+        startedAtMs: number;
+        status?:
+          | "SUCCESS"
+          | "FAILED"
+          | "SKIPPED";
+        metadata?: Record<
+          string,
+          unknown
+        >;
+        errorMessage?: string | null;
+        screenshotPath?: string | null;
+      },
+    ) => {
+      const completedAtMs =
+        Date.now();
+
+      executionTrace.push({
+        stepKey:
+          input.stepKey,
+        stepName:
+          input.stepName,
+        stepOrder:
+          input.stepOrder,
+        status:
+          input.status ||
+          "SUCCESS",
+        startedAt:
+          new Date(
+            input.startedAtMs,
+          ).toISOString(),
+        completedAt:
+          new Date(
+            completedAtMs,
+          ).toISOString(),
+        durationMs:
+          Math.max(
+            0,
+            completedAtMs -
+              input.startedAtMs,
+          ),
+        metadata:
+          input.metadata,
+        errorMessage:
+          input.errorMessage ||
+          null,
+        screenshotPath:
+          input.screenshotPath ||
+          null,
+      });
+    };
+
     try {
       const pages =
         session.context.pages();
@@ -1046,6 +1124,9 @@ app.post(
           "No active browser page was found.",
         );
       }
+
+      const verifyDraftStartedAt =
+        Date.now();
 
       const dialogs =
         page.locator(
@@ -1139,6 +1220,27 @@ app.post(
         );
       }
 
+      completeTraceStep({
+        stepKey:
+          "VERIFY_DRAFT",
+        stepName:
+          "Verify prepared Facebook draft",
+        stepOrder:
+          1,
+        startedAtMs:
+          verifyDraftStartedAt,
+        metadata: {
+          captionLength:
+            caption.length,
+          imageCount,
+          composerFound:
+            true,
+        },
+      });
+
+      const verifyPublishButtonStartedAt =
+        Date.now();
+
       const postButton =
         composer
           .getByRole(
@@ -1169,6 +1271,26 @@ app.post(
         );
       }
 
+      completeTraceStep({
+        stepKey:
+          "VERIFY_PUBLISH_BUTTON",
+        stepName:
+          "Verify Facebook Post button",
+        stepOrder:
+          2,
+        startedAtMs:
+          verifyPublishButtonStartedAt,
+        metadata: {
+          visible:
+            true,
+          enabled:
+            true,
+        },
+      });
+
+      const captureBeforeStartedAt =
+        Date.now();
+
       const beforeScreenshot =
         await page.screenshot({
           type: "jpeg",
@@ -1186,8 +1308,39 @@ app.post(
             beforeScreenshot,
         });
 
+      completeTraceStep({
+        stepKey:
+          "CAPTURE_BEFORE",
+        stepName:
+          "Capture pre-publish screenshot",
+        stepOrder:
+          3,
+        startedAtMs:
+          captureBeforeStartedAt,
+        metadata: {
+          screenshotPath:
+            savedBeforeScreenshot.absolutePath,
+        },
+        screenshotPath:
+          savedBeforeScreenshot.absolutePath,
+      });
+
+      const clickPublishStartedAt =
+        Date.now();
+
       await postButton.click({
         timeout: 10000,
+      });
+
+      completeTraceStep({
+        stepKey:
+          "CLICK_PUBLISH",
+        stepName:
+          "Click Facebook Post button",
+        stepOrder:
+          4,
+        startedAtMs:
+          clickPublishStartedAt,
       });
 
       const successPatterns = [
@@ -1225,6 +1378,12 @@ app.post(
 
       let errorSignal =
         false;
+
+      let successSignalFirstSeenAt:
+        number | null = null;
+
+      const successConfirmationGraceMs =
+        1200;
 
       const verificationStartedAt =
         Date.now();
@@ -1320,30 +1479,86 @@ app.post(
               ),
           );
 
-        if (
-          errorSignal ||
-          successSignal ||
-          !composerStillVisible
-        ) {
+        if (errorSignal) {
           break;
         }
 
+        if (!composerStillVisible) {
+          break;
+        }
+
+        if (successSignal) {
+          if (
+            successSignalFirstSeenAt ===
+            null
+          ) {
+            successSignalFirstSeenAt =
+              Date.now();
+          }
+
+          if (
+            Date.now() -
+              successSignalFirstSeenAt >=
+            successConfirmationGraceMs
+          ) {
+            break;
+          }
+        } else {
+          successSignalFirstSeenAt =
+            null;
+        }
+
         await page.waitForTimeout(
-          750,
+          400,
         );
       }
 
       const verificationStatus =
         errorSignal
           ? "FAILED"
-          : (
-              !composerStillVisible &&
-              successSignal
-            )
+          : successSignal
             ? "CONFIRMED"
             : !composerStillVisible
               ? "COMPOSER_CLOSED"
               : "UNCONFIRMED";
+
+      completeTraceStep({
+        stepKey:
+          "WAIT_CONFIRMATION",
+        stepName:
+          "Wait for Facebook publish confirmation",
+        stepOrder:
+          5,
+        startedAtMs:
+          verificationStartedAt,
+        status:
+          errorSignal
+            ? "FAILED"
+            : verificationStatus ===
+                "UNCONFIRMED"
+              ? "FAILED"
+              : "SUCCESS",
+        metadata: {
+          verificationStatus,
+          composerClosed:
+            !composerStillVisible,
+          successSignal,
+          errorSignal,
+          alertTexts,
+          timeoutMs:
+            verificationTimeoutMs,
+        },
+        errorMessage:
+          errorSignal
+            ? "Facebook returned a publish error signal."
+            : verificationStatus ===
+                "UNCONFIRMED"
+              ? "Facebook publishing could not be confirmed."
+              : null,
+      });
+
+      const captureAfterStartedAt =
+        Date.now();
 
       const afterScreenshot =
         await page.screenshot({
@@ -1362,12 +1577,73 @@ app.post(
             afterScreenshot,
         });
 
+      completeTraceStep({
+        stepKey:
+          "CAPTURE_AFTER",
+        stepName:
+          "Capture post-publish screenshot",
+        stepOrder:
+          6,
+        startedAtMs:
+          captureAfterStartedAt,
+        metadata: {
+          screenshotPath:
+            savedAfterScreenshot.absolutePath,
+        },
+        screenshotPath:
+          savedAfterScreenshot.absolutePath,
+      });
+
+      const publishResultStartedAt =
+        Date.now();
+
+      completeTraceStep({
+        stepKey:
+          "PUBLISH_RESULT",
+        stepName:
+          "Finalize Facebook publish result",
+        stepOrder:
+          7,
+        startedAtMs:
+          publishResultStartedAt,
+        status:
+          verificationStatus ===
+            "FAILED" ||
+          verificationStatus ===
+            "UNCONFIRMED"
+            ? "FAILED"
+            : "SUCCESS",
+        metadata: {
+          published:
+            (
+              successSignal ||
+              !composerStillVisible
+            ) &&
+            !errorSignal,
+          verificationStatus,
+          composerClosed:
+            !composerStillVisible,
+        },
+        errorMessage:
+          verificationStatus ===
+            "FAILED"
+            ? "Facebook publishing failed."
+            : verificationStatus ===
+                "UNCONFIRMED"
+              ? "Facebook publishing remained unconfirmed."
+              : null,
+      });
+
       response.json({
         success:
           verificationStatus !==
           "FAILED",
+        executionTrace,
         published:
-          !composerStillVisible &&
+          (
+            successSignal ||
+            !composerStillVisible
+          ) &&
           !errorSignal,
         browserProfileKey:
           session.browserProfileKey,
@@ -1428,6 +1704,7 @@ app.post(
       response.status(400).json({
         success: false,
         published: false,
+        executionTrace,
         message:
           error instanceof Error
             ? error.message
