@@ -1798,6 +1798,79 @@ app.post(
       }
     }
 
+    type WorkerExecutionTraceStep = {
+      stepKey: string;
+      stepName: string;
+      stepOrder: number;
+      status:
+        | "SUCCESS"
+        | "FAILED"
+        | "SKIPPED";
+      startedAt: string;
+      completedAt: string;
+      durationMs: number;
+      metadata?: Record<
+        string,
+        unknown
+      >;
+      errorMessage?: string | null;
+    };
+
+    const executionTrace:
+      WorkerExecutionTraceStep[] = [];
+
+    const completeTraceStep = (
+      input: {
+        stepKey: string;
+        stepName: string;
+        stepOrder: number;
+        startedAtMs: number;
+        status?:
+          | "SUCCESS"
+          | "FAILED"
+          | "SKIPPED";
+        metadata?: Record<
+          string,
+          unknown
+        >;
+        errorMessage?: string | null;
+      },
+    ) => {
+      const completedAtMs =
+        Date.now();
+
+      executionTrace.push({
+        stepKey:
+          input.stepKey,
+        stepName:
+          input.stepName,
+        stepOrder:
+          input.stepOrder,
+        status:
+          input.status ||
+          "SUCCESS",
+        startedAt:
+          new Date(
+            input.startedAtMs,
+          ).toISOString(),
+        completedAt:
+          new Date(
+            completedAtMs,
+          ).toISOString(),
+        durationMs:
+          Math.max(
+            0,
+            completedAtMs -
+              input.startedAtMs,
+          ),
+        metadata:
+          input.metadata,
+        errorMessage:
+          input.errorMessage ||
+          null,
+      });
+    };
+
     try {
       const pages =
         session.context.pages();
@@ -1806,10 +1879,31 @@ app.post(
         pages.at(-1) ||
         (await session.context.newPage());
 
+      const resetComposerStartedAt =
+        Date.now();
+
       const composerReset =
         await resetFacebookComposer(
           page,
         );
+
+      completeTraceStep({
+        stepKey:
+          "RESET_COMPOSER",
+        stepName:
+          "Reset existing composer",
+        stepOrder:
+          1,
+        startedAtMs:
+          resetComposerStartedAt,
+        metadata: {
+          reset:
+            composerReset.reset,
+        },
+      });
+
+      const openFacebookStartedAt =
+        Date.now();
 
       const currentUrl =
         page.url();
@@ -1857,6 +1951,23 @@ app.post(
         return;
       }
 
+      completeTraceStep({
+        stepKey:
+          "OPEN_FACEBOOK",
+        stepName:
+          "Open Facebook",
+        stepOrder:
+          2,
+        startedAtMs:
+          openFacebookStartedAt,
+        metadata: {
+          url:
+            page.url(),
+          loginRequired:
+            false,
+        },
+      });
+
       const closeOverlayCandidates = [
         page.getByRole(
           "button",
@@ -1894,6 +2005,9 @@ app.post(
           );
         }
       }
+
+      const openComposerStartedAt =
+        Date.now();
 
       const composerTriggers = [
         page.getByRole(
@@ -1989,6 +2103,24 @@ app.post(
         timeout: 10000,
       });
 
+      completeTraceStep({
+        stepKey:
+          "OPEN_COMPOSER",
+        stepName:
+          "Open Facebook composer",
+        stepOrder:
+          3,
+        startedAtMs:
+          openComposerStartedAt,
+        metadata: {
+          composerOpened:
+            true,
+        },
+      });
+
+      const verifyEditorStartedAt =
+        Date.now();
+
       const editorCandidates = [
         dialog.locator(
           '[contenteditable="true"][role="textbox"]',
@@ -2044,62 +2176,23 @@ app.post(
             force: true,
           });
 
-          await editor
-            .evaluate(
-              (
-                element,
-                value,
-              ) => {
-                const html =
-                  element as HTMLElement;
-
-                html.focus();
-                html.innerHTML = "";
-
-                document.execCommand(
-                  "insertText",
-                  false,
-                  value,
-                );
-
-                html.dispatchEvent(
-                  new InputEvent(
-                    "input",
-                    {
-                      bubbles: true,
-                      inputType:
-                        "insertText",
-                      data: value,
-                    },
-                  ),
-                );
-              },
-              caption,
-            )
-            .catch(
-              async () => {
-                await page.keyboard
-                  .insertText(
-                    caption,
-                  );
-              },
-            );
-
-          const writtenText =
+          const editable =
             await editor
-              .innerText()
-              .catch(() => "");
+              .getAttribute(
+                "contenteditable",
+              )
+              .catch(() => null);
+
+          const role =
+            await editor
+              .getAttribute(
+                "role",
+              )
+              .catch(() => null);
 
           if (
-            writtenText.includes(
-              caption.slice(
-                0,
-                Math.min(
-                  caption.length,
-                  20,
-                ),
-              ),
-            )
+            editable === "true" ||
+            role === "textbox"
           ) {
             editorFound =
               true;
@@ -2118,10 +2211,27 @@ app.post(
         );
       }
 
+      completeTraceStep({
+        stepKey:
+          "VERIFY_EDITOR",
+        stepName:
+          "Verify Facebook editor",
+        stepOrder:
+          4,
+        startedAtMs:
+          verifyEditorStartedAt,
+        metadata: {
+          editorFound,
+        },
+      });
+
       let imageAttached =
         false;
 
       if (imagePath) {
+        const uploadImageStartedAt =
+          Date.now();
+
         const fileInputs =
           dialog.locator(
             'input[type="file"]',
@@ -2305,7 +2415,47 @@ app.post(
           imageAttached =
             true;
         }
+
+        completeTraceStep({
+          stepKey:
+            "UPLOAD_IMAGE",
+          stepName:
+            "Upload post image",
+          stepOrder:
+            6,
+          startedAtMs:
+            uploadImageStartedAt,
+          metadata: {
+            imageAttached,
+            imagePath,
+          },
+        });
+      } else {
+        const skippedAt =
+          Date.now();
+
+        completeTraceStep({
+          stepKey:
+            "UPLOAD_IMAGE",
+          stepName:
+            "Upload post image",
+          stepOrder:
+            6,
+          startedAtMs:
+            skippedAt,
+          status:
+            "SKIPPED",
+          metadata: {
+            reason:
+              "No image was supplied.",
+          },
+          errorMessage:
+            "No image was supplied.",
+        });
       }
+
+      const waitStableStartedAt =
+        Date.now();
 
       await page.waitForTimeout(
         700,
@@ -2325,11 +2475,41 @@ app.post(
           page,
         );
 
+      const fillCaptionStartedAt =
+        Date.now();
+
       const captionResult =
         await fillFacebookComposerCaption(
           page,
           caption,
         );
+
+      completeTraceStep({
+        stepKey:
+          "FILL_CAPTION",
+        stepName:
+          "Fill post caption",
+        stepOrder:
+          5,
+        startedAtMs:
+          fillCaptionStartedAt,
+        status:
+          captionResult.filled
+            ? "SUCCESS"
+            : "FAILED",
+        metadata: {
+          captionLength:
+            caption.length,
+          writtenLength:
+            captionResult.writtenLength,
+          filled:
+            captionResult.filled,
+        },
+        errorMessage:
+          captionResult.filled
+            ? null
+            : "Facebook caption was not filled.",
+      });
 
       await page.waitForTimeout(
         1000,
@@ -2392,6 +2572,35 @@ app.post(
         );
       }
 
+      completeTraceStep({
+        stepKey:
+          "WAIT_STABLE",
+        stepName:
+          "Wait for composer stability",
+        stepOrder:
+          7,
+        startedAtMs:
+          waitStableStartedAt,
+        status:
+          composerStability.stable
+            ? "SUCCESS"
+            : "FAILED",
+        metadata: {
+          ...composerStability,
+          captionFilled:
+            captionResult.filled,
+          finalCaptionLength:
+            finalCaptionText.length,
+        },
+        errorMessage:
+          composerStability.stable
+            ? null
+            : "Facebook composer did not become stable.",
+      });
+
+      const readyStartedAt =
+        Date.now();
+
       const screenshot =
         await page.screenshot({
           type: "jpeg",
@@ -2412,8 +2621,26 @@ app.post(
       session.currentUrl =
         page.url();
 
+      completeTraceStep({
+        stepKey:
+          "READY_FOR_REVIEW",
+        stepName:
+          "Ready for human review",
+        stepOrder:
+          8,
+        startedAtMs:
+          readyStartedAt,
+        metadata: {
+          readyForReview:
+            true,
+          screenshotPath:
+            savedScreenshot.absolutePath,
+        },
+      });
+
       response.json({
         success: true,
+        executionTrace,
         browserProfileKey:
           session.browserProfileKey,
         composerOpened: true,

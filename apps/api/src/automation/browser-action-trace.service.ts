@@ -199,6 +199,189 @@ export class BrowserActionTraceService {
       });
   }
 
+  async importWorkerTrace(
+    browserActionId: string,
+    steps: unknown,
+  ) {
+    if (!Array.isArray(steps)) {
+      return [];
+    }
+
+    const validStatuses =
+      new Set([
+        'SUCCESS',
+        'FAILED',
+        'SKIPPED',
+      ]);
+
+    const normalized =
+      steps.flatMap(
+        (rawStep) => {
+          if (
+            !rawStep ||
+            typeof rawStep !==
+              'object'
+          ) {
+            return [];
+          }
+
+          const step =
+            rawStep as Record<
+              string,
+              unknown
+            >;
+
+          const stepKey =
+            typeof step.stepKey ===
+              'string'
+              ? step.stepKey
+              : '';
+
+          const stepName =
+            typeof step.stepName ===
+              'string'
+              ? step.stepName
+              : stepKey;
+
+          const stepOrder =
+            typeof step.stepOrder ===
+              'number'
+              ? step.stepOrder
+              : Number.NaN;
+
+          const rawStatus =
+            typeof step.status ===
+              'string'
+              ? step.status
+              : '';
+
+          if (
+            !stepKey ||
+            !Number.isInteger(
+              stepOrder,
+            ) ||
+            !validStatuses.has(
+              rawStatus,
+            )
+          ) {
+            return [];
+          }
+
+          const status =
+            rawStatus ===
+              'FAILED'
+              ? BrowserTraceStatus.FAILED
+              : rawStatus ===
+                  'SKIPPED'
+                ? BrowserTraceStatus.SKIPPED
+                : BrowserTraceStatus.SUCCESS;
+
+          const startedAt =
+            typeof step.startedAt ===
+              'string'
+              ? new Date(
+                  step.startedAt,
+                )
+              : new Date();
+
+          const completedAt =
+            typeof step.completedAt ===
+              'string'
+              ? new Date(
+                  step.completedAt,
+                )
+              : startedAt;
+
+          const suppliedDuration =
+            typeof step.durationMs ===
+              'number' &&
+            Number.isFinite(
+              step.durationMs,
+            )
+              ? Math.max(
+                  0,
+                  Math.round(
+                    step.durationMs,
+                  ),
+                )
+              : null;
+
+          const durationMs =
+            suppliedDuration ??
+            Math.max(
+              0,
+              completedAt.getTime() -
+                startedAt.getTime(),
+            );
+
+          const metadata =
+            step.metadata &&
+            typeof step.metadata ===
+              'object'
+              ? step.metadata
+              : undefined;
+
+          const errorMessage =
+            typeof step.errorMessage ===
+              'string'
+              ? step.errorMessage
+              : null;
+
+          const screenshotPath =
+            typeof step.screenshotPath ===
+              'string'
+              ? step.screenshotPath
+              : null;
+
+          return [
+            {
+              browserActionId,
+              stepKey,
+              stepName,
+              stepOrder,
+              status,
+              metadata:
+                serializeJson(
+                  metadata,
+                ),
+              errorMessage,
+              screenshotPath,
+              startedAt:
+                Number.isNaN(
+                  startedAt.getTime(),
+                )
+                  ? new Date()
+                  : startedAt,
+              completedAt:
+                Number.isNaN(
+                  completedAt.getTime(),
+                )
+                  ? new Date()
+                  : completedAt,
+              durationMs,
+            },
+          ];
+        },
+      );
+
+    if (!normalized.length) {
+      return [];
+    }
+
+    await this.prisma
+      .browserActionTrace
+      .createMany({
+        data:
+          normalized,
+        skipDuplicates:
+          true,
+      });
+
+    return this.listForAction(
+      browserActionId,
+    );
+  }
+
   async recordCompletedStep(
     input: {
       browserActionId: string;

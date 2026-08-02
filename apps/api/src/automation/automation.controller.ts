@@ -554,17 +554,17 @@ export class AutomationController {
           },
         });
 
-    const openFacebookTrace =
+    const prepareRequestTrace =
       await this.browserActionTrace
         .startStep({
           browserActionId:
             action.id,
           stepKey:
-            "OPEN_FACEBOOK",
+            "PREPARE_REQUEST",
           stepName:
-            "Open Facebook",
+            "Prepare Facebook draft request",
           stepOrder:
-            1,
+            0,
           metadata: {
             channelId:
               id,
@@ -586,213 +586,18 @@ export class AutomationController {
 
       const prepareResult =
         result as {
-          composerOpened?: boolean;
-          captionFilled?: boolean;
-          imageAttached?: boolean;
-          readyForReview?: boolean;
-          composerReset?: {
-            reset?: boolean;
-          };
-          composerStability?: {
-            stable?: boolean;
-            checks?: number;
-            signature?: string;
-          };
-          dialogHandling?: {
-            handled?: boolean;
-            stoppedReason?: string;
-          };
-          screenshot?: {
-            absolutePath?: string;
-          };
+          executionTrace?: unknown;
         };
 
       await this.browserActionTrace
-        .recordCompletedStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "OPEN_COMPOSER",
-          stepName:
-            "Open Facebook composer",
-          stepOrder:
-            2,
-          success:
-            prepareResult
-              .composerOpened ===
-            true,
-          metadata: {
-            composerOpened:
-              prepareResult
-                .composerOpened,
-            dialogHandling:
-              prepareResult
-                .dialogHandling,
-          },
-          errorMessage:
-            prepareResult
-              .composerOpened ===
-            true
-              ? null
-              : "Facebook composer did not open.",
-        });
-
-      await this.browserActionTrace
-        .recordCompletedStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "RESET_COMPOSER",
-          stepName:
-            "Reset existing composer",
-          stepOrder:
-            3,
-          success:
-            true,
-          metadata: {
-            resetPerformed:
-              prepareResult
-                .composerReset
-                ?.reset ??
-              false,
-          },
-        });
-
-      await this.browserActionTrace
-        .recordCompletedStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "FILL_CAPTION",
-          stepName:
-            "Fill post caption",
-          stepOrder:
-            4,
-          success:
-            prepareResult
-              .captionFilled ===
-            true,
-          metadata: {
-            captionFilled:
-              prepareResult
-                .captionFilled,
-            captionLength:
-              caption.length,
-          },
-          errorMessage:
-            prepareResult
-              .captionFilled ===
-            true
-              ? null
-              : "Facebook caption was not filled.",
-        });
-
-      if (imagePath) {
-        await this.browserActionTrace
-          .recordCompletedStep({
-            browserActionId:
-              action.id,
-            stepKey:
-              "UPLOAD_IMAGE",
-            stepName:
-              "Upload post image",
-            stepOrder:
-              5,
-            success:
-              prepareResult
-                .imageAttached ===
-              true,
-            metadata: {
-              imagePath,
-              imageAttached:
-                prepareResult
-                  .imageAttached,
-            },
-            errorMessage:
-              prepareResult
-                .imageAttached ===
-              true
-                ? null
-                : "Facebook image was not attached.",
-          });
-      } else {
-        await this.browserActionTrace
-          .skipStep({
-            browserActionId:
-              action.id,
-            stepKey:
-              "UPLOAD_IMAGE",
-            stepName:
-              "Upload post image",
-            stepOrder:
-              5,
-            reason:
-              "No image was supplied.",
-          });
-      }
-
-      await this.browserActionTrace
-        .recordCompletedStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "WAIT_STABLE",
-          stepName:
-            "Wait for composer stability",
-          stepOrder:
-            6,
-          success:
-            prepareResult
-              .composerStability
-              ?.stable ===
-            true,
-          metadata:
-            prepareResult
-              .composerStability,
-          errorMessage:
-            prepareResult
-              .composerStability
-              ?.stable ===
-            true
-              ? null
-              : "Facebook composer did not become stable.",
-        });
-
-      await this.browserActionTrace
-        .recordCompletedStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "READY_FOR_REVIEW",
-          stepName:
-            "Ready for human review",
-          stepOrder:
-            7,
-          success:
-            prepareResult
-              .readyForReview ===
-            true,
-          metadata: {
-            readyForReview:
-              prepareResult
-                .readyForReview,
-          },
-          errorMessage:
-            prepareResult
-              .readyForReview ===
-            true
-              ? null
-              : "Facebook draft was not ready for review.",
-          screenshotPath:
-            prepareResult
-              .screenshot
-              ?.absolutePath ||
-            null,
-        });
+        .importWorkerTrace(
+          action.id,
+          prepareResult.executionTrace,
+        );
 
       await this.browserActionTrace
         .succeedStep(
-          openFacebookTrace.id,
+          prepareRequestTrace.id,
           {
             metadata: {
               browserProfileKey:
@@ -818,7 +623,7 @@ export class AutomationController {
     } catch (error) {
       await this.browserActionTrace
         .failStep(
-          openFacebookTrace.id,
+          prepareRequestTrace.id,
           error,
         );
 

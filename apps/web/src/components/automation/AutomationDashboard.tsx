@@ -56,9 +56,30 @@ type BrowserStatusResponse = {
   };
 };
 
+type BrowserActionTraceItem = {
+  id: string;
+  browserActionId: string;
+  stepKey: string;
+  stepName: string;
+  stepOrder: number;
+  status:
+    | "PENDING"
+    | "SUCCESS"
+    | "FAILED"
+    | "SKIPPED";
+  metadata: unknown;
+  errorMessage: string | null;
+  screenshotPath: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+};
+
 type BrowserActionHistoryItem = {
   id: string;
   flowId: string | null;
+  traces?: BrowserActionTraceItem[];
   action:
     | "PREPARE"
     | "PUBLISH"
@@ -153,6 +174,22 @@ function formatDate(value: string, locale: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatTraceDuration(
+  durationMs: number | null,
+) {
+  if (durationMs === null) {
+    return "-";
+  }
+
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  }
+
+  return `${(
+    durationMs / 1000
+  ).toFixed(2)}s`;
 }
 
 function platformLabel(platform: string) {
@@ -250,6 +287,54 @@ function groupBrowserActionsByFlow(
         ).getTime(),
     );
 }
+
+function summarizeBrowserFlow(
+  group: BrowserActionTimelineGroup,
+) {
+  const terminal =
+    [...group.items]
+      .reverse()
+      .find(
+        (item) =>
+          item.action ===
+            "PUBLISH" ||
+          item.action ===
+            "DISCARD",
+      ) ||
+    group.items.at(-1);
+
+  const hasFailed =
+    group.items.some(
+      (item) =>
+        item.status === "FAILED",
+    );
+
+  const totalDurationMs =
+    group.items.reduce(
+      (total, item) =>
+        total +
+        (item.durationMs || 0),
+      0,
+    );
+
+  const verificationStatus =
+    terminal?.responsePayload
+      ?.verification
+      ?.status;
+
+  return {
+    terminal,
+    hasFailed,
+    totalDurationMs,
+    verificationStatus,
+    status:
+      hasFailed
+        ? "FAILED"
+        : terminal?.status ||
+          "PENDING",
+  };
+}
+
 
 export function AutomationDashboard() {
   const { language } = usePreferences();
@@ -389,6 +474,10 @@ export function AutomationDashboard() {
           resultStatus: "结果",
           browserFlow: "Browser 流程",
           flowSteps: "个步骤",
+          flowTotalDuration: "总耗时",
+          flowCompleted: "流程完成",
+          flowFailed: "流程失败",
+          flowInProgress: "流程进行中",
           startedAt: "开始时间",
           completedAt: "完成时间",
           browserProfile: "浏览器 Profile",
@@ -547,6 +636,14 @@ export function AutomationDashboard() {
           resultStatus: "Result",
           browserFlow: "Browser flow",
           flowSteps: "steps",
+          flowTotalDuration:
+            "Total duration",
+          flowCompleted:
+            "Flow completed",
+          flowFailed:
+            "Flow failed",
+          flowInProgress:
+            "Flow in progress",
           startedAt: "Started",
           completedAt: "Completed",
           browserProfile: "Browser profile",
@@ -1752,8 +1849,13 @@ export function AutomationDashboard() {
         <div className={styles.browserHistoryList}>
           {groupBrowserActionsByFlow(
             filteredBrowserActions,
-          ).flatMap((group) =>
-            group.items.map(
+          ).flatMap((group) => {
+            const flowSummary =
+              summarizeBrowserFlow(
+                group,
+              );
+
+            return group.items.map(
               (item, itemIndex) => {
             const actionLabel =
               item.action === "PREPARE"
@@ -1796,10 +1898,46 @@ export function AutomationDashboard() {
                       </small>
                     </div>
 
-                    <span>
-                      {group.items.length}{" "}
-                      {copy.flowSteps}
-                    </span>
+                    <div
+                      className={
+                        styles.timelineFlowSummary
+                      }
+                    >
+                      <span>
+                        {group.items.length}{" "}
+                        {copy.flowSteps}
+                      </span>
+
+                      <span>
+                        {copy.flowTotalDuration}:{" "}
+                        {(
+                          flowSummary
+                            .totalDurationMs /
+                          1000
+                        ).toFixed(1)}
+                        s
+                      </span>
+
+                      <strong>
+                        {flowSummary.status ===
+                        "FAILED"
+                          ? copy.flowFailed
+                          : flowSummary.status ===
+                              "SUCCESS"
+                            ? copy.flowCompleted
+                            : copy.flowInProgress}
+                      </strong>
+
+                      {flowSummary
+                        .verificationStatus ===
+                      "CONFIRMED" ? (
+                        <em>
+                          {
+                            copy.verificationConfirmed
+                          }
+                        </em>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
 
@@ -2047,8 +2185,8 @@ export function AutomationDashboard() {
               </div>
             );
               },
-            ),
-          )}
+            );
+          })}
 
           {!filteredBrowserActions.length &&
           !browserActionsLoading ? (
@@ -2243,6 +2381,139 @@ export function AutomationDashboard() {
                       .errorMessage
                   }
                 </p>
+              </section>
+            ) : null}
+
+            {(
+              selectedBrowserHistoryItem
+                .traces || []
+            ).length ? (
+              <section
+                className={
+                  styles.historyModalSection
+                }
+              >
+                <div
+                  className={
+                    styles.executionTraceHeader
+                  }
+                >
+                  <strong>
+                    Execution Trace
+                  </strong>
+
+                  <span>
+                    {
+                      selectedBrowserHistoryItem
+                        .traces?.length
+                    } steps
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.executionTraceList
+                  }
+                >
+                  {(
+                    selectedBrowserHistoryItem
+                      .traces || []
+                  ).map((trace) => (
+                    <div
+                      key={trace.id}
+                      className={
+                        styles.executionTraceStep
+                      }
+                    >
+                      <div
+                        className={
+                          styles.executionTraceRail
+                        }
+                      >
+                        <span
+                          className={
+                            trace.status ===
+                            "SUCCESS"
+                              ? styles.executionTraceSuccess
+                              : trace.status ===
+                                  "FAILED"
+                                ? styles.executionTraceFailed
+                                : trace.status ===
+                                    "SKIPPED"
+                                  ? styles.executionTraceSkipped
+                                  : styles.executionTracePending
+                          }
+                        >
+                          {trace.status ===
+                          "SUCCESS"
+                            ? "✓"
+                            : trace.status ===
+                                "FAILED"
+                              ? "×"
+                              : trace.status ===
+                                  "SKIPPED"
+                                ? "–"
+                                : "•"}
+                        </span>
+                      </div>
+
+                      <div
+                        className={
+                          styles.executionTraceContent
+                        }
+                      >
+                        <div
+                          className={
+                            styles.executionTraceTitle
+                          }
+                        >
+                          <div>
+                            <strong>
+                              {trace.stepName}
+                            </strong>
+
+                            <code>
+                              {trace.stepKey}
+                            </code>
+                          </div>
+
+                          <span>
+                            {formatTraceDuration(
+                              trace.durationMs,
+                            )}
+                          </span>
+                        </div>
+
+                        <div
+                          className={
+                            styles.executionTraceMeta
+                          }
+                        >
+                          <span>
+                            Step{" "}
+                            {trace.stepOrder}
+                          </span>
+
+                          <span>
+                            {trace.status}
+                          </span>
+                        </div>
+
+                        {trace.errorMessage ? (
+                          <p
+                            className={
+                              styles.executionTraceError
+                            }
+                          >
+                            {
+                              trace.errorMessage
+                            }
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </section>
             ) : null}
 

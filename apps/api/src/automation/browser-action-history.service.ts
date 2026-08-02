@@ -240,6 +240,18 @@ export class BrowserActionHistoryService {
                 username: true,
               },
             },
+            traces: {
+              orderBy: [
+                {
+                  stepOrder:
+                    'asc',
+                },
+                {
+                  createdAt:
+                    'asc',
+                },
+              ],
+            },
           },
         });
 
@@ -286,6 +298,18 @@ export class BrowserActionHistoryService {
               username: true,
             },
           },
+            traces: {
+              orderBy: [
+                {
+                  stepOrder:
+                    'asc',
+                },
+                {
+                  createdAt:
+                    'asc',
+                },
+              ],
+            },
         },
         orderBy: {
           createdAt: 'desc',
