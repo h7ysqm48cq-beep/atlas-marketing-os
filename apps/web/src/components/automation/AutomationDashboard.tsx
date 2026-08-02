@@ -73,6 +73,26 @@ type BrowserActionHistoryItem = {
   responsePayload: {
     published?: boolean;
     composerClosed?: boolean;
+    screenshot?: {
+      mimeType?: string;
+      absolutePath?: string;
+      relativePath?: string;
+      filename?: string;
+    };
+    screenshots?: {
+      before?: {
+        mimeType?: string;
+        absolutePath?: string;
+        relativePath?: string;
+        filename?: string;
+      };
+      after?: {
+        mimeType?: string;
+        absolutePath?: string;
+        relativePath?: string;
+        filename?: string;
+      };
+    };
     verification?: {
       status?:
         | "CONFIRMED"
@@ -136,6 +156,20 @@ function formatDate(value: string, locale: string) {
 
 function platformLabel(platform: string) {
   return platform === "FACEBOOK" ? "Facebook" : "Telegram";
+}
+
+function browserActionScreenshotUrl(
+  actionId: string,
+  variant?:
+    | "before"
+    | "after",
+) {
+  const base =
+    `${API_URL}/automation/browser-actions/${actionId}/screenshot`;
+
+  return variant
+    ? `${base}?variant=${variant}`
+    : base;
 }
 
 export function AutomationDashboard() {
@@ -260,6 +294,9 @@ export function AutomationDashboard() {
             "发布状态未确认",
           verificationFailed: "发布验证失败",
           verificationWaited: "验证耗时",
+          viewScreenshot: "查看截图",
+          viewBeforeScreenshot: "发布前截图",
+          viewAfterScreenshot: "发布后截图",
           filterAll: "全部",
           filterAction: "操作类型",
           filterStatus: "状态",
@@ -404,6 +441,11 @@ export function AutomationDashboard() {
             "Verification failed",
           verificationWaited:
             "Verification time",
+          viewScreenshot: "View screenshot",
+          viewBeforeScreenshot:
+            "Before publish",
+          viewAfterScreenshot:
+            "After publish",
           filterAll: "All",
           filterAction: "Action",
           filterStatus: "Status",
@@ -1758,6 +1800,72 @@ export function AutomationDashboard() {
                           ).toFixed(1)}
                           s
                         </small>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {(
+                    item.responsePayload
+                      ?.screenshot
+                      ?.absolutePath ||
+                    item.responsePayload
+                      ?.screenshots
+                      ?.before
+                      ?.absolutePath ||
+                    item.responsePayload
+                      ?.screenshots
+                      ?.after
+                      ?.absolutePath
+                  ) ? (
+                    <div
+                      className={
+                        styles.historyScreenshotActions
+                      }
+                    >
+                      {item.responsePayload
+                        ?.screenshot
+                        ?.absolutePath ? (
+                        <a
+                          href={browserActionScreenshotUrl(
+                            item.id,
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {copy.viewScreenshot}
+                        </a>
+                      ) : null}
+
+                      {item.responsePayload
+                        ?.screenshots
+                        ?.before
+                        ?.absolutePath ? (
+                        <a
+                          href={browserActionScreenshotUrl(
+                            item.id,
+                            "before",
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {copy.viewBeforeScreenshot}
+                        </a>
+                      ) : null}
+
+                      {item.responsePayload
+                        ?.screenshots
+                        ?.after
+                        ?.absolutePath ? (
+                        <a
+                          href={browserActionScreenshotUrl(
+                            item.id,
+                            "after",
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {copy.viewAfterScreenshot}
+                        </a>
                       ) : null}
                     </div>
                   ) : null}

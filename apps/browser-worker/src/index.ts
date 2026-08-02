@@ -21,6 +21,9 @@ import {
   resetFacebookComposer,
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
+import {
+  saveBrowserScreenshot,
+} from "./browser-screenshot-store.js";
 
 type ProxyType =
   | "DIRECT"
@@ -1173,6 +1176,16 @@ app.post(
           fullPage: false,
         });
 
+
+      const savedBeforeScreenshot =
+        await saveBrowserScreenshot({
+          profileKey,
+          action:
+            "publish-before",
+          buffer:
+            beforeScreenshot,
+        });
+
       await postButton.click({
         timeout: 10000,
       });
@@ -1339,6 +1352,16 @@ app.post(
           fullPage: false,
         });
 
+
+      const savedAfterScreenshot =
+        await saveBrowserScreenshot({
+          profileKey,
+          action:
+            "publish-after",
+          buffer:
+            afterScreenshot,
+        });
+
       response.json({
         success:
           verificationStatus !==
@@ -1375,6 +1398,12 @@ app.post(
               beforeScreenshot.toString(
                 "base64",
               ),
+            absolutePath:
+              savedBeforeScreenshot.absolutePath,
+            relativePath:
+              savedBeforeScreenshot.relativePath,
+            filename:
+              savedBeforeScreenshot.filename,
           },
           after: {
             mimeType:
@@ -1383,6 +1412,12 @@ app.post(
               afterScreenshot.toString(
                 "base64",
               ),
+            absolutePath:
+              savedAfterScreenshot.absolutePath,
+            relativePath:
+              savedAfterScreenshot.relativePath,
+            filename:
+              savedAfterScreenshot.filename,
           },
         },
         publishedAt:
@@ -1626,6 +1661,16 @@ app.post(
           fullPage: false,
         });
 
+
+      const savedDiscardScreenshot =
+        await saveBrowserScreenshot({
+          profileKey,
+          action:
+            "discard",
+          buffer:
+            screenshot,
+        });
+
       response.json({
         success: true,
         discarded: true,
@@ -1639,6 +1684,12 @@ app.post(
             screenshot.toString(
               "base64",
             ),
+          absolutePath:
+            savedDiscardScreenshot.absolutePath,
+          relativePath:
+            savedDiscardScreenshot.relativePath,
+          filename:
+            savedDiscardScreenshot.filename,
         },
         discardedAt:
           new Date()
@@ -2348,6 +2399,16 @@ app.post(
           fullPage: false,
         });
 
+
+      const savedScreenshot =
+        await saveBrowserScreenshot({
+          profileKey,
+          action:
+            "prepare",
+          buffer:
+            screenshot,
+        });
+
       session.currentUrl =
         page.url();
 
@@ -2382,6 +2443,12 @@ app.post(
             screenshot.toString(
               "base64",
             ),
+          absolutePath:
+            savedScreenshot.absolutePath,
+          relativePath:
+            savedScreenshot.relativePath,
+          filename:
+            savedScreenshot.filename,
         },
         preparedAt:
           new Date()

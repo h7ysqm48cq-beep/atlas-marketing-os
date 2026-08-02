@@ -1291,3 +1291,32 @@
   background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
 }
+
+.historyScreenshotActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.historyScreenshotActions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 5px 11px;
+  background: var(--panel-soft);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.76rem;
+  font-weight: 750;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.historyScreenshotActions a:hover {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.1);
+}

@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -12,6 +13,14 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import {
+  readFile,
+  realpath,
+} from 'node:fs/promises';
+import {
+  homedir,
+} from 'node:os';
+import path from 'node:path';
 import {
   BrowserActionType,
   ScheduledPostStatus,
@@ -87,6 +96,94 @@ function sanitizeBrowserActionResponse(
 }
 
 
+type ScreenshotPayload = {
+  absolutePath?: unknown;
+};
+
+function readScreenshotPath(
+  value: unknown,
+): string | null {
+  if (
+    !value ||
+    typeof value !== 'object'
+  ) {
+    return null;
+  }
+
+  const absolutePath =
+    (
+      value as
+        ScreenshotPayload
+    ).absolutePath;
+
+  return typeof absolutePath ===
+    'string'
+    ? absolutePath
+    : null;
+}
+
+function screenshotPathFromAction(
+  responsePayload: unknown,
+  variant:
+    | 'primary'
+    | 'before'
+    | 'after',
+): string | null {
+  if (
+    !responsePayload ||
+    typeof responsePayload !==
+      'object'
+  ) {
+    return null;
+  }
+
+  const payload =
+    responsePayload as Record<
+      string,
+      unknown
+    >;
+
+  const screenshot =
+    readScreenshotPath(
+      payload.screenshot,
+    );
+
+  const screenshots =
+    payload.screenshots &&
+    typeof payload.screenshots ===
+      'object'
+      ? (
+          payload.screenshots as
+            Record<string, unknown>
+        )
+      : null;
+
+  const before =
+    readScreenshotPath(
+      screenshots?.before,
+    );
+
+  const after =
+    readScreenshotPath(
+      screenshots?.after,
+    );
+
+  if (variant === 'before') {
+    return before;
+  }
+
+  if (variant === 'after') {
+    return after;
+  }
+
+  return (
+    screenshot ||
+    after ||
+    before
+  );
+}
+
+
 @Controller('automation')
 export class AutomationController {
   constructor(
@@ -151,6 +248,119 @@ export class AutomationController {
             ? parsedLimit
             : undefined,
       });
+  }
+
+
+  @Get(
+    'browser-actions/:id/screenshot',
+  )
+  async browserActionScreenshot(
+    @Param('id') id: string,
+    @Query('variant')
+    requestedVariant?: string,
+    @Res() response?: Response,
+  ) {
+    const variant:
+      | 'primary'
+      | 'before'
+      | 'after' =
+      requestedVariant ===
+        'before' ||
+      requestedVariant ===
+        'after'
+        ? requestedVariant
+        : 'primary';
+
+    const action =
+      await this.browserActionHistory
+        .getRequired(id);
+
+    const screenshotPath =
+      screenshotPathFromAction(
+        action.responsePayload,
+        variant,
+      );
+
+    if (!screenshotPath) {
+      throw new NotFoundException(
+        'Screenshot is not available for this Browser Agent action.',
+      );
+    }
+
+    const screenshotRoot =
+      path.resolve(
+        process.env
+          .BROWSER_SCREENSHOT_ROOT ||
+          path.join(
+            homedir(),
+            '.atlas',
+            'browser-screenshots',
+          ),
+      );
+
+    let canonicalRoot:
+      string;
+
+    let canonicalScreenshot:
+      string;
+
+    try {
+      [
+        canonicalRoot,
+        canonicalScreenshot,
+      ] = await Promise.all([
+        realpath(
+          screenshotRoot,
+        ),
+        realpath(
+          screenshotPath,
+        ),
+      ]);
+    } catch {
+      throw new NotFoundException(
+        'The archived screenshot file could not be found.',
+      );
+    }
+
+    const insideRoot =
+      canonicalScreenshot ===
+        canonicalRoot ||
+      canonicalScreenshot.startsWith(
+        `${canonicalRoot}${path.sep}`,
+      );
+
+    if (!insideRoot) {
+      throw new BadRequestException(
+        'The screenshot path is outside the configured archive.',
+      );
+    }
+
+    let image:
+      Buffer;
+
+    try {
+      image =
+        await readFile(
+          canonicalScreenshot,
+        );
+    } catch {
+      throw new NotFoundException(
+        'The archived screenshot file could not be read.',
+      );
+    }
+
+    response
+      ?.set({
+        'Content-Type':
+          'image/jpeg',
+        'Cache-Control':
+          'private, no-store',
+        'Content-Length':
+          String(
+            image.byteLength,
+          ),
+      })
+      .send(image);
   }
 
 
