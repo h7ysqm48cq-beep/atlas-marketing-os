@@ -2437,3 +2437,14 @@ button {
     box-shadow: 0 7px 20px rgba(36, 45, 62, 0.07);
   }
 }
+
+/* Mobile header stays opaque so scrolled page controls do not show through it. */
+@media (max-width: 780px) {
+  .header {
+    background: #0b0e14;
+  }
+
+  :root[data-theme="light"] .header {
+    background: #f3f5f8;
+  }
+}
