@@ -4,17 +4,28 @@ export function DashboardMetric({
   label,
   value,
   detail,
+  href,
 }: {
   label: string;
   value: string;
   detail: string;
+  href?: string;
 }) {
-  return (
-    <article className={styles.metric}>
+  const content = (
+    <>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
-    </article>
+      {href ? <i aria-hidden="true">→</i> : null}
+    </>
+  );
+
+  return href ? (
+    <a className={`${styles.metric} ${styles.metricLink}`} href={href}>
+      {content}
+    </a>
+  ) : (
+    <article className={styles.metric}>{content}</article>
   );
 }
 

@@ -1,5 +1,8 @@
 "use client";
-import { usePreferences } from "@/components/preferences";
+import {
+  PreferencesControls,
+  usePreferences,
+} from "@/components/preferences";
 import { UserMenu } from "@/components/UserMenu";
 
 export function Header() {
@@ -37,6 +40,7 @@ export function Header() {
           ◌
         </button>
 
+        <PreferencesControls />
         <UserMenu />
       </div>
     </header>

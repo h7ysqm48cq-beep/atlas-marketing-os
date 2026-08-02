@@ -200,6 +200,8 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 .icon-button {
   width: 42px;
@@ -594,6 +596,28 @@ h1 {
   .user-details {
     display: none;
   }
+}
+
+/* Light mode secondary controls: remove legacy dark button surfaces. */
+:root[data-theme="light"] [class*="AssetLibrary_"] button:not([class*="primary"]):not([class*="Primary"]),
+:root[data-theme="light"] [class*="CampaignDashboard_"] button,
+:root[data-theme="light"] [class*="AutomationDashboard_"] button:not([class*="confirm"]):not([class*="Confirm"]),
+:root[data-theme="light"] [class*="ContentCalendar_"] button:not([class*="primary"]):not([class*="Primary"]):not([class*="active"]):not([class*="Active"]),
+:root[data-theme="light"] [class*="PlatformCard_"] button:not([class*="featured"]):not([class*="Featured"]),
+:root[data-theme="light"] [class*="AssetDetailsDrawer_"] button,
+:root[data-theme="light"] [class*="AiStudio_"] button:not([class*="generate"]):not([class*="Generate"]):not([class*="active"]):not([class*="Active"]) {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-input-bg) !important;
+  color: var(--atlas-text) !important;
+  box-shadow: none;
+}
+
+:root[data-theme="light"] [class*="ContentCalendar_activeToggle"],
+:root[data-theme="light"] [class*="AssetLibrary_activeFilter"],
+:root[data-theme="light"] [class*="AiStudio_activePlatform"] {
+  border-color: rgba(182, 134, 37, .38) !important;
+  background: rgba(209, 163, 63, .12) !important;
+  color: #936b16 !important;
 }
 @media (max-width: 520px) {
   .kpi-grid {

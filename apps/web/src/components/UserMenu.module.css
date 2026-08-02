@@ -150,7 +150,7 @@
   background: #f4f6fa;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .details,
   .trigger i {
     display: none;

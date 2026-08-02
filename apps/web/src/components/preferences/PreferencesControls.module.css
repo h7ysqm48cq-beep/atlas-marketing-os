@@ -1,7 +1,6 @@
 .wrapper {
-  position: fixed;
-  top: 17px;
-  right: 182px;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 30;
 }
 
@@ -132,11 +131,6 @@
 }
 
 @media (max-width: 780px) {
-  .wrapper {
-    top: max(13px, env(safe-area-inset-top));
-    right: 62px;
-  }
-
   .trigger {
     width: 42px;
     justify-content: center;
@@ -149,7 +143,7 @@
 
   .menu {
     position: fixed;
-    top: calc(max(13px, env(safe-area-inset-top)) + 48px);
+    top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     right: 12px;
     width: min(280px, calc(100vw - 24px));
   }

@@ -117,6 +117,30 @@
   font-size: 7px;
 }
 
+.metricLink {
+  position: relative;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease;
+}
+
+.metricLink:hover,
+.metricLink:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(209, 163, 63, .44);
+  outline: none;
+}
+
+.metricLink i {
+  position: absolute;
+  right: 12px;
+  bottom: 11px;
+  color: var(--gold-light);
+  font-style: normal;
+  font-size: 13px;
+}
+
 .twoColumnGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -248,15 +272,52 @@
     justify-items: start;
   }
 
-  .metricGrid,
-  .twoColumnGrid,
-  .quickActions {
+  .twoColumnGrid {
     grid-template-columns: 1fr;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(6, minmax(138px, 1fr));
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding: 0 16px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .metricGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .metric {
+    min-height: 100px;
+    scroll-snap-align: start;
+  }
+
+  .quickActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quickActions button,
+  .quickActions a {
+    min-height: 46px;
+    font-size: 10px;
+  }
+
+  .panel,
+  .intelligencePanel {
+    padding: 15px;
   }
 
   .dashboardFooter {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 390px) {
+  .quickActions {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -135,8 +135,17 @@ export function ContentHistory() {
   );
   const [saving, setSaving] = useState(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [campaignFilter, setCampaignFilter] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedStatus = params.get("status");
+    const requestedCampaign = params.get("campaignId") || "";
+
+    if (statuses.includes(requestedStatus as ContentStatus)) {
+      setStatusFilter(requestedStatus as ContentStatus);
+    }
+    setCampaignFilter(requestedCampaign);
     void load();
   }, []);
   useEffect(() => {
@@ -156,10 +165,11 @@ export function ContentHistory() {
         return (
           search &&
           (!onlyFavorites || record.isFavorite) &&
-          (statusFilter === "ALL" || record.status === statusFilter)
+          (statusFilter === "ALL" || record.status === statusFilter) &&
+          (!campaignFilter || record.campaign?.id === campaignFilter)
         );
       }),
-    [records, query, onlyFavorites, statusFilter],
+    [records, query, onlyFavorites, statusFilter, campaignFilter],
   );
 
   useEffect(() => {

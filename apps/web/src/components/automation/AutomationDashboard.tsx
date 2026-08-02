@@ -1616,29 +1616,41 @@ export function AutomationDashboard() {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.kpiGrid}>
-        <article>
+        <a className={styles.kpiAction} href="#upcoming-posts">
           <span>{copy.scheduled}</span>
           <strong>{counts.SCHEDULED ?? 0}</strong>
           <small>{copy.scheduledHint}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </a>
 
-        <article>
+        <a className={styles.kpiAction} href="#upcoming-posts">
           <span>{copy.queue}</span>
           <strong>{counts.QUEUED ?? 0}</strong>
           <small>{copy.queueHint}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </a>
 
-        <article>
+        <a
+          className={styles.kpiAction}
+          href="#browser-history"
+          onClick={() => setBrowserStatusFilter("SUCCESS")}
+        >
           <span>{copy.published}</span>
           <strong>{counts.PUBLISHED ?? 0}</strong>
           <small>{copy.publishedHint}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </a>
 
-        <article>
+        <a
+          className={styles.kpiAction}
+          href="#browser-history"
+          onClick={() => setBrowserStatusFilter("FAILED")}
+        >
           <span>{copy.failed}</span>
           <strong>{counts.FAILED ?? 0}</strong>
           <small>{copy.failedHint}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </a>
       </section>
 
       <section className={styles.contentGrid}>
@@ -1981,7 +1993,7 @@ export function AutomationDashboard() {
         </div>
       </section>
 
-      <section className={styles.panel}>
+      <section className={styles.panel} id="browser-history">
         <header>
           <div>
             <p className={styles.eyebrow}>
@@ -3111,7 +3123,7 @@ export function AutomationDashboard() {
         </div>
       ) : null}
 
-      <section className={styles.panel}>
+      <section className={styles.panel} id="upcoming-posts">
         <header>
           <div>
             <p className={styles.eyebrow}>Schedule</p>
@@ -3136,24 +3148,24 @@ export function AutomationDashboard() {
             <tbody>
               {dashboard.upcoming.map((post) => (
                 <tr key={post.id}>
-                  <td>
+                  <td data-label={copy.platform}>
                     <span className={styles.platformBadge}>
                       {platformLabel(post.platform)}
                     </span>
                   </td>
 
-                  <td>
+                  <td data-label={copy.content}>
                     <div className={styles.contentCell}>
                       <strong>{post.title || copy.untitled}</strong>
                       <span>{post.content}</span>
                     </div>
                   </td>
 
-                  <td>{post.campaign?.name || "—"}</td>
+                  <td data-label={copy.campaign}>{post.campaign?.name || "—"}</td>
 
-                  <td>{post.status}</td>
+                  <td data-label={copy.status}>{post.status}</td>
 
-                  <td>{formatDate(post.scheduledAt, locale)}</td>
+                  <td data-label={copy.scheduledTime}>{formatDate(post.scheduledAt, locale)}</td>
                 </tr>
               ))}
 

@@ -277,13 +277,28 @@
 
 .modal {
   width: min(680px, 100%);
-  max-height: 90vh;
+  max-height: min(90dvh, 900px);
   overflow-y: auto;
   padding: 22px;
+  overscroll-behavior: contain;
+  scroll-padding-block: 82px 110px;
+}
+
+.modal > header {
+  position: sticky;
+  top: -22px;
+  z-index: 20;
+  margin: -22px -22px 0;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 20, 29, 0.96);
+  backdrop-filter: blur(16px);
 }
 
 .modal header button {
-  width: 38px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
   font-size: 22px;
 }
@@ -324,7 +339,14 @@
 }
 
 .modal footer {
-  margin-top: 20px;
+  position: sticky;
+  bottom: -22px;
+  z-index: 19;
+  margin: 20px -22px -22px;
+  padding: 15px 22px calc(15px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 20, 29, 0.96);
+  backdrop-filter: blur(16px);
 }
 
 .details {
@@ -435,6 +457,55 @@
     rgba(24, 28, 41, 0.96),
     rgba(17, 20, 30, 0.96)
   );
+}
+
+.quickStats .statAction {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  min-height: 108px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(24, 28, 41, .96), rgba(17, 20, 30, .96));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease;
+}
+
+.quickStats .statAction:hover,
+.quickStats .statAction:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(209, 163, 63, .44);
+  outline: none;
+}
+
+.quickStats .statAction i {
+  position: absolute;
+  right: 15px;
+  bottom: 13px;
+  color: var(--gold-light);
+  font-style: normal;
+}
+
+.quickStats .statAction span,
+.quickStats .statAction small {
+  color: var(--muted);
+}
+
+.quickStats .statAction strong {
+  color: var(--text);
+  font-size: 27px;
+}
+
+:global(html[data-theme="light"]) .quickStats .statAction {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
 }
 
 .quickStats span,
@@ -1021,7 +1092,22 @@
 
 @media (max-width: 680px) {
   .modal {
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
     padding: 18px;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .modal > header {
+    top: -18px;
+    margin: -18px -18px 0;
+    padding: 14px 18px;
+  }
+
+  .modal footer {
+    bottom: -18px;
+    margin: 18px -18px -18px;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
   }
 
   .secondaryActions {
@@ -1508,6 +1594,13 @@
   box-shadow: var(--shadow);
 }
 
+:global(html[data-theme="light"]) .modal > header,
+:global(html[data-theme="light"]) .modal > footer {
+  border-color: var(--border) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--text) !important;
+}
+
 :global(html[data-theme="light"]) .dayCell,
 :global(html[data-theme="light"]) .upcomingList button,
 :global(html[data-theme="light"]) .contentPreview,
@@ -1785,5 +1878,74 @@
 
   .monthNav h2 {
     font-size: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .quickStats {
+    grid-template-columns: repeat(4, minmax(126px, 1fr));
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding: 0 16px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .quickStats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quickStats .statAction {
+    min-height: 104px;
+    padding: 13px;
+    scroll-snap-align: start;
+  }
+
+  .calendarPanel {
+    overflow: hidden;
+  }
+
+  .weekdays,
+  .monthGrid {
+    min-width: 0;
+  }
+
+  .weekdays > div {
+    min-height: 34px;
+    font-size: 8px;
+  }
+
+  .dayCell {
+    position: relative;
+    min-width: 0;
+    min-height: 61px;
+    padding: 7px 4px;
+  }
+
+  .dayHeader {
+    justify-content: center;
+  }
+
+  .dayNumber {
+    font-size: 12px;
+  }
+
+  .dayCount {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    min-width: 18px;
+    height: 18px;
+    overflow: hidden;
+    padding: 3px 4px 0;
+    border-radius: 999px;
+    background: var(--gold-soft);
+    color: var(--gold-light);
+    font-size: 7px;
+    white-space: nowrap;
+  }
+
+  .dayPosts {
+    display: none;
   }
 }

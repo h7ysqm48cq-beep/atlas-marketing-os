@@ -448,6 +448,18 @@ export function ContentCalendar() {
     };
   }, [filteredPosts]);
 
+  function openDay(date: Date) {
+    const key = localDateKey(date);
+    const dayPosts = postsByDate.get(key) ?? [];
+    setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+
+    if (dayPosts.length) {
+      setDayPopover({ key, date, posts: dayPosts });
+    } else {
+      openCreate(date);
+    }
+  }
+
   async function syncPublisher() {
     setSyncing(true);
     setError("");
@@ -916,29 +928,39 @@ export function ContentCalendar() {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.quickStats}>
-        <article>
+        <button className={styles.statAction} onClick={() => openDay(new Date())}>
           <span>{ui("Today", "今天")}</span>
           <strong>{quickStats.today}</strong>
           <small>{ui("Posts scheduled today", "今天已排程的帖子")}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
+        <button className={styles.statAction} onClick={() => {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          openDay(tomorrow);
+        }}>
           <span>{ui("Tomorrow", "明天")}</span>
           <strong>{quickStats.tomorrow}</strong>
           <small>{ui("Next-day content", "明日内容")}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
+        <button className={styles.statAction} onClick={() =>
+          document.getElementById("calendar-upcoming")?.scrollIntoView({ behavior: "smooth" })
+        }>
           <span>{ui("Next 7 days", "未来 7 天")}</span>
           <strong>{quickStats.thisWeek}</strong>
           <small>{ui("Upcoming schedule", "即将发布的排程")}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
+        <button className={styles.statAction} onClick={() => setStatusFilter("PUBLISHED")}>
           <span>{ui("Published", "已发布")}</span>
           <strong>{quickStats.published}</strong>
           <small>{ui("Completed posts", "已完成发布的帖子")}</small>
-        </article>
+          <i aria-hidden="true">→</i>
+        </button>
       </section>
 
       <section className={styles.toolbar}>
@@ -1067,6 +1089,9 @@ export function ContentCalendar() {
                     }
                   }}
                   onDrop={(event) => handleDayDrop(event, date)}
+                  onClick={() => {
+                    if (!draggingPostId) openDay(date);
+                  }}
                   onDoubleClick={() => openCreate(date)}
                 >
                   <div className={styles.dayHeader}>
@@ -1194,7 +1219,7 @@ export function ContentCalendar() {
           </div>
         </article>
 
-        <aside className={styles.sidebarPanel}>
+        <aside className={styles.sidebarPanel} id="calendar-upcoming">
           <header>
             <div>
               <p className={styles.eyebrow}>{ui("Upcoming", "即将发布")}</p>

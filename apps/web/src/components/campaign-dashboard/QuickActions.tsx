@@ -4,10 +4,12 @@ export function QuickActions({
   campaignId,
   onOpenStrategy,
   onOpenIdeas,
+  onOpenAssets,
 }: {
   campaignId: string;
   onOpenStrategy: () => void;
   onOpenIdeas: () => void;
+  onOpenAssets: () => void;
 }) {
   return (
     <article className={styles.panel}>
@@ -29,7 +31,15 @@ export function QuickActions({
           Open AI Studio
         </a>
 
-        <a href="/content-history">View content history</a>
+        <button type="button" onClick={onOpenAssets}>
+          Open campaign assets
+        </button>
+
+        <a
+          href={`/content-history?campaignId=${encodeURIComponent(campaignId)}`}
+        >
+          View content history
+        </a>
       </div>
     </article>
   );

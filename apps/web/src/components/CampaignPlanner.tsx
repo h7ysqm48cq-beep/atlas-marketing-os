@@ -102,6 +102,16 @@ export function CampaignPlanner({
     }
   }
 
+  function changeTab(tab: CampaignWorkspaceTab) {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    window.history.replaceState({}, "", url);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
   async function generatePlan(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -202,19 +212,16 @@ export function CampaignPlanner({
         activeTab={activeTab}
         ideaCount={ideas.length}
         onChange={(tab) => {
-          setActiveTab(tab);
-
-          const url = new URL(window.location.href);
-          url.searchParams.set("tab", tab);
-          window.history.replaceState({}, "", url);
+          changeTab(tab);
         }}
       />
 
       {activeTab === "overview" && campaign ? (
         <CampaignDashboard
           campaign={campaign}
-          onOpenStrategy={() => setActiveTab("strategy")}
-          onOpenIdeas={() => setActiveTab("ideas")}
+          onOpenStrategy={() => changeTab("strategy")}
+          onOpenIdeas={() => changeTab("ideas")}
+          onOpenAssets={() => changeTab("assets")}
         />
       ) : null}
 

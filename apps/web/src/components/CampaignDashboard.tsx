@@ -25,10 +25,12 @@ export function CampaignDashboard({
   campaign,
   onOpenStrategy,
   onOpenIdeas,
+  onOpenAssets,
 }: {
   campaign: DashboardCampaign;
   onOpenStrategy: () => void;
   onOpenIdeas: () => void;
+  onOpenAssets: () => void;
 }) {
   const [ideas, setIdeas] = useState<DashboardIdea[]>([]);
   const [history, setHistory] = useState<DashboardHistoryItem[]>([]);
@@ -120,30 +122,35 @@ export function CampaignDashboard({
           label="Ideas"
           value={String(metrics.ideas)}
           detail="Planned roadmap"
+          href={`/campaigns/${encodeURIComponent(campaign.id)}?tab=ideas`}
         />
 
         <DashboardMetric
           label="Generated"
           value={String(metrics.generated)}
           detail="Content workspaces"
+          href={`/content-history?campaignId=${encodeURIComponent(campaign.id)}`}
         />
 
         <DashboardMetric
           label="Approved"
           value={String(metrics.approved)}
           detail="Ready to publish"
+          href={`/content-history?campaignId=${encodeURIComponent(campaign.id)}&status=APPROVED`}
         />
 
         <DashboardMetric
           label="Published"
           value={String(metrics.published)}
           detail="Completed workflow"
+          href={`/content-history?campaignId=${encodeURIComponent(campaign.id)}&status=PUBLISHED`}
         />
 
         <DashboardMetric
           label="Platforms"
           value={String(metrics.platformCount)}
           detail="Coverage"
+          href={`/campaigns/${encodeURIComponent(campaign.id)}?tab=assets`}
         />
 
         <DashboardMetric
@@ -175,6 +182,7 @@ export function CampaignDashboard({
           campaignId={campaign.id}
           onOpenStrategy={onOpenStrategy}
           onOpenIdeas={onOpenIdeas}
+          onOpenAssets={onOpenAssets}
         />
       </section>
 
