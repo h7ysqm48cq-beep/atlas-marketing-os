@@ -37,6 +37,32 @@ type RuntimeProfileResponse = {
   profile: RuntimeProfile;
 };
 
+type BrowserSession = {
+  channelId: string;
+  browserProfileKey: string;
+  profileDirectory: string;
+  openedAt: string;
+  locale: string;
+  timezone: string;
+  proxyType: ProxyType;
+  headless: boolean;
+  currentUrl: string | null;
+};
+
+type BrowserStatusResponse = {
+  running: boolean;
+  session?: BrowserSession;
+};
+
+type BrowserIpResponse = {
+  success: boolean;
+  browserProfileKey?: string;
+  proxyType?: ProxyType;
+  ip?: string | null;
+  latencyMs?: number;
+  message?: string;
+};
+
 type FormState = {
   browserProfileName: string;
   locale: string;
@@ -78,6 +104,43 @@ export function RuntimeProfileEditor({
   const [testing, setTesting] =
     useState(false);
 
+  const [
+    browserAction,
+    setBrowserAction,
+  ] = useState<
+    | "open"
+    | "status"
+    | "ip"
+    | "close"
+    | null
+  >(null);
+
+  const [
+    browserRunning,
+    setBrowserRunning,
+  ] = useState(false);
+
+  const [
+    browserSession,
+    setBrowserSession,
+  ] = useState<
+    BrowserSession | null
+  >(null);
+
+  const [
+    browserIp,
+    setBrowserIp,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    browserLatency,
+    setBrowserLatency,
+  ] = useState<number | null>(
+    null,
+  );
+
   const [loaded, setLoaded] =
     useState(false);
 
@@ -98,9 +161,17 @@ export function RuntimeProfileEditor({
     useState("");
 
   useEffect(() => {
-    if (open && !loaded) {
+    if (!open) {
+      return;
+    }
+
+    if (!loaded) {
       void loadProfile();
     }
+
+    void refreshBrowserStatus(
+      true,
+    );
   }, [open, loaded]);
 
   function applyProfile(
@@ -378,6 +449,366 @@ export function RuntimeProfileEditor({
       setTesting(false);
     }
   }
+
+  async function readJson(
+    response: Response,
+  ) {
+    const raw =
+      await response.text();
+
+    if (!raw.trim()) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(
+        raw,
+      ) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      return {
+        message: raw,
+      };
+    }
+  }
+
+  function getResponseMessage(
+    body: Record<
+      string,
+      unknown
+    >,
+    fallback: string,
+  ) {
+    const message =
+      body.message;
+
+    if (
+      typeof message ===
+        "string" &&
+      message.trim()
+    ) {
+      return message;
+    }
+
+    const nestedError =
+      body.error;
+
+    if (
+      nestedError &&
+      typeof nestedError ===
+        "object" &&
+      "message" in nestedError &&
+      typeof nestedError
+        .message ===
+        "string"
+    ) {
+      return nestedError.message;
+    }
+
+    return fallback;
+  }
+
+  async function refreshBrowserStatus(
+    silent = false,
+  ) {
+    if (!silent) {
+      setBrowserAction(
+        "status",
+      );
+      setMessage("");
+      setError("");
+    }
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/automation/channels/${channelId}/browser/status`,
+          {
+            cache:
+              "no-store",
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getResponseMessage(
+            body,
+            "Unable to read browser status.",
+          ),
+        );
+      }
+
+      const status =
+        body as BrowserStatusResponse;
+
+      setBrowserRunning(
+        Boolean(
+          status.running,
+        ),
+      );
+
+      setBrowserSession(
+        status.session ||
+          null,
+      );
+
+      if (
+        !status.running
+      ) {
+        setBrowserIp(null);
+        setBrowserLatency(
+          null,
+        );
+      }
+
+      if (!silent) {
+        setMessage(
+          status.running
+            ? "Browser profile is running."
+            : "Browser profile is stopped.",
+        );
+      }
+    } catch (statusError) {
+      setBrowserRunning(
+        false,
+      );
+      setBrowserSession(
+        null,
+      );
+
+      if (!silent) {
+        setError(
+          statusError instanceof
+            Error
+            ? statusError.message
+            : "Unable to read browser status.",
+        );
+      }
+    } finally {
+      if (!silent) {
+        setBrowserAction(
+          null,
+        );
+      }
+    }
+  }
+
+  async function openBrowser() {
+    if (!profile?.id) {
+      setError(
+        "Save the runtime profile before opening the browser.",
+      );
+      return;
+    }
+
+    setBrowserAction(
+      "open",
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/automation/channels/${channelId}/browser/open`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              headless: false,
+              startUrl:
+                "https://www.facebook.com/",
+            }),
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getResponseMessage(
+            body,
+            "Unable to open browser profile.",
+          ),
+        );
+      }
+
+      const session =
+        body.session as
+          | BrowserSession
+          | undefined;
+
+      setBrowserRunning(
+        true,
+      );
+
+      setBrowserSession(
+        session || null,
+      );
+
+      setMessage(
+        body.alreadyRunning
+          ? "Browser profile is already running."
+          : "Browser profile opened successfully.",
+      );
+    } catch (openError) {
+      setError(
+        openError instanceof Error
+          ? openError.message
+          : "Unable to open browser profile.",
+      );
+    } finally {
+      setBrowserAction(
+        null,
+      );
+    }
+  }
+
+  async function checkBrowserIp() {
+    setBrowserAction(
+      "ip",
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/automation/channels/${channelId}/browser/check-ip`,
+          {
+            method: "POST",
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getResponseMessage(
+            body,
+            "Unable to inspect browser IP.",
+          ),
+        );
+      }
+
+      const result =
+        body as BrowserIpResponse;
+
+      setBrowserIp(
+        result.ip || null,
+      );
+
+      setBrowserLatency(
+        typeof result.latencyMs ===
+          "number"
+          ? result.latencyMs
+          : null,
+      );
+
+      setMessage(
+        [
+          "Browser connection is healthy.",
+          result.ip
+            ? `IP: ${result.ip}.`
+            : "",
+          typeof result.latencyMs ===
+            "number"
+            ? `Latency: ${result.latencyMs} ms.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+    } catch (ipError) {
+      setError(
+        ipError instanceof Error
+          ? ipError.message
+          : "Unable to inspect browser IP.",
+      );
+    } finally {
+      setBrowserAction(
+        null,
+      );
+    }
+  }
+
+  async function closeBrowser() {
+    setBrowserAction(
+      "close",
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/automation/channels/${channelId}/browser/close`,
+          {
+            method: "POST",
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getResponseMessage(
+            body,
+            "Unable to close browser profile.",
+          ),
+        );
+      }
+
+      setBrowserRunning(
+        false,
+      );
+
+      setBrowserSession(
+        null,
+      );
+
+      setBrowserIp(null);
+      setBrowserLatency(
+        null,
+      );
+
+      setMessage(
+        body.alreadyStopped
+          ? "Browser profile was already stopped."
+          : "Browser profile closed.",
+      );
+    } catch (closeError) {
+      setError(
+        closeError instanceof Error
+          ? closeError.message
+          : "Unable to close browser profile.",
+      );
+    } finally {
+      setBrowserAction(
+        null,
+      );
+    }
+  }
+
 
   function updateForm<
     K extends keyof FormState,
@@ -770,6 +1201,213 @@ export function RuntimeProfileEditor({
                   </div>
                 </div>
               ) : null}
+
+              <section
+                className={
+                  styles.browserRuntime
+                }
+              >
+                <header
+                  className={
+                    styles.browserHeader
+                  }
+                >
+                  <div>
+                    <span>
+                      Browser Runtime
+                    </span>
+
+                    <strong>
+                      Independent Chrome
+                      session
+                    </strong>
+                  </div>
+
+                  <b
+                    className={
+                      browserRunning
+                        ? styles.browserRunning
+                        : styles.browserStopped
+                    }
+                  >
+                    {browserRunning
+                      ? "Running"
+                      : "Stopped"}
+                  </b>
+                </header>
+
+                <div
+                  className={
+                    styles.browserDetails
+                  }
+                >
+                  <div>
+                    <span>
+                      Profile
+                    </span>
+
+                    <strong>
+                      {browserSession
+                        ?.browserProfileKey ||
+                        profile
+                          ?.browserProfileKey ||
+                        "Unavailable"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Current URL
+                    </span>
+
+                    <strong>
+                      {browserSession
+                        ?.currentUrl ||
+                        "Not running"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Browser IP
+                    </span>
+
+                    <strong>
+                      {browserIp ||
+                        "Not checked"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Latency
+                    </span>
+
+                    <strong>
+                      {browserLatency !==
+                      null
+                        ? `${browserLatency} ms`
+                        : "Not checked"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Opened
+                    </span>
+
+                    <strong>
+                      {browserSession
+                        ?.openedAt
+                        ? new Date(
+                            browserSession.openedAt,
+                          ).toLocaleString()
+                        : "Not running"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Mode
+                    </span>
+
+                    <strong>
+                      {browserSession
+                        ? browserSession.headless
+                          ? "Headless"
+                          : "Visible"
+                        : "Visible"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div
+                  className={
+                    styles.browserActions
+                  }
+                >
+                  {!browserRunning ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void openBrowser()
+                      }
+                      disabled={
+                        browserAction !==
+                          null ||
+                        !profile?.id
+                      }
+                    >
+                      {browserAction ===
+                      "open"
+                        ? "Opening..."
+                        : "Open Browser"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void checkBrowserIp()
+                        }
+                        disabled={
+                          browserAction !==
+                          null
+                        }
+                      >
+                        {browserAction ===
+                        "ip"
+                          ? "Checking..."
+                          : "Check IP"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void closeBrowser()
+                        }
+                        disabled={
+                          browserAction !==
+                          null
+                        }
+                      >
+                        {browserAction ===
+                        "close"
+                          ? "Closing..."
+                          : "Close Browser"}
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void refreshBrowserStatus()
+                    }
+                    disabled={
+                      browserAction !==
+                      null
+                    }
+                  >
+                    {browserAction ===
+                    "status"
+                      ? "Refreshing..."
+                      : "Refresh Status"}
+                  </button>
+                </div>
+
+                {!profile?.id ? (
+                  <small
+                    className={
+                      styles.hint
+                    }
+                  >
+                    Save the runtime
+                    profile before
+                    opening its browser.
+                  </small>
+                ) : null}
+              </section>
 
               {message ? (
                 <p

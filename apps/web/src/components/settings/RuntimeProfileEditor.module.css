@@ -202,3 +202,147 @@
     flex: 1 1 100%;
   }
 }
+
+/* Browser Runtime controls */
+
+.browserRuntime {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid rgba(91, 142, 255, 0.2);
+  border-radius: 11px;
+  background:
+    linear-gradient(
+      150deg,
+      rgba(43, 76, 145, 0.12),
+      rgba(8, 12, 21, 0.22)
+    );
+}
+
+.browserHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.browserHeader > div {
+  display: grid;
+  gap: 4px;
+}
+
+.browserHeader span {
+  color: #8c9ab3;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.browserHeader strong {
+  font-size: 11px;
+}
+
+.browserHeader > b {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.browserRunning {
+  background: rgba(52, 211, 153, 0.12);
+  color: #77ddb4;
+}
+
+.browserStopped {
+  background: rgba(148, 163, 184, 0.1);
+  color: #9ba4b6;
+}
+
+.browserDetails {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.browserDetails > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.browserDetails span {
+  color: #7f899c;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.browserDetails strong {
+  overflow: hidden;
+  color: #e5e9f1;
+  font-size: 9px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browserActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browserActions button {
+  min-height: 37px;
+  padding: 0 12px;
+  border: 1px solid rgba(91, 142, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(91, 142, 255, 0.1);
+  color: #a9c2ff;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.browserActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+:global(html[data-theme="light"]) .browserRuntime {
+  border-color: #ccd9f3;
+  background: #f6f9ff;
+}
+
+:global(html[data-theme="light"]) .browserDetails > div {
+  border: 1px solid #e0e7f2;
+  background: #ffffff;
+}
+
+:global(html[data-theme="light"]) .browserDetails strong {
+  color: #27334a;
+}
+
+:global(html[data-theme="light"]) .browserActions button {
+  border-color: #c4d2ed;
+  background: #edf3ff;
+  color: #355caa;
+}
+
+@media (max-width: 720px) {
+  .browserDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .browserActions button {
+    flex: 1 1 100%;
+  }
+}
