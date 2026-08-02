@@ -77,7 +77,12 @@ export class PublisherService {
           },
         },
         include: {
-          channel: true,
+          channel: {
+            include: {
+              socialChannelRuntimeProfile:
+                true,
+            },
+          },
         },
       });
 
@@ -99,14 +104,85 @@ export class PublisherService {
         },
       });
 
+      const runtimeProfile =
+        post.channel
+          .socialChannelRuntimeProfile;
+
+      const runtimeContext = {
+        channelId:
+          post.channel.id,
+        channelName:
+          post.channel.name,
+        platform:
+          post.platform,
+        browserProfileId:
+          runtimeProfile?.id ??
+          null,
+        browserProfileKey:
+          runtimeProfile
+            ?.browserProfileKey ??
+          null,
+        browserProfileName:
+          runtimeProfile
+            ?.browserProfileName ??
+          null,
+        locale:
+          runtimeProfile?.locale ??
+          null,
+        timezone:
+          runtimeProfile?.timezone ??
+          post.timezone,
+        proxyType:
+          runtimeProfile
+            ?.proxyType ??
+          'DIRECT',
+        proxyHostConfigured:
+          Boolean(
+            runtimeProfile
+              ?.proxyHost,
+          ),
+        proxyPortConfigured:
+          Boolean(
+            runtimeProfile
+              ?.proxyPort,
+          ),
+        proxyCredentialsConfigured:
+          Boolean(
+            runtimeProfile
+              ?.proxyUsernameEncrypted ||
+            runtimeProfile
+              ?.proxyPasswordEncrypted,
+          ),
+        proxyCountry:
+          runtimeProfile
+            ?.proxyCountry ??
+          null,
+        lastKnownIp:
+          runtimeProfile
+            ?.lastKnownIp ??
+          null,
+      };
+
       const attempt =
         await this.prisma.publishAttempt.create({
           data: {
-            scheduledPostId: post.id,
+            scheduledPostId:
+              post.id,
             attemptNumber:
               post.retryCount + 1,
             status:
               PublishAttemptStatus.PENDING,
+            requestPayload: {
+              runtime:
+                runtimeContext,
+              contentLength:
+                post.content.length,
+              mediaCount:
+                post.mediaUrls.length,
+              scheduledAt:
+                post.scheduledAt
+                  .toISOString(),
+            },
           },
         });
 
@@ -202,6 +278,14 @@ export class PublisherService {
             `Publish succeeded.`,
             `Post: ${post.id}.`,
             `Platform: ${post.platform}.`,
+            `Runtime: ${
+              runtimeContext
+                .browserProfileKey ??
+              'none'
+            }.`,
+            `Proxy: ${
+              runtimeContext.proxyType
+            }.`,
             `External ID: ${
               result?.postId ??
               result?.post_id ??
@@ -281,7 +365,19 @@ export class PublisherService {
           postId: post.id,
           platform: post.platform,
           channelId: post.channelId,
-          channelName: post.channel?.name ?? null,
+          channelName:
+            post.channel?.name ??
+            null,
+          runtimeProfileKey:
+            runtimeContext
+              .browserProfileKey,
+          proxyType:
+            runtimeContext
+              .proxyType,
+          locale:
+            runtimeContext.locale,
+          timezone:
+            runtimeContext.timezone,
           scheduledAt:
             post.scheduledAt?.toISOString?.() ??
             post.scheduledAt,
