@@ -514,6 +514,7 @@ model BrowserActionHistory {
   action BrowserActionType
   status BrowserActionStatus @default(PENDING)
 
+  flowId            String?
   browserProfileKey String?
   caption           String?
   imagePath         String?
@@ -530,6 +531,7 @@ model BrowserActionHistory {
   createdAt DateTime @default(now())
 
   @@index([channelId])
+  @@index([flowId])
   @@index([action])
   @@index([status])
   @@index([createdAt])

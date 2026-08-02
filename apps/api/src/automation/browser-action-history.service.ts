@@ -10,6 +10,7 @@ import { PrismaService } from '../database/prisma.service';
 
 type StartBrowserActionInput = {
   channelId: string;
+  flowId?: string | null;
   action: BrowserActionType;
   browserProfileKey?: string | null;
   caption?: string | null;
@@ -33,6 +34,9 @@ export class BrowserActionHistoryService {
         data: {
           channelId:
             input.channelId,
+          flowId:
+            input.flowId ||
+            null,
           action:
             input.action,
           status:
@@ -160,6 +164,62 @@ export class BrowserActionHistoryService {
         },
       });
   }
+
+  async findOpenFlowId(
+    channelId: string,
+  ): Promise<string | null> {
+    const prepare =
+      await this.prisma
+        .browserActionHistory
+        .findFirst({
+          where: {
+            channelId,
+            action:
+              BrowserActionType.PREPARE,
+            status:
+              BrowserActionStatus.SUCCESS,
+            flowId: {
+              not: null,
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            flowId: true,
+          },
+        });
+
+    const flowId =
+      prepare?.flowId;
+
+    if (!flowId) {
+      return null;
+    }
+
+    const terminalAction =
+      await this.prisma
+        .browserActionHistory
+        .findFirst({
+          where: {
+            flowId,
+            action: {
+              in: [
+                BrowserActionType.PUBLISH,
+                BrowserActionType.DISCARD,
+              ],
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+    return terminalAction
+      ? null
+      : flowId;
+  }
+
 
   async getRequired(
     id: string,

@@ -14,6 +14,9 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
+  randomUUID,
+} from 'node:crypto';
+import {
   readFile,
   realpath,
 } from 'node:fs/promises';
@@ -413,6 +416,8 @@ export class AutomationController {
         .start({
           channelId:
             previous.channelId,
+          flowId:
+            randomUUID(),
           action:
             BrowserActionType.PREPARE,
           browserProfileKey:
@@ -532,6 +537,8 @@ export class AutomationController {
       await this.browserActionHistory
         .start({
           channelId: id,
+          flowId:
+            randomUUID(),
           action:
             BrowserActionType.PREPARE,
           browserProfileKey:
@@ -591,10 +598,15 @@ export class AutomationController {
           id,
         );
 
+    const flowId =
+      await this.browserActionHistory
+        .findOpenFlowId(id);
+
     const action =
       await this.browserActionHistory
         .start({
           channelId: id,
+          flowId,
           action:
             BrowserActionType.DISCARD,
           browserProfileKey:
@@ -655,10 +667,15 @@ export class AutomationController {
           id,
         );
 
+    const flowId =
+      await this.browserActionHistory
+        .findOpenFlowId(id);
+
     const action =
       await this.browserActionHistory
         .start({
           channelId: id,
+          flowId,
           action:
             BrowserActionType.PUBLISH,
           browserProfileKey:
