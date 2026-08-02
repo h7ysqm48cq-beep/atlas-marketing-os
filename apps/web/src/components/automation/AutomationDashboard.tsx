@@ -70,7 +70,25 @@ type BrowserActionHistoryItem = {
   caption: string | null;
   imagePath: string | null;
   errorMessage: string | null;
-  responsePayload: unknown;
+  responsePayload: {
+    published?: boolean;
+    composerClosed?: boolean;
+    verification?: {
+      status?:
+        | "CONFIRMED"
+        | "COMPOSER_CLOSED"
+        | "UNCONFIRMED"
+        | "FAILED";
+      waitedMs?: number;
+      timeoutMs?: number;
+      composerClosed?: boolean;
+      successSignal?: boolean;
+      errorSignal?: boolean;
+      alertTexts?: string[];
+    };
+    [key: string]: unknown;
+  } | null;
+
   startedAt: string;
   completedAt: string | null;
   durationMs: number | null;
@@ -235,6 +253,13 @@ export function AutomationDashboard() {
           duration: "耗时",
           viewCaption: "文案",
           imagePath: "图片路径",
+          verificationConfirmed: "发布已确认",
+          verificationComposerClosed:
+            "Composer 已关闭",
+          verificationUnconfirmed:
+            "发布状态未确认",
+          verificationFailed: "发布验证失败",
+          verificationWaited: "验证耗时",
           filterAll: "全部",
           filterAction: "操作类型",
           filterStatus: "状态",
@@ -369,6 +394,16 @@ export function AutomationDashboard() {
           duration: "Duration",
           viewCaption: "Caption",
           imagePath: "Image path",
+          verificationConfirmed:
+            "Publish confirmed",
+          verificationComposerClosed:
+            "Composer closed",
+          verificationUnconfirmed:
+            "Publish unconfirmed",
+          verificationFailed:
+            "Verification failed",
+          verificationWaited:
+            "Verification time",
           filterAll: "All",
           filterAction: "Action",
           filterStatus: "Status",
@@ -1658,6 +1693,73 @@ export function AutomationDashboard() {
                         ? copy.retryingAction
                         : copy.retryAction}
                     </button>
+                  ) : null}
+
+                  {item.action === "PUBLISH" &&
+                  item.responsePayload
+                    ?.verification
+                    ?.status ? (
+                    <div
+                      className={
+                        styles.publishVerificationRow
+                      }
+                    >
+                      <span
+                        className={`${styles.publishVerificationBadge} ${
+                          item.responsePayload
+                            .verification
+                            .status ===
+                          "CONFIRMED"
+                            ? styles.verificationConfirmed
+                            : item.responsePayload
+                                  .verification
+                                  .status ===
+                                "COMPOSER_CLOSED"
+                              ? styles.verificationComposerClosed
+                              : item.responsePayload
+                                    .verification
+                                    .status ===
+                                  "FAILED"
+                                ? styles.verificationFailed
+                                : styles.verificationUnconfirmed
+                        }`}
+                      >
+                        {item.responsePayload
+                          .verification
+                          .status ===
+                        "CONFIRMED"
+                          ? copy.verificationConfirmed
+                          : item.responsePayload
+                                .verification
+                                .status ===
+                              "COMPOSER_CLOSED"
+                            ? copy.verificationComposerClosed
+                            : item.responsePayload
+                                  .verification
+                                  .status ===
+                                "FAILED"
+                              ? copy.verificationFailed
+                              : copy.verificationUnconfirmed}
+                      </span>
+
+                      {typeof item
+                        .responsePayload
+                        .verification
+                        .waitedMs ===
+                      "number" ? (
+                        <small>
+                          {copy.verificationWaited}:{" "}
+                          {(
+                            item
+                              .responsePayload
+                              .verification
+                              .waitedMs /
+                            1000
+                          ).toFixed(1)}
+                          s
+                        </small>
+                      ) : null}
+                    </div>
                   ) : null}
 
                   {item.caption ? (
