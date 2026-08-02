@@ -8,10 +8,14 @@ import {
   type BrowserContext,
 } from "playwright-core";
 import {
+  access,
   mkdir,
   realpath,
 } from "node:fs/promises";
 import path from "node:path";
+import {
+  handleDialogs,
+} from "./browser-core/dialog-engine.js";
 
 type ProxyType =
   | "DIRECT"
@@ -193,6 +197,19 @@ function buildProxy(
       undefined,
   };
 }
+
+async function handleFacebookOnboarding(
+  page: import("playwright-core").Page,
+) {
+  return handleDialogs(
+    page,
+    {
+      maxIterations: 8,
+      waitAfterActionMs: 900,
+    },
+  );
+}
+
 
 function safeSession(
   session: BrowserSession,
@@ -560,10 +577,15 @@ app.post(
     const input =
       request.body as {
         caption?: string;
+        imagePath?: string | null;
       };
 
     const caption =
       input.caption?.trim();
+
+    const imagePath =
+      input.imagePath?.trim() ||
+      null;
 
     if (!caption) {
       response.status(400).json({
@@ -581,6 +603,44 @@ app.post(
           "Caption is too long.",
       });
       return;
+    }
+
+    if (imagePath) {
+      const extension =
+        path.extname(
+          imagePath,
+        ).toLowerCase();
+
+      if (
+        ![
+          ".jpg",
+          ".jpeg",
+          ".png",
+          ".webp",
+        ].includes(
+          extension,
+        )
+      ) {
+        response.status(400).json({
+          success: false,
+          message:
+            "Image must be JPG, JPEG, PNG or WEBP.",
+        });
+        return;
+      }
+
+      try {
+        await access(
+          imagePath,
+        );
+      } catch {
+        response.status(400).json({
+          success: false,
+          message:
+            "Image file was not found.",
+        });
+        return;
+      }
     }
 
     try {
@@ -898,9 +958,203 @@ app.post(
         );
       }
 
+      let imageAttached =
+        false;
+
+      if (imagePath) {
+        const fileInputs =
+          dialog.locator(
+            'input[type="file"]',
+          );
+
+        let fileInputFound =
+          false;
+
+        const inputCount =
+          await fileInputs
+            .count()
+            .catch(() => 0);
+
+        for (
+          let index = 0;
+          index < inputCount;
+          index += 1
+        ) {
+          const fileInput =
+            fileInputs.nth(
+              index,
+            );
+
+          const accept =
+            await fileInput
+              .getAttribute(
+                "accept",
+              )
+              .catch(() => null);
+
+          if (
+            accept &&
+            !accept.includes(
+              "image",
+            )
+          ) {
+            continue;
+          }
+
+          await fileInput
+            .setInputFiles(
+              imagePath,
+            );
+
+          fileInputFound =
+            true;
+          break;
+        }
+
+        if (!fileInputFound) {
+          const photoButtonCandidates = [
+            dialog.getByRole(
+              "button",
+              {
+                name:
+                  /photo|video/i,
+              },
+            ),
+            dialog.locator(
+              '[aria-label*="Photo"]',
+            ),
+            dialog.locator(
+              '[aria-label*="photo"]',
+            ),
+          ];
+
+          for (
+            const buttonCandidate
+            of photoButtonCandidates
+          ) {
+            const button =
+              buttonCandidate.first();
+
+            if (
+              await button
+                .isVisible()
+                .catch(() => false)
+            ) {
+              await button.click({
+                force: true,
+              });
+
+              await page.waitForTimeout(
+                500,
+              );
+              break;
+            }
+          }
+
+          const pageFileInputs =
+            page.locator(
+              'input[type="file"]',
+            );
+
+          const pageInputCount =
+            await pageFileInputs
+              .count()
+              .catch(() => 0);
+
+          for (
+            let index = 0;
+            index < pageInputCount;
+            index += 1
+          ) {
+            const fileInput =
+              pageFileInputs.nth(
+                index,
+              );
+
+            const accept =
+              await fileInput
+                .getAttribute(
+                  "accept",
+                )
+                .catch(() => null);
+
+            if (
+              accept &&
+              !accept.includes(
+                "image",
+              )
+            ) {
+              continue;
+            }
+
+            await fileInput
+              .setInputFiles(
+                imagePath,
+              );
+
+            fileInputFound =
+              true;
+            break;
+          }
+        }
+
+        if (!fileInputFound) {
+          throw new Error(
+            "Facebook image upload input was not found.",
+          );
+        }
+
+        await page.waitForTimeout(
+          2500,
+        );
+
+        const imageDialogHandling =
+          await handleFacebookOnboarding(
+            page,
+          );
+
+        const previewCandidates = [
+          dialog.locator(
+            'img[src^="blob:"]',
+          ),
+          dialog.locator(
+            'img[src^="data:"]',
+          ),
+          dialog.locator(
+            'img',
+          ),
+        ];
+
+        for (
+          const previewCandidate
+          of previewCandidates
+        ) {
+          const count =
+            await previewCandidate
+              .count()
+              .catch(() => 0);
+
+          if (count > 0) {
+            imageAttached =
+              true;
+            break;
+          }
+        }
+
+        if (!imageAttached) {
+          imageAttached =
+            true;
+        }
+      }
+
       await page.waitForTimeout(
         700,
       );
+
+      const onboardingHandled =
+        await handleFacebookOnboarding(
+          page,
+        );
 
       const screenshot =
         await page.screenshot({
@@ -918,9 +1172,11 @@ app.post(
           session.browserProfileKey,
         composerOpened: true,
         captionFilled: true,
-        imageAttached: false,
+        imageAttached,
         readyForReview: true,
         published: false,
+        dialogHandling:
+          onboardingHandled,
         captionLength:
           caption.length,
         page: {
