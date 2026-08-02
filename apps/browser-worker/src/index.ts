@@ -1241,6 +1241,261 @@ app.post(
 
 
 app.post(
+  "/profiles/:profileKey/facebook/discard-post",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1);
+
+      if (!page) {
+        throw new Error(
+          "No active browser page was found.",
+        );
+      }
+
+      const dialogs =
+        page.locator(
+          '[role="dialog"]',
+        );
+
+      const count =
+        await dialogs
+          .count()
+          .catch(() => 0);
+
+      let composer:
+        import("playwright-core").Locator
+        | null = null;
+
+      for (
+        let index =
+          count - 1;
+        index >= 0;
+        index -= 1
+      ) {
+        const candidate =
+          dialogs.nth(index);
+
+        if (
+          !await candidate
+            .isVisible()
+            .catch(() => false)
+        ) {
+          continue;
+        }
+
+        const editorCount =
+          await candidate
+            .locator(
+              '[contenteditable="true"][role="textbox"]',
+            )
+            .count()
+            .catch(() => 0);
+
+        const dialogText =
+          await candidate
+            .innerText()
+            .catch(() => "");
+
+        if (
+          editorCount > 0 &&
+          /create post/i.test(
+            dialogText,
+          )
+        ) {
+          composer =
+            candidate;
+          break;
+        }
+      }
+
+      if (!composer) {
+        response.json({
+          success: true,
+          discarded: false,
+          alreadyClosed: true,
+          message:
+            "No Facebook draft is currently open.",
+        });
+        return;
+      }
+
+      const closeCandidates = [
+        composer.getByRole(
+          "button",
+          {
+            name:
+              /^Close$/i,
+          },
+        ),
+        composer.locator(
+          '[aria-label="Close"]',
+        ),
+        composer.locator(
+          '[role="button"][aria-label*="Close" i]',
+        ),
+      ];
+
+      let closed =
+        false;
+
+      for (
+        const candidate
+        of closeCandidates
+      ) {
+        const button =
+          candidate.first();
+
+        if (
+          await button
+            .isVisible()
+            .catch(() => false)
+        ) {
+          await button.click({
+            force: true,
+            timeout: 5000,
+          });
+
+          closed =
+            true;
+          break;
+        }
+      }
+
+      if (!closed) {
+        throw new Error(
+          "Facebook draft close button was not found.",
+        );
+      }
+
+      await page.waitForTimeout(
+        700,
+      );
+
+      const discardCandidates = [
+        page.getByRole(
+          "button",
+          {
+            name:
+              /^Delete draft$/i,
+          },
+        ),
+        page.getByRole(
+          "button",
+          {
+            name:
+              /^Discard$/i,
+          },
+        ),
+        page.locator(
+          '[role="button"]',
+        ).filter({
+          hasText:
+            /delete draft|discard/i,
+        }),
+        page.getByText(
+          /delete draft|discard/i,
+          {
+            exact: true,
+          },
+        ),
+      ];
+
+      let discardConfirmed =
+        false;
+
+      for (
+        const candidate
+        of discardCandidates
+      ) {
+        const button =
+          candidate.last();
+
+        if (
+          await button
+            .isVisible()
+            .catch(() => false)
+        ) {
+          await button.click({
+            force: true,
+            timeout: 5000,
+          });
+
+          discardConfirmed =
+            true;
+
+          await page.waitForTimeout(
+            900,
+          );
+
+          break;
+        }
+      }
+
+      if (!discardConfirmed) {
+        throw new Error(
+          "Facebook Delete draft confirmation button was not found.",
+        );
+      }
+
+      const screenshot =
+        await page.screenshot({
+          type: "jpeg",
+          quality: 65,
+          fullPage: false,
+        });
+
+      response.json({
+        success: true,
+        discarded: true,
+        discardConfirmed,
+        browserProfileKey:
+          session.browserProfileKey,
+        screenshot: {
+          mimeType:
+            "image/jpeg",
+          base64:
+            screenshot.toString(
+              "base64",
+            ),
+        },
+        discardedAt:
+          new Date()
+            .toISOString(),
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        discarded: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to discard Facebook draft.",
+      });
+    }
+  },
+);
+
+
+app.post(
   "/profiles/:profileKey/facebook/prepare-post",
   async (request, response) => {
     const profileKey =
