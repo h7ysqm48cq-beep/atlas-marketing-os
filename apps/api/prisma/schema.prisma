@@ -506,6 +506,13 @@ enum BrowserActionStatus {
   FAILED
 }
 
+enum BrowserTraceStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
 model BrowserActionHistory {
   id        String        @id @default(cuid())
   channelId String
@@ -530,11 +537,41 @@ model BrowserActionHistory {
 
   createdAt DateTime @default(now())
 
+  traces BrowserActionTrace[]
+
   @@index([channelId])
   @@index([flowId])
   @@index([action])
   @@index([status])
   @@index([createdAt])
+}
+
+model BrowserActionTrace {
+  id              String               @id @default(cuid())
+  browserActionId String
+  browserAction   BrowserActionHistory @relation(fields: [browserActionId], references: [id], onDelete: Cascade)
+
+  stepKey   String
+  stepName  String
+  stepOrder Int
+
+  status BrowserTraceStatus @default(PENDING)
+
+  metadata       Json?
+  errorMessage   String?
+  screenshotPath String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([browserActionId])
+  @@index([status])
+  @@index([stepKey])
+  @@index([createdAt])
+  @@unique([browserActionId, stepOrder])
 }
 
 model AutomationSetting {
