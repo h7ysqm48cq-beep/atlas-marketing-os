@@ -1358,16 +1358,17 @@
 /* ===== End Asset Library mobile density v3 ===== */
 
 /* Final phone layout: keep the four counters compact and visible together. */
-@media (max-width: 560px) {
+@media (max-width: 780px) {
   .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 10px;
-    overflow: visible;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .stat {
@@ -1385,6 +1386,11 @@
   .stat strong {
     margin-top: 12px;
     font-size: 28px;
+  }
+
+  .heroActions {
+    position: relative;
+    z-index: 1;
   }
 }
 
