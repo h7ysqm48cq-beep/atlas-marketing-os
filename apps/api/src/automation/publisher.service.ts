@@ -284,10 +284,26 @@ export class PublisherService {
           SocialPlatform.TELEGRAM
         ) {
 
+          const chatId =
+            post.channel.externalId?.trim();
+
+          const encryptedToken =
+            post.channel.accessTokenEncrypted?.trim();
+
+          if (!chatId || !encryptedToken) {
+            throw new Error(
+              `Telegram credentials are incomplete for ${post.channel.name}.`,
+            );
+          }
+
+          const botToken =
+            this.socialTokenCrypto.decrypt(encryptedToken);
+
           result =
             await this.telegram.publish(
               post.content,
               post.mediaUrls,
+              { botToken, chatId },
             );
 
         } else {

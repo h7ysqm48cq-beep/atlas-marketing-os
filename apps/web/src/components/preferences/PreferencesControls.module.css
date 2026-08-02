@@ -22,10 +22,35 @@
   font-weight: 850;
 }
 
-.trigger i {
+.themeGlyph {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  display: block;
+  flex: 0 0 17px;
   color: var(--gold-light);
-  font-size: 15px;
-  font-style: normal;
+}
+
+.sunGlyph {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  transform: scale(.56);
+  box-shadow:
+    0 -12px 0 -4px currentColor,
+    0 12px 0 -4px currentColor,
+    12px 0 0 -4px currentColor,
+    -12px 0 0 -4px currentColor,
+    8px 8px 0 -4px currentColor,
+    -8px -8px 0 -4px currentColor,
+    8px -8px 0 -4px currentColor,
+    -8px 8px 0 -4px currentColor;
+}
+
+.moonGlyph {
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  transform: rotate(28deg);
 }
 
 .backdrop {

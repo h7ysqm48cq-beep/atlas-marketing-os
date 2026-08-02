@@ -83,6 +83,15 @@ export function WorkspaceSettings() {
     setConnectingFacebook,
   ] = useState(false);
 
+  const [showTelegramForm, setShowTelegramForm] = useState(false);
+  const [connectingTelegram, setConnectingTelegram] = useState(false);
+  const [telegramForm, setTelegramForm] = useState({
+    brandId: "",
+    name: "",
+    chatId: "",
+    botToken: "",
+  });
+
   const [
     activeChannelAction,
     setActiveChannelAction,
@@ -274,6 +283,65 @@ export function WorkspaceSettings() {
       );
 
       setConnectingFacebook(false);
+    }
+  }
+
+  async function connectTelegram() {
+    const brandId = telegramForm.brandId || activeBrand?.id || "";
+
+    if (!brandId || !telegramForm.chatId.trim() || !telegramForm.botToken.trim()) {
+      setError("Brand, Telegram Chat ID and Bot Token are required.");
+      return;
+    }
+
+    setConnectingTelegram(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const createResponse = await fetch(`${API_URL}/automation/channels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId,
+          platform: "TELEGRAM",
+          name: telegramForm.name.trim() || "Telegram Channel",
+          externalId: telegramForm.chatId.trim(),
+          accessToken: telegramForm.botToken.trim(),
+        }),
+      });
+
+      const created = (await createResponse.json()) as Channel & { message?: string };
+
+      if (!createResponse.ok || !created.id) {
+        throw new Error(created.message || "Unable to add Telegram channel.");
+      }
+
+      const testResponse = await fetch(
+        `${API_URL}/automation/channels/${created.id}/test`,
+        { method: "POST" },
+      );
+      const tested = (await testResponse.json()) as {
+        channel?: Channel;
+        message?: string;
+      };
+
+      if (!testResponse.ok || !tested.channel) {
+        throw new Error(tested.message || "Telegram channel test failed.");
+      }
+
+      await load();
+      setTelegramForm({ brandId: "", name: "", chatId: "", botToken: "" });
+      setShowTelegramForm(false);
+      setMessage(`Telegram channel “${tested.channel.name}” connected.`);
+    } catch (connectError) {
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Unable to connect Telegram.",
+      );
+    } finally {
+      setConnectingTelegram(false);
     }
   }
 
@@ -899,11 +967,99 @@ export function WorkspaceSettings() {
                 : "+ Connect Facebook"}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setShowTelegramForm((current) => !current)}
+            >
+              + Add Telegram
+            </button>
+
             <a href="/automation">
               Open automation
             </a>
           </div>
         </header>
+
+        {showTelegramForm ? (
+          <div className={styles.telegramConnectForm}>
+            <div className={styles.formGrid}>
+              <label>
+                <span>Brand</span>
+                <select
+                  value={telegramForm.brandId || activeBrand?.id || ""}
+                  onChange={(event) =>
+                    setTelegramForm((current) => ({
+                      ...current,
+                      brandId: event.target.value,
+                    }))
+                  }
+                >
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Channel name</span>
+                <input
+                  value={telegramForm.name}
+                  placeholder="MGM Telegram Channel"
+                  onChange={(event) =>
+                    setTelegramForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                <span>Chat ID / @channel</span>
+                <input
+                  value={telegramForm.chatId}
+                  placeholder="-100... or @channel"
+                  onChange={(event) =>
+                    setTelegramForm((current) => ({
+                      ...current,
+                      chatId: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                <span>Bot Token</span>
+                <input
+                  type="password"
+                  value={telegramForm.botToken}
+                  placeholder="Stored encrypted"
+                  onChange={(event) =>
+                    setTelegramForm((current) => ({
+                      ...current,
+                      botToken: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            </div>
+
+            <div className={styles.telegramFormActions}>
+              <button type="button" onClick={() => setShowTelegramForm(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void connectTelegram()}
+                disabled={connectingTelegram}
+              >
+                {connectingTelegram ? "Connecting..." : "Connect Telegram"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className={styles.channelGrid}>
           {channels.map((channel) => {
@@ -1064,7 +1220,17 @@ export function WorkspaceSettings() {
                         </button>
                       ) : null}
                     </>
-                  ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void testChannel(channel)}
+                      disabled={channelBusy}
+                    >
+                      {activeChannelAction === `${channel.id}:test`
+                        ? "Testing..."
+                        : "Test"}
+                    </button>
+                  )}
 
                   <button
                     type="button"

@@ -30,7 +30,12 @@ export function PreferencesControls() {
         aria-label={`${t("interfaceLanguage")} / ${t("appearance")}`}
       >
         <span>{language === "zh" ? "中" : "EN"}</span>
-        <i>{resolvedTheme === "dark" ? "☾" : "☀"}</i>
+        <i
+          className={`${styles.themeGlyph} ${
+            resolvedTheme === "dark" ? styles.moonGlyph : styles.sunGlyph
+          }`}
+          aria-hidden="true"
+        />
       </button>
 
       {open ? (

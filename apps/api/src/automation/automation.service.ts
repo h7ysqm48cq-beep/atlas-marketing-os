@@ -12,6 +12,7 @@ import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 import { PublisherService } from './publisher.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { TelegramConnectorService } from './telegram-connector.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 
 type CreateChannelInput = {
@@ -51,6 +52,8 @@ export class AutomationService {
       SocialTokenCryptoService,
     private readonly facebookConnector:
       FacebookConnectorService,
+    private readonly telegramConnector:
+      TelegramConnectorService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
   ) {}
@@ -314,13 +317,58 @@ export class AutomationService {
       );
     }
 
-    if (
-      channel.platform !==
-      SocialPlatform.FACEBOOK
-    ) {
-      throw new BadRequestException(
-        'Channel testing currently supports Facebook only.',
-      );
+    if (channel.platform === SocialPlatform.TELEGRAM) {
+      const chatId = channel.externalId?.trim();
+      const encryptedToken = channel.accessTokenEncrypted?.trim();
+
+      if (!chatId || !encryptedToken) {
+        throw new BadRequestException(
+          'Telegram Bot Token and Chat ID are required.',
+        );
+      }
+
+      try {
+        const botToken = this.socialTokenCrypto.decrypt(encryptedToken);
+        const result = await this.telegramConnector.testConnection({
+          botToken,
+          chatId,
+        });
+
+        const updated = await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            name: result.channel.title || channel.name,
+            username: result.channel.username ?? channel.username,
+            status: SocialChannelStatus.CONNECTED,
+            lastConnectedAt: new Date(),
+            lastError: null,
+          },
+        });
+
+        return {
+          channel: this.sanitizeChannel(updated),
+          connection: result,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Telegram connection test failed.';
+
+        await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            status: SocialChannelStatus.ERROR,
+            lastError: message.slice(0, 500),
+          },
+        });
+
+        throw error;
+      }
+    }
+
+    if (channel.platform !== SocialPlatform.FACEBOOK) {
+      throw new BadRequestException('Unsupported social channel platform.');
     }
 
     const pageId =

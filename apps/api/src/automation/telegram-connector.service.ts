@@ -32,25 +32,34 @@ type TelegramMessage = {
   text?: string;
 };
 
+export type TelegramChannelCredentials = {
+  botToken: string;
+  chatId: string;
+};
+
 @Injectable()
 export class TelegramConnectorService {
   constructor(
     private readonly configService: ConfigService,
   ) {}
 
-  async testConnection() {
+  async testConnection(
+    credentials?: TelegramChannelCredentials,
+  ) {
     const bot = await this.call<TelegramUser>(
       'getMe',
       {},
+      credentials?.botToken,
     );
 
-    const chatId = this.getChatId();
+    const chatId = this.getChatId(credentials?.chatId);
 
     const chat = await this.call<TelegramChat>(
       'getChat',
       {
         chat_id: chatId,
       },
+      credentials?.botToken,
     );
 
     return {
@@ -88,6 +97,7 @@ export class TelegramConnectorService {
   async publish(
     text: string,
     mediaUrls: string[] = [],
+    credentials?: TelegramChannelCredentials,
   ): Promise<TelegramMessage> {
     const firstMediaUrl =
       mediaUrls
@@ -98,15 +108,17 @@ export class TelegramConnectorService {
       return this.sendPhoto(
         text,
         firstMediaUrl,
+        credentials,
       );
     }
 
-    return this.sendMessage(text);
+    return this.sendMessage(text, credentials);
   }
 
   async sendPhoto(
     caption: string,
     mediaUrl: string,
+    credentials?: TelegramChannelCredentials,
   ): Promise<TelegramMessage> {
     const cleanCaption =
       caption?.trim();
@@ -125,7 +137,7 @@ export class TelegramConnectorService {
 
     form.set(
       'chat_id',
-      this.getChatId(),
+      this.getChatId(credentials?.chatId),
     );
 
     form.set(
@@ -142,11 +154,13 @@ export class TelegramConnectorService {
     return this.callMultipart<TelegramMessage>(
       'sendPhoto',
       form,
+      credentials?.botToken,
     );
   }
 
   async sendMessage(
     text: string,
+    credentials?: TelegramChannelCredentials,
   ): Promise<TelegramMessage> {
     const cleanText = text?.trim();
 
@@ -159,14 +173,19 @@ export class TelegramConnectorService {
     return this.call<TelegramMessage>(
       'sendMessage',
       {
-        chat_id: this.getChatId(),
+        chat_id: this.getChatId(credentials?.chatId),
         text: cleanText,
         disable_web_page_preview: false,
       },
+      credentials?.botToken,
     );
   }
 
-  private getToken() {
+  private getToken(override?: string) {
+    if (override?.trim()) {
+      return override.trim();
+    }
+
     const token =
       this.configService.get<string>(
         'TELEGRAM_BOT_TOKEN',
@@ -185,7 +204,11 @@ export class TelegramConnectorService {
     return token.trim();
   }
 
-  private getChatId() {
+  private getChatId(override?: string) {
+    if (override?.trim()) {
+      return override.trim();
+    }
+
     const chatId =
       this.configService.get<string>(
         'TELEGRAM_CHAT_ID',
@@ -276,10 +299,11 @@ export class TelegramConnectorService {
   private async callMultipart<T>(
     method: string,
     form: FormData,
+    token?: string,
   ): Promise<T> {
     const response =
       await fetch(
-        `https://api.telegram.org/bot${this.getToken()}/${method}`,
+        `https://api.telegram.org/bot${this.getToken(token)}/${method}`,
         {
           method: 'POST',
           body: form,
@@ -314,9 +338,10 @@ export class TelegramConnectorService {
   private async call<T>(
     method: string,
     payload: Record<string, unknown>,
+    token?: string,
   ): Promise<T> {
     const response = await fetch(
-      `https://api.telegram.org/bot${this.getToken()}/${method}`,
+      `https://api.telegram.org/bot${this.getToken(token)}/${method}`,
       {
         method: 'POST',
         headers: {

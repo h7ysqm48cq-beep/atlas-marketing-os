@@ -380,6 +380,45 @@
   opacity: 0.55;
 }
 
+.telegramConnectForm {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-soft);
+}
+
+.telegramFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.telegramFormActions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 750;
+}
+
+.telegramFormActions button:last-child {
+  border-color: #229ed9;
+  background: #229ed9;
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .telegramFormActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .channelGrid article > div:nth-child(2) small {
   color: #71798c;
   font-size: 10px;
