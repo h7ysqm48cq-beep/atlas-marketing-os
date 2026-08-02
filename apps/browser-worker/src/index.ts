@@ -1186,6 +1186,118 @@ app.post(
           .isVisible()
           .catch(() => false);
 
+      const visibleAlerts =
+        page.locator(
+          '[role="alert"]:visible, [role="status"]:visible',
+        );
+
+      const alertCount =
+        await visibleAlerts
+          .count()
+          .catch(() => 0);
+
+      const alertTexts:
+        string[] = [];
+
+      for (
+        let index = 0;
+        index < alertCount;
+        index += 1
+      ) {
+        const text =
+          (
+            await visibleAlerts
+              .nth(index)
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(
+              /\s+/g,
+              " ",
+            )
+            .trim();
+
+        if (text) {
+          alertTexts.push(
+            text.slice(
+              0,
+              500,
+            ),
+          );
+        }
+      }
+
+      const pageText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const successPatterns = [
+        /your post (?:is|was) (?:now )?published/i,
+        /post published/i,
+        /your post has been published/i,
+        /your post is successfully shared/i,
+        /post is successfully shared/i,
+        /帖子已发布/i,
+        /贴文已发布/i,
+        /siaran anda telah diterbitkan/i,
+      ];
+
+      const errorPatterns = [
+        /couldn't publish/i,
+        /unable to publish/i,
+        /something went wrong/i,
+        /try again later/i,
+        /无法发布/i,
+        /发布失败/i,
+        /tidak dapat menerbitkan/i,
+      ];
+
+      const combinedFeedback =
+        [
+          ...alertTexts,
+          pageText.slice(
+            0,
+            12000,
+          ),
+        ].join(" ");
+
+      const successSignal =
+        successPatterns.some(
+          (pattern) =>
+            pattern.test(
+              combinedFeedback,
+            ),
+        );
+
+      const errorSignal =
+        errorPatterns.some(
+          (pattern) =>
+            pattern.test(
+              combinedFeedback,
+            ),
+        );
+
+      const verificationStatus =
+        errorSignal
+          ? "FAILED"
+          : (
+              !composerStillVisible &&
+              successSignal
+            )
+            ? "CONFIRMED"
+            : !composerStillVisible
+              ? "COMPOSER_CLOSED"
+              : "UNCONFIRMED";
+
       const afterScreenshot =
         await page.screenshot({
           type: "jpeg",
@@ -1194,9 +1306,12 @@ app.post(
         });
 
       response.json({
-        success: true,
+        success:
+          verificationStatus !==
+          "FAILED",
         published:
-          !composerStillVisible,
+          !composerStillVisible &&
+          !errorSignal,
         browserProfileKey:
           session.browserProfileKey,
         captionLength:
@@ -1204,6 +1319,15 @@ app.post(
         imageCount,
         composerClosed:
           !composerStillVisible,
+        verification: {
+          status:
+            verificationStatus,
+          composerClosed:
+            !composerStillVisible,
+          successSignal,
+          errorSignal,
+          alertTexts,
+        },
         screenshots: {
           before: {
             mimeType:
