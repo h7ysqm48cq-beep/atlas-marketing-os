@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Res,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
+import { RuntimeProfileService } from './runtime-profile.service';
 
 @Controller('automation')
 export class AutomationController {
@@ -32,6 +34,8 @@ export class AutomationController {
       FacebookConnectorService,
     private readonly facebookOAuth:
       FacebookOAuthService,
+    private readonly runtimeProfiles:
+      RuntimeProfileService,
   ) {}
 
   @Get('dashboard')
@@ -51,6 +55,42 @@ export class AutomationController {
     return this.automationService
       .getChannel(id);
   }
+
+  @Get('channels/:id/runtime-profile')
+  getRuntimeProfile(
+    @Param('id') id: string,
+  ) {
+    return this.runtimeProfiles
+      .getForChannel(id);
+  }
+
+  @Put('channels/:id/runtime-profile')
+  updateRuntimeProfile(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      browserProfileName?: string;
+      locale?: string;
+      timezone?: string;
+      proxyType?:
+        | 'DIRECT'
+        | 'HTTP'
+        | 'HTTPS'
+        | 'SOCKS5';
+      proxyHost?: string | null;
+      proxyPort?: number | null;
+      proxyUsername?: string | null;
+      proxyPassword?: string | null;
+      proxyCountry?: string | null;
+    },
+  ) {
+    return this.runtimeProfiles
+      .upsertForChannel(
+        id,
+        body,
+      );
+  }
+
 
   @Post('channels/:id/test')
   testChannel(
