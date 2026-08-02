@@ -1104,3 +1104,25 @@
     transform: scale(0.985);
   }
 }
+.activityRow {
+  cursor: pointer;
+  transition: background .16s ease;
+}
+
+.activityRow:hover,
+.activityRow:focus-visible {
+  background: rgba(209, 163, 63, .07);
+  outline: none;
+}
+
+.activityRow td:first-child strong::after {
+  content: "  →";
+  color: var(--gold-light);
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+
+.activityRow:hover td:first-child strong::after,
+.activityRow:focus-visible td:first-child strong::after {
+  opacity: 1;
+}

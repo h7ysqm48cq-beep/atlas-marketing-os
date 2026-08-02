@@ -118,6 +118,7 @@ export function AiStudio() {
       const campaignNameParam = params.get("campaignName") || "";
       const ideaTitleParam = params.get("ideaTitle") || "";
       const historyParam = params.get("historyId") || "";
+      const assetParam = params.get("assetId") || "";
 
       if (topicParam) setTopic(topicParam);
       if (styleParam) setStyle(styleParam);
@@ -127,8 +128,41 @@ export function AiStudio() {
       if (campaignNameParam) setCampaignName(campaignNameParam);
       if (ideaTitleParam) setIdeaTitle(ideaTitleParam);
 
+      if (assetParam) {
+        try {
+          const assetResponse = await fetch(`${API_URL}/assets/${assetParam}`, {
+            cache: "no-store",
+          });
+          const asset = (await assetResponse.json()) as StudioAsset & {
+            message?: string;
+          };
+
+          if (!assetResponse.ok || !asset.id) {
+            throw new Error(asset.message || "Unable to attach asset.");
+          }
+
+          if (!cancelled) {
+            setSelectedAssets([asset]);
+            setMessage(
+              ui(
+                `“${asset.name}” attached from Asset Library.`,
+                `已从素材库附加“${asset.name}”。`,
+              ),
+            );
+          }
+        } catch (error) {
+          if (!cancelled) {
+            setMessage(
+              error instanceof Error
+                ? error.message
+                : ui("Unable to attach asset.", "无法附加素材。"),
+            );
+          }
+        }
+      }
+
       if (!historyParam) {
-        if (campaignParam || ideaParam) {
+        if ((campaignParam || ideaParam) && !assetParam) {
           setMessage(
             ui(
               "Campaign context loaded. Ready to generate.",

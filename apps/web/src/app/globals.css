@@ -1727,6 +1727,53 @@ button {
   box-shadow: var(--atlas-modal-shadow) !important;
 }
 
+/* Camel-case drawers and modals are not covered by the generic selectors. */
+:root[data-theme="light"] [class*="AssetDetailsDrawer_drawer"],
+:root[data-theme="light"] [class*="PlatformCard_versionDrawer"],
+:root[data-theme="light"] [class*="PlatformCard_approvalDrawer"],
+:root[data-theme="light"] [class*="AutomationDashboard_historyModal"],
+:root[data-theme="light"] [class*="AtlasCopilot_explainModal"] {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-card-bg) !important;
+  color: var(--atlas-text) !important;
+  box-shadow: var(--atlas-modal-shadow) !important;
+}
+
+:root[data-theme="light"] [class*="PlatformCard_versionHeader"],
+:root[data-theme="light"] [class*="PlatformCard_approvalDrawerHeader"],
+:root[data-theme="light"] [class*="AutomationDashboard_historyModalHeader"],
+:root[data-theme="light"] [class*="AutomationDashboard_historyModalFooter"] {
+  border-color: var(--atlas-border) !important;
+  background: rgba(255, 255, 255, .96) !important;
+  color: var(--atlas-text) !important;
+}
+
+:root[data-theme="light"] [class*="AssetDetailsDrawer_metadata"] > div,
+:root[data-theme="light"] [class*="AssetDetailsDrawer_prompt"],
+:root[data-theme="light"] [class*="PlatformCard_versionList"] article,
+:root[data-theme="light"] [class*="PlatformCard_workflowSummary"] > div,
+:root[data-theme="light"] [class*="PlatformCard_workflowTimeline"],
+:root[data-theme="light"] [class*="AutomationDashboard_historyModalSummary"] dl,
+:root[data-theme="light"] [class*="AutomationDashboard_historyModalSection"],
+:root[data-theme="light"] [class*="AutomationDashboard_historyModalPayload"] {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-soft-bg) !important;
+  color: var(--atlas-text) !important;
+}
+
+:root[data-theme="light"] [class*="AssetDetailsDrawer_"] button,
+:root[data-theme="light"] [class*="AssetDetailsDrawer_actions"] a,
+:root[data-theme="light"] [class*="PlatformCard_versionDrawer"] button,
+:root[data-theme="light"] [class*="PlatformCard_approvalDrawer"] button,
+:root[data-theme="light"] [class*="PlatformCard_approvalDrawer"] input,
+:root[data-theme="light"] [class*="PlatformCard_approvalDrawer"] textarea,
+:root[data-theme="light"] [class*="AutomationDashboard_historyModal"] button,
+:root[data-theme="light"] [class*="AtlasCopilot_explainModal"] button {
+  border-color: var(--atlas-border) !important;
+  background: var(--atlas-input-bg) !important;
+  color: var(--atlas-text) !important;
+}
+
 /* ---------- Typography ---------- */
 
 :root[data-theme="light"] [class*="AiStudio_"] h1,

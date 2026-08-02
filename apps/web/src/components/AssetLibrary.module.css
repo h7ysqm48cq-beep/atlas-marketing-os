@@ -259,6 +259,12 @@
   color: #ffaaaa !important;
 }
 
+.studioAction {
+  border-color: rgba(209, 163, 63, .46) !important;
+  background: rgba(209, 163, 63, .11) !important;
+  color: var(--gold-light) !important;
+}
+
 .emptyState {
   min-height: 390px;
   display: grid;
@@ -406,6 +412,79 @@
   .cardFooter {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+/* Mobile workspace: compact controls and one clear asset action flow. */
+@media (max-width: 760px) {
+  .heroActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, minmax(108px, 1fr));
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding: 0 16px 4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .stats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stat {
+    min-height: 92px;
+    padding: 13px;
+    scroll-snap-align: start;
+  }
+
+  .stat span {
+    font-size: 9px;
+  }
+
+  .stat strong {
+    font-size: 25px;
+  }
+
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar > input {
+    grid-column: 1 / -1;
+  }
+
+  .cardFooter > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .studioAction {
+    grid-column: 1 / -1;
+    min-height: 44px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview,
+  .preview img {
+    min-height: 210px;
+  }
+}
+
+@media (max-width: 390px) {
+  .heroActions,
+  .cardFooter > div {
+    grid-template-columns: 1fr;
+  }
+
+  .studioAction {
+    grid-column: auto;
   }
 }
 

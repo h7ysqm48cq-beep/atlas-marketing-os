@@ -368,6 +368,20 @@ export function AssetLibrary() {
     setMessage("Asset deleted.");
   }
 
+  function buildStudioHref(asset: Asset) {
+    const params = new URLSearchParams({
+      assetId: asset.id,
+      topic: asset.history?.topic || asset.prompt || asset.name,
+    });
+
+    if (asset.campaign) {
+      params.set("campaignId", asset.campaign.id);
+      params.set("campaignName", asset.campaign.name);
+    }
+
+    return `/ai-studio?${params.toString()}`;
+  }
+
   return (
     <div className={styles.page}>
       <section className={styles.hero}>
@@ -532,6 +546,12 @@ export function AssetLibrary() {
                 <div className={styles.cardFooter}>
                   <small>{formatDate(asset.createdAt)}</small>
                   <div>
+                    <a
+                      className={styles.studioAction}
+                      href={buildStudioHref(asset)}
+                    >
+                      ✦ Use in AI Studio
+                    </a>
                     <a href={asset.url} target="_blank" rel="noreferrer">
                       View
                     </a>

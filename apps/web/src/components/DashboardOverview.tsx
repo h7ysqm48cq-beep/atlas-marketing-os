@@ -509,7 +509,22 @@ export function DashboardOverview() {
 
             <tbody>
               {recentContent.map((record) => (
-                <tr key={record.id}>
+                <tr
+                  className={styles.activityRow}
+                  key={record.id}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`${t("latestAiContent")}: ${record.topic}`}
+                  onClick={() => {
+                    window.location.href = `/content-history?historyId=${encodeURIComponent(record.id)}`;
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      window.location.href = `/content-history?historyId=${encodeURIComponent(record.id)}`;
+                    }
+                  }}
+                >
                   <td>
                     <strong>{record.topic}</strong>
                   </td>
