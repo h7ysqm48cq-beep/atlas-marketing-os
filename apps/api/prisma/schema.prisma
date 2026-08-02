@@ -380,7 +380,8 @@ model SocialChannel {
   lastConnectedAt      DateTime?
   lastError            String?
 
-  scheduledPosts ScheduledPost[]
+  scheduledPosts       ScheduledPost[]
+  browserActionHistory BrowserActionHistory[]
 
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
@@ -489,6 +490,47 @@ model PublishAttempt {
   createdAt DateTime @default(now())
 
   @@index([scheduledPostId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum BrowserActionType {
+  PREPARE
+  PUBLISH
+  DISCARD
+}
+
+enum BrowserActionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model BrowserActionHistory {
+  id        String        @id @default(cuid())
+  channelId String
+  channel   SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  action BrowserActionType
+  status BrowserActionStatus @default(PENDING)
+
+  browserProfileKey String?
+  caption           String?
+  imagePath         String?
+  screenshotPath    String?
+
+  requestPayload  Json?
+  responsePayload Json?
+  errorMessage    String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([channelId])
+  @@index([action])
   @@index([status])
   @@index([createdAt])
 }

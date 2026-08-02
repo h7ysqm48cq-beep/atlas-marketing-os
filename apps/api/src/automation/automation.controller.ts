@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
+  BrowserActionType,
   ScheduledPostStatus,
   SocialChannelStatus,
   SocialPlatform,
@@ -23,6 +24,68 @@ import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
+import { BrowserActionHistoryService } from './browser-action-history.service';
+
+function sanitizeBrowserActionResponse(
+  value: unknown,
+): unknown {
+  if (
+    !value ||
+    typeof value !== 'object'
+  ) {
+    return value;
+  }
+
+  const cloned =
+    JSON.parse(
+      JSON.stringify(value),
+    ) as Record<string, unknown>;
+
+  const screenshot =
+    cloned.screenshot;
+
+  if (
+    screenshot &&
+    typeof screenshot === 'object'
+  ) {
+    delete (
+      screenshot as Record<
+        string,
+        unknown
+      >
+    ).base64;
+  }
+
+  const screenshots =
+    cloned.screenshots;
+
+  if (
+    screenshots &&
+    typeof screenshots === 'object'
+  ) {
+    for (
+      const item
+      of Object.values(
+        screenshots,
+      )
+    ) {
+      if (
+        item &&
+        typeof item === 'object'
+      ) {
+        delete (
+          item as Record<
+            string,
+            unknown
+          >
+        ).base64;
+      }
+    }
+  }
+
+  return cloned;
+}
+
 
 @Controller('automation')
 export class AutomationController {
@@ -39,6 +102,8 @@ export class AutomationController {
       RuntimeProfileService,
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
+    private readonly browserActionHistory:
+      BrowserActionHistoryService,
   ) {}
 
   @Get('dashboard')
@@ -58,6 +123,36 @@ export class AutomationController {
     return this.automationService
       .getChannel(id);
   }
+
+  @Get('browser-actions')
+  browserActions(
+    @Query('channelId')
+    channelId?: string,
+    @Query('limit')
+    limit?: string,
+  ) {
+    const parsedLimit =
+      limit
+        ? Number.parseInt(
+            limit,
+            10,
+          )
+        : undefined;
+
+    return this.browserActionHistory
+      .listRecent({
+        channelId:
+          channelId?.trim() ||
+          undefined,
+        limit:
+          Number.isFinite(
+            parsedLimit,
+          )
+            ? parsedLimit
+            : undefined,
+      });
+  }
+
 
   @Get('browser-worker/health')
   browserWorkerHealth() {
@@ -100,40 +195,189 @@ export class AutomationController {
       imagePath?: string | null;
     },
   ) {
+    const caption =
+      body.caption?.trim() ||
+      '';
+
+    const imagePath =
+      body.imagePath?.trim() ||
+      null;
+
     const profile =
       await this.runtimeProfiles
         .getBrowserLaunchProfile(
           id,
         );
 
-    return this.browserRuntime
-      .prepareFacebookPost(
-        profile.browserProfileKey,
-        {
-          caption:
-            body.caption || '',
-          imagePath:
-            body.imagePath || null,
-        },
-      );
+    const action =
+      await this.browserActionHistory
+        .start({
+          channelId: id,
+          action:
+            BrowserActionType.PREPARE,
+          browserProfileKey:
+            profile.browserProfileKey,
+          caption,
+          imagePath,
+          requestPayload: {
+            caption,
+            imagePath,
+          },
+        });
+
+    try {
+      const result =
+        await this.browserRuntime
+          .prepareFacebookPost(
+            profile.browserProfileKey,
+            {
+              caption,
+              imagePath,
+            },
+          );
+
+      await this.browserActionHistory
+        .succeed(
+          action.id,
+          {
+            responsePayload:
+              sanitizeBrowserActionResponse(
+                result,
+              ),
+          },
+        );
+
+      return result;
+    } catch (error) {
+      await this.browserActionHistory
+        .fail(
+          action.id,
+          error,
+        );
+
+      throw error;
+    }
+  }
+
+
+  @Post(
+    'channels/:id/browser/facebook/discard-post',
+  )
+  async discardFacebookBrowserPost(
+    @Param('id') id: string,
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          id,
+        );
+
+    const action =
+      await this.browserActionHistory
+        .start({
+          channelId: id,
+          action:
+            BrowserActionType.DISCARD,
+          browserProfileKey:
+            profile.browserProfileKey,
+          requestPayload: {
+            channelId: id,
+          },
+        });
+
+    try {
+      const result =
+        await this.browserRuntime
+          .discardFacebookPost(
+            id,
+          );
+
+      await this.browserActionHistory
+        .succeed(
+          action.id,
+          {
+            responsePayload:
+              sanitizeBrowserActionResponse(
+                result,
+              ),
+          },
+        );
+
+      return result;
+    } catch (error) {
+      await this.browserActionHistory
+        .fail(
+          action.id,
+          error,
+        );
+
+      throw error;
+    }
   }
 
 
   @Post(
     'channels/:id/browser/facebook/publish-post',
   )
-  publishFacebookBrowserPost(
+  async publishFacebookBrowserPost(
     @Param('id') id: string,
     @Body()
     body: {
       confirmation?: string;
     },
   ) {
-    return this.browserRuntime
-      .publishFacebookPost(
-        id,
-        body.confirmation || '',
-      );
+    const confirmation =
+      body.confirmation ||
+      '';
+
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(
+          id,
+        );
+
+    const action =
+      await this.browserActionHistory
+        .start({
+          channelId: id,
+          action:
+            BrowserActionType.PUBLISH,
+          browserProfileKey:
+            profile.browserProfileKey,
+          requestPayload: {
+            confirmation,
+          },
+        });
+
+    try {
+      const result =
+        await this.browserRuntime
+          .publishFacebookPost(
+            id,
+            confirmation,
+          );
+
+      await this.browserActionHistory
+        .succeed(
+          action.id,
+          {
+            responsePayload:
+              sanitizeBrowserActionResponse(
+                result,
+              ),
+          },
+        );
+
+      return result;
+    } catch (error) {
+      await this.browserActionHistory
+        .fail(
+          action.id,
+          error,
+        );
+
+      throw error;
+    }
   }
 
 

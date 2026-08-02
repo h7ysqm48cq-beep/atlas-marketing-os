@@ -974,3 +974,123 @@
     width: 100%;
   }
 }
+
+.discardDraftButton {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.discardDraftButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.confirmDiscardButton {
+  border: 1px solid #d97706;
+  background: #d97706;
+  color: #ffffff;
+}
+
+.browserHistoryList {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.browserHistoryItem {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel-soft);
+}
+
+.historyStatusDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 999px;
+}
+
+.historySuccess {
+  background: #22c55e;
+}
+
+.historyFailed {
+  background: #ef4444;
+}
+
+.historyPending {
+  background: #f59e0b;
+}
+
+.historyMain {
+  min-width: 0;
+}
+
+.historyTitleRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.historyTitleRow span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.historyMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.historyCaption {
+  margin: 11px 0 0;
+  overflow: hidden;
+  color: var(--text);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.historyPath,
+.historyError {
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.historyPath {
+  color: var(--text-muted);
+}
+
+.historyError {
+  color: #ef4444;
+}
+
+.historyEmpty {
+  padding: 26px;
+  border: 1px dashed var(--border);
+  border-radius: 13px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+@media (max-width: 560px) {
+  .historyTitleRow {
+    display: grid;
+  }
+}

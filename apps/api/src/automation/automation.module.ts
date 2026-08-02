@@ -6,6 +6,7 @@ import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
+import { BrowserActionHistoryService } from './browser-action-history.service';
 import { PublisherService } from './publisher.service';
 import { AutomationSchedulerService } from './automation-scheduler.service';
 
@@ -21,6 +22,7 @@ import { AutomationSchedulerService } from './automation-scheduler.service';
     FacebookOAuthService,
     RuntimeProfileService,
     BrowserRuntimeBridgeService,
+    BrowserActionHistoryService,
     PublisherService,
   ],
   exports: [

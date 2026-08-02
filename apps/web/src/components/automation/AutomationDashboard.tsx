@@ -56,6 +56,32 @@ type BrowserStatusResponse = {
   };
 };
 
+type BrowserActionHistoryItem = {
+  id: string;
+  action:
+    | "PREPARE"
+    | "PUBLISH"
+    | "DISCARD";
+  status:
+    | "PENDING"
+    | "SUCCESS"
+    | "FAILED";
+  browserProfileKey: string | null;
+  caption: string | null;
+  imagePath: string | null;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  createdAt: string;
+  channel: {
+    id: string;
+    name: string;
+    platform: string;
+    username: string | null;
+  };
+};
+
 type BrowserDraftResponse = {
   success: boolean;
   browserProfileKey?: string;
@@ -179,6 +205,27 @@ export function AutomationDashboard() {
           confirmPublish: "确认发布",
           publishedSuccessfully: "Facebook 帖子已成功发布。",
           publishFailed: "无法发布 Facebook 帖子。",
+          discardDraft: "取消草稿",
+          discardingDraft: "正在取消……",
+          discardConfirmTitle: "确认取消当前草稿？",
+          discardConfirmText:
+            "当前 Facebook Composer 中的文案和图片将被清除。",
+          confirmDiscard: "确认取消",
+          discardedSuccessfully: "Facebook 草稿已取消。",
+          discardFailed: "无法取消 Facebook 草稿。",
+          recentBrowserActions: "最近 Browser Agent 操作",
+          browserActionsDescription:
+            "查看草稿准备、发布、取消与失败记录。",
+          noBrowserActions: "暂时没有 Browser Agent 操作记录。",
+          actionPrepare: "准备草稿",
+          actionPublish: "发布帖子",
+          actionDiscard: "取消草稿",
+          actionPending: "处理中",
+          actionSuccess: "成功",
+          actionFailed: "失败",
+          duration: "耗时",
+          viewCaption: "文案",
+          imagePath: "图片路径",
         }
       : {
           loading: "Loading automation dashboard...",
@@ -269,6 +316,32 @@ export function AutomationDashboard() {
             "Facebook post published successfully.",
           publishFailed:
             "Unable to publish Facebook post.",
+          discardDraft: "Discard draft",
+          discardingDraft: "Discarding...",
+          discardConfirmTitle:
+            "Discard the current draft?",
+          discardConfirmText:
+            "The caption and image in the Facebook Composer will be cleared.",
+          confirmDiscard: "Confirm discard",
+          discardedSuccessfully:
+            "Facebook draft discarded.",
+          discardFailed:
+            "Unable to discard Facebook draft.",
+          recentBrowserActions:
+            "Recent Browser Agent actions",
+          browserActionsDescription:
+            "Review draft preparation, publishing, discard and failure records.",
+          noBrowserActions:
+            "No Browser Agent actions yet.",
+          actionPrepare: "Prepare draft",
+          actionPublish: "Publish post",
+          actionDiscard: "Discard draft",
+          actionPending: "Pending",
+          actionSuccess: "Success",
+          actionFailed: "Failed",
+          duration: "Duration",
+          viewCaption: "Caption",
+          imagePath: "Image path",
         };
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
@@ -298,6 +371,8 @@ export function AutomationDashboard() {
       | "status"
       | "close"
       | "prepare"
+      | "publish"
+      | "discard"
       | null
     >(null);
 
@@ -315,6 +390,21 @@ export function AutomationDashboard() {
 
   const [publishConfirmOpen, setPublishConfirmOpen] =
     useState(false);
+
+  const [discardConfirmOpen, setDiscardConfirmOpen] =
+    useState(false);
+
+  const [
+    browserActions,
+    setBrowserActions,
+  ] = useState<
+    BrowserActionHistoryItem[]
+  >([]);
+
+  const [
+    browserActionsLoading,
+    setBrowserActionsLoading,
+  ] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -346,8 +436,38 @@ export function AutomationDashboard() {
     }
   }, []);
 
+  async function loadBrowserActions() {
+    setBrowserActionsLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/browser-actions?limit=20`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          copy.loadFailed,
+        );
+      }
+
+      const body =
+        (await response.json()) as
+          BrowserActionHistoryItem[];
+
+      setBrowserActions(body);
+    } catch {
+      setBrowserActions([]);
+    } finally {
+      setBrowserActionsLoading(false);
+    }
+  }
+
   useEffect(() => {
     void load();
+    void loadBrowserActions();
   }, [load]);
 
   useEffect(() => {
@@ -598,8 +718,80 @@ export function AutomationDashboard() {
       );
     } finally {
       setBrowserAction(null);
+      void loadBrowserActions();
     }
   }
+
+  async function discardBrowserDraft() {
+    if (
+      !selectedFacebookChannelId ||
+      !draftReady
+    ) {
+      return;
+    }
+
+    setBrowserAction("discard");
+    setBrowserError("");
+    setBrowserMessage("");
+    setDiscardConfirmOpen(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/discard-post`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body =
+        (await response.json()) as {
+          success?: boolean;
+          discarded?: boolean;
+          message?: string;
+          screenshot?: {
+            mimeType?: string;
+            base64?: string;
+          };
+        };
+
+      if (
+        !response.ok ||
+        !body.success
+      ) {
+        throw new Error(
+          body.message ||
+            copy.discardFailed,
+        );
+      }
+
+      if (
+        body.screenshot?.base64 &&
+        body.screenshot.mimeType
+      ) {
+        setDraftScreenshot(
+          `data:${body.screenshot.mimeType};base64,${body.screenshot.base64}`,
+        );
+      }
+
+      setDraftReady(false);
+      setBrowserCaption("");
+      setBrowserImagePath("");
+
+      setBrowserMessage(
+        copy.discardedSuccessfully,
+      );
+    } catch (actionError) {
+      setBrowserError(
+        actionError instanceof Error
+          ? actionError.message
+          : copy.discardFailed,
+      );
+    } finally {
+      setBrowserAction(null);
+      void loadBrowserActions();
+    }
+  }
+
 
   async function publishBrowserDraft() {
     if (
@@ -609,7 +801,7 @@ export function AutomationDashboard() {
       return;
     }
 
-    setBrowserAction("prepare");
+    setBrowserAction("publish");
     setBrowserError("");
     setBrowserMessage("");
     setPublishConfirmOpen(false);
@@ -678,6 +870,7 @@ export function AutomationDashboard() {
       );
     } finally {
       setBrowserAction(null);
+      void loadBrowserActions();
     }
   }
 
@@ -1023,6 +1216,22 @@ export function AutomationDashboard() {
 
             <button
               type="button"
+              className={styles.discardDraftButton}
+              onClick={() =>
+                setDiscardConfirmOpen(true)
+              }
+              disabled={
+                browserAction !== null ||
+                !draftReady
+              }
+            >
+              {browserAction === "discard"
+                ? copy.discardingDraft
+                : copy.discardDraft}
+            </button>
+
+            <button
+              type="button"
               className={styles.publishDraftButton}
               onClick={() =>
                 setPublishConfirmOpen(true)
@@ -1072,6 +1281,166 @@ export function AutomationDashboard() {
           </div>
         </div>
       </section>
+
+      <section className={styles.panel}>
+        <header>
+          <div>
+            <p className={styles.eyebrow}>
+              Browser History
+            </p>
+
+            <h2>
+              {copy.recentBrowserActions}
+            </h2>
+
+            <p className={styles.panelDescription}>
+              {copy.browserActionsDescription}
+            </p>
+          </div>
+
+          <strong>
+            {browserActions.length}
+          </strong>
+        </header>
+
+        <div className={styles.browserHistoryList}>
+          {browserActions.map((item) => {
+            const actionLabel =
+              item.action === "PREPARE"
+                ? copy.actionPrepare
+                : item.action === "PUBLISH"
+                  ? copy.actionPublish
+                  : copy.actionDiscard;
+
+            const statusLabel =
+              item.status === "SUCCESS"
+                ? copy.actionSuccess
+                : item.status === "FAILED"
+                  ? copy.actionFailed
+                  : copy.actionPending;
+
+            return (
+              <article
+                key={item.id}
+                className={styles.browserHistoryItem}
+              >
+                <div
+                  className={`${styles.historyStatusDot} ${
+                    item.status === "SUCCESS"
+                      ? styles.historySuccess
+                      : item.status === "FAILED"
+                        ? styles.historyFailed
+                        : styles.historyPending
+                  }`}
+                />
+
+                <div className={styles.historyMain}>
+                  <div className={styles.historyTitleRow}>
+                    <strong>{actionLabel}</strong>
+
+                    <span>
+                      {item.channel.name}
+                    </span>
+                  </div>
+
+                  <div className={styles.historyMeta}>
+                    <span>{statusLabel}</span>
+
+                    <span>
+                      {formatDate(
+                        item.createdAt,
+                        locale,
+                      )}
+                    </span>
+
+                    {item.durationMs !== null ? (
+                      <span>
+                        {copy.duration}:{" "}
+                        {(item.durationMs / 1000).toFixed(1)}s
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {item.caption ? (
+                    <p className={styles.historyCaption}>
+                      {item.caption}
+                    </p>
+                  ) : null}
+
+                  {item.imagePath ? (
+                    <small className={styles.historyPath}>
+                      {copy.imagePath}:{" "}
+                      {item.imagePath}
+                    </small>
+                  ) : null}
+
+                  {item.errorMessage ? (
+                    <small className={styles.historyError}>
+                      {item.errorMessage}
+                    </small>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+
+          {!browserActions.length &&
+          !browserActionsLoading ? (
+            <div className={styles.historyEmpty}>
+              {copy.noBrowserActions}
+            </div>
+          ) : null}
+
+          {browserActionsLoading ? (
+            <div className={styles.historyEmpty}>
+              {copy.loading}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {discardConfirmOpen ? (
+        <div
+          className={styles.confirmOverlay}
+          role="presentation"
+        >
+          <div
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+          >
+            <h3>
+              {copy.discardConfirmTitle}
+            </h3>
+
+            <p>
+              {copy.discardConfirmText}
+            </p>
+
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setDiscardConfirmOpen(false)
+                }
+              >
+                {copy.cancelPublish}
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmDiscardButton}
+                onClick={() =>
+                  void discardBrowserDraft()
+                }
+              >
+                {copy.confirmDiscard}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {publishConfirmOpen ? (
         <div
