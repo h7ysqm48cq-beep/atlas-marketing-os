@@ -3,6 +3,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  fetch as undiciFetch,
+  FormData as UndiciFormData,
+  ProxyAgent,
+  type Dispatcher,
+} from 'undici';
+import { File } from 'node:buffer';
 
 type FacebookApiError = {
   message?: string;
@@ -37,6 +44,7 @@ type FacebookPhotoResult = {
 export type FacebookChannelCredentials = {
   pageId: string;
   accessToken: string;
+  proxyUrl?: string | null;
 };
 
 export type FacebookPublishInput =
@@ -73,6 +81,7 @@ export class FacebookConnectorService {
           ].join(','),
         },
         resolved.accessToken,
+        resolved.proxyUrl,
       );
 
     return {
@@ -166,7 +175,7 @@ export class FacebookConnectorService {
       );
 
     const form =
-      new FormData();
+      new UndiciFormData();
 
     form.set(
       'caption',
@@ -180,12 +189,11 @@ export class FacebookConnectorService {
 
     form.set(
       'source',
-      media.blob,
-      media.filename,
+      media.file,
     );
 
     const response =
-      await fetch(
+      await this.request(
         [
           this.getBaseUrl(),
           credentials.pageId,
@@ -195,6 +203,7 @@ export class FacebookConnectorService {
           method: 'POST',
           body: form,
         },
+        credentials.proxyUrl,
       );
 
     const result =
@@ -208,6 +217,7 @@ export class FacebookConnectorService {
 
     return result;
   }
+
 
   async publishPost(
     input: FacebookChannelCredentials & {
@@ -244,6 +254,50 @@ export class FacebookConnectorService {
     );
   }
 
+  private createDispatcher(
+    proxyUrl?: string | null,
+  ): Dispatcher | undefined {
+    const cleanProxyUrl =
+      proxyUrl?.trim();
+
+    if (!cleanProxyUrl) {
+      return undefined;
+    }
+
+    return new ProxyAgent(
+      cleanProxyUrl,
+    );
+  }
+
+  private async request(
+    input:
+      string | URL,
+    init: Parameters<
+      typeof undiciFetch
+    >[1] = {},
+    proxyUrl?: string | null,
+  ) {
+    const dispatcher =
+      this.createDispatcher(
+        proxyUrl,
+      );
+
+    try {
+      return await undiciFetch(
+        input,
+        {
+          ...init,
+          dispatcher,
+        },
+      );
+    } finally {
+      if (dispatcher) {
+        await dispatcher.close();
+      }
+    }
+  }
+
+
   private requireCredentials(
     credentials?:
       Partial<FacebookChannelCredentials>,
@@ -269,6 +323,10 @@ export class FacebookConnectorService {
     return {
       pageId,
       accessToken,
+      proxyUrl:
+        credentials?.proxyUrl
+          ?.trim() ||
+        null,
     };
   }
 
@@ -332,12 +390,15 @@ export class FacebookConnectorService {
       'atlas-image';
 
     const bytes =
-      await response.arrayBuffer();
+      Buffer.from(
+        await response.arrayBuffer(),
+      );
 
     return {
       filename,
-      blob: new Blob(
+      file: new File(
         [bytes],
+        filename,
         {
           type: contentType,
         },
@@ -369,6 +430,7 @@ export class FacebookConnectorService {
     query:
       Record<string, string>,
     accessToken: string,
+    proxyUrl?: string | null,
   ): Promise<T> {
     const url =
       new URL(
@@ -391,7 +453,11 @@ export class FacebookConnectorService {
     );
 
     const response =
-      await fetch(url);
+      await this.request(
+        url,
+        {},
+        proxyUrl,
+      );
 
     const body =
       (await response.json()) as
@@ -410,6 +476,7 @@ export class FacebookConnectorService {
     payload:
       Record<string, string>,
     accessToken: string,
+    proxyUrl?: string | null,
   ): Promise<T> {
     const body =
       new URLSearchParams();
@@ -427,7 +494,7 @@ export class FacebookConnectorService {
     );
 
     const response =
-      await fetch(
+      await this.request(
         `${this.getBaseUrl()}/${path}`,
         {
           method: 'POST',
@@ -437,6 +504,7 @@ export class FacebookConnectorService {
           },
           body,
         },
+        proxyUrl,
       );
 
     const result =

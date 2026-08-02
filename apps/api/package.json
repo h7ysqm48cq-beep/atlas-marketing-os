@@ -41,7 +41,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.35.3",
-    "socks-proxy-agent": "^10.1.0"
+    "socks-proxy-agent": "^10.1.0",
+    "undici": "^8.9.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

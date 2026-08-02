@@ -343,6 +343,133 @@ export class RuntimeProfileService {
     };
   }
 
+  async getPublishNetwork(
+    channelId: string,
+  ): Promise<{
+    proxyType:
+      | 'DIRECT'
+      | 'HTTP'
+      | 'HTTPS'
+      | 'SOCKS5';
+    proxyUrl: string | null;
+    locale: string;
+    timezone: string;
+    browserProfileKey: string | null;
+  }> {
+    const profile =
+      await this.prisma
+        .socialChannelRuntimeProfile
+        .findUnique({
+          where: {
+            channelId,
+          },
+        });
+
+    if (!profile) {
+      return {
+        proxyType: 'DIRECT',
+        proxyUrl: null,
+        locale: 'en-MY',
+        timezone:
+          'Asia/Kuala_Lumpur',
+        browserProfileKey:
+          null,
+      };
+    }
+
+    if (
+      profile.proxyType ===
+      SocialProxyType.DIRECT
+    ) {
+      return {
+        proxyType: 'DIRECT',
+        proxyUrl: null,
+        locale:
+          profile.locale,
+        timezone:
+          profile.timezone,
+        browserProfileKey:
+          profile.browserProfileKey,
+      };
+    }
+
+    if (
+      profile.proxyType ===
+      SocialProxyType.SOCKS5
+    ) {
+      return {
+        proxyType: 'SOCKS5',
+        proxyUrl: null,
+        locale:
+          profile.locale,
+        timezone:
+          profile.timezone,
+        browserProfileKey:
+          profile.browserProfileKey,
+      };
+    }
+
+    const host =
+      profile.proxyHost?.trim();
+
+    const port =
+      profile.proxyPort;
+
+    if (!host || !port) {
+      throw new BadRequestException(
+        'Runtime proxy host and port are required.',
+      );
+    }
+
+    const username =
+      profile.proxyUsernameEncrypted
+        ? this.socialTokenCrypto.decrypt(
+            profile.proxyUsernameEncrypted,
+          )
+        : '';
+
+    const password =
+      profile.proxyPasswordEncrypted
+        ? this.socialTokenCrypto.decrypt(
+            profile.proxyPasswordEncrypted,
+          )
+        : '';
+
+    const credentials =
+      username
+        ? `${encodeURIComponent(
+            username,
+          )}:${encodeURIComponent(
+            password,
+          )}@`
+        : '';
+
+    const protocol =
+      profile.proxyType ===
+      SocialProxyType.HTTPS
+        ? 'https'
+        : 'http';
+
+    return {
+      proxyType:
+        profile.proxyType,
+      proxyUrl: [
+        `${protocol}://`,
+        credentials,
+        host,
+        ':',
+        String(port),
+      ].join(''),
+      locale:
+        profile.locale,
+      timezone:
+        profile.timezone,
+      browserProfileKey:
+        profile.browserProfileKey,
+    };
+  }
+
+
   async testProxy(
     channelId: string,
   ) {

@@ -15,6 +15,7 @@ import {
 
 import { FacebookConnectorService } from "./facebook-connector.service";
 import { TelegramConnectorService } from "./telegram-connector.service";
+import { RuntimeProfileService } from "./runtime-profile.service";
 
 @Injectable()
 export class PublisherService {
@@ -28,6 +29,8 @@ export class PublisherService {
     private readonly telegram: TelegramConnectorService,
     private readonly socialTokenCrypto:
       SocialTokenCryptoService,
+    private readonly runtimeProfiles:
+      RuntimeProfileService,
   ) {}
 
   private buildFacebookPostUrl(
@@ -195,6 +198,26 @@ export class PublisherService {
           SocialPlatform.FACEBOOK
         ) {
 
+          const publishNetwork =
+            await this.runtimeProfiles
+              .getPublishNetwork(
+                post.channel.id,
+              );
+
+          if (
+            publishNetwork.proxyType ===
+            'SOCKS5'
+          ) {
+            throw new Error(
+              [
+                'SOCKS5 publishing requires',
+                'the Browser Runtime.',
+                'Use DIRECT, HTTP or HTTPS',
+                'for Facebook Native API publishing.',
+              ].join(' '),
+            );
+          }
+
           const pageId =
             post.channel.externalId?.trim();
 
@@ -252,6 +275,8 @@ export class PublisherService {
               message: post.content,
               mediaUrls:
                 post.mediaUrls,
+              proxyUrl:
+                publishNetwork.proxyUrl,
             });
 
         } else if (
