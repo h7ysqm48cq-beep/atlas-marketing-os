@@ -58,6 +58,7 @@ type BrowserStatusResponse = {
 
 type BrowserActionHistoryItem = {
   id: string;
+  flowId: string | null;
   action:
     | "PREPARE"
     | "PUBLISH"
@@ -170,6 +171,84 @@ function browserActionScreenshotUrl(
   return variant
     ? `${base}?variant=${variant}`
     : base;
+}
+
+
+type BrowserActionTimelineGroup = {
+  id: string;
+  flowId: string | null;
+  items: BrowserActionHistoryItem[];
+  createdAt: string;
+};
+
+function groupBrowserActionsByFlow(
+  items: BrowserActionHistoryItem[],
+): BrowserActionTimelineGroup[] {
+  const grouped =
+    new Map<
+      string,
+      BrowserActionTimelineGroup
+    >();
+
+  for (const item of items) {
+    const key =
+      item.flowId
+        ? `flow:${item.flowId}`
+        : `single:${item.id}`;
+
+    const existing =
+      grouped.get(key);
+
+    if (existing) {
+      existing.items.push(item);
+
+      if (
+        new Date(item.createdAt).getTime() <
+        new Date(
+          existing.createdAt,
+        ).getTime()
+      ) {
+        existing.createdAt =
+          item.createdAt;
+      }
+
+      continue;
+    }
+
+    grouped.set(key, {
+      id: key,
+      flowId:
+        item.flowId,
+      items: [item],
+      createdAt:
+        item.createdAt,
+    });
+  }
+
+  return Array.from(
+    grouped.values(),
+  )
+    .map((group) => ({
+      ...group,
+      items: [...group.items].sort(
+        (left, right) =>
+          new Date(
+            left.createdAt,
+          ).getTime() -
+          new Date(
+            right.createdAt,
+          ).getTime(),
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        new Date(
+          right.createdAt,
+        ).getTime() -
+        new Date(
+          left.createdAt,
+        ).getTime(),
+    );
 }
 
 export function AutomationDashboard() {
@@ -308,6 +387,8 @@ export function AutomationDashboard() {
           channelName: "渠道",
           actionType: "操作",
           resultStatus: "结果",
+          browserFlow: "Browser 流程",
+          flowSteps: "个步骤",
           startedAt: "开始时间",
           completedAt: "完成时间",
           browserProfile: "浏览器 Profile",
@@ -464,6 +545,8 @@ export function AutomationDashboard() {
           channelName: "Channel",
           actionType: "Action",
           resultStatus: "Result",
+          browserFlow: "Browser flow",
+          flowSteps: "steps",
           startedAt: "Started",
           completedAt: "Completed",
           browserProfile: "Browser profile",
@@ -1148,6 +1231,9 @@ export function AutomationDashboard() {
           item.action ===
             browserActionFilter;
 
+
+
+
         const statusMatches =
           browserStatusFilter === "ALL" ||
           item.status ===
@@ -1182,6 +1268,9 @@ export function AutomationDashboard() {
   }
 
   const counts = dashboard.statusCounts;
+
+
+
 
   return (
     <div className={styles.dashboard}>
@@ -1661,7 +1750,11 @@ export function AutomationDashboard() {
         </div>
 
         <div className={styles.browserHistoryList}>
-          {filteredBrowserActions.map((item) => {
+          {groupBrowserActionsByFlow(
+            filteredBrowserActions,
+          ).flatMap((group) =>
+            group.items.map(
+              (item, itemIndex) => {
             const actionLabel =
               item.action === "PREPARE"
                 ? copy.actionPrepare
@@ -1677,10 +1770,56 @@ export function AutomationDashboard() {
                   : copy.actionPending;
 
             return (
-              <article
+              <div
                 key={item.id}
-                className={styles.browserHistoryItem}
+                className={
+                  styles.timelineStepWrapper
+                }
               >
+                {group.flowId &&
+                itemIndex === 0 ? (
+                  <div
+                    className={
+                      styles.timelineFlowHeader
+                    }
+                  >
+                    <div>
+                      <strong>
+                        {copy.browserFlow}
+                      </strong>
+
+                      <small>
+                        {group.flowId.slice(
+                          0,
+                          8,
+                        )}
+                      </small>
+                    </div>
+
+                    <span>
+                      {group.items.length}{" "}
+                      {copy.flowSteps}
+                    </span>
+                  </div>
+                ) : null}
+
+                {group.flowId &&
+                itemIndex > 0 ? (
+                  <div
+                    className={
+                      styles.timelineConnector
+                    }
+                    aria-hidden="true"
+                  >
+                    <span>↓</span>
+                  </div>
+                ) : null}
+
+                <article
+                  className={
+                    styles.browserHistoryItem
+                  }
+                >
                 <div
                   className={`${styles.historyStatusDot} ${
                     item.status === "SUCCESS"
@@ -1904,9 +2043,12 @@ export function AutomationDashboard() {
                   ) : null}
 
                 </div>
-              </article>
+                </article>
+              </div>
             );
-          })}
+              },
+            ),
+          )}
 
           {!filteredBrowserActions.length &&
           !browserActionsLoading ? (

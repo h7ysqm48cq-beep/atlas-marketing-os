@@ -1495,3 +1495,71 @@
     margin-right: 16px;
   }
 }
+
+.timelineStepWrapper {
+  display: grid;
+}
+
+.timelineFlowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 10px;
+  border: 1px solid rgba(99, 102, 241, 0.32);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.timelineFlowHeader > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.timelineFlowHeader strong {
+  font-size: 0.86rem;
+}
+
+.timelineFlowHeader small {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.timelineFlowHeader > span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.timelineConnector {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding-left: 25px;
+}
+
+.timelineConnector span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 680px) {
+  .timelineFlowHeader {
+    align-items: flex-start;
+  }
+
+  .timelineFlowHeader > div {
+    display: grid;
+    gap: 3px;
+  }
+}
