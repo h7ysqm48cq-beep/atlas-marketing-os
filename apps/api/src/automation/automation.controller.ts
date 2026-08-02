@@ -675,14 +675,31 @@ export class AutomationController {
             id,
           );
 
+      const discardResult =
+        result as {
+          success?: boolean;
+          discarded?: boolean;
+          alreadyClosed?: boolean;
+          executionTrace?: unknown;
+        };
+
+      await this.browserActionTrace
+        .importWorkerTrace(
+          action.id,
+          discardResult.executionTrace,
+        );
+
+      const sanitizedResult =
+        sanitizeBrowserActionResponse(
+          result,
+        );
+
       await this.browserActionHistory
         .succeed(
           action.id,
           {
             responsePayload:
-              sanitizeBrowserActionResponse(
-                result,
-              ),
+              sanitizedResult,
           },
         );
 

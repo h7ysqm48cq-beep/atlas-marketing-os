@@ -1733,6 +1733,84 @@ app.post(
       return;
     }
 
+    type WorkerExecutionTraceStep = {
+      stepKey: string;
+      stepName: string;
+      stepOrder: number;
+      status:
+        | "SUCCESS"
+        | "FAILED"
+        | "SKIPPED";
+      startedAt: string;
+      completedAt: string;
+      durationMs: number;
+      metadata?: Record<
+        string,
+        unknown
+      >;
+      errorMessage?: string | null;
+      screenshotPath?: string | null;
+    };
+
+    const executionTrace:
+      WorkerExecutionTraceStep[] = [];
+
+    const completeTraceStep = (
+      input: {
+        stepKey: string;
+        stepName: string;
+        stepOrder: number;
+        startedAtMs: number;
+        status?:
+          | "SUCCESS"
+          | "FAILED"
+          | "SKIPPED";
+        metadata?: Record<
+          string,
+          unknown
+        >;
+        errorMessage?: string | null;
+        screenshotPath?: string | null;
+      },
+    ) => {
+      const completedAtMs =
+        Date.now();
+
+      executionTrace.push({
+        stepKey:
+          input.stepKey,
+        stepName:
+          input.stepName,
+        stepOrder:
+          input.stepOrder,
+        status:
+          input.status ||
+          "SUCCESS",
+        startedAt:
+          new Date(
+            input.startedAtMs,
+          ).toISOString(),
+        completedAt:
+          new Date(
+            completedAtMs,
+          ).toISOString(),
+        durationMs:
+          Math.max(
+            0,
+            completedAtMs -
+              input.startedAtMs,
+          ),
+        metadata:
+          input.metadata,
+        errorMessage:
+          input.errorMessage ||
+          null,
+        screenshotPath:
+          input.screenshotPath ||
+          null,
+      });
+    };
+
     try {
       const pages =
         session.context.pages();
@@ -1745,6 +1823,9 @@ app.post(
           "No active browser page was found.",
         );
       }
+
+      const verifyDraftStartedAt =
+        Date.now();
 
       const dialogs =
         page.locator(
@@ -1803,15 +1884,55 @@ app.post(
       }
 
       if (!composer) {
+        completeTraceStep({
+          stepKey:
+            "VERIFY_DRAFT",
+          stepName:
+            "Verify open Facebook draft",
+          stepOrder:
+            1,
+          startedAtMs:
+            verifyDraftStartedAt,
+          status:
+            "SKIPPED",
+          metadata: {
+            composerFound:
+              false,
+            alreadyClosed:
+              true,
+          },
+          errorMessage:
+            "No Facebook draft is currently open.",
+        });
+
         response.json({
           success: true,
           discarded: false,
           alreadyClosed: true,
+          executionTrace,
           message:
             "No Facebook draft is currently open.",
         });
         return;
       }
+
+      completeTraceStep({
+        stepKey:
+          "VERIFY_DRAFT",
+        stepName:
+          "Verify open Facebook draft",
+        stepOrder:
+          1,
+        startedAtMs:
+          verifyDraftStartedAt,
+        metadata: {
+          composerFound:
+            true,
+        },
+      });
+
+      const clickCloseStartedAt =
+        Date.now();
 
       const closeCandidates = [
         composer.getByRole(
@@ -1860,6 +1981,24 @@ app.post(
           "Facebook draft close button was not found.",
         );
       }
+
+      completeTraceStep({
+        stepKey:
+          "CLICK_CLOSE",
+        stepName:
+          "Close Facebook composer",
+        stepOrder:
+          2,
+        startedAtMs:
+          clickCloseStartedAt,
+        metadata: {
+          closeButtonClicked:
+            true,
+        },
+      });
+
+      const confirmDiscardStartedAt =
+        Date.now();
 
       await page.waitForTimeout(
         700,
@@ -1931,6 +2070,60 @@ app.post(
         );
       }
 
+      completeTraceStep({
+        stepKey:
+          "CONFIRM_DISCARD",
+        stepName:
+          "Confirm Facebook draft discard",
+        stepOrder:
+          3,
+        startedAtMs:
+          confirmDiscardStartedAt,
+        metadata: {
+          discardConfirmed,
+        },
+      });
+
+      const verifyDiscardedStartedAt =
+        Date.now();
+
+      const composerStillVisible =
+        await composer
+          .isVisible()
+          .catch(() => false);
+
+      completeTraceStep({
+        stepKey:
+          "VERIFY_DISCARDED",
+        stepName:
+          "Verify Facebook draft was discarded",
+        stepOrder:
+          4,
+        startedAtMs:
+          verifyDiscardedStartedAt,
+        status:
+          composerStillVisible
+            ? "FAILED"
+            : "SUCCESS",
+        metadata: {
+          composerStillVisible,
+          discardConfirmed,
+        },
+        errorMessage:
+          composerStillVisible
+            ? "Facebook composer remained visible after discard."
+            : null,
+      });
+
+      if (composerStillVisible) {
+        throw new Error(
+          "Facebook composer remained visible after discard.",
+        );
+      }
+
+      const captureResultStartedAt =
+        Date.now();
+
       const screenshot =
         await page.screenshot({
           type: "jpeg",
@@ -1948,9 +2141,27 @@ app.post(
             screenshot,
         });
 
+      completeTraceStep({
+        stepKey:
+          "CAPTURE_RESULT",
+        stepName:
+          "Capture discarded draft result",
+        stepOrder:
+          5,
+        startedAtMs:
+          captureResultStartedAt,
+        metadata: {
+          screenshotPath:
+            savedDiscardScreenshot.absolutePath,
+        },
+        screenshotPath:
+          savedDiscardScreenshot.absolutePath,
+      });
+
       response.json({
         success: true,
         discarded: true,
+        executionTrace,
         discardConfirmed,
         browserProfileKey:
           session.browserProfileKey,
@@ -1976,6 +2187,7 @@ app.post(
       response.status(400).json({
         success: false,
         discarded: false,
+        executionTrace,
         message:
           error instanceof Error
             ? error.message
