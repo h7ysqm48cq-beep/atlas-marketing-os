@@ -302,6 +302,12 @@ export function AutomationDashboard() {
           filterStatus: "状态",
           showDetails: "查看详情",
           hideDetails: "收起详情",
+          historyDetailsTitle: "Browser Agent 操作详情",
+          closeDetails: "关闭",
+          actionId: "操作 ID",
+          channelName: "渠道",
+          actionType: "操作",
+          resultStatus: "结果",
           startedAt: "开始时间",
           completedAt: "完成时间",
           browserProfile: "浏览器 Profile",
@@ -451,6 +457,13 @@ export function AutomationDashboard() {
           filterStatus: "Status",
           showDetails: "Show details",
           hideDetails: "Hide details",
+          historyDetailsTitle:
+            "Browser Agent action details",
+          closeDetails: "Close",
+          actionId: "Action ID",
+          channelName: "Channel",
+          actionType: "Action",
+          resultStatus: "Result",
           startedAt: "Started",
           completedAt: "Completed",
           browserProfile: "Browser profile",
@@ -550,6 +563,13 @@ export function AutomationDashboard() {
     expandedBrowserActionId,
     setExpandedBrowserActionId,
   ] = useState<string | null>(null);
+
+  const [
+    selectedBrowserHistoryItem,
+    setSelectedBrowserHistoryItem,
+  ] = useState<
+    BrowserActionHistoryItem | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1702,18 +1722,12 @@ export function AutomationDashboard() {
                     type="button"
                     className={styles.historyDetailsButton}
                     onClick={() =>
-                      setExpandedBrowserActionId(
-                        expandedBrowserActionId ===
-                          item.id
-                          ? null
-                          : item.id,
+                      setSelectedBrowserHistoryItem(
+                        item,
                       )
                     }
                   >
-                    {expandedBrowserActionId ===
-                    item.id
-                      ? copy.hideDetails
-                      : copy.showDetails}
+                    {copy.showDetails}
                   </button>
 
                   {item.status === "FAILED" &&
@@ -1889,58 +1903,6 @@ export function AutomationDashboard() {
                     </small>
                   ) : null}
 
-                  {expandedBrowserActionId ===
-                  item.id ? (
-                    <div className={styles.historyDetails}>
-                      <dl>
-                        <div>
-                          <dt>{copy.startedAt}</dt>
-                          <dd>
-                            {formatDate(
-                              item.startedAt,
-                              locale,
-                            )}
-                          </dd>
-                        </div>
-
-                        <div>
-                          <dt>{copy.completedAt}</dt>
-                          <dd>
-                            {item.completedAt
-                              ? formatDate(
-                                  item.completedAt,
-                                  locale,
-                                )
-                              : "-"}
-                          </dd>
-                        </div>
-
-                        <div>
-                          <dt>{copy.browserProfile}</dt>
-                          <dd>
-                            {item.browserProfileKey ||
-                              "-"}
-                          </dd>
-                        </div>
-                      </dl>
-
-                      {item.responsePayload ? (
-                        <div className={styles.historyPayload}>
-                          <strong>
-                            {copy.responseDetails}
-                          </strong>
-
-                          <pre>
-                            {JSON.stringify(
-                              item.responsePayload,
-                              null,
-                              2,
-                            )}
-                          </pre>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
                 </div>
               </article>
             );
@@ -1960,6 +1922,346 @@ export function AutomationDashboard() {
           ) : null}
         </div>
       </section>
+
+      {selectedBrowserHistoryItem ? (
+        <div
+          className={styles.historyModalOverlay}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setSelectedBrowserHistoryItem(
+                null,
+              );
+            }
+          }}
+        >
+          <div
+            className={styles.historyModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="browser-history-dialog-title"
+          >
+            <header
+              className={styles.historyModalHeader}
+            >
+              <div>
+                <p className={styles.eyebrow}>
+                  Browser History
+                </p>
+
+                <h3
+                  id="browser-history-dialog-title"
+                >
+                  {copy.historyDetailsTitle}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                className={styles.historyModalClose}
+                onClick={() =>
+                  setSelectedBrowserHistoryItem(
+                    null,
+                  )
+                }
+                aria-label={copy.closeDetails}
+              >
+                ×
+              </button>
+            </header>
+
+            <div
+              className={styles.historyModalSummary}
+            >
+              <dl>
+                <div>
+                  <dt>{copy.actionId}</dt>
+                  <dd>
+                    {selectedBrowserHistoryItem.id}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.channelName}</dt>
+                  <dd>
+                    {
+                      selectedBrowserHistoryItem
+                        .channel.name
+                    }
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.actionType}</dt>
+                  <dd>
+                    {
+                      selectedBrowserHistoryItem
+                        .action
+                    }
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.resultStatus}</dt>
+                  <dd>
+                    {
+                      selectedBrowserHistoryItem
+                        .status
+                    }
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.startedAt}</dt>
+                  <dd>
+                    {formatDate(
+                      selectedBrowserHistoryItem
+                        .startedAt,
+                      locale,
+                    )}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.completedAt}</dt>
+                  <dd>
+                    {selectedBrowserHistoryItem
+                      .completedAt
+                      ? formatDate(
+                          selectedBrowserHistoryItem
+                            .completedAt,
+                          locale,
+                        )
+                      : "-"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.duration}</dt>
+                  <dd>
+                    {selectedBrowserHistoryItem
+                      .durationMs !== null
+                      ? `${(
+                          selectedBrowserHistoryItem
+                            .durationMs /
+                          1000
+                        ).toFixed(1)}s`
+                      : "-"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>{copy.browserProfile}</dt>
+                  <dd>
+                    {selectedBrowserHistoryItem
+                      .browserProfileKey ||
+                      "-"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {selectedBrowserHistoryItem
+              .caption ? (
+              <section
+                className={
+                  styles.historyModalSection
+                }
+              >
+                <strong>{copy.viewCaption}</strong>
+                <p>
+                  {
+                    selectedBrowserHistoryItem
+                      .caption
+                  }
+                </p>
+              </section>
+            ) : null}
+
+            {selectedBrowserHistoryItem
+              .errorMessage ? (
+              <section
+                className={
+                  styles.historyModalSection
+                }
+              >
+                <strong>
+                  {copy.errorDetails}
+                </strong>
+                <p
+                  className={
+                    styles.historyModalError
+                  }
+                >
+                  {
+                    selectedBrowserHistoryItem
+                      .errorMessage
+                  }
+                </p>
+              </section>
+            ) : null}
+
+            {(selectedBrowserHistoryItem
+              .responsePayload
+              ?.screenshot
+              ?.absolutePath ||
+              selectedBrowserHistoryItem
+                .responsePayload
+                ?.screenshots
+                ?.before
+                ?.absolutePath ||
+              selectedBrowserHistoryItem
+                .responsePayload
+                ?.screenshots
+                ?.after
+                ?.absolutePath) ? (
+              <section
+                className={
+                  styles.historyModalSection
+                }
+              >
+                <strong>
+                  {copy.screenshotPreview}
+                </strong>
+
+                <div
+                  className={
+                    styles.historyModalScreenshots
+                  }
+                >
+                  {selectedBrowserHistoryItem
+                    .responsePayload
+                    ?.screenshot
+                    ?.absolutePath ? (
+                    <a
+                      href={browserActionScreenshotUrl(
+                        selectedBrowserHistoryItem.id,
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={browserActionScreenshotUrl(
+                          selectedBrowserHistoryItem.id,
+                        )}
+                        alt={copy.viewScreenshot}
+                      />
+                      <span>
+                        {copy.viewScreenshot}
+                      </span>
+                    </a>
+                  ) : null}
+
+                  {selectedBrowserHistoryItem
+                    .responsePayload
+                    ?.screenshots
+                    ?.before
+                    ?.absolutePath ? (
+                    <a
+                      href={browserActionScreenshotUrl(
+                        selectedBrowserHistoryItem.id,
+                        "before",
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={browserActionScreenshotUrl(
+                          selectedBrowserHistoryItem.id,
+                          "before",
+                        )}
+                        alt={
+                          copy.viewBeforeScreenshot
+                        }
+                      />
+                      <span>
+                        {
+                          copy.viewBeforeScreenshot
+                        }
+                      </span>
+                    </a>
+                  ) : null}
+
+                  {selectedBrowserHistoryItem
+                    .responsePayload
+                    ?.screenshots
+                    ?.after
+                    ?.absolutePath ? (
+                    <a
+                      href={browserActionScreenshotUrl(
+                        selectedBrowserHistoryItem.id,
+                        "after",
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={browserActionScreenshotUrl(
+                          selectedBrowserHistoryItem.id,
+                          "after",
+                        )}
+                        alt={
+                          copy.viewAfterScreenshot
+                        }
+                      />
+                      <span>
+                        {
+                          copy.viewAfterScreenshot
+                        }
+                      </span>
+                    </a>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+
+            {selectedBrowserHistoryItem
+              .responsePayload ? (
+              <section
+                className={
+                  styles.historyModalSection
+                }
+              >
+                <strong>
+                  {copy.responseDetails}
+                </strong>
+
+                <pre
+                  className={
+                    styles.historyModalPayload
+                  }
+                >
+                  {JSON.stringify(
+                    selectedBrowserHistoryItem
+                      .responsePayload,
+                    null,
+                    2,
+                  )}
+                </pre>
+              </section>
+            ) : null}
+
+            <footer
+              className={styles.historyModalFooter}
+            >
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setSelectedBrowserHistoryItem(
+                    null,
+                  )
+                }
+              >
+                {copy.closeDetails}
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
 
       {discardConfirmOpen ? (
         <div

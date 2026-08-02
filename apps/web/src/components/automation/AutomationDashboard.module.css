@@ -1320,3 +1320,178 @@
   border-color: var(--accent);
   background: rgba(99, 102, 241, 0.1);
 }
+
+.historyModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 7, 18, 0.76);
+  backdrop-filter: blur(10px);
+}
+
+.historyModal {
+  width: min(980px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.historyModalHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 22px 24px;
+  background: var(--panel);
+}
+
+.historyModalHeader h3 {
+  margin: 4px 0 0;
+}
+
+.historyModalClose {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.historyModalSummary {
+  padding: 22px 24px 0;
+}
+
+.historyModalSummary dl {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.historyModalSummary dl > div {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.historyModalSummary dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.historyModalSummary dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+}
+
+.historyModalSection {
+  display: grid;
+  gap: 10px;
+  margin: 22px 24px 0;
+}
+
+.historyModalSection p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.historyModalError {
+  color: #ef4444;
+}
+
+.historyModalScreenshots {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.historyModalScreenshots a {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-soft);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.historyModalScreenshots img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #000;
+}
+
+.historyModalScreenshots span {
+  display: block;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.historyModalPayload {
+  max-height: 340px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.historyModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 22px 24px 24px;
+}
+
+@media (max-width: 680px) {
+  .historyModalOverlay {
+    padding: 10px;
+  }
+
+  .historyModal {
+    max-height: 94vh;
+    border-radius: 15px;
+  }
+
+  .historyModalSummary dl,
+  .historyModalScreenshots {
+    grid-template-columns: 1fr;
+  }
+
+  .historyModalHeader,
+  .historyModalSummary,
+  .historyModalFooter {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .historyModalSection {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
