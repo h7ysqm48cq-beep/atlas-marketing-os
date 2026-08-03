@@ -16,6 +16,7 @@ import {
 import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { SportsNewsAutomationService } from './sports-news-automation.service';
 
 @Controller('automation')
 export class AutomationController {
@@ -26,6 +27,8 @@ export class AutomationController {
       TelegramConnectorService,
     private readonly facebookConnector:
       FacebookConnectorService,
+    private readonly sportsNewsAutomation:
+      SportsNewsAutomationService,
   ) {}
 
   @Get('dashboard')
@@ -251,6 +254,11 @@ export class AutomationController {
   @Post("run")
   runPublisher() {
     return this.automationService.runPublisher();
+  }
+
+  @Post('sports-news/run')
+  runSportsNewsNow() {
+    return this.sportsNewsAutomation.run('MANUAL');
   }
 
 @Get('settings')
