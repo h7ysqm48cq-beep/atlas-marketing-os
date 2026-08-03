@@ -627,15 +627,16 @@ export async function fillFacebookComposerCaption(
 export async function waitForFacebookComposerStable(
   page: Page,
 ) {
-  let previousSignature =
-    "";
+  let previousSignature = "";
 
-  let stableChecks =
-    0;
+  let stableChecks = 0;
+
+  const startedAt =
+    Date.now();
 
   for (
     let attempt = 0;
-    attempt < 20;
+    attempt < 12;
     attempt += 1
   ) {
     const dialogs =
@@ -648,8 +649,10 @@ export async function waitForFacebookComposerStable(
         .count()
         .catch(() => 0);
 
-    let signature =
-      "";
+    let signature = "";
+
+    let ready =
+      false;
 
     for (
       let index = count - 1;
@@ -677,7 +680,9 @@ export async function waitForFacebookComposerStable(
           .count()
           .catch(() => 0);
 
-      if (editorCount === 0) {
+      if (
+        editorCount === 0
+      ) {
         continue;
       }
 
@@ -700,21 +705,30 @@ export async function waitForFacebookComposerStable(
           .trim();
 
       const loading =
-        /uploading|processing|please wait/i.test(
-          text,
+        /uploading|processing|please wait/i
+          .test(text);
+
+      const hasPostButton =
+        text.includes(
+          "Post",
         );
+
+      const hasComposer =
+        text.includes(
+          "Add to your post",
+        );
+
+      ready =
+        !loading &&
+        hasComposer;
 
       signature =
         [
           editorCount,
           images,
           loading,
-          text.includes(
-            "Add to your post",
-          ),
-          text.includes(
-            "Post",
-          ),
+          hasComposer,
+          hasPostButton,
         ].join(":");
 
       break;
@@ -734,19 +748,22 @@ export async function waitForFacebookComposerStable(
       signature;
 
     if (
-      signature &&
-      stableChecks >= 2
+      ready &&
+      stableChecks >= 1
     ) {
       return {
         stable: true,
         signature,
         checks:
           attempt + 1,
+        durationMs:
+          Date.now() -
+          startedAt,
       };
     }
 
     await page.waitForTimeout(
-      500,
+      300,
     );
   }
 

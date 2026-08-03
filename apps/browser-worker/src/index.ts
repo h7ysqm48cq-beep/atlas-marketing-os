@@ -1514,7 +1514,7 @@ app.post(
         Date.now();
 
       const verificationTimeoutMs =
-        15000;
+        30000;
 
       while (
         Date.now() -
@@ -1609,6 +1609,9 @@ app.post(
         }
 
         if (!composerStillVisible) {
+          await page.waitForTimeout(
+            3000,
+          );
           break;
         }
 
@@ -1761,13 +1764,19 @@ app.post(
 
       response.json({
         success:
-          verificationStatus !==
-          "FAILED",
+          verificationStatus ===
+            "CONFIRMED" ||
+          verificationStatus ===
+            "COMPOSER_CLOSED",
         executionTrace,
         published:
           (
             successSignal ||
-            !composerStillVisible
+            (
+              !composerStillVisible &&
+              verificationStatus ===
+                "COMPOSER_CLOSED"
+            )
           ) &&
           !errorSignal,
         browserProfileKey:
@@ -3070,9 +3079,6 @@ app.post(
         });
       }
 
-      const waitStableStartedAt =
-        Date.now();
-
       await page.waitForTimeout(
         700,
       );
@@ -3085,6 +3091,9 @@ app.post(
       await page.waitForTimeout(
         700,
       );
+
+      const waitStableStartedAt =
+        Date.now();
 
       const composerStability =
         await waitForFacebookComposerStable(
