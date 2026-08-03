@@ -68,7 +68,8 @@ app.use(
 
 const port =
   Number(
-    process.env.BROWSER_WORKER_PORT ||
+    process.env.PORT ||
+      process.env.BROWSER_WORKER_PORT ||
       4010,
   );
 
@@ -3631,6 +3632,7 @@ process.on(
 
 app.listen(
   port,
+  "0.0.0.0",
   () => {
     console.log(
       `Atlas Browser Worker listening on port ${port}`,
