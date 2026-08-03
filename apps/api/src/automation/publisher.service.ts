@@ -16,6 +16,7 @@ import {
 import { FacebookConnectorService } from "./facebook-connector.service";
 import { TelegramConnectorService } from "./telegram-connector.service";
 import { RuntimeProfileService } from "./runtime-profile.service";
+import { BrowserRuntimeBridgeService } from "./browser-runtime-bridge.service";
 
 @Injectable()
 export class PublisherService {
@@ -31,6 +32,8 @@ export class PublisherService {
       SocialTokenCryptoService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
+    private readonly browserRuntime:
+      BrowserRuntimeBridgeService,
   ) {}
 
   private buildFacebookPostUrl(
@@ -66,6 +69,26 @@ export class PublisherService {
 
   async run() {
 
+    const diagnosticPost =
+      await this.prisma.scheduledPost.findUnique({
+        where: {
+          id: "cmsdhf6fi0002p69kx0ef5b08",
+        },
+        select: {
+          id: true,
+          status: true,
+          scheduledAt: true,
+        },
+      });
+
+    this.logger.warn(
+      [
+        "Publisher diagnostic.",
+        `Now: ${new Date().toISOString()}.`,
+        `Post: ${JSON.stringify(diagnosticPost)}.`,
+      ].join(" "),
+    );
+
     const posts =
       await this.prisma.scheduledPost.findMany({
         where: {
@@ -97,15 +120,49 @@ export class PublisherService {
 
     for (const post of posts) {
 
-      await this.prisma.scheduledPost.update({
-        where: {
-          id: post.id,
-        },
-        data: {
-          status:
-            ScheduledPostStatus.PUBLISHING,
-        },
-      });
+      /*
+       * Atomically claim this post before publishing.
+       *
+       * Multiple scheduler/manual runs may discover the same post,
+       * but only one process can change an eligible status to
+       * PUBLISHING.
+       */
+      const claimResult =
+        await this.prisma.scheduledPost.updateMany({
+          where: {
+            id: post.id,
+            status: {
+              in: [
+                ScheduledPostStatus.SCHEDULED,
+                ScheduledPostStatus.QUEUED,
+              ],
+            },
+          },
+          data: {
+            status:
+              ScheduledPostStatus.PUBLISHING,
+          },
+        });
+
+      if (claimResult.count !== 1) {
+        this.logger.warn(
+          [
+            "Skipped post because it was already claimed.",
+            `Post: ${post.id}.`,
+            `Previous status: ${post.status}.`,
+          ].join(" "),
+        );
+
+        continue;
+      }
+
+      this.logger.log(
+        [
+          "Publisher lock acquired.",
+          `Post: ${post.id}.`,
+          `Platform: ${post.platform}.`,
+        ].join(" "),
+      );
 
       const runtimeProfile =
         post.channel
@@ -268,16 +325,124 @@ export class PublisherService {
               encryptedToken,
             );
 
-          result =
-            await this.facebook.publish({
-              pageId,
-              accessToken,
-              message: post.content,
-              mediaUrls:
-                post.mediaUrls,
-              proxyUrl:
-                publishNetwork.proxyUrl,
-            });
+          if (
+            runtimeContext.browserProfileKey
+          ) {
+            this.logger.log(
+              [
+                "Using Browser Runtime Facebook publisher.",
+                "Profile:",
+                runtimeContext.browserProfileKey,
+              ].join(" "),
+            );
+
+            if (
+              post.mediaUrls.length > 0
+            ) {
+              this.logger.warn(
+                [
+                  "Browser Runtime scheduled publishing",
+                  "currently prepares text only.",
+                  `Post: ${post.id}.`,
+                  `Remote media count: ${post.mediaUrls.length}.`,
+                ].join(" "),
+              );
+            }
+
+            const prepareResult =
+              await this.browserRuntime
+                .prepareFacebookPostForChannel(
+                  post.channel.id,
+                  {
+                    caption:
+                      post.content,
+                    imagePath:
+                      null,
+                  },
+                );
+
+            const prepared =
+              prepareResult as {
+                success?: boolean;
+                readyForReview?: boolean;
+                captionFilled?: boolean;
+              };
+
+            if (
+              prepared.success === false ||
+              prepared.readyForReview === false
+            ) {
+              throw new Error(
+                "Facebook draft preparation failed.",
+              );
+            }
+
+            this.logger.log(
+              [
+                "Facebook draft prepared.",
+                `Post: ${post.id}.`,
+                `Caption filled: ${
+                  prepared.captionFilled !== false
+                }.`,
+              ].join(" "),
+            );
+
+            result =
+              await this.browserRuntime
+                .publishFacebookPost(
+                  post.channel.id,
+                  "PUBLISH",
+                );
+
+            const browserPublishResult =
+              result as {
+                success?: boolean;
+                published?: boolean;
+                verification?: {
+                  status?: string;
+                };
+              };
+
+            const verificationStatus =
+              browserPublishResult
+                .verification
+                ?.status;
+
+            const publishConfirmed =
+              browserPublishResult
+                .published === true &&
+              (
+                verificationStatus ===
+                  "CONFIRMED" ||
+                verificationStatus ===
+                  "COMPOSER_CLOSED"
+              );
+
+            if (!publishConfirmed) {
+              throw new Error(
+                [
+                  "Browser Runtime Facebook publishing",
+                  "was not confirmed.",
+                  `Verification: ${
+                    verificationStatus ??
+                    "UNKNOWN"
+                  }.`,
+                ].join(" "),
+              );
+            }
+
+          } else {
+            result =
+              await this.facebook.publish({
+                pageId,
+                accessToken,
+                message: post.content,
+                mediaUrls:
+                  post.mediaUrls,
+                proxyUrl:
+                  publishNetwork.proxyUrl,
+              });
+          }
 
         } else if (
           post.platform ===
