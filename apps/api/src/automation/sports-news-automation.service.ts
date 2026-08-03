@@ -24,6 +24,9 @@ export class SportsNewsAutomationService {
   private readonly campaignLink =
     'https://rebrand.ly/mgmbetae0dcf';
 
+  private readonly newsTitle =
+    '满贯门新闻 | MGM News';
+
   private readonly fallbackImage =
     'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=85';
 
@@ -89,6 +92,7 @@ export class SportsNewsAutomationService {
         `Create a concise current sports-news bulletin for ${date}.`,
         'Use only the supplied headlines and links; do not invent scores, quotes, transfers or results.',
         'Write in natural Simplified Chinese followed by concise English.',
+        `Do not write Atlas News. The title is added by the system as: ${this.newsTitle}`,
         'Include a short source line. Keep the full Telegram caption below 900 characters.',
         `End with this exact link on its own final line: ${this.campaignLink}`,
         '',
@@ -127,14 +131,22 @@ export class SportsNewsAutomationService {
   private normalizeCaption(value: string) {
     const withoutCampaignLink = value
       .replaceAll(this.campaignLink, '')
+      .replace(
+        /^\s*(?:atlas\s+news|满贯门新闻\s*[|｜·-]\s*mgm\s+news)\s*[:：-]?\s*/i,
+        '',
+      )
       .trim();
-    const maxBodyLength = 900 - this.campaignLink.length - 2;
+    const maxBodyLength =
+      900 -
+      this.newsTitle.length -
+      this.campaignLink.length -
+      4;
     const body =
       withoutCampaignLink.length > maxBodyLength
         ? `${withoutCampaignLink.slice(0, maxBodyLength - 1).trimEnd()}…`
         : withoutCampaignLink;
 
-    return `${body}\n\n${this.campaignLink}`;
+    return `${this.newsTitle}\n\n${body}\n\n${this.campaignLink}`;
   }
 
   private async fetchLatestStories(): Promise<SportsStory[]> {
