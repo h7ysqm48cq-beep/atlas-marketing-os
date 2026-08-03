@@ -10,13 +10,17 @@ import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
 import { PublisherService } from './publisher.service';
 import { AutomationSchedulerService } from './automation-scheduler.service';
+import { SportsNewsAutomationService } from './sports-news-automation.service';
+import { AssetImageModule } from '../asset-image/asset-image.module';
 
 @Module({
+  imports: [AssetImageModule],
   controllers: [
     AutomationController,
   ],
   providers: [
     AutomationSchedulerService,
+    SportsNewsAutomationService,
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,

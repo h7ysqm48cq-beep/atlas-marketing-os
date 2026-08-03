@@ -119,9 +119,22 @@ export class TelegramConnectorService {
         .find(Boolean);
 
     if (firstMediaUrl) {
-      return this.sendPhoto(
-        text,
+      if (text.trim().length <= 1024) {
+        return this.sendPhoto(
+          text,
+          firstMediaUrl,
+          credentials,
+        );
+      }
+
+      await this.sendPhoto(
+        'Atlas Sports News',
         firstMediaUrl,
+        credentials,
+      );
+
+      return this.sendMessage(
+        text,
         credentials,
       );
     }
