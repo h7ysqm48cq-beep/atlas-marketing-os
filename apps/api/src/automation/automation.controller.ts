@@ -699,28 +699,7 @@ export class AutomationController {
           },
         });
 
-    const replayRequestTrace =
-      await this.browserActionTrace
-        .startStep({
-          browserActionId:
-            replayAction.id,
-          stepKey:
-            'REPLAY_REQUEST',
-          stepName:
-            'Replay Facebook draft request',
-          stepOrder:
-            0,
-          metadata: {
-            replayOfActionId:
-              previous.id,
-            originalFlowId:
-              previous.flowId,
-            channelId:
-              previous.channelId,
-            browserProfileKey:
-              profile.browserProfileKey,
-          },
-        });
+
 
     const ensureProfileTrace =
       await this.browserActionTrace
@@ -740,6 +719,14 @@ export class AutomationController {
               profile.browserProfileKey,
           },
         });
+
+    let replayRequestTrace:
+      Awaited<
+        ReturnType<
+          typeof this.browserActionTrace.startStep
+        >
+      > | null =
+      null;
 
     try {
       const ensuredProfile =
@@ -769,16 +756,28 @@ export class AutomationController {
           },
         );
 
-      const ensured =
-        await this.browserRuntime
-          .ensureProfile(
-            previous.channelId,
-            {
-              headless: false,
-              startUrl:
-                'https://www.facebook.com/',
-            },
-          );
+      replayRequestTrace =
+        await this.browserActionTrace
+        .startStep({
+          browserActionId:
+            replayAction.id,
+          stepKey:
+            'REPLAY_DISPATCH',
+          stepName:
+            'Dispatch Facebook draft replay',
+          stepOrder:
+            0,
+          metadata: {
+            replayOfActionId:
+              previous.id,
+            originalFlowId:
+              previous.flowId,
+            channelId:
+              previous.channelId,
+            browserProfileKey:
+              profile.browserProfileKey,
+          },
+        });
 
       await this.browserActionTrace
         .succeedStep(
@@ -791,6 +790,22 @@ export class AutomationController {
                 ensuredProfile
                   .browserProfileKey,
               ensured:
+                true,
+            },
+          },
+        );
+
+      await this.browserActionTrace
+        .succeedStep(
+          replayRequestTrace.id,
+          {
+            metadata: {
+              replayOfActionId:
+                previous.id,
+              browserProfileKey:
+                ensuredProfile
+                  .browserProfileKey,
+              dispatched:
                 true,
             },
           },
@@ -819,20 +834,7 @@ export class AutomationController {
           replayResult.executionTrace,
         );
 
-      await this.browserActionTrace
-        .succeedStep(
-          replayRequestTrace.id,
-          {
-            metadata: {
-              replayOfActionId:
-                previous.id,
-              browserProfileKey:
-                profile.browserProfileKey,
-              resultReceived:
-                true,
-            },
-          },
-        );
+
 
       await this.browserActionHistory
         .succeed(
@@ -867,14 +869,16 @@ export class AutomationController {
           () => undefined,
         );
 
-      await this.browserActionTrace
-        .failStep(
-          replayRequestTrace.id,
-          error,
-        )
-        .catch(
-          () => undefined,
-        );
+      if (replayRequestTrace) {
+        await this.browserActionTrace
+          .failStep(
+            replayRequestTrace.id,
+            error,
+          )
+          .catch(
+            () => undefined,
+          );
+      }
 
       await this.browserActionHistory
         .fail(
