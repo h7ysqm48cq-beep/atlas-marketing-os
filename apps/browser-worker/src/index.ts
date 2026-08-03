@@ -98,7 +98,11 @@ function requireWorkerToken(
   response: Response,
   next: NextFunction,
 ) {
-  if (!workerToken) {
+  if (
+    request.path ===
+      "/health" ||
+    !workerToken
+  ) {
     next();
     return;
   }
