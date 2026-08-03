@@ -92,6 +92,16 @@ const sessions =
     BrowserSession
   >();
 
+/**
+ * Prevent concurrent requests from launching the
+ * same persistent Chromium profile more than once.
+ */
+const sessionLaunches =
+  new Map<
+    string,
+    Promise<BrowserSession>
+  >();
+
 function requireWorkerToken(
   request: Request,
   response: Response,
@@ -348,6 +358,8 @@ app.get(
         Boolean(workerToken),
       activeSessions:
         sessions.size,
+      launchingSessions:
+        sessionLaunches.size,
     });
   },
 );
@@ -399,6 +411,147 @@ app.get(
   },
 );
 
+async function launchBrowserSession(
+  input: BrowserProfileInput,
+  profileKey: string,
+) {
+  const locale =
+    input.locale?.trim() ||
+    "en-MY";
+
+  const timezone =
+    input.timezone?.trim() ||
+    "Asia/Kuala_Lumpur";
+
+  const proxyType =
+    input.proxyType ||
+    "DIRECT";
+
+  const headless =
+    input.headless ?? false;
+
+  const startUrl =
+    input.startUrl?.trim() ||
+    "https://www.facebook.com/";
+
+  const profileDirectory =
+    await resolveProfileDirectory(
+      profileKey,
+    );
+
+  let context:
+    BrowserContext | null =
+    null;
+
+  try {
+    context =
+      await chromium
+        .launchPersistentContext(
+          profileDirectory,
+          {
+            executablePath,
+            headless,
+            locale,
+            timezoneId:
+              timezone,
+            proxy:
+              buildProxy(
+                input,
+              ),
+            viewport: {
+              width: 1365,
+              height: 768,
+            },
+          },
+        );
+
+    const page =
+      context.pages()[0] ||
+      (await context.newPage());
+
+    const currentUrl =
+      page.url();
+
+    if (
+      !currentUrl ||
+      currentUrl ===
+        "about:blank" ||
+      !currentUrl.includes(
+        "facebook.com",
+      )
+    ) {
+      await page.goto(
+        startUrl,
+        {
+          waitUntil:
+            "domcontentloaded",
+          timeout: 30000,
+        },
+      );
+    }
+
+    const session:
+      BrowserSession = {
+      channelId:
+        input.channelId,
+      browserProfileKey:
+        profileKey,
+      profileDirectory,
+      context,
+      openedAt:
+        new Date()
+          .toISOString(),
+      locale,
+      timezone,
+      proxyType,
+      headless,
+      currentUrl:
+        page.url(),
+    };
+
+    sessions.set(
+      profileKey,
+      session,
+    );
+
+    context.on(
+      "close",
+      () => {
+        const registered =
+          sessions.get(
+            profileKey,
+          );
+
+        if (
+          registered?.context ===
+          context
+        ) {
+          sessions.delete(
+            profileKey,
+          );
+        }
+      },
+    );
+
+    return session;
+  } catch (error) {
+    if (context) {
+      await context
+        .close()
+        .catch(
+          () => undefined,
+        );
+    }
+
+    sessions.delete(
+      profileKey,
+    );
+
+    throw error;
+  }
+}
+
+
 app.post(
   "/profiles/open",
   async (request, response) => {
@@ -442,6 +595,7 @@ app.post(
       response.json({
         opened: false,
         alreadyRunning: true,
+        launchShared: false,
         session:
           safeSession(
             existing,
@@ -450,102 +604,58 @@ app.post(
       return;
     }
 
-    const locale =
-      input.locale?.trim() ||
-      "en-MY";
+    const activeLaunch =
+      sessionLaunches.get(
+        profileKey,
+      );
 
-    const timezone =
-      input.timezone?.trim() ||
-      "Asia/Kuala_Lumpur";
+    if (activeLaunch) {
+      try {
+        const session =
+          await activeLaunch;
 
-    const proxyType =
-      input.proxyType ||
-      "DIRECT";
+        response.json({
+          opened: false,
+          alreadyRunning: true,
+          launchShared: true,
+          session:
+            safeSession(
+              session,
+            ),
+        });
+      } catch (error) {
+        response.status(400).json({
+          opened: false,
+          launchShared: true,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to open browser profile.",
+        });
+      }
 
-    const headless =
-      input.headless ?? false;
+      return;
+    }
 
-    const startUrl =
-      input.startUrl?.trim() ||
-      "https://www.facebook.com/";
+    const launchPromise =
+      launchBrowserSession(
+        input,
+        profileKey,
+      );
+
+    sessionLaunches.set(
+      profileKey,
+      launchPromise,
+    );
 
     try {
-      const profileDirectory =
-        await resolveProfileDirectory(
-          profileKey,
-        );
-
-      const context =
-        await chromium
-          .launchPersistentContext(
-            profileDirectory,
-            {
-              executablePath,
-              headless,
-              locale,
-              timezoneId:
-                timezone,
-              proxy:
-                buildProxy(
-                  input,
-                ),
-              viewport: {
-                width: 1365,
-                height: 768,
-              },
-            },
-          );
-
-      const page =
-        context.pages()[0] ||
-        (await context.newPage());
-
-      await page.goto(
-        startUrl,
-        {
-          waitUntil:
-            "domcontentloaded",
-          timeout: 30000,
-        },
-      );
-
-      const session:
-        BrowserSession = {
-          channelId:
-            input.channelId,
-          browserProfileKey:
-            profileKey,
-          profileDirectory,
-          context,
-          openedAt:
-            new Date()
-              .toISOString(),
-          locale,
-          timezone,
-          proxyType,
-          headless,
-          currentUrl:
-            page.url(),
-        };
-
-      sessions.set(
-        profileKey,
-        session,
-      );
-
-      context.on(
-        "close",
-        () => {
-          sessions.delete(
-            profileKey,
-          );
-        },
-      );
+      const session =
+        await launchPromise;
 
       response.json({
         opened: true,
-        alreadyRunning:
-          false,
+        alreadyRunning: false,
+        launchShared: false,
         session:
           safeSession(
             session,
@@ -554,11 +664,26 @@ app.post(
     } catch (error) {
       response.status(400).json({
         opened: false,
+        launchShared: false,
         message:
           error instanceof Error
             ? error.message
             : "Unable to open browser profile.",
       });
+    } finally {
+      const registeredLaunch =
+        sessionLaunches.get(
+          profileKey,
+        );
+
+      if (
+        registeredLaunch ===
+        launchPromise
+      ) {
+        sessionLaunches.delete(
+          profileKey,
+        );
+      }
     }
   },
 );
@@ -2388,6 +2513,8 @@ app.post(
         metadata: {
           reset:
             composerReset.reset,
+          strategy:
+            composerReset.strategy,
         },
       });
 
@@ -3546,6 +3673,18 @@ app.post(
   async (request, response) => {
     const profileKey =
       request.params.profileKey;
+
+    const pendingLaunch =
+      sessionLaunches.get(
+        profileKey,
+      );
+
+    if (pendingLaunch) {
+      await pendingLaunch
+        .catch(
+          () => undefined,
+        );
+    }
 
     const session =
       sessions.get(

@@ -39,8 +39,9 @@ export async function resetFacebookComposer(
       .count()
       .catch(() => 0);
 
-  let composerFound =
-    false;
+  let composer:
+    Locator | null =
+    null;
 
   for (
     let index = count - 1;
@@ -64,6 +65,10 @@ export async function resetFacebookComposer(
         .count()
         .catch(() => 0);
 
+    if (!hasEditor) {
+      continue;
+    }
+
     const text =
       normalizeText(
         await dialog
@@ -72,36 +77,193 @@ export async function resetFacebookComposer(
       );
 
     if (
-      hasEditor > 0 &&
-      (
-        /create post/i.test(text) ||
-        /what'?s on your mind/i.test(text)
-      )
+      /create post/i.test(text) ||
+      /what'?s on your mind/i.test(text)
     ) {
-      composerFound =
-        true;
+      composer =
+        dialog;
       break;
     }
   }
 
-  if (!composerFound) {
+  if (!composer) {
     return {
       reset: false,
+      strategy:
+        "NO_EXISTING_COMPOSER",
     };
   }
 
+  const closeCandidates = [
+    composer.getByRole(
+      "button",
+      {
+        name:
+          /^close$/i,
+      },
+    ),
+    composer.locator(
+      '[aria-label="Close"]',
+    ),
+    composer.locator(
+      '[role="button"][aria-label*="Close" i]',
+    ),
+  ];
+
+  let closeClicked =
+    false;
+
+  for (
+    const candidate
+    of closeCandidates
+  ) {
+    const button =
+      candidate.first();
+
+    if (
+      !await visible(button)
+    ) {
+      continue;
+    }
+
+    closeClicked =
+      await button
+        .click({
+          force: true,
+          timeout: 1500,
+        })
+        .then(() => true)
+        .catch(() => false);
+
+    if (closeClicked) {
+      break;
+    }
+  }
+
+  if (closeClicked) {
+    const discardCandidates = [
+      page.getByRole(
+        "button",
+        {
+          name:
+            /^delete draft$/i,
+        },
+      ),
+      page.getByRole(
+        "button",
+        {
+          name:
+            /^discard$/i,
+        },
+      ),
+      page.locator(
+        '[role="button"]',
+      ).filter({
+        hasText:
+          /delete draft|discard/i,
+      }),
+      page.getByText(
+        /delete draft|discard/i,
+        {
+          exact: true,
+        },
+      ),
+    ];
+
+    const confirmationDeadline =
+      Date.now() + 1800;
+
+    while (
+      Date.now() <
+      confirmationDeadline
+    ) {
+      let confirmed =
+        false;
+
+      for (
+        const candidate
+        of discardCandidates
+      ) {
+        const button =
+          candidate.last();
+
+        if (
+          !await visible(button)
+        ) {
+          continue;
+        }
+
+        confirmed =
+          await button
+            .click({
+              force: true,
+              timeout: 1000,
+            })
+            .then(() => true)
+            .catch(() => false);
+
+        if (confirmed) {
+          break;
+        }
+      }
+
+      if (confirmed) {
+        break;
+      }
+
+      if (
+        !await visible(composer)
+      ) {
+        return {
+          reset: true,
+          strategy:
+            "CLOSE_WITHOUT_CONFIRMATION",
+        };
+      }
+
+      await page.waitForTimeout(
+        100,
+      );
+    }
+
+    const hiddenDeadline =
+      Date.now() + 1500;
+
+    while (
+      Date.now() <
+      hiddenDeadline
+    ) {
+      if (
+        !await visible(composer)
+      ) {
+        return {
+          reset: true,
+          strategy:
+            "CLOSE_AND_DISCARD",
+        };
+      }
+
+      await page.waitForTimeout(
+        100,
+      );
+    }
+  }
+
+  /*
+   * Fallback for unexpected Facebook UI states.
+   * Reload is retained for reliability but is no
+   * longer the normal reset strategy.
+   */
   await page.reload({
     waitUntil:
       "domcontentloaded",
     timeout: 30000,
   });
 
-  await page.waitForTimeout(
-    1200,
-  );
-
   return {
     reset: true,
+    strategy:
+      "RELOAD_FALLBACK",
   };
 }
 
