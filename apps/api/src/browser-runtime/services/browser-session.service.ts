@@ -11,6 +11,9 @@ import {
 import {
   BrowserAccountService,
 } from './browser-account.service';
+import {
+  BrowserRuntimeEventBus,
+} from '../events/browser-runtime-event-bus.service';
 
 type OpenBrowserInput = {
   headless?: boolean;
@@ -53,6 +56,8 @@ export class BrowserSessionService {
       BrowserAccountService,
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
+    private readonly eventBus:
+      BrowserRuntimeEventBus,
   ) {}
 
   async open(
@@ -392,6 +397,16 @@ export class BrowserSessionService {
             ? 'PENDING_VERIFICATION'
             : 'UNKNOWN';
 
+    const previousAccount =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id: accountId,
+        },
+        select: {
+          loginStatus: true,
+        },
+      });
+
     await this.prisma.browserAccount.update({
       where: {
         id: accountId,
@@ -417,6 +432,28 @@ export class BrowserSessionService {
                 : null,
       },
     });
+
+    if (
+      loginStatus ===
+        'LOGGED_IN' &&
+      previousAccount
+        ?.loginStatus !==
+        'LOGGED_IN'
+    ) {
+      this.eventBus.publish(
+        'LOGIN_VERIFIED',
+        {
+          accountId,
+          browserProfileKey:
+            profile.browserProfileKey,
+          loginStatus:
+            'LOGGED_IN',
+          verifiedAt:
+            new Date()
+              .toISOString(),
+        },
+      );
+    }
 
     return {
       accountId,

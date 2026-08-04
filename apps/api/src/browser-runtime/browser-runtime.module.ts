@@ -16,6 +16,12 @@ import {
 import {
   BrowserSessionService,
 } from './services/browser-session.service';
+import {
+  BrowserRuntimeEventBus,
+} from './events/browser-runtime-event-bus.service';
+import {
+  BrowserRuntimeAutomationListener,
+} from './events/browser-runtime-automation.listener';
 
 @Module({
   imports: [
@@ -27,10 +33,13 @@ import {
   providers: [
     BrowserAccountService,
     BrowserSessionService,
+    BrowserRuntimeEventBus,
+    BrowserRuntimeAutomationListener,
     SocialTokenCryptoService,
   ],
   exports: [
     BrowserAccountService,
+    BrowserRuntimeEventBus,
   ],
 })
 export class BrowserRuntimeModule {}
