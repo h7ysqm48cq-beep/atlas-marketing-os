@@ -4622,6 +4622,357 @@ app.post(
   },
 );
 
+
+app.post(
+  "/profiles/:profileKey/facebook/discover-pages",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(
+        profileKey,
+      );
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1) ||
+        (await session.context.newPage());
+
+      const discoveryUrl =
+        "https://www.facebook.com/pages/?category=your_pages";
+
+      await page.goto(
+        discoveryUrl,
+        {
+          waitUntil:
+            "domcontentloaded",
+          timeout: 45000,
+        },
+      );
+
+      await page.waitForTimeout(
+        3500,
+      );
+
+      const currentUrl =
+        page.url();
+
+      const bodyText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const loginRequired =
+        Boolean(
+          await page
+            .locator(
+              'input[name="email"], input[name="pass"]',
+            )
+            .count()
+            .catch(() => 0),
+        ) ||
+        bodyText
+          .toLowerCase()
+          .includes(
+            "log in to facebook",
+          );
+
+      const checkpointRequired =
+        currentUrl
+          .toLowerCase()
+          .includes(
+            "/checkpoint",
+          ) ||
+        bodyText
+          .toLowerCase()
+          .includes(
+            "confirm your identity",
+          );
+
+      if (
+        loginRequired ||
+        checkpointRequired
+      ) {
+        response.status(409).json({
+          success: false,
+          loginRequired,
+          checkpointRequired,
+          currentUrl,
+          message:
+            checkpointRequired
+              ? "Facebook checkpoint requires attention."
+              : "Facebook login is required.",
+        });
+        return;
+      }
+
+      const discovered =
+        await page.evaluate(() => {
+          type PageCandidate = {
+            pageId: string | null;
+            name: string;
+            url: string;
+            imageUrl: string | null;
+          };
+
+          const normalizeUrl = (
+            value: string,
+          ) => {
+            try {
+              return new URL(
+                value,
+                window.location.origin,
+              ).toString();
+            } catch {
+              return "";
+            }
+          };
+
+          const extractPageId = (
+            value: string,
+          ) => {
+            try {
+              const url =
+                new URL(
+                  value,
+                  window.location.origin,
+                );
+
+              const idFromQuery =
+                url.searchParams.get(
+                  "id",
+                );
+
+              if (
+                idFromQuery &&
+                /^\d+$/.test(
+                  idFromQuery,
+                )
+              ) {
+                return idFromQuery;
+              }
+
+              const match =
+                url.pathname.match(
+                  /\/(?:profile\.php\/)?(\d{5,})/,
+                );
+
+              return match?.[1] ||
+                null;
+            } catch {
+              return null;
+            }
+          };
+
+          const anchors =
+            Array.from(
+              document.querySelectorAll<
+                HTMLAnchorElement
+              >("a[href]"),
+            );
+
+          const candidates:
+            PageCandidate[] = [];
+
+          for (
+            const anchor
+            of anchors
+          ) {
+            const rawHref =
+              anchor.getAttribute(
+                "href",
+              ) || "";
+
+            const url =
+              normalizeUrl(
+                rawHref,
+              );
+
+            if (
+              !url ||
+              !url.includes(
+                "facebook.com",
+              )
+            ) {
+              continue;
+            }
+
+            const text =
+              (
+                anchor.innerText ||
+                anchor.textContent ||
+                ""
+              )
+                .replace(
+                  /\s+/g,
+                  " ",
+                )
+                .trim();
+
+            if (
+              !text ||
+              text.length < 2 ||
+              text.length > 120
+            ) {
+              continue;
+            }
+
+            const lowerText =
+              text.toLowerCase();
+
+            if (
+              [
+                "home",
+                "pages",
+                "create page",
+                "see all",
+                "settings",
+                "notifications",
+                "messages",
+                "switch now",
+                "view profile",
+              ].includes(
+                lowerText,
+              )
+            ) {
+              continue;
+            }
+
+            const image =
+              anchor.querySelector<
+                HTMLImageElement
+              >("img");
+
+            const pageId =
+              extractPageId(
+                url,
+              );
+
+            const pathname =
+              new URL(
+                url,
+              ).pathname;
+
+            const likelyPageLink =
+              Boolean(
+                pageId,
+              ) ||
+              (
+                pathname !== "/" &&
+                !pathname.startsWith(
+                  "/pages/",
+                ) &&
+                !pathname.startsWith(
+                  "/groups/",
+                ) &&
+                !pathname.startsWith(
+                  "/watch",
+                ) &&
+                !pathname.startsWith(
+                  "/marketplace",
+                ) &&
+                !pathname.startsWith(
+                  "/messages",
+                )
+              );
+
+            if (!likelyPageLink) {
+              continue;
+            }
+
+            candidates.push({
+              pageId,
+              name: text,
+              url,
+              imageUrl:
+                image?.src ||
+                null,
+            });
+          }
+
+          const unique =
+            new Map<
+              string,
+              PageCandidate
+            >();
+
+          for (
+            const candidate
+            of candidates
+          ) {
+            const key =
+              candidate.pageId ||
+              candidate.url;
+
+            const existing =
+              unique.get(
+                key,
+              );
+
+            if (
+              !existing ||
+              candidate.name.length >
+                existing.name.length
+            ) {
+              unique.set(
+                key,
+                candidate,
+              );
+            }
+          }
+
+          return Array.from(
+            unique.values(),
+          );
+        });
+
+      response.json({
+        success: true,
+        browserProfileKey:
+          profileKey,
+        currentUrl,
+        count:
+          discovered.length,
+        pages:
+          discovered,
+        discoveredAt:
+          new Date()
+            .toISOString(),
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to discover Facebook Pages.",
+      });
+    }
+  },
+);
+
+
 app.post(
   "/profiles/:profileKey/close",
   async (request, response) => {

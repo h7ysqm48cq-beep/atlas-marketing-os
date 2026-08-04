@@ -134,6 +134,17 @@ export class BrowserAccountController {
     );
   }
 
+  @Post(':id/facebook/discover-pages')
+  discoverFacebookPages(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserSessions
+      .discoverFacebookPages(
+        id,
+      );
+  }
+
   @Post(':id/browser/close')
   closeBrowser(
     @Param('id')

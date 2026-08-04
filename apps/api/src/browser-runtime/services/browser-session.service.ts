@@ -438,6 +438,94 @@ export class BrowserSessionService {
     };
   }
 
+  async discoverFacebookPages(
+    accountId: string,
+  ) {
+    const profile =
+      await this.browserAccounts
+        .getLaunchProfile(
+          accountId,
+        );
+
+    const status =
+      await this.browserRuntime.request(
+        `/profiles/${encodeURIComponent(
+          profile.browserProfileKey,
+        )}/status`,
+        {
+          method: 'GET',
+        },
+      );
+
+    if (
+      status.running !== true
+    ) {
+      await this.browserRuntime.request(
+        '/profiles/open',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            ...profile,
+            headless: false,
+            startUrl:
+              'https://www.facebook.com/',
+          }),
+        },
+      );
+    }
+
+    const result =
+      await this.browserRuntime.request(
+        `/profiles/${encodeURIComponent(
+          profile.browserProfileKey,
+        )}/facebook/discover-pages`,
+        {
+          method: 'POST',
+        },
+      );
+
+    const discoveredPages =
+      Array.isArray(
+        result.pages,
+      )
+        ? result.pages
+        : [];
+
+    await this.prisma.browserAccount.update({
+      where: {
+        id: accountId,
+      },
+      data: {
+        lastVerifiedAt:
+          new Date(),
+        lastHeartbeatAt:
+          new Date(),
+        lastLoginError:
+          null,
+      },
+    });
+
+    return {
+      accountId,
+      browserProfileKey:
+        profile.browserProfileKey,
+      count:
+        discoveredPages.length,
+      pages:
+        discoveredPages,
+      currentUrl:
+        result.currentUrl ??
+        null,
+      discoveredAt:
+        result.discoveredAt ??
+        new Date().toISOString(),
+    };
+  }
+
   async close(
     accountId: string,
   ) {
