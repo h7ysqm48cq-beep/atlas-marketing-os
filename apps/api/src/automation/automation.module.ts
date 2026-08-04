@@ -34,6 +34,7 @@ import { AssetImageModule } from '../asset-image/asset-image.module';
     PublisherService,
   ],
   exports: [
+    BrowserRuntimeBridgeService,
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,

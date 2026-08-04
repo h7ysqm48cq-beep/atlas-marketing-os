@@ -12,6 +12,9 @@ import {
 import {
   BrowserAccountService,
 } from '../services/browser-account.service';
+import {
+  BrowserSessionService,
+} from '../services/browser-session.service';
 
 type CreateBrowserAccountBody = {
   displayName: string;
@@ -36,6 +39,8 @@ export class BrowserAccountController {
   constructor(
     private readonly browserAccounts:
       BrowserAccountService,
+    private readonly browserSessions:
+      BrowserSessionService,
   ) {}
 
   @Get()
@@ -62,4 +67,51 @@ export class BrowserAccountController {
       body,
     );
   }
+
+  @Post(':id/browser/open')
+  openBrowser(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      headless?: boolean;
+      startUrl?: string;
+    },
+  ) {
+    return this.browserSessions.open(
+      id,
+      body,
+    );
+  }
+
+  @Get(':id/browser/status')
+  browserStatus(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserSessions.status(
+      id,
+    );
+  }
+
+  @Post(':id/browser/inspect')
+  inspectBrowser(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserSessions.inspect(
+      id,
+    );
+  }
+
+  @Post(':id/browser/close')
+  closeBrowser(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserSessions.close(
+      id,
+    );
+  }
+
 }
