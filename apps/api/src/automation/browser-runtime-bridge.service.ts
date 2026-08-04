@@ -555,7 +555,7 @@ export class BrowserRuntimeBridgeService {
       ?.trim();
   }
 
-  private async request(
+  async request(
     path: string,
     init: RequestInit,
     authenticated = true,

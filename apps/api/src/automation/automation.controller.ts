@@ -503,6 +503,24 @@ export class AutomationController {
       );
   }
 
+  @Post('channels/:id/browser/inspect')
+  async inspectBrowserPage(
+    @Param('id') id: string,
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(id);
+
+    return this.browserRuntime.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/inspect`,
+      {
+        method: 'POST',
+      },
+    );
+  }
+
   @Get('channels/:id/browser/status')
   channelBrowserStatus(
     @Param('id') id: string,
