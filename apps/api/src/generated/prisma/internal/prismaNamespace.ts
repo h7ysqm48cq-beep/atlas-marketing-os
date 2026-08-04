@@ -411,6 +411,8 @@ export const ModelName = {
   SocialChannel: 'SocialChannel',
   SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
   BrowserAccount: 'BrowserAccount',
+  BrowserAutomationPolicy: 'BrowserAutomationPolicy',
+  BrowserAccountEvent: 'BrowserAccountEvent',
   BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
@@ -436,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1473,6 +1475,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BrowserAccountCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BrowserAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAutomationPolicy: {
+      payload: Prisma.$BrowserAutomationPolicyPayload<ExtArgs>
+      fields: Prisma.BrowserAutomationPolicyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAutomationPolicyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAutomationPolicyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAutomationPolicyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAutomationPolicyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAutomationPolicyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAutomationPolicyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAutomationPolicyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAutomationPolicyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAutomationPolicyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        update: {
+          args: Prisma.BrowserAutomationPolicyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAutomationPolicyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAutomationPolicyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAutomationPolicyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAutomationPolicyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAutomationPolicyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAutomationPolicy>
+        }
+        groupBy: {
+          args: Prisma.BrowserAutomationPolicyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAutomationPolicyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAutomationPolicyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAutomationPolicyCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccountEvent: {
+      payload: Prisma.$BrowserAccountEventPayload<ExtArgs>
+      fields: Prisma.BrowserAccountEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountEvent>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountEventCountAggregateOutputType> | number
         }
       }
     }
@@ -2564,6 +2714,37 @@ export const BrowserAccountScalarFieldEnum = {
 export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
 
 
+export const BrowserAutomationPolicyScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  autoVerifyLogin: 'autoVerifyLogin',
+  autoDiscoverPages: 'autoDiscoverPages',
+  autoSyncPages: 'autoSyncPages',
+  autoHealthCheck: 'autoHealthCheck',
+  autoCloseBrowser: 'autoCloseBrowser',
+  autoNotifications: 'autoNotifications',
+  keepBrowserOpenAfterLogin: 'keepBrowserOpenAfterLogin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAutomationPolicyScalarFieldEnum = (typeof BrowserAutomationPolicyScalarFieldEnum)[keyof typeof BrowserAutomationPolicyScalarFieldEnum]
+
+
+export const BrowserAccountEventScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  eventType: 'eventType',
+  status: 'status',
+  title: 'title',
+  message: 'message',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
+
+
 export const BrowserAccountChannelScalarFieldEnum = {
   id: 'id',
   browserAccountId: 'browserAccountId',
@@ -3023,6 +3204,20 @@ export type ListEnumSocialProxyTypeFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'BrowserAccountEventStatus'
+ */
+export type EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserAccountEventStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserAccountEventStatus[]'
+ */
+export type ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserAccountEventStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'ScheduledPostStatus'
  */
 export type EnumScheduledPostStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledPostStatus'>
@@ -3298,6 +3493,8 @@ export type GlobalOmitConfig = {
   socialChannel?: Prisma.SocialChannelOmit
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOmit
   browserAccount?: Prisma.BrowserAccountOmit
+  browserAutomationPolicy?: Prisma.BrowserAutomationPolicyOmit
+  browserAccountEvent?: Prisma.BrowserAccountEventOmit
   browserAccountChannel?: Prisma.BrowserAccountChannelOmit
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit

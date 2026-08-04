@@ -14,6 +14,12 @@ import {
   BrowserSessionService,
 } from '../services/browser-session.service';
 import {
+  BrowserTimelineService,
+} from '../services/browser-timeline.service';
+import {
+  BrowserAutomationPolicyService,
+} from '../services/browser-automation-policy.service';
+import {
   BrowserRuntimeEventBus,
 } from './browser-runtime-event-bus.service';
 
@@ -40,6 +46,10 @@ implements
       BrowserSessionService,
     private readonly browserAccounts:
       BrowserAccountService,
+    private readonly timeline:
+      BrowserTimelineService,
+    private readonly policies:
+      BrowserAutomationPolicyService,
   ) {}
 
   onModuleInit() {
@@ -63,6 +73,18 @@ implements
     accountId: string,
     browserProfileKey: string,
   ) {
+    await this.timeline.record({
+      accountId,
+      eventType:
+        'LOGIN_VERIFIED',
+      status:
+        'SUCCESS' as any,
+      title:
+        'Facebook login verified',
+      message:
+        'Automatic onboarding started.',
+    });
+
     this.logger.log(
       [
         'Automatic onboarding started.',
@@ -83,6 +105,21 @@ implements
         )
           ? discovery.pages
           : [];
+
+      await this.timeline.record({
+        accountId,
+        eventType:
+          'PAGES_DISCOVERED',
+        status:
+          'SUCCESS' as any,
+        title:
+          `${pages.length} Facebook Page(s) discovered`,
+        metadata: {
+          count:
+            pages.length,
+          pages,
+        },
+      });
 
       this.eventBus.publish(
         'PAGES_DISCOVERED',
@@ -143,6 +180,50 @@ implements
               pages,
             },
           );
+
+      await this.timeline.record({
+        accountId,
+        eventType:
+          'PAGES_SYNCED',
+        status:
+          'SUCCESS' as any,
+        title:
+          'Facebook Pages synced',
+        message:
+          [
+            `Created: ${syncResult.created}.`,
+            `Reused: ${syncResult.reused}.`,
+            `Linked: ${syncResult.linked}.`,
+          ].join(' '),
+        metadata:
+          syncResult,
+      });
+
+      const policy =
+        await this.policies
+          .getOrCreate(
+            accountId,
+          );
+
+      if (
+        policy.autoCloseBrowser &&
+        !policy.keepBrowserOpenAfterLogin
+      ) {
+        await this.browserSessions
+          .close(
+            accountId,
+          );
+
+        await this.timeline.record({
+          accountId,
+          eventType:
+            'BROWSER_CLOSED',
+          status:
+            'SUCCESS' as any,
+          title:
+            'Browser closed automatically',
+        });
+      }
 
       this.eventBus.publish(
         'PAGES_SYNCED',

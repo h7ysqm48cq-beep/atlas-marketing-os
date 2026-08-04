@@ -139,6 +139,16 @@ export const SocialProxyType = {
 export type SocialProxyType = (typeof SocialProxyType)[keyof typeof SocialProxyType]
 
 
+export const BrowserAccountEventStatus = {
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS',
+  WARNING: 'WARNING',
+  FAILED: 'FAILED'
+} as const
+
+export type BrowserAccountEventStatus = (typeof BrowserAccountEventStatus)[keyof typeof BrowserAccountEventStatus]
+
+
 export const BrowserActionType = {
   PREPARE: 'PREPARE',
   PUBLISH: 'PUBLISH',

@@ -518,6 +518,23 @@ export type EnumSocialProxyTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumSocialProxyTypeFilter<$PrismaModel>
 }
 
+export type EnumBrowserAccountEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrowserAccountEventStatus | Prisma.EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel> | $Enums.BrowserAccountEventStatus
+}
+
+export type EnumBrowserAccountEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrowserAccountEventStatus | Prisma.EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrowserAccountEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrowserAccountEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel>
+}
+
 export type EnumScheduledPostStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.ScheduledPostStatus | Prisma.EnumScheduledPostStatusFieldRefInput<$PrismaModel>
   in?: $Enums.ScheduledPostStatus[] | Prisma.ListEnumScheduledPostStatusFieldRefInput<$PrismaModel>
@@ -1104,6 +1121,23 @@ export type NestedEnumSocialProxyTypeWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumSocialProxyTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumSocialProxyTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumBrowserAccountEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrowserAccountEventStatus | Prisma.EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel> | $Enums.BrowserAccountEventStatus
+}
+
+export type NestedEnumBrowserAccountEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrowserAccountEventStatus | Prisma.EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrowserAccountEventStatus[] | Prisma.ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrowserAccountEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrowserAccountEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrowserAccountEventStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumScheduledPostStatusFilter<$PrismaModel = never> = {

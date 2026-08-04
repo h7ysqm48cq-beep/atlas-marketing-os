@@ -110,6 +110,16 @@ export type SocialChannelRuntimeProfile = Prisma.SocialChannelRuntimeProfileMode
  */
 export type BrowserAccount = Prisma.BrowserAccountModel
 /**
+ * Model BrowserAutomationPolicy
+ * 
+ */
+export type BrowserAutomationPolicy = Prisma.BrowserAutomationPolicyModel
+/**
+ * Model BrowserAccountEvent
+ * 
+ */
+export type BrowserAccountEvent = Prisma.BrowserAccountEventModel
+/**
  * Model BrowserAccountChannel
  * 
  */

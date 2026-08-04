@@ -16,6 +16,12 @@ import {
 import {
   BrowserSessionService,
 } from '../services/browser-session.service';
+import {
+  BrowserTimelineService,
+} from '../services/browser-timeline.service';
+import {
+  BrowserAutomationPolicyService,
+} from '../services/browser-automation-policy.service';
 
 type CreateBrowserAccountBody = {
   displayName: string;
@@ -42,6 +48,10 @@ export class BrowserAccountController {
       BrowserAccountService,
     private readonly browserSessions:
       BrowserSessionService,
+    private readonly browserTimeline:
+      BrowserTimelineService,
+    private readonly automationPolicies:
+      BrowserAutomationPolicyService,
   ) {}
 
   @Get()
@@ -176,6 +186,50 @@ export class BrowserAccountController {
     return this.browserSessions.close(
       id,
     );
+  }
+
+
+  @Get(':id/timeline')
+  timeline(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserTimeline.list(
+      id,
+    );
+  }
+
+  @Get(':id/automation-policy')
+  automationPolicy(
+    @Param('id')
+    id: string,
+  ) {
+    return this.automationPolicies
+      .getOrCreate(
+        id,
+      );
+  }
+
+  @Patch(':id/automation-policy')
+  updateAutomationPolicy(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      autoVerifyLogin?: boolean;
+      autoDiscoverPages?: boolean;
+      autoSyncPages?: boolean;
+      autoHealthCheck?: boolean;
+      autoCloseBrowser?: boolean;
+      autoNotifications?: boolean;
+      keepBrowserOpenAfterLogin?: boolean;
+    },
+  ) {
+    return this.automationPolicies
+      .update(
+        id,
+        body,
+      );
   }
 
 }

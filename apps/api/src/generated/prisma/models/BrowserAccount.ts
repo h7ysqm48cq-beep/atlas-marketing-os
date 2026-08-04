@@ -385,6 +385,8 @@ export type BrowserAccountWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   channels?: Prisma.BrowserAccountChannelListRelationFilter
+  automationPolicy?: Prisma.XOR<Prisma.BrowserAutomationPolicyNullableScalarRelationFilter, Prisma.BrowserAutomationPolicyWhereInput> | null
+  timelineEvents?: Prisma.BrowserAccountEventListRelationFilter
 }
 
 export type BrowserAccountOrderByWithRelationInput = {
@@ -415,6 +417,8 @@ export type BrowserAccountOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   channels?: Prisma.BrowserAccountChannelOrderByRelationAggregateInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyOrderByWithRelationInput
+  timelineEvents?: Prisma.BrowserAccountEventOrderByRelationAggregateInput
 }
 
 export type BrowserAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -448,6 +452,8 @@ export type BrowserAccountWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   channels?: Prisma.BrowserAccountChannelListRelationFilter
+  automationPolicy?: Prisma.XOR<Prisma.BrowserAutomationPolicyNullableScalarRelationFilter, Prisma.BrowserAutomationPolicyWhereInput> | null
+  timelineEvents?: Prisma.BrowserAccountEventListRelationFilter
 }, "id" | "browserProfileKey">
 
 export type BrowserAccountOrderByWithAggregationInput = {
@@ -544,6 +550,8 @@ export type BrowserAccountCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyCreateNestedOneWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventCreateNestedManyWithoutBrowserAccountInput
 }
 
 export type BrowserAccountUncheckedCreateInput = {
@@ -574,6 +582,8 @@ export type BrowserAccountUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedCreateNestedOneWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedCreateNestedManyWithoutBrowserAccountInput
 }
 
 export type BrowserAccountUpdateInput = {
@@ -604,6 +614,8 @@ export type BrowserAccountUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUpdateOneWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUpdateManyWithoutBrowserAccountNestedInput
 }
 
 export type BrowserAccountUncheckedUpdateInput = {
@@ -634,6 +646,8 @@ export type BrowserAccountUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedUpdateOneWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedUpdateManyWithoutBrowserAccountNestedInput
 }
 
 export type BrowserAccountCreateManyInput = {
@@ -823,6 +837,34 @@ export type BrowserAccountScalarRelationFilter = {
   isNot?: Prisma.BrowserAccountWhereInput
 }
 
+export type BrowserAccountCreateNestedOneWithoutAutomationPolicyInput = {
+  create?: Prisma.XOR<Prisma.BrowserAccountCreateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedCreateWithoutAutomationPolicyInput>
+  connectOrCreate?: Prisma.BrowserAccountCreateOrConnectWithoutAutomationPolicyInput
+  connect?: Prisma.BrowserAccountWhereUniqueInput
+}
+
+export type BrowserAccountUpdateOneRequiredWithoutAutomationPolicyNestedInput = {
+  create?: Prisma.XOR<Prisma.BrowserAccountCreateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedCreateWithoutAutomationPolicyInput>
+  connectOrCreate?: Prisma.BrowserAccountCreateOrConnectWithoutAutomationPolicyInput
+  upsert?: Prisma.BrowserAccountUpsertWithoutAutomationPolicyInput
+  connect?: Prisma.BrowserAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrowserAccountUpdateToOneWithWhereWithoutAutomationPolicyInput, Prisma.BrowserAccountUpdateWithoutAutomationPolicyInput>, Prisma.BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput>
+}
+
+export type BrowserAccountCreateNestedOneWithoutTimelineEventsInput = {
+  create?: Prisma.XOR<Prisma.BrowserAccountCreateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedCreateWithoutTimelineEventsInput>
+  connectOrCreate?: Prisma.BrowserAccountCreateOrConnectWithoutTimelineEventsInput
+  connect?: Prisma.BrowserAccountWhereUniqueInput
+}
+
+export type BrowserAccountUpdateOneRequiredWithoutTimelineEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrowserAccountCreateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedCreateWithoutTimelineEventsInput>
+  connectOrCreate?: Prisma.BrowserAccountCreateOrConnectWithoutTimelineEventsInput
+  upsert?: Prisma.BrowserAccountUpsertWithoutTimelineEventsInput
+  connect?: Prisma.BrowserAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrowserAccountUpdateToOneWithWhereWithoutTimelineEventsInput, Prisma.BrowserAccountUpdateWithoutTimelineEventsInput>, Prisma.BrowserAccountUncheckedUpdateWithoutTimelineEventsInput>
+}
+
 export type BrowserAccountCreateNestedOneWithoutChannelsInput = {
   create?: Prisma.XOR<Prisma.BrowserAccountCreateWithoutChannelsInput, Prisma.BrowserAccountUncheckedCreateWithoutChannelsInput>
   connectOrCreate?: Prisma.BrowserAccountCreateOrConnectWithoutChannelsInput
@@ -835,6 +877,286 @@ export type BrowserAccountUpdateOneRequiredWithoutChannelsNestedInput = {
   upsert?: Prisma.BrowserAccountUpsertWithoutChannelsInput
   connect?: Prisma.BrowserAccountWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrowserAccountUpdateToOneWithWhereWithoutChannelsInput, Prisma.BrowserAccountUpdateWithoutChannelsInput>, Prisma.BrowserAccountUncheckedUpdateWithoutChannelsInput>
+}
+
+export type BrowserAccountCreateWithoutAutomationPolicyInput = {
+  id?: string
+  workspaceId?: string | null
+  brandId?: string | null
+  platform?: $Enums.SocialPlatform
+  displayName: string
+  browserProfileKey: string
+  browserProfileName: string
+  locale?: string
+  timezone?: string
+  proxyType?: $Enums.SocialProxyType
+  proxyHost?: string | null
+  proxyPort?: number | null
+  proxyUsernameEncrypted?: string | null
+  proxyPasswordEncrypted?: string | null
+  proxyCountry?: string | null
+  facebookUserId?: string | null
+  facebookUserName?: string | null
+  loginStatus?: string
+  cookieStatus?: string
+  lastKnownIp?: string | null
+  lastLoginAt?: Date | string | null
+  lastVerifiedAt?: Date | string | null
+  lastHeartbeatAt?: Date | string | null
+  lastLoginError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventCreateNestedManyWithoutBrowserAccountInput
+}
+
+export type BrowserAccountUncheckedCreateWithoutAutomationPolicyInput = {
+  id?: string
+  workspaceId?: string | null
+  brandId?: string | null
+  platform?: $Enums.SocialPlatform
+  displayName: string
+  browserProfileKey: string
+  browserProfileName: string
+  locale?: string
+  timezone?: string
+  proxyType?: $Enums.SocialProxyType
+  proxyHost?: string | null
+  proxyPort?: number | null
+  proxyUsernameEncrypted?: string | null
+  proxyPasswordEncrypted?: string | null
+  proxyCountry?: string | null
+  facebookUserId?: string | null
+  facebookUserName?: string | null
+  loginStatus?: string
+  cookieStatus?: string
+  lastKnownIp?: string | null
+  lastLoginAt?: Date | string | null
+  lastVerifiedAt?: Date | string | null
+  lastHeartbeatAt?: Date | string | null
+  lastLoginError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedCreateNestedManyWithoutBrowserAccountInput
+}
+
+export type BrowserAccountCreateOrConnectWithoutAutomationPolicyInput = {
+  where: Prisma.BrowserAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrowserAccountCreateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedCreateWithoutAutomationPolicyInput>
+}
+
+export type BrowserAccountUpsertWithoutAutomationPolicyInput = {
+  update: Prisma.XOR<Prisma.BrowserAccountUpdateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput>
+  create: Prisma.XOR<Prisma.BrowserAccountCreateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedCreateWithoutAutomationPolicyInput>
+  where?: Prisma.BrowserAccountWhereInput
+}
+
+export type BrowserAccountUpdateToOneWithWhereWithoutAutomationPolicyInput = {
+  where?: Prisma.BrowserAccountWhereInput
+  data: Prisma.XOR<Prisma.BrowserAccountUpdateWithoutAutomationPolicyInput, Prisma.BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput>
+}
+
+export type BrowserAccountUpdateWithoutAutomationPolicyInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
+  proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proxyUsernameEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyCountry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUpdateManyWithoutBrowserAccountNestedInput
+}
+
+export type BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
+  proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proxyUsernameEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyCountry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedUpdateManyWithoutBrowserAccountNestedInput
+}
+
+export type BrowserAccountCreateWithoutTimelineEventsInput = {
+  id?: string
+  workspaceId?: string | null
+  brandId?: string | null
+  platform?: $Enums.SocialPlatform
+  displayName: string
+  browserProfileKey: string
+  browserProfileName: string
+  locale?: string
+  timezone?: string
+  proxyType?: $Enums.SocialProxyType
+  proxyHost?: string | null
+  proxyPort?: number | null
+  proxyUsernameEncrypted?: string | null
+  proxyPasswordEncrypted?: string | null
+  proxyCountry?: string | null
+  facebookUserId?: string | null
+  facebookUserName?: string | null
+  loginStatus?: string
+  cookieStatus?: string
+  lastKnownIp?: string | null
+  lastLoginAt?: Date | string | null
+  lastVerifiedAt?: Date | string | null
+  lastHeartbeatAt?: Date | string | null
+  lastLoginError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyCreateNestedOneWithoutBrowserAccountInput
+}
+
+export type BrowserAccountUncheckedCreateWithoutTimelineEventsInput = {
+  id?: string
+  workspaceId?: string | null
+  brandId?: string | null
+  platform?: $Enums.SocialPlatform
+  displayName: string
+  browserProfileKey: string
+  browserProfileName: string
+  locale?: string
+  timezone?: string
+  proxyType?: $Enums.SocialProxyType
+  proxyHost?: string | null
+  proxyPort?: number | null
+  proxyUsernameEncrypted?: string | null
+  proxyPasswordEncrypted?: string | null
+  proxyCountry?: string | null
+  facebookUserId?: string | null
+  facebookUserName?: string | null
+  loginStatus?: string
+  cookieStatus?: string
+  lastKnownIp?: string | null
+  lastLoginAt?: Date | string | null
+  lastVerifiedAt?: Date | string | null
+  lastHeartbeatAt?: Date | string | null
+  lastLoginError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedCreateNestedOneWithoutBrowserAccountInput
+}
+
+export type BrowserAccountCreateOrConnectWithoutTimelineEventsInput = {
+  where: Prisma.BrowserAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrowserAccountCreateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedCreateWithoutTimelineEventsInput>
+}
+
+export type BrowserAccountUpsertWithoutTimelineEventsInput = {
+  update: Prisma.XOR<Prisma.BrowserAccountUpdateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedUpdateWithoutTimelineEventsInput>
+  create: Prisma.XOR<Prisma.BrowserAccountCreateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedCreateWithoutTimelineEventsInput>
+  where?: Prisma.BrowserAccountWhereInput
+}
+
+export type BrowserAccountUpdateToOneWithWhereWithoutTimelineEventsInput = {
+  where?: Prisma.BrowserAccountWhereInput
+  data: Prisma.XOR<Prisma.BrowserAccountUpdateWithoutTimelineEventsInput, Prisma.BrowserAccountUncheckedUpdateWithoutTimelineEventsInput>
+}
+
+export type BrowserAccountUpdateWithoutTimelineEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
+  proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proxyUsernameEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyCountry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUpdateOneWithoutBrowserAccountNestedInput
+}
+
+export type BrowserAccountUncheckedUpdateWithoutTimelineEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
+  browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
+  proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  proxyUsernameEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proxyCountry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookUserName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedUpdateOneWithoutBrowserAccountNestedInput
 }
 
 export type BrowserAccountCreateWithoutChannelsInput = {
@@ -864,6 +1186,8 @@ export type BrowserAccountCreateWithoutChannelsInput = {
   lastLoginError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  automationPolicy?: Prisma.BrowserAutomationPolicyCreateNestedOneWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventCreateNestedManyWithoutBrowserAccountInput
 }
 
 export type BrowserAccountUncheckedCreateWithoutChannelsInput = {
@@ -893,6 +1217,8 @@ export type BrowserAccountUncheckedCreateWithoutChannelsInput = {
   lastLoginError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedCreateNestedOneWithoutBrowserAccountInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedCreateNestedManyWithoutBrowserAccountInput
 }
 
 export type BrowserAccountCreateOrConnectWithoutChannelsInput = {
@@ -938,6 +1264,8 @@ export type BrowserAccountUpdateWithoutChannelsInput = {
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationPolicy?: Prisma.BrowserAutomationPolicyUpdateOneWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUpdateManyWithoutBrowserAccountNestedInput
 }
 
 export type BrowserAccountUncheckedUpdateWithoutChannelsInput = {
@@ -967,6 +1295,8 @@ export type BrowserAccountUncheckedUpdateWithoutChannelsInput = {
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationPolicy?: Prisma.BrowserAutomationPolicyUncheckedUpdateOneWithoutBrowserAccountNestedInput
+  timelineEvents?: Prisma.BrowserAccountEventUncheckedUpdateManyWithoutBrowserAccountNestedInput
 }
 
 
@@ -976,10 +1306,12 @@ export type BrowserAccountUncheckedUpdateWithoutChannelsInput = {
 
 export type BrowserAccountCountOutputType = {
   channels: number
+  timelineEvents: number
 }
 
 export type BrowserAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   channels?: boolean | BrowserAccountCountOutputTypeCountChannelsArgs
+  timelineEvents?: boolean | BrowserAccountCountOutputTypeCountTimelineEventsArgs
 }
 
 /**
@@ -997,6 +1329,13 @@ export type BrowserAccountCountOutputTypeDefaultArgs<ExtArgs extends runtime.Typ
  */
 export type BrowserAccountCountOutputTypeCountChannelsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.BrowserAccountChannelWhereInput
+}
+
+/**
+ * BrowserAccountCountOutputType without action
+ */
+export type BrowserAccountCountOutputTypeCountTimelineEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BrowserAccountEventWhereInput
 }
 
 
@@ -1028,6 +1367,8 @@ export type BrowserAccountSelect<ExtArgs extends runtime.Types.Extensions.Intern
   createdAt?: boolean
   updatedAt?: boolean
   channels?: boolean | Prisma.BrowserAccount$channelsArgs<ExtArgs>
+  automationPolicy?: boolean | Prisma.BrowserAccount$automationPolicyArgs<ExtArgs>
+  timelineEvents?: boolean | Prisma.BrowserAccount$timelineEventsArgs<ExtArgs>
   _count?: boolean | Prisma.BrowserAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["browserAccount"]>
 
@@ -1121,6 +1462,8 @@ export type BrowserAccountSelectScalar = {
 export type BrowserAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "displayName" | "browserProfileKey" | "browserProfileName" | "locale" | "timezone" | "proxyType" | "proxyHost" | "proxyPort" | "proxyUsernameEncrypted" | "proxyPasswordEncrypted" | "proxyCountry" | "facebookUserId" | "facebookUserName" | "loginStatus" | "cookieStatus" | "lastKnownIp" | "lastLoginAt" | "lastVerifiedAt" | "lastHeartbeatAt" | "lastLoginError" | "createdAt" | "updatedAt", ExtArgs["result"]["browserAccount"]>
 export type BrowserAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   channels?: boolean | Prisma.BrowserAccount$channelsArgs<ExtArgs>
+  automationPolicy?: boolean | Prisma.BrowserAccount$automationPolicyArgs<ExtArgs>
+  timelineEvents?: boolean | Prisma.BrowserAccount$timelineEventsArgs<ExtArgs>
   _count?: boolean | Prisma.BrowserAccountCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BrowserAccountIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1130,6 +1473,8 @@ export type $BrowserAccountPayload<ExtArgs extends runtime.Types.Extensions.Inte
   name: "BrowserAccount"
   objects: {
     channels: Prisma.$BrowserAccountChannelPayload<ExtArgs>[]
+    automationPolicy: Prisma.$BrowserAutomationPolicyPayload<ExtArgs> | null
+    timelineEvents: Prisma.$BrowserAccountEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1553,6 +1898,8 @@ readonly fields: BrowserAccountFieldRefs;
 export interface Prisma__BrowserAccountClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   channels<T extends Prisma.BrowserAccount$channelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrowserAccount$channelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserAccountChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  automationPolicy<T extends Prisma.BrowserAccount$automationPolicyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrowserAccount$automationPolicyArgs<ExtArgs>>): Prisma.Prisma__BrowserAutomationPolicyClient<runtime.Types.Result.GetResult<Prisma.$BrowserAutomationPolicyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  timelineEvents<T extends Prisma.BrowserAccount$timelineEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrowserAccount$timelineEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserAccountEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2022,6 +2369,49 @@ export type BrowserAccount$channelsArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.BrowserAccountChannelScalarFieldEnum | Prisma.BrowserAccountChannelScalarFieldEnum[]
+}
+
+/**
+ * BrowserAccount.automationPolicy
+ */
+export type BrowserAccount$automationPolicyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BrowserAutomationPolicy
+   */
+  select?: Prisma.BrowserAutomationPolicySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BrowserAutomationPolicy
+   */
+  omit?: Prisma.BrowserAutomationPolicyOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BrowserAutomationPolicyInclude<ExtArgs> | null
+  where?: Prisma.BrowserAutomationPolicyWhereInput
+}
+
+/**
+ * BrowserAccount.timelineEvents
+ */
+export type BrowserAccount$timelineEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BrowserAccountEvent
+   */
+  select?: Prisma.BrowserAccountEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BrowserAccountEvent
+   */
+  omit?: Prisma.BrowserAccountEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BrowserAccountEventInclude<ExtArgs> | null
+  where?: Prisma.BrowserAccountEventWhereInput
+  orderBy?: Prisma.BrowserAccountEventOrderByWithRelationInput | Prisma.BrowserAccountEventOrderByWithRelationInput[]
+  cursor?: Prisma.BrowserAccountEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BrowserAccountEventScalarFieldEnum | Prisma.BrowserAccountEventScalarFieldEnum[]
 }
 
 /**

@@ -499,7 +499,9 @@ model BrowserAccount {
   lastHeartbeatAt DateTime?
   lastLoginError  String?
 
-  channels BrowserAccountChannel[]
+  channels         BrowserAccountChannel[]
+  automationPolicy BrowserAutomationPolicy?
+  timelineEvents   BrowserAccountEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -512,6 +514,52 @@ model BrowserAccount {
   @@index([proxyType])
   @@index([proxyCountry])
   @@index([facebookUserId])
+}
+
+enum BrowserAccountEventStatus {
+  INFO
+  SUCCESS
+  WARNING
+  FAILED
+}
+
+model BrowserAutomationPolicy {
+  id String @id @default(cuid())
+
+  browserAccountId String         @unique
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  autoVerifyLogin   Boolean @default(true)
+  autoDiscoverPages Boolean @default(true)
+  autoSyncPages     Boolean @default(true)
+  autoHealthCheck   Boolean @default(true)
+  autoCloseBrowser  Boolean @default(false)
+  autoNotifications Boolean @default(true)
+
+  keepBrowserOpenAfterLogin Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BrowserAccountEvent {
+  id String @id @default(cuid())
+
+  browserAccountId String
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  eventType String
+  status    BrowserAccountEventStatus @default(INFO)
+  title     String
+  message   String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([browserAccountId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model BrowserAccountChannel {

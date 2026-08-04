@@ -17,6 +17,12 @@ import {
   BrowserSessionService,
 } from './services/browser-session.service';
 import {
+  BrowserTimelineService,
+} from './services/browser-timeline.service';
+import {
+  BrowserAutomationPolicyService,
+} from './services/browser-automation-policy.service';
+import {
   BrowserRuntimeEventBus,
 } from './events/browser-runtime-event-bus.service';
 import {
@@ -33,6 +39,8 @@ import {
   providers: [
     BrowserAccountService,
     BrowserSessionService,
+    BrowserTimelineService,
+    BrowserAutomationPolicyService,
     BrowserRuntimeEventBus,
     BrowserRuntimeAutomationListener,
     SocialTokenCryptoService,

@@ -65,6 +65,8 @@ export const ModelName = {
   SocialChannel: 'SocialChannel',
   SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
   BrowserAccount: 'BrowserAccount',
+  BrowserAutomationPolicy: 'BrowserAutomationPolicy',
+  BrowserAccountEvent: 'BrowserAccountEvent',
   BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
@@ -400,6 +402,37 @@ export const BrowserAccountScalarFieldEnum = {
 } as const
 
 export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
+
+
+export const BrowserAutomationPolicyScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  autoVerifyLogin: 'autoVerifyLogin',
+  autoDiscoverPages: 'autoDiscoverPages',
+  autoSyncPages: 'autoSyncPages',
+  autoHealthCheck: 'autoHealthCheck',
+  autoCloseBrowser: 'autoCloseBrowser',
+  autoNotifications: 'autoNotifications',
+  keepBrowserOpenAfterLogin: 'keepBrowserOpenAfterLogin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAutomationPolicyScalarFieldEnum = (typeof BrowserAutomationPolicyScalarFieldEnum)[keyof typeof BrowserAutomationPolicyScalarFieldEnum]
+
+
+export const BrowserAccountEventScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  eventType: 'eventType',
+  status: 'status',
+  title: 'title',
+  message: 'message',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
 
 
 export const BrowserAccountChannelScalarFieldEnum = {
