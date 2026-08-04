@@ -513,3 +513,177 @@
     width: 100%;
   }
 }
+
+.accountSection {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(
+    --border-color,
+    rgba(127, 127, 127, 0.18)
+  );
+  border-radius: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.sectionHeader h3 {
+  margin: 4px 0 0;
+}
+
+.saveStatus {
+  font-size: 12px;
+  opacity: 0.62;
+}
+
+.sectionEmpty {
+  padding: 22px;
+  text-align: center;
+  opacity: 0.62;
+}
+
+.policyGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.policyOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid var(
+    --border-color,
+    rgba(127, 127, 127, 0.16)
+  );
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.policyOption:hover {
+  background: rgba(
+    127,
+    127,
+    127,
+    0.06
+  );
+}
+
+.policyOption input {
+  margin-top: 3px;
+}
+
+.policyOption span,
+.policyOption strong,
+.policyOption small {
+  display: block;
+}
+
+.policyOption small {
+  margin-top: 4px;
+  line-height: 1.45;
+  opacity: 0.62;
+}
+
+.timeline {
+  display: grid;
+}
+
+.timelineItem {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    16px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 0 20px;
+}
+
+.timelineItem:not(:last-child)::before {
+  position: absolute;
+  top: 15px;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+  background: var(
+    --border-color,
+    rgba(127, 127, 127, 0.2)
+  );
+  content: "";
+}
+
+.timelineDot {
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 3px solid var(
+    --background,
+    #fff
+  );
+  border-radius: 50%;
+}
+
+.timelineSuccess {
+  background: #2cb464;
+}
+
+.timelineWarning {
+  background: #d89a22;
+}
+
+.timelineFailed {
+  background: #dc4646;
+}
+
+.timelineInfo {
+  background: #4f7ee8;
+}
+
+.timelineContent {
+  min-width: 0;
+}
+
+.timelineTitle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.timelineTitle time {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.timelineContent p {
+  margin: 6px 0;
+  line-height: 1.5;
+  opacity: 0.76;
+}
+
+.timelineContent small {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+}
+
+@media (max-width: 760px) {
+  .policyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader,
+  .timelineTitle {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

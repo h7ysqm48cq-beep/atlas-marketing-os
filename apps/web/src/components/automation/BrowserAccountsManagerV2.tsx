@@ -91,6 +91,36 @@ type EditAccountForm = {
   clearProxyCredentials: boolean;
 };
 
+type AutomationPolicy = {
+  id: string;
+  browserAccountId: string;
+  autoVerifyLogin: boolean;
+  autoDiscoverPages: boolean;
+  autoSyncPages: boolean;
+  autoHealthCheck: boolean;
+  autoCloseBrowser: boolean;
+  autoNotifications: boolean;
+  keepBrowserOpenAfterLogin: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type TimelineEvent = {
+  id: string;
+  browserAccountId: string;
+  eventType: string;
+  status:
+    | "INFO"
+    | "SUCCESS"
+    | "WARNING"
+    | "FAILED"
+    | string;
+  title: string;
+  message: string | null;
+  metadata?: unknown;
+  createdAt: string;
+};
+
 type InspectionResult = {
   loginStatus?: string;
   loginLikely?: boolean;
@@ -280,6 +310,33 @@ export function BrowserAccountsManagerV2({
     actionMessage,
     setActionMessage,
   ] = useState("");
+
+  const [
+    automationPolicy,
+    setAutomationPolicy,
+  ] = useState<AutomationPolicy | null>(
+    null,
+  );
+
+  const [
+    policyLoading,
+    setPolicyLoading,
+  ] = useState(false);
+
+  const [
+    policySaving,
+    setPolicySaving,
+  ] = useState(false);
+
+  const [
+    timeline,
+    setTimeline,
+  ] = useState<TimelineEvent[]>([]);
+
+  const [
+    timelineLoading,
+    setTimelineLoading,
+  ] = useState(false);
 
   const [
     editOpen,
@@ -565,6 +622,27 @@ export function BrowserAccountsManagerV2({
     loadAccounts,
   ]);
 
+  useEffect(() => {
+    if (!selectedId) {
+      setAutomationPolicy(
+        null,
+      );
+      setTimeline([]);
+      return;
+    }
+
+    void Promise.all([
+      loadAutomationPolicy(
+        selectedId,
+      ),
+      loadTimeline(
+        selectedId,
+      ),
+    ]);
+  }, [
+    selectedId,
+  ]);
+
   function openEdit(
     account: BrowserAccount,
   ) {
@@ -721,6 +799,210 @@ export function BrowserAccountsManagerV2({
     }
   }
 
+  async function loadAutomationPolicy(
+    accountId: string,
+  ) {
+    setPolicyLoading(true);
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts/${accountId}/automation-policy`,
+          {
+            cache:
+              "no-store",
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "Unable to load automation policy.",
+          ),
+        );
+      }
+
+      setAutomationPolicy(
+        body as unknown as
+          AutomationPolicy,
+      );
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load automation policy.",
+      );
+    } finally {
+      setPolicyLoading(false);
+    }
+  }
+
+  async function loadTimeline(
+    accountId: string,
+  ) {
+    setTimelineLoading(true);
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts/${accountId}/timeline`,
+          {
+            cache:
+              "no-store",
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "Unable to load timeline.",
+          ),
+        );
+      }
+
+      setTimeline(
+        Array.isArray(
+          body,
+        )
+          ? body as unknown as
+              TimelineEvent[]
+          : [],
+      );
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load timeline.",
+      );
+    } finally {
+      setTimelineLoading(false);
+    }
+  }
+
+  async function updateAutomationPolicy(
+    patch:
+      Partial<AutomationPolicy>,
+  ) {
+    if (
+      !selectedAccount ||
+      !automationPolicy
+    ) {
+      return;
+    }
+
+    const previous =
+      automationPolicy;
+
+    const next = {
+      ...previous,
+      ...patch,
+    };
+
+    setAutomationPolicy(
+      next,
+    );
+    setPolicySaving(true);
+    setGlobalError("");
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
+          {
+            method:
+              "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body:
+              JSON.stringify(
+                patch,
+              ),
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "Unable to update automation policy.",
+          ),
+        );
+      }
+
+      setAutomationPolicy(
+        body as unknown as
+          AutomationPolicy,
+      );
+
+      setActionMessage(
+        "Automation policy updated.",
+      );
+    } catch (error) {
+      setAutomationPolicy(
+        previous,
+      );
+
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update automation policy.",
+      );
+    } finally {
+      setPolicySaving(false);
+    }
+  }
+
+  function timelineStatusClass(
+    status: string,
+  ) {
+    const normalized =
+      status
+        .trim()
+        .toUpperCase();
+
+    if (
+      normalized ===
+      "SUCCESS"
+    ) {
+      return styles.timelineSuccess;
+    }
+
+    if (
+      normalized ===
+      "WARNING"
+    ) {
+      return styles.timelineWarning;
+    }
+
+    if (
+      normalized ===
+      "FAILED"
+    ) {
+      return styles.timelineFailed;
+    }
+
+    return styles.timelineInfo;
+  }
+
   async function openBrowser(
     accountId: string,
   ) {
@@ -847,6 +1129,12 @@ export function BrowserAccountsManagerV2({
     await Promise.all([
       loadAccounts(),
       loadRuntime(
+        accountId,
+      ),
+      loadTimeline(
+        accountId,
+      ),
+      loadAutomationPolicy(
         accountId,
       ),
     ]);
@@ -1499,6 +1787,307 @@ export function BrowserAccountsManagerV2({
                 </dd>
               </div>
             </dl>
+
+            <section className={styles.accountSection}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>
+                    Automation
+                  </p>
+
+                  <h3>
+                    Automation Policy
+                  </h3>
+                </div>
+
+                <span className={styles.saveStatus}>
+                  {policySaving
+                    ? "Saving…"
+                    : policyLoading
+                      ? "Loading…"
+                      : "Saved"}
+                </span>
+              </div>
+
+              {!automationPolicy ? (
+                <div className={styles.sectionEmpty}>
+                  Loading automation policy…
+                </div>
+              ) : (
+                <div className={styles.policyGrid}>
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoVerifyLogin
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoVerifyLogin:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Verify Login
+                      </strong>
+
+                      <small>
+                        Automatically verify the current Facebook session.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoDiscoverPages
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoDiscoverPages:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Discover Pages
+                      </strong>
+
+                      <small>
+                        Discover Facebook Pages after login verification.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoSyncPages
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoSyncPages:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Sync Pages
+                      </strong>
+
+                      <small>
+                        Sync discovered Pages into Connected Platforms.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoHealthCheck
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoHealthCheck:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Health Check
+                      </strong>
+
+                      <small>
+                        Monitor browser, cookie, proxy and session health.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoNotifications
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoNotifications:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Notifications
+                      </strong>
+
+                      <small>
+                        Notify when login, sync or health checks fail.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.autoCloseBrowser
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          autoCloseBrowser:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Auto Close Browser
+                      </strong>
+
+                      <small>
+                        Close the browser after onboarding completes.
+                      </small>
+                    </span>
+                  </label>
+
+                  <label className={styles.policyOption}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        automationPolicy.keepBrowserOpenAfterLogin
+                      }
+                      disabled={policySaving}
+                      onChange={(event) =>
+                        void updateAutomationPolicy({
+                          keepBrowserOpenAfterLogin:
+                            event.target.checked,
+                        })
+                      }
+                    />
+
+                    <span>
+                      <strong>
+                        Keep Browser Open
+                      </strong>
+
+                      <small>
+                        Keep the live browser available after login.
+                      </small>
+                    </span>
+                  </label>
+                </div>
+              )}
+            </section>
+
+            <section className={styles.accountSection}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.eyebrow}>
+                    Activity
+                  </p>
+
+                  <h3>
+                    Timeline
+                  </h3>
+                </div>
+
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  disabled={timelineLoading}
+                  onClick={() =>
+                    void loadTimeline(
+                      selectedAccount.id,
+                    )
+                  }
+                >
+                  {timelineLoading
+                    ? "Refreshing…"
+                    : "Refresh Timeline"}
+                </button>
+              </div>
+
+              {timelineLoading &&
+              !timeline.length ? (
+                <div className={styles.sectionEmpty}>
+                  Loading timeline…
+                </div>
+              ) : null}
+
+              {!timelineLoading &&
+              !timeline.length ? (
+                <div className={styles.sectionEmpty}>
+                  No browser activity recorded yet.
+                </div>
+              ) : null}
+
+              <div className={styles.timeline}>
+                {timeline.map(
+                  (event) => (
+                    <article
+                      className={styles.timelineItem}
+                      key={event.id}
+                    >
+                      <span
+                        className={[
+                          styles.timelineDot,
+                          timelineStatusClass(
+                            event.status,
+                          ),
+                        ].join(" ")}
+                      />
+
+                      <div className={styles.timelineContent}>
+                        <div className={styles.timelineTitle}>
+                          <strong>
+                            {event.title}
+                          </strong>
+
+                          <time>
+                            {formatDate(
+                              event.createdAt,
+                            )}
+                          </time>
+                        </div>
+
+                        {event.message ? (
+                          <p>
+                            {event.message}
+                          </p>
+                        ) : null}
+
+                        <small>
+                          {readableStatus(
+                            event.eventType,
+                          )}
+                        </small>
+                      </div>
+                    </article>
+                  ),
+                )}
+              </div>
+            </section>
 
             <div className={styles.actions}>
               <button
