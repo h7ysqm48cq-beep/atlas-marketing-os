@@ -18,7 +18,6 @@ RUN apt-get update \
         procps \
     && rm -rf /var/lib/apt/lists/*
 
-ENV NODE_ENV=production
 ENV CHROME_EXECUTABLE_PATH=/usr/bin/chromium
 ENV DISPLAY=:99
 ENV BROWSER_WORKER_PORT=4010
@@ -30,11 +29,15 @@ ENV SCREEN_DEPTH=24
 COPY package.json package-lock.json ./
 COPY apps/browser-worker/package.json apps/browser-worker/
 
-RUN npm install
+# IMPORTANT:
+# Install devDependencies so tsc exists during build.
+RUN npm install --include=dev
 
 COPY . .
 
 RUN npm run build --workspace apps/browser-worker
+
+ENV NODE_ENV=production
 
 RUN chmod +x /app/apps/browser-worker/docker-entrypoint.sh
 
