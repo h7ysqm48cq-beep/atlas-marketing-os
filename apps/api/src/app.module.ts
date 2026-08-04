@@ -34,8 +34,10 @@ import { ContentEngineModule } from './content-engine/content-engine.module';
 import { ContentValidatorModule } from './content-validator/content-validator.module';
 import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engine.module';
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
+import { BrowserRuntimeModule } from './browser-runtime/browser-runtime.module';
 @Module({
   imports: [
+    BrowserRuntimeModule,
     PlannerModule,
     PromptBuilderModule,
     AiProviderModule,
