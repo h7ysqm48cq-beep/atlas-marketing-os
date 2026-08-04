@@ -162,17 +162,60 @@ export class BrowserSessionService {
           accountId,
         );
 
-    const result =
-      (
-        await this.browserRuntime.request(
-          `/profiles/${encodeURIComponent(
-            profile.browserProfileKey,
-          )}/inspect`,
-          {
-            method: 'POST',
-          },
+    const inspectPath =
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/inspect`;
+
+    let result:
+      WorkerInspection;
+
+    try {
+      result =
+        (
+          await this.browserRuntime.request(
+            inspectPath,
+            {
+              method: 'POST',
+            },
+          )
+        ) as WorkerInspection;
+    } catch (error) {
+      if (
+        !this.isProfileNotRunningError(
+          error,
         )
-      ) as WorkerInspection;
+      ) {
+        throw error;
+      }
+
+      await this.browserRuntime.request(
+        '/profiles/open',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            ...profile,
+            headless: false,
+            startUrl:
+              'https://www.facebook.com/',
+          }),
+        },
+      );
+
+      result =
+        (
+          await this.browserRuntime.request(
+            inspectPath,
+            {
+              method: 'POST',
+            },
+          )
+        ) as WorkerInspection;
+    }
 
     const page =
       result.page || {};
@@ -460,6 +503,53 @@ export class BrowserSessionService {
         'Start URL must use HTTP or HTTPS.',
       );
     }
+  }
+
+  private isProfileNotRunningError(
+    error: unknown,
+  ) {
+    const response =
+      error &&
+      typeof error === 'object' &&
+      'getResponse' in error &&
+      typeof (
+        error as {
+          getResponse?: unknown;
+        }
+      ).getResponse ===
+        'function'
+        ? (
+            error as {
+              getResponse:
+                () => unknown;
+            }
+          ).getResponse()
+        : error;
+
+    const normalized =
+      (
+        typeof response ===
+        'string'
+          ? response
+          : JSON.stringify(
+              response,
+            )
+      ).toLowerCase();
+
+    return (
+      normalized.includes(
+        'browser profile is not running',
+      ) ||
+      normalized.includes(
+        'profile is not running',
+      ) ||
+      normalized.includes(
+        'profile was not found',
+      ) ||
+      normalized.includes(
+        '"workerstatus":404',
+      )
+    );
   }
 
   private isFacebookLoginPage(
