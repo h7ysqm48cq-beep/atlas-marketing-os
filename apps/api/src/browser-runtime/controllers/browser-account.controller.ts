@@ -82,6 +82,7 @@ export class BrowserAccountController {
     body: {
       displayName?: string;
       browserProfileName?: string;
+      brandId?: string | null;
       locale?: string;
       timezone?: string;
       proxyType?:

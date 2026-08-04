@@ -201,6 +201,7 @@ export class BrowserAccountService {
     input: {
       displayName?: string;
       browserProfileName?: string;
+      brandId?: string | null;
       locale?: string;
       timezone?: string;
       proxyType?: SocialProxyType;
@@ -267,6 +268,46 @@ export class BrowserAccountService {
       throw new BadRequestException(
         'Timezone is required.',
       );
+    }
+
+    let brandId =
+      existing.brandId;
+
+    let workspaceId =
+      existing.workspaceId;
+
+    if (
+      input.brandId !==
+      undefined
+    ) {
+      brandId =
+        input.brandId?.trim() ||
+        null;
+
+      if (brandId) {
+        const brand =
+          await this.prisma.brand.findUnique({
+            where: {
+              id: brandId,
+            },
+            select: {
+              id: true,
+              workspaceId: true,
+            },
+          });
+
+        if (!brand) {
+          throw new NotFoundException(
+            'Brand was not found.',
+          );
+        }
+
+        workspaceId =
+          brand.workspaceId;
+      } else {
+        workspaceId =
+          null;
+      }
     }
 
     const proxyType =
@@ -367,6 +408,8 @@ export class BrowserAccountService {
         data: {
           displayName,
           browserProfileName,
+          brandId,
+          workspaceId,
           locale,
           timezone,
           proxyType,

@@ -30,6 +30,8 @@ type BrowserAccount = {
   id: string;
   displayName: string;
   platform: string;
+  brandId: string | null;
+  workspaceId?: string | null;
   browserProfileKey: string;
   browserProfileName: string;
   locale: string;
@@ -80,6 +82,7 @@ type AccountRuntime = {
 type EditAccountForm = {
   displayName: string;
   browserProfileName: string;
+  brandId: string;
   locale: string;
   timezone: string;
   proxyType: ProxyType;
@@ -89,6 +92,12 @@ type EditAccountForm = {
   proxyPassword: string;
   proxyCountry: string;
   clearProxyCredentials: boolean;
+};
+
+type BrandOption = {
+  id: string;
+  name: string;
+  workspaceId?: string | null;
 };
 
 type AutomationPolicy = {
@@ -337,6 +346,11 @@ export function BrowserAccountsManagerV2({
   ] = useState("");
 
   const [
+    brands,
+    setBrands,
+  ] = useState<BrandOption[]>([]);
+
+  const [
     onboardingRunning,
     setOnboardingRunning,
   ] = useState(false);
@@ -558,6 +572,58 @@ export function BrowserAccountsManagerV2({
       ],
     );
 
+  const loadBrands =
+    useCallback(
+      async () => {
+        try {
+          const response =
+            await fetch(
+              `${API_URL}/brands`,
+              {
+                cache:
+                  "no-store",
+              },
+            );
+
+          const body =
+            await readJson(
+              response,
+            );
+
+          if (!response.ok) {
+            throw new Error(
+              getErrorMessage(
+                body,
+                "Unable to load Brands.",
+              ),
+            );
+          }
+
+          const candidates =
+            Array.isArray(
+              body,
+            )
+              ? body
+              : Array.isArray(
+                    body.brands,
+                  )
+                ? body.brands
+                : [];
+
+          setBrands(
+            candidates as BrandOption[],
+          );
+        } catch (error) {
+          setGlobalError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load Brands.",
+          );
+        }
+      },
+      [],
+    );
+
   const loadAccounts =
     useCallback(
       async () => {
@@ -661,9 +727,13 @@ export function BrowserAccountsManagerV2({
     );
 
   useEffect(() => {
-    void loadAccounts();
+    void Promise.all([
+      loadAccounts(),
+      loadBrands(),
+    ]);
   }, [
     loadAccounts,
+    loadBrands,
   ]);
 
   useEffect(() => {
@@ -695,6 +765,8 @@ export function BrowserAccountsManagerV2({
         account.displayName,
       browserProfileName:
         account.browserProfileName,
+      brandId:
+        account.brandId || "",
       locale:
         account.locale,
       timezone:
@@ -781,6 +853,9 @@ export function BrowserAccountsManagerV2({
                 editForm.displayName,
               browserProfileName:
                 editForm.browserProfileName,
+              brandId:
+                editForm.brandId ||
+                null,
               locale:
                 editForm.locale,
               timezone:
@@ -1917,6 +1992,20 @@ export function BrowserAccountsManagerV2({
             <dl className={styles.definitionList}>
               <div>
                 <dt>
+                  Brand
+                </dt>
+                <dd>
+                  {brands.find(
+                    (brand) =>
+                      brand.id ===
+                      selectedAccount.brandId,
+                  )?.name ||
+                    "Not selected"}
+                </dd>
+              </div>
+
+              <div>
+                <dt>
                   Profile name
                 </dt>
                 <dd>
@@ -2415,13 +2504,33 @@ export function BrowserAccountsManagerV2({
               {onboardingStep ===
               "ATTENTION" ? (
                 <div className={styles.warningMessage}>
-                  Onboarding needs attention:
-                  {" "}
-                  {
-                    onboardingResult
-                      ?.step ||
-                    "UNKNOWN"
-                  }
+                  <span>
+                    Onboarding needs attention:
+                    {" "}
+                    {
+                      onboardingResult
+                        ?.step ||
+                      "UNKNOWN"
+                    }
+                  </span>
+
+                  {onboardingResult
+                    ?.step ===
+                  "SELECT_BRAND" ? (
+                    <button
+                      className={
+                        styles.secondaryButton
+                      }
+                      type="button"
+                      onClick={() =>
+                        openEdit(
+                          selectedAccount,
+                        )
+                      }
+                    >
+                      Select Brand
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -2697,6 +2806,39 @@ export function BrowserAccountsManagerV2({
                     )
                   }
                 />
+              </label>
+
+              <label>
+                <span>
+                  Brand
+                </span>
+
+                <select
+                  value={
+                    editForm.brandId
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "brandId",
+                      event.target.value,
+                    )
+                  }
+                >
+                  <option value="">
+                    Select Brand
+                  </option>
+
+                  {brands.map(
+                    (brand) => (
+                      <option
+                        key={brand.id}
+                        value={brand.id}
+                      >
+                        {brand.name}
+                      </option>
+                    ),
+                  )}
+                </select>
               </label>
 
               <label>

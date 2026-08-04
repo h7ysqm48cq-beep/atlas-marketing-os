@@ -813,3 +813,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+.warningMessage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .warningMessage {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
