@@ -195,6 +195,212 @@ export class BrowserAccountService {
     );
   }
 
+  async update(
+    id: string,
+    input: {
+      displayName?: string;
+      browserProfileName?: string;
+      locale?: string;
+      timezone?: string;
+      proxyType?: SocialProxyType;
+      proxyHost?: string | null;
+      proxyPort?: number | null;
+      proxyUsername?: string | null;
+      proxyPassword?: string | null;
+      proxyCountry?: string | null;
+      clearProxyCredentials?: boolean;
+    },
+  ) {
+    const existing =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+      });
+
+    if (!existing) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    const displayName =
+      input.displayName === undefined
+        ? existing.displayName
+        : input.displayName.trim();
+
+    if (!displayName) {
+      throw new BadRequestException(
+        'Display name is required.',
+      );
+    }
+
+    const browserProfileName =
+      input.browserProfileName === undefined
+        ? existing.browserProfileName
+        : input.browserProfileName.trim();
+
+    if (!browserProfileName) {
+      throw new BadRequestException(
+        'Browser profile name is required.',
+      );
+    }
+
+    const locale =
+      input.locale === undefined
+        ? existing.locale
+        : input.locale.trim();
+
+    const timezone =
+      input.timezone === undefined
+        ? existing.timezone
+        : input.timezone.trim();
+
+    if (!locale) {
+      throw new BadRequestException(
+        'Locale is required.',
+      );
+    }
+
+    if (!timezone) {
+      throw new BadRequestException(
+        'Timezone is required.',
+      );
+    }
+
+    const proxyType =
+      input.proxyType ??
+      existing.proxyType;
+
+    const proxyHost =
+      input.proxyHost === undefined
+        ? existing.proxyHost
+        : input.proxyHost?.trim() || null;
+
+    const proxyPort =
+      input.proxyPort === undefined
+        ? existing.proxyPort
+        : input.proxyPort;
+
+    const proxyCountry =
+      input.proxyCountry === undefined
+        ? existing.proxyCountry
+        : input.proxyCountry?.trim() || null;
+
+    if (
+      proxyType !==
+      SocialProxyType.DIRECT
+    ) {
+      if (!proxyHost) {
+        throw new BadRequestException(
+          'Proxy host is required.',
+        );
+      }
+
+      if (
+        !Number.isInteger(
+          proxyPort,
+        ) ||
+        !proxyPort ||
+        proxyPort < 1 ||
+        proxyPort > 65535
+      ) {
+        throw new BadRequestException(
+          'Proxy port must be between 1 and 65535.',
+        );
+      }
+    }
+
+    let proxyUsernameEncrypted =
+      existing.proxyUsernameEncrypted;
+
+    let proxyPasswordEncrypted =
+      existing.proxyPasswordEncrypted;
+
+    if (
+      proxyType ===
+        SocialProxyType.DIRECT ||
+      input.clearProxyCredentials ===
+        true
+    ) {
+      proxyUsernameEncrypted = null;
+      proxyPasswordEncrypted = null;
+    } else {
+      if (
+        input.proxyUsername !==
+        undefined
+      ) {
+        const value =
+          input.proxyUsername?.trim() ||
+          '';
+
+        proxyUsernameEncrypted =
+          value
+            ? this.socialTokenCrypto.encrypt(
+                value,
+              )
+            : null;
+      }
+
+      if (
+        input.proxyPassword !==
+        undefined
+      ) {
+        const value =
+          input.proxyPassword;
+
+        proxyPasswordEncrypted =
+          value
+            ? this.socialTokenCrypto.encrypt(
+                value,
+              )
+            : null;
+      }
+    }
+
+    const updated =
+      await this.prisma.browserAccount.update({
+        where: {
+          id,
+        },
+        data: {
+          displayName,
+          browserProfileName,
+          locale,
+          timezone,
+          proxyType,
+          proxyHost:
+            proxyType ===
+            SocialProxyType.DIRECT
+              ? null
+              : proxyHost,
+          proxyPort:
+            proxyType ===
+            SocialProxyType.DIRECT
+              ? null
+              : proxyPort,
+          proxyCountry:
+            proxyType ===
+            SocialProxyType.DIRECT
+              ? null
+              : proxyCountry,
+          proxyUsernameEncrypted,
+          proxyPasswordEncrypted,
+        },
+        include: {
+          channels: {
+            include: {
+              channel: true,
+            },
+          },
+        },
+      });
+
+    return this.sanitize(
+      updated,
+    );
+  }
+
   async getLaunchProfile(
     id: string,
   ) {

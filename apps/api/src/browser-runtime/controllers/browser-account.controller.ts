@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -55,6 +56,35 @@ export class BrowserAccountController {
   ) {
     return this.browserAccounts.getById(
       id,
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      displayName?: string;
+      browserProfileName?: string;
+      locale?: string;
+      timezone?: string;
+      proxyType?:
+        | 'DIRECT'
+        | 'HTTP'
+        | 'HTTPS'
+        | 'SOCKS5';
+      proxyHost?: string | null;
+      proxyPort?: number | null;
+      proxyUsername?: string | null;
+      proxyPassword?: string | null;
+      proxyCountry?: string | null;
+      clearProxyCredentials?: boolean;
+    },
+  ) {
+    return this.browserAccounts.update(
+      id,
+      body as any,
     );
   }
 
