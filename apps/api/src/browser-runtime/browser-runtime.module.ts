@@ -23,6 +23,9 @@ import {
   BrowserAutomationPolicyService,
 } from './services/browser-automation-policy.service';
 import {
+  BrowserOnboardingService,
+} from './services/browser-onboarding.service';
+import {
   BrowserRuntimeEventBus,
 } from './events/browser-runtime-event-bus.service';
 import {
@@ -41,6 +44,7 @@ import {
     BrowserSessionService,
     BrowserTimelineService,
     BrowserAutomationPolicyService,
+    BrowserOnboardingService,
     BrowserRuntimeEventBus,
     BrowserRuntimeAutomationListener,
     SocialTokenCryptoService,

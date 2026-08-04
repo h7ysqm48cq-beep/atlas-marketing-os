@@ -22,6 +22,9 @@ import {
 import {
   BrowserAutomationPolicyService,
 } from '../services/browser-automation-policy.service';
+import {
+  BrowserOnboardingService,
+} from '../services/browser-onboarding.service';
 
 type CreateBrowserAccountBody = {
   displayName: string;
@@ -52,6 +55,8 @@ export class BrowserAccountController {
       BrowserTimelineService,
     private readonly automationPolicies:
       BrowserAutomationPolicyService,
+    private readonly onboarding:
+      BrowserOnboardingService,
   ) {}
 
   @Get()
@@ -230,6 +235,25 @@ export class BrowserAccountController {
         id,
         body,
       );
+  }
+
+
+  @Post(':id/onboarding/run')
+  runOnboarding(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      verifyLogin?: boolean;
+      forceDiscover?: boolean;
+      forceSync?: boolean;
+      closeAfterComplete?: boolean;
+    },
+  ) {
+    return this.onboarding.run(
+      id,
+      body,
+    );
   }
 
 }
