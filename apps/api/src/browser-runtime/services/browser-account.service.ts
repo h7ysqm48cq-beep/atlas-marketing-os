@@ -1093,15 +1093,29 @@ export class BrowserAccountService {
             const warnings:
               string[] = [];
 
-            if (
-              loginStatus !==
-              'LOGGED_IN'
-            ) {
+            const sessionReusable =
+              loginStatus ===
+                'LOGGED_IN' ||
+              (
+                loginStatus ===
+                  'BROWSER_CLOSED' &&
+                cookieStatus ===
+                  'ACTIVE'
+              );
+
+            if (!sessionReusable) {
               score -=
                 50;
 
               warnings.push(
                 `Login status is ${loginStatus}.`,
+              );
+            } else if (
+              loginStatus ===
+              'BROWSER_CLOSED'
+            ) {
+              warnings.push(
+                'Browser is closed and will be opened automatically.',
               );
             }
 
@@ -1209,8 +1223,7 @@ export class BrowserAccountService {
               );
 
             const eligible =
-              loginStatus ===
-                'LOGGED_IN' &&
+              sessionReusable &&
               (
                 !requireActiveCookie ||
                 cookieStatus ===
