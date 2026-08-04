@@ -23,7 +23,23 @@ type WorkerInspection = {
     url?: string;
     loginLikely?: boolean;
     textPreview?: string;
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+    }>;
   };
+  frameInspections?: Array<{
+    frameUrl?: string;
+    frameName?: string;
+    textPreview?: string;
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+      visible?: boolean;
+    }>;
+  }>;
   success?: boolean;
   [key: string]: unknown;
 };
@@ -165,35 +181,181 @@ export class BrowserSessionService {
       page.url?.trim() ||
       '';
 
-    const loginRequired =
+    const textPreview =
+      page.textPreview
+        ?.trim()
+        .toLowerCase() ||
+      '';
+
+    const frameInspections =
+      Array.isArray(
+        result.frameInspections,
+      )
+        ? result.frameInspections
+        : [];
+
+    const pageInputs =
+      Array.isArray(
+        page.inputs,
+      )
+        ? page.inputs
+        : [];
+
+    const frameInputs =
+      frameInspections.flatMap(
+        (frame: any) =>
+          Array.isArray(
+            frame?.inputs,
+          )
+            ? frame.inputs
+            : [],
+      );
+
+    const allInputs = [
+      ...pageInputs,
+      ...frameInputs,
+    ];
+
+    const hasEmailInput =
+      allInputs.some(
+        (input: any) => {
+          const name =
+            String(
+              input?.name || '',
+            ).toLowerCase();
+
+          const type =
+            String(
+              input?.type || '',
+            ).toLowerCase();
+
+          const autocomplete =
+            String(
+              input?.autocomplete ||
+              '',
+            ).toLowerCase();
+
+          return (
+            name === 'email' ||
+            autocomplete.includes(
+              'username',
+            ) ||
+            (
+              type === 'text' &&
+              name.includes(
+                'email',
+              )
+            )
+          );
+        },
+      );
+
+    const hasPasswordInput =
+      allInputs.some(
+        (input: any) =>
+          String(
+            input?.type || '',
+          ).toLowerCase() ===
+          'password',
+      );
+
+    const hasLoginText =
+      [
+        'log in to facebook',
+        'forgotten password',
+        'create new account',
+        'email address or mobile number',
+      ].some(
+        (value) =>
+          textPreview.includes(
+            value,
+          ),
+      );
+
+    const loginPageByUrl =
       this.isFacebookLoginPage(
         currentUrl,
       );
 
-    const loginLikely =
-      page.loginLikely === true ||
-      (
-        currentUrl.includes(
-          'facebook.com',
-        ) &&
-        !loginRequired
+    const twoFactorRequired =
+      currentUrl
+        .toLowerCase()
+        .includes(
+          'two_step_verification',
+        ) ||
+      textPreview.includes(
+        'authentication code',
+      ) ||
+      textPreview.includes(
+        'two-factor authentication',
+      ) ||
+      textPreview.includes(
+        'enter the code',
       );
+
+    const checkpointRequired =
+      currentUrl
+        .toLowerCase()
+        .includes(
+          '/checkpoint',
+        ) ||
+      textPreview.includes(
+        'security check',
+      ) ||
+      textPreview.includes(
+        'confirm your identity',
+      );
+
+    const loginRequired =
+      !twoFactorRequired &&
+      !checkpointRequired &&
+      (
+        loginPageByUrl ||
+        hasPasswordInput ||
+        (
+          hasEmailInput &&
+          hasLoginText
+        )
+      );
+
+    const loginLikely =
+      !loginRequired &&
+      !twoFactorRequired &&
+      !checkpointRequired &&
+      currentUrl
+        .toLowerCase()
+        .includes(
+          'facebook.com',
+        );
+
+    const loginStatus =
+      twoFactorRequired
+        ? 'TWO_FACTOR_REQUIRED'
+        : checkpointRequired
+          ? 'CHECKPOINT_REQUIRED'
+          : loginRequired
+            ? 'LOGIN_REQUIRED'
+            : loginLikely
+              ? 'LOGGED_IN'
+              : 'UNKNOWN';
+
+    const cookieStatus =
+      loginLikely
+        ? 'ACTIVE'
+        : loginRequired
+          ? 'PROFILE_READY'
+          : twoFactorRequired ||
+              checkpointRequired
+            ? 'PENDING_VERIFICATION'
+            : 'UNKNOWN';
 
     await this.prisma.browserAccount.update({
       where: {
         id: accountId,
       },
       data: {
-        loginStatus:
-          loginLikely
-            ? 'LOGGED_IN'
-            : loginRequired
-              ? 'LOGIN_REQUIRED'
-              : 'UNKNOWN',
-        cookieStatus:
-          loginLikely
-            ? 'ACTIVE'
-            : 'PROFILE_READY',
+        loginStatus,
+        cookieStatus,
         lastLoginAt:
           loginLikely
             ? new Date()
@@ -204,8 +366,12 @@ export class BrowserSessionService {
           new Date(),
         lastLoginError:
           loginRequired
-            ? 'Facebook login is not complete.'
-            : null,
+            ? 'Facebook login is required.'
+            : twoFactorRequired
+              ? 'Facebook two-factor verification is required.'
+              : checkpointRequired
+                ? 'Facebook security checkpoint requires attention.'
+                : null,
       },
     });
 
@@ -213,8 +379,17 @@ export class BrowserSessionService {
       accountId,
       browserProfileKey:
         profile.browserProfileKey,
+      loginStatus,
       loginLikely,
       loginRequired,
+      twoFactorRequired,
+      checkpointRequired,
+      detection: {
+        loginPageByUrl,
+        hasEmailInput,
+        hasPasswordInput,
+        hasLoginText,
+      },
       page,
       result,
     };
