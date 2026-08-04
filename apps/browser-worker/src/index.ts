@@ -6,6 +6,9 @@ import express, {
 import {
   chromium,
   type BrowserContext,
+  type Frame,
+  type Locator,
+  type Page,
 } from "playwright-core";
 import {
   access,
@@ -92,6 +95,447 @@ const sessions =
     string,
     BrowserSession
   >();
+
+
+type FrameInputInspection = {
+  frameUrl: string;
+  frameName: string;
+  textPreview: string;
+  inputs: Array<{
+    tag: string;
+    type: string | null;
+    name: string | null;
+    id: string | null;
+    placeholder: string | null;
+    autocomplete: string | null;
+    inputMode: string | null;
+    ariaLabel: string | null;
+    contentEditable: string | null;
+    visible: boolean;
+  }>;
+  buttons: Array<{
+    text: string;
+    ariaLabel: string | null;
+    role: string | null;
+    tag: string;
+    visible: boolean;
+  }>;
+};
+
+
+async function locatorIsVisible(
+  locator: Locator,
+): Promise<boolean> {
+  return locator
+    .isVisible()
+    .catch(() => false);
+}
+
+
+async function findVisibleLocatorAcrossFrames(
+  page: Page,
+  selectors: string[],
+): Promise<{
+  frame: Frame;
+  locator: Locator;
+  selector: string;
+} | null> {
+  const frames =
+    page.frames();
+
+  for (
+    const frame
+    of frames
+  ) {
+    for (
+      const selector
+      of selectors
+    ) {
+      const candidates =
+        frame.locator(
+          selector,
+        );
+
+      const count =
+        await candidates
+          .count()
+          .catch(() => 0);
+
+      for (
+        let index = 0;
+        index < count;
+        index += 1
+      ) {
+        const candidate =
+          candidates.nth(
+            index,
+          );
+
+        if (
+          await locatorIsVisible(
+            candidate,
+          )
+        ) {
+          return {
+            frame,
+            locator:
+              candidate,
+            selector,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+
+async function findVisibleButtonAcrossFrames(
+  page: Page,
+  patterns: RegExp[],
+): Promise<{
+  frame: Frame;
+  locator: Locator;
+  pattern: string;
+} | null> {
+  const frames =
+    page.frames();
+
+  for (
+    const frame
+    of frames
+  ) {
+    for (
+      const pattern
+      of patterns
+    ) {
+      const candidates = [
+        frame
+          .getByRole(
+            "button",
+            {
+              name:
+                pattern,
+            },
+          ),
+        frame.locator(
+          [
+            'button[type="submit"]',
+            'input[type="submit"]',
+            '[role="button"]',
+          ].join(", "),
+        ),
+      ];
+
+      for (
+        const candidateGroup
+        of candidates
+      ) {
+        const count =
+          await candidateGroup
+            .count()
+            .catch(() => 0);
+
+        for (
+          let index = 0;
+          index < count;
+          index += 1
+        ) {
+          const candidate =
+            candidateGroup.nth(
+              index,
+            );
+
+          if (
+            !await locatorIsVisible(
+              candidate,
+            )
+          ) {
+            continue;
+          }
+
+          const text =
+            (
+              await candidate
+                .innerText()
+                .catch(() => "")
+            )
+              .trim();
+
+          const value =
+            (
+              await candidate
+                .getAttribute(
+                  "value",
+                )
+                .catch(() => null)
+            ) || "";
+
+          const ariaLabel =
+            (
+              await candidate
+                .getAttribute(
+                  "aria-label",
+                )
+                .catch(() => null)
+            ) || "";
+
+          const combinedText =
+            [
+              text,
+              value,
+              ariaLabel,
+            ]
+              .join(" ")
+              .trim();
+
+          if (
+            pattern.test(
+              combinedText,
+            )
+          ) {
+            return {
+              frame,
+              locator:
+                candidate,
+              pattern:
+                pattern.toString(),
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+
+async function inspectAllFrames(
+  page: Page,
+): Promise<
+  FrameInputInspection[]
+> {
+  const results:
+    FrameInputInspection[] = [];
+
+  const frames =
+    page.frames();
+
+  for (
+    const frame
+    of frames
+  ) {
+    try {
+      const textPreview =
+        (
+          await frame
+            .locator("body")
+            .innerText({
+              timeout:
+                5000,
+            })
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim()
+          .slice(
+            0,
+            3000,
+          );
+
+      const inputs =
+        await frame
+          .locator(
+            [
+              "input",
+              "textarea",
+              '[contenteditable="true"]',
+            ].join(", "),
+          )
+          .evaluateAll(
+            (elements) =>
+              elements
+                .slice(
+                  0,
+                  100,
+                )
+                .map(
+                  (
+                    element,
+                  ) => {
+                    const html =
+                      element as HTMLElement;
+
+                    const style =
+                      window
+                        .getComputedStyle(
+                          html,
+                        );
+
+                    const visible =
+                      style.display !==
+                        "none" &&
+                      style.visibility !==
+                        "hidden" &&
+                      html.offsetParent !==
+                        null;
+
+                    return {
+                      tag:
+                        html.tagName
+                          .toLowerCase(),
+                      type:
+                        element
+                          .getAttribute(
+                            "type",
+                          ),
+                      name:
+                        element
+                          .getAttribute(
+                            "name",
+                          ),
+                      id:
+                        element
+                          .getAttribute(
+                            "id",
+                          ),
+                      placeholder:
+                        element
+                          .getAttribute(
+                            "placeholder",
+                          ),
+                      autocomplete:
+                        element
+                          .getAttribute(
+                            "autocomplete",
+                          ),
+                      inputMode:
+                        element
+                          .getAttribute(
+                            "inputmode",
+                          ),
+                      ariaLabel:
+                        element
+                          .getAttribute(
+                            "aria-label",
+                          ),
+                      contentEditable:
+                        element
+                          .getAttribute(
+                            "contenteditable",
+                          ),
+                      visible,
+                    };
+                  },
+                ),
+          )
+          .catch(
+            () => [],
+          );
+
+      const buttons =
+        await frame
+          .locator(
+            [
+              "button",
+              '[role="button"]',
+              'input[type="submit"]',
+            ].join(", "),
+          )
+          .evaluateAll(
+            (elements) =>
+              elements
+                .slice(
+                  0,
+                  100,
+                )
+                .map(
+                  (
+                    element,
+                  ) => {
+                    const html =
+                      element as HTMLElement;
+
+                    const style =
+                      window
+                        .getComputedStyle(
+                          html,
+                        );
+
+                    const visible =
+                      style.display !==
+                        "none" &&
+                      style.visibility !==
+                        "hidden" &&
+                      html.offsetParent !==
+                        null;
+
+                    return {
+                      text:
+                        (
+                          html.innerText ||
+                          html.getAttribute(
+                            "value",
+                          ) ||
+                          ""
+                        )
+                          .trim()
+                          .slice(
+                            0,
+                            200,
+                          ),
+                      ariaLabel:
+                        html.getAttribute(
+                          "aria-label",
+                        ),
+                      role:
+                        html.getAttribute(
+                          "role",
+                        ),
+                      tag:
+                        html.tagName
+                          .toLowerCase(),
+                      visible,
+                    };
+                  },
+                ),
+          )
+          .catch(
+            () => [],
+          );
+
+      results.push({
+        frameUrl:
+          frame.url(),
+        frameName:
+          frame.name(),
+        textPreview,
+        inputs,
+        buttons,
+      });
+    } catch {
+      results.push({
+        frameUrl:
+          frame.url(),
+        frameName:
+          frame.name(),
+        textPreview:
+          "",
+        inputs:
+          [],
+        buttons:
+          [],
+      });
+    }
+  }
+
+  return results;
+}
 
 function requireWorkerToken(
   request: Request,
@@ -3603,39 +4047,75 @@ app.post(
       const codeSelectors = [
         'input[name="approvals_code"]',
         'input[name="code"]',
+        'input[name*="code" i]',
+        'input[id*="code" i]',
         'input[autocomplete="one-time-code"]',
         'input[inputmode="numeric"]',
+        'input[type="tel"]',
+        'input[type="number"]',
+        'input[type="text"]',
       ];
 
-      let codeInput:
-        import("playwright-core").Locator
-        | null = null;
+      const locatedCodeInput =
+        await findVisibleLocatorAcrossFrames(
+          page,
+          codeSelectors,
+        );
 
-      for (
-        const selector
-        of codeSelectors
-      ) {
-        const candidate =
-          page.locator(
-            selector,
-          ).first();
+      if (!locatedCodeInput) {
+        const frameInspection =
+          await inspectAllFrames(
+            page,
+          );
 
-        if (
-          await candidate
-            .isVisible()
-            .catch(() => false)
-        ) {
-          codeInput =
-            candidate;
-          break;
-        }
-      }
-
-      if (!codeInput) {
         throw new Error(
-          "Facebook verification-code input was not found.",
+          [
+            "Facebook verification-code input",
+            "was not found in the main page",
+            "or any iframe.",
+            `Frames inspected: ${JSON.stringify(
+              frameInspection.map(
+                (frame) => ({
+                  frameUrl:
+                    frame.frameUrl,
+                  frameName:
+                    frame.frameName,
+                  visibleInputs:
+                    frame.inputs
+                      .filter(
+                        (input) =>
+                          input.visible,
+                      )
+                      .map(
+                        (input) => ({
+                          type:
+                            input.type,
+                          name:
+                            input.name,
+                          id:
+                            input.id,
+                          autocomplete:
+                            input.autocomplete,
+                          inputMode:
+                            input.inputMode,
+                          ariaLabel:
+                            input.ariaLabel,
+                        }),
+                      ),
+                }),
+              ),
+            )}`,
+          ].join(" "),
         );
       }
+
+      const codeInput =
+        locatedCodeInput
+          .locator;
+
+      const codeFrame =
+        locatedCodeInput
+          .frame;
 
       await codeInput.fill(
         code,
@@ -3647,40 +4127,33 @@ app.post(
         /^confirm$/i,
         /^next$/i,
         /^log in$/i,
+        /^verify$/i,
+        /^approve$/i,
+        /continue/i,
+        /submit/i,
+        /confirm/i,
+        /verify/i,
       ];
+
+      const locatedSubmitButton =
+        await findVisibleButtonAcrossFrames(
+          page,
+          continuePatterns,
+        );
 
       let submitted =
         false;
 
-      for (
-        const pattern
-        of continuePatterns
-      ) {
-        const button =
-          page
-            .getByRole(
-              "button",
-              {
-                name:
-                  pattern,
-              },
-            )
-            .first();
-
-        if (
-          await button
-            .isVisible()
-            .catch(() => false)
-        ) {
-          await button.click({
+      if (locatedSubmitButton) {
+        await locatedSubmitButton
+          .locator
+          .click({
             timeout:
               15000,
           });
 
-          submitted =
-            true;
-          break;
-        }
+        submitted =
+          true;
       }
 
       if (!submitted) {
@@ -3688,6 +4161,12 @@ app.post(
           "Enter",
         );
       }
+
+      await codeFrame
+        .waitForTimeout(
+          1000,
+        )
+        .catch(() => undefined);
 
       await page.waitForTimeout(
         6000,
@@ -3946,6 +4425,27 @@ app.post(
                 }),
           );
 
+      const frameInspections =
+        await inspectAllFrames(
+          page,
+        );
+
+      const frameUrls =
+        page
+          .frames()
+          .map(
+            (frame) => ({
+              url:
+                frame.url(),
+              name:
+                frame.name(),
+              isMainFrame:
+                frame ===
+                page.mainFrame(),
+            }),
+          );
+
+
       const links =
         await page
           .locator("a[href]")
@@ -4045,6 +4545,8 @@ app.post(
           inputs,
           links,
         },
+        frameUrls,
+        frameInspections,
         screenshot: {
           mimeType:
             "image/jpeg",
