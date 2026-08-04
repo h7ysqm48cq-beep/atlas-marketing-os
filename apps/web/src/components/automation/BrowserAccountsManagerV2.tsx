@@ -77,6 +77,20 @@ type AccountRuntime = {
   error: string;
 };
 
+type EditAccountForm = {
+  displayName: string;
+  browserProfileName: string;
+  locale: string;
+  timezone: string;
+  proxyType: ProxyType;
+  proxyHost: string;
+  proxyPort: string;
+  proxyUsername: string;
+  proxyPassword: string;
+  proxyCountry: string;
+  clearProxyCredentials: boolean;
+};
+
 type InspectionResult = {
   loginStatus?: string;
   loginLikely?: boolean;
@@ -266,6 +280,23 @@ export function BrowserAccountsManagerV2({
     actionMessage,
     setActionMessage,
   ] = useState("");
+
+  const [
+    editOpen,
+    setEditOpen,
+  ] = useState(false);
+
+  const [
+    editSaving,
+    setEditSaving,
+  ] = useState(false);
+
+  const [
+    editForm,
+    setEditForm,
+  ] = useState<EditAccountForm | null>(
+    null,
+  );
 
   const [
     viewerOpen,
@@ -533,6 +564,162 @@ export function BrowserAccountsManagerV2({
   }, [
     loadAccounts,
   ]);
+
+  function openEdit(
+    account: BrowserAccount,
+  ) {
+    setEditForm({
+      displayName:
+        account.displayName,
+      browserProfileName:
+        account.browserProfileName,
+      locale:
+        account.locale,
+      timezone:
+        account.timezone,
+      proxyType:
+        account.proxyType,
+      proxyHost:
+        account.proxyHost || "",
+      proxyPort:
+        account.proxyPort
+          ? String(
+              account.proxyPort,
+            )
+          : "",
+      proxyUsername: "",
+      proxyPassword: "",
+      proxyCountry:
+        account.proxyCountry || "",
+      clearProxyCredentials:
+        false,
+    });
+
+    setEditOpen(true);
+    setGlobalError("");
+  }
+
+  function updateEditField<
+    Key extends keyof EditAccountForm,
+  >(
+    key: Key,
+    value: EditAccountForm[Key],
+  ) {
+    setEditForm(
+      (current) =>
+        current
+          ? {
+              ...current,
+              [key]: value,
+            }
+          : current,
+    );
+  }
+
+  async function saveEdit() {
+    if (
+      !selectedAccount ||
+      !editForm
+    ) {
+      return;
+    }
+
+    if (
+      selectedRuntime.running
+    ) {
+      setGlobalError(
+        "Close the browser before changing its profile or proxy settings.",
+      );
+      return;
+    }
+
+    setEditSaving(true);
+    setGlobalError("");
+
+    try {
+      const proxyPort =
+        editForm.proxyType ===
+        "DIRECT"
+          ? null
+          : Number(
+              editForm.proxyPort,
+            );
+
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts/${selectedAccount.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              displayName:
+                editForm.displayName,
+              browserProfileName:
+                editForm.browserProfileName,
+              locale:
+                editForm.locale,
+              timezone:
+                editForm.timezone,
+              proxyType:
+                editForm.proxyType,
+              proxyHost:
+                editForm.proxyType ===
+                "DIRECT"
+                  ? null
+                  : editForm.proxyHost,
+              proxyPort,
+              proxyUsername:
+                editForm.proxyUsername ||
+                undefined,
+              proxyPassword:
+                editForm.proxyPassword ||
+                undefined,
+              proxyCountry:
+                editForm.proxyType ===
+                "DIRECT"
+                  ? null
+                  : editForm.proxyCountry,
+              clearProxyCredentials:
+                editForm.clearProxyCredentials,
+            }),
+          },
+        );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "Unable to update browser account.",
+          ),
+        );
+      }
+
+      setEditOpen(false);
+      setEditForm(null);
+
+      await loadAccounts();
+
+      setActionMessage(
+        "Browser account updated.",
+      );
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update browser account.",
+      );
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function openBrowser(
     accountId: string,
@@ -1315,6 +1502,21 @@ export function BrowserAccountsManagerV2({
 
             <div className={styles.actions}>
               <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={
+                  selectedRuntime.loading
+                }
+                onClick={() =>
+                  openEdit(
+                    selectedAccount,
+                  )
+                }
+              >
+                Edit Account
+              </button>
+
+              <button
                 className={styles.primaryButton}
                 type="button"
                 disabled={
@@ -1467,6 +1669,349 @@ export function BrowserAccountsManagerV2({
             />
           </div>
         </section>
+      ) : null}
+      {editOpen &&
+      editForm &&
+      selectedAccount ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setEditOpen(false);
+            }
+          }}
+        >
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit browser account"
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>
+                  Browser Profile
+                </p>
+
+                <h2>
+                  Edit Account
+                </h2>
+
+                <p>
+                  {
+                    selectedAccount.browserProfileKey
+                  }
+                </p>
+              </div>
+
+              <button
+                className={styles.iconButton}
+                type="button"
+                aria-label="Close edit dialog"
+                onClick={() =>
+                  setEditOpen(
+                    false,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            {selectedRuntime.running ? (
+              <div className={styles.warningMessage}>
+                Close this browser before changing
+                profile or proxy settings.
+              </div>
+            ) : null}
+
+            <div className={styles.formGrid}>
+              <label>
+                <span>
+                  Account name
+                </span>
+
+                <input
+                  value={
+                    editForm.displayName
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "displayName",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  Browser profile name
+                </span>
+
+                <input
+                  value={
+                    editForm.browserProfileName
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "browserProfileName",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  Locale
+                </span>
+
+                <input
+                  value={
+                    editForm.locale
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "locale",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="en-MY"
+                />
+              </label>
+
+              <label>
+                <span>
+                  Timezone
+                </span>
+
+                <input
+                  value={
+                    editForm.timezone
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "timezone",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Asia/Kuala_Lumpur"
+                />
+              </label>
+
+              <label>
+                <span>
+                  Proxy type
+                </span>
+
+                <select
+                  value={
+                    editForm.proxyType
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyType",
+                      event.target
+                        .value as ProxyType,
+                    )
+                  }
+                >
+                  <option value="DIRECT">
+                    DIRECT
+                  </option>
+                  <option value="HTTP">
+                    HTTP
+                  </option>
+                  <option value="HTTPS">
+                    HTTPS
+                  </option>
+                  <option value="SOCKS5">
+                    SOCKS5
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                <span>
+                  Proxy country
+                </span>
+
+                <input
+                  disabled={
+                    editForm.proxyType ===
+                    "DIRECT"
+                  }
+                  value={
+                    editForm.proxyCountry
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyCountry",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="MY"
+                />
+              </label>
+
+              <label>
+                <span>
+                  Proxy host
+                </span>
+
+                <input
+                  disabled={
+                    editForm.proxyType ===
+                    "DIRECT"
+                  }
+                  value={
+                    editForm.proxyHost
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyHost",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  Proxy port
+                </span>
+
+                <input
+                  disabled={
+                    editForm.proxyType ===
+                    "DIRECT"
+                  }
+                  inputMode="numeric"
+                  value={
+                    editForm.proxyPort
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyPort",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  New proxy username
+                </span>
+
+                <input
+                  disabled={
+                    editForm.proxyType ===
+                    "DIRECT"
+                  }
+                  value={
+                    editForm.proxyUsername
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyUsername",
+                      event.target.value,
+                    )
+                  }
+                  placeholder={
+                    selectedAccount.hasProxyUsername
+                      ? "Leave blank to keep current"
+                      : "Optional"
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  New proxy password
+                </span>
+
+                <input
+                  disabled={
+                    editForm.proxyType ===
+                    "DIRECT"
+                  }
+                  type="password"
+                  value={
+                    editForm.proxyPassword
+                  }
+                  onChange={(event) =>
+                    updateEditField(
+                      "proxyPassword",
+                      event.target.value,
+                    )
+                  }
+                  placeholder={
+                    selectedAccount.hasProxyPassword
+                      ? "Leave blank to keep current"
+                      : "Optional"
+                  }
+                />
+              </label>
+            </div>
+
+            <label className={styles.checkOption}>
+              <input
+                type="checkbox"
+                checked={
+                  editForm.clearProxyCredentials
+                }
+                onChange={(event) =>
+                  updateEditField(
+                    "clearProxyCredentials",
+                    event.target.checked,
+                  )
+                }
+              />
+
+              <span>
+                Clear saved proxy username and
+                password
+              </span>
+            </label>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={editSaving}
+                onClick={() =>
+                  setEditOpen(
+                    false,
+                  )
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                className={styles.primaryButton}
+                type="button"
+                disabled={
+                  editSaving ||
+                  selectedRuntime.running
+                }
+                onClick={() =>
+                  void saveEdit()
+                }
+              >
+                {editSaving
+                  ? "Saving…"
+                  : "Save Changes"}
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </div>
   );
