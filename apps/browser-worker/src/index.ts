@@ -3636,7 +3636,7 @@ process.on(
 
 app.listen(
   port,
-  "0.0.0.0",
+  "::",
   () => {
     console.log(
       `Atlas Browser Worker listening on port ${port}`,
