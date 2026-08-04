@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  SocialChannelStatus,
   SocialPlatform,
   SocialProxyType,
 } from '../../generated/prisma/client';
@@ -401,6 +402,379 @@ export class BrowserAccountService {
     );
   }
 
+
+  async syncFacebookPages(
+    accountId: string,
+    input: {
+      brandId?: string | null;
+      pages?: Array<{
+        pageId?: string | null;
+        name?: string;
+        url?: string | null;
+        imageUrl?: string | null;
+        username?: string | null;
+      }>;
+    },
+  ) {
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id: accountId,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    if (
+      account.platform !==
+      SocialPlatform.FACEBOOK
+    ) {
+      throw new BadRequestException(
+        'Only Facebook Browser Accounts can sync Facebook Pages.',
+      );
+    }
+
+    const requestedBrandId =
+      input.brandId?.trim() ||
+      account.brandId?.trim() ||
+      '';
+
+    if (!requestedBrandId) {
+      throw new BadRequestException(
+        'brandId is required before Pages can be synced.',
+      );
+    }
+
+    const brand =
+      await this.prisma.brand.findUnique({
+        where: {
+          id: requestedBrandId,
+        },
+        select: {
+          id: true,
+          workspaceId: true,
+        },
+      });
+
+    if (!brand) {
+      throw new NotFoundException(
+        'Brand was not found.',
+      );
+    }
+
+    const workspaceId =
+      account.workspaceId?.trim() ||
+      brand.workspaceId;
+
+    if (!workspaceId) {
+      throw new BadRequestException(
+        'The selected Brand does not have a Workspace.',
+      );
+    }
+
+    const rawPages =
+      Array.isArray(input.pages)
+        ? input.pages
+        : [];
+
+    if (!rawPages.length) {
+      throw new BadRequestException(
+        'Select at least one Facebook Page.',
+      );
+    }
+
+    const normalizedPages =
+      rawPages.map(
+        (page, index) => {
+          const pageId =
+            page.pageId?.trim() ||
+            '';
+
+          const name =
+            page.name?.trim() ||
+            '';
+
+          const url =
+            page.url?.trim() ||
+            null;
+
+          const username =
+            page.username?.trim() ||
+            this.extractFacebookUsername(
+              url,
+            );
+
+          if (!pageId) {
+            throw new BadRequestException(
+              `Page ID is required for item ${index + 1}.`,
+            );
+          }
+
+          if (
+            !/^[a-zA-Z0-9._-]+$/.test(
+              pageId,
+            )
+          ) {
+            throw new BadRequestException(
+              `Invalid Facebook Page ID for item ${index + 1}.`,
+            );
+          }
+
+          if (!name) {
+            throw new BadRequestException(
+              `Page name is required for item ${index + 1}.`,
+            );
+          }
+
+          return {
+            pageId,
+            name,
+            url,
+            imageUrl:
+              page.imageUrl?.trim() ||
+              null,
+            username,
+          };
+        },
+      );
+
+    const uniquePages =
+      Array.from(
+        new Map(
+          normalizedPages.map(
+            (page) => [
+              page.pageId,
+              page,
+            ],
+          ),
+        ).values(),
+      );
+
+    const result =
+      await this.prisma.$transaction(
+        async (transaction) => {
+          let created = 0;
+          let reused = 0;
+          let linked = 0;
+
+          const channels: Array<{
+            id: string;
+            name: string;
+            platform: SocialPlatform;
+            externalId: string | null;
+            username: string | null;
+            status: SocialChannelStatus;
+            pageUrl: string | null;
+            imageUrl: string | null;
+            created: boolean;
+          }> = [];
+
+          for (
+            const page
+            of uniquePages
+          ) {
+            let channelCreated =
+              false;
+
+            let channel =
+              await transaction.socialChannel.findFirst({
+                where: {
+                  brandId:
+                    requestedBrandId,
+                  platform:
+                    SocialPlatform.FACEBOOK,
+                  externalId:
+                    page.pageId,
+                },
+              });
+
+            if (channel) {
+              reused += 1;
+
+              channel =
+                await transaction.socialChannel.update({
+                  where: {
+                    id: channel.id,
+                  },
+                  data: {
+                    name:
+                      page.name,
+                    username:
+                      page.username,
+                    workspaceId,
+                    status:
+                      SocialChannelStatus.CONNECTED,
+                    lastConnectedAt:
+                      new Date(),
+                    lastError:
+                      null,
+                  },
+                });
+            } else {
+              channel =
+                await transaction.socialChannel.create({
+                  data: {
+                    workspaceId,
+                    brandId:
+                      requestedBrandId,
+                    platform:
+                      SocialPlatform.FACEBOOK,
+                    name:
+                      page.name,
+                    externalId:
+                      page.pageId,
+                    username:
+                      page.username,
+                    status:
+                      SocialChannelStatus.CONNECTED,
+                    lastConnectedAt:
+                      new Date(),
+                    lastError:
+                      null,
+                  },
+                });
+
+              created += 1;
+              channelCreated =
+                true;
+            }
+
+            const existingLink =
+              await transaction.browserAccountChannel.findUnique({
+                where: {
+                  browserAccountId_channelId: {
+                    browserAccountId:
+                      accountId,
+                    channelId:
+                      channel.id,
+                  },
+                },
+              });
+
+            if (!existingLink) {
+              await transaction.browserAccountChannel.create({
+                data: {
+                  browserAccountId:
+                    accountId,
+                  channelId:
+                    channel.id,
+                  isPrimary:
+                    false,
+                },
+              });
+
+              linked += 1;
+            }
+
+            channels.push({
+              id:
+                channel.id,
+              name:
+                channel.name,
+              platform:
+                channel.platform,
+              externalId:
+                channel.externalId,
+              username:
+                channel.username,
+              status:
+                channel.status,
+              pageUrl:
+                page.url,
+              imageUrl:
+                page.imageUrl,
+              created:
+                channelCreated,
+            });
+          }
+
+          await transaction.browserAccount.update({
+            where: {
+              id: accountId,
+            },
+            data: {
+              workspaceId,
+              brandId:
+                requestedBrandId,
+              lastVerifiedAt:
+                new Date(),
+              lastHeartbeatAt:
+                new Date(),
+              lastLoginError:
+                null,
+            },
+          });
+
+          return {
+            created,
+            reused,
+            linked,
+            channels,
+          };
+        },
+      );
+
+    return {
+      success: true,
+      accountId,
+      brandId:
+        requestedBrandId,
+      workspaceId,
+      requested:
+        rawPages.length,
+      processed:
+        uniquePages.length,
+      ...result,
+      syncedAt:
+        new Date().toISOString(),
+    };
+  }
+
+  private extractFacebookUsername(
+    url?: string | null,
+  ) {
+    if (!url) {
+      return null;
+    }
+
+    try {
+      const parsed =
+        new URL(url);
+
+      const parts =
+        parsed.pathname
+          .split('/')
+          .filter(Boolean);
+
+      const candidate =
+        parts[0] ||
+        null;
+
+      if (
+        !candidate ||
+        [
+          'pages',
+          'profile.php',
+          'groups',
+          'watch',
+          'marketplace',
+          'messages',
+        ].includes(
+          candidate.toLowerCase(),
+        )
+      ) {
+        return null;
+      }
+
+      return candidate;
+    } catch {
+      return null;
+    }
+  }
 
   async getLaunchProfile(
     id: string,

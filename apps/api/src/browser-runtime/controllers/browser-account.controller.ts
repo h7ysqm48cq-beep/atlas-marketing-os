@@ -134,6 +134,29 @@ export class BrowserAccountController {
     );
   }
 
+  @Post(':id/facebook/sync-pages')
+  syncFacebookPages(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      brandId?: string | null;
+      pages?: Array<{
+        pageId?: string | null;
+        name?: string;
+        url?: string | null;
+        imageUrl?: string | null;
+        username?: string | null;
+      }>;
+    },
+  ) {
+    return this.browserAccounts
+      .syncFacebookPages(
+        id,
+        body,
+      );
+  }
+
   @Post(':id/facebook/discover-pages')
   discoverFacebookPages(
     @Param('id')
