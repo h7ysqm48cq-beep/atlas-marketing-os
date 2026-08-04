@@ -1664,45 +1664,118 @@ export function AutomationDashboard() {
             <strong>{dashboard.channels.length}</strong>
           </header>
 
-          <div className={styles.channelList}>
-            {dashboard.channels.map((channel) => (
-              <div className={styles.channelCard} key={channel.id}>
-                <div
-                  className={`${styles.channelIcon} ${
-                    channel.platform === "FACEBOOK"
-                      ? styles.facebook
-                      : styles.telegram
-                  }`}
-                >
-                  {channel.platform === "FACEBOOK" ? "f" : "✈"}
-                </div>
+          <div className={styles.channelTableWrap}>
+            <div className={styles.channelTableToolbar}>
+              <span>
+                {dashboard.channels.length} {copy.channels}
+              </span>
 
-                <div className={styles.channelMain}>
-                  <strong>{channel.name}</strong>
-                  <span>
-                    {channel.username
-                      ? `@${channel.username}`
-                      : copy.noUsername}
-                  </span>
-                </div>
+              <a
+                className={styles.manageAccountsLink}
+                href="/automation/browser-accounts"
+              >
+                Manage accounts & details →
+              </a>
+            </div>
 
-                <div className={styles.channelMeta}>
-                  <span
-                    className={`${styles.statusBadge} ${
-                      channel.status === "CONNECTED"
-                        ? styles.connected
-                        : styles.disconnected
-                    }`}
-                  >
-                    {channel.status}
-                  </span>
-
-                  <small>
-                    {channel._count.scheduledPosts} {copy.posts}
-                  </small>
-                </div>
+            <div
+              className={styles.channelTable}
+              role="table"
+              aria-label={copy.connectedPlatforms}
+            >
+              <div
+                className={styles.channelTableHeader}
+                role="row"
+              >
+                <span role="columnheader">Platform</span>
+                <span role="columnheader">Account</span>
+                <span role="columnheader">Username</span>
+                <span role="columnheader">Status</span>
+                <span role="columnheader">Posts</span>
+                <span role="columnheader">Details</span>
               </div>
-            ))}
+
+              {dashboard.channels.map((channel) => {
+                const detailsHref =
+                  channel.platform === "FACEBOOK"
+                    ? `/automation/browser-accounts?channelId=${encodeURIComponent(
+                        channel.id,
+                      )}`
+                    : `/settings?channelId=${encodeURIComponent(
+                        channel.id,
+                      )}`;
+
+                return (
+                  <a
+                    className={styles.channelTableRow}
+                    href={detailsHref}
+                    key={channel.id}
+                    role="row"
+                  >
+                    <span
+                      className={styles.channelPlatformCell}
+                      role="cell"
+                    >
+                      <span
+                        className={`${styles.channelTableIcon} ${
+                          channel.platform === "FACEBOOK"
+                            ? styles.facebook
+                            : styles.telegram
+                        }`}
+                      >
+                        {channel.platform === "FACEBOOK"
+                          ? "f"
+                          : "✈"}
+                      </span>
+
+                      <small>{channel.platform}</small>
+                    </span>
+
+                    <strong
+                      className={styles.channelNameCell}
+                      role="cell"
+                    >
+                      {channel.name}
+                    </strong>
+
+                    <span
+                      className={styles.channelUsernameCell}
+                      role="cell"
+                    >
+                      {channel.username
+                        ? `@${channel.username}`
+                        : copy.noUsername}
+                    </span>
+
+                    <span role="cell">
+                      <span
+                        className={`${styles.statusBadge} ${
+                          channel.status === "CONNECTED"
+                            ? styles.connected
+                            : styles.disconnected
+                        }`}
+                      >
+                        {channel.status}
+                      </span>
+                    </span>
+
+                    <span
+                      className={styles.channelPostsCell}
+                      role="cell"
+                    >
+                      {channel._count.scheduledPosts}
+                    </span>
+
+                    <span
+                      className={styles.channelDetailsCell}
+                      role="cell"
+                    >
+                      View →
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
           </div>
         </article>
 

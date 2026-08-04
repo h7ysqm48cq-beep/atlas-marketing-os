@@ -177,7 +177,11 @@ function statusLabel(
   return "Not configured";
 }
 
-export function BrowserAccountsManager() {
+export function BrowserAccountsManager({
+  requestedChannelId,
+}: {
+  requestedChannelId?: string | null;
+}) {
   const [channels, setChannels] =
     useState<Channel[]>([]);
 
@@ -311,8 +315,18 @@ export function BrowserAccountsManager() {
             "FACEBOOK",
         );
 
+      const requestedChannel =
+        requestedChannelId
+          ? nextChannels.find(
+              (channel) =>
+                channel.id ===
+                requestedChannelId,
+            )
+          : null;
+
       setSelectedId(
         (current) =>
+          requestedChannel?.id ||
           current ||
           firstFacebook?.id ||
           null,
