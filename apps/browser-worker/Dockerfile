@@ -8,14 +8,16 @@ RUN apt-get update \
 
 ENV CHROME_EXECUTABLE_PATH=/usr/bin/chromium
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
+
+COPY apps/browser-worker/package.json apps/browser-worker/
 
 RUN npm install
 
 COPY . .
 
-RUN npm run build
+RUN npm run build --workspace apps/browser-worker
 
 EXPOSE 4010
 
-CMD ["npm","start"]
+CMD ["npm","run","start","--workspace","apps/browser-worker"]
