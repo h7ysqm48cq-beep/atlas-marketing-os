@@ -7,6 +7,7 @@ import {
 } from "react";
 import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManager.module.css";
+import { BulkLoginImporter } from "./BulkLoginImporter";
 
 type Platform =
   | "FACEBOOK"
@@ -599,6 +600,31 @@ export function BrowserAccountsManager({
     await loadDetails(channelId);
   }
 
+  function selectImportedChannels(
+    channelIds: string[],
+  ) {
+    setSelectedForBatch(
+      (current) => {
+        const next =
+          new Set(current);
+
+        for (
+          const channelId
+          of channelIds
+        ) {
+          next.add(
+            channelId,
+          );
+        }
+
+        return next;
+      },
+    );
+
+    setError("");
+  }
+
+
   function toggleBatch(
     channelId: string,
   ) {
@@ -874,6 +900,13 @@ export function BrowserAccountsManager({
           {error}
         </div>
       ) : null}
+
+      <BulkLoginImporter
+        channels={channels}
+        onPrepared={
+          selectImportedChannels
+        }
+      />
 
       <div className={styles.toolbar}>
         <input

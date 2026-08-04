@@ -1,0 +1,228 @@
+.wrapper {
+  overflow: hidden;
+  border: 1px solid var(--border-color, #d8dde6);
+  border-radius: 16px;
+  background: var(--panel-bg, #fff);
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.content {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-top: 1px solid var(--border-color, #d8dde6);
+}
+
+.intro,
+.actions,
+.tableToolbar,
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.intro h2,
+.intro p,
+.footer p {
+  margin: 0;
+}
+
+.intro p,
+.footer p {
+  margin-top: 5px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.inputLabel {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.inputLabel textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--border-color, #d8dde6);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.primaryButton,
+.secondaryButton,
+.actions button,
+.tableToolbar button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid transparent;
+  background: #111827;
+  color: #fff;
+}
+
+.secondaryButton,
+.actions button,
+.tableToolbar button {
+  border: 1px solid var(--border-color, #d8dde6);
+  background: transparent;
+  color: inherit;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.error {
+  padding: 12px;
+  border: 1px solid rgba(210, 55, 55, 0.28);
+  border-radius: 10px;
+  background: rgba(210, 55, 55, 0.08);
+  color: #ba2929;
+}
+
+.tableToolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tableToolbar span {
+  font-size: 13px;
+  opacity: 0.65;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--border-color, #d8dde6);
+  border-radius: 12px;
+}
+
+.table {
+  min-width: 1320px;
+}
+
+.tableHeader,
+.tableRow {
+  display: grid;
+  grid-template-columns:
+    64px
+    54px
+    minmax(180px, 1.2fr)
+    minmax(190px, 1.2fr)
+    minmax(180px, 1fr)
+    minmax(220px, 1.3fr)
+    80px
+    minmax(210px, 1.25fr)
+    minmax(200px, 1.2fr);
+  align-items: stretch;
+}
+
+.tableHeader {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.tableHeader > span,
+.tableRow > span,
+.tableRow > strong {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 10px;
+  border-right: 1px solid var(--border-color, #e2e6ed);
+  border-bottom: 1px solid var(--border-color, #e2e6ed);
+  overflow-wrap: anywhere;
+}
+
+.tableHeader > span:last-child,
+.tableRow > span:last-child {
+  border-right: 0;
+}
+
+.tableRow:last-child > span,
+.tableRow:last-child > strong {
+  border-bottom: 0;
+}
+
+.tableRow:hover {
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.tableRow small {
+  display: block;
+  margin-left: 7px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.maskedCell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.status {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.good {
+  background: rgba(31, 157, 85, 0.12);
+  color: #168148;
+}
+
+.bad {
+  background: rgba(210, 55, 55, 0.12);
+  color: #ba2929;
+}
+
+.neutral {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+@media (max-width: 700px) {
+  .intro,
+  .actions,
+  .tableToolbar,
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tableToolbar > div {
+    flex-wrap: wrap;
+  }
+}
