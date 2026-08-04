@@ -121,6 +121,31 @@ type TimelineEvent = {
   createdAt: string;
 };
 
+type OnboardingStep =
+  | "IDLE"
+  | "VERIFYING"
+  | "DISCOVERING"
+  | "SYNCING"
+  | "COMPLETED"
+  | "ATTENTION"
+  | "FAILED";
+
+type OnboardingResult = {
+  success?: boolean;
+  completed?: boolean;
+  accountId?: string;
+  loginStatus?: string;
+  pagesDiscovered?: number;
+  browserClosed?: boolean;
+  requiresAttention?: boolean;
+  step?: string;
+  syncResult?: {
+    created?: number;
+    reused?: number;
+    linked?: number;
+  } | null;
+};
+
 type InspectionResult = {
   loginStatus?: string;
   loginLikely?: boolean;
@@ -310,6 +335,25 @@ export function BrowserAccountsManagerV2({
     actionMessage,
     setActionMessage,
   ] = useState("");
+
+  const [
+    onboardingRunning,
+    setOnboardingRunning,
+  ] = useState(false);
+
+  const [
+    onboardingStep,
+    setOnboardingStep,
+  ] = useState<OnboardingStep>(
+    "IDLE",
+  );
+
+  const [
+    onboardingResult,
+    setOnboardingResult,
+  ] = useState<OnboardingResult | null>(
+    null,
+  );
 
   const [
     automationPolicy,
@@ -1001,6 +1045,181 @@ export function BrowserAccountsManagerV2({
     }
 
     return styles.timelineInfo;
+  }
+
+  async function runOnboarding(
+    accountId: string,
+  ) {
+    setOnboardingRunning(true);
+    setOnboardingStep(
+      "VERIFYING",
+    );
+    setOnboardingResult(
+      null,
+    );
+    setGlobalError("");
+    setActionMessage("");
+
+    try {
+      const progressTimer =
+        window.setTimeout(
+          () => {
+            setOnboardingStep(
+              "DISCOVERING",
+            );
+          },
+          1400,
+        );
+
+      const syncTimer =
+        window.setTimeout(
+          () => {
+            setOnboardingStep(
+              "SYNCING",
+            );
+          },
+          3200,
+        );
+
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts/${accountId}/onboarding/run`,
+          {
+            method:
+              "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body:
+              JSON.stringify({
+                verifyLogin:
+                  true,
+              }),
+          },
+        );
+
+      window.clearTimeout(
+        progressTimer,
+      );
+      window.clearTimeout(
+        syncTimer,
+      );
+
+      const body =
+        await readJson(
+          response,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(
+            body,
+            "Unable to complete onboarding.",
+          ),
+        );
+      }
+
+      const result =
+        body as OnboardingResult;
+
+      setOnboardingResult(
+        result,
+      );
+
+      if (
+        result.requiresAttention
+      ) {
+        setOnboardingStep(
+          "ATTENTION",
+        );
+
+        const attentionMessage =
+          result.step ===
+          "SELECT_BRAND"
+            ? "Select a Brand for this account, then run onboarding again."
+            : `Onboarding requires attention at ${result.step || "UNKNOWN"}.`;
+
+        setActionMessage(
+          attentionMessage,
+        );
+      } else if (
+        result.completed
+      ) {
+        setOnboardingStep(
+          "COMPLETED",
+        );
+
+        const created =
+          result.syncResult
+            ?.created ||
+          0;
+
+        const reused =
+          result.syncResult
+            ?.reused ||
+          0;
+
+        const linked =
+          result.syncResult
+            ?.linked ||
+          0;
+
+        setActionMessage(
+          [
+            "Onboarding completed.",
+            `${result.pagesDiscovered || 0} Page(s) discovered.`,
+            `${created} created.`,
+            `${reused} reused.`,
+            `${linked} linked.`,
+          ].join(" "),
+        );
+      } else {
+        setOnboardingStep(
+          "ATTENTION",
+        );
+
+        setActionMessage(
+          "Onboarding paused before completion.",
+        );
+      }
+
+      await Promise.all([
+        loadAccounts(),
+        loadRuntime(
+          accountId,
+        ),
+        loadTimeline(
+          accountId,
+        ),
+        loadAutomationPolicy(
+          accountId,
+        ),
+      ]);
+    } catch (error) {
+      setOnboardingStep(
+        "FAILED",
+      );
+
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to complete onboarding.",
+      );
+    } finally {
+      setOnboardingRunning(
+        false,
+      );
+    }
+  }
+
+  function onboardingStepLabel(
+    step: OnboardingStep,
+  ) {
+    return step.replaceAll(
+      "_",
+      " ",
+    );
   }
 
   async function openBrowser(
@@ -2087,6 +2306,131 @@ export function BrowserAccountsManagerV2({
                   ),
                 )}
               </div>
+            </section>
+
+            <section className={styles.onboardingPanel}>
+              <div className={styles.onboardingHeader}>
+                <div>
+                  <p className={styles.eyebrow}>
+                    Guided Setup
+                  </p>
+
+                  <h3>
+                    Complete Onboarding
+                  </h3>
+
+                  <p>
+                    Verify login, discover Pages,
+                    sync Connected Platforms and
+                    refresh account health.
+                  </p>
+                </div>
+
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  disabled={
+                    onboardingRunning ||
+                    selectedRuntime.loading
+                  }
+                  onClick={() =>
+                    void runOnboarding(
+                      selectedAccount.id,
+                    )
+                  }
+                >
+                  {onboardingRunning
+                    ? "Running…"
+                    : "Complete Onboarding"}
+                </button>
+              </div>
+
+              <div className={styles.onboardingSteps}>
+                {[
+                  "VERIFYING",
+                  "DISCOVERING",
+                  "SYNCING",
+                  "COMPLETED",
+                ].map(
+                  (step) => {
+                    const order = [
+                      "VERIFYING",
+                      "DISCOVERING",
+                      "SYNCING",
+                      "COMPLETED",
+                    ];
+
+                    const currentIndex =
+                      order.indexOf(
+                        onboardingStep,
+                      );
+
+                    const stepIndex =
+                      order.indexOf(
+                        step,
+                      );
+
+                    const active =
+                      onboardingStep ===
+                      step;
+
+                    const done =
+                      currentIndex >
+                      stepIndex ||
+                      onboardingStep ===
+                      "COMPLETED";
+
+                    return (
+                      <div
+                        className={[
+                          styles.onboardingStep,
+                          active
+                            ? styles.onboardingStepActive
+                            : "",
+                          done
+                            ? styles.onboardingStepDone
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        key={step}
+                      >
+                        <span>
+                          {done
+                            ? "✓"
+                            : stepIndex + 1}
+                        </span>
+
+                        <strong>
+                          {onboardingStepLabel(
+                            step as OnboardingStep,
+                          )}
+                        </strong>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+
+              {onboardingStep ===
+              "ATTENTION" ? (
+                <div className={styles.warningMessage}>
+                  Onboarding needs attention:
+                  {" "}
+                  {
+                    onboardingResult
+                      ?.step ||
+                    "UNKNOWN"
+                  }
+                </div>
+              ) : null}
+
+              {onboardingStep ===
+              "FAILED" ? (
+                <div className={styles.error}>
+                  Automatic onboarding failed.
+                </div>
+              ) : null}
             </section>
 
             <div className={styles.actions}>

@@ -687,3 +687,129 @@
     flex-direction: column;
   }
 }
+
+.onboardingPanel {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(
+    --border-color,
+    rgba(127, 127, 127, 0.18)
+  );
+  border-radius: 12px;
+}
+
+.onboardingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.onboardingHeader h3 {
+  margin: 4px 0;
+}
+
+.onboardingHeader p {
+  margin: 0;
+  opacity: 0.68;
+}
+
+.onboardingSteps {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.onboardingStep {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  border: 1px solid var(
+    --border-color,
+    rgba(127, 127, 127, 0.16)
+  );
+  border-radius: 10px;
+  opacity: 0.55;
+}
+
+.onboardingStep > span {
+  display: grid;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(
+    127,
+    127,
+    127,
+    0.16
+  );
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.onboardingStep strong {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.onboardingStepActive {
+  border-color: rgba(
+    37,
+    99,
+    235,
+    0.55
+  );
+  background: rgba(
+    37,
+    99,
+    235,
+    0.08
+  );
+  opacity: 1;
+}
+
+.onboardingStepDone {
+  border-color: rgba(
+    44,
+    180,
+    100,
+    0.4
+  );
+  background: rgba(
+    44,
+    180,
+    100,
+    0.08
+  );
+  opacity: 1;
+}
+
+.onboardingStepDone > span {
+  background: rgba(
+    44,
+    180,
+    100,
+    0.18
+  );
+  color: #2cb464;
+}
+
+@media (max-width: 900px) {
+  .onboardingHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .onboardingHeader button {
+    width: 100%;
+  }
+
+  .onboardingSteps {
+    grid-template-columns: 1fr;
+  }
+}
