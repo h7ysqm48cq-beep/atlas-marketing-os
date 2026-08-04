@@ -3454,6 +3454,9 @@ app.post(
         currentUrl.includes(
           "/checkpoint/",
         ) ||
+        currentUrl.includes(
+          "/two_step_verification/",
+        ) ||
         lowerText.includes(
           "two-factor authentication",
         ) ||
@@ -3712,6 +3715,9 @@ app.post(
       const stillWaiting =
         currentUrl.includes(
           "/checkpoint/",
+        ) ||
+        currentUrl.includes(
+          "/two_step_verification/",
         ) ||
         lowerText.includes(
           "enter login code",
