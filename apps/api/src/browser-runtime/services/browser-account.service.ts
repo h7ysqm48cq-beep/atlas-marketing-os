@@ -204,6 +204,13 @@ export class BrowserAccountService {
       brandId?: string | null;
       locale?: string;
       timezone?: string;
+      browserEngine?: string;
+      operatingSystem?: string;
+      userAgent?: string | null;
+      screenWidth?: number;
+      screenHeight?: number;
+      deviceScaleFactor?: number;
+      identityLocked?: boolean;
       proxyType?: SocialProxyType;
       proxyHost?: string | null;
       proxyPort?: number | null;
@@ -817,6 +824,339 @@ export class BrowserAccountService {
     } catch {
       return null;
     }
+  }
+
+  async pool() {
+    const accounts =
+      await this.prisma.browserAccount.findMany({
+        orderBy: [
+          {
+            loginStatus:
+              'asc',
+          },
+          {
+            updatedAt:
+              'desc',
+          },
+        ],
+        include: {
+          channels: {
+            include: {
+              channel: {
+                select: {
+                  id: true,
+                  name: true,
+                  platform: true,
+                  status: true,
+                  externalId: true,
+                  username: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    const now =
+      Date.now();
+
+    const pool =
+      accounts.map(
+        (account) => {
+          let healthScore =
+            100;
+
+          const warnings:
+            string[] = [];
+
+          const loginStatus =
+            String(
+              account.loginStatus ||
+              'UNKNOWN',
+            )
+              .trim()
+              .toUpperCase();
+
+          const cookieStatus =
+            String(
+              account.cookieStatus ||
+              'UNKNOWN',
+            )
+              .trim()
+              .toUpperCase();
+
+          if (
+            loginStatus !==
+            'LOGGED_IN'
+          ) {
+            healthScore -=
+              40;
+
+            warnings.push(
+              `Login status: ${loginStatus}`,
+            );
+          }
+
+          if (
+            cookieStatus !==
+            'ACTIVE'
+          ) {
+            healthScore -=
+              25;
+
+            warnings.push(
+              `Cookie status: ${cookieStatus}`,
+            );
+          }
+
+          if (
+            account.proxyType !==
+              'DIRECT' &&
+            !account.lastKnownIp
+          ) {
+            healthScore -=
+              10;
+
+            warnings.push(
+              'Proxy IP has not been verified.',
+            );
+          }
+
+          let heartbeatAgeSeconds:
+            number | null =
+            null;
+
+          if (
+            account.lastHeartbeatAt
+          ) {
+            heartbeatAgeSeconds =
+              Math.max(
+                0,
+                Math.floor(
+                  (
+                    now -
+                    account
+                      .lastHeartbeatAt
+                      .getTime()
+                  ) /
+                  1000,
+                ),
+              );
+
+            if (
+              heartbeatAgeSeconds >
+              86400
+            ) {
+              healthScore -=
+                15;
+
+              warnings.push(
+                'Heartbeat is older than 24 hours.',
+              );
+            } else if (
+              heartbeatAgeSeconds >
+              3600
+            ) {
+              healthScore -=
+                5;
+
+              warnings.push(
+                'Heartbeat is older than 1 hour.',
+              );
+            }
+          } else {
+            healthScore -=
+              10;
+
+            warnings.push(
+              'No browser heartbeat recorded.',
+            );
+          }
+
+          if (
+            account.lastLoginError
+          ) {
+            healthScore -=
+              10;
+
+            warnings.push(
+              account.lastLoginError,
+            );
+          }
+
+          healthScore =
+            Math.max(
+              0,
+              Math.min(
+                100,
+                healthScore,
+              ),
+            );
+
+          const healthStatus =
+            healthScore >=
+            80
+              ? 'HEALTHY'
+              : healthScore >=
+                  50
+                ? 'WARNING'
+                : 'CRITICAL';
+
+          const availability =
+            loginStatus ===
+              'LOGGED_IN' &&
+            healthScore >=
+              80
+              ? 'AVAILABLE'
+              : loginStatus ===
+                  'LOGGED_IN'
+                ? 'ATTENTION'
+                : 'LOGIN_REQUIRED';
+
+          return {
+            id:
+              account.id,
+
+            displayName:
+              account.displayName,
+
+            platform:
+              account.platform,
+
+            browserProfileKey:
+              account.browserProfileKey,
+
+            browserProfileName:
+              account.browserProfileName,
+
+            locale:
+              account.locale,
+
+            timezone:
+              account.timezone,
+
+            proxyType:
+              account.proxyType,
+
+            proxyCountry:
+              account.proxyCountry,
+
+            lastKnownIp:
+              account.lastKnownIp,
+
+            loginStatus:
+              account.loginStatus,
+
+            cookieStatus:
+              account.cookieStatus,
+
+            lastLoginAt:
+              account.lastLoginAt,
+
+            lastVerifiedAt:
+              account.lastVerifiedAt,
+
+            lastHeartbeatAt:
+              account.lastHeartbeatAt,
+
+            heartbeatAgeSeconds,
+
+            lastLoginError:
+              account.lastLoginError,
+
+            pageCount:
+              account.channels.length,
+
+            pages:
+              account.channels.map(
+                (link) => ({
+                  id:
+                    link.channel.id,
+                  name:
+                    link.channel.name,
+                  platform:
+                    link.channel.platform,
+                  status:
+                    link.channel.status,
+                  externalId:
+                    link.channel.externalId,
+                  username:
+                    link.channel.username,
+                  isPrimary:
+                    link.isPrimary,
+                }),
+              ),
+
+            health: {
+              score:
+                healthScore,
+              status:
+                healthStatus,
+              warnings,
+            },
+
+            availability,
+
+            createdAt:
+              account.createdAt,
+
+            updatedAt:
+              account.updatedAt,
+          };
+        },
+      );
+
+    const summary = {
+      total:
+        pool.length,
+
+      healthy:
+        pool.filter(
+          (account) =>
+            account.health
+              .status ===
+            'HEALTHY',
+        ).length,
+
+      warning:
+        pool.filter(
+          (account) =>
+            account.health
+              .status ===
+            'WARNING',
+        ).length,
+
+      critical:
+        pool.filter(
+          (account) =>
+            account.health
+              .status ===
+            'CRITICAL',
+        ).length,
+
+      available:
+        pool.filter(
+          (account) =>
+            account.availability ===
+            'AVAILABLE',
+        ).length,
+
+      loginRequired:
+        pool.filter(
+          (account) =>
+            account.availability ===
+            'LOGIN_REQUIRED',
+        ).length,
+    };
+
+    return {
+      summary,
+      accounts:
+        pool,
+      generatedAt:
+        new Date()
+          .toISOString(),
+    };
   }
 
   async getLaunchProfile(

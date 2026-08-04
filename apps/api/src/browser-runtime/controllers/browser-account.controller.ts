@@ -64,6 +64,12 @@ export class BrowserAccountController {
     return this.browserAccounts.list();
   }
 
+  @Get('pool/overview')
+  browserPool() {
+    return this.browserAccounts
+      .pool();
+  }
+
   @Get(':id')
   getById(
     @Param('id')
