@@ -267,6 +267,16 @@ export function BrowserAccountsManagerV2({
     setActionMessage,
   ] = useState("");
 
+  const [
+    viewerOpen,
+    setViewerOpen,
+  ] = useState(false);
+
+  const [
+    viewerKey,
+    setViewerKey,
+  ] = useState(0);
+
   const selectedAccount =
     accounts.find(
       (account) =>
@@ -590,10 +600,10 @@ export function BrowserAccountsManagerV2({
       "Browser profile opened.",
     );
 
-    window.open(
-      NOVNC_URL,
-      "_blank",
-      "noopener,noreferrer",
+    setViewerOpen(true);
+    setViewerKey(
+      (current) =>
+        current + 1,
     );
   }
 
@@ -717,6 +727,8 @@ export function BrowserAccountsManagerV2({
       ),
       loadAccounts(),
     ]);
+
+    setViewerOpen(false);
 
     setActionMessage(
       "Browser profile closed. Cookies remain stored in the profile.",
@@ -1375,6 +1387,87 @@ export function BrowserAccountsManagerV2({
           </>
         )}
       </section>
+
+      {viewerOpen &&
+      selectedAccount ? (
+        <section className={styles.viewerPanel}>
+          <div className={styles.viewerHeader}>
+            <div>
+              <p className={styles.eyebrow}>
+                Live Browser
+              </p>
+
+              <h2>
+                {selectedAccount.displayName}
+              </h2>
+
+              <p>
+                {
+                  selectedRuntime.session
+                    ?.currentUrl ||
+                  "Remote Chromium session"
+                }
+              </p>
+            </div>
+
+            <div className={styles.viewerActions}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() =>
+                  setViewerKey(
+                    (current) =>
+                      current + 1,
+                  )
+                }
+              >
+                Reload Viewer
+              </button>
+
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() => {
+                  const popup =
+                    window.open(
+                      NOVNC_URL,
+                      "_blank",
+                    );
+
+                  if (popup) {
+                    popup.opener =
+                      null;
+                  }
+                }}
+              >
+                Open in New Tab
+              </button>
+
+              <button
+                className={styles.dangerButton}
+                type="button"
+                onClick={() =>
+                  setViewerOpen(
+                    false,
+                  )
+                }
+              >
+                Hide Viewer
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.viewerFrameWrap}>
+            <iframe
+              className={styles.viewerFrame}
+              key={viewerKey}
+              src={NOVNC_URL}
+              title={`${selectedAccount.displayName} browser viewer`}
+              allow="clipboard-read; clipboard-write; fullscreen"
+            />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
