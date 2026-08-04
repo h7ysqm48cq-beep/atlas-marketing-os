@@ -503,6 +503,68 @@ export class AutomationController {
       );
   }
 
+  @Post('channels/:id/browser/facebook/login')
+  async loginFacebookBrowser(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      confirmation?: string;
+    },
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(id);
+
+    return this.browserRuntime.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/login`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          confirmation:
+            body.confirmation,
+        }),
+      },
+    );
+  }
+
+
+  @Post('channels/:id/browser/facebook/submit-2fa')
+  async submitFacebookTwoFactor(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      code?: string;
+    },
+  ) {
+    const profile =
+      await this.runtimeProfiles
+        .getBrowserLaunchProfile(id);
+
+    return this.browserRuntime.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/submit-2fa`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          code:
+            body.code,
+        }),
+      },
+    );
+  }
+
+
   @Post('channels/:id/browser/inspect')
   async inspectBrowserPage(
     @Param('id') id: string,

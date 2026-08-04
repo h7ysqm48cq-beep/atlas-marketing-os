@@ -3226,6 +3226,565 @@ app.post(
 
 
 app.post(
+  "/profiles/:profileKey/facebook/login",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    const input =
+      request.body as {
+        confirmation?: string;
+      };
+
+    if (
+      input.confirmation !==
+      "LOGIN"
+    ) {
+      response.status(400).json({
+        success: false,
+        message:
+          'Explicit confirmation "LOGIN" is required.',
+      });
+      return;
+    }
+
+    const email =
+      process.env
+        .FACEBOOK_LOGIN_EMAIL
+        ?.trim();
+
+    const password =
+      process.env
+        .FACEBOOK_LOGIN_PASSWORD;
+
+    if (!email || !password) {
+      response.status(400).json({
+        success: false,
+        message:
+          [
+            "Facebook login credentials",
+            "are not configured.",
+            "Set FACEBOOK_LOGIN_EMAIL",
+            "and FACEBOOK_LOGIN_PASSWORD",
+            "in browser-worker variables.",
+          ].join(" "),
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1) ||
+        await session.context.newPage();
+
+      if (
+        !page.url().includes(
+          "facebook.com",
+        )
+      ) {
+        await page.goto(
+          "https://www.facebook.com/",
+          {
+            waitUntil:
+              "domcontentloaded",
+            timeout:
+              60000,
+          },
+        );
+      }
+
+      const emailInput =
+        page.locator(
+          [
+            'input[name="email"]',
+            'input[type="text"]',
+          ].join(", "),
+        ).first();
+
+      const passwordInput =
+        page.locator(
+          'input[name="pass"], input[type="password"]',
+        ).first();
+
+      if (
+        !await emailInput
+          .isVisible()
+          .catch(() => false) ||
+        !await passwordInput
+          .isVisible()
+          .catch(() => false)
+      ) {
+        const pageText =
+          (
+            await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(
+              /\s+/g,
+              " ",
+            )
+            .trim();
+
+        const alreadyLoggedIn =
+          !/log into facebook/i
+            .test(pageText) &&
+          !/email or mobile number/i
+            .test(pageText);
+
+        if (alreadyLoggedIn) {
+          response.json({
+            success: true,
+            alreadyLoggedIn:
+              true,
+            loginCompleted:
+              true,
+            twoFactorRequired:
+              false,
+            page: {
+              title:
+                await page.title(),
+              url:
+                page.url(),
+            },
+          });
+          return;
+        }
+
+        throw new Error(
+          "Facebook login fields were not found.",
+        );
+      }
+
+      await emailInput.fill(
+        email,
+      );
+
+      await passwordInput.fill(
+        password,
+      );
+
+      const loginButton =
+        page
+          .getByRole(
+            "button",
+            {
+              name:
+                /^log in$/i,
+            },
+          )
+          .first();
+
+      if (
+        await loginButton
+          .isVisible()
+          .catch(() => false)
+      ) {
+        await loginButton.click({
+          timeout:
+            15000,
+        });
+      } else {
+        const submitInput =
+          page.locator(
+            [
+              'button[name="login"]',
+              'input[name="login"]',
+              'button[type="submit"]',
+              'input[type="submit"]',
+            ].join(", "),
+          ).first();
+
+        if (
+          !await submitInput
+            .isVisible()
+            .catch(() => false)
+        ) {
+          throw new Error(
+            "Facebook Log in button was not found.",
+          );
+        }
+
+        await submitInput.click({
+          timeout:
+            15000,
+        });
+      }
+
+      await page.waitForTimeout(
+        5000,
+      );
+
+      const currentUrl =
+        page.url();
+
+      const bodyText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const lowerText =
+        bodyText.toLowerCase();
+
+      const twoFactorRequired =
+        currentUrl.includes(
+          "/checkpoint/",
+        ) ||
+        lowerText.includes(
+          "two-factor authentication",
+        ) ||
+        lowerText.includes(
+          "enter login code",
+        ) ||
+        lowerText.includes(
+          "enter the code",
+        ) ||
+        lowerText.includes(
+          "authentication code",
+        );
+
+      const loginRequired =
+        currentUrl.includes(
+          "/login",
+        ) ||
+        (
+          lowerText.includes(
+            "email or mobile number",
+          ) &&
+          lowerText.includes(
+            "password",
+          )
+        );
+
+      const loginCompleted =
+        !twoFactorRequired &&
+        !loginRequired;
+
+      session.currentUrl =
+        currentUrl;
+
+      const screenshot =
+        await page.screenshot({
+          type:
+            "jpeg",
+          quality:
+            70,
+          fullPage:
+            false,
+        });
+
+      response.json({
+        success:
+          loginCompleted ||
+          twoFactorRequired,
+        loginCompleted,
+        twoFactorRequired,
+        loginRequired,
+        browserProfileKey:
+          session.browserProfileKey,
+        page: {
+          title:
+            await page.title(),
+          url:
+            currentUrl,
+          textPreview:
+            bodyText.slice(
+              0,
+              3000,
+            ),
+        },
+        screenshot: {
+          mimeType:
+            "image/jpeg",
+          base64:
+            screenshot.toString(
+              "base64",
+            ),
+        },
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        loginCompleted:
+          false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to log into Facebook.",
+      });
+    }
+  },
+);
+
+
+app.post(
+  "/profiles/:profileKey/facebook/submit-2fa",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    const input =
+      request.body as {
+        code?: string;
+      };
+
+    const code =
+      input.code
+        ?.replace(
+          /\s+/g,
+          "",
+        )
+        .trim();
+
+    if (
+      !code ||
+      !/^\d{4,10}$/.test(code)
+    ) {
+      response.status(400).json({
+        success: false,
+        message:
+          "A valid Facebook verification code is required.",
+      });
+      return;
+    }
+
+    try {
+      const pages =
+        session.context.pages();
+
+      const page =
+        pages.at(-1);
+
+      if (!page) {
+        throw new Error(
+          "No active Facebook page was found.",
+        );
+      }
+
+      const codeSelectors = [
+        'input[name="approvals_code"]',
+        'input[name="code"]',
+        'input[autocomplete="one-time-code"]',
+        'input[inputmode="numeric"]',
+      ];
+
+      let codeInput:
+        import("playwright-core").Locator
+        | null = null;
+
+      for (
+        const selector
+        of codeSelectors
+      ) {
+        const candidate =
+          page.locator(
+            selector,
+          ).first();
+
+        if (
+          await candidate
+            .isVisible()
+            .catch(() => false)
+        ) {
+          codeInput =
+            candidate;
+          break;
+        }
+      }
+
+      if (!codeInput) {
+        throw new Error(
+          "Facebook verification-code input was not found.",
+        );
+      }
+
+      await codeInput.fill(
+        code,
+      );
+
+      const continuePatterns = [
+        /^continue$/i,
+        /^submit$/i,
+        /^confirm$/i,
+        /^next$/i,
+        /^log in$/i,
+      ];
+
+      let submitted =
+        false;
+
+      for (
+        const pattern
+        of continuePatterns
+      ) {
+        const button =
+          page
+            .getByRole(
+              "button",
+              {
+                name:
+                  pattern,
+              },
+            )
+            .first();
+
+        if (
+          await button
+            .isVisible()
+            .catch(() => false)
+        ) {
+          await button.click({
+            timeout:
+              15000,
+          });
+
+          submitted =
+            true;
+          break;
+        }
+      }
+
+      if (!submitted) {
+        await codeInput.press(
+          "Enter",
+        );
+      }
+
+      await page.waitForTimeout(
+        6000,
+      );
+
+      const currentUrl =
+        page.url();
+
+      const bodyText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(
+            /\s+/g,
+            " ",
+          )
+          .trim();
+
+      const lowerText =
+        bodyText.toLowerCase();
+
+      const stillWaiting =
+        currentUrl.includes(
+          "/checkpoint/",
+        ) ||
+        lowerText.includes(
+          "enter login code",
+        ) ||
+        lowerText.includes(
+          "enter the code",
+        ) ||
+        lowerText.includes(
+          "authentication code",
+        );
+
+      const loginCompleted =
+        !stillWaiting &&
+        !currentUrl.includes(
+          "/login",
+        );
+
+      session.currentUrl =
+        currentUrl;
+
+      const screenshot =
+        await page.screenshot({
+          type:
+            "jpeg",
+          quality:
+            70,
+          fullPage:
+            false,
+        });
+
+      response.json({
+        success:
+          loginCompleted,
+        loginCompleted,
+        stillWaiting,
+        browserProfileKey:
+          session.browserProfileKey,
+        page: {
+          title:
+            await page.title(),
+          url:
+            currentUrl,
+          textPreview:
+            bodyText.slice(
+              0,
+              3000,
+            ),
+        },
+        screenshot: {
+          mimeType:
+            "image/jpeg",
+          base64:
+            screenshot.toString(
+              "base64",
+            ),
+        },
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        loginCompleted:
+          false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to submit Facebook verification code.",
+      });
+    }
+  },
+);
+
+
+app.post(
   "/profiles/:profileKey/inspect",
   async (request, response) => {
     const profileKey =
