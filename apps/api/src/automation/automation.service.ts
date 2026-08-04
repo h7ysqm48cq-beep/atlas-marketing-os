@@ -77,6 +77,35 @@ export class AutomationService {
               name: true,
             },
           },
+          browserAccountLinks: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                createdAt: 'asc',
+              },
+            ],
+            include: {
+              browserAccount: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  browserProfileKey: true,
+                  browserProfileName: true,
+                  loginStatus: true,
+                  cookieStatus: true,
+                  proxyType: true,
+                  proxyCountry: true,
+                  lastKnownIp: true,
+                  lastLoginAt: true,
+                  lastVerifiedAt: true,
+                  lastHeartbeatAt: true,
+                  lastLoginError: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               scheduledPosts: true,
@@ -200,6 +229,35 @@ export class AutomationService {
             select: {
               id: true,
               name: true,
+            },
+          },
+          browserAccountLinks: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                createdAt: 'asc',
+              },
+            ],
+            include: {
+              browserAccount: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  browserProfileKey: true,
+                  browserProfileName: true,
+                  loginStatus: true,
+                  cookieStatus: true,
+                  proxyType: true,
+                  proxyCountry: true,
+                  lastKnownIp: true,
+                  lastLoginAt: true,
+                  lastVerifiedAt: true,
+                  lastHeartbeatAt: true,
+                  lastLoginError: true,
+                },
+              },
             },
           },
           _count: {
@@ -725,12 +783,55 @@ export class AutomationService {
     T extends {
       accessTokenEncrypted:
         string | null;
+      browserAccountLinks?: Array<{
+        isPrimary: boolean;
+        browserAccount: {
+          id: string;
+          displayName: string;
+          browserProfileKey: string;
+          browserProfileName: string;
+          loginStatus: string;
+          cookieStatus: string;
+          proxyType: string;
+          proxyCountry: string | null;
+          lastKnownIp: string | null;
+          lastLoginAt: Date | null;
+          lastVerifiedAt: Date | null;
+          lastHeartbeatAt: Date | null;
+          lastLoginError: string | null;
+        };
+      }>;
     },
   >(channel: T) {
     const {
       accessTokenEncrypted,
+      browserAccountLinks,
       ...safeChannel
     } = channel;
+
+    const browserAccounts =
+      (
+        browserAccountLinks ||
+        []
+      ).map(
+        (link) => ({
+          ...link.browserAccount,
+          isPrimary:
+            link.isPrimary,
+          health:
+            this.calculateBrowserAccountHealth(
+              link.browserAccount,
+            ),
+        }),
+      );
+
+    const primaryBrowserAccount =
+      browserAccounts.find(
+        (account) =>
+          account.isPrimary,
+      ) ||
+      browserAccounts[0] ||
+      null;
 
     return {
       ...safeChannel,
@@ -738,9 +839,118 @@ export class AutomationService {
         Boolean(
           accessTokenEncrypted,
         ),
+      browserAccounts,
+      primaryBrowserAccount,
+      publishingMode:
+        primaryBrowserAccount
+          ? 'BROWSER_RUNTIME'
+          : accessTokenEncrypted
+            ? 'NATIVE_API'
+            : 'UNCONFIGURED',
+      managedBy:
+        primaryBrowserAccount
+          ? {
+              id:
+                primaryBrowserAccount.id,
+              displayName:
+                primaryBrowserAccount.displayName,
+              browserProfileName:
+                primaryBrowserAccount.browserProfileName,
+            }
+          : null,
     };
   }
 
+  private calculateBrowserAccountHealth(
+    account: {
+      loginStatus: string;
+      cookieStatus: string;
+      proxyType: string;
+      proxyCountry: string | null;
+      lastHeartbeatAt: Date | null;
+      lastLoginError: string | null;
+    },
+  ) {
+    let score = 100;
+
+    const loginStatus =
+      account.loginStatus
+        .trim()
+        .toUpperCase();
+
+    const cookieStatus =
+      account.cookieStatus
+        .trim()
+        .toUpperCase();
+
+    if (
+      loginStatus !==
+      'LOGGED_IN'
+    ) {
+      score -= 45;
+    }
+
+    if (
+      cookieStatus !==
+      'ACTIVE'
+    ) {
+      score -= 25;
+    }
+
+    if (
+      account.proxyType !==
+        'DIRECT' &&
+      !account.proxyCountry
+    ) {
+      score -= 10;
+    }
+
+    if (
+      !account.lastHeartbeatAt
+    ) {
+      score -= 10;
+    } else {
+      const ageMs =
+        Date.now() -
+        account.lastHeartbeatAt
+          .getTime();
+
+      if (
+        ageMs >
+        24 * 60 * 60 * 1000
+      ) {
+        score -= 10;
+      }
+    }
+
+    if (
+      account.lastLoginError
+    ) {
+      score -= 10;
+    }
+
+    const normalizedScore =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          score,
+        ),
+      );
+
+    const status =
+      normalizedScore >= 80
+        ? 'HEALTHY'
+        : normalizedScore >= 50
+          ? 'WARNING'
+          : 'CRITICAL';
+
+    return {
+      score:
+        normalizedScore,
+      status,
+    };
+  }
 
   async updateChannelStatus(
     id: string,
