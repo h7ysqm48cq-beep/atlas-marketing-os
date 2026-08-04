@@ -826,6 +826,136 @@ export class BrowserAccountService {
     }
   }
 
+  async linkChannel(
+    accountId: string,
+    channelId: string,
+    input?: {
+      isPrimary?: boolean;
+    },
+  ) {
+    const cleanAccountId =
+      accountId.trim();
+
+    const cleanChannelId =
+      channelId.trim();
+
+    const [account, channel] =
+      await Promise.all([
+        this.prisma.browserAccount.findUnique({
+          where: {
+            id: cleanAccountId,
+          },
+          select: {
+            id: true,
+            platform: true,
+          },
+        }),
+        this.prisma.socialChannel.findUnique({
+          where: {
+            id: cleanChannelId,
+          },
+          select: {
+            id: true,
+            platform: true,
+            name: true,
+          },
+        }),
+      ]);
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel was not found.',
+      );
+    }
+
+    if (
+      account.platform !==
+        SocialPlatform.FACEBOOK ||
+      channel.platform !==
+        SocialPlatform.FACEBOOK
+    ) {
+      throw new BadRequestException(
+        'Only Facebook Browser Accounts can be linked to Facebook channels.',
+      );
+    }
+
+    const isPrimary =
+      input?.isPrimary ??
+      true;
+
+    const result =
+      await this.prisma.$transaction(
+        async (transaction) => {
+          if (isPrimary) {
+            await transaction
+              .browserAccountChannel
+              .updateMany({
+                where: {
+                  channelId:
+                    cleanChannelId,
+                },
+                data: {
+                  isPrimary:
+                    false,
+                },
+              });
+          }
+
+          return transaction
+            .browserAccountChannel
+            .upsert({
+              where: {
+                browserAccountId_channelId: {
+                  browserAccountId:
+                    cleanAccountId,
+                  channelId:
+                    cleanChannelId,
+                },
+              },
+              create: {
+                browserAccountId:
+                  cleanAccountId,
+                channelId:
+                  cleanChannelId,
+                isPrimary,
+              },
+              update: {
+                isPrimary,
+              },
+              include: {
+                browserAccount: {
+                  select: {
+                    id: true,
+                    displayName: true,
+                    browserProfileName: true,
+                    loginStatus: true,
+                    cookieStatus: true,
+                  },
+                },
+                channel: {
+                  select: {
+                    id: true,
+                    name: true,
+                    platform: true,
+                  },
+                },
+              },
+            });
+        },
+      );
+
+    return {
+      success: true,
+      link: result,
+    };
+  }
+
   async selectForChannel(
     channelId: string,
     input?: {

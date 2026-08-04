@@ -64,6 +64,25 @@ export class BrowserAccountController {
     return this.browserAccounts.list();
   }
 
+  @Post(':id/channels/:channelId/link')
+  linkChannel(
+    @Param('id')
+    id: string,
+    @Param('channelId')
+    channelId: string,
+    @Body()
+    body: {
+      isPrimary?: boolean;
+    },
+  ) {
+    return this.browserAccounts
+      .linkChannel(
+        id,
+        channelId,
+        body,
+      );
+  }
+
   @Post('select-for-channel')
   selectForChannel(
     @Body()
