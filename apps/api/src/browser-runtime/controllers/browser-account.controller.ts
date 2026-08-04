@@ -64,6 +64,30 @@ export class BrowserAccountController {
     return this.browserAccounts.list();
   }
 
+  @Post('select-for-channel')
+  selectForChannel(
+    @Body()
+    body: {
+      channelId?: string;
+      excludeAccountIds?: string[];
+      minimumHealthScore?: number;
+      requireActiveCookie?: boolean;
+    },
+  ) {
+    return this.browserAccounts
+      .selectForChannel(
+        body.channelId || '',
+        {
+          excludeAccountIds:
+            body.excludeAccountIds,
+          minimumHealthScore:
+            body.minimumHealthScore,
+          requireActiveCookie:
+            body.requireActiveCookie,
+        },
+      );
+  }
+
   @Get('pool/overview')
   browserPool() {
     return this.browserAccounts

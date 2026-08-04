@@ -826,6 +826,380 @@ export class BrowserAccountService {
     }
   }
 
+  async selectForChannel(
+    channelId: string,
+    input?: {
+      excludeAccountIds?: string[];
+      minimumHealthScore?: number;
+      requireActiveCookie?: boolean;
+    },
+  ) {
+    const cleanChannelId =
+      channelId?.trim();
+
+    if (!cleanChannelId) {
+      throw new BadRequestException(
+        'channelId is required.',
+      );
+    }
+
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id: cleanChannelId,
+        },
+        select: {
+          id: true,
+          name: true,
+          platform: true,
+          status: true,
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel was not found.',
+      );
+    }
+
+    if (
+      channel.platform !==
+      SocialPlatform.FACEBOOK
+    ) {
+      throw new BadRequestException(
+        'Browser selection currently supports Facebook channels only.',
+      );
+    }
+
+    const excludedIds =
+      new Set(
+        (
+          input?.excludeAccountIds ||
+          []
+        )
+          .map(
+            (value) =>
+              value?.trim(),
+          )
+          .filter(Boolean),
+      );
+
+    const minimumHealthScore =
+      Number.isFinite(
+        input?.minimumHealthScore,
+      )
+        ? Math.max(
+            0,
+            Math.min(
+              100,
+              Number(
+                input?.minimumHealthScore,
+              ),
+            ),
+          )
+        : 50;
+
+    const requireActiveCookie =
+      input?.requireActiveCookie ??
+      true;
+
+    const links =
+      await this.prisma.browserAccountChannel.findMany({
+        where: {
+          channelId:
+            cleanChannelId,
+        },
+        include: {
+          browserAccount: true,
+        },
+      });
+
+    if (!links.length) {
+      return {
+        selected:
+          null,
+        channel,
+        reason:
+          'NO_LINKED_BROWSER_ACCOUNT',
+        candidates: [],
+      };
+    }
+
+    const now =
+      Date.now();
+
+    const candidates =
+      links
+        .filter(
+          (link) =>
+            !excludedIds.has(
+              link.browserAccountId,
+            ),
+        )
+        .map(
+          (link) => {
+            const account =
+              link.browserAccount;
+
+            const loginStatus =
+              String(
+                account.loginStatus ||
+                'UNKNOWN',
+              )
+                .trim()
+                .toUpperCase();
+
+            const cookieStatus =
+              String(
+                account.cookieStatus ||
+                'UNKNOWN',
+              )
+                .trim()
+                .toUpperCase();
+
+            let score =
+              100;
+
+            const warnings:
+              string[] = [];
+
+            if (
+              loginStatus !==
+              'LOGGED_IN'
+            ) {
+              score -=
+                50;
+
+              warnings.push(
+                `Login status is ${loginStatus}.`,
+              );
+            }
+
+            if (
+              cookieStatus !==
+              'ACTIVE'
+            ) {
+              score -=
+                25;
+
+              warnings.push(
+                `Cookie status is ${cookieStatus}.`,
+              );
+            }
+
+            let heartbeatAgeSeconds:
+              number | null =
+              null;
+
+            if (
+              account.lastHeartbeatAt
+            ) {
+              heartbeatAgeSeconds =
+                Math.max(
+                  0,
+                  Math.floor(
+                    (
+                      now -
+                      account
+                        .lastHeartbeatAt
+                        .getTime()
+                    ) /
+                    1000,
+                  ),
+                );
+
+              if (
+                heartbeatAgeSeconds >
+                86400
+              ) {
+                score -=
+                  15;
+
+                warnings.push(
+                  'Heartbeat is older than 24 hours.',
+                );
+              } else if (
+                heartbeatAgeSeconds >
+                3600
+              ) {
+                score -=
+                  5;
+
+                warnings.push(
+                  'Heartbeat is older than one hour.',
+                );
+              }
+            } else {
+              score -=
+                10;
+
+              warnings.push(
+                'No heartbeat recorded.',
+              );
+            }
+
+            if (
+              account.proxyType !==
+                SocialProxyType.DIRECT &&
+              !account.lastKnownIp
+            ) {
+              score -=
+                10;
+
+              warnings.push(
+                'Proxy IP has not been verified.',
+              );
+            }
+
+            if (
+              account.lastLoginError
+            ) {
+              score -=
+                10;
+
+              warnings.push(
+                account.lastLoginError,
+              );
+            }
+
+            if (
+              link.isPrimary
+            ) {
+              score +=
+                5;
+            }
+
+            score =
+              Math.max(
+                0,
+                Math.min(
+                  100,
+                  score,
+                ),
+              );
+
+            const eligible =
+              loginStatus ===
+                'LOGGED_IN' &&
+              (
+                !requireActiveCookie ||
+                cookieStatus ===
+                  'ACTIVE'
+              ) &&
+              score >=
+                minimumHealthScore;
+
+            return {
+              id:
+                account.id,
+              displayName:
+                account.displayName,
+              browserProfileKey:
+                account.browserProfileKey,
+              browserProfileName:
+                account.browserProfileName,
+              loginStatus:
+                account.loginStatus,
+              cookieStatus:
+                account.cookieStatus,
+              proxyType:
+                account.proxyType,
+              proxyCountry:
+                account.proxyCountry,
+              lastKnownIp:
+                account.lastKnownIp,
+              lastHeartbeatAt:
+                account.lastHeartbeatAt,
+              heartbeatAgeSeconds,
+              isPrimary:
+                link.isPrimary,
+              healthScore:
+                score,
+              eligible,
+              warnings,
+            };
+          },
+        )
+        .sort(
+          (left, right) => {
+            if (
+              left.eligible !==
+              right.eligible
+            ) {
+              return left.eligible
+                ? -1
+                : 1;
+            }
+
+            if (
+              left.healthScore !==
+              right.healthScore
+            ) {
+              return (
+                right.healthScore -
+                left.healthScore
+              );
+            }
+
+            if (
+              left.isPrimary !==
+              right.isPrimary
+            ) {
+              return left.isPrimary
+                ? -1
+                : 1;
+            }
+
+            const leftHeartbeat =
+              left.lastHeartbeatAt
+                ? new Date(
+                    left.lastHeartbeatAt,
+                  ).getTime()
+                : 0;
+
+            const rightHeartbeat =
+              right.lastHeartbeatAt
+                ? new Date(
+                    right.lastHeartbeatAt,
+                  ).getTime()
+                : 0;
+
+            return (
+              rightHeartbeat -
+              leftHeartbeat
+            );
+          },
+        );
+
+    const selected =
+      candidates.find(
+        (candidate) =>
+          candidate.eligible,
+      ) ||
+      null;
+
+    return {
+      selected,
+      channel,
+      reason:
+        selected
+          ? 'BEST_ELIGIBLE_BROWSER_SELECTED'
+          : 'NO_ELIGIBLE_BROWSER_ACCOUNT',
+      policy: {
+        minimumHealthScore,
+        requireActiveCookie,
+        excludedAccountIds:
+          Array.from(
+            excludedIds,
+          ),
+      },
+      candidates,
+      selectedAt:
+        new Date()
+          .toISOString(),
+    };
+  }
+
   async pool() {
     const accounts =
       await this.prisma.browserAccount.findMany({
