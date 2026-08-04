@@ -120,6 +120,11 @@ export type BrowserAutomationPolicy = Prisma.BrowserAutomationPolicyModel
  */
 export type BrowserAccountEvent = Prisma.BrowserAccountEventModel
 /**
+ * Model BrowserAccountLease
+ * 
+ */
+export type BrowserAccountLease = Prisma.BrowserAccountLeaseModel
+/**
  * Model BrowserAccountChannel
  * 
  */

@@ -413,6 +413,7 @@ export const ModelName = {
   BrowserAccount: 'BrowserAccount',
   BrowserAutomationPolicy: 'BrowserAutomationPolicy',
   BrowserAccountEvent: 'BrowserAccountEvent',
+  BrowserAccountLease: 'BrowserAccountLease',
   BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
@@ -438,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1626,6 +1627,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BrowserAccountLease: {
+      payload: Prisma.$BrowserAccountLeasePayload<ExtArgs>
+      fields: Prisma.BrowserAccountLeaseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountLeaseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountLeaseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountLeaseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountLeaseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountLeaseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountLeaseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountLeaseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountLeaseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountLeaseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountLeaseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountLeaseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountLeaseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountLeaseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountLeaseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountLeaseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountLease>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountLeaseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountLeaseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountLeaseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountLeaseCountAggregateOutputType> | number
+        }
+      }
+    }
     BrowserAccountChannel: {
       payload: Prisma.$BrowserAccountChannelPayload<ExtArgs>
       fields: Prisma.BrowserAccountChannelFieldRefs
@@ -2665,6 +2740,13 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
   browserProfileName: 'browserProfileName',
   locale: 'locale',
   timezone: 'timezone',
+  browserEngine: 'browserEngine',
+  operatingSystem: 'operatingSystem',
+  userAgent: 'userAgent',
+  screenWidth: 'screenWidth',
+  screenHeight: 'screenHeight',
+  deviceScaleFactor: 'deviceScaleFactor',
+  identityLocked: 'identityLocked',
   proxyType: 'proxyType',
   proxyHost: 'proxyHost',
   proxyPort: 'proxyPort',
@@ -2743,6 +2825,23 @@ export const BrowserAccountEventScalarFieldEnum = {
 } as const
 
 export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
+
+
+export const BrowserAccountLeaseScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  leaseToken: 'leaseToken',
+  ownerKey: 'ownerKey',
+  channelId: 'channelId',
+  acquiredAt: 'acquiredAt',
+  expiresAt: 'expiresAt',
+  releasedAt: 'releasedAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountLeaseScalarFieldEnum = (typeof BrowserAccountLeaseScalarFieldEnum)[keyof typeof BrowserAccountLeaseScalarFieldEnum]
 
 
 export const BrowserAccountChannelScalarFieldEnum = {
@@ -3495,6 +3594,7 @@ export type GlobalOmitConfig = {
   browserAccount?: Prisma.BrowserAccountOmit
   browserAutomationPolicy?: Prisma.BrowserAutomationPolicyOmit
   browserAccountEvent?: Prisma.BrowserAccountEventOmit
+  browserAccountLease?: Prisma.BrowserAccountLeaseOmit
   browserAccountChannel?: Prisma.BrowserAccountChannelOmit
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit

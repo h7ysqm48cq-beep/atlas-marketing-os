@@ -14,6 +14,9 @@ import {
   BrowserAccountService,
 } from './services/browser-account.service';
 import {
+  BrowserLeaseService,
+} from './services/browser-lease.service';
+import {
   BrowserSessionService,
 } from './services/browser-session.service';
 import {
@@ -41,6 +44,7 @@ import {
   ],
   providers: [
     BrowserAccountService,
+    BrowserLeaseService,
     BrowserSessionService,
     BrowserTimelineService,
     BrowserAutomationPolicyService,

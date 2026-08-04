@@ -14,6 +14,9 @@ import {
   BrowserAccountService,
 } from '../services/browser-account.service';
 import {
+  BrowserLeaseService,
+} from '../services/browser-lease.service';
+import {
   BrowserSessionService,
 } from '../services/browser-session.service';
 import {
@@ -49,6 +52,8 @@ export class BrowserAccountController {
   constructor(
     private readonly browserAccounts:
       BrowserAccountService,
+    private readonly browserLeases:
+      BrowserLeaseService,
     private readonly browserSessions:
       BrowserSessionService,
     private readonly browserTimeline:
@@ -161,6 +166,53 @@ export class BrowserAccountController {
     return this.browserAccounts.create(
       body,
     );
+  }
+
+  @Post(':id/lease/acquire')
+  acquireLease(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      ownerKey?: string;
+      channelId?: string | null;
+      durationSeconds?: number;
+      metadata?: unknown;
+    },
+  ) {
+    return this.browserLeases
+      .acquire(
+        id,
+        body,
+      );
+  }
+
+  @Post(':id/lease/release')
+  releaseLease(
+    @Param('id')
+    id: string,
+    @Body()
+    body: {
+      leaseToken?: string;
+      ownerKey?: string;
+    },
+  ) {
+    return this.browserLeases
+      .release(
+        id,
+        body,
+      );
+  }
+
+  @Get(':id/lease/status')
+  leaseStatus(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserLeases
+      .status(
+        id,
+      );
   }
 
   @Post(':id/browser/open')

@@ -67,6 +67,7 @@ export const ModelName = {
   BrowserAccount: 'BrowserAccount',
   BrowserAutomationPolicy: 'BrowserAutomationPolicy',
   BrowserAccountEvent: 'BrowserAccountEvent',
+  BrowserAccountLease: 'BrowserAccountLease',
   BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
@@ -355,6 +356,13 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
   browserProfileName: 'browserProfileName',
   locale: 'locale',
   timezone: 'timezone',
+  browserEngine: 'browserEngine',
+  operatingSystem: 'operatingSystem',
+  userAgent: 'userAgent',
+  screenWidth: 'screenWidth',
+  screenHeight: 'screenHeight',
+  deviceScaleFactor: 'deviceScaleFactor',
+  identityLocked: 'identityLocked',
   proxyType: 'proxyType',
   proxyHost: 'proxyHost',
   proxyPort: 'proxyPort',
@@ -433,6 +441,23 @@ export const BrowserAccountEventScalarFieldEnum = {
 } as const
 
 export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
+
+
+export const BrowserAccountLeaseScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  leaseToken: 'leaseToken',
+  ownerKey: 'ownerKey',
+  channelId: 'channelId',
+  acquiredAt: 'acquiredAt',
+  expiresAt: 'expiresAt',
+  releasedAt: 'releasedAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountLeaseScalarFieldEnum = (typeof BrowserAccountLeaseScalarFieldEnum)[keyof typeof BrowserAccountLeaseScalarFieldEnum]
 
 
 export const BrowserAccountChannelScalarFieldEnum = {

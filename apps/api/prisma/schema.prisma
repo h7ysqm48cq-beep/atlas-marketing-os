@@ -443,6 +443,14 @@ model SocialChannelRuntimeProfile {
   locale   String @default("en-MY")
   timezone String @default("Asia/Kuala_Lumpur")
 
+  browserEngine     String  @default("CHROMIUM")
+  operatingSystem   String  @default("MACOS")
+  userAgent         String?
+  screenWidth       Int     @default(1365)
+  screenHeight      Int     @default(768)
+  deviceScaleFactor Float   @default(1)
+  identityLocked    Boolean @default(true)
+
   proxyType SocialProxyType @default(DIRECT)
   proxyHost String?
   proxyPort Int?
@@ -500,6 +508,7 @@ model BrowserAccount {
   lastLoginError  String?
 
   channels         BrowserAccountChannel[]
+  runtimeLease     BrowserAccountLease?
   automationPolicy BrowserAutomationPolicy?
   timelineEvents   BrowserAccountEvent[]
 
@@ -560,6 +569,31 @@ model BrowserAccountEvent {
   @@index([eventType])
   @@index([status])
   @@index([createdAt])
+}
+
+model BrowserAccountLease {
+  id String @id @default(cuid())
+
+  browserAccountId String         @unique
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  leaseToken String  @unique
+  ownerKey   String
+  channelId  String?
+
+  acquiredAt DateTime  @default(now())
+  expiresAt  DateTime
+  releasedAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerKey])
+  @@index([channelId])
+  @@index([expiresAt])
+  @@index([releasedAt])
 }
 
 model BrowserAccountChannel {
