@@ -64,6 +64,8 @@ export const ModelName = {
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
   SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
+  BrowserAccount: 'BrowserAccount',
+  BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
@@ -366,6 +368,50 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
 } as const
 
 export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
+
+
+export const BrowserAccountScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  platform: 'platform',
+  displayName: 'displayName',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  facebookUserId: 'facebookUserId',
+  facebookUserName: 'facebookUserName',
+  loginStatus: 'loginStatus',
+  cookieStatus: 'cookieStatus',
+  lastKnownIp: 'lastKnownIp',
+  lastLoginAt: 'lastLoginAt',
+  lastVerifiedAt: 'lastVerifiedAt',
+  lastHeartbeatAt: 'lastHeartbeatAt',
+  lastLoginError: 'lastLoginError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
+
+
+export const BrowserAccountChannelScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  channelId: 'channelId',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountChannelScalarFieldEnum = (typeof BrowserAccountChannelScalarFieldEnum)[keyof typeof BrowserAccountChannelScalarFieldEnum]
 
 
 export const ScheduledPostScalarFieldEnum = {

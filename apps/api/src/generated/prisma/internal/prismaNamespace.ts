@@ -410,6 +410,8 @@ export const ModelName = {
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
   SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
+  BrowserAccount: 'BrowserAccount',
+  BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
@@ -434,7 +436,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1397,6 +1399,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SocialChannelRuntimeProfileCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SocialChannelRuntimeProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccount: {
+      payload: Prisma.$BrowserAccountPayload<ExtArgs>
+      fields: Prisma.BrowserAccountFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccount>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccountChannel: {
+      payload: Prisma.$BrowserAccountChannelPayload<ExtArgs>
+      fields: Prisma.BrowserAccountChannelFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountChannelFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountChannelFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountChannelFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountChannelFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountChannelFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountChannelCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountChannelCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountChannelCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountChannelDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountChannelUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountChannelDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountChannelUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountChannelUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountChannelUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountChannelAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountChannel>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountChannelGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountChannelGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountChannelCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountChannelCountAggregateOutputType> | number
         }
       }
     }
@@ -2382,6 +2532,50 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
 export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
 
 
+export const BrowserAccountScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  platform: 'platform',
+  displayName: 'displayName',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  facebookUserId: 'facebookUserId',
+  facebookUserName: 'facebookUserName',
+  loginStatus: 'loginStatus',
+  cookieStatus: 'cookieStatus',
+  lastKnownIp: 'lastKnownIp',
+  lastLoginAt: 'lastLoginAt',
+  lastVerifiedAt: 'lastVerifiedAt',
+  lastHeartbeatAt: 'lastHeartbeatAt',
+  lastLoginError: 'lastLoginError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
+
+
+export const BrowserAccountChannelScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  channelId: 'channelId',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountChannelScalarFieldEnum = (typeof BrowserAccountChannelScalarFieldEnum)[keyof typeof BrowserAccountChannelScalarFieldEnum]
+
+
 export const ScheduledPostScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -3103,6 +3297,8 @@ export type GlobalOmitConfig = {
   aiUsage?: Prisma.AiUsageOmit
   socialChannel?: Prisma.SocialChannelOmit
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOmit
+  browserAccount?: Prisma.BrowserAccountOmit
+  browserAccountChannel?: Prisma.BrowserAccountChannelOmit
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit
   browserActionHistory?: Prisma.BrowserActionHistoryOmit

@@ -416,6 +416,7 @@ model SocialChannel {
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
   socialChannelRuntimeProfile SocialChannelRuntimeProfile?
+  browserAccountLinks         BrowserAccountChannel[]
 
   @@unique([brandId, platform, externalId])
   @@index([workspaceId])
@@ -461,6 +462,75 @@ model SocialChannelRuntimeProfile {
 
   @@index([proxyType])
   @@index([proxyCountry])
+}
+
+model BrowserAccount {
+  id String @id @default(cuid())
+
+  workspaceId String?
+  brandId     String?
+
+  platform SocialPlatform @default(FACEBOOK)
+
+  displayName        String
+  browserProfileKey  String @unique
+  browserProfileName String
+
+  locale   String @default("en-MY")
+  timezone String @default("Asia/Kuala_Lumpur")
+
+  proxyType SocialProxyType @default(DIRECT)
+  proxyHost String?
+  proxyPort Int?
+
+  proxyUsernameEncrypted String?
+  proxyPasswordEncrypted String?
+  proxyCountry           String?
+
+  facebookUserId   String?
+  facebookUserName String?
+
+  loginStatus  String @default("PENDING")
+  cookieStatus String @default("NOT_CREATED")
+
+  lastKnownIp     String?
+  lastLoginAt     DateTime?
+  lastVerifiedAt  DateTime?
+  lastHeartbeatAt DateTime?
+  lastLoginError  String?
+
+  channels BrowserAccountChannel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([brandId])
+  @@index([platform])
+  @@index([loginStatus])
+  @@index([cookieStatus])
+  @@index([proxyType])
+  @@index([proxyCountry])
+  @@index([facebookUserId])
+}
+
+model BrowserAccountChannel {
+  id String @id @default(cuid())
+
+  browserAccountId String
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  channelId String
+  channel   SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([browserAccountId, channelId])
+  @@index([browserAccountId])
+  @@index([channelId])
 }
 
 model ScheduledPost {

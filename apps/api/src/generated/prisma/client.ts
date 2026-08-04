@@ -105,6 +105,16 @@ export type SocialChannel = Prisma.SocialChannelModel
  */
 export type SocialChannelRuntimeProfile = Prisma.SocialChannelRuntimeProfileModel
 /**
+ * Model BrowserAccount
+ * 
+ */
+export type BrowserAccount = Prisma.BrowserAccountModel
+/**
+ * Model BrowserAccountChannel
+ * 
+ */
+export type BrowserAccountChannel = Prisma.BrowserAccountChannelModel
+/**
  * Model ScheduledPost
  * 
  */
