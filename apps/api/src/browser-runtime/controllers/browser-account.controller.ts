@@ -168,6 +168,25 @@ export class BrowserAccountController {
     );
   }
 
+  @Post('lease/select-and-acquire')
+  selectAndAcquireLease(
+    @Body()
+    body: {
+      channelId?: string;
+      ownerKey?: string;
+      durationSeconds?: number;
+      minimumHealthScore?: number;
+      requireActiveCookie?: boolean;
+      excludeAccountIds?: string[];
+      metadata?: unknown;
+    },
+  ) {
+    return this.browserLeases
+      .selectAndAcquire(
+        body,
+      );
+  }
+
   @Post(':id/lease/acquire')
   acquireLease(
     @Param('id')
