@@ -35,6 +35,7 @@ import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
+import { BrowserAccountService } from './browser-account.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
@@ -201,6 +202,7 @@ export class AutomationController {
       FacebookOAuthService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
+    private readonly browserAccounts: BrowserAccountService,
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
     private readonly browserActionHistory:
@@ -1573,4 +1575,48 @@ export class AutomationController {
       body,
     );
   }
+
+  @Get('browser-accounts')
+  listBrowserAccounts() {
+    return this.browserAccounts.list();
+  }
+
+  @Get('browser-accounts/:id')
+  getBrowserAccount(
+    @Param('id') id: string,
+  ) {
+    return this.browserAccounts.getById(
+      id,
+    );
+  }
+
+  @Post('browser-accounts')
+  createBrowserAccount(
+    @Body()
+    body: {
+      displayName: string;
+      platform?: 'FACEBOOK';
+      browserProfileName?: string;
+      locale?: string;
+      timezone?: string;
+      proxyType?:
+        | 'DIRECT'
+        | 'HTTP'
+        | 'HTTPS'
+        | 'SOCKS5';
+      proxyHost?: string | null;
+      proxyPort?: number | null;
+      proxyUsername?: string | null;
+      proxyPassword?: string | null;
+      proxyCountry?: string | null;
+      workspaceId?: string | null;
+      brandId?: string | null;
+    },
+  ) {
+    return this.browserAccounts.create(
+      body as any,
+    );
+  }
+
+
 }

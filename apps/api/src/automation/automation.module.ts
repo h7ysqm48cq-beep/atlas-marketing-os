@@ -5,6 +5,7 @@ import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
+import { BrowserAccountService } from './browser-account.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
@@ -26,6 +27,7 @@ import { AssetImageModule } from '../asset-image/asset-image.module';
     FacebookConnectorService,
     FacebookOAuthService,
     RuntimeProfileService,
+    BrowserAccountService,
     BrowserRuntimeBridgeService,
     BrowserActionHistoryService,
     BrowserActionTraceService,
