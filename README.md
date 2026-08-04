@@ -12,7 +12,7 @@
 ## Mac 安装
 
 ```bash
-cd ~/Downloads/mgmbetmyr-marketing-os-v4-pro
+cd ~/Downloads/marketing-os-v4-pro
 ./install.sh
 npm run dev
 ```
