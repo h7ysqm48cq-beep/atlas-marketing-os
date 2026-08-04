@@ -706,3 +706,161 @@
     flex: 1 1 calc(50% - 8px);
   }
 }
+
+.browserRuntimeSummary,
+.legacyRuntimePanel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid
+    var(--border-color, rgba(127, 127, 127, 0.2));
+  border-radius: 12px;
+}
+
+.browserRuntimeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.browserRuntimeHeader strong,
+.browserRuntimeHeader small {
+  display: block;
+}
+
+.browserRuntimeHeader small {
+  margin-top: 4px;
+  opacity: 0.62;
+}
+
+.runtimeLabel {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.58;
+}
+
+.runtimeHealthy,
+.runtimeWarning,
+.runtimeCritical {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.runtimeHealthy {
+  background: rgba(44, 180, 100, 0.14);
+  color: #2cb464;
+}
+
+.runtimeWarning {
+  background: rgba(216, 154, 34, 0.14);
+  color: #d89a22;
+}
+
+.runtimeCritical {
+  background: rgba(220, 70, 70, 0.14);
+  color: #dc4646;
+}
+
+.browserRuntimeGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.browserRuntimeGrid > div {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid
+    var(--border-color, rgba(127, 127, 127, 0.14));
+  border-radius: 9px;
+}
+
+.browserRuntimeGrid span,
+.browserRuntimeGrid strong {
+  display: block;
+}
+
+.browserRuntimeGrid span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.browserRuntimeGrid strong {
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.browserRuntimeActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.browserRuntimeActions a,
+.legacyRuntimeNotice a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.13);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.runtimeNotice {
+  margin: 13px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.62;
+}
+
+.legacyRuntimeNotice {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 9px;
+  background: rgba(216, 154, 34, 0.1);
+}
+
+.legacyRuntimeNotice span {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.72;
+}
+
+.legacyRuntimeNotice a {
+  width: fit-content;
+}
+
+@media (max-width: 760px) {
+  .browserRuntimeHeader,
+  .browserRuntimeActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .browserRuntimeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .browserRuntimeActions a {
+    width: 100%;
+  }
+}

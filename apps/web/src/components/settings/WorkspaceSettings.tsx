@@ -33,6 +33,44 @@ type Channel = {
   tokenExpiresAt?: string | null;
   lastConnectedAt?: string | null;
   lastError?: string | null;
+
+  publishingMode?:
+    | "BROWSER_RUNTIME"
+    | "NATIVE_API"
+    | "UNCONFIGURED"
+    | string;
+
+  managedBy?: {
+    id: string;
+    displayName: string;
+    browserProfileName: string;
+  } | null;
+
+  primaryBrowserAccount?: {
+    id: string;
+    displayName: string;
+    browserProfileKey: string;
+    browserProfileName: string;
+    loginStatus: string;
+    cookieStatus: string;
+    proxyType: string;
+    proxyCountry: string | null;
+    lastKnownIp: string | null;
+    lastLoginAt: string | null;
+    lastVerifiedAt: string | null;
+    lastHeartbeatAt: string | null;
+    lastLoginError: string | null;
+    isPrimary: boolean;
+    health: {
+      score: number;
+      status:
+        | "HEALTHY"
+        | "WARNING"
+        | "CRITICAL"
+        | string;
+    };
+  } | null;
+
   brand?: {
     id: string;
     name: string;
@@ -1261,9 +1299,165 @@ export function WorkspaceSettings() {
                 ) : null}
 
                 {channel.platform === "FACEBOOK" ? (
-                  <RuntimeProfileEditor
-                    channelId={channel.id}
-                  />
+                  channel.primaryBrowserAccount ? (
+                    <section className={styles.browserRuntimeSummary}>
+                      <div className={styles.browserRuntimeHeader}>
+                        <div>
+                          <span className={styles.runtimeLabel}>
+                            Browser Runtime
+                          </span>
+
+                          <strong>
+                            {
+                              channel.primaryBrowserAccount
+                                .displayName
+                            }
+                          </strong>
+
+                          <small>
+                            {
+                              channel.primaryBrowserAccount
+                                .browserProfileName
+                            }
+                          </small>
+                        </div>
+
+                        <b
+                          className={
+                            channel.primaryBrowserAccount
+                              .health.status ===
+                            "HEALTHY"
+                              ? styles.runtimeHealthy
+                              : channel.primaryBrowserAccount
+                                    .health.status ===
+                                  "WARNING"
+                                ? styles.runtimeWarning
+                                : styles.runtimeCritical
+                          }
+                        >
+                          {
+                            channel.primaryBrowserAccount
+                              .health.score
+                          }
+                          {" · "}
+                          {
+                            channel.primaryBrowserAccount
+                              .health.status
+                          }
+                        </b>
+                      </div>
+
+                      <div className={styles.browserRuntimeGrid}>
+                        <div>
+                          <span>Managed by</span>
+                          <strong>
+                            {
+                              channel.managedBy
+                                ?.displayName ||
+                              channel.primaryBrowserAccount
+                                .displayName
+                            }
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Publishing mode</span>
+                          <strong>
+                            Browser Runtime
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Login</span>
+                          <strong>
+                            {channel.primaryBrowserAccount.loginStatus.replaceAll(
+                              "_",
+                              " ",
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Cookie</span>
+                          <strong>
+                            {channel.primaryBrowserAccount.cookieStatus.replaceAll(
+                              "_",
+                              " ",
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Proxy</span>
+                          <strong>
+                            {
+                              channel.primaryBrowserAccount
+                                .proxyType
+                            }
+                            {channel.primaryBrowserAccount
+                              .proxyCountry
+                              ? ` · ${channel.primaryBrowserAccount.proxyCountry}`
+                              : ""}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Current IP</span>
+                          <strong>
+                            {
+                              channel.primaryBrowserAccount
+                                .lastKnownIp ||
+                              "Not checked"
+                            }
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className={styles.browserRuntimeActions}>
+                        <a
+                          href={`/automation/browser-accounts?accountId=${encodeURIComponent(
+                            channel.primaryBrowserAccount.id,
+                          )}`}
+                        >
+                          Open Browser Account
+                        </a>
+
+                        <a
+                          href="/automation/browser-pool"
+                        >
+                          View Browser Pool
+                        </a>
+                      </div>
+
+                      <p className={styles.runtimeNotice}>
+                        Login, cookies and proxy are controlled
+                        by this Browser Account. No separate
+                        Channel login is required.
+                      </p>
+                    </section>
+                  ) : (
+                    <section className={styles.legacyRuntimePanel}>
+                      <div className={styles.legacyRuntimeNotice}>
+                        <strong>
+                          Legacy Channel Runtime
+                        </strong>
+
+                        <span>
+                          This Facebook Page is not linked to
+                          a Browser Account yet. Link it before
+                          migrating login and proxy management.
+                        </span>
+
+                        <a href="/automation/browser-accounts">
+                          Link Browser Account
+                        </a>
+                      </div>
+
+                      <RuntimeProfileEditor
+                        channelId={channel.id}
+                      />
+                    </section>
+                  )
                 ) : null}
 
                 <div className={styles.channelActions}>
