@@ -1,8 +1,9 @@
 import { AppLayout } from "@/components/AppLayout";
-import { BrowserAccountsManager } from "@/components/automation/BrowserAccountsManager";
+import { BrowserAccountsManagerV2 } from "@/components/automation/BrowserAccountsManagerV2";
 
 type BrowserAccountsPageProps = {
   searchParams: Promise<{
+    accountId?: string;
     channelId?: string;
   }>;
 };
@@ -15,9 +16,10 @@ export default async function BrowserAccountsPage({
 
   return (
     <AppLayout>
-      <BrowserAccountsManager
-        requestedChannelId={
-          params.channelId || null
+      <BrowserAccountsManagerV2
+        requestedAccountId={
+          params.accountId ||
+          null
         }
       />
     </AppLayout>

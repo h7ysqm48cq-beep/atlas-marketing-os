@@ -1,0 +1,292 @@
+.page {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.header,
+.toolbar,
+.detailsHeader,
+.actions,
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.header h1,
+.detailsHeader h2 {
+  margin: 4px 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.subtitle,
+.detailsHeader p {
+  margin: 0;
+  opacity: 0.72;
+}
+
+.toolbar,
+.tablePanel,
+.detailsPanel {
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.22));
+  border-radius: 14px;
+  background: var(--panel-background, rgba(255, 255, 255, 0.03));
+}
+
+.toolbar {
+  padding: 12px;
+}
+
+.search {
+  min-width: 260px;
+  width: min(480px, 100%);
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.28));
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, 0.16));
+  white-space: nowrap;
+}
+
+.table th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.68;
+}
+
+.table tbody tr {
+  cursor: pointer;
+}
+
+.table tbody tr:hover,
+.selectedRow {
+  background: rgba(127, 127, 127, 0.09);
+}
+
+.table td strong,
+.table td small {
+  display: block;
+}
+
+.table td small {
+  margin-top: 4px;
+  opacity: 0.62;
+}
+
+.checkboxCell {
+  width: 42px;
+  text-align: center !important;
+}
+
+.emptyCell,
+.emptyDetails {
+  padding: 34px !important;
+  text-align: center !important;
+  opacity: 0.65;
+}
+
+.status,
+.largeStatus {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.status {
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.largeStatus {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.good {
+  background: rgba(44, 180, 100, 0.14);
+  color: #2cb464;
+}
+
+.warning {
+  background: rgba(230, 160, 35, 0.15);
+  color: #d89a22;
+}
+
+.bad {
+  background: rgba(220, 70, 70, 0.14);
+  color: #dc4646;
+}
+
+.neutral {
+  background: rgba(127, 127, 127, 0.14);
+  color: inherit;
+}
+
+.detailsPanel {
+  padding: 20px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.metrics article {
+  padding: 14px;
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.16));
+  border-radius: 10px;
+}
+
+.metrics span,
+.metrics strong {
+  display: block;
+}
+
+.metrics span {
+  margin-bottom: 8px;
+  font-size: 12px;
+  opacity: 0.64;
+}
+
+.definitionList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 18px 0;
+  border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.16));
+}
+
+.definitionList div {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, 0.16));
+}
+
+.definitionList dt {
+  opacity: 0.62;
+}
+
+.definitionList dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: #2563eb;
+  color: white;
+}
+
+.secondaryButton {
+  background: rgba(127, 127, 127, 0.16);
+  color: inherit;
+}
+
+.dangerButton {
+  background: rgba(220, 70, 70, 0.16);
+  color: #dc4646;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.error,
+.success {
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.error {
+  background: rgba(220, 70, 70, 0.13);
+  color: #dc4646;
+}
+
+.success {
+  background: rgba(44, 180, 100, 0.13);
+  color: #2cb464;
+}
+
+.selectionCount {
+  font-size: 13px;
+  opacity: 0.68;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 14px;
+  }
+
+  .header,
+  .toolbar,
+  .detailsHeader,
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .metrics,
+  .definitionList {
+    grid-template-columns: 1fr;
+  }
+
+  .definitionList div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}
