@@ -194,11 +194,15 @@ export class AssetImageService {
     });
 
     if (!sourceAsset) {
-      throw new NotFoundException('Image asset was not found for the active brand.');
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
     }
 
     if (!sourceAsset.url?.startsWith('https://')) {
-      throw new BadRequestException('The selected image does not have a usable URL.');
+      throw new BadRequestException(
+        'The selected image does not have a usable URL.',
+      );
     }
 
     const sourceResponse = await fetch(sourceAsset.url);
@@ -215,13 +219,17 @@ export class AssetImageService {
     const height = metadata.height ?? sourceAsset.height;
 
     if (!width || !height) {
-      throw new BadRequestException('Unable to determine the selected image size.');
+      throw new BadRequestException(
+        'Unable to determine the selected image size.',
+      );
     }
 
     const placement = this.resolveExistingLogoPlacement(dto.logoPlacement);
     const scale = dto.logoScale ?? 0.85;
     const opacity = dto.logoOpacity ?? 0.9;
     const platform = dto.platform || sourceAsset.platform || 'Multi-platform';
+    const hasCustomPosition =
+      Number.isFinite(dto.logoX) && Number.isFinite(dto.logoY);
 
     const finalBuffer = await this.applyPrimaryLogo({
       brandId: brand.id,
@@ -233,6 +241,8 @@ export class AssetImageService {
       placement,
       scale,
       opacity,
+      normalizedX: hasCustomPosition ? dto.logoX : undefined,
+      normalizedY: hasCustomPosition ? dto.logoY : undefined,
     });
 
     const outputName = dto.name?.trim() || `${sourceAsset.name} · Branded`;
@@ -278,9 +288,17 @@ export class AssetImageService {
           'image-edited',
           'logo-overlay',
           `source-asset-${sourceAsset.id}`,
-          `logo-placement-${placement.toLowerCase()}`,
+          hasCustomPosition
+            ? 'logo-placement-custom'
+            : `logo-placement-${placement.toLowerCase()}`,
           `logo-scale-${scale}`,
           `logo-opacity-${opacity}`,
+          ...(hasCustomPosition
+            ? [
+                `logo-x-${dto.logoX?.toFixed(4)}`,
+                `logo-y-${dto.logoY?.toFixed(4)}`,
+              ]
+            : []),
         ],
         url: uploaded.publicUrl,
         thumbnailUrl: uploaded.publicUrl,
@@ -364,6 +382,8 @@ export class AssetImageService {
     placement: LogoPlacement;
     scale: number;
     opacity: number;
+    normalizedX?: number;
+    normalizedY?: number;
   }): Promise<Buffer> {
     const logoAssetId = input.primaryLogoAssetId?.trim();
 
@@ -401,6 +421,8 @@ export class AssetImageService {
         placement: input.placement,
         scale: input.scale,
         opacity: input.opacity,
+        normalizedX: input.normalizedX,
+        normalizedY: input.normalizedY,
       });
     } catch (error) {
       console.warn(
