@@ -49,12 +49,14 @@ enum BackgroundJobStatus {
   RUNNING
   SUCCEEDED
   FAILED
+  CANCELLED
 }
 
 enum BackgroundJobType {
   AI_STUDIO
   COPILOT_CHAT
   COPILOT_MARKETING_PLAN
+  ASSET_IMAGE
 }
 
 model BackgroundJob {

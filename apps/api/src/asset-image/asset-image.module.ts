@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { BrandsModule } from '../brands/brands.module';
 import { StorageModule } from '../storage/storage.module';
+import { AssetImageBackgroundJobService } from './asset-image-background-job.service';
 import { AssetImageController } from './asset-image.controller';
 import { AssetImageService } from './asset-image.service';
 
 @Module({
   imports: [BrandsModule, StorageModule],
   controllers: [AssetImageController],
-  providers: [AssetImageService],
-  exports: [AssetImageService],
+  providers: [AssetImageService, AssetImageBackgroundJobService],
+  exports: [AssetImageService, AssetImageBackgroundJobService],
 })
 export class AssetImageModule {}

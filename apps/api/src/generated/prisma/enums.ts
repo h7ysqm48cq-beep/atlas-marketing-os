@@ -64,7 +64,8 @@ export const BackgroundJobStatus = {
   QUEUED: 'QUEUED',
   RUNNING: 'RUNNING',
   SUCCEEDED: 'SUCCEEDED',
-  FAILED: 'FAILED'
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED'
 } as const
 
 export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof BackgroundJobStatus]
@@ -73,7 +74,8 @@ export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof Back
 export const BackgroundJobType = {
   AI_STUDIO: 'AI_STUDIO',
   COPILOT_CHAT: 'COPILOT_CHAT',
-  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN'
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN',
+  ASSET_IMAGE: 'ASSET_IMAGE'
 } as const
 
 export type BackgroundJobType = (typeof BackgroundJobType)[keyof typeof BackgroundJobType]

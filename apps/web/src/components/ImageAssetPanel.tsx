@@ -5,6 +5,9 @@ import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
 
+import { waitForBackgroundJob } from "@/lib/background-job";
+
+const ASSET_IMAGE_JOB_KEY = "atlas-asset-image-background-job";
 type ImageAsset = {
   id: string;
   name: string;
@@ -81,9 +84,7 @@ export function ImageAssetPanel({
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
 
-  const [logoMode, setLogoMode] = useState<
-    "AUTO" | "ALWAYS" | "NEVER"
-  >("AUTO");
+  const [logoMode, setLogoMode] = useState<"AUTO" | "ALWAYS" | "NEVER">("AUTO");
 
   const [versions, setVersions] = useState<ImageVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState(0);
@@ -92,31 +93,24 @@ export function ImageAssetPanel({
   const [isGenerating, setIsGenerating] = useState(false);
 
   const [message, setMessage] = useState(
-    prompt
-      ? "Image prompt is ready."
-      : "Generate the content package first.",
+    prompt ? "Image prompt is ready." : "Generate the content package first.",
   );
 
   const asset =
-    versions.find(
-      (version) => version.number === selectedVersion,
-    )?.asset ?? null;
+    versions.find((version) => version.number === selectedVersion)?.asset ??
+    null;
 
   const latestVersionNumber = useMemo(
     () =>
       versions.reduce(
-        (highest, version) =>
-          Math.max(highest, version.number),
+        (highest, version) => Math.max(highest, version.number),
         0,
       ),
     [versions],
   );
 
-  function buildGenerationPrompt(
-    revisionRequest?: string,
-  ) {
-    const cleanRevision =
-      revisionRequest?.trim();
+  function buildGenerationPrompt(revisionRequest?: string) {
+    const cleanRevision = revisionRequest?.trim();
 
     if (!cleanRevision) {
       return prompt.trim();
@@ -134,28 +128,20 @@ export function ImageAssetPanel({
     ].join("\n");
   }
 
-  async function generateImage(
-    revisionRequest?: string,
-  ) {
+  async function generateImage(revisionRequest?: string) {
     if (!prompt.trim()) {
-      setMessage(
-        "Generate the content package before creating an image.",
-      );
+      setMessage("Generate the content package before creating an image.");
       return;
     }
 
     if (!historyId) {
-      setMessage(
-        "A saved Content History record is required.",
-      );
+      setMessage("A saved Content History record is required.");
       return;
     }
 
-    const cleanRevision =
-      revisionRequest?.trim() ?? "";
+    const cleanRevision = revisionRequest?.trim() ?? "";
 
-    const nextVersion =
-      latestVersionNumber + 1;
+    const nextVersion = latestVersionNumber + 1;
 
     setIsGenerating(true);
 
@@ -166,45 +152,54 @@ export function ImageAssetPanel({
     );
 
     try {
-      const response = await fetch(
-        `${API_URL}/asset-images/generate`,
+      const response = await fetch(`${API_URL}/asset-images/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: buildGenerationPrompt(cleanRevision),
+          name:
+            nextVersion === 1
+              ? topic || "Atlas campaign image"
+              : `${topic || "Atlas campaign image"} · Version ${nextVersion}`,
+          campaignId: campaignId || undefined,
+          historyId,
+          platform: "Multi-platform",
+          size,
+          quality,
+          logoMode,
+        }),
+      });
+
+      const job = (await response.json()) as {
+        id?: string;
+        status?: string;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !job.id) {
+        throw new Error(
+          job.message || job.error || "Unable to create background image job.",
+        );
+      }
+
+      window.localStorage.setItem(ASSET_IMAGE_JOB_KEY, job.id);
+
+      const data = await waitForBackgroundJob<any>(
+        `${API_URL}/asset-images/jobs/${job.id}`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt:
-              buildGenerationPrompt(cleanRevision),
-            name:
-              nextVersion === 1
-                ? topic || "Atlas campaign image"
-                : `${
-                    topic || "Atlas campaign image"
-                  } · Version ${nextVersion}`,
-            campaignId:
-              campaignId || undefined,
-            historyId,
-            platform: "Multi-platform",
-            size,
-            quality,
-            logoMode,
-          }),
+          intervalMs: 2000,
+          timeoutMs: 20 * 60 * 1000,
         },
       );
 
-      const data =
-        (await response.json()) as
-          | GenerateResponse
-          | { message?: string };
+      window.localStorage.removeItem(ASSET_IMAGE_JOB_KEY);
 
-      if (
-        !response.ok ||
-        !("asset" in data)
-      ) {
+      if (!response.ok || !("asset" in data)) {
         throw new Error(
-          "message" in data &&
-          data.message
+          "message" in data && data.message
             ? data.message
             : "Unable to generate image.",
         );
@@ -216,10 +211,7 @@ export function ImageAssetPanel({
         revision: cleanRevision,
       };
 
-      setVersions((current) => [
-        ...current,
-        newVersion,
-      ]);
+      setVersions((current) => [...current, newVersion]);
 
       setSelectedVersion(nextVersion);
       setRevision("");
@@ -231,50 +223,35 @@ export function ImageAssetPanel({
       );
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to generate image.",
+        error instanceof Error ? error.message : "Unable to generate image.",
       );
     } finally {
       setIsGenerating(false);
     }
   }
 
-  function applyPreset(
-    instruction: string,
-  ) {
+  function applyPreset(instruction: string) {
     setRevision((current) =>
-      current.trim()
-        ? `${current.trim()}\n${instruction}`
-        : instruction,
+      current.trim() ? `${current.trim()}\n${instruction}` : instruction,
     );
   }
 
-  async function downloadAsset(
-    currentAsset: ImageAsset,
-  ) {
+  async function downloadAsset(currentAsset: ImageAsset) {
     try {
-      const response =
-        await fetch(currentAsset.url);
+      const response = await fetch(currentAsset.url);
 
       if (!response.ok) {
-        throw new Error(
-          "Unable to download image.",
-        );
+        throw new Error("Unable to download image.");
       }
 
-      const blob =
-        await response.blob();
+      const blob = await response.blob();
 
-      const blobUrl =
-        URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(blob);
 
-      const link =
-        document.createElement("a");
+      const link = document.createElement("a");
 
       link.href = blobUrl;
-      link.download =
-        `${currentAsset.name || "atlas-image"}.png`;
+      link.download = `${currentAsset.name || "atlas-image"}.png`;
 
       document.body.appendChild(link);
       link.click();
@@ -282,9 +259,7 @@ export function ImageAssetPanel({
 
       URL.revokeObjectURL(blobUrl);
     } catch {
-      setMessage(
-        "Unable to download image.",
-      );
+      setMessage("Unable to download image.");
     }
   }
 
@@ -296,9 +271,7 @@ export function ImageAssetPanel({
           <h3>Generate campaign visual</h3>
         </div>
 
-        <a href="/assets">
-          Open Asset Library
-        </a>
+        <a href="/assets">Open Asset Library</a>
       </div>
 
       <div className={styles.controls}>
@@ -307,21 +280,13 @@ export function ImageAssetPanel({
 
           <select
             value={size}
-            onChange={(event) =>
-              setSize(event.target.value)
-            }
+            onChange={(event) => setSize(event.target.value)}
           >
-            <option value="1024x1536">
-              Portrait · 1024×1536
-            </option>
+            <option value="1024x1536">Portrait · 1024×1536</option>
 
-            <option value="1024x1024">
-              Square · 1024×1024
-            </option>
+            <option value="1024x1024">Square · 1024×1024</option>
 
-            <option value="1536x1024">
-              Landscape · 1536×1024
-            </option>
+            <option value="1536x1024">Landscape · 1536×1024</option>
           </select>
         </label>
 
@@ -330,25 +295,15 @@ export function ImageAssetPanel({
 
           <select
             value={quality}
-            onChange={(event) =>
-              setQuality(event.target.value)
-            }
+            onChange={(event) => setQuality(event.target.value)}
           >
-            <option value="low">
-              Low
-            </option>
+            <option value="low">Low</option>
 
-            <option value="medium">
-              Medium
-            </option>
+            <option value="medium">Medium</option>
 
-            <option value="high">
-              High
-            </option>
+            <option value="high">High</option>
 
-            <option value="auto">
-              Auto
-            </option>
+            <option value="auto">Auto</option>
           </select>
         </label>
 
@@ -358,38 +313,21 @@ export function ImageAssetPanel({
           <select
             value={logoMode}
             onChange={(event) =>
-              setLogoMode(
-                event.target.value as
-                  | "AUTO"
-                  | "ALWAYS"
-                  | "NEVER",
-              )
+              setLogoMode(event.target.value as "AUTO" | "ALWAYS" | "NEVER")
             }
           >
-            <option value="AUTO">
-              Auto · Recommended
-            </option>
+            <option value="AUTO">Auto · Recommended</option>
 
-            <option value="ALWAYS">
-              Always include
-            </option>
+            <option value="ALWAYS">Always include</option>
 
-            <option value="NEVER">
-              Never include
-            </option>
+            <option value="NEVER">Never include</option>
           </select>
         </label>
 
         <button
           type="button"
-          onClick={() =>
-            void generateImage()
-          }
-          disabled={
-            isGenerating ||
-            !prompt ||
-            !historyId
-          }
+          onClick={() => void generateImage()}
+          disabled={isGenerating || !prompt || !historyId}
         >
           {isGenerating
             ? "Generating image..."
@@ -399,18 +337,14 @@ export function ImageAssetPanel({
         </button>
       </div>
 
-      <p className={styles.message}>
-        {message}
-      </p>
+      <p className={styles.message}>{message}</p>
 
       {versions.length ? (
         <div className={styles.versionBar}>
           <div>
             <span>Image versions</span>
 
-            <small>
-              {versions.length} saved
-            </small>
+            <small>{versions.length} saved</small>
           </div>
 
           <div className={styles.versionButtons}>
@@ -419,16 +353,9 @@ export function ImageAssetPanel({
                 type="button"
                 key={version.number}
                 className={
-                  selectedVersion ===
-                  version.number
-                    ? styles.activeVersion
-                    : ""
+                  selectedVersion === version.number ? styles.activeVersion : ""
                 }
-                onClick={() =>
-                  setSelectedVersion(
-                    version.number,
-                  )
-                }
+                onClick={() => setSelectedVersion(version.number)}
               >
                 V{version.number}
               </button>
@@ -440,64 +367,40 @@ export function ImageAssetPanel({
       {asset ? (
         <>
           <div className={styles.result}>
-            <img
-              src={asset.url}
-              alt={asset.name}
-            />
+            <img src={asset.url} alt={asset.name} />
 
             <div>
-              <span>
-                Saved asset · Version{" "}
-                {selectedVersion}
-              </span>
+              <span>Saved asset · Version {selectedVersion}</span>
 
               <h3>{asset.name}</h3>
 
               <p>
-                {asset.provider ||
-                  "OpenAI image model"}{" "}
-                · {asset.width}×
+                {asset.provider || "OpenAI image model"} · {asset.width}×
                 {asset.height}
               </p>
 
-              {versions.find(
-                (version) =>
-                  version.number ===
-                  selectedVersion,
-              )?.revision ? (
+              {versions.find((version) => version.number === selectedVersion)
+                ?.revision ? (
                 <p className={styles.revisionSummary}>
                   Revision:{" "}
                   {
                     versions.find(
-                      (version) =>
-                        version.number ===
-                        selectedVersion,
+                      (version) => version.number === selectedVersion,
                     )?.revision
                   }
                 </p>
               ) : null}
 
               <div className={styles.actions}>
-                <a
-                  href={asset.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={asset.url} target="_blank" rel="noreferrer">
                   View full image
                 </a>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    void downloadAsset(asset)
-                  }
-                >
+                <button type="button" onClick={() => void downloadAsset(asset)}>
                   Download PNG
                 </button>
 
-                <a href="/assets">
-                  View in Library
-                </a>
+                <a href="/assets">View in Library</a>
               </div>
             </div>
           </div>
@@ -505,47 +408,30 @@ export function ImageAssetPanel({
           <section className={styles.revisionPanel}>
             <div className={styles.revisionHeader}>
               <div>
-                <span>
-                  Improve this image
-                </span>
+                <span>Improve this image</span>
 
-                <h4>
-                  Tell Atlas what to change
-                </h4>
+                <h4>Tell Atlas what to change</h4>
               </div>
 
-              <small>
-                A new Asset Library version
-                will be created.
-              </small>
+              <small>A new Asset Library version will be created.</small>
             </div>
 
             <div className={styles.presetGrid}>
-              {REVISION_PRESETS.map(
-                (preset) => (
-                  <button
-                    type="button"
-                    key={preset.label}
-                    onClick={() =>
-                      applyPreset(
-                        preset.instruction,
-                      )
-                    }
-                    disabled={isGenerating}
-                  >
-                    {preset.label}
-                  </button>
-                ),
-              )}
+              {REVISION_PRESETS.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.label}
+                  onClick={() => applyPreset(preset.instruction)}
+                  disabled={isGenerating}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
             <textarea
               value={revision}
-              onChange={(event) =>
-                setRevision(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setRevision(event.target.value)}
               placeholder="Example: Make the colours brighter, reduce the logo size, change to a daytime scene and avoid showing people from behind."
               rows={5}
               disabled={isGenerating}
@@ -555,13 +441,8 @@ export function ImageAssetPanel({
               <button
                 type="button"
                 className={styles.clearButton}
-                onClick={() =>
-                  setRevision("")
-                }
-                disabled={
-                  isGenerating ||
-                  !revision
-                }
+                onClick={() => setRevision("")}
+                disabled={isGenerating || !revision}
               >
                 Clear
               </button>
@@ -569,21 +450,12 @@ export function ImageAssetPanel({
               <button
                 type="button"
                 className={styles.regenerateButton}
-                onClick={() =>
-                  void generateImage(
-                    revision,
-                  )
-                }
-                disabled={
-                  isGenerating ||
-                  !revision.trim()
-                }
+                onClick={() => void generateImage(revision)}
+                disabled={isGenerating || !revision.trim()}
               >
                 {isGenerating
                   ? "Generating new version..."
-                  : `Generate Version ${
-                      latestVersionNumber + 1
-                    }`}
+                  : `Generate Version ${latestVersionNumber + 1}`}
               </button>
             </div>
           </section>

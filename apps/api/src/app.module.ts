@@ -35,8 +35,10 @@ import { ContentValidatorModule } from './content-validator/content-validator.mo
 import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engine.module';
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { BrowserRuntimeModule } from './browser-runtime/browser-runtime.module';
+import { JobsModule } from './jobs/jobs.module';
 @Module({
   imports: [
+    JobsModule,
     BrowserRuntimeModule,
     PlannerModule,
     PromptBuilderModule,
