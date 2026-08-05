@@ -18,10 +18,19 @@ export class LogoOverlayService {
     height: number;
     platform?: string;
     placement?: LogoPlacement;
+    scale?: number;
+    opacity?: number;
   }): Promise<Buffer> {
-    const targetLogoWidth = this.safeArea.getLogoWidth(
+    const scale = this.clamp(options.scale ?? 1, 0.5, 1.5);
+    const opacity = this.clamp(options.opacity ?? 1, 0.2, 1);
+
+    const defaultLogoWidth = this.safeArea.getLogoWidth(
       options.width,
       options.platform,
+    );
+    const targetLogoWidth = Math.max(
+      48,
+      Math.round(defaultLogoWidth * scale),
     );
     const padding = this.safeArea.getPadding(
       options.width,
@@ -32,15 +41,22 @@ export class LogoOverlayService {
       options.platform,
     );
 
-    const resizedLogo = await sharp(options.logo)
+    let logoPipeline = sharp(options.logo)
       .resize({
         width: targetLogoWidth,
         fit: 'inside',
         withoutEnlargement: true,
       })
-      .png()
-      .toBuffer();
+      .ensureAlpha();
 
+    if (opacity < 1) {
+      logoPipeline = logoPipeline.linear(
+        [1, 1, 1, opacity],
+        [0, 0, 0, 0],
+      );
+    }
+
+    const resizedLogo = await logoPipeline.png().toBuffer();
     const metadata = await sharp(resizedLogo).metadata();
     const logoWidth = metadata.width ?? targetLogoWidth;
     const logoHeight = metadata.height ?? Math.round(targetLogoWidth * 0.4);
@@ -124,5 +140,9 @@ export class LogoOverlayService {
       default:
         return { left: centeredLeft, top: bottom };
     }
+  }
+
+  private clamp(value: number, minimum: number, maximum: number): number {
+    return Math.min(maximum, Math.max(minimum, value));
   }
 }
