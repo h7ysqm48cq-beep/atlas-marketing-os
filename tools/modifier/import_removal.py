@@ -460,7 +460,7 @@ class ImportRemovalPlanner:
                 node,
             )
 
-        if named is None:
+        if named is None:  # pragma: no cover
             raise ImportRemovalError(
                 "Named import match "
                 "did not contain a node"

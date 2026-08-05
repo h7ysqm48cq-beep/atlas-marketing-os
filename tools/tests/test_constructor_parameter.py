@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import unittest
 
 from tools.modifier.constructor_parameter import (
@@ -281,3 +283,64 @@ class ConstructorParameterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.parametrize(
+    (
+        "field",
+        "value",
+        "message",
+    ),
+    (
+        (
+            "name",
+            123,
+            "name must be a string",
+        ),
+        (
+            "type",
+            123,
+            "type must be a string",
+        ),
+    ),
+)
+def test_non_string_name_or_type_rejected(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    kwargs = {
+        "name": "service",
+        "type": "AtlasService",
+        field: value,
+    }
+
+    with pytest.raises(
+        TypeError,
+        match=message,
+    ):
+        ConstructorParameter(**kwargs)
+
+
+def test_readonly_must_be_boolean() -> None:
+    with pytest.raises(
+        TypeError,
+        match="readonly must be a boolean",
+    ):
+        ConstructorParameter(
+            name="service",
+            type="AtlasService",
+            readonly="yes",
+        )
+
+
+def test_optional_must_be_boolean() -> None:
+    with pytest.raises(
+        TypeError,
+        match="optional must be a boolean",
+    ):
+        ConstructorParameter(
+            name="service",
+            type="AtlasService",
+            optional="yes",
+        )

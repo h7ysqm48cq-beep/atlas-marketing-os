@@ -388,7 +388,7 @@ class ExportRemovalPlanner:
                 ),
             )
 
-        if named is None:
+        if named is None:  # pragma: no cover
             raise ExportRemovalError(
                 "Named export match did not "
                 "contain a node"

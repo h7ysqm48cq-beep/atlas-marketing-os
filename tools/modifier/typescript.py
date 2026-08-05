@@ -2669,11 +2669,9 @@ class TypeScriptFile:
                     position=position,
                 )
             )
-        except (
-            InvalidMemberAdd,
-            MemberAddConflict,
-            MemberAddError,
-        ) as error:
+        except UnsupportedTypeScriptImport:
+            raise
+        except Exception as error:
             raise UnsupportedTypeScriptImport(
                 str(error)
             ) from error
