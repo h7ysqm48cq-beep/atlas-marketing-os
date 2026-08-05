@@ -993,7 +993,7 @@ async function resolveProfileDirectory(
 
 async function inspectPublicIp(
   context: BrowserContext,
-) {
+): Promise<string | null> {
   const page =
     context.pages()[0] ||
     (await context.newPage());
@@ -1003,7 +1003,8 @@ async function inspectPublicIp(
     {
       waitUntil:
         "domcontentloaded",
-      timeout: 20000,
+      timeout:
+        20000,
     },
   );
 
@@ -1017,10 +1018,15 @@ async function inspectPublicIp(
       JSON.parse(
         body || "{}",
       ) as {
-        ip?: string;
+        ip?: unknown;
       };
 
-    return result.ip || null;
+    const ip =
+      String(
+        result.ip ?? "",
+      ).trim();
+
+    return ip || null;
   } catch {
     return null;
   }
@@ -5454,20 +5460,8 @@ app.post(
         );
 
       const ip =
-        typeof inspected ===
-          "string"
-          ? inspected.trim()
-          : (
-              inspected &&
-              typeof inspected ===
-                "object" &&
-              "ip" in inspected
-                ? String(
-                    inspected.ip ||
-                    "",
-                  ).trim()
-                : ""
-            );
+        inspected?.trim() ||
+        "";
 
       if (!ip) {
         throw new Error(
