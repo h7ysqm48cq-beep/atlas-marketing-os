@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./sidebar-enhancements.css";
 import { PreferencesProvider } from "@/components/preferences";
 
 export const metadata: Metadata = {
