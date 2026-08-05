@@ -41,6 +41,9 @@ type GenerateResponse = {
     model: string;
     size: string;
     quality: string;
+    logoPlacement?: LogoPlacement;
+    logoScale?: number;
+    logoOpacity?: number;
   };
 };
 
@@ -99,6 +102,8 @@ export function ImageAssetPanel({
   const [logoMode, setLogoMode] = useState<LogoMode>("AUTO");
   const [logoPlacement, setLogoPlacement] =
     useState<LogoPlacement>("AUTO");
+  const [logoScale, setLogoScale] = useState(1);
+  const [logoOpacity, setLogoOpacity] = useState(1);
 
   const [versions, setVersions] = useState<ImageVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState(0);
@@ -181,6 +186,8 @@ export function ImageAssetPanel({
           quality,
           logoMode,
           logoPlacement,
+          logoScale,
+          logoOpacity,
         }),
       });
 
@@ -335,6 +342,36 @@ export function ImageAssetPanel({
             <option value="CENTER_LEFT">Centre left</option>
             <option value="CENTER">Centre</option>
             <option value="CENTER_RIGHT">Centre right</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Logo size</span>
+          <select
+            value={logoScale}
+            onChange={(event) => setLogoScale(Number(event.target.value))}
+            disabled={logoMode === "NEVER"}
+          >
+            <option value={0.7}>Small</option>
+            <option value={0.85}>Compact</option>
+            <option value={1}>Standard · Recommended</option>
+            <option value={1.2}>Large</option>
+            <option value={1.4}>Extra large</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Logo opacity</span>
+          <select
+            value={logoOpacity}
+            onChange={(event) => setLogoOpacity(Number(event.target.value))}
+            disabled={logoMode === "NEVER"}
+          >
+            <option value={1}>100% · Solid</option>
+            <option value={0.9}>90% · Recommended</option>
+            <option value={0.75}>75%</option>
+            <option value={0.6}>60% · Subtle</option>
+            <option value={0.4}>40% · Watermark</option>
           </select>
         </label>
 
