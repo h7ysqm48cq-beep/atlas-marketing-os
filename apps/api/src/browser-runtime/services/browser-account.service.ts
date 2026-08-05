@@ -13,6 +13,7 @@ import {
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { SocialTokenCryptoService } from '../../common/social-token-crypto.service';
+import { createHash } from 'node:crypto';
 
 type CreateBrowserAccountInput = {
   displayName?: string;
@@ -124,6 +125,20 @@ export class BrowserAccountService {
       );
     }
 
+    const facebookEmailHash =
+      facebookEmail
+        ? createHash(
+            'sha256',
+          )
+            .update(
+              facebookEmail,
+              'utf8',
+            )
+            .digest(
+              'hex',
+            )
+        : null;
+
     const facebookPassword =
       input.facebookPassword ||
       '';
@@ -203,6 +218,26 @@ export class BrowserAccountService {
         4,
       );
 
+    if (facebookEmailHash) {
+      const existingAccount =
+        await this.prisma.browserAccount
+          .findUnique({
+            where: {
+              facebookEmailHash,
+            },
+            select: {
+              id: true,
+              displayName: true,
+            },
+          });
+
+      if (existingAccount) {
+        throw new BadRequestException(
+          `A browser account already exists for this Facebook email: ${existingAccount.displayName}.`,
+        );
+      }
+    }
+
     const proxyType =
       input.proxyType ??
       SocialProxyType.DIRECT;
@@ -259,6 +294,9 @@ export class BrowserAccountService {
                   facebookPassword,
                 )
               : null,
+
+          facebookEmailHash,
+
 
           locale:
             input.locale?.trim() ||

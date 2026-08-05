@@ -486,6 +486,7 @@ model BrowserAccount {
 
   facebookEmailEncrypted    String?
   facebookPasswordEncrypted String?
+  facebookEmailHash         String? @unique
 
   locale   String @default("en-MY")
   timezone String @default("Asia/Kuala_Lumpur")

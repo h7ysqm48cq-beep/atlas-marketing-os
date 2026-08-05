@@ -390,6 +390,7 @@ export const BrowserAccountScalarFieldEnum = {
   browserProfileName: 'browserProfileName',
   facebookEmailEncrypted: 'facebookEmailEncrypted',
   facebookPasswordEncrypted: 'facebookPasswordEncrypted',
+  facebookEmailHash: 'facebookEmailHash',
   locale: 'locale',
   timezone: 'timezone',
   browserEngine: 'browserEngine',
