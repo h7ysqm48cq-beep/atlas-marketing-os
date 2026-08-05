@@ -199,6 +199,7 @@
   max-height: 720px;
   line-height: 0;
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  touch-action: none;
 }
 
 .sourceImage {
@@ -208,6 +209,7 @@
   width: auto;
   height: auto;
   object-fit: contain;
+  user-select: none;
 }
 
 .logoPreview {
@@ -216,7 +218,10 @@
   height: auto;
   max-height: 18%;
   object-fit: contain;
-  pointer-events: none;
+  cursor: grab;
+  pointer-events: auto;
+  user-select: none;
+  touch-action: none;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
   transition:
     left 0.18s ease,
@@ -226,6 +231,14 @@
     width 0.18s ease,
     opacity 0.18s ease,
     transform 0.18s ease;
+}
+
+.logoDragging {
+  cursor: grabbing;
+  transition: none;
+  filter:
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 0 0.35rem color-mix(in srgb, var(--accent) 75%, transparent));
 }
 
 .safeArea {
@@ -276,6 +289,12 @@
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+}
+
+.controls .secondaryButton {
+  border: 1px solid var(--border-color);
+  background: var(--surface-input);
+  color: inherit;
 }
 
 .controls button:disabled {
