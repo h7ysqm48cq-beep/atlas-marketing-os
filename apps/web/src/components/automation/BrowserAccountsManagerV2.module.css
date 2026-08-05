@@ -1509,3 +1509,229 @@
 }
 
 /* === DETAIL NAVIGATION FINAL END === */
+
+/* === ACCOUNT TABLE UX FINAL START === */
+
+.tableScroll {
+  position: relative;
+  max-height: min(68vh, 760px);
+  overflow: auto;
+}
+
+.table {
+  min-width: 1320px;
+}
+
+.table thead {
+  position: sticky;
+  z-index: 6;
+  top: 0;
+}
+
+.table th {
+  background:
+    color-mix(
+      in srgb,
+      var(--panel, #ffffff) 92%,
+      currentColor 8%
+    );
+  backdrop-filter: blur(14px);
+}
+
+.accountIdentity {
+  display: flex;
+  min-width: 190px;
+  align-items: center;
+  gap: 10px;
+}
+
+.accountIdentity > div {
+  min-width: 0;
+}
+
+.accountIdentity strong,
+.accountIdentity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 28%,
+      transparent
+    );
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--accent, #6d5dfc) 18%,
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--accent, #6d5dfc) 7%,
+        transparent
+      )
+    );
+  color: var(--accent, #6d5dfc);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.runtimeIndicator {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.runtimeIndicator i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.runtimeIndicatorOnline {
+  color: #22a35a;
+}
+
+.runtimeIndicatorOnline i {
+  box-shadow:
+    0 0 0 4px
+      rgba(34, 197, 94, 0.12);
+}
+
+.runtimeIndicatorOffline {
+  color: inherit;
+  opacity: 0.55;
+}
+
+.quickActionHeader,
+.quickActionCell {
+  position: sticky;
+  z-index: 4;
+  right: 0;
+  min-width: 214px;
+  background:
+    var(--panel, #ffffff);
+  box-shadow:
+    -8px 0 16px
+      rgba(15, 23, 42, 0.04);
+}
+
+.quickActionHeader {
+  z-index: 8;
+  background:
+    color-mix(
+      in srgb,
+      var(--panel, #ffffff) 92%,
+      currentColor 8%
+    ) !important;
+}
+
+.selectedRow .quickActionCell {
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 8%,
+      var(--panel, #ffffff)
+    );
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rowActions button {
+  min-height: 31px;
+  padding: 6px 9px;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.22)
+    );
+  border-radius: 7px;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 3.5%,
+      transparent
+    );
+  color: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.rowActions button:hover:not(:disabled) {
+  border-color:
+    var(--accent, #6d5dfc);
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 9%,
+      transparent
+    );
+  color:
+    var(--accent, #6d5dfc);
+  transform:
+    translateY(-1px);
+}
+
+.rowActions .rowActionPrimary {
+  border-color:
+    var(--accent, #6d5dfc);
+  background:
+    var(--accent, #6d5dfc);
+  color: #ffffff;
+}
+
+.rowActions .rowActionPrimary:hover:not(:disabled) {
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 88%,
+      #000000
+    );
+  color: #ffffff;
+}
+
+.rowActions button:disabled {
+  cursor: wait;
+  opacity: 0.48;
+}
+
+@media (max-width: 760px) {
+  .tableScroll {
+    max-height: none;
+  }
+
+  .quickActionHeader,
+  .quickActionCell {
+    position: static;
+    box-shadow: none;
+  }
+}
+
+/* === ACCOUNT TABLE UX FINAL END === */

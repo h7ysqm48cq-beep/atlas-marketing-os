@@ -1902,6 +1902,9 @@ export function BrowserAccountsManagerV2({
                 <th>Browser</th>
                 <th>IP</th>
                 <th>Last verified</th>
+                <th className={styles.quickActionHeader}>
+                  Quick Actions
+                </th>
               </tr>
             </thead>
 
@@ -1910,7 +1913,7 @@ export function BrowserAccountsManagerV2({
                 <tr>
                   <td
                     className={styles.emptyCell}
-                    colSpan={8}
+                    colSpan={9}
                   >
                     Loading browser accounts…
                   </td>
@@ -1922,7 +1925,7 @@ export function BrowserAccountsManagerV2({
                 <tr>
                   <td
                     className={styles.emptyCell}
-                    colSpan={8}
+                    colSpan={9}
                   >
                     No independent browser accounts found.
                   </td>
@@ -1979,17 +1982,30 @@ export function BrowserAccountsManagerV2({
                       </td>
 
                       <td>
-                        <strong>
-                          {
-                            account.displayName
-                          }
-                        </strong>
+                        <div className={styles.accountIdentity}>
+                          <span
+                            aria-hidden="true"
+                            className={styles.accountAvatar}
+                          >
+                            {account.displayName
+                              .trim()
+                              .slice(0, 1)
+                              .toUpperCase() ||
+                              "B"}
+                          </span>
 
-                        <small>
-                          {
-                            account.browserProfileName
-                          }
-                        </small>
+                          <div>
+                            <strong>
+                              {account.displayName}
+                            </strong>
+
+                            <small>
+                              {
+                                account.browserProfileName
+                              }
+                            </small>
+                          </div>
+                        </div>
                       </td>
 
                       <td>
@@ -2063,7 +2079,92 @@ export function BrowserAccountsManagerV2({
                           account.lastVerifiedAt,
                         )}
                       </td>
-                    </tr>
+                    
+                      <td
+                        className={styles.quickActionCell}
+                        onClick={(event) =>
+                          event.stopPropagation()
+                        }
+                      >
+                        <div className={styles.rowActions}>
+                          <button
+                            className={styles.rowActionPrimary}
+                            type="button"
+                            disabled={runtime.loading}
+                            onClick={() => {
+                              setSelectedId(
+                                account.id,
+                              );
+
+                              if (
+                                runtime.running
+                              ) {
+                                setViewerOpen(
+                                  true,
+                                );
+                                return;
+                              }
+
+                              void openBrowser(
+                                account.id,
+                              ).catch(
+                                (error) =>
+                                  setGlobalError(
+                                    error instanceof
+                                      Error
+                                      ? error.message
+                                      : "Unable to open browser.",
+                                  ),
+                              );
+                            }}
+                          >
+                            {runtime.running
+                              ? "View"
+                              : "Open"}
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={runtime.loading}
+                            onClick={() => {
+                              setSelectedId(
+                                account.id,
+                              );
+
+                              void verifyLogin(
+                                account.id,
+                              ).catch(
+                                (error) =>
+                                  setGlobalError(
+                                    error instanceof
+                                      Error
+                                      ? error.message
+                                      : "Unable to verify login.",
+                                  ),
+                              );
+                            }}
+                          >
+                            Verify
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={runtime.loading}
+                            onClick={() => {
+                              setSelectedId(
+                                account.id,
+                              );
+
+                              openEdit(
+                                account,
+                              );
+                            }}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
+</tr>
                   );
                 },
               )}
