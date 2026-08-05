@@ -1,8 +1,11 @@
 import {
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class GenerateAssetImageDto {
@@ -62,4 +65,16 @@ export class GenerateAssetImageDto {
     | 'BOTTOM_LEFT'
     | 'BOTTOM_CENTER'
     | 'BOTTOM_RIGHT';
+
+  @IsNumber()
+  @Min(0.5)
+  @Max(1.5)
+  @IsOptional()
+  logoScale?: number;
+
+  @IsNumber()
+  @Min(0.2)
+  @Max(1)
+  @IsOptional()
+  logoOpacity?: number;
 }
