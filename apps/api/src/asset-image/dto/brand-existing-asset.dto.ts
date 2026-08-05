@@ -40,4 +40,16 @@ export class BrandExistingAssetDto {
   @Min(0.2)
   @Max(1)
   logoOpacity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  logoX?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  logoY?: number;
 }
