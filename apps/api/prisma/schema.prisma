@@ -484,8 +484,27 @@ model BrowserAccount {
   browserProfileKey  String @unique
   browserProfileName String
 
+  facebookEmailEncrypted    String?
+  facebookPasswordEncrypted String?
+
   locale   String @default("en-MY")
   timezone String @default("Asia/Kuala_Lumpur")
+
+  browserEngine     String  @default("chromium")
+  operatingSystem   String  @default("macOS")
+  userAgent         String?
+  screenWidth       Int     @default(1440)
+  screenHeight      Int     @default(900)
+  deviceScaleFactor Float   @default(2)
+  colorScheme       String  @default("light")
+
+  hardwareConcurrency Int?
+  deviceMemory        Int?
+  webglVendor         String?
+  webglRenderer       String?
+
+  identityLocked  Boolean @default(true)
+  identityVersion Int     @default(1)
 
   proxyType SocialProxyType @default(DIRECT)
   proxyHost String?
@@ -502,10 +521,17 @@ model BrowserAccount {
   cookieStatus String @default("NOT_CREATED")
 
   lastKnownIp     String?
+  expectedIp      String?
+  lastIpCheckedAt DateTime?
+  ipStatus        String    @default("NOT_CHECKED")
+
   lastLoginAt     DateTime?
   lastVerifiedAt  DateTime?
   lastHeartbeatAt DateTime?
   lastLoginError  String?
+
+  fingerprintStatus String  @default("LOCKED")
+  identityError     String?
 
   channels         BrowserAccountChannel[]
   runtimeLease     BrowserAccountLease?
@@ -523,6 +549,8 @@ model BrowserAccount {
   @@index([proxyType])
   @@index([proxyCountry])
   @@index([facebookUserId])
+  @@index([ipStatus])
+  @@index([fingerprintStatus])
 }
 
 enum BrowserAccountEventStatus {

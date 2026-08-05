@@ -27,10 +27,22 @@ export type AggregateBrowserAccount = {
 }
 
 export type BrowserAccountAvgAggregateOutputType = {
+  screenWidth: number | null
+  screenHeight: number | null
+  deviceScaleFactor: number | null
+  hardwareConcurrency: number | null
+  deviceMemory: number | null
+  identityVersion: number | null
   proxyPort: number | null
 }
 
 export type BrowserAccountSumAggregateOutputType = {
+  screenWidth: number | null
+  screenHeight: number | null
+  deviceScaleFactor: number | null
+  hardwareConcurrency: number | null
+  deviceMemory: number | null
+  identityVersion: number | null
   proxyPort: number | null
 }
 
@@ -42,8 +54,23 @@ export type BrowserAccountMinAggregateOutputType = {
   displayName: string | null
   browserProfileKey: string | null
   browserProfileName: string | null
+  facebookEmailEncrypted: string | null
+  facebookPasswordEncrypted: string | null
   locale: string | null
   timezone: string | null
+  browserEngine: string | null
+  operatingSystem: string | null
+  userAgent: string | null
+  screenWidth: number | null
+  screenHeight: number | null
+  deviceScaleFactor: number | null
+  colorScheme: string | null
+  hardwareConcurrency: number | null
+  deviceMemory: number | null
+  webglVendor: string | null
+  webglRenderer: string | null
+  identityLocked: boolean | null
+  identityVersion: number | null
   proxyType: $Enums.SocialProxyType | null
   proxyHost: string | null
   proxyPort: number | null
@@ -55,10 +82,15 @@ export type BrowserAccountMinAggregateOutputType = {
   loginStatus: string | null
   cookieStatus: string | null
   lastKnownIp: string | null
+  expectedIp: string | null
+  lastIpCheckedAt: Date | null
+  ipStatus: string | null
   lastLoginAt: Date | null
   lastVerifiedAt: Date | null
   lastHeartbeatAt: Date | null
   lastLoginError: string | null
+  fingerprintStatus: string | null
+  identityError: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -71,8 +103,23 @@ export type BrowserAccountMaxAggregateOutputType = {
   displayName: string | null
   browserProfileKey: string | null
   browserProfileName: string | null
+  facebookEmailEncrypted: string | null
+  facebookPasswordEncrypted: string | null
   locale: string | null
   timezone: string | null
+  browserEngine: string | null
+  operatingSystem: string | null
+  userAgent: string | null
+  screenWidth: number | null
+  screenHeight: number | null
+  deviceScaleFactor: number | null
+  colorScheme: string | null
+  hardwareConcurrency: number | null
+  deviceMemory: number | null
+  webglVendor: string | null
+  webglRenderer: string | null
+  identityLocked: boolean | null
+  identityVersion: number | null
   proxyType: $Enums.SocialProxyType | null
   proxyHost: string | null
   proxyPort: number | null
@@ -84,10 +131,15 @@ export type BrowserAccountMaxAggregateOutputType = {
   loginStatus: string | null
   cookieStatus: string | null
   lastKnownIp: string | null
+  expectedIp: string | null
+  lastIpCheckedAt: Date | null
+  ipStatus: string | null
   lastLoginAt: Date | null
   lastVerifiedAt: Date | null
   lastHeartbeatAt: Date | null
   lastLoginError: string | null
+  fingerprintStatus: string | null
+  identityError: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -100,8 +152,23 @@ export type BrowserAccountCountAggregateOutputType = {
   displayName: number
   browserProfileKey: number
   browserProfileName: number
+  facebookEmailEncrypted: number
+  facebookPasswordEncrypted: number
   locale: number
   timezone: number
+  browserEngine: number
+  operatingSystem: number
+  userAgent: number
+  screenWidth: number
+  screenHeight: number
+  deviceScaleFactor: number
+  colorScheme: number
+  hardwareConcurrency: number
+  deviceMemory: number
+  webglVendor: number
+  webglRenderer: number
+  identityLocked: number
+  identityVersion: number
   proxyType: number
   proxyHost: number
   proxyPort: number
@@ -113,10 +180,15 @@ export type BrowserAccountCountAggregateOutputType = {
   loginStatus: number
   cookieStatus: number
   lastKnownIp: number
+  expectedIp: number
+  lastIpCheckedAt: number
+  ipStatus: number
   lastLoginAt: number
   lastVerifiedAt: number
   lastHeartbeatAt: number
   lastLoginError: number
+  fingerprintStatus: number
+  identityError: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -124,10 +196,22 @@ export type BrowserAccountCountAggregateOutputType = {
 
 
 export type BrowserAccountAvgAggregateInputType = {
+  screenWidth?: true
+  screenHeight?: true
+  deviceScaleFactor?: true
+  hardwareConcurrency?: true
+  deviceMemory?: true
+  identityVersion?: true
   proxyPort?: true
 }
 
 export type BrowserAccountSumAggregateInputType = {
+  screenWidth?: true
+  screenHeight?: true
+  deviceScaleFactor?: true
+  hardwareConcurrency?: true
+  deviceMemory?: true
+  identityVersion?: true
   proxyPort?: true
 }
 
@@ -139,8 +223,23 @@ export type BrowserAccountMinAggregateInputType = {
   displayName?: true
   browserProfileKey?: true
   browserProfileName?: true
+  facebookEmailEncrypted?: true
+  facebookPasswordEncrypted?: true
   locale?: true
   timezone?: true
+  browserEngine?: true
+  operatingSystem?: true
+  userAgent?: true
+  screenWidth?: true
+  screenHeight?: true
+  deviceScaleFactor?: true
+  colorScheme?: true
+  hardwareConcurrency?: true
+  deviceMemory?: true
+  webglVendor?: true
+  webglRenderer?: true
+  identityLocked?: true
+  identityVersion?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -152,10 +251,15 @@ export type BrowserAccountMinAggregateInputType = {
   loginStatus?: true
   cookieStatus?: true
   lastKnownIp?: true
+  expectedIp?: true
+  lastIpCheckedAt?: true
+  ipStatus?: true
   lastLoginAt?: true
   lastVerifiedAt?: true
   lastHeartbeatAt?: true
   lastLoginError?: true
+  fingerprintStatus?: true
+  identityError?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -168,8 +272,23 @@ export type BrowserAccountMaxAggregateInputType = {
   displayName?: true
   browserProfileKey?: true
   browserProfileName?: true
+  facebookEmailEncrypted?: true
+  facebookPasswordEncrypted?: true
   locale?: true
   timezone?: true
+  browserEngine?: true
+  operatingSystem?: true
+  userAgent?: true
+  screenWidth?: true
+  screenHeight?: true
+  deviceScaleFactor?: true
+  colorScheme?: true
+  hardwareConcurrency?: true
+  deviceMemory?: true
+  webglVendor?: true
+  webglRenderer?: true
+  identityLocked?: true
+  identityVersion?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -181,10 +300,15 @@ export type BrowserAccountMaxAggregateInputType = {
   loginStatus?: true
   cookieStatus?: true
   lastKnownIp?: true
+  expectedIp?: true
+  lastIpCheckedAt?: true
+  ipStatus?: true
   lastLoginAt?: true
   lastVerifiedAt?: true
   lastHeartbeatAt?: true
   lastLoginError?: true
+  fingerprintStatus?: true
+  identityError?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -197,8 +321,23 @@ export type BrowserAccountCountAggregateInputType = {
   displayName?: true
   browserProfileKey?: true
   browserProfileName?: true
+  facebookEmailEncrypted?: true
+  facebookPasswordEncrypted?: true
   locale?: true
   timezone?: true
+  browserEngine?: true
+  operatingSystem?: true
+  userAgent?: true
+  screenWidth?: true
+  screenHeight?: true
+  deviceScaleFactor?: true
+  colorScheme?: true
+  hardwareConcurrency?: true
+  deviceMemory?: true
+  webglVendor?: true
+  webglRenderer?: true
+  identityLocked?: true
+  identityVersion?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -210,10 +349,15 @@ export type BrowserAccountCountAggregateInputType = {
   loginStatus?: true
   cookieStatus?: true
   lastKnownIp?: true
+  expectedIp?: true
+  lastIpCheckedAt?: true
+  ipStatus?: true
   lastLoginAt?: true
   lastVerifiedAt?: true
   lastHeartbeatAt?: true
   lastLoginError?: true
+  fingerprintStatus?: true
+  identityError?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -313,8 +457,23 @@ export type BrowserAccountGroupByOutputType = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted: string | null
+  facebookPasswordEncrypted: string | null
   locale: string
   timezone: string
+  browserEngine: string
+  operatingSystem: string
+  userAgent: string | null
+  screenWidth: number
+  screenHeight: number
+  deviceScaleFactor: number
+  colorScheme: string
+  hardwareConcurrency: number | null
+  deviceMemory: number | null
+  webglVendor: string | null
+  webglRenderer: string | null
+  identityLocked: boolean
+  identityVersion: number
   proxyType: $Enums.SocialProxyType
   proxyHost: string | null
   proxyPort: number | null
@@ -326,10 +485,15 @@ export type BrowserAccountGroupByOutputType = {
   loginStatus: string
   cookieStatus: string
   lastKnownIp: string | null
+  expectedIp: string | null
+  lastIpCheckedAt: Date | null
+  ipStatus: string
   lastLoginAt: Date | null
   lastVerifiedAt: Date | null
   lastHeartbeatAt: Date | null
   lastLoginError: string | null
+  fingerprintStatus: string
+  identityError: string | null
   createdAt: Date
   updatedAt: Date
   _count: BrowserAccountCountAggregateOutputType | null
@@ -365,8 +529,23 @@ export type BrowserAccountWhereInput = {
   displayName?: Prisma.StringFilter<"BrowserAccount"> | string
   browserProfileKey?: Prisma.StringFilter<"BrowserAccount"> | string
   browserProfileName?: Prisma.StringFilter<"BrowserAccount"> | string
+  facebookEmailEncrypted?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  facebookPasswordEncrypted?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   locale?: Prisma.StringFilter<"BrowserAccount"> | string
   timezone?: Prisma.StringFilter<"BrowserAccount"> | string
+  browserEngine?: Prisma.StringFilter<"BrowserAccount"> | string
+  operatingSystem?: Prisma.StringFilter<"BrowserAccount"> | string
+  userAgent?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  screenWidth?: Prisma.IntFilter<"BrowserAccount"> | number
+  screenHeight?: Prisma.IntFilter<"BrowserAccount"> | number
+  deviceScaleFactor?: Prisma.FloatFilter<"BrowserAccount"> | number
+  colorScheme?: Prisma.StringFilter<"BrowserAccount"> | string
+  hardwareConcurrency?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
+  deviceMemory?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
+  webglVendor?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  webglRenderer?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  identityLocked?: Prisma.BoolFilter<"BrowserAccount"> | boolean
+  identityVersion?: Prisma.IntFilter<"BrowserAccount"> | number
   proxyType?: Prisma.EnumSocialProxyTypeFilter<"BrowserAccount"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   proxyPort?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
@@ -378,10 +557,15 @@ export type BrowserAccountWhereInput = {
   loginStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   cookieStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   lastKnownIp?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  expectedIp?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  lastIpCheckedAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
+  ipStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   lastLoginAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastVerifiedAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastLoginError?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  fingerprintStatus?: Prisma.StringFilter<"BrowserAccount"> | string
+  identityError?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   channels?: Prisma.BrowserAccountChannelListRelationFilter
@@ -398,8 +582,23 @@ export type BrowserAccountOrderByWithRelationInput = {
   displayName?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   browserProfileName?: Prisma.SortOrder
+  facebookEmailEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
+  facebookPasswordEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  colorScheme?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrderInput | Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrderInput | Prisma.SortOrder
+  webglVendor?: Prisma.SortOrderInput | Prisma.SortOrder
+  webglRenderer?: Prisma.SortOrderInput | Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrderInput | Prisma.SortOrder
   proxyPort?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -411,10 +610,15 @@ export type BrowserAccountOrderByWithRelationInput = {
   loginStatus?: Prisma.SortOrder
   cookieStatus?: Prisma.SortOrder
   lastKnownIp?: Prisma.SortOrderInput | Prisma.SortOrder
+  expectedIp?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastIpCheckedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  ipStatus?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginError?: Prisma.SortOrderInput | Prisma.SortOrder
+  fingerprintStatus?: Prisma.SortOrder
+  identityError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   channels?: Prisma.BrowserAccountChannelOrderByRelationAggregateInput
@@ -434,8 +638,23 @@ export type BrowserAccountWhereUniqueInput = Prisma.AtLeast<{
   platform?: Prisma.EnumSocialPlatformFilter<"BrowserAccount"> | $Enums.SocialPlatform
   displayName?: Prisma.StringFilter<"BrowserAccount"> | string
   browserProfileName?: Prisma.StringFilter<"BrowserAccount"> | string
+  facebookEmailEncrypted?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  facebookPasswordEncrypted?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   locale?: Prisma.StringFilter<"BrowserAccount"> | string
   timezone?: Prisma.StringFilter<"BrowserAccount"> | string
+  browserEngine?: Prisma.StringFilter<"BrowserAccount"> | string
+  operatingSystem?: Prisma.StringFilter<"BrowserAccount"> | string
+  userAgent?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  screenWidth?: Prisma.IntFilter<"BrowserAccount"> | number
+  screenHeight?: Prisma.IntFilter<"BrowserAccount"> | number
+  deviceScaleFactor?: Prisma.FloatFilter<"BrowserAccount"> | number
+  colorScheme?: Prisma.StringFilter<"BrowserAccount"> | string
+  hardwareConcurrency?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
+  deviceMemory?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
+  webglVendor?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  webglRenderer?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  identityLocked?: Prisma.BoolFilter<"BrowserAccount"> | boolean
+  identityVersion?: Prisma.IntFilter<"BrowserAccount"> | number
   proxyType?: Prisma.EnumSocialProxyTypeFilter<"BrowserAccount"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   proxyPort?: Prisma.IntNullableFilter<"BrowserAccount"> | number | null
@@ -447,10 +666,15 @@ export type BrowserAccountWhereUniqueInput = Prisma.AtLeast<{
   loginStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   cookieStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   lastKnownIp?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  expectedIp?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  lastIpCheckedAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
+  ipStatus?: Prisma.StringFilter<"BrowserAccount"> | string
   lastLoginAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastVerifiedAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"BrowserAccount"> | Date | string | null
   lastLoginError?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
+  fingerprintStatus?: Prisma.StringFilter<"BrowserAccount"> | string
+  identityError?: Prisma.StringNullableFilter<"BrowserAccount"> | string | null
   createdAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BrowserAccount"> | Date | string
   channels?: Prisma.BrowserAccountChannelListRelationFilter
@@ -467,8 +691,23 @@ export type BrowserAccountOrderByWithAggregationInput = {
   displayName?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   browserProfileName?: Prisma.SortOrder
+  facebookEmailEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
+  facebookPasswordEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  colorScheme?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrderInput | Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrderInput | Prisma.SortOrder
+  webglVendor?: Prisma.SortOrderInput | Prisma.SortOrder
+  webglRenderer?: Prisma.SortOrderInput | Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrderInput | Prisma.SortOrder
   proxyPort?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -480,10 +719,15 @@ export type BrowserAccountOrderByWithAggregationInput = {
   loginStatus?: Prisma.SortOrder
   cookieStatus?: Prisma.SortOrder
   lastKnownIp?: Prisma.SortOrderInput | Prisma.SortOrder
+  expectedIp?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastIpCheckedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  ipStatus?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginError?: Prisma.SortOrderInput | Prisma.SortOrder
+  fingerprintStatus?: Prisma.SortOrder
+  identityError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.BrowserAccountCountOrderByAggregateInput
@@ -504,8 +748,23 @@ export type BrowserAccountScalarWhereWithAggregatesInput = {
   displayName?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   browserProfileKey?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   browserProfileName?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  facebookEmailEncrypted?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  facebookPasswordEncrypted?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
   locale?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   timezone?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  browserEngine?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  operatingSystem?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  userAgent?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  screenWidth?: Prisma.IntWithAggregatesFilter<"BrowserAccount"> | number
+  screenHeight?: Prisma.IntWithAggregatesFilter<"BrowserAccount"> | number
+  deviceScaleFactor?: Prisma.FloatWithAggregatesFilter<"BrowserAccount"> | number
+  colorScheme?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  hardwareConcurrency?: Prisma.IntNullableWithAggregatesFilter<"BrowserAccount"> | number | null
+  deviceMemory?: Prisma.IntNullableWithAggregatesFilter<"BrowserAccount"> | number | null
+  webglVendor?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  webglRenderer?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  identityLocked?: Prisma.BoolWithAggregatesFilter<"BrowserAccount"> | boolean
+  identityVersion?: Prisma.IntWithAggregatesFilter<"BrowserAccount"> | number
   proxyType?: Prisma.EnumSocialProxyTypeWithAggregatesFilter<"BrowserAccount"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
   proxyPort?: Prisma.IntNullableWithAggregatesFilter<"BrowserAccount"> | number | null
@@ -517,10 +776,15 @@ export type BrowserAccountScalarWhereWithAggregatesInput = {
   loginStatus?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   cookieStatus?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   lastKnownIp?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  expectedIp?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  lastIpCheckedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrowserAccount"> | Date | string | null
+  ipStatus?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrowserAccount"> | Date | string | null
   lastVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrowserAccount"> | Date | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrowserAccount"> | Date | string | null
   lastLoginError?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
+  fingerprintStatus?: Prisma.StringWithAggregatesFilter<"BrowserAccount"> | string
+  identityError?: Prisma.StringNullableWithAggregatesFilter<"BrowserAccount"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BrowserAccount"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"BrowserAccount"> | Date | string
 }
@@ -533,8 +797,23 @@ export type BrowserAccountCreateInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -546,10 +825,15 @@ export type BrowserAccountCreateInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
@@ -566,8 +850,23 @@ export type BrowserAccountUncheckedCreateInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -579,10 +878,15 @@ export type BrowserAccountUncheckedCreateInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
@@ -599,8 +903,23 @@ export type BrowserAccountUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -612,10 +931,15 @@ export type BrowserAccountUpdateInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
@@ -632,8 +956,23 @@ export type BrowserAccountUncheckedUpdateInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -645,10 +984,15 @@ export type BrowserAccountUncheckedUpdateInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
@@ -665,8 +1009,23 @@ export type BrowserAccountCreateManyInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -678,10 +1037,15 @@ export type BrowserAccountCreateManyInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -694,8 +1058,23 @@ export type BrowserAccountUpdateManyMutationInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -707,10 +1086,15 @@ export type BrowserAccountUpdateManyMutationInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -723,8 +1107,23 @@ export type BrowserAccountUncheckedUpdateManyInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -736,10 +1135,15 @@ export type BrowserAccountUncheckedUpdateManyInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -752,8 +1156,23 @@ export type BrowserAccountCountOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   browserProfileName?: Prisma.SortOrder
+  facebookEmailEncrypted?: Prisma.SortOrder
+  facebookPasswordEncrypted?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  colorScheme?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrder
+  webglVendor?: Prisma.SortOrder
+  webglRenderer?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -765,15 +1184,26 @@ export type BrowserAccountCountOrderByAggregateInput = {
   loginStatus?: Prisma.SortOrder
   cookieStatus?: Prisma.SortOrder
   lastKnownIp?: Prisma.SortOrder
+  expectedIp?: Prisma.SortOrder
+  lastIpCheckedAt?: Prisma.SortOrder
+  ipStatus?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
   lastVerifiedAt?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   lastLoginError?: Prisma.SortOrder
+  fingerprintStatus?: Prisma.SortOrder
+  identityError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type BrowserAccountAvgOrderByAggregateInput = {
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
 }
 
@@ -785,8 +1215,23 @@ export type BrowserAccountMaxOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   browserProfileName?: Prisma.SortOrder
+  facebookEmailEncrypted?: Prisma.SortOrder
+  facebookPasswordEncrypted?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  colorScheme?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrder
+  webglVendor?: Prisma.SortOrder
+  webglRenderer?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -798,10 +1243,15 @@ export type BrowserAccountMaxOrderByAggregateInput = {
   loginStatus?: Prisma.SortOrder
   cookieStatus?: Prisma.SortOrder
   lastKnownIp?: Prisma.SortOrder
+  expectedIp?: Prisma.SortOrder
+  lastIpCheckedAt?: Prisma.SortOrder
+  ipStatus?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
   lastVerifiedAt?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   lastLoginError?: Prisma.SortOrder
+  fingerprintStatus?: Prisma.SortOrder
+  identityError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -814,8 +1264,23 @@ export type BrowserAccountMinOrderByAggregateInput = {
   displayName?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   browserProfileName?: Prisma.SortOrder
+  facebookEmailEncrypted?: Prisma.SortOrder
+  facebookPasswordEncrypted?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  colorScheme?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrder
+  webglVendor?: Prisma.SortOrder
+  webglRenderer?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -827,15 +1292,26 @@ export type BrowserAccountMinOrderByAggregateInput = {
   loginStatus?: Prisma.SortOrder
   cookieStatus?: Prisma.SortOrder
   lastKnownIp?: Prisma.SortOrder
+  expectedIp?: Prisma.SortOrder
+  lastIpCheckedAt?: Prisma.SortOrder
+  ipStatus?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
   lastVerifiedAt?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   lastLoginError?: Prisma.SortOrder
+  fingerprintStatus?: Prisma.SortOrder
+  identityError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type BrowserAccountSumOrderByAggregateInput = {
+  screenWidth?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  hardwareConcurrency?: Prisma.SortOrder
+  deviceMemory?: Prisma.SortOrder
+  identityVersion?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
 }
 
@@ -908,8 +1384,23 @@ export type BrowserAccountCreateWithoutAutomationPolicyInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -921,10 +1412,15 @@ export type BrowserAccountCreateWithoutAutomationPolicyInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
@@ -940,8 +1436,23 @@ export type BrowserAccountUncheckedCreateWithoutAutomationPolicyInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -953,10 +1464,15 @@ export type BrowserAccountUncheckedCreateWithoutAutomationPolicyInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
@@ -988,8 +1504,23 @@ export type BrowserAccountUpdateWithoutAutomationPolicyInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1001,10 +1532,15 @@ export type BrowserAccountUpdateWithoutAutomationPolicyInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
@@ -1020,8 +1556,23 @@ export type BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1033,10 +1584,15 @@ export type BrowserAccountUncheckedUpdateWithoutAutomationPolicyInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
@@ -1052,8 +1608,23 @@ export type BrowserAccountCreateWithoutTimelineEventsInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1065,10 +1636,15 @@ export type BrowserAccountCreateWithoutTimelineEventsInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
@@ -1084,8 +1660,23 @@ export type BrowserAccountUncheckedCreateWithoutTimelineEventsInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1097,10 +1688,15 @@ export type BrowserAccountUncheckedCreateWithoutTimelineEventsInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
@@ -1132,8 +1728,23 @@ export type BrowserAccountUpdateWithoutTimelineEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1145,10 +1756,15 @@ export type BrowserAccountUpdateWithoutTimelineEventsInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
@@ -1164,8 +1780,23 @@ export type BrowserAccountUncheckedUpdateWithoutTimelineEventsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1177,10 +1808,15 @@ export type BrowserAccountUncheckedUpdateWithoutTimelineEventsInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
@@ -1196,8 +1832,23 @@ export type BrowserAccountCreateWithoutRuntimeLeaseInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1209,10 +1860,15 @@ export type BrowserAccountCreateWithoutRuntimeLeaseInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelCreateNestedManyWithoutBrowserAccountInput
@@ -1228,8 +1884,23 @@ export type BrowserAccountUncheckedCreateWithoutRuntimeLeaseInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1241,10 +1912,15 @@ export type BrowserAccountUncheckedCreateWithoutRuntimeLeaseInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutBrowserAccountInput
@@ -1276,8 +1952,23 @@ export type BrowserAccountUpdateWithoutRuntimeLeaseInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1289,10 +1980,15 @@ export type BrowserAccountUpdateWithoutRuntimeLeaseInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUpdateManyWithoutBrowserAccountNestedInput
@@ -1308,8 +2004,23 @@ export type BrowserAccountUncheckedUpdateWithoutRuntimeLeaseInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1321,10 +2032,15 @@ export type BrowserAccountUncheckedUpdateWithoutRuntimeLeaseInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   channels?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutBrowserAccountNestedInput
@@ -1340,8 +2056,23 @@ export type BrowserAccountCreateWithoutChannelsInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1353,10 +2084,15 @@ export type BrowserAccountCreateWithoutChannelsInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   runtimeLease?: Prisma.BrowserAccountLeaseCreateNestedOneWithoutBrowserAccountInput
@@ -1372,8 +2108,23 @@ export type BrowserAccountUncheckedCreateWithoutChannelsInput = {
   displayName: string
   browserProfileKey: string
   browserProfileName: string
+  facebookEmailEncrypted?: string | null
+  facebookPasswordEncrypted?: string | null
   locale?: string
   timezone?: string
+  browserEngine?: string
+  operatingSystem?: string
+  userAgent?: string | null
+  screenWidth?: number
+  screenHeight?: number
+  deviceScaleFactor?: number
+  colorScheme?: string
+  hardwareConcurrency?: number | null
+  deviceMemory?: number | null
+  webglVendor?: string | null
+  webglRenderer?: string | null
+  identityLocked?: boolean
+  identityVersion?: number
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1385,10 +2136,15 @@ export type BrowserAccountUncheckedCreateWithoutChannelsInput = {
   loginStatus?: string
   cookieStatus?: string
   lastKnownIp?: string | null
+  expectedIp?: string | null
+  lastIpCheckedAt?: Date | string | null
+  ipStatus?: string
   lastLoginAt?: Date | string | null
   lastVerifiedAt?: Date | string | null
   lastHeartbeatAt?: Date | string | null
   lastLoginError?: string | null
+  fingerprintStatus?: string
+  identityError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   runtimeLease?: Prisma.BrowserAccountLeaseUncheckedCreateNestedOneWithoutBrowserAccountInput
@@ -1420,8 +2176,23 @@ export type BrowserAccountUpdateWithoutChannelsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1433,10 +2204,15 @@ export type BrowserAccountUpdateWithoutChannelsInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   runtimeLease?: Prisma.BrowserAccountLeaseUpdateOneWithoutBrowserAccountNestedInput
@@ -1452,8 +2228,23 @@ export type BrowserAccountUncheckedUpdateWithoutChannelsInput = {
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileKey?: Prisma.StringFieldUpdateOperationsInput | string
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
+  facebookEmailEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookPasswordEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  colorScheme?: Prisma.StringFieldUpdateOperationsInput | string
+  hardwareConcurrency?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  deviceMemory?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  webglVendor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  webglRenderer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  identityVersion?: Prisma.IntFieldUpdateOperationsInput | number
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1465,10 +2256,15 @@ export type BrowserAccountUncheckedUpdateWithoutChannelsInput = {
   loginStatus?: Prisma.StringFieldUpdateOperationsInput | string
   cookieStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastKnownIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  expectedIp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastIpCheckedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ipStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fingerprintStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  identityError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   runtimeLease?: Prisma.BrowserAccountLeaseUncheckedUpdateOneWithoutBrowserAccountNestedInput
@@ -1524,8 +2320,23 @@ export type BrowserAccountSelect<ExtArgs extends runtime.Types.Extensions.Intern
   displayName?: boolean
   browserProfileKey?: boolean
   browserProfileName?: boolean
+  facebookEmailEncrypted?: boolean
+  facebookPasswordEncrypted?: boolean
   locale?: boolean
   timezone?: boolean
+  browserEngine?: boolean
+  operatingSystem?: boolean
+  userAgent?: boolean
+  screenWidth?: boolean
+  screenHeight?: boolean
+  deviceScaleFactor?: boolean
+  colorScheme?: boolean
+  hardwareConcurrency?: boolean
+  deviceMemory?: boolean
+  webglVendor?: boolean
+  webglRenderer?: boolean
+  identityLocked?: boolean
+  identityVersion?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1537,10 +2348,15 @@ export type BrowserAccountSelect<ExtArgs extends runtime.Types.Extensions.Intern
   loginStatus?: boolean
   cookieStatus?: boolean
   lastKnownIp?: boolean
+  expectedIp?: boolean
+  lastIpCheckedAt?: boolean
+  ipStatus?: boolean
   lastLoginAt?: boolean
   lastVerifiedAt?: boolean
   lastHeartbeatAt?: boolean
   lastLoginError?: boolean
+  fingerprintStatus?: boolean
+  identityError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   channels?: boolean | Prisma.BrowserAccount$channelsArgs<ExtArgs>
@@ -1558,8 +2374,23 @@ export type BrowserAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   displayName?: boolean
   browserProfileKey?: boolean
   browserProfileName?: boolean
+  facebookEmailEncrypted?: boolean
+  facebookPasswordEncrypted?: boolean
   locale?: boolean
   timezone?: boolean
+  browserEngine?: boolean
+  operatingSystem?: boolean
+  userAgent?: boolean
+  screenWidth?: boolean
+  screenHeight?: boolean
+  deviceScaleFactor?: boolean
+  colorScheme?: boolean
+  hardwareConcurrency?: boolean
+  deviceMemory?: boolean
+  webglVendor?: boolean
+  webglRenderer?: boolean
+  identityLocked?: boolean
+  identityVersion?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1571,10 +2402,15 @@ export type BrowserAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   loginStatus?: boolean
   cookieStatus?: boolean
   lastKnownIp?: boolean
+  expectedIp?: boolean
+  lastIpCheckedAt?: boolean
+  ipStatus?: boolean
   lastLoginAt?: boolean
   lastVerifiedAt?: boolean
   lastHeartbeatAt?: boolean
   lastLoginError?: boolean
+  fingerprintStatus?: boolean
+  identityError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["browserAccount"]>
@@ -1587,8 +2423,23 @@ export type BrowserAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   displayName?: boolean
   browserProfileKey?: boolean
   browserProfileName?: boolean
+  facebookEmailEncrypted?: boolean
+  facebookPasswordEncrypted?: boolean
   locale?: boolean
   timezone?: boolean
+  browserEngine?: boolean
+  operatingSystem?: boolean
+  userAgent?: boolean
+  screenWidth?: boolean
+  screenHeight?: boolean
+  deviceScaleFactor?: boolean
+  colorScheme?: boolean
+  hardwareConcurrency?: boolean
+  deviceMemory?: boolean
+  webglVendor?: boolean
+  webglRenderer?: boolean
+  identityLocked?: boolean
+  identityVersion?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1600,10 +2451,15 @@ export type BrowserAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   loginStatus?: boolean
   cookieStatus?: boolean
   lastKnownIp?: boolean
+  expectedIp?: boolean
+  lastIpCheckedAt?: boolean
+  ipStatus?: boolean
   lastLoginAt?: boolean
   lastVerifiedAt?: boolean
   lastHeartbeatAt?: boolean
   lastLoginError?: boolean
+  fingerprintStatus?: boolean
+  identityError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["browserAccount"]>
@@ -1616,8 +2472,23 @@ export type BrowserAccountSelectScalar = {
   displayName?: boolean
   browserProfileKey?: boolean
   browserProfileName?: boolean
+  facebookEmailEncrypted?: boolean
+  facebookPasswordEncrypted?: boolean
   locale?: boolean
   timezone?: boolean
+  browserEngine?: boolean
+  operatingSystem?: boolean
+  userAgent?: boolean
+  screenWidth?: boolean
+  screenHeight?: boolean
+  deviceScaleFactor?: boolean
+  colorScheme?: boolean
+  hardwareConcurrency?: boolean
+  deviceMemory?: boolean
+  webglVendor?: boolean
+  webglRenderer?: boolean
+  identityLocked?: boolean
+  identityVersion?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1629,15 +2500,20 @@ export type BrowserAccountSelectScalar = {
   loginStatus?: boolean
   cookieStatus?: boolean
   lastKnownIp?: boolean
+  expectedIp?: boolean
+  lastIpCheckedAt?: boolean
+  ipStatus?: boolean
   lastLoginAt?: boolean
   lastVerifiedAt?: boolean
   lastHeartbeatAt?: boolean
   lastLoginError?: boolean
+  fingerprintStatus?: boolean
+  identityError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BrowserAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "displayName" | "browserProfileKey" | "browserProfileName" | "locale" | "timezone" | "proxyType" | "proxyHost" | "proxyPort" | "proxyUsernameEncrypted" | "proxyPasswordEncrypted" | "proxyCountry" | "facebookUserId" | "facebookUserName" | "loginStatus" | "cookieStatus" | "lastKnownIp" | "lastLoginAt" | "lastVerifiedAt" | "lastHeartbeatAt" | "lastLoginError" | "createdAt" | "updatedAt", ExtArgs["result"]["browserAccount"]>
+export type BrowserAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "displayName" | "browserProfileKey" | "browserProfileName" | "facebookEmailEncrypted" | "facebookPasswordEncrypted" | "locale" | "timezone" | "browserEngine" | "operatingSystem" | "userAgent" | "screenWidth" | "screenHeight" | "deviceScaleFactor" | "colorScheme" | "hardwareConcurrency" | "deviceMemory" | "webglVendor" | "webglRenderer" | "identityLocked" | "identityVersion" | "proxyType" | "proxyHost" | "proxyPort" | "proxyUsernameEncrypted" | "proxyPasswordEncrypted" | "proxyCountry" | "facebookUserId" | "facebookUserName" | "loginStatus" | "cookieStatus" | "lastKnownIp" | "expectedIp" | "lastIpCheckedAt" | "ipStatus" | "lastLoginAt" | "lastVerifiedAt" | "lastHeartbeatAt" | "lastLoginError" | "fingerprintStatus" | "identityError" | "createdAt" | "updatedAt", ExtArgs["result"]["browserAccount"]>
 export type BrowserAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   channels?: boolean | Prisma.BrowserAccount$channelsArgs<ExtArgs>
   runtimeLease?: boolean | Prisma.BrowserAccount$runtimeLeaseArgs<ExtArgs>
@@ -1664,8 +2540,23 @@ export type $BrowserAccountPayload<ExtArgs extends runtime.Types.Extensions.Inte
     displayName: string
     browserProfileKey: string
     browserProfileName: string
+    facebookEmailEncrypted: string | null
+    facebookPasswordEncrypted: string | null
     locale: string
     timezone: string
+    browserEngine: string
+    operatingSystem: string
+    userAgent: string | null
+    screenWidth: number
+    screenHeight: number
+    deviceScaleFactor: number
+    colorScheme: string
+    hardwareConcurrency: number | null
+    deviceMemory: number | null
+    webglVendor: string | null
+    webglRenderer: string | null
+    identityLocked: boolean
+    identityVersion: number
     proxyType: $Enums.SocialProxyType
     proxyHost: string | null
     proxyPort: number | null
@@ -1677,10 +2568,15 @@ export type $BrowserAccountPayload<ExtArgs extends runtime.Types.Extensions.Inte
     loginStatus: string
     cookieStatus: string
     lastKnownIp: string | null
+    expectedIp: string | null
+    lastIpCheckedAt: Date | null
+    ipStatus: string
     lastLoginAt: Date | null
     lastVerifiedAt: Date | null
     lastHeartbeatAt: Date | null
     lastLoginError: string | null
+    fingerprintStatus: string
+    identityError: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["browserAccount"]>
@@ -2117,8 +3013,23 @@ export interface BrowserAccountFieldRefs {
   readonly displayName: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly browserProfileKey: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly browserProfileName: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly facebookEmailEncrypted: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly facebookPasswordEncrypted: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly locale: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly timezone: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly browserEngine: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly operatingSystem: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly userAgent: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly screenWidth: Prisma.FieldRef<"BrowserAccount", 'Int'>
+  readonly screenHeight: Prisma.FieldRef<"BrowserAccount", 'Int'>
+  readonly deviceScaleFactor: Prisma.FieldRef<"BrowserAccount", 'Float'>
+  readonly colorScheme: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly hardwareConcurrency: Prisma.FieldRef<"BrowserAccount", 'Int'>
+  readonly deviceMemory: Prisma.FieldRef<"BrowserAccount", 'Int'>
+  readonly webglVendor: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly webglRenderer: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly identityLocked: Prisma.FieldRef<"BrowserAccount", 'Boolean'>
+  readonly identityVersion: Prisma.FieldRef<"BrowserAccount", 'Int'>
   readonly proxyType: Prisma.FieldRef<"BrowserAccount", 'SocialProxyType'>
   readonly proxyHost: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly proxyPort: Prisma.FieldRef<"BrowserAccount", 'Int'>
@@ -2130,10 +3041,15 @@ export interface BrowserAccountFieldRefs {
   readonly loginStatus: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly cookieStatus: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly lastKnownIp: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly expectedIp: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly lastIpCheckedAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
+  readonly ipStatus: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly lastLoginAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
   readonly lastVerifiedAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
   readonly lastHeartbeatAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
   readonly lastLoginError: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly fingerprintStatus: Prisma.FieldRef<"BrowserAccount", 'String'>
+  readonly identityError: Prisma.FieldRef<"BrowserAccount", 'String'>
   readonly createdAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"BrowserAccount", 'DateTime'>
 }
