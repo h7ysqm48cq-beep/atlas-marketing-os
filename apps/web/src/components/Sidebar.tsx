@@ -28,7 +28,7 @@ const resourceItems: NavigationItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { t } = usePreferences();
+  const { t, language } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -107,6 +107,8 @@ export function Sidebar() {
     });
   }
 
+  const imageEditorActive = isActive("/image-editor");
+
   return (
     <>
       <button
@@ -157,7 +159,18 @@ export function Sidebar() {
 
           <div className="nav-section-label">{t("resources")}</div>
 
-          <nav className="nav-list">{renderItems(resourceItems)}</nav>
+          <nav className="nav-list">
+            {renderItems(resourceItems)}
+            <a
+              className={`nav-item${imageEditorActive ? " active" : ""}`}
+              href="/image-editor"
+              aria-current={imageEditorActive ? "page" : undefined}
+              onClick={closeMobileNavigation}
+            >
+              <span className="nav-icon">✧</span>
+              <span>{language === "zh" ? "图片编辑与 Logo" : "Image Editor & Logo"}</span>
+            </a>
+          </nav>
         </div>
 
         <div className="sidebar-bottom">
