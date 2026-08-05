@@ -218,14 +218,55 @@ export function BrowserAccountPasteImporter({
       ],
     );
 
+  const duplicateEmails =
+    new Set<string>();
+
+  const seenEmails =
+    new Set<string>();
+
+  for (const row of rows) {
+    const normalizedEmail =
+      row.email
+        .trim()
+        .toLowerCase();
+
+    if (
+      normalizedEmail &&
+      seenEmails.has(
+        normalizedEmail,
+      )
+    ) {
+      duplicateEmails.add(
+        normalizedEmail,
+      );
+    }
+
+    seenEmails.add(
+      normalizedEmail,
+    );
+  }
+
   const invalidRows =
     rows.filter(
       (row) => {
+        const normalizedEmail =
+          row.email
+            .trim()
+            .toLowerCase();
+
         if (
           !validEmail(
-            row.email,
+            normalizedEmail,
           ) ||
           !row.password
+        ) {
+          return true;
+        }
+
+        if (
+          duplicateEmails.has(
+            normalizedEmail,
+          )
         ) {
           return true;
         }
@@ -481,6 +522,15 @@ export function BrowserAccountPasteImporter({
           </strong>
         </span>
 
+        <span>
+          Duplicates:{" "}
+          <strong>
+            {
+              duplicateEmails.size
+            }
+          </strong>
+        </span>
+
         {results.length ? (
           <>
             <span>
@@ -549,10 +599,22 @@ export function BrowserAccountPasteImporter({
                         </td>
 
                         <td>
-                          {
-                            row.email ||
-                            "Missing"
-                          }
+                          <span>
+                            {
+                              row.email ||
+                              "Missing"
+                            }
+                          </span>
+
+                          {duplicateEmails.has(
+                            row.email
+                              .trim()
+                              .toLowerCase(),
+                          ) ? (
+                            <small>
+                              Duplicate email
+                            </small>
+                          ) : null}
                         </td>
 
                         <td>
