@@ -68,6 +68,8 @@ export class AssetImageService {
 
       const logoMode = dto.logoMode ?? 'AUTO';
       const logoPlacement = this.resolveLogoPlacement(dto.logoPlacement);
+      const logoScale = dto.logoScale ?? 1;
+      const logoOpacity = dto.logoOpacity ?? 1;
       const shouldOverlayLogo = this.shouldOverlayLogo({
         mode: logoMode,
         platform: dto.platform,
@@ -84,6 +86,8 @@ export class AssetImageService {
             height,
             platform: dto.platform,
             placement: logoPlacement,
+            scale: logoScale,
+            opacity: logoOpacity,
           })
         : imageBuffer;
 
@@ -129,6 +133,8 @@ export class AssetImageService {
             shouldOverlayLogo ? 'logo-overlay' : 'logo-skipped',
             `logo-mode-${logoMode.toLowerCase()}`,
             `logo-placement-${logoPlacement.toLowerCase()}`,
+            `logo-scale-${logoScale}`,
+            `logo-opacity-${logoOpacity}`,
           ],
           url,
           thumbnailUrl: url,
@@ -165,6 +171,8 @@ export class AssetImageService {
           size,
           quality,
           logoPlacement,
+          logoScale,
+          logoOpacity,
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt
@@ -252,6 +260,8 @@ export class AssetImageService {
     height: number;
     platform?: string;
     placement: LogoPlacement;
+    scale: number;
+    opacity: number;
   }): Promise<Buffer> {
     const logoAssetId = input.primaryLogoAssetId?.trim();
 
@@ -296,6 +306,8 @@ export class AssetImageService {
         height: input.height,
         platform: input.platform,
         placement: input.placement,
+        scale: input.scale,
+        opacity: input.opacity,
       });
     } catch (error) {
       console.warn(
