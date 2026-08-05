@@ -7,6 +7,8 @@ import type { TranslationKey } from "@/components/preferences/translations";
 
 type NavigationItem = [TranslationKey, string, string];
 
+const SIDEBAR_STATE_KEY = "atlas.sidebar.collapsed";
+
 const mainItems: NavigationItem[] = [
   ["dashboard", "⌂", "/"],
   ["campaigns", "◉", "/campaigns"],
@@ -30,10 +32,32 @@ export function Sidebar() {
   const pathname = usePathname();
   const { t, language } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(true);
+  const [resourcesOpen, setResourcesOpen] = useState(true);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SIDEBAR_STATE_KEY);
+    setCollapsed(saved === "true");
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("atlas-sidebar-collapsed", collapsed);
+    window.localStorage.setItem(SIDEBAR_STATE_KEY, String(collapsed));
+
+    return () => {
+      document.documentElement.classList.remove("atlas-sidebar-collapsed");
+    };
+  }, [collapsed]);
 
   useEffect(() => {
     function toggleSidebar() {
-      setMobileOpen((current) => !current);
+      if (window.matchMedia("(max-width: 780px)").matches) {
+        setMobileOpen((current) => !current);
+        return;
+      }
+
+      setCollapsed((current) => !current);
     }
 
     function closeSidebar() {
@@ -77,15 +101,15 @@ export function Sidebar() {
       return pathname === "/";
     }
 
-    if (href === "#") {
-      return false;
-    }
-
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
   function closeMobileNavigation() {
     setMobileOpen(false);
+  }
+
+  function toggleDesktopSidebar() {
+    setCollapsed((current) => !current);
   }
 
   function renderItems(items: NavigationItem[]) {
@@ -98,16 +122,20 @@ export function Sidebar() {
           href={href}
           key={href}
           aria-current={active ? "page" : undefined}
+          aria-label={collapsed ? t(label) : undefined}
+          title={collapsed ? t(label) : undefined}
           onClick={closeMobileNavigation}
         >
           <span className="nav-icon">{icon}</span>
-          <span>{t(label)}</span>
+          <span className="nav-item-label">{t(label)}</span>
         </a>
       );
     });
   }
 
   const imageEditorActive = isActive("/image-editor");
+  const imageEditorLabel =
+    language === "zh" ? "图片编辑与 Logo" : "Image Editor & Logo";
 
   return (
     <>
@@ -119,7 +147,7 @@ export function Sidebar() {
       />
 
       <aside
-        className={`sidebar${mobileOpen ? " mobile-open" : ""}`}
+        className={`sidebar${mobileOpen ? " mobile-open" : ""}${collapsed ? " desktop-collapsed" : ""}`}
         aria-label={t("mainNavigation")}
       >
         <div className="sidebar-mobile-header">
@@ -143,41 +171,91 @@ export function Sidebar() {
           </button>
         </div>
 
-        <div className="brand desktop-sidebar-brand">
-          <div className="brand-mark">A</div>
+        <div className="desktop-sidebar-header">
+          <div className="brand desktop-sidebar-brand">
+            <div className="brand-mark">A</div>
 
-          <div>
-            <div className="brand-title">Atlas</div>
-            <div className="brand-subtitle">AI Marketing Suite</div>
+            <div className="desktop-brand-copy">
+              <div className="brand-title">Atlas</div>
+              <div className="brand-subtitle">AI Marketing Suite</div>
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="desktop-sidebar-toggle"
+            onClick={toggleDesktopSidebar}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
 
         <div className="sidebar-scroll-area">
-          <div className="nav-section-label">{t("workspace")}</div>
-
-          <nav className="nav-list">{renderItems(mainItems)}</nav>
-
-          <div className="nav-section-label">{t("resources")}</div>
-
-          <nav className="nav-list">
-            {renderItems(resourceItems)}
-            <a
-              className={`nav-item${imageEditorActive ? " active" : ""}`}
-              href="/image-editor"
-              aria-current={imageEditorActive ? "page" : undefined}
-              onClick={closeMobileNavigation}
+          <section className="sidebar-nav-section">
+            <button
+              type="button"
+              className="nav-section-toggle"
+              onClick={() => setWorkspaceOpen((current) => !current)}
+              aria-expanded={workspaceOpen}
+              title={collapsed ? t("workspace") : undefined}
             >
-              <span className="nav-icon">✧</span>
-              <span>{language === "zh" ? "图片编辑与 Logo" : "Image Editor & Logo"}</span>
-            </a>
-          </nav>
+              <span className="nav-section-label">{t("workspace")}</span>
+              <span className="nav-section-chevron">
+                {workspaceOpen ? "⌃" : "⌄"}
+              </span>
+            </button>
+
+            {workspaceOpen ? (
+              <nav className="nav-list">{renderItems(mainItems)}</nav>
+            ) : null}
+          </section>
+
+          <section className="sidebar-nav-section">
+            <button
+              type="button"
+              className="nav-section-toggle"
+              onClick={() => setResourcesOpen((current) => !current)}
+              aria-expanded={resourcesOpen}
+              title={collapsed ? t("resources") : undefined}
+            >
+              <span className="nav-section-label">{t("resources")}</span>
+              <span className="nav-section-chevron">
+                {resourcesOpen ? "⌃" : "⌄"}
+              </span>
+            </button>
+
+            {resourcesOpen ? (
+              <nav className="nav-list">
+                <a
+                  className={`nav-item${imageEditorActive ? " active" : ""}`}
+                  href="/image-editor"
+                  aria-current={imageEditorActive ? "page" : undefined}
+                  aria-label={collapsed ? imageEditorLabel : undefined}
+                  title={collapsed ? imageEditorLabel : undefined}
+                  onClick={closeMobileNavigation}
+                >
+                  <span className="nav-icon">✧</span>
+                  <span className="nav-item-label">{imageEditorLabel}</span>
+                </a>
+
+                {renderItems(resourceItems)}
+              </nav>
+            ) : null}
+          </section>
         </div>
 
         <div className="sidebar-bottom">
           <div className="workspace-card">
-            <div className="workspace-label">Current workspace</div>
-            <div className="workspace-name">MGMBETMYR</div>
-            <div className="workspace-meta">Enterprise plan</div>
+            <div className="workspace-card-icon">M</div>
+            <div className="workspace-card-copy">
+              <div className="workspace-label">Current workspace</div>
+              <div className="workspace-name">MGMBETMYR</div>
+              <div className="workspace-meta">Enterprise plan</div>
+            </div>
           </div>
         </div>
       </aside>
