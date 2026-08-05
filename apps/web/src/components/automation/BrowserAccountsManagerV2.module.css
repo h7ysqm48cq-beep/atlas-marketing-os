@@ -1892,3 +1892,106 @@
 }
 
 /* === ACCOUNT ENTRY UI END === */
+
+/* === MANUAL CREATE ACCOUNT START === */
+
+.manualCreateForm {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.manualCreateForm label {
+  display: grid;
+  gap: 7px;
+}
+
+.manualCreateForm label > span {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.manualCreateForm input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.24)
+    );
+  border-radius: 9px;
+  outline: none;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 2.5%,
+      transparent
+    );
+  color: inherit;
+}
+
+.manualCreateForm input:focus {
+  border-color:
+    var(--accent, #6d5dfc);
+  box-shadow:
+    0 0 0 3px
+      color-mix(
+        in srgb,
+        var(--accent, #6d5dfc) 11%,
+        transparent
+      );
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.identitySummary {
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 22%,
+      transparent
+    );
+  border-radius: 10px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 6%,
+      transparent
+    );
+}
+
+.identitySummary strong {
+  font-size: 11px;
+}
+
+.identitySummary span {
+  font-size: 10px;
+  opacity: 0.66;
+}
+
+.formError {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background:
+    rgba(239, 68, 68, 0.1);
+  color: #dc4646;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* === MANUAL CREATE ACCOUNT END === */

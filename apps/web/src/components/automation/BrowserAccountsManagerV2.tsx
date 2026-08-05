@@ -336,6 +336,35 @@ export function BrowserAccountsManagerV2({
   ] = useState(false);
 
   const [
+    manualCreateOpen,
+    setManualCreateOpen,
+  ] = useState(false);
+
+  const [
+    createSubmitting,
+    setCreateSubmitting,
+  ] = useState(false);
+
+  const [
+    createError,
+    setCreateError,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    createForm,
+    setCreateForm,
+  ] = useState({
+    facebookEmail: "",
+    facebookPassword: "",
+    proxyHost: "",
+    proxyPort: "",
+    proxyUsername: "",
+    proxyPassword: "",
+  });
+
+  const [
     importAccountsOpen,
     setImportAccountsOpen,
   ] = useState(false);
@@ -1689,6 +1718,189 @@ export function BrowserAccountsManagerV2({
         runtimes,
       ],
     );
+
+  async function submitManualAccount() {
+    if (createSubmitting) {
+      return;
+    }
+
+    const facebookEmail =
+      createForm.facebookEmail
+        .trim();
+
+    const facebookPassword =
+      createForm.facebookPassword;
+
+    const proxyHost =
+      createForm.proxyHost
+        .trim();
+
+    const proxyPort =
+      createForm.proxyPort
+        .trim();
+
+    const proxyUsername =
+      createForm.proxyUsername
+        .trim();
+
+    const proxyPassword =
+      createForm.proxyPassword;
+
+    if (!facebookEmail) {
+      setCreateError(
+        "Facebook email is required.",
+      );
+      return;
+    }
+
+    if (!facebookPassword) {
+      setCreateError(
+        "Facebook password is required.",
+      );
+      return;
+    }
+
+    const hasProxy =
+      Boolean(proxyHost);
+
+    if (
+      hasProxy &&
+      !proxyPort
+    ) {
+      setCreateError(
+        "Proxy port is required when proxy host is provided.",
+      );
+      return;
+    }
+
+    setCreateSubmitting(
+      true,
+    );
+    setCreateError(
+      null,
+    );
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/browser-runtime/accounts`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              facebookEmail,
+              facebookPassword,
+
+              proxyType:
+                hasProxy
+                  ? "HTTP"
+                  : "DIRECT",
+
+              proxyHost:
+                hasProxy
+                  ? proxyHost
+                  : null,
+
+              proxyPort:
+                hasProxy
+                  ? Number(
+                      proxyPort,
+                    )
+                  : null,
+
+              proxyUsername:
+                hasProxy
+                  ? (
+                      proxyUsername ||
+                      null
+                    )
+                  : null,
+
+              proxyPassword:
+                hasProxy
+                  ? (
+                      proxyPassword ||
+                      null
+                    )
+                  : null,
+
+              proxyCountry:
+                hasProxy
+                  ? "MY"
+                  : null,
+
+              browserEngine:
+                "chromium",
+
+              operatingSystem:
+                "macOS",
+
+              screenWidth:
+                1440,
+
+              screenHeight:
+                900,
+
+              deviceScaleFactor:
+                2,
+
+              locale:
+                "en-MY",
+
+              timezone:
+                "Asia/Kuala_Lumpur",
+
+              identityLocked:
+                true,
+            }),
+          },
+        );
+
+      const body =
+        await response
+          .json()
+          .catch(
+            () => ({}),
+          ) as {
+            message?: string;
+          };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+          `Request failed with status ${response.status}.`,
+        );
+      }
+
+      setManualCreateOpen(
+        false,
+      );
+
+      setCreateForm({
+        facebookEmail: "",
+        facebookPassword: "",
+        proxyHost: "",
+        proxyPort: "",
+        proxyUsername: "",
+        proxyPassword: "",
+      });
+
+      await loadAccounts();
+    } catch (error) {
+      setCreateError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create browser account.",
+      );
+    } finally {
+      setCreateSubmitting(
+        false,
+      );
+    }
+  }
 
   function scrollToDetailSection(
     section: string,
@@ -3135,12 +3347,23 @@ export function BrowserAccountsManagerV2({
                   </p>
                 </div>
 
-                <a
+                <button
                   className={styles.primaryButton}
-                  href="/automation/browser-accounts/new"
+                  type="button"
+                  onClick={() => {
+                    setCreateAccountOpen(
+                      false,
+                    );
+                    setManualCreateOpen(
+                      true,
+                    );
+                    setCreateError(
+                      null,
+                    );
+                  }}
                 >
                   Continue
-                </a>
+                </button>
               </article>
 
               <article>
@@ -3175,6 +3398,268 @@ export function BrowserAccountsManagerV2({
                   Import Accounts
                 </button>
               </article>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {manualCreateOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setManualCreateOpen(
+                false,
+              );
+            }
+          }}
+        >
+          <section
+            aria-label="Create browser account"
+            aria-modal="true"
+            className={styles.entryModal}
+            role="dialog"
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>
+                  Browser Account V2
+                </p>
+
+                <h2>
+                  Create Account
+                </h2>
+
+                <p>
+                  Create one independent Facebook
+                  account identity with its own
+                  browser profile, cookie storage
+                  and proxy.
+                </p>
+              </div>
+
+              <button
+                aria-label="Close create account dialog"
+                className={styles.iconButton}
+                type="button"
+                onClick={() =>
+                  setManualCreateOpen(
+                    false,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.manualCreateForm}>
+              <label>
+                <span>
+                  Facebook Email
+                </span>
+
+                <input
+                  autoComplete="username"
+                  type="email"
+                  value={
+                    createForm.facebookEmail
+                  }
+                  onChange={(event) =>
+                    setCreateForm(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        facebookEmail:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                <span>
+                  Facebook Password
+                </span>
+
+                <input
+                  autoComplete="current-password"
+                  type="password"
+                  value={
+                    createForm.facebookPassword
+                  }
+                  onChange={(event) =>
+                    setCreateForm(
+                      (
+                        current,
+                      ) => ({
+                        ...current,
+                        facebookPassword:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <div className={styles.formGrid}>
+                <label>
+                  <span>
+                    Proxy Host
+                  </span>
+
+                  <input
+                    placeholder="Optional"
+                    value={
+                      createForm.proxyHost
+                    }
+                    onChange={(event) =>
+                      setCreateForm(
+                        (
+                          current,
+                        ) => ({
+                          ...current,
+                          proxyHost:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>
+                    Proxy Port
+                  </span>
+
+                  <input
+                    inputMode="numeric"
+                    placeholder="Optional"
+                    value={
+                      createForm.proxyPort
+                    }
+                    onChange={(event) =>
+                      setCreateForm(
+                        (
+                          current,
+                        ) => ({
+                          ...current,
+                          proxyPort:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className={styles.formGrid}>
+                <label>
+                  <span>
+                    Proxy Username
+                  </span>
+
+                  <input
+                    placeholder="Optional"
+                    value={
+                      createForm.proxyUsername
+                    }
+                    onChange={(event) =>
+                      setCreateForm(
+                        (
+                          current,
+                        ) => ({
+                          ...current,
+                          proxyUsername:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>
+                    Proxy Password
+                  </span>
+
+                  <input
+                    placeholder="Optional"
+                    type="password"
+                    value={
+                      createForm.proxyPassword
+                    }
+                    onChange={(event) =>
+                      setCreateForm(
+                        (
+                          current,
+                        ) => ({
+                          ...current,
+                          proxyPassword:
+                            event.target.value,
+                        }),
+                      )
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className={styles.identitySummary}>
+                <strong>
+                  Identity defaults
+                </strong>
+
+                <span>
+                  Chromium · macOS · 1440 × 900
+                </span>
+
+                <span>
+                  en-MY · Asia/Kuala_Lumpur
+                </span>
+
+                <span>
+                  Fingerprint locked · isolated cookie profile
+                </span>
+              </div>
+
+              {createError ? (
+                <div className={styles.formError}>
+                  {createError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={createSubmitting}
+                onClick={() =>
+                  setManualCreateOpen(
+                    false,
+                  )
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                className={styles.primaryButton}
+                type="button"
+                disabled={createSubmitting}
+                onClick={() =>
+                  void submitManualAccount()
+                }
+              >
+                {createSubmitting
+                  ? "Creating…"
+                  : "Create Account"}
+              </button>
             </div>
           </section>
         </div>
