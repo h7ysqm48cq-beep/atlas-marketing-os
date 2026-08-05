@@ -9,7 +9,7 @@ import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
-import { LogoOverlayService } from '../image/logo';
+import { LogoOverlayService, LogoPlacement } from '../image/logo';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
@@ -67,6 +67,7 @@ export class AssetImageService {
       const [width, height] = size.split('x').map(Number);
 
       const logoMode = dto.logoMode ?? 'AUTO';
+      const logoPlacement = this.resolveLogoPlacement(dto.logoPlacement);
       const shouldOverlayLogo = this.shouldOverlayLogo({
         mode: logoMode,
         platform: dto.platform,
@@ -82,6 +83,7 @@ export class AssetImageService {
             width,
             height,
             platform: dto.platform,
+            placement: logoPlacement,
           })
         : imageBuffer;
 
@@ -126,6 +128,7 @@ export class AssetImageService {
             dto.platform?.toLowerCase() ?? 'multi-platform',
             shouldOverlayLogo ? 'logo-overlay' : 'logo-skipped',
             `logo-mode-${logoMode.toLowerCase()}`,
+            `logo-placement-${logoPlacement.toLowerCase()}`,
           ],
           url,
           thumbnailUrl: url,
@@ -161,6 +164,7 @@ export class AssetImageService {
           model,
           size,
           quality,
+          logoPlacement,
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt
@@ -177,6 +181,16 @@ export class AssetImageService {
         `Image generation failed: ${message}`,
       );
     }
+  }
+
+  private resolveLogoPlacement(
+    placement?: GenerateAssetImageDto['logoPlacement'],
+  ): LogoPlacement {
+    if (!placement) {
+      return LogoPlacement.AUTO;
+    }
+
+    return LogoPlacement[placement];
   }
 
   private shouldOverlayLogo(input: {
@@ -237,6 +251,7 @@ export class AssetImageService {
     width: number;
     height: number;
     platform?: string;
+    placement: LogoPlacement;
   }): Promise<Buffer> {
     const logoAssetId = input.primaryLogoAssetId?.trim();
 
@@ -280,6 +295,7 @@ export class AssetImageService {
         width: input.width,
         height: input.height,
         platform: input.platform,
+        placement: input.placement,
       });
     } catch (error) {
       console.warn(
