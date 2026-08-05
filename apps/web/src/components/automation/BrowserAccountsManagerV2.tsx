@@ -1680,6 +1680,26 @@ export function BrowserAccountsManagerV2({
       ],
     );
 
+  function scrollToDetailSection(
+    section: string,
+  ) {
+    const accountId =
+      selectedAccount?.id;
+
+    if (!accountId) {
+      return;
+    }
+
+    document
+      .getElementById(
+        `browser-account-${accountId}-${section}`,
+      )
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -2059,7 +2079,37 @@ export function BrowserAccountsManagerV2({
           </div>
         ) : (
           <>
-            <div className={styles.detailsHeader}>
+            <nav
+              aria-label="Browser account detail sections"
+              className={styles.detailNavigation}
+            >
+              {[
+                ["overview", "Overview"],
+                ["automation", "Automation"],
+                ["timeline", "Timeline"],
+                ["onboarding", "Onboarding"],
+                ["actions", "Actions"],
+              ].map(
+                ([section, label]) => (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() =>
+                      scrollToDetailSection(
+                        section,
+                      )
+                    }
+                  >
+                    {label}
+                  </button>
+                ),
+              )}
+            </nav>
+
+            <div
+              className={styles.detailsHeader}
+              id={`browser-account-${selectedAccount.id}-overview`}
+            >
               <div>
                 <p className={styles.eyebrow}>
                   Account Details
@@ -2254,7 +2304,9 @@ export function BrowserAccountsManagerV2({
               </div>
             </dl>
 
-            <section className={styles.accountSection}>
+            <section className={styles.accountSection}
+              id={`browser-account-${selectedAccount.id}-automation`}
+            >
               <div className={styles.sectionHeader}>
                 <div>
                   <p className={styles.eyebrow}>
@@ -2466,7 +2518,9 @@ export function BrowserAccountsManagerV2({
               )}
             </section>
 
-            <section className={styles.accountSection}>
+            <section className={styles.accountSection}
+              id={`browser-account-${selectedAccount.id}-timeline`}
+            >
               <div className={styles.sectionHeader}>
                 <div>
                   <p className={styles.eyebrow}>
@@ -2555,7 +2609,10 @@ export function BrowserAccountsManagerV2({
               </div>
             </section>
 
-            <section className={styles.onboardingPanel}>
+            <section
+              className={styles.onboardingPanel}
+              id={`browser-account-${selectedAccount.id}-onboarding`}
+            >
               <div className={styles.onboardingHeader}>
                 <div>
                   <p className={styles.eyebrow}>
@@ -2700,7 +2757,10 @@ export function BrowserAccountsManagerV2({
               ) : null}
             </section>
 
-            <div className={styles.actions}>
+            <div
+              className={styles.actions}
+              id={`browser-account-${selectedAccount.id}-actions`}
+            >
               <button
                 className={styles.secondaryButton}
                 type="button"

@@ -1415,3 +1415,97 @@
 }
 
 /* === BROWSER ACCOUNT FILTERS END === */
+
+/* === DETAIL NAVIGATION FINAL START === */
+
+.detailNavigation {
+  position: sticky;
+  z-index: 8;
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 7px;
+  overflow-x: auto;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.2)
+    );
+  border-radius: 12px;
+  background:
+    color-mix(
+      in srgb,
+      var(--panel, #ffffff) 91%,
+      transparent
+    );
+  box-shadow:
+    0 8px 24px
+      rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(14px);
+  scrollbar-width: none;
+}
+
+.detailNavigation::-webkit-scrollbar {
+  display: none;
+}
+
+.detailNavigation button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.detailNavigation button:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 38%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 9%,
+      transparent
+    );
+  color:
+    var(--accent, #6d5dfc);
+  transform:
+    translateY(-1px);
+}
+
+.detailsHeader,
+.accountSection,
+.onboardingPanel,
+.actions {
+  scroll-margin-top: 88px;
+}
+
+@media (max-width: 760px) {
+  .detailNavigation {
+    top: 6px;
+    padding: 6px;
+  }
+
+  .detailNavigation button {
+    min-height: 32px;
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+}
+
+/* === DETAIL NAVIGATION FINAL END === */
