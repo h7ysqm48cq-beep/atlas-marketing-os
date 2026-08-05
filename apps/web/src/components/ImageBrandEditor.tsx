@@ -1,6 +1,12 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { API_URL } from "@/lib/api";
 import styles from "./ImageBrandEditor.module.css";
 
@@ -33,12 +39,20 @@ type LogoPlacement =
   | "BOTTOM_CENTER"
   | "BOTTOM_RIGHT";
 
+type NormalizedPosition = {
+  x: number;
+  y: number;
+};
+
 export function ImageBrandEditor() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [logoAsset, setLogoAsset] = useState<Asset | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [placement, setPlacement] = useState<LogoPlacement>("AUTO");
+  const [customPosition, setCustomPosition] =
+    useState<NormalizedPosition | null>(null);
+  const [draggingLogo, setDraggingLogo] = useState(false);
   const [scale, setScale] = useState(0.85);
   const [opacity, setOpacity] = useState(0.9);
   const [platform, setPlatform] = useState("Facebook");
@@ -76,7 +90,9 @@ export function ImageBrandEditor() {
 
         if (logo) {
           setLogoAsset(logo);
-          setMessage("Live preview is ready. Adjust the logo before saving.");
+          setMessage(
+            "Live preview is ready. Drag the logo or use a preset position.",
+          );
         } else {
           setMessage(
             assetData.length
@@ -132,15 +148,25 @@ export function ImageBrandEditor() {
   const logoStyle = useMemo<CSSProperties>(() => {
     const isStory =
       platform === "Instagram Story" || platform === "WhatsApp Status";
-    const baseWidth = platform === "Facebook" ? 8.5 : platform === "Telegram" ? 8 : 8;
+    const baseWidth =
+      platform === "Facebook" ? 8.5 : platform === "Telegram" ? 8 : 8;
     const widthPercent = Math.max(5.5, Math.min(15, baseWidth * scale));
-    const side = isStory ? "5.5%" : platform === "Telegram" ? "2.8%" : "3.5%";
-    const bottom = isStory ? "7.5%" : platform === "Telegram" ? "3%" : "3.5%";
+    const side =
+      isStory ? "5.5%" : platform === "Telegram" ? "2.8%" : "3.5%";
+    const bottom =
+      isStory ? "7.5%" : platform === "Telegram" ? "3%" : "3.5%";
 
     const style: CSSProperties = {
       width: `${widthPercent}%`,
       opacity,
     };
+
+    if (customPosition) {
+      style.left = `${customPosition.x * 100}%`;
+      style.top = `${customPosition.y * 100}%`;
+      style.transform = "translate(-50%, -50%)";
+      return style;
+    }
 
     if (resolvedPlacement.includes("LEFT")) style.left = side;
     if (resolvedPlacement.includes("RIGHT")) style.right = side;
@@ -170,7 +196,45 @@ export function ImageBrandEditor() {
     }
 
     return style;
-  }, [opacity, platform, resolvedPlacement, scale]);
+  }, [customPosition, opacity, platform, resolvedPlacement, scale]);
+
+  function updateCustomPosition(
+    event: ReactPointerEvent<HTMLImageElement>,
+  ) {
+    const canvas = event.currentTarget.parentElement;
+    if (!canvas) return;
+
+    const bounds = canvas.getBoundingClientRect();
+    const x = Math.min(
+      1,
+      Math.max(0, (event.clientX - bounds.left) / bounds.width),
+    );
+    const y = Math.min(
+      1,
+      Math.max(0, (event.clientY - bounds.top) / bounds.height),
+    );
+
+    setCustomPosition({ x, y });
+  }
+
+  function startLogoDrag(event: ReactPointerEvent<HTMLImageElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingLogo(true);
+    updateCustomPosition(event);
+  }
+
+  function moveLogo(event: ReactPointerEvent<HTMLImageElement>) {
+    if (!draggingLogo) return;
+    updateCustomPosition(event);
+  }
+
+  function endLogoDrag(event: ReactPointerEvent<HTMLImageElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDraggingLogo(false);
+  }
 
   async function applyLogo() {
     if (!selected) return;
@@ -189,6 +253,8 @@ export function ImageBrandEditor() {
           logoPlacement: placement,
           logoScale: scale,
           logoOpacity: opacity,
+          logoX: customPosition?.x,
+          logoY: customPosition?.y,
         }),
       });
 
@@ -207,6 +273,7 @@ export function ImageBrandEditor() {
       setAssets((current) => [data, ...current]);
       setSelectedId(data.id);
       setName("");
+      setCustomPosition(null);
       setMessage("New branded image saved to Asset Library.");
     } catch (error) {
       setMessage(
@@ -224,8 +291,8 @@ export function ImageBrandEditor() {
           <p>Image tools</p>
           <h1>Image Editor & Logo</h1>
           <span>
-            Preview the official brand logo instantly, then save a new version
-            without changing the original image.
+            Drag the official logo anywhere on the image, then save a new version
+            without changing the original.
           </span>
         </div>
 
@@ -255,6 +322,7 @@ export function ImageBrandEditor() {
                   setSelectedId(asset.id);
                   setResult(null);
                   setName("");
+                  setCustomPosition(null);
                 }}
               >
                 <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
@@ -274,9 +342,11 @@ export function ImageBrandEditor() {
               <div>
                 <strong>Live preview</strong>
                 <span>
-                  {placement === "AUTO"
-                    ? `Auto: ${resolvedPlacement.replaceAll("_", " ").toLowerCase()}`
-                    : resolvedPlacement.replaceAll("_", " ").toLowerCase()}
+                  {customPosition
+                    ? "Custom position"
+                    : placement === "AUTO"
+                      ? `Auto: ${resolvedPlacement.replaceAll("_", " ").toLowerCase()}`
+                      : resolvedPlacement.replaceAll("_", " ").toLowerCase()}
                 </span>
               </div>
 
@@ -320,10 +390,17 @@ export function ImageBrandEditor() {
 
                   {showLogo && logoAsset ? (
                     <img
-                      className={styles.logoPreview}
+                      className={`${styles.logoPreview} ${
+                        draggingLogo ? styles.logoDragging : ""
+                      }`}
                       src={logoAsset.url}
                       alt="Official brand logo preview"
                       style={logoStyle}
+                      draggable={false}
+                      onPointerDown={startLogoDrag}
+                      onPointerMove={moveLogo}
+                      onPointerUp={endLogoDrag}
+                      onPointerCancel={endLogoDrag}
                     />
                   ) : null}
                 </div>
@@ -333,8 +410,8 @@ export function ImageBrandEditor() {
             </div>
 
             <p className={styles.previewNote}>
-              Preview is immediate. The saved version is rendered by the backend
-              using the original full-resolution image.
+              Drag the logo directly on the image. The backend saves the same
+              position against the original full-resolution image.
             </p>
           </div>
 
@@ -354,7 +431,10 @@ export function ImageBrandEditor() {
               <span>Platform</span>
               <select
                 value={platform}
-                onChange={(event) => setPlatform(event.target.value)}
+                onChange={(event) => {
+                  setPlatform(event.target.value);
+                  setCustomPosition(null);
+                }}
               >
                 <option value="Facebook">Facebook</option>
                 <option value="Telegram">Telegram</option>
@@ -368,9 +448,10 @@ export function ImageBrandEditor() {
               <span>Logo position</span>
               <select
                 value={placement}
-                onChange={(event) =>
-                  setPlacement(event.target.value as LogoPlacement)
-                }
+                onChange={(event) => {
+                  setPlacement(event.target.value as LogoPlacement);
+                  setCustomPosition(null);
+                }}
               >
                 <option value="AUTO">Auto · Recommended</option>
                 <option value="BOTTOM_LEFT">Bottom left</option>
@@ -384,6 +465,16 @@ export function ImageBrandEditor() {
                 <option value="CENTER_RIGHT">Centre right</option>
               </select>
             </label>
+
+            {customPosition ? (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setCustomPosition(null)}
+              >
+                Reset to preset position
+              </button>
+            ) : null}
 
             <label>
               <span>Logo size · {Math.round(scale * 100)}%</span>
