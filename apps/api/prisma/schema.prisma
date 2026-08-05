@@ -137,6 +137,7 @@ model Campaign {
   status               CampaignStatus        @default(DRAFT)
   startDate            DateTime?
   endDate              DateTime?
+  brandRenderingSettings Json                @default("{}")
   ideas                CampaignIdea[]
   generations          GenerationHistory[]
   assets               Asset[]
@@ -661,6 +662,7 @@ model ScheduledPost {
   title     String?
   content   String
   mediaUrls String[]
+  brandRenderingSettings Json @default("{}")
 
   scheduledAt DateTime
   timezone    String              @default("Asia/Kuala_Lumpur")
