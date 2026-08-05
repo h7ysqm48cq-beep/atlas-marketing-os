@@ -17,6 +17,7 @@ export class LogoOverlayService {
     width: number;
     height: number;
     platform?: string;
+    placement?: LogoPlacement;
   }): Promise<Buffer> {
     const targetLogoWidth = this.safeArea.getLogoWidth(
       options.width,
@@ -44,11 +45,14 @@ export class LogoOverlayService {
     const logoWidth = metadata.width ?? targetLogoWidth;
     const logoHeight = metadata.height ?? Math.round(targetLogoWidth * 0.4);
 
-    const placement = this.layout.getPlacement({
-      width: options.width,
-      height: options.height,
-      platform: options.platform,
-    });
+    const placement =
+      options.placement && options.placement !== LogoPlacement.AUTO
+        ? options.placement
+        : this.layout.getPlacement({
+            width: options.width,
+            height: options.height,
+            platform: options.platform,
+          });
 
     const coordinates = this.resolveCoordinates({
       placement,
