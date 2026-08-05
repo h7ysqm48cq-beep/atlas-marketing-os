@@ -37,13 +37,42 @@ type ProxyType =
 type BrowserProfileInput = {
   channelId: string;
   browserProfileKey: string;
+  browserProfileName?: string;
+
+  browserEngine?: string;
+  operatingSystem?: string;
+  userAgent?: string | null;
+
+  viewport?: {
+    width?: number;
+    height?: number;
+  } | null;
+
+  screenWidth?: number;
+  screenHeight?: number;
+  deviceScaleFactor?: number;
+  colorScheme?:
+    | "light"
+    | "dark"
+    | "no-preference";
+
   locale?: string;
   timezone?: string;
+
+  identityLocked?: boolean;
+  identityVersion?: number;
+  fingerprintStatus?: string;
+
   proxyType?: ProxyType;
   proxyHost?: string | null;
   proxyPort?: number | null;
   proxyUsername?: string | null;
   proxyPassword?: string | null;
+
+  expectedIp?: string | null;
+  lastKnownIp?: string | null;
+  ipStatus?: string;
+
   headless?: boolean;
   startUrl?: string;
 };
@@ -51,12 +80,31 @@ type BrowserProfileInput = {
 type BrowserSession = {
   channelId: string;
   browserProfileKey: string;
+  browserProfileName: string | null;
   profileDirectory: string;
   context: BrowserContext;
   openedAt: string;
+
+  browserEngine: string;
+  operatingSystem: string;
+  userAgent: string | null;
+
+  viewport: {
+    width: number;
+    height: number;
+  };
+
+  deviceScaleFactor: number;
+  colorScheme:
+    | "light"
+    | "dark"
+    | "no-preference";
+
   locale: string;
   timezone: string;
   proxyType: ProxyType;
+  identityLocked: boolean;
+  identityVersion: number;
   headless: boolean;
   currentUrl: string | null;
 };
@@ -95,6 +143,63 @@ const sessions =
     string,
     BrowserSession
   >();
+
+function normalizeInteger(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+) {
+  const normalized =
+    Number(value);
+
+  if (
+    !Number.isInteger(
+      normalized,
+    ) ||
+    normalized < minimum ||
+    normalized > maximum
+  ) {
+    return fallback;
+  }
+
+  return normalized;
+}
+
+function normalizeScaleFactor(
+  value: unknown,
+) {
+  const normalized =
+    Number(value);
+
+  if (
+    !Number.isFinite(
+      normalized,
+    ) ||
+    normalized < 0.5 ||
+    normalized > 4
+  ) {
+    return 1;
+  }
+
+  return normalized;
+}
+
+function normalizeColorScheme(
+  value: unknown,
+):
+  | "light"
+  | "dark"
+  | "no-preference" {
+  if (
+    value === "dark" ||
+    value === "no-preference"
+  ) {
+    return value;
+  }
+
+  return "light";
+}
 
 
 type FrameInputInspection = {
@@ -914,6 +1019,75 @@ app.post(
     const headless =
       input.headless ?? false;
 
+    const browserEngine =
+      input.browserEngine
+        ?.trim()
+        .toLowerCase() ||
+      "chromium";
+
+    if (
+      browserEngine !==
+      "chromium"
+    ) {
+      response.status(400).json({
+        opened: false,
+        message:
+          `Browser engine ${browserEngine} is not supported by this Worker deployment.`,
+      });
+      return;
+    }
+
+    const operatingSystem =
+      input.operatingSystem
+        ?.trim() ||
+      "macOS";
+
+    const viewport = {
+      width:
+        normalizeInteger(
+          input.viewport?.width ??
+            input.screenWidth,
+          1365,
+          800,
+          7680,
+        ),
+
+      height:
+        normalizeInteger(
+          input.viewport?.height ??
+            input.screenHeight,
+          768,
+          600,
+          4320,
+        ),
+    };
+
+    const deviceScaleFactor =
+      normalizeScaleFactor(
+        input.deviceScaleFactor,
+      );
+
+    const colorScheme =
+      normalizeColorScheme(
+        input.colorScheme,
+      );
+
+    const userAgent =
+      input.userAgent?.trim() ||
+      null;
+
+    const identityLocked =
+      input.identityLocked ??
+      true;
+
+    const identityVersion =
+      normalizeInteger(
+        input.identityVersion,
+        1,
+        1,
+        100000,
+      );
+
     const startUrl =
       input.startUrl?.trim() ||
       "https://www.facebook.com/";
@@ -931,17 +1105,33 @@ app.post(
             {
               executablePath,
               headless,
+
               locale,
+
               timezoneId:
                 timezone,
+
+              userAgent:
+                userAgent ||
+                undefined,
+
+              viewport,
+
+              screen: {
+                width:
+                  viewport.width,
+                height:
+                  viewport.height,
+              },
+
+              deviceScaleFactor,
+
+              colorScheme,
+
               proxy:
                 buildProxy(
                   input,
                 ),
-              viewport: {
-                width: 1365,
-                height: 768,
-              },
             },
           );
 
@@ -962,17 +1152,38 @@ app.post(
         BrowserSession = {
           channelId:
             input.channelId,
+
           browserProfileKey:
             profileKey,
+
+          browserProfileName:
+            input.browserProfileName
+              ?.trim() ||
+            null,
+
           profileDirectory,
           context,
+
           openedAt:
             new Date()
               .toISOString(),
+
+          browserEngine,
+          operatingSystem,
+          userAgent,
+          viewport,
+          deviceScaleFactor,
+          colorScheme,
+
           locale,
           timezone,
           proxyType,
+
+          identityLocked,
+          identityVersion,
+
           headless,
+
           currentUrl:
             page.url(),
         };

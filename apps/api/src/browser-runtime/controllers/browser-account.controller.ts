@@ -30,11 +30,30 @@ import {
 } from '../services/browser-onboarding.service';
 
 type CreateBrowserAccountBody = {
-  displayName: string;
+  displayName?: string;
+
+  facebookEmail?: string;
+  facebookPassword?: string;
+
   platform?: SocialPlatform;
   browserProfileName?: string;
+
   locale?: string;
   timezone?: string;
+
+  browserEngine?: string;
+  operatingSystem?: string;
+  userAgent?: string | null;
+
+  screenWidth?: number;
+  screenHeight?: number;
+  deviceScaleFactor?: number;
+  colorScheme?: string;
+
+  hardwareConcurrency?: number | null;
+  deviceMemory?: number | null;
+
+  identityLocked?: boolean;
 
   proxyType?: SocialProxyType;
   proxyHost?: string | null;

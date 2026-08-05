@@ -15,17 +15,37 @@ import { PrismaService } from '../../database/prisma.service';
 import { SocialTokenCryptoService } from '../../common/social-token-crypto.service';
 
 type CreateBrowserAccountInput = {
-  displayName: string;
+  displayName?: string;
+  facebookEmail?: string;
+  facebookPassword?: string;
+
   platform?: SocialPlatform;
   browserProfileName?: string;
+
   locale?: string;
   timezone?: string;
+
+  browserEngine?: string;
+  operatingSystem?: string;
+  userAgent?: string | null;
+
+  screenWidth?: number;
+  screenHeight?: number;
+  deviceScaleFactor?: number;
+  colorScheme?: string;
+
+  hardwareConcurrency?: number | null;
+  deviceMemory?: number | null;
+
+  identityLocked?: boolean;
+
   proxyType?: SocialProxyType;
   proxyHost?: string | null;
   proxyPort?: number | null;
   proxyUsername?: string | null;
   proxyPassword?: string | null;
   proxyCountry?: string | null;
+
   workspaceId?: string | null;
   brandId?: string | null;
 };
@@ -87,14 +107,101 @@ export class BrowserAccountService {
   async create(
     input: CreateBrowserAccountInput,
   ) {
+    const facebookEmail =
+      input.facebookEmail
+        ?.trim()
+        .toLowerCase() ||
+      '';
+
+    if (
+      facebookEmail &&
+      !this.isValidEmail(
+        facebookEmail,
+      )
+    ) {
+      throw new BadRequestException(
+        'Facebook email is invalid.',
+      );
+    }
+
+    const facebookPassword =
+      input.facebookPassword ||
+      '';
+
+    const derivedDisplayName =
+      facebookEmail
+        ? facebookEmail
+            .split('@')[0]
+            .replace(
+              /[._-]+/g,
+              ' ',
+            )
+            .replace(
+              /\b\w/g,
+              (value) =>
+                value.toUpperCase(),
+            )
+            .trim()
+        : '';
+
     const displayName =
-      input.displayName?.trim();
+      input.displayName?.trim() ||
+      derivedDisplayName;
 
     if (!displayName) {
       throw new BadRequestException(
-        'Display name is required.',
+        'Display name or Facebook email is required.',
       );
     }
+
+    const browserEngine =
+      input.browserEngine
+        ?.trim()
+        .toLowerCase() ||
+      'chromium';
+
+    if (
+      ![
+        'chromium',
+        'firefox',
+        'webkit',
+      ].includes(
+        browserEngine,
+      )
+    ) {
+      throw new BadRequestException(
+        'Browser engine must be chromium, firefox or webkit.',
+      );
+    }
+
+    const operatingSystem =
+      input.operatingSystem
+        ?.trim() ||
+      'macOS';
+
+    const screenWidth =
+      this.normalizeInteger(
+        input.screenWidth,
+        1440,
+        800,
+        7680,
+      );
+
+    const screenHeight =
+      this.normalizeInteger(
+        input.screenHeight,
+        900,
+        600,
+        4320,
+      );
+
+    const deviceScaleFactor =
+      this.normalizeNumber(
+        input.deviceScaleFactor,
+        2,
+        0.5,
+        4,
+      );
 
     const proxyType =
       input.proxyType ??
@@ -138,12 +245,79 @@ export class BrowserAccountService {
           browserProfileName:
             input.browserProfileName?.trim() ||
             `${displayName} Browser`,
+
+          facebookEmailEncrypted:
+            facebookEmail
+              ? this.socialTokenCrypto.encrypt(
+                  facebookEmail,
+                )
+              : null,
+
+          facebookPasswordEncrypted:
+            facebookPassword
+              ? this.socialTokenCrypto.encrypt(
+                  facebookPassword,
+                )
+              : null,
+
           locale:
             input.locale?.trim() ||
             'en-MY',
+
           timezone:
             input.timezone?.trim() ||
             'Asia/Kuala_Lumpur',
+
+          browserEngine,
+          operatingSystem,
+
+          userAgent:
+            input.userAgent?.trim() ||
+            null,
+
+          screenWidth,
+          screenHeight,
+          deviceScaleFactor,
+
+          colorScheme:
+            input.colorScheme?.trim() ||
+            'light',
+
+          hardwareConcurrency:
+            input.hardwareConcurrency ==
+            null
+              ? null
+              : this.normalizeInteger(
+                  input.hardwareConcurrency,
+                  8,
+                  1,
+                  128,
+                ),
+
+          deviceMemory:
+            input.deviceMemory ==
+            null
+              ? null
+              : this.normalizeInteger(
+                  input.deviceMemory,
+                  8,
+                  1,
+                  128,
+                ),
+
+          identityLocked:
+            input.identityLocked ??
+            true,
+
+          identityVersion:
+            1,
+
+          fingerprintStatus:
+            'LOCKED',
+
+          identityError:
+            null,
+
           proxyType,
           proxyHost:
             proxyType ===
@@ -1695,34 +1869,142 @@ export class BrowserAccountService {
     return {
       channelId:
         account.id,
+
       browserProfileKey:
         account.browserProfileKey,
+
+      browserProfileName:
+        account.browserProfileName,
+
+      browserEngine:
+        account.browserEngine,
+
+      operatingSystem:
+        account.operatingSystem,
+
+      userAgent:
+        account.userAgent,
+
+      viewport: {
+        width:
+          account.screenWidth,
+        height:
+          account.screenHeight,
+      },
+
+      screenWidth:
+        account.screenWidth,
+
+      screenHeight:
+        account.screenHeight,
+
+      deviceScaleFactor:
+        account.deviceScaleFactor,
+
+      colorScheme:
+        account.colorScheme,
+
+      hardwareConcurrency:
+        account.hardwareConcurrency,
+
+      deviceMemory:
+        account.deviceMemory,
+
       locale:
         account.locale,
+
       timezone:
         account.timezone,
+
+      identityLocked:
+        account.identityLocked,
+
+      identityVersion:
+        account.identityVersion,
+
+      fingerprintStatus:
+        account.fingerprintStatus,
+
       proxyType:
         account.proxyType,
+
       proxyHost:
         account.proxyHost,
+
       proxyPort:
         account.proxyPort,
+
       proxyUsername:
         account.proxyUsernameEncrypted
           ? this.socialTokenCrypto.decrypt(
               account.proxyUsernameEncrypted,
             )
           : null,
+
       proxyPassword:
         account.proxyPasswordEncrypted
           ? this.socialTokenCrypto.decrypt(
               account.proxyPasswordEncrypted,
             )
           : null,
+
+      expectedIp:
+        account.expectedIp,
+
+      lastKnownIp:
+        account.lastKnownIp,
+
+      ipStatus:
+        account.ipStatus,
+
       headless:
         false,
+
       startUrl:
         'https://www.facebook.com/',
+    };
+  }
+
+  async getLoginCredentials(
+    id: string,
+  ) {
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          facebookEmailEncrypted:
+            true,
+          facebookPasswordEncrypted:
+            true,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    return {
+      accountId:
+        account.id,
+
+      email:
+        account.facebookEmailEncrypted
+          ? this.socialTokenCrypto.decrypt(
+              account.facebookEmailEncrypted,
+            )
+          : null,
+
+      password:
+        account.facebookPasswordEncrypted
+          ? this.socialTokenCrypto.decrypt(
+              account.facebookPasswordEncrypted,
+            )
+          : null,
     };
   }
 
@@ -1740,10 +2022,71 @@ export class BrowserAccountService {
         account.browserProfileKey,
       browserProfileName:
         account.browserProfileName,
+
+      maskedEmail:
+        account.facebookEmailEncrypted
+          ? this.maskEmail(
+              this.socialTokenCrypto.decrypt(
+                account.facebookEmailEncrypted,
+              ),
+            )
+          : null,
+
+      hasFacebookEmail:
+        Boolean(
+          account.facebookEmailEncrypted,
+        ),
+
+      hasPassword:
+        Boolean(
+          account.facebookPasswordEncrypted,
+        ),
+
       locale:
         account.locale,
+
       timezone:
         account.timezone,
+
+      browserEngine:
+        account.browserEngine,
+
+      operatingSystem:
+        account.operatingSystem,
+
+      userAgent:
+        account.userAgent,
+
+      screenWidth:
+        account.screenWidth,
+
+      screenHeight:
+        account.screenHeight,
+
+      deviceScaleFactor:
+        account.deviceScaleFactor,
+
+      colorScheme:
+        account.colorScheme,
+
+      hardwareConcurrency:
+        account.hardwareConcurrency,
+
+      deviceMemory:
+        account.deviceMemory,
+
+      identityLocked:
+        account.identityLocked,
+
+      identityVersion:
+        account.identityVersion,
+
+      fingerprintStatus:
+        account.fingerprintStatus,
+
+      identityError:
+        account.identityError,
+
       proxyType:
         account.proxyType,
       proxyHost:
@@ -1770,6 +2113,16 @@ export class BrowserAccountService {
         account.cookieStatus,
       lastKnownIp:
         account.lastKnownIp,
+
+      expectedIp:
+        account.expectedIp,
+
+      lastIpCheckedAt:
+        account.lastIpCheckedAt,
+
+      ipStatus:
+        account.ipStatus,
+
       lastLoginAt:
         account.lastLoginAt,
       lastVerifiedAt:
@@ -1787,4 +2140,107 @@ export class BrowserAccountService {
         account.updatedAt,
     };
   }
+  private maskEmail(
+    value: string,
+  ) {
+    const [
+      localPart,
+      domain,
+    ] = value.split('@');
+
+    if (
+      !localPart ||
+      !domain
+    ) {
+      return '***';
+    }
+
+    const visibleLength =
+      Math.min(
+        2,
+        localPart.length,
+      );
+
+    return (
+      localPart.slice(
+        0,
+        visibleLength,
+      ) +
+      '***@' +
+      domain
+    );
+  }
+
+  private isValidEmail(
+    value: string,
+  ) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      value,
+    );
+  }
+
+  private normalizeInteger(
+    value: number | undefined,
+    fallback: number,
+    minimum: number,
+    maximum: number,
+  ) {
+    if (
+      value === undefined ||
+      value === null
+    ) {
+      return fallback;
+    }
+
+    const normalized =
+      Math.trunc(
+        Number(value),
+      );
+
+    if (
+      !Number.isFinite(
+        normalized,
+      ) ||
+      normalized < minimum ||
+      normalized > maximum
+    ) {
+      throw new BadRequestException(
+        `Value must be between ${minimum} and ${maximum}.`,
+      );
+    }
+
+    return normalized;
+  }
+
+  private normalizeNumber(
+    value: number | undefined,
+    fallback: number,
+    minimum: number,
+    maximum: number,
+  ) {
+    if (
+      value === undefined ||
+      value === null
+    ) {
+      return fallback;
+    }
+
+    const normalized =
+      Number(value);
+
+    if (
+      !Number.isFinite(
+        normalized,
+      ) ||
+      normalized < minimum ||
+      normalized > maximum
+    ) {
+      throw new BadRequestException(
+        `Value must be between ${minimum} and ${maximum}.`,
+      );
+    }
+
+    return normalized;
+  }
+
 }
