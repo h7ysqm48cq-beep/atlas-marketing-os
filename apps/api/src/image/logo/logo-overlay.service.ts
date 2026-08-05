@@ -20,6 +20,8 @@ export class LogoOverlayService {
     placement?: LogoPlacement;
     scale?: number;
     opacity?: number;
+    normalizedX?: number;
+    normalizedY?: number;
   }): Promise<Buffer> {
     const scale = this.clamp(options.scale ?? 1, 0.5, 1.5);
     const opacity = this.clamp(options.opacity ?? 1, 0.2, 1);
@@ -61,24 +63,35 @@ export class LogoOverlayService {
     const logoWidth = metadata.width ?? targetLogoWidth;
     const logoHeight = metadata.height ?? Math.round(targetLogoWidth * 0.4);
 
-    const placement =
-      options.placement && options.placement !== LogoPlacement.AUTO
-        ? options.placement
-        : this.layout.getPlacement({
-            width: options.width,
-            height: options.height,
-            platform: options.platform,
-          });
+    const hasCustomPosition =
+      Number.isFinite(options.normalizedX) &&
+      Number.isFinite(options.normalizedY);
 
-    const coordinates = this.resolveCoordinates({
-      placement,
-      canvasWidth: options.width,
-      canvasHeight: options.height,
-      logoWidth,
-      logoHeight,
-      padding,
-      bottomMargin,
-    });
+    const coordinates = hasCustomPosition
+      ? this.resolveCustomCoordinates({
+          normalizedX: options.normalizedX ?? 0.5,
+          normalizedY: options.normalizedY ?? 0.5,
+          canvasWidth: options.width,
+          canvasHeight: options.height,
+          logoWidth,
+          logoHeight,
+        })
+      : this.resolveCoordinates({
+          placement:
+            options.placement && options.placement !== LogoPlacement.AUTO
+              ? options.placement
+              : this.layout.getPlacement({
+                  width: options.width,
+                  height: options.height,
+                  platform: options.platform,
+                }),
+          canvasWidth: options.width,
+          canvasHeight: options.height,
+          logoWidth,
+          logoHeight,
+          padding,
+          bottomMargin,
+        });
 
     return sharp(options.image)
       .composite([
@@ -90,6 +103,35 @@ export class LogoOverlayService {
       ])
       .png()
       .toBuffer();
+  }
+
+  private resolveCustomCoordinates(input: {
+    normalizedX: number;
+    normalizedY: number;
+    canvasWidth: number;
+    canvasHeight: number;
+    logoWidth: number;
+    logoHeight: number;
+  }): { left: number; top: number } {
+    const centerX = this.clamp(input.normalizedX, 0, 1) * input.canvasWidth;
+    const centerY = this.clamp(input.normalizedY, 0, 1) * input.canvasHeight;
+
+    return {
+      left: Math.round(
+        this.clamp(
+          centerX - input.logoWidth / 2,
+          0,
+          Math.max(0, input.canvasWidth - input.logoWidth),
+        ),
+      ),
+      top: Math.round(
+        this.clamp(
+          centerY - input.logoHeight / 2,
+          0,
+          Math.max(0, input.canvasHeight - input.logoHeight),
+        ),
+      ),
+    };
   }
 
   private resolveCoordinates(input: {
