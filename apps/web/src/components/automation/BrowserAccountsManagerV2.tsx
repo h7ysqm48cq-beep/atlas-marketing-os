@@ -1617,34 +1617,183 @@ export function BrowserAccountsManagerV2({
     );
   }
 
+  const accountStats =
+    useMemo(
+      () => {
+        const loggedIn =
+          accounts.filter(
+            (account) =>
+              normalizeStatus(
+                account.loginStatus,
+              ) ===
+              "LOGGED_IN",
+          ).length;
+
+        const loginRequired =
+          accounts.filter(
+            (account) =>
+              [
+                "LOGIN_REQUIRED",
+                "TWO_FACTOR_REQUIRED",
+                "CHECKPOINT_REQUIRED",
+              ].includes(
+                normalizeStatus(
+                  account.loginStatus,
+                ),
+              ),
+          ).length;
+
+        const running =
+          accounts.filter(
+            (account) =>
+              Boolean(
+                runtimes[
+                  account.id
+                ]?.running,
+              ),
+          ).length;
+
+        const proxyAttention =
+          accounts.filter(
+            (account) =>
+              account.proxyType !==
+                "DIRECT" &&
+              (
+                !account.proxyHost ||
+                !account.proxyPort ||
+                !account.lastKnownIp
+              ),
+          ).length;
+
+        return {
+          total:
+            accounts.length,
+          loggedIn,
+          loginRequired,
+          running,
+          proxyAttention,
+        };
+      },
+      [
+        accounts,
+        runtimes,
+      ],
+    );
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerCopy}>
           <p className={styles.eyebrow}>
-            Browser Runtime V2
+            Browser Management Center
           </p>
 
           <h1>
-            Facebook Accounts
+            Browser Accounts
           </h1>
 
           <p className={styles.subtitle}>
-            Independent profiles, cookies,
-            proxies and login sessions.
+            Manage independent Facebook
+            profiles, cookies, proxies,
+            login sessions and automation
+            from one control center.
           </p>
         </div>
 
-        <button
-          className={styles.secondaryButton}
-          type="button"
-          onClick={() =>
-            void loadAccounts()
-          }
-        >
-          Refresh
-        </button>
+        <div className={styles.headerActions}>
+          <a
+            className={styles.secondaryButton}
+            href="/automation/browser-pool"
+          >
+            Browser Pool
+          </a>
+
+          <button
+            className={styles.primaryButton}
+            type="button"
+            disabled={loading}
+            onClick={() =>
+              void loadAccounts()
+            }
+          >
+            {loading
+              ? "Refreshing…"
+              : "Refresh Accounts"}
+          </button>
+        </div>
       </header>
+
+      <section className={styles.accountStats}>
+        <article>
+          <span>
+            Total Accounts
+          </span>
+
+          <strong>
+            {accountStats.total}
+          </strong>
+
+          <small>
+            Independent profiles
+          </small>
+        </article>
+
+        <article>
+          <span>
+            Logged In
+          </span>
+
+          <strong>
+            {accountStats.loggedIn}
+          </strong>
+
+          <small>
+            Facebook sessions ready
+          </small>
+        </article>
+
+        <article>
+          <span>
+            Login Required
+          </span>
+
+          <strong>
+            {accountStats.loginRequired}
+          </strong>
+
+          <small>
+            Accounts needing attention
+          </small>
+        </article>
+
+        <article>
+          <span>
+            Running
+          </span>
+
+          <strong>
+            {accountStats.running}
+          </strong>
+
+          <small>
+            Live browser sessions
+          </small>
+        </article>
+
+        <article>
+          <span>
+            Proxy Attention
+          </span>
+
+          <strong>
+            {accountStats.proxyAttention}
+          </strong>
+
+          <small>
+            IP or proxy not verified
+          </small>
+        </article>
+      </section>
 
       {globalError ? (
         <div className={styles.error}>
@@ -1659,16 +1808,25 @@ export function BrowserAccountsManagerV2({
       ) : null}
 
       <section className={styles.toolbar}>
-        <input
-          className={styles.search}
+        <div className={styles.searchWrap}>
+          <span
+            aria-hidden="true"
+            className={styles.searchIcon}
+          >
+            ⌕
+          </span>
+
+          <input
+            className={styles.search}
           value={search}
           onChange={(event) =>
             setSearch(
               event.target.value,
             )
           }
-          placeholder="Search account, profile, IP or status…"
-        />
+            placeholder="Search account, profile, IP or status…"
+          />
+        </div>
 
         <div className={styles.toolbarActions}>
           <span className={styles.selectionCount}>
@@ -1688,7 +1846,7 @@ export function BrowserAccountsManagerV2({
               void verifySelected()
             }
           >
-            Verify Selected
+            Verify Selected Accounts
           </button>
         </div>
       </section>
