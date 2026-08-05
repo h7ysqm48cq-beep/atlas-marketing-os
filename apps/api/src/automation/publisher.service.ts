@@ -717,4 +717,51 @@ export class PublisherService {
   }
 
 
+  private async publishTelegramDirectPhotoUrlIfPossible(post: any) {
+    const channel = post.channel;
+
+    if (!channel || channel.platform !== 'TELEGRAM') {
+      return null;
+    }
+
+    const mediaUrls = Array.isArray(post.mediaUrls) ? post.mediaUrls : [];
+
+    if (mediaUrls.length === 0) {
+      return null;
+    }
+
+    const connector: any = this.telegramConnector as any;
+
+    if (typeof connector.publishPhotoUrlDirect !== 'function') {
+      return null;
+    }
+
+    const chatId =
+      channel.externalId ||
+      (channel.username ? `@${channel.username.replace(/^@/, '')}` : null) ||
+      process.env.TELEGRAM_CHAT_ID ||
+      process.env.TELEGRAM_CHANNEL_ID;
+
+    if (!chatId) {
+      return null;
+    }
+
+    const tokenCandidate =
+      channel.accessToken ||
+      channel.botToken ||
+      process.env.TELEGRAM_BOT_TOKEN ||
+      process.env.TELEGRAM_TOKEN;
+
+    if (!tokenCandidate) {
+      return null;
+    }
+
+    return connector.publishPhotoUrlDirect({
+      botToken: tokenCandidate,
+      chatId,
+      photoUrl: mediaUrls[0],
+      caption: post.content || post.title || '',
+    });
+  }
+
 }

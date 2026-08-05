@@ -37,6 +37,7 @@ import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 import { BrowserAccountService } from './browser-account.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
+import { SportsNewsAutomationService } from './sports-news-automation.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
 
@@ -209,6 +210,8 @@ export class AutomationController {
       BrowserActionHistoryService,
     private readonly browserActionTrace:
       BrowserActionTraceService,
+    private readonly sportsNews:
+      SportsNewsAutomationService,
   ) {}
 
   @Get('dashboard')
@@ -1551,6 +1554,34 @@ export class AutomationController {
   @Post("run")
   runPublisher() {
     return this.automationService.runPublisher();
+  }
+
+
+
+  @Post('sports-news/morning/force')
+  async forceSportsNewsMorning() {
+    return this.sportsNews.forceCreateMorningEditionNow();
+  }
+
+  @Post('sports-news/evening/force')
+  async forceSportsNewsEvening() {
+    return this.sportsNews.forceCreateEveningEditionNow();
+  }
+
+  @Get('sports-news/status')
+  getSportsNewsStatus() {
+    return this.sportsNews.getStatus();
+  }
+
+  
+@Post('sports-news/morning')
+  createSportsNewsMorning() {
+    return this.sportsNews.createMorningEditionNow();
+  }
+
+  @Post('sports-news/evening')
+  createSportsNewsEvening() {
+    return this.sportsNews.createEveningEditionNow();
   }
 
 @Get('settings')

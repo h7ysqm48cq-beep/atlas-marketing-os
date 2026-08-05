@@ -398,4 +398,57 @@ export class TelegramConnectorService {
 
     return body.result;
   }
+  async publishPhotoUrlDirect(input: {
+    botToken: string;
+    chatId: string;
+    photoUrl: string;
+    caption: string;
+  }) {
+    const apiBase = `https://api.telegram.org/bot${input.botToken}`;
+
+    const caption = (input.caption || '').slice(0, 1000);
+
+    const photoResponse = await fetch(`${apiBase}/sendPhoto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: input.chatId,
+        photo: input.photoUrl,
+        caption,
+      }),
+    });
+
+    const photoBody = await photoResponse.json().catch(() => null);
+
+    if (photoResponse.ok && photoBody?.ok !== false) {
+      return photoBody;
+    }
+
+    const textResponse = await fetch(`${apiBase}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: input.chatId,
+        text: caption,
+        disable_web_page_preview: true,
+      }),
+    });
+
+    const textBody = await textResponse.json().catch(() => null);
+
+    if (!textResponse.ok || textBody?.ok === false) {
+      throw new Error(
+        textBody?.description ||
+          photoBody?.description ||
+          `Telegram publish failed: ${textResponse.status}`,
+      );
+    }
+
+    return textBody;
+  }
+
 }
