@@ -4,10 +4,23 @@ import { useMemo, useState } from "react";
 import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
-
 import { waitForBackgroundJob } from "@/lib/background-job";
 
 const ASSET_IMAGE_JOB_KEY = "atlas-asset-image-background-job";
+
+type LogoMode = "AUTO" | "ALWAYS" | "NEVER";
+type LogoPlacement =
+  | "AUTO"
+  | "TOP_LEFT"
+  | "TOP_CENTER"
+  | "TOP_RIGHT"
+  | "CENTER_LEFT"
+  | "CENTER"
+  | "CENTER_RIGHT"
+  | "BOTTOM_LEFT"
+  | "BOTTOM_CENTER"
+  | "BOTTOM_RIGHT";
+
 type ImageAsset = {
   id: string;
   name: string;
@@ -83,12 +96,12 @@ export function ImageAssetPanel({
 }) {
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
-
-  const [logoMode, setLogoMode] = useState<"AUTO" | "ALWAYS" | "NEVER">("AUTO");
+  const [logoMode, setLogoMode] = useState<LogoMode>("AUTO");
+  const [logoPlacement, setLogoPlacement] =
+    useState<LogoPlacement>("AUTO");
 
   const [versions, setVersions] = useState<ImageVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState(0);
-
   const [revision, setRevision] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -140,11 +153,9 @@ export function ImageAssetPanel({
     }
 
     const cleanRevision = revisionRequest?.trim() ?? "";
-
     const nextVersion = latestVersionNumber + 1;
 
     setIsGenerating(true);
-
     setMessage(
       nextVersion === 1
         ? "Atlas is generating and saving the image..."
@@ -169,6 +180,7 @@ export function ImageAssetPanel({
           size,
           quality,
           logoMode,
+          logoPlacement,
         }),
       });
 
@@ -187,7 +199,7 @@ export function ImageAssetPanel({
 
       window.localStorage.setItem(ASSET_IMAGE_JOB_KEY, job.id);
 
-      const data = await waitForBackgroundJob<any>(
+      const data = await waitForBackgroundJob<GenerateResponse>(
         `${API_URL}/asset-images/jobs/${job.id}`,
         {
           intervalMs: 2000,
@@ -197,12 +209,8 @@ export function ImageAssetPanel({
 
       window.localStorage.removeItem(ASSET_IMAGE_JOB_KEY);
 
-      if (!response.ok || !("asset" in data)) {
-        throw new Error(
-          "message" in data && data.message
-            ? data.message
-            : "Unable to generate image.",
-        );
+      if (!("asset" in data)) {
+        throw new Error("Unable to generate image.");
       }
 
       const newVersion: ImageVersion = {
@@ -212,7 +220,6 @@ export function ImageAssetPanel({
       };
 
       setVersions((current) => [...current, newVersion]);
-
       setSelectedVersion(nextVersion);
       setRevision("");
 
@@ -245,9 +252,7 @@ export function ImageAssetPanel({
       }
 
       const blob = await response.blob();
-
       const blobUrl = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
 
       link.href = blobUrl;
@@ -256,7 +261,6 @@ export function ImageAssetPanel({
       document.body.appendChild(link);
       link.click();
       link.remove();
-
       URL.revokeObjectURL(blobUrl);
     } catch {
       setMessage("Unable to download image.");
@@ -277,50 +281,60 @@ export function ImageAssetPanel({
       <div className={styles.controls}>
         <label>
           <span>Size</span>
-
           <select
             value={size}
             onChange={(event) => setSize(event.target.value)}
           >
             <option value="1024x1536">Portrait · 1024×1536</option>
-
             <option value="1024x1024">Square · 1024×1024</option>
-
             <option value="1536x1024">Landscape · 1536×1024</option>
           </select>
         </label>
 
         <label>
           <span>Quality</span>
-
           <select
             value={quality}
             onChange={(event) => setQuality(event.target.value)}
           >
             <option value="low">Low</option>
-
             <option value="medium">Medium</option>
-
             <option value="high">High</option>
-
             <option value="auto">Auto</option>
           </select>
         </label>
 
         <label>
           <span>Brand logo</span>
-
           <select
             value={logoMode}
-            onChange={(event) =>
-              setLogoMode(event.target.value as "AUTO" | "ALWAYS" | "NEVER")
-            }
+            onChange={(event) => setLogoMode(event.target.value as LogoMode)}
           >
             <option value="AUTO">Auto · Recommended</option>
-
             <option value="ALWAYS">Always include</option>
-
             <option value="NEVER">Never include</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Logo position</span>
+          <select
+            value={logoPlacement}
+            onChange={(event) =>
+              setLogoPlacement(event.target.value as LogoPlacement)
+            }
+            disabled={logoMode === "NEVER"}
+          >
+            <option value="AUTO">Auto · Recommended</option>
+            <option value="BOTTOM_LEFT">Bottom left</option>
+            <option value="BOTTOM_CENTER">Bottom center</option>
+            <option value="BOTTOM_RIGHT">Bottom right</option>
+            <option value="TOP_LEFT">Top left</option>
+            <option value="TOP_CENTER">Top center</option>
+            <option value="TOP_RIGHT">Top right</option>
+            <option value="CENTER_LEFT">Centre left</option>
+            <option value="CENTER">Centre</option>
+            <option value="CENTER_RIGHT">Centre right</option>
           </select>
         </label>
 
@@ -343,7 +357,6 @@ export function ImageAssetPanel({
         <div className={styles.versionBar}>
           <div>
             <span>Image versions</span>
-
             <small>{versions.length} saved</small>
           </div>
 
@@ -371,9 +384,7 @@ export function ImageAssetPanel({
 
             <div>
               <span>Saved asset · Version {selectedVersion}</span>
-
               <h3>{asset.name}</h3>
-
               <p>
                 {asset.provider || "OpenAI image model"} · {asset.width}×
                 {asset.height}
@@ -409,7 +420,6 @@ export function ImageAssetPanel({
             <div className={styles.revisionHeader}>
               <div>
                 <span>Improve this image</span>
-
                 <h4>Tell Atlas what to change</h4>
               </div>
 
