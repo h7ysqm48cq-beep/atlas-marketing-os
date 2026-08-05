@@ -18,9 +18,18 @@ export class LogoOverlayService {
     height: number;
     platform?: string;
   }): Promise<Buffer> {
-    const targetLogoWidth = this.safeArea.getLogoWidth(options.width);
-    const padding = this.safeArea.getPadding(options.width);
-    const bottomMargin = this.safeArea.getBottomMargin(options.height);
+    const targetLogoWidth = this.safeArea.getLogoWidth(
+      options.width,
+      options.platform,
+    );
+    const padding = this.safeArea.getPadding(
+      options.width,
+      options.platform,
+    );
+    const bottomMargin = this.safeArea.getBottomMargin(
+      options.height,
+      options.platform,
+    );
 
     const resizedLogo = await sharp(options.logo)
       .resize({
