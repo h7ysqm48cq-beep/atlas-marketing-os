@@ -144,6 +144,9 @@ const sessions =
     BrowserSession
   >();
 
+const openingProfiles =
+  new Set<string>();
+
 function normalizeInteger(
   value: unknown,
   fallback: number,
@@ -201,6 +204,144 @@ function normalizeColorScheme(
   return "light";
 }
 
+
+function isProfileLockError(
+  error: unknown,
+) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : String(error);
+
+  const normalized =
+    message.toLowerCase();
+
+  return (
+    normalized.includes(
+      "profile appears to be in use",
+    ) ||
+    normalized.includes(
+      "process_singleton",
+    ) ||
+    normalized.includes(
+      "singletonlock",
+    ) ||
+    normalized.includes(
+      "chromium has locked the profile",
+    )
+  );
+}
+
+async function removeStaleProfileLocks(
+  profileDirectory: string,
+) {
+  const {
+    lstat,
+    readlink,
+    rm,
+  } = await import(
+    "node:fs/promises"
+  );
+
+  const lockNames = [
+    "SingletonLock",
+    "SingletonCookie",
+    "SingletonSocket",
+  ];
+
+  const removed:
+    string[] = [];
+
+  const skipped:
+    string[] = [];
+
+  for (
+    const lockName
+    of lockNames
+  ) {
+    const lockPath =
+      path.join(
+        profileDirectory,
+        lockName,
+      );
+
+    try {
+      const stat =
+        await lstat(
+          lockPath,
+        );
+
+      let lockTarget:
+        string | null = null;
+
+      if (
+        stat.isSymbolicLink()
+      ) {
+        lockTarget =
+          await readlink(
+            lockPath,
+          ).catch(
+            () => null,
+          );
+      }
+
+      /*
+       * A recovery attempt is only called after:
+       * - no Worker session exists for this profile;
+       * - Chromium returned a profile-lock error.
+       *
+       * Do not remove any other profile files.
+       */
+      await rm(
+        lockPath,
+        {
+          force: true,
+          recursive:
+            stat.isDirectory(),
+        },
+      );
+
+      removed.push(
+        lockTarget
+          ? `${lockName}:${lockTarget}`
+          : lockName,
+      );
+    } catch (
+      error
+    ) {
+      const code =
+        error &&
+        typeof error ===
+          "object" &&
+        "code" in error
+          ? String(
+              (
+                error as {
+                  code?: unknown;
+                }
+              ).code,
+            )
+          : "";
+
+      if (
+        code ===
+        "ENOENT"
+      ) {
+        skipped.push(
+          lockName,
+        );
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return {
+    removed,
+    skipped,
+  };
+}
 
 type FrameInputInspection = {
   frameUrl: string;
@@ -1004,6 +1145,24 @@ app.post(
       return;
     }
 
+    if (
+      openingProfiles.has(
+        profileKey,
+      )
+    ) {
+      response.status(409).json({
+        opened: false,
+        alreadyRunning: false,
+        message:
+          "Browser profile is already opening.",
+      });
+      return;
+    }
+
+    openingProfiles.add(
+      profileKey,
+    );
+
     const locale =
       input.locale?.trim() ||
       "en-MY";
@@ -1098,42 +1257,99 @@ app.post(
           profileKey,
         );
 
-      const context =
-        await chromium
-          .launchPersistentContext(
+      const launchOptions = {
+        executablePath,
+        headless,
+
+        locale,
+
+        timezoneId:
+          timezone,
+
+        userAgent:
+          userAgent ||
+          undefined,
+
+        viewport,
+
+        screen: {
+          width:
+            viewport.width,
+          height:
+            viewport.height,
+        },
+
+        deviceScaleFactor,
+
+        colorScheme,
+
+        proxy:
+          buildProxy(
+            input,
+          ),
+      };
+
+      let context:
+        BrowserContext;
+
+      let lockRecovery:
+        {
+          attempted: boolean;
+          removed: string[];
+          skipped: string[];
+        } = {
+          attempted: false,
+          removed: [],
+          skipped: [],
+        };
+
+      try {
+        context =
+          await chromium
+            .launchPersistentContext(
+              profileDirectory,
+              launchOptions,
+            );
+      } catch (error) {
+        if (
+          !isProfileLockError(
+            error,
+          ) ||
+          sessions.has(
+            profileKey,
+          )
+        ) {
+          throw error;
+        }
+
+        const recovery =
+          await removeStaleProfileLocks(
             profileDirectory,
-            {
-              executablePath,
-              headless,
-
-              locale,
-
-              timezoneId:
-                timezone,
-
-              userAgent:
-                userAgent ||
-                undefined,
-
-              viewport,
-
-              screen: {
-                width:
-                  viewport.width,
-                height:
-                  viewport.height,
-              },
-
-              deviceScaleFactor,
-
-              colorScheme,
-
-              proxy:
-                buildProxy(
-                  input,
-                ),
-            },
           );
+
+        lockRecovery = {
+          attempted: true,
+          removed:
+            recovery.removed,
+          skipped:
+            recovery.skipped,
+        };
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(
+              resolve,
+              750,
+            ),
+        );
+
+        context =
+          await chromium
+            .launchPersistentContext(
+              profileDirectory,
+              launchOptions,
+            );
+      }
 
       const page =
         context.pages()[0] ||
@@ -1206,6 +1422,7 @@ app.post(
         opened: true,
         alreadyRunning:
           false,
+        lockRecovery,
         session:
           safeSession(
             session,
@@ -1219,6 +1436,10 @@ app.post(
             ? error.message
             : "Unable to open browser profile.",
       });
+    } finally {
+      openingProfiles.delete(
+        profileKey,
+      );
     }
   },
 );
