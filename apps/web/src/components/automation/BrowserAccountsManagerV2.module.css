@@ -1276,3 +1276,142 @@
 }
 
 /* === BROWSER ACCOUNTS ENTERPRISE UI END === */
+
+/* === BROWSER ACCOUNT FILTERS START === */
+
+.accountStats .statCard {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px 17px;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.19)
+    );
+  border-radius: 14px;
+  background:
+    color-mix(
+      in srgb,
+      var(--panel, #ffffff) 97%,
+      transparent
+    );
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px
+      rgba(15, 23, 42, 0.035);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    background 150ms ease;
+}
+
+.accountStats .statCard::after {
+  position: absolute;
+  top: -25px;
+  right: -24px;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 7%,
+      transparent
+    );
+  content: "";
+}
+
+.accountStats .statCard:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 36%,
+      var(
+        --border-color,
+        rgba(148, 163, 184, 0.19)
+      )
+    );
+  box-shadow:
+    0 12px 28px
+      rgba(15, 23, 42, 0.06);
+  transform:
+    translateY(-2px);
+}
+
+.accountStats .statCardActive {
+  border-color:
+    var(--accent, #6d5dfc);
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 10%,
+      var(--panel, #ffffff)
+    );
+  box-shadow:
+    0 0 0 3px
+      color-mix(
+        in srgb,
+        var(--accent, #6d5dfc) 11%,
+        transparent
+      ),
+    0 12px 28px
+      rgba(15, 23, 42, 0.06);
+}
+
+.accountStats .statCard span,
+.accountStats .statCard strong,
+.accountStats .statCard small {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.filterChip {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 35%,
+      transparent
+    );
+  border-radius: 999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 9%,
+      transparent
+    );
+  color: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.filterChip span {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.filterChip:hover {
+  border-color:
+    var(--accent, #6d5dfc);
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 14%,
+      transparent
+    );
+}
+
+/* === BROWSER ACCOUNT FILTERS END === */
