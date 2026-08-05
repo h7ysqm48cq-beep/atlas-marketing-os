@@ -1735,3 +1735,160 @@
 }
 
 /* === ACCOUNT TABLE UX FINAL END === */
+
+/* === ACCOUNT ENTRY UI START === */
+
+.entryModal {
+  width: min(720px, calc(100vw - 28px));
+  max-height: min(86vh, 760px);
+  overflow-y: auto;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.22)
+    );
+  border-radius: 17px;
+  background:
+    var(--panel, #ffffff);
+  box-shadow:
+    0 28px 80px
+      rgba(15, 23, 42, 0.22);
+}
+
+.entryOptions {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.entryOptions article {
+  display: grid;
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid
+    var(
+      --border-color,
+      rgba(148, 163, 184, 0.18)
+    );
+  border-radius: 13px;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 2.5%,
+      transparent
+    );
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.entryOptions article:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 36%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 6%,
+      transparent
+    );
+  transform:
+    translateY(-1px);
+}
+
+.entryOptions strong,
+.entryOptions p {
+  display: block;
+}
+
+.entryOptions p {
+  margin:
+    5px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.62;
+}
+
+.entryIcon {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border-radius: 11px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 12%,
+      transparent
+    );
+  color:
+    var(--accent, #6d5dfc);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.importNotice {
+  display: grid;
+  gap: 11px;
+  margin: 18px;
+  padding: 16px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 24%,
+      transparent
+    );
+  border-radius: 12px;
+  background:
+    color-mix(
+      in srgb,
+      var(--accent, #6d5dfc) 6%,
+      transparent
+    );
+}
+
+.importNotice code {
+  display: block;
+  padding: 11px;
+  overflow-x: auto;
+  border-radius: 9px;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 6%,
+      transparent
+    );
+  font-size: 10px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.importNotice p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  opacity: 0.64;
+}
+
+@media (max-width: 760px) {
+  .entryOptions article {
+    grid-template-columns:
+      auto minmax(0, 1fr);
+  }
+
+  .entryOptions article > a,
+  .entryOptions article > button {
+    grid-column:
+      1 / -1;
+    width: 100%;
+  }
+}
+
+/* === ACCOUNT ENTRY UI END === */

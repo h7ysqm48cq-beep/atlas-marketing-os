@@ -331,6 +331,16 @@ export function BrowserAccountsManagerV2({
   ] = useState("");
 
   const [
+    createAccountOpen,
+    setCreateAccountOpen,
+  ] = useState(false);
+
+  const [
+    importAccountsOpen,
+    setImportAccountsOpen,
+  ] = useState(false);
+
+  const [
     loading,
     setLoading,
   ] = useState(true);
@@ -1721,6 +1731,30 @@ export function BrowserAccountsManagerV2({
         </div>
 
         <div className={styles.headerActions}>
+          <button
+            className={styles.primaryButton}
+            type="button"
+            onClick={() =>
+              setCreateAccountOpen(
+                true,
+              )
+            }
+          >
+            + Add Account
+          </button>
+
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() =>
+              setImportAccountsOpen(
+                true,
+              )
+            }
+          >
+            Import Excel
+          </button>
+
           <a
             className={styles.secondaryButton}
             href="/automation/browser-pool"
@@ -1729,7 +1763,7 @@ export function BrowserAccountsManagerV2({
           </a>
 
           <button
-            className={styles.primaryButton}
+            className={styles.secondaryButton}
             type="button"
             disabled={loading}
             onClick={() =>
@@ -1738,7 +1772,7 @@ export function BrowserAccountsManagerV2({
           >
             {loading
               ? "Refreshing…"
-              : "Refresh Accounts"}
+              : "Refresh"}
           </button>
         </div>
       </header>
@@ -3031,6 +3065,221 @@ export function BrowserAccountsManagerV2({
           </div>
         </section>
       ) : null}
+      {createAccountOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setCreateAccountOpen(
+                false,
+              );
+            }
+          }}
+        >
+          <section
+            aria-label="Add browser account"
+            aria-modal="true"
+            className={styles.entryModal}
+            role="dialog"
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>
+                  Browser Account V2
+                </p>
+
+                <h2>
+                  Add Account
+                </h2>
+
+                <p>
+                  Create one independent Facebook
+                  browser identity with its own
+                  profile, cookie storage and proxy.
+                </p>
+              </div>
+
+              <button
+                aria-label="Close add account dialog"
+                className={styles.iconButton}
+                type="button"
+                onClick={() =>
+                  setCreateAccountOpen(
+                    false,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.entryOptions}>
+              <article>
+                <span className={styles.entryIcon}>
+                  +
+                </span>
+
+                <div>
+                  <strong>
+                    Create Manually
+                  </strong>
+
+                  <p>
+                    Enter account name, browser
+                    profile, locale, timezone and
+                    proxy settings.
+                  </p>
+                </div>
+
+                <a
+                  className={styles.primaryButton}
+                  href="/automation/browser-accounts/new"
+                >
+                  Continue
+                </a>
+              </article>
+
+              <article>
+                <span className={styles.entryIcon}>
+                  ⇩
+                </span>
+
+                <div>
+                  <strong>
+                    Import from Excel
+                  </strong>
+
+                  <p>
+                    Create multiple independent
+                    Browser Accounts from one
+                    spreadsheet.
+                  </p>
+                </div>
+
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => {
+                    setCreateAccountOpen(
+                      false,
+                    );
+                    setImportAccountsOpen(
+                      true,
+                    );
+                  }}
+                >
+                  Import Accounts
+                </button>
+              </article>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {importAccountsOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setImportAccountsOpen(
+                false,
+              );
+            }
+          }}
+        >
+          <section
+            aria-label="Import browser accounts"
+            aria-modal="true"
+            className={styles.entryModal}
+            role="dialog"
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>
+                  Bulk Account Setup
+                </p>
+
+                <h2>
+                  Import Excel
+                </h2>
+
+                <p>
+                  This V2 importer creates
+                  BrowserAccount records directly.
+                  It does not write into legacy
+                  Channel Runtime Profiles.
+                </p>
+              </div>
+
+              <button
+                aria-label="Close import dialog"
+                className={styles.iconButton}
+                type="button"
+                onClick={() =>
+                  setImportAccountsOpen(
+                    false,
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.importNotice}>
+              <strong>
+                Excel columns
+              </strong>
+
+              <code>
+                displayName, browserProfileName,
+                locale, timezone, proxyType,
+                proxyHost, proxyPort,
+                proxyUsername, proxyPassword,
+                proxyCountry
+              </code>
+
+              <p>
+                The V2 upload parser will be
+                connected in the next step.
+                Legacy Bulk Login remains disabled
+                here to prevent duplicate browser
+                identities.
+              </p>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() =>
+                  setImportAccountsOpen(
+                    false,
+                  )
+                }
+              >
+                Close
+              </button>
+
+              <button
+                className={styles.primaryButton}
+                type="button"
+                disabled
+              >
+                Upload Excel
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {editOpen &&
       editForm &&
       selectedAccount ? (
