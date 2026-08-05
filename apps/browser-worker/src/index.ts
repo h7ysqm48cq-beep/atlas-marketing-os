@@ -5405,6 +5405,106 @@ app.post(
 );
 
 
+
+app.post(
+  "/profiles/:profileKey/ip/verify",
+  async (request, response) => {
+    const rawProfileKey =
+      request.params.profileKey;
+
+    let profileKey: string;
+
+    try {
+      profileKey =
+        sanitizeProfileKey(
+          rawProfileKey,
+        );
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Invalid browser profile key.",
+      });
+      return;
+    }
+
+    const session =
+      sessions.get(
+        profileKey,
+      );
+
+    if (!session) {
+      response.status(404).json({
+        success: false,
+        running: false,
+        browserProfileKey:
+          profileKey,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    try {
+      const inspected =
+        await inspectPublicIp(
+          session.context,
+        );
+
+      const ip =
+        typeof inspected ===
+          "string"
+          ? inspected.trim()
+          : (
+              inspected &&
+              typeof inspected ===
+                "object" &&
+              "ip" in inspected
+                ? String(
+                    inspected.ip ||
+                    "",
+                  ).trim()
+                : ""
+            );
+
+      if (!ip) {
+        throw new Error(
+          "Public IP inspection returned no IP address.",
+        );
+      }
+
+      response.json({
+        success: true,
+        running: true,
+        browserProfileKey:
+          profileKey,
+        ip,
+        proxyType:
+          session.proxyType,
+        checkedAt:
+          new Date()
+            .toISOString(),
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        running: true,
+        browserProfileKey:
+          profileKey,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to inspect public IP.",
+        checkedAt:
+          new Date()
+            .toISOString(),
+      });
+    }
+  },
+);
+
 app.post(
   "/profiles/:profileKey/close",
   async (request, response) => {

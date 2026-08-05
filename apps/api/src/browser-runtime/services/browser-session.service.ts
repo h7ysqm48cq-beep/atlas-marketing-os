@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   PrismaService,
@@ -145,8 +146,18 @@ export class BrowserSessionService {
         id: accountId,
       },
       data: {
+        loginStatus:
+          result.running === true
+            ? 'BROWSER_OPEN'
+            : 'BROWSER_CLOSED',
+
         lastHeartbeatAt:
           new Date(),
+
+        lastLoginError:
+          result.running === true
+            ? null
+            : undefined,
       },
     });
 
@@ -561,6 +572,162 @@ export class BrowserSessionService {
         result.discoveredAt ??
         new Date().toISOString(),
     };
+  }
+
+
+  async verifyIp(
+    accountId: string,
+  ) {
+    const profile =
+      await this.browserAccounts
+        .getLaunchProfile(
+          accountId,
+        );
+
+    const checkedAt =
+      new Date();
+
+    try {
+      const result =
+        await this.browserRuntime.request(
+          `/profiles/${encodeURIComponent(
+            profile.browserProfileKey,
+          )}/ip/verify`,
+          {
+            method: 'POST',
+          },
+        ) as {
+          success?: boolean;
+          running?: boolean;
+          ip?: string;
+          proxyType?: string;
+          checkedAt?: string;
+          message?: string;
+        };
+
+      const currentIp =
+        result.ip?.trim();
+
+      if (!currentIp) {
+        throw new Error(
+          result.message ||
+          'Worker returned no public IP.',
+        );
+      }
+
+      const account =
+        await this.prisma.browserAccount
+          .findUnique({
+            where: {
+              id:
+                accountId,
+            },
+            select: {
+              expectedIp:
+                true,
+              lastKnownIp:
+                true,
+            },
+          });
+
+      if (!account) {
+        throw new NotFoundException(
+          'Browser account was not found.',
+        );
+      }
+
+      const expectedIp =
+        account.expectedIp ||
+        currentIp;
+
+      const ipStatus =
+        expectedIp ===
+        currentIp
+          ? 'MATCH'
+          : 'CHANGED';
+
+      await this.prisma.browserAccount
+        .update({
+          where: {
+            id:
+              accountId,
+          },
+          data: {
+            expectedIp,
+            lastKnownIp:
+              currentIp,
+            lastIpCheckedAt:
+              checkedAt,
+            ipStatus,
+            lastHeartbeatAt:
+              checkedAt,
+            loginStatus:
+              result.running ===
+                false
+                ? 'BROWSER_CLOSED'
+                : 'BROWSER_OPEN',
+            lastLoginError:
+              null,
+          },
+        });
+
+      return {
+        accountId,
+        browserProfileKey:
+          profile.browserProfileKey,
+        success:
+          true,
+        running:
+          result.running ??
+          true,
+        currentIp,
+        expectedIp,
+        previousIp:
+          account.lastKnownIp,
+        ipStatus,
+        changed:
+          ipStatus ===
+          'CHANGED',
+        proxyType:
+          result.proxyType ??
+          profile.proxyType,
+        checkedAt:
+          result.checkedAt ??
+          checkedAt.toISOString(),
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to verify browser IP.';
+
+      await this.prisma.browserAccount
+        .update({
+          where: {
+            id:
+              accountId,
+          },
+          data: {
+            lastIpCheckedAt:
+              checkedAt,
+            ipStatus:
+              'FAILED',
+            lastHeartbeatAt:
+              checkedAt,
+            lastLoginError:
+              message.slice(
+                0,
+                1000,
+              ),
+          },
+        })
+        .catch(
+          () =>
+            undefined,
+        );
+
+      throw error;
+    }
   }
 
   async close(

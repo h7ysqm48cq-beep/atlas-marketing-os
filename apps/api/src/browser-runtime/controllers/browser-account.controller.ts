@@ -323,6 +323,18 @@ export class BrowserAccountController {
       );
   }
 
+
+  @Post(':id/browser/ip/verify')
+  verifyBrowserIp(
+    @Param('id')
+    id: string,
+  ) {
+    return this.browserSessions
+      .verifyIp(
+        id,
+      );
+  }
+
   @Post(':id/browser/close')
   closeBrowser(
     @Param('id')
