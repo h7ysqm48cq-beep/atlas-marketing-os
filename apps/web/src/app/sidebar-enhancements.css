@@ -1,0 +1,251 @@
+:root {
+  --atlas-sidebar-width: 252px;
+}
+
+html.atlas-sidebar-collapsed {
+  --atlas-sidebar-width: 78px;
+}
+
+.app-shell {
+  grid-template-columns: var(--atlas-sidebar-width) minmax(0, 1fr);
+  transition: grid-template-columns 0.22s ease;
+}
+
+.sidebar {
+  width: var(--atlas-sidebar-width);
+  padding: 18px 14px 16px;
+  transition:
+    width 0.22s ease,
+    padding 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.desktop-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 52px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.desktop-sidebar-header .brand {
+  min-width: 0;
+  padding: 0;
+}
+
+.desktop-brand-copy {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.desktop-sidebar-toggle {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.desktop-sidebar-toggle span {
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.sidebar-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 0 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(146, 153, 167, 0.35) transparent;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll-area::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(146, 153, 167, 0.28);
+}
+
+.sidebar-nav-section + .sidebar-nav-section {
+  margin-top: 8px;
+}
+
+.nav-section-toggle {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.nav-section-toggle:hover {
+  background: rgba(146, 153, 167, 0.07);
+}
+
+.nav-section-toggle .nav-section-label {
+  flex: 1;
+  padding: 10px 10px 7px;
+}
+
+.nav-section-chevron {
+  padding-right: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.nav-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workspace-card-icon {
+  display: none;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--gold-soft);
+  color: var(--gold-light);
+  font-weight: 900;
+}
+
+.workspace-card-copy {
+  min-width: 0;
+}
+
+html.atlas-sidebar-collapsed .sidebar {
+  padding-inline: 10px;
+}
+
+html.atlas-sidebar-collapsed .desktop-sidebar-header {
+  justify-content: center;
+}
+
+html.atlas-sidebar-collapsed .desktop-sidebar-brand {
+  display: none;
+}
+
+html.atlas-sidebar-collapsed .desktop-sidebar-toggle {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+}
+
+html.atlas-sidebar-collapsed .nav-section-toggle {
+  justify-content: center;
+}
+
+html.atlas-sidebar-collapsed .nav-section-label,
+html.atlas-sidebar-collapsed .nav-section-chevron,
+html.atlas-sidebar-collapsed .nav-item-label,
+html.atlas-sidebar-collapsed .workspace-card-copy {
+  display: none;
+}
+
+html.atlas-sidebar-collapsed .nav-list {
+  gap: 5px;
+}
+
+html.atlas-sidebar-collapsed .nav-item {
+  min-height: 46px;
+  justify-content: center;
+  padding: 10px;
+}
+
+html.atlas-sidebar-collapsed .nav-icon {
+  width: 24px;
+  flex: 0 0 24px;
+  font-size: 18px;
+}
+
+html.atlas-sidebar-collapsed .workspace-card {
+  justify-content: center;
+  padding: 9px;
+}
+
+html.atlas-sidebar-collapsed .workspace-card-icon {
+  display: grid;
+}
+
+@media (max-width: 780px) {
+  :root,
+  html.atlas-sidebar-collapsed {
+    --atlas-sidebar-width: 1fr;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    width: min(82vw, 304px);
+    padding: max(12px, env(safe-area-inset-top)) 14px
+      max(14px, env(safe-area-inset-bottom));
+  }
+
+  .desktop-sidebar-header {
+    display: none;
+  }
+
+  html.atlas-sidebar-collapsed .nav-section-label,
+  html.atlas-sidebar-collapsed .nav-section-chevron,
+  html.atlas-sidebar-collapsed .nav-item-label,
+  html.atlas-sidebar-collapsed .workspace-card-copy {
+    display: initial;
+  }
+
+  html.atlas-sidebar-collapsed .nav-section-toggle {
+    justify-content: space-between;
+  }
+
+  html.atlas-sidebar-collapsed .nav-item {
+    justify-content: flex-start;
+    padding: 9px 10px;
+  }
+
+  html.atlas-sidebar-collapsed .workspace-card {
+    justify-content: flex-start;
+    padding: 11px 12px;
+  }
+
+  html.atlas-sidebar-collapsed .workspace-card-icon {
+    display: none;
+  }
+}
