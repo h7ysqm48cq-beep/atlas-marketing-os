@@ -730,7 +730,7 @@ export class PublisherService {
       return null;
     }
 
-    const connector: any = this.telegramConnector as any;
+    const connector: any = this.telegram as any;
 
     if (typeof connector.publishPhotoUrlDirect !== 'function') {
       return null;
