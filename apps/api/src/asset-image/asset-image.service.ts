@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
+import { LogoOverlayService } from '../image/logo';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
@@ -22,6 +22,7 @@ export class AssetImageService {
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
+    private readonly logoOverlayService: LogoOverlayService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -60,40 +61,33 @@ export class AssetImageService {
       }
 
       const shortName = this.slugify(dto.name).slice(0, 40);
-
       const uniqueId = randomUUID().replace(/-/g, '').slice(0, 8);
-
       const filename = `${Date.now()}-${shortName}-${uniqueId}.png`;
       const imageBuffer = Buffer.from(base64, 'base64');
       const [width, height] = size.split('x').map(Number);
 
-      const logoMode =
-        dto.logoMode ?? 'AUTO';
+      const logoMode = dto.logoMode ?? 'AUTO';
+      const shouldOverlayLogo = this.shouldOverlayLogo({
+        mode: logoMode,
+        platform: dto.platform,
+        name: dto.name,
+        prompt: dto.prompt,
+      });
 
-      const shouldOverlayLogo =
-        this.shouldOverlayLogo({
-          mode: logoMode,
-          platform: dto.platform,
-          name: dto.name,
-          prompt: dto.prompt,
-        });
-
-      const finalImageBuffer =
-        shouldOverlayLogo
-          ? await this.applyPrimaryLogo({
-              brandId: brand.id,
-              primaryLogoAssetId:
-                brand.primaryLogoAssetId,
-              imageBuffer,
-              width,
-              height,
-            })
-          : imageBuffer;
+      const finalImageBuffer = shouldOverlayLogo
+        ? await this.applyPrimaryLogo({
+            brandId: brand.id,
+            primaryLogoAssetId: brand.primaryLogoAssetId,
+            imageBuffer,
+            width,
+            height,
+            platform: dto.platform,
+          })
+        : imageBuffer;
 
       const now = new Date();
       const year = String(now.getUTCFullYear());
       const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-
       const storagePath = ['brands', brand.id, year, month, filename].join('/');
 
       const uploaded = await this.storageService.uploadImage({
@@ -130,9 +124,7 @@ export class AssetImageService {
           tags: [
             'ai-generated',
             dto.platform?.toLowerCase() ?? 'multi-platform',
-            shouldOverlayLogo
-              ? 'logo-overlay'
-              : 'logo-skipped',
+            shouldOverlayLogo ? 'logo-overlay' : 'logo-skipped',
             `logo-mode-${logoMode.toLowerCase()}`,
           ],
           url,
@@ -201,19 +193,11 @@ export class AssetImageService {
       return false;
     }
 
-    const searchableText = [
-      input.platform,
-      input.name,
-      input.prompt,
-    ]
+    const searchableText = [input.platform, input.name, input.prompt]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
 
-    /*
-     * Raw assets and design references should remain clean.
-     * Marketing-ready visuals receive the official logo by default.
-     */
     const skipKeywords = [
       'background only',
       'plain background',
@@ -243,12 +227,8 @@ export class AssetImageService {
       'no logo',
     ];
 
-    return !skipKeywords.some(
-      (keyword) =>
-        searchableText.includes(keyword),
-    );
+    return !skipKeywords.some((keyword) => searchableText.includes(keyword));
   }
-
 
   private async applyPrimaryLogo(input: {
     brandId: string;
@@ -256,40 +236,35 @@ export class AssetImageService {
     imageBuffer: Buffer;
     width: number;
     height: number;
+    platform?: string;
   }): Promise<Buffer> {
-    const logoAssetId =
-      input.primaryLogoAssetId?.trim();
+    const logoAssetId = input.primaryLogoAssetId?.trim();
 
     if (!logoAssetId) {
       return input.imageBuffer;
     }
 
-    const logoAsset =
-      await this.prisma.asset.findFirst({
-        where: {
-          id: logoAssetId,
-          brandId: input.brandId,
-          type: 'IMAGE',
-          aiEnabled: true,
-        },
-        select: {
-          id: true,
-          name: true,
-          url: true,
-          mimeType: true,
-        },
-      });
+    const logoAsset = await this.prisma.asset.findFirst({
+      where: {
+        id: logoAssetId,
+        brandId: input.brandId,
+        type: 'IMAGE',
+        aiEnabled: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        mimeType: true,
+      },
+    });
 
-    if (
-      !logoAsset?.url ||
-      !logoAsset.url.startsWith('https://')
-    ) {
+    if (!logoAsset?.url || !logoAsset.url.startsWith('https://')) {
       return input.imageBuffer;
     }
 
     try {
-      const logoResponse =
-        await fetch(logoAsset.url);
+      const logoResponse = await fetch(logoAsset.url);
 
       if (!logoResponse.ok) {
         throw new Error(
@@ -297,82 +272,16 @@ export class AssetImageService {
         );
       }
 
-      const logoBuffer =
-        Buffer.from(
-          await logoResponse.arrayBuffer(),
-        );
+      const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
 
-      /*
-       * Keep the logo intentionally small and unobtrusive.
-       * For a 1024px image this resolves to about 92px wide.
-       */
-      const targetLogoWidth =
-        Math.max(
-          72,
-          Math.min(
-            140,
-            Math.round(input.width * 0.09),
-          ),
-        );
-
-      const resizedLogo =
-        await sharp(logoBuffer)
-          .resize({
-            width: targetLogoWidth,
-            fit: 'inside',
-            withoutEnlargement: true,
-          })
-          .png()
-          .toBuffer();
-
-      const logoMetadata =
-        await sharp(resizedLogo).metadata();
-
-      const actualLogoWidth =
-        logoMetadata.width ??
-        targetLogoWidth;
-
-      const actualLogoHeight =
-        logoMetadata.height ??
-        Math.round(targetLogoWidth * 0.4);
-
-      const bottomMargin =
-        Math.max(
-          24,
-          Math.round(input.height * 0.025),
-        );
-
-      const left =
-        Math.max(
-          0,
-          Math.round(
-            (input.width - actualLogoWidth) / 2,
-          ),
-        );
-
-      const top =
-        Math.max(
-          0,
-          input.height -
-            actualLogoHeight -
-            bottomMargin,
-        );
-
-      return await sharp(input.imageBuffer)
-        .composite([
-          {
-            input: resizedLogo,
-            left,
-            top,
-          },
-        ])
-        .png()
-        .toBuffer();
+      return await this.logoOverlayService.overlay({
+        image: input.imageBuffer,
+        logo: logoBuffer,
+        width: input.width,
+        height: input.height,
+        platform: input.platform,
+      });
     } catch (error) {
-      /*
-       * Logo failure must not destroy the generated visual.
-       * Return the original image and record the issue.
-       */
       console.warn(
         [
           '[AssetImageService]',
@@ -386,7 +295,6 @@ export class AssetImageService {
       return input.imageBuffer;
     }
   }
-
 
   private async validateRelations(
     brandId: string,
