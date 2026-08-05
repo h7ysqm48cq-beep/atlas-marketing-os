@@ -2,15 +2,21 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { LogoOverlayService, LogoPlacement } from '../image/logo';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import {
+  BrandExistingAssetDto,
+  ExistingAssetLogoPlacement,
+} from './dto/brand-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
 @Injectable()
@@ -143,24 +149,9 @@ export class AssetImageService {
           height,
         },
         include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          campaign: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          history: {
-            select: {
-              id: true,
-              topic: true,
-            },
-          },
+          brand: { select: { id: true, name: true } },
+          campaign: { select: { id: true, name: true } },
+          history: { select: { id: true, topic: true } },
         },
       });
 
@@ -191,14 +182,130 @@ export class AssetImageService {
     }
   }
 
+  async brandExistingAsset(dto: BrandExistingAssetDto) {
+    const brand = await this.brandsService.getActiveBrand();
+
+    const sourceAsset = await this.prisma.asset.findFirst({
+      where: {
+        id: dto.assetId,
+        brandId: brand.id,
+        type: 'IMAGE',
+      },
+    });
+
+    if (!sourceAsset) {
+      throw new NotFoundException('Image asset was not found for the active brand.');
+    }
+
+    if (!sourceAsset.url?.startsWith('https://')) {
+      throw new BadRequestException('The selected image does not have a usable URL.');
+    }
+
+    const sourceResponse = await fetch(sourceAsset.url);
+
+    if (!sourceResponse.ok) {
+      throw new BadRequestException(
+        `Unable to download the selected image (HTTP ${sourceResponse.status}).`,
+      );
+    }
+
+    const sourceBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+    const metadata = await sharp(sourceBuffer).metadata();
+    const width = metadata.width ?? sourceAsset.width;
+    const height = metadata.height ?? sourceAsset.height;
+
+    if (!width || !height) {
+      throw new BadRequestException('Unable to determine the selected image size.');
+    }
+
+    const placement = this.resolveExistingLogoPlacement(dto.logoPlacement);
+    const scale = dto.logoScale ?? 0.85;
+    const opacity = dto.logoOpacity ?? 0.9;
+    const platform = dto.platform || sourceAsset.platform || 'Multi-platform';
+
+    const finalBuffer = await this.applyPrimaryLogo({
+      brandId: brand.id,
+      primaryLogoAssetId: brand.primaryLogoAssetId,
+      imageBuffer: sourceBuffer,
+      width,
+      height,
+      platform,
+      placement,
+      scale,
+      opacity,
+    });
+
+    const outputName = dto.name?.trim() || `${sourceAsset.name} · Branded`;
+    const shortName = this.slugify(outputName).slice(0, 40);
+    const uniqueId = randomUUID().replace(/-/g, '').slice(0, 8);
+    const filename = `${Date.now()}-${shortName}-${uniqueId}.png`;
+    const now = new Date();
+    const storagePath = [
+      'brands',
+      brand.id,
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      filename,
+    ].join('/');
+
+    const uploaded = await this.storageService.uploadImage({
+      buffer: finalBuffer,
+      path: storagePath,
+      contentType: 'image/png',
+    });
+
+    return this.prisma.asset.create({
+      data: {
+        brandId: brand.id,
+        campaignId: sourceAsset.campaignId,
+        historyId: sourceAsset.historyId,
+        name: outputName,
+        type: 'IMAGE',
+        provider: 'atlas-logo-engine',
+        platform,
+        prompt: sourceAsset.prompt,
+        revisedPrompt: sourceAsset.revisedPrompt,
+        generationModel: sourceAsset.generationModel,
+        generationSize: `${width}x${height}`,
+        generationQuality: sourceAsset.generationQuality,
+        storageProvider: uploaded.provider,
+        storagePath: uploaded.path,
+        fileSize: uploaded.size,
+        remark: `Branded from asset ${sourceAsset.id}`,
+        aiEnabled: false,
+        tags: [
+          ...sourceAsset.tags,
+          'image-edited',
+          'logo-overlay',
+          `source-asset-${sourceAsset.id}`,
+          `logo-placement-${placement.toLowerCase()}`,
+          `logo-scale-${scale}`,
+          `logo-opacity-${opacity}`,
+        ],
+        url: uploaded.publicUrl,
+        thumbnailUrl: uploaded.publicUrl,
+        mimeType: 'image/png',
+        width,
+        height,
+      },
+      include: {
+        brand: { select: { id: true, name: true } },
+        campaign: { select: { id: true, name: true } },
+        history: { select: { id: true, topic: true } },
+      },
+    });
+  }
+
   private resolveLogoPlacement(
     placement?: GenerateAssetImageDto['logoPlacement'],
   ): LogoPlacement {
-    if (!placement) {
-      return LogoPlacement.AUTO;
-    }
+    return placement ? LogoPlacement[placement] : LogoPlacement.AUTO;
+  }
 
-    return LogoPlacement[placement];
+  private resolveExistingLogoPlacement(
+    placement?: ExistingAssetLogoPlacement,
+  ): LogoPlacement {
+    return placement ? LogoPlacement[placement] : LogoPlacement.AUTO;
   }
 
   private shouldOverlayLogo(input: {
@@ -207,13 +314,8 @@ export class AssetImageService {
     name: string;
     prompt: string;
   }): boolean {
-    if (input.mode === 'ALWAYS') {
-      return true;
-    }
-
-    if (input.mode === 'NEVER') {
-      return false;
-    }
+    if (input.mode === 'ALWAYS') return true;
+    if (input.mode === 'NEVER') return false;
 
     const searchableText = [input.platform, input.name, input.prompt]
       .filter(Boolean)
@@ -265,9 +367,7 @@ export class AssetImageService {
   }): Promise<Buffer> {
     const logoAssetId = input.primaryLogoAssetId?.trim();
 
-    if (!logoAssetId) {
-      return input.imageBuffer;
-    }
+    if (!logoAssetId) return input.imageBuffer;
 
     const logoAsset = await this.prisma.asset.findFirst({
       where: {
@@ -276,12 +376,7 @@ export class AssetImageService {
         type: 'IMAGE',
         aiEnabled: true,
       },
-      select: {
-        id: true,
-        name: true,
-        url: true,
-        mimeType: true,
-      },
+      select: { id: true, name: true, url: true, mimeType: true },
     });
 
     if (!logoAsset?.url || !logoAsset.url.startsWith('https://')) {
@@ -292,9 +387,7 @@ export class AssetImageService {
       const logoResponse = await fetch(logoAsset.url);
 
       if (!logoResponse.ok) {
-        throw new Error(
-          `Logo download returned HTTP ${logoResponse.status}.`,
-        );
+        throw new Error(`Logo download returned HTTP ${logoResponse.status}.`);
       }
 
       const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
@@ -331,10 +424,7 @@ export class AssetImageService {
   ) {
     if (campaignId) {
       const campaign = await this.prisma.campaign.findFirst({
-        where: {
-          id: campaignId,
-          brandId,
-        },
+        where: { id: campaignId, brandId },
         select: { id: true },
       });
 
@@ -347,10 +437,7 @@ export class AssetImageService {
 
     if (historyId) {
       const history = await this.prisma.generationHistory.findFirst({
-        where: {
-          id: historyId,
-          brandId,
-        },
+        where: { id: historyId, brandId },
         select: { id: true },
       });
 
