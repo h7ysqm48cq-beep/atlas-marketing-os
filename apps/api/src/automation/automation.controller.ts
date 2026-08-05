@@ -192,6 +192,9 @@ function screenshotPathFromAction(
 
 @Controller('automation')
 export class AutomationController {
+  private readonly postPublishOptions = new Map<string, { addLogoBeforePublish: boolean; watermarkMode: 'none' | 'logo' }>();
+
+
   constructor(
     private readonly automationService:
       AutomationService,
@@ -1647,6 +1650,71 @@ export class AutomationController {
     return this.browserAccounts.create(
       body as any,
     );
+  }
+
+
+  @Get('posts/:id/preview')
+  async getPostPreview(@Param('id') id: string) {
+    const post = await this.automationService.getPost(id);
+
+    if (!post) {
+      throw new NotFoundException('Scheduled post not found.');
+    }
+
+    const previewOptions =
+      this.postPublishOptions.get(id) || {
+        addLogoBeforePublish: false,
+        watermarkMode: 'none' as const,
+      };
+
+    return {
+      ...post,
+      previewOptions,
+    };
+  }
+
+  @Patch('posts/:id/publish-options')
+  async updatePostPublishOptions(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      addLogoBeforePublish?: boolean;
+    },
+  ) {
+    const post = await this.automationService.getPost(id);
+
+    if (!post) {
+      throw new NotFoundException('Scheduled post not found.');
+    }
+
+    const next = {
+      addLogoBeforePublish: Boolean(body.addLogoBeforePublish),
+      watermarkMode: body.addLogoBeforePublish ? ('logo' as const) : ('none' as const),
+    };
+
+    this.postPublishOptions.set(id, next);
+
+    return {
+      id,
+      title: post.title,
+      status: post.status,
+      previewOptions: next,
+    };
+  }
+
+  @Post('posts/:id/publish-now')
+  async publishPostNow(@Param('id') id: string) {
+    const post = await this.automationService.getPost(id);
+
+    if (!post) {
+      throw new NotFoundException('Scheduled post not found.');
+    }
+
+    if (post.status === 'PUBLISHED') {
+      throw new BadRequestException('Post is already published.');
+    }
+
+    return this.automationService.retryPost(id);
   }
 
 

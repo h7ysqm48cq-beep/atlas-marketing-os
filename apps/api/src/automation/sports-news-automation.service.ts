@@ -12,15 +12,21 @@ import {
 
 const CTA_URL = 'https://rebrand.ly/mgmbetae0dcf';
 const SPORTS_NEWS_IMAGE_RULES = [
-  'FINAL SPORTS NEWS IMAGE RULES:',
-  'The image must show 满贯门 M-News as the main visible news title.',
-  'The image must show 体育焦点 / Sports Focus as a small subtitle.',
-  'The image must include the MGM gold logo clearly but not too large.',
-  'The image footer must include mgmbetmyr.com.',
-  'The image must not include https://rebrand.ly/mgmbetae0dcf.',
-  'The image must not show Atlas, Atlas Sports News, Atlas News, MGM News, or generic Sports News as the main title.',
-  'Use very little text on the image only: 满贯门 M-News, 体育焦点 / Sports Focus, mgmbetmyr.com.',
-  'Keep the visual premium, clean, modern, sports-focused, and easy to read.',
+  'Do not create a fake MGM logo, fake crest, fake crown, or fake monogram.',
+  'The real brand logo will be added by Atlas after image generation as a watermark overlay.',
+  'ABSOLUTE IMAGE TEXT RULES:',
+  'This is a 满贯门 branded sports news image.',
+  'The exact main title text on the image must be: 满贯门 Sports News.',
+  'The image must not show the title as 满贯门 Sports News alone.',
+  'If the words Sports News appear, they must appear together with 满贯门 on the same line: 满贯门 Sports News.',
+  'The image must include the subtitle: 体育焦点 / Sports Focus.',
+  'Do not draw or invent any MGM logo. Atlas will add the real 满贯门 logo as a post-processing watermark after image generation.',
+  'The image footer must include exactly: mgmbetmyr.com.',
+  'Do not include https://rebrand.ly/mgmbetae0dcf in the image.',
+  'Do not include Atlas, Atlas Sports News, Atlas News, MGM News, or plain 满贯门 Sports News as a standalone title.',
+  'Use only these visible text elements: 满贯门 Sports News and 体育焦点 / Sports Focus. Do not add website text unless Atlas post-processing adds it.',
+  'Keep the design premium, clean, cinematic, sports-focused, Malaysian audience, not overcrowded.',
+  'Place the logo and mgmbetmyr.com in the bottom footer area.',
 ].join('\\n');
 
 const SPORTS_NEWS_IMAGE_BRAND_RULES = [
@@ -185,7 +191,7 @@ export class SportsNewsAutomationService {
             : 'Dramatic evening stadium atmosphere.',
           'Blend football as the main focus with subtle basketball and motorsport cues.',
           'Photorealistic, dynamic, clean layout, no real athlete likeness, no league logos,',
-          'no brand logos, no betting imagery, no scores, no text except a small neutral SPORTS NEWS title area.',
+          'no brand logos, no betting imagery, no scores, no text except a small neutral 满贯门 Sports News title area.',
           'Landscape 3:2 composition suitable for Telegram.',
         ].join(' '),
       });
@@ -486,6 +492,24 @@ export class SportsNewsAutomationService {
     }
 
     return posts.length;
+  }
+
+  private async applyMNewsWatermark(imageUrl: string): Promise<string> {
+    // TODO:
+    // Atlas watermark stage.
+    //
+    // Do not ask AI to draw the MGM / 满贯门 logo.
+    // The real logo should be overlaid here after image generation.
+    //
+    // Expected final overlay:
+    // - Real 满贯门 / MGM logo watermark
+    // - Top-left or bottom-right placement
+    // - Small, premium, not too large
+    // - No fake AI-generated logo
+    //
+    // For now, return the original URL until the real logo asset path/URL
+    // is connected to this processor.
+    return imageUrl;
   }
 
 }
