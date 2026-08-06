@@ -44,6 +44,21 @@ type NormalizedPosition = {
   y: number;
 };
 
+type ToolPanel = "images" | "logo" | "layers" | "settings";
+
+const placementOptions: Array<{ value: LogoPlacement; label: string }> = [
+  { value: "AUTO", label: "Auto · Recommended" },
+  { value: "BOTTOM_LEFT", label: "Bottom left" },
+  { value: "BOTTOM_CENTER", label: "Bottom centre" },
+  { value: "BOTTOM_RIGHT", label: "Bottom right" },
+  { value: "TOP_LEFT", label: "Top left" },
+  { value: "TOP_CENTER", label: "Top centre" },
+  { value: "TOP_RIGHT", label: "Top right" },
+  { value: "CENTER_LEFT", label: "Centre left" },
+  { value: "CENTER", label: "Centre" },
+  { value: "CENTER_RIGHT", label: "Centre right" },
+];
+
 export function ImageBrandEditor() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [logoAsset, setLogoAsset] = useState<Asset | null>(null);
@@ -60,6 +75,8 @@ export function ImageBrandEditor() {
   const [result, setResult] = useState<Asset | null>(null);
   const [showLogo, setShowLogo] = useState(true);
   const [showSafeArea, setShowSafeArea] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolPanel>("logo");
+  const [fullscreen, setFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("Loading images...");
@@ -90,9 +107,7 @@ export function ImageBrandEditor() {
 
         if (logo) {
           setLogoAsset(logo);
-          setMessage(
-            "Live preview is ready. Drag the logo or use a preset position.",
-          );
+          setMessage("Ready. Drag the logo directly on the canvas.");
         } else {
           setMessage(
             assetData.length
@@ -111,6 +126,23 @@ export function ImageBrandEditor() {
 
     void load();
   }, []);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [fullscreen]);
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -148,8 +180,7 @@ export function ImageBrandEditor() {
   const logoStyle = useMemo<CSSProperties>(() => {
     const isStory =
       platform === "Instagram Story" || platform === "WhatsApp Status";
-    const baseWidth =
-      platform === "Facebook" ? 8.5 : platform === "Telegram" ? 8 : 8;
+    const baseWidth = platform === "Facebook" ? 8.5 : 8;
     const widthPercent = Math.max(5.5, Math.min(15, baseWidth * scale));
     const side =
       isStory ? "5.5%" : platform === "Telegram" ? "2.8%" : "3.5%";
@@ -198,20 +229,32 @@ export function ImageBrandEditor() {
     return style;
   }, [customPosition, opacity, platform, resolvedPlacement, scale]);
 
-  function updateCustomPosition(
-    event: ReactPointerEvent<HTMLImageElement>,
-  ) {
+  const positionLabel = customPosition
+    ? "Custom position"
+    : placement === "AUTO"
+      ? `Auto: ${resolvedPlacement.replaceAll("_", " ").toLowerCase()}`
+      : resolvedPlacement.replaceAll("_", " ").toLowerCase();
+
+  function chooseAsset(asset: Asset) {
+    setSelectedId(asset.id);
+    setResult(null);
+    setName("");
+    setCustomPosition(null);
+    setActiveTool("logo");
+  }
+
+  function updateCustomPosition(event: ReactPointerEvent<HTMLImageElement>) {
     const canvas = event.currentTarget.parentElement;
     if (!canvas) return;
 
     const bounds = canvas.getBoundingClientRect();
     const x = Math.min(
-      1,
-      Math.max(0, (event.clientX - bounds.left) / bounds.width),
+      0.96,
+      Math.max(0.04, (event.clientX - bounds.left) / bounds.width),
     );
     const y = Math.min(
-      1,
-      Math.max(0, (event.clientY - bounds.top) / bounds.height),
+      0.96,
+      Math.max(0.04, (event.clientY - bounds.top) / bounds.height),
     );
 
     setCustomPosition({ x, y });
@@ -284,20 +327,178 @@ export function ImageBrandEditor() {
     }
   }
 
-  return (
-    <div className={styles.page}>
-      <section className={styles.hero}>
-        <div>
-          <p>Image tools</p>
-          <h1>Image Editor & Logo</h1>
-          <span>
-            Drag the official logo anywhere on the image, then save a new version
-            without changing the original.
-          </span>
+  function renderCanvas(fullscreenMode = false) {
+    if (!selected) {
+      return <div className={styles.emptyCanvas}>Choose an image to begin.</div>;
+    }
+
+    return (
+      <div
+        className={`${styles.canvas} ${
+          fullscreenMode ? styles.fullscreenCanvas : ""
+        }`}
+      >
+        <img
+          className={styles.sourceImage}
+          src={selected.url}
+          alt={selected.name}
+          draggable={false}
+        />
+
+        {showSafeArea ? (
+          <div
+            className={`${styles.safeArea} ${
+              platform === "Instagram Story" ||
+              platform === "WhatsApp Status"
+                ? styles.storySafeArea
+                : ""
+            }`}
+          />
+        ) : null}
+
+        {showLogo && logoAsset ? (
+          <img
+            className={`${styles.logoPreview} ${
+              draggingLogo ? styles.logoDragging : ""
+            }`}
+            src={logoAsset.url}
+            alt="Official brand logo preview"
+            style={logoStyle}
+            draggable={false}
+            onPointerDown={startLogoDrag}
+            onPointerMove={moveLogo}
+            onPointerUp={endLogoDrag}
+            onPointerCancel={endLogoDrag}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderLogoControls(compact = false) {
+    return (
+      <div className={compact ? styles.compactControls : styles.controls}>
+        {!compact ? (
+          <label>
+            <span>New version name</span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={selected ? `${selected.name} · Branded` : "Branded image"}
+            />
+          </label>
+        ) : null}
+
+        <label>
+          <span>Platform</span>
+          <select
+            value={platform}
+            onChange={(event) => {
+              setPlatform(event.target.value);
+              setCustomPosition(null);
+            }}
+          >
+            <option value="Facebook">Facebook</option>
+            <option value="Telegram">Telegram</option>
+            <option value="Instagram Story">Instagram Story</option>
+            <option value="WhatsApp Status">WhatsApp Status</option>
+            <option value="Multi-platform">Multi-platform</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Logo position</span>
+          <select
+            value={placement}
+            onChange={(event) => {
+              setPlacement(event.target.value as LogoPlacement);
+              setCustomPosition(null);
+            }}
+          >
+            {placementOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Logo size · {Math.round(scale * 100)}%</span>
+          <input
+            type="range"
+            min="0.6"
+            max="1.5"
+            step="0.05"
+            value={scale}
+            onChange={(event) => setScale(Number(event.target.value))}
+          />
+        </label>
+
+        <label>
+          <span>Opacity · {Math.round(opacity * 100)}%</span>
+          <input
+            type="range"
+            min="0.25"
+            max="1"
+            step="0.05"
+            value={opacity}
+            onChange={(event) => setOpacity(Number(event.target.value))}
+          />
+        </label>
+
+        <div className={styles.toggleRow}>
+          <button
+            type="button"
+            className={showLogo ? styles.activeToggle : ""}
+            onClick={() => setShowLogo((current) => !current)}
+          >
+            {showLogo ? "Logo on" : "Original"}
+          </button>
+          <button
+            type="button"
+            className={showSafeArea ? styles.activeToggle : ""}
+            onClick={() => setShowSafeArea((current) => !current)}
+          >
+            Safe area
+          </button>
         </div>
 
-        <a href="/assets">Open Asset Library</a>
-      </section>
+        {customPosition ? (
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => setCustomPosition(null)}
+          >
+            Reset position
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  const studioHref = selected
+    ? `/ai-studio?assetId=${encodeURIComponent(selected.id)}&source=image-editor`
+    : "/ai-studio";
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <h1>Image Editor</h1>
+          <span>{selected?.name || "Choose an image"}</span>
+        </div>
+        <div className={styles.headerActions}>
+          <a href="/assets">Assets</a>
+          <button
+            type="button"
+            onClick={() => setFullscreen(true)}
+            disabled={!selected}
+          >
+            Fullscreen
+          </button>
+        </div>
+      </header>
 
       <p className={styles.message}>{message}</p>
 
@@ -318,12 +519,7 @@ export function ImageBrandEditor() {
                 type="button"
                 key={asset.id}
                 className={selectedId === asset.id ? styles.selectedAsset : ""}
-                onClick={() => {
-                  setSelectedId(asset.id);
-                  setResult(null);
-                  setName("");
-                  setCustomPosition(null);
-                }}
+                onClick={() => chooseAsset(asset)}
               >
                 <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
                 <span>{asset.name}</span>
@@ -337,179 +533,150 @@ export function ImageBrandEditor() {
         </aside>
 
         <main className={styles.editor}>
-          <div className={styles.previewPanel}>
+          <nav className={styles.toolRail} aria-label="Editor tools">
+            <button
+              type="button"
+              className={activeTool === "images" ? styles.activeTool : ""}
+              onClick={() => setActiveTool("images")}
+            >
+              <span>▦</span>
+              Images
+            </button>
+            <button
+              type="button"
+              className={activeTool === "logo" ? styles.activeTool : ""}
+              onClick={() => setActiveTool("logo")}
+            >
+              <span>◇</span>
+              Logo
+            </button>
+            <button
+              type="button"
+              className={activeTool === "layers" ? styles.activeTool : ""}
+              onClick={() => setActiveTool("layers")}
+            >
+              <span>▤</span>
+              Layers
+            </button>
+            <button
+              type="button"
+              className={activeTool === "settings" ? styles.activeTool : ""}
+              onClick={() => setActiveTool("settings")}
+            >
+              <span>⚙</span>
+              Output
+            </button>
+          </nav>
+
+          <section className={styles.previewPanel}>
             <div className={styles.previewToolbar}>
               <div>
                 <strong>Live preview</strong>
-                <span>
-                  {customPosition
-                    ? "Custom position"
-                    : placement === "AUTO"
-                      ? `Auto: ${resolvedPlacement.replaceAll("_", " ").toLowerCase()}`
-                      : resolvedPlacement.replaceAll("_", " ").toLowerCase()}
-                </span>
+                <span>{positionLabel}</span>
               </div>
-
-              <div>
-                <button
-                  type="button"
-                  className={showLogo ? styles.activeToggle : ""}
-                  onClick={() => setShowLogo((current) => !current)}
-                >
-                  {showLogo ? "Logo on" : "Original"}
-                </button>
-                <button
-                  type="button"
-                  className={showSafeArea ? styles.activeToggle : ""}
-                  onClick={() => setShowSafeArea((current) => !current)}
-                >
-                  Safe area
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.preview}>
-              {selected ? (
-                <div className={styles.canvas}>
-                  <img
-                    className={styles.sourceImage}
-                    src={selected.url}
-                    alt={selected.name}
-                  />
-
-                  {showSafeArea ? (
-                    <div
-                      className={`${styles.safeArea} ${
-                        platform === "Instagram Story" ||
-                        platform === "WhatsApp Status"
-                          ? styles.storySafeArea
-                          : ""
-                      }`}
-                    />
-                  ) : null}
-
-                  {showLogo && logoAsset ? (
-                    <img
-                      className={`${styles.logoPreview} ${
-                        draggingLogo ? styles.logoDragging : ""
-                      }`}
-                      src={logoAsset.url}
-                      alt="Official brand logo preview"
-                      style={logoStyle}
-                      draggable={false}
-                      onPointerDown={startLogoDrag}
-                      onPointerMove={moveLogo}
-                      onPointerUp={endLogoDrag}
-                      onPointerCancel={endLogoDrag}
-                    />
-                  ) : null}
-                </div>
-              ) : (
-                <div>Select an image from Asset Library.</div>
-              )}
-            </div>
-
-            <p className={styles.previewNote}>
-              Drag the logo directly on the image. The backend saves the same
-              position against the original full-resolution image.
-            </p>
-          </div>
-
-          <div className={styles.controls}>
-            <label>
-              <span>New version name</span>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={
-                  selected ? `${selected.name} · Branded` : "Branded image"
-                }
-              />
-            </label>
-
-            <label>
-              <span>Platform</span>
-              <select
-                value={platform}
-                onChange={(event) => {
-                  setPlatform(event.target.value);
-                  setCustomPosition(null);
-                }}
-              >
-                <option value="Facebook">Facebook</option>
-                <option value="Telegram">Telegram</option>
-                <option value="Instagram Story">Instagram Story</option>
-                <option value="WhatsApp Status">WhatsApp Status</option>
-                <option value="Multi-platform">Multi-platform</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Logo position</span>
-              <select
-                value={placement}
-                onChange={(event) => {
-                  setPlacement(event.target.value as LogoPlacement);
-                  setCustomPosition(null);
-                }}
-              >
-                <option value="AUTO">Auto · Recommended</option>
-                <option value="BOTTOM_LEFT">Bottom left</option>
-                <option value="BOTTOM_CENTER">Bottom centre</option>
-                <option value="BOTTOM_RIGHT">Bottom right</option>
-                <option value="TOP_LEFT">Top left</option>
-                <option value="TOP_CENTER">Top centre</option>
-                <option value="TOP_RIGHT">Top right</option>
-                <option value="CENTER_LEFT">Centre left</option>
-                <option value="CENTER">Centre</option>
-                <option value="CENTER_RIGHT">Centre right</option>
-              </select>
-            </label>
-
-            {customPosition ? (
               <button
                 type="button"
-                className={styles.secondaryButton}
-                onClick={() => setCustomPosition(null)}
+                onClick={() => setFullscreen(true)}
+                disabled={!selected}
               >
-                Reset to preset position
+                Open fullscreen
               </button>
-            ) : null}
-
-            <label>
-              <span>Logo size · {Math.round(scale * 100)}%</span>
-              <input
-                type="range"
-                min="0.6"
-                max="1.5"
-                step="0.05"
-                value={scale}
-                onChange={(event) => setScale(Number(event.target.value))}
-              />
-            </label>
-
-            <label>
-              <span>Logo opacity · {Math.round(opacity * 100)}%</span>
-              <input
-                type="range"
-                min="0.25"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(event) => setOpacity(Number(event.target.value))}
-              />
-            </label>
+            </div>
 
             <button
               type="button"
-              onClick={() => void applyLogo()}
-              disabled={!selected || !logoAsset || saving}
+              className={styles.preview}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) setFullscreen(true);
+              }}
+              aria-label="Open fullscreen preview"
             >
-              {saving
-                ? "Applying logo..."
-                : "Apply logo and save new version"}
+              {renderCanvas()}
             </button>
-          </div>
+          </section>
+
+          <aside className={styles.inspector}>
+            {activeTool === "images" ? (
+              <div className={styles.mobileAssetPanel}>
+                <strong>Images</strong>
+                <div className={styles.mobileAssetGrid}>
+                  {filteredAssets.slice(0, 12).map((asset) => (
+                    <button
+                      type="button"
+                      key={asset.id}
+                      className={selectedId === asset.id ? styles.selectedAsset : ""}
+                      onClick={() => chooseAsset(asset)}
+                    >
+                      <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {activeTool === "logo" ? renderLogoControls() : null}
+
+            {activeTool === "layers" ? (
+              <div className={styles.layersPanel}>
+                <strong>Layers</strong>
+                <button type="button" className={styles.layerRow}>
+                  <span className={styles.layerThumbnail}>
+                    {selected ? <img src={selected.thumbnailUrl || selected.url} alt="" /> : null}
+                  </span>
+                  <span>
+                    <b>Image</b>
+                    <small>Background · Locked</small>
+                  </span>
+                  <em>🔒</em>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.layerRow} ${styles.activeLayer}`}
+                  onClick={() => setShowLogo((current) => !current)}
+                >
+                  <span className={styles.layerThumbnail}>
+                    {logoAsset ? <img src={logoAsset.url} alt="" /> : null}
+                  </span>
+                  <span>
+                    <b>Brand logo</b>
+                    <small>{showLogo ? "Visible" : "Hidden"}</small>
+                  </span>
+                  <em>{showLogo ? "◉" : "○"}</em>
+                </button>
+              </div>
+            ) : null}
+
+            {activeTool === "settings" ? (
+              <div className={styles.outputPanel}>
+                <strong>Output</strong>
+                <label>
+                  <span>New version name</span>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={
+                      selected ? `${selected.name} · Branded` : "Branded image"
+                    }
+                  />
+                </label>
+                <p>
+                  The original file stays unchanged. Atlas saves a separate
+                  full-resolution version.
+                </p>
+              </div>
+            ) : null}
+
+            <div className={styles.primaryActions}>
+              <a href={studioHref}>Continue in Studio</a>
+              <button
+                type="button"
+                onClick={() => void applyLogo()}
+                disabled={!selected || !logoAsset || saving}
+              >
+                {saving ? "Saving..." : "Save new version"}
+              </button>
+            </div>
+          </aside>
 
           {result ? (
             <section className={styles.result}>
@@ -524,6 +691,55 @@ export function ImageBrandEditor() {
           ) : null}
         </main>
       </section>
+
+      <nav className={styles.mobileDock} aria-label="Image editor shortcuts">
+        <button type="button" onClick={() => setActiveTool("images")}>
+          <span>▦</span>Images
+        </button>
+        <button type="button" onClick={() => setActiveTool("logo")}>
+          <span>◇</span>Logo
+        </button>
+        <button type="button" className={styles.mobileCreate} onClick={() => setFullscreen(true)}>
+          <span>＋</span>Preview
+        </button>
+        <button type="button" onClick={() => setActiveTool("layers")}>
+          <span>▤</span>Layers
+        </button>
+        <a href={studioHref}>
+          <span>↗</span>Studio
+        </a>
+      </nav>
+
+      {fullscreen ? (
+        <div className={styles.fullscreen} role="dialog" aria-modal="true">
+          <header className={styles.fullscreenHeader}>
+            <div>
+              <strong>{selected?.name}</strong>
+              <span>{positionLabel}</span>
+            </div>
+            <button type="button" onClick={() => setFullscreen(false)} aria-label="Close preview">
+              ×
+            </button>
+          </header>
+
+          <main className={styles.fullscreenStage}>{renderCanvas(true)}</main>
+
+          <section className={styles.fullscreenControls}>
+            {renderLogoControls(true)}
+          </section>
+
+          <footer className={styles.fullscreenFooter}>
+            <a href={studioHref}>Continue in Studio</a>
+            <button
+              type="button"
+              onClick={() => void applyLogo()}
+              disabled={!selected || !logoAsset || saving}
+            >
+              {saving ? "Saving..." : "Save version"}
+            </button>
+          </footer>
+        </div>
+      ) : null}
     </div>
   );
 }
