@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AssetImageBackgroundJobService } from './asset-image-background-job.service';
+import { AssetImageEditorService } from './asset-image-editor.service';
 import { AssetImageService } from './asset-image.service';
 import { BrandExistingAssetDto } from './dto/brand-existing-asset.dto';
+import { CompositeExistingAssetDto } from './dto/composite-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
 @Controller('asset-images')
@@ -9,6 +11,7 @@ export class AssetImageController {
   constructor(
     private readonly assetImageService: AssetImageService,
     private readonly backgroundJobs: AssetImageBackgroundJobService,
+    private readonly imageEditor: AssetImageEditorService,
   ) {}
 
   @Post('generate')
@@ -19,6 +22,16 @@ export class AssetImageController {
   @Post('brand-existing')
   brandExisting(@Body() dto: BrandExistingAssetDto) {
     return this.assetImageService.brandExistingAsset(dto);
+  }
+
+  @Get('editor/latest')
+  latestEditorImage() {
+    return this.imageEditor.latestImage();
+  }
+
+  @Post('editor/composite')
+  compositeExisting(@Body() dto: CompositeExistingAssetDto) {
+    return this.imageEditor.compositeExistingAsset(dto);
   }
 
   @Post('jobs')
