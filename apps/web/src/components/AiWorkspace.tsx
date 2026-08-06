@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AtlasCopilot } from "./AtlasCopilot";
+import {
+  marketingCopilotPipeline,
+} from "./copilot-sdk";
 import { AiPublishCard } from "./AiPublishCard";
 import { AiAutoQueueCard } from "./AiAutoQueueCard";
 import { ImageAssetPanel } from "./ImageAssetPanel";
@@ -326,6 +329,7 @@ export function AiWorkspace({
       ) : null}
 
       <AtlasCopilot
+        pipeline={marketingCopilotPipeline}
         result={result}
         isGenerating={isGenerating}
         statusMessage={statusMessage}

@@ -2,20 +2,18 @@
 
 import {
   FormEvent,
+  useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const emailRef =
+    useRef<HTMLInputElement>(null);
 
-  const [email, setEmail] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
+  const passwordRef =
+    useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] =
     useState(false);
@@ -23,38 +21,67 @@ export default function LoginPage() {
   const [error, setError] =
     useState("");
 
-  async function login(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-    setError("");
+  const [status, setStatus] =
+    useState("Ready");
 
-    if (
-      !email.trim() ||
-      !password
-    ) {
+  async function performLogin() {
+    if (loading) {
+      return;
+    }
+
+    setError("");
+    setStatus("Reading form...");
+
+    const email =
+      emailRef.current?.value
+        .trim() || "";
+
+    const password =
+      passwordRef.current?.value || "";
+
+    if (!email || !password) {
       setError(
         "Enter your email and password.",
       );
+      setStatus("Form incomplete");
       return;
     }
 
     setLoading(true);
+    setStatus(
+      "Connecting to Supabase...",
+    );
 
     try {
       const supabase =
         createClient();
 
-      const { error: loginError } =
-        await supabase.auth
-          .signInWithPassword({
-            email: email.trim(),
-            password,
-          });
+      setStatus(
+        "Sending login request...",
+      );
+
+      const {
+        data,
+        error: loginError,
+      } = await supabase.auth
+        .signInWithPassword({
+          email,
+          password,
+        });
 
       if (loginError) {
         throw loginError;
       }
+
+      if (!data.session) {
+        throw new Error(
+          "Login succeeded but no session was returned.",
+        );
+      }
+
+      setStatus(
+        "Login successful. Redirecting...",
+      );
 
       const params =
         new URLSearchParams(
@@ -62,19 +89,34 @@ export default function LoginPage() {
         );
 
       const destination =
-        params.get("next") || "/";
+        params.get("next") ||
+        "/engineering";
 
-      router.replace(destination);
-      router.refresh();
+      window.location.assign(
+        destination,
+      );
     } catch (loginError) {
-      setError(
+      console.error(
+        "Atlas login failed:",
+        loginError,
+      );
+
+      const message =
         loginError instanceof Error
           ? loginError.message
-          : "Unable to sign in.",
-      );
-    } finally {
+          : "Unable to sign in.";
+
+      setError(message);
+      setStatus("Login failed");
       setLoading(false);
     }
+  }
+
+  function submit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    void performLogin();
   }
 
   return (
@@ -108,21 +150,18 @@ export default function LoginPage() {
         </div>
 
         <form
-          onSubmit={login}
+          onSubmit={submit}
           className={styles.form}
+          noValidate
         >
           <label>
             <span>Email</span>
 
             <input
+              ref={emailRef}
+              name="email"
               type="email"
               autoComplete="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(
-                  event.target.value,
-                )
-              }
               placeholder="name@company.com"
             />
           </label>
@@ -131,17 +170,17 @@ export default function LoginPage() {
             <span>Password</span>
 
             <input
+              ref={passwordRef}
+              name="password"
               type="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value,
-                )
-              }
               placeholder="Enter password"
             />
           </label>
+
+          <small>
+            Status: {status}
+          </small>
 
           {error ? (
             <p className={styles.error}>
@@ -150,8 +189,11 @@ export default function LoginPage() {
           ) : null}
 
           <button
-            type="submit"
+            type="button"
             disabled={loading}
+            onClick={() =>
+              void performLogin()
+            }
           >
             {loading
               ? "Signing in..."

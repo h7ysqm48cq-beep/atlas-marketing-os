@@ -1,0 +1,12 @@
+{
+  "patch": "012B",
+  "status": "completed",
+  "backup": "/Users/ysloh/Downloads/atlas-marketing-os/.atlas/backups/patch_012b/20260805_202151",
+  "files": [
+    "tools/runtime/executors/typescript_constructor.py",
+    "tools/runtime/executors/__init__.py",
+    "tools/runtime/bootstrap.py",
+    "tools/runtime/__init__.py",
+    "tools/tests/test_planner_runtime_e2e.py"
+  ]
+}

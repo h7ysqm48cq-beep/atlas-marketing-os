@@ -1,0 +1,27 @@
+{
+  "patch": "Patch010 Import Engine Validation",
+  "project_root": "/Users/ysloh/Downloads/atlas-marketing-os",
+  "required_files_ok": true,
+  "missing_files": [],
+  "compile_ok": true,
+  "pytest_available": true,
+  "tests_ok": true,
+  "commands": [
+    {
+      "command": [
+        "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
+        "-m",
+        "pytest",
+        "-q",
+        "tools/tests/test_import_add.py",
+        "tools/tests/test_import_insertion_branches.py",
+        "tools/tests/test_default_import_insertion_branches.py",
+        "tools/tests/test_import_removal_branches.py"
+      ],
+      "returncode": 0,
+      "stdout": "........................................................................ [ 42%]\n........................................................................ [ 84%]\n...........................                                              [100%]\n171 passed in 12.39s\n",
+      "stderr": ""
+    }
+  ],
+  "ok": true
+}

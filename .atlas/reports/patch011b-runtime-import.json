@@ -1,0 +1,10 @@
+{
+  "patch": "011B",
+  "status": "completed",
+  "backup": "/Users/ysloh/Downloads/atlas-marketing-os/.atlas/backups/patch_011b/20260805_200841",
+  "files": [
+    "tools/runtime/bootstrap.py",
+    "tools/runtime/__init__.py",
+    "tools/tests/test_runtime_import_e2e.py"
+  ]
+}

@@ -162,6 +162,7 @@ export const CampaignScalarFieldEnum = {
   status: 'status',
   startDate: 'startDate',
   endDate: 'endDate',
+  brandRenderingSettings: 'brandRenderingSettings',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -503,6 +504,7 @@ export const ScheduledPostScalarFieldEnum = {
   title: 'title',
   content: 'content',
   mediaUrls: 'mediaUrls',
+  brandRenderingSettings: 'brandRenderingSettings',
   scheduledAt: 'scheduledAt',
   timezone: 'timezone',
   status: 'status',

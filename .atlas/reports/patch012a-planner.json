@@ -1,0 +1,10 @@
+{
+  "patch": "012A",
+  "status": "completed",
+  "backup": "/Users/ysloh/Downloads/atlas-marketing-os/.atlas/backups/patch_012a/20260805_201444",
+  "files": [
+    "tools/planner/__init__.py",
+    "tools/planner/planner.py",
+    "tools/tests/test_planner_facade.py"
+  ]
+}

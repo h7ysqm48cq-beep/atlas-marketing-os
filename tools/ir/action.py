@@ -40,6 +40,76 @@ class Action:
         return data
 
 
+@dataclass(
+    slots=True,
+    frozen=True,
+    kw_only=True,
+)
+class WorkspaceTextEdit:
+    start: int
+    end: int
+    text: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start,
+            "end": self.end,
+            "text": self.text,
+        }
+
+
+@dataclass(
+    slots=True,
+    frozen=True,
+    kw_only=True,
+)
+class WorkspaceFileEdit:
+    file_path: str
+    edits: tuple[
+        WorkspaceTextEdit,
+        ...,
+    ]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "file_path": self.file_path,
+            "edits": [
+                edit.to_dict()
+                for edit in self.edits
+            ],
+        }
+
+
+@dataclass(slots=True, kw_only=True)
+class WorkspaceEdit(Action):
+    files: tuple[
+        WorkspaceFileEdit,
+        ...,
+    ]
+
+    def to_dict(self) -> dict[str, Any]:
+        data = super().to_dict()
+        data["files"] = [
+            file.to_dict()
+            for file in self.files
+        ]
+        return data
+
+
+@dataclass(slots=True, kw_only=True)
+class CreateFile(Action):
+    file_path: str
+    content: str
+    overwrite: bool = False
+
+
+@dataclass(slots=True, kw_only=True)
+class RenameSymbol(Action):
+    file_path: str
+    old_name: str
+    new_name: str
+
+
 @dataclass(slots=True, kw_only=True)
 class AddImport(Action):
     file_path: str

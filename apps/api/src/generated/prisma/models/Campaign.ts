@@ -59,6 +59,7 @@ export type CampaignCountAggregateOutputType = {
   status: number
   startDate: number
   endDate: number
+  brandRenderingSettings: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -100,6 +101,7 @@ export type CampaignCountAggregateInputType = {
   status?: true
   startDate?: true
   endDate?: true
+  brandRenderingSettings?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -186,6 +188,7 @@ export type CampaignGroupByOutputType = {
   status: $Enums.CampaignStatus
   startDate: Date | null
   endDate: Date | null
+  brandRenderingSettings: runtime.JsonValue
   createdAt: Date
   updatedAt: Date
   _count: CampaignCountAggregateOutputType | null
@@ -220,6 +223,7 @@ export type CampaignWhereInput = {
   status?: Prisma.EnumCampaignStatusFilter<"Campaign"> | $Enums.CampaignStatus
   startDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
+  brandRenderingSettings?: Prisma.JsonFilter<"Campaign">
   createdAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
@@ -239,6 +243,7 @@ export type CampaignOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   brand?: Prisma.BrandOrderByWithRelationInput
@@ -261,6 +266,7 @@ export type CampaignWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumCampaignStatusFilter<"Campaign"> | $Enums.CampaignStatus
   startDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
+  brandRenderingSettings?: Prisma.JsonFilter<"Campaign">
   createdAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
@@ -280,6 +286,7 @@ export type CampaignOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CampaignCountOrderByAggregateInput
@@ -299,6 +306,7 @@ export type CampaignScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumCampaignStatusWithAggregatesFilter<"Campaign"> | $Enums.CampaignStatus
   startDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Campaign"> | Date | string | null
   endDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Campaign"> | Date | string | null
+  brandRenderingSettings?: Prisma.JsonWithAggregatesFilter<"Campaign">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Campaign"> | Date | string
 }
@@ -311,6 +319,7 @@ export type CampaignCreateInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -330,6 +339,7 @@ export type CampaignUncheckedCreateInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -347,6 +357,7 @@ export type CampaignUpdateInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -366,6 +377,7 @@ export type CampaignUncheckedUpdateInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -384,6 +396,7 @@ export type CampaignCreateManyInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -396,6 +409,7 @@ export type CampaignUpdateManyMutationInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -409,6 +423,7 @@ export type CampaignUncheckedUpdateManyInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -432,6 +447,7 @@ export type CampaignCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrder
   endDate?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -604,6 +620,7 @@ export type CampaignCreateWithoutBrandInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaCreateNestedManyWithoutCampaignInput
@@ -621,6 +638,7 @@ export type CampaignUncheckedCreateWithoutBrandInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -668,6 +686,7 @@ export type CampaignScalarWhereInput = {
   status?: Prisma.EnumCampaignStatusFilter<"Campaign"> | $Enums.CampaignStatus
   startDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
   endDate?: Prisma.DateTimeNullableFilter<"Campaign"> | Date | string | null
+  brandRenderingSettings?: Prisma.JsonFilter<"Campaign">
   createdAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Campaign"> | Date | string
 }
@@ -680,6 +699,7 @@ export type CampaignCreateWithoutIdeasInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -698,6 +718,7 @@ export type CampaignUncheckedCreateWithoutIdeasInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutCampaignInput
@@ -730,6 +751,7 @@ export type CampaignUpdateWithoutIdeasInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -748,6 +770,7 @@ export type CampaignUncheckedUpdateWithoutIdeasInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutCampaignNestedInput
@@ -764,6 +787,7 @@ export type CampaignCreateWithoutGenerationsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -782,6 +806,7 @@ export type CampaignUncheckedCreateWithoutGenerationsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -814,6 +839,7 @@ export type CampaignUpdateWithoutGenerationsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -832,6 +858,7 @@ export type CampaignUncheckedUpdateWithoutGenerationsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -848,6 +875,7 @@ export type CampaignCreateWithoutAssetsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -866,6 +894,7 @@ export type CampaignUncheckedCreateWithoutAssetsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -898,6 +927,7 @@ export type CampaignUpdateWithoutAssetsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -916,6 +946,7 @@ export type CampaignUncheckedUpdateWithoutAssetsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -932,6 +963,7 @@ export type CampaignCreateWithoutScheduledPostsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -950,6 +982,7 @@ export type CampaignUncheckedCreateWithoutScheduledPostsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -982,6 +1015,7 @@ export type CampaignUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -1000,6 +1034,7 @@ export type CampaignUncheckedUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -1016,6 +1051,7 @@ export type CampaignCreateWithoutCopilotConversationsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCampaignsInput
@@ -1034,6 +1070,7 @@ export type CampaignUncheckedCreateWithoutCopilotConversationsInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   ideas?: Prisma.CampaignIdeaUncheckedCreateNestedManyWithoutCampaignInput
@@ -1066,6 +1103,7 @@ export type CampaignUpdateWithoutCopilotConversationsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCampaignsNestedInput
@@ -1084,6 +1122,7 @@ export type CampaignUncheckedUpdateWithoutCopilotConversationsInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -1100,6 +1139,7 @@ export type CampaignCreateManyBrandInput = {
   status?: $Enums.CampaignStatus
   startDate?: Date | string | null
   endDate?: Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1112,6 +1152,7 @@ export type CampaignUpdateWithoutBrandInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUpdateManyWithoutCampaignNestedInput
@@ -1129,6 +1170,7 @@ export type CampaignUncheckedUpdateWithoutBrandInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ideas?: Prisma.CampaignIdeaUncheckedUpdateManyWithoutCampaignNestedInput
@@ -1146,6 +1188,7 @@ export type CampaignUncheckedUpdateManyWithoutBrandInput = {
   status?: Prisma.EnumCampaignStatusFieldUpdateOperationsInput | $Enums.CampaignStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1226,6 +1269,7 @@ export type CampaignSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   status?: boolean
   startDate?: boolean
   endDate?: boolean
+  brandRenderingSettings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -1246,6 +1290,7 @@ export type CampaignSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   status?: boolean
   startDate?: boolean
   endDate?: boolean
+  brandRenderingSettings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -1260,6 +1305,7 @@ export type CampaignSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   status?: boolean
   startDate?: boolean
   endDate?: boolean
+  brandRenderingSettings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -1274,11 +1320,12 @@ export type CampaignSelectScalar = {
   status?: boolean
   startDate?: boolean
   endDate?: boolean
+  brandRenderingSettings?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "name" | "description" | "objective" | "status" | "startDate" | "endDate" | "createdAt" | "updatedAt", ExtArgs["result"]["campaign"]>
+export type CampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "name" | "description" | "objective" | "status" | "startDate" | "endDate" | "brandRenderingSettings" | "createdAt" | "updatedAt", ExtArgs["result"]["campaign"]>
 export type CampaignInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   ideas?: boolean | Prisma.Campaign$ideasArgs<ExtArgs>
@@ -1314,6 +1361,7 @@ export type $CampaignPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     status: $Enums.CampaignStatus
     startDate: Date | null
     endDate: Date | null
+    brandRenderingSettings: runtime.JsonValue
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["campaign"]>
@@ -1753,6 +1801,7 @@ export interface CampaignFieldRefs {
   readonly status: Prisma.FieldRef<"Campaign", 'CampaignStatus'>
   readonly startDate: Prisma.FieldRef<"Campaign", 'DateTime'>
   readonly endDate: Prisma.FieldRef<"Campaign", 'DateTime'>
+  readonly brandRenderingSettings: Prisma.FieldRef<"Campaign", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Campaign", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Campaign", 'DateTime'>
 }

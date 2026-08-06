@@ -17,6 +17,6 @@
     "playwright": "^1.62.1"
   },
   "devDependencies": {
-    "prisma": "^7.9.0"
+    "prisma": "^7.9.1"
   }
 }

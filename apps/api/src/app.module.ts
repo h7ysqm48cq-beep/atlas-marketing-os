@@ -36,8 +36,10 @@ import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engi
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { BrowserRuntimeModule } from './browser-runtime/browser-runtime.module';
 import { JobsModule } from './jobs/jobs.module';
+import { EngineeringModule } from './engineering/engineering.module';
 @Module({
   imports: [
+    EngineeringModule,
     JobsModule,
     BrowserRuntimeModule,
     PlannerModule,

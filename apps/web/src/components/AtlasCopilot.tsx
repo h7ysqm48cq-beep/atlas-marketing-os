@@ -2,81 +2,158 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceResult } from "./AiWorkspace";
+import {
+  marketingCopilotPipeline,
+  type CopilotMetric,
+  type CopilotPipeline,
+  type CopilotPipelineAction,
+  type CopilotRuntimeView,
+  type CopilotSuggestion,
+} from "./copilot-sdk";
 import styles from "./AtlasCopilot.module.css";
 
-type TimelineStage = {
-  label: string;
-  description: string;
-};
-
-type CopilotAction = {
-  id: string;
-  label: string;
-  detail: string;
+type CopilotAction = CopilotSuggestion & {
   platform?: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
   action?: "improve" | "shorter" | "rewrite";
 };
-
-const generationStages: TimelineStage[] = [
-  {
-    label: "Reading Brand Brain",
-    description: "Applying voice, rules and positioning.",
-  },
-  {
-    label: "Reading Audience",
-    description: "Matching tone and cultural relevance.",
-  },
-  {
-    label: "Reading Campaign",
-    description: "Aligning the content with the current objective.",
-  },
-  {
-    label: "Planning Platforms",
-    description: "Structuring Facebook, Telegram, Reels and Image Prompt.",
-  },
-  {
-    label: "Writing Content",
-    description: "Generating platform-specific outputs.",
-  },
-  {
-    label: "Scoring Results",
-    description: "Reviewing discussion, shareability and brand fit.",
-  },
-];
 
 export function AtlasCopilot({
   result,
   isGenerating,
   statusMessage,
   onAction,
+  onSuggestionAction,
+  onPipelineAction,
+  pipeline = marketingCopilotPipeline,
+  runtimeView,
+  actions = [],
 }: {
   result: WorkspaceResult | null;
   isGenerating: boolean;
   statusMessage: string;
-  onAction: (
+  pipeline?: CopilotPipeline;
+  runtimeView?: CopilotRuntimeView;
+  actions?: CopilotPipelineAction[];
+  onPipelineAction?: (
+    actionId: string,
+  ) => void | Promise<void>;
+  onAction?: (
     platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt",
     action: "improve" | "shorter" | "rewrite",
+  ) => void;
+  onSuggestionAction?: (
+    actionId: string,
   ) => void;
 }) {
   const [activeStage, setActiveStage] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isGenerating) {
-      setActiveStage(result ? generationStages.length : 0);
+  const [runningActionId, setRunningActionId] =
+    useState<string | null>(null);
+
+  async function runPipelineAction(
+    action: CopilotPipelineAction,
+  ) {
+    if (
+      action.disabled ||
+      action.loading ||
+      runningActionId ||
+      !onPipelineAction
+    ) {
       return;
     }
 
-    setActiveStage(1);
-    const timer = window.setInterval(() => {
+    if (
+      action.requiresConfirmation
+      && !window.confirm(
+        action.confirmationMessage ||
+          `Continue with ${action.label}?`,
+      )
+    ) {
+      return;
+    }
+
+    setRunningActionId(action.id);
+
+    try {
+      await onPipelineAction(action.id);
+    } finally {
+      setRunningActionId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const resetTimer = window.setTimeout(() => {
+      setActiveStage(
+        Math.min(
+          1,
+          Math.max(
+            pipeline.stages.length - 1,
+            0,
+          ),
+        ),
+      );
+    }, 0);
+
+    const progressTimer = window.setInterval(() => {
       setActiveStage((current) =>
-        Math.min(current + 1, generationStages.length - 1),
+        Math.min(
+          current + 1,
+          Math.max(
+            pipeline.stages.length - 1,
+            0,
+          ),
+        ),
       );
     }, 900);
 
-    return () => window.clearInterval(timer);
-  }, [isGenerating, result]);
+    return () => {
+      window.clearTimeout(resetTimer);
+      window.clearInterval(progressTimer);
+    };
+  }, [
+    isGenerating,
+    pipeline.stages.length,
+  ]);
+
+  const runtimeStatus = runtimeView?.status;
+
+  const effectiveGenerating =
+    runtimeStatus === "thinking"
+      ? true
+      : runtimeStatus
+        ? false
+        : isGenerating;
+
+  const effectiveCompleted =
+    runtimeStatus === "completed"
+      ? true
+      : runtimeStatus
+        ? false
+        : Boolean(result);
+
+  const effectiveFailed =
+    runtimeStatus === "failed";
+
+  const visibleActiveStage =
+    runtimeView?.activeStage !== undefined
+      ? Math.max(
+          0,
+          Math.min(
+            runtimeView.activeStage,
+            pipeline.stages.length,
+          ),
+        )
+      : effectiveGenerating
+        ? activeStage
+        : effectiveCompleted
+          ? pipeline.stages.length
+          : 0;
 
   const confidence = useMemo(() => {
     if (!result) return 0;
@@ -91,29 +168,66 @@ export function AtlasCopilot({
     );
   }, [result]);
 
-  const progress = isGenerating
+  const metrics: CopilotMetric[] =
+    runtimeView?.metrics || [
+      {
+        id: "confidence",
+        label: "Confidence",
+        value: confidence,
+        suffix: "%",
+      },
+      {
+        id: "brand-match",
+        label: "Brand Match",
+        value:
+          result?.analysis.brandFitScore || 0,
+        suffix: "%",
+      },
+      {
+        id: "context-loaded",
+        label: "Context Loaded",
+        value:
+          result?.promptChain
+            ?.loadedSourceCount || 0,
+        suffix: result?.promptChain
+          ?.totalSourceCount
+          ? `/${result.promptChain.totalSourceCount}`
+          : "/0",
+      },
+    ];
+
+  const progress = effectiveGenerating
     ? Math.max(
         12,
-        Math.round((activeStage / generationStages.length) * 100),
+        Math.round((visibleActiveStage / Math.max(pipeline.stages.length, 1)) * 100),
       )
-    : result
+    : effectiveCompleted
       ? 100
       : 0;
 
+  const visibleProgress =
+    runtimeView?.progress !== undefined
+      ? Math.max(
+          0,
+          Math.min(runtimeView.progress, 100),
+        )
+      : progress;
+
   const suggestions = useMemo<CopilotAction[]>(() => {
+    if (runtimeView?.suggestions) {
+      return runtimeView.suggestions;
+    }
+
     if (!result) {
-      return [
-        {
-          id: "idle-topic",
-          label: "Add a clear topic",
-          detail: "Enter a focused idea to activate Atlas recommendations.",
-        },
-        {
-          id: "idle-campaign",
-          label: "Link campaign context",
-          detail: "Campaign context improves strategic alignment.",
-        },
-      ];
+      return (
+        pipeline.emptySuggestions?.map(
+          (suggestion) => ({
+            id: suggestion.id,
+            label: suggestion.label,
+            detail: suggestion.detail,
+          }),
+        ) || []
+      );
     }
 
     const items: CopilotAction[] = [];
@@ -183,39 +297,52 @@ export function AtlasCopilot({
     );
 
     return items;
-  }, [result]);
+  }, [
+    result,
+    pipeline.emptySuggestions,
+    runtimeView?.suggestions,
+  ]);
 
-  const sourceCount = result?.promptChain?.loadedSourceCount || 0;
-  const totalSources = result?.promptChain?.totalSourceCount || 0;
 
   return (
     <section className={styles.panel}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Atlas AI Copilot</p>
+          <p className={styles.eyebrow}>{pipeline.eyebrow}</p>
           <h3>
-            {isGenerating
-              ? "Atlas is building your workspace"
-              : result
-                ? "Workspace analysis complete"
-                : "Ready to analyse your next idea"}
+            {effectiveFailed
+              ? pipeline.failedTitle ||
+                "Atlas could not complete the task"
+              : effectiveGenerating
+                ? pipeline.activeTitle
+                : effectiveCompleted
+                  ? pipeline.completedTitle
+                  : pipeline.idleTitle}
           </h3>
-          <p className={styles.status}>{statusMessage}</p>
+          <p className={styles.status}>
+            {runtimeView?.statusMessage || statusMessage}
+          </p>
         </div>
 
         <div className={styles.headerActions}>
           <span
             className={
-              isGenerating
+              effectiveGenerating
                 ? styles.thinkingBadge
-                : result
+                : effectiveCompleted
                   ? styles.completeBadge
                   : styles.idleBadge
             }
           >
-            {isGenerating ? "Thinking" : result ? "Completed" : "Idle"}
+            {effectiveFailed
+              ? "Failed"
+              : effectiveGenerating
+                ? "Thinking"
+                : effectiveCompleted
+                  ? "Completed"
+                  : "Idle"}
           </span>
-          {result ? (
+          {result && pipeline.agentType === "marketing" ? (
             <button type="button" onClick={() => setExplainOpen(true)}>
               Explain scores
             </button>
@@ -234,10 +361,10 @@ export function AtlasCopilot({
           <div className={styles.progressSection}>
             <div className={styles.progressHeading}>
               <span>AI progress</span>
-              <strong>{progress}%</strong>
+              <strong>{visibleProgress}%</strong>
             </div>
             <div className={styles.progressTrack}>
-              <i style={{ width: `${progress}%` }} />
+              <i style={{ width: `${visibleProgress}%` }} />
             </div>
           </div>
 
@@ -246,18 +373,22 @@ export function AtlasCopilot({
               <div className={styles.sectionHeading}>
                 <span>Thinking timeline</span>
                 <strong>
-                  {isGenerating
-                    ? `${Math.min(activeStage + 1, generationStages.length)} / ${generationStages.length}`
-                    : result
-                      ? `${generationStages.length} / ${generationStages.length}`
-                      : `0 / ${generationStages.length}`}
+                  {effectiveGenerating
+                    ? `${Math.min(visibleActiveStage + 1, pipeline.stages.length)} / ${pipeline.stages.length}`
+                    : effectiveCompleted
+                      ? `${pipeline.stages.length} / ${pipeline.stages.length}`
+                      : `0 / ${pipeline.stages.length}`}
                 </strong>
               </div>
 
               <div className={styles.stageList}>
-                {generationStages.map((stage, index) => {
-                  const completed = Boolean(result) || index < activeStage;
-                  const active = isGenerating && index === activeStage;
+                {pipeline.stages.map((stage, index) => {
+                  const completed =
+                    effectiveCompleted ||
+                    index < visibleActiveStage;
+                  const active =
+                    effectiveGenerating &&
+                    index === visibleActiveStage;
 
                   return (
                     <article
@@ -283,17 +414,14 @@ export function AtlasCopilot({
 
             <div className={styles.insights}>
               <div className={styles.metrics}>
-                <Metric label="Confidence" value={confidence} suffix="%" />
-                <Metric
-                  label="Brand Match"
-                  value={result?.analysis.brandFitScore || 0}
-                  suffix="%"
-                />
-                <Metric
-                  label="Context Loaded"
-                  value={sourceCount}
-                  suffix={totalSources ? `/${totalSources}` : "/0"}
-                />
+                {metrics.map((metric) => (
+                  <Metric
+                    key={metric.id}
+                    label={metric.label}
+                    value={metric.value}
+                    suffix={metric.suffix || ""}
+                  />
+                ))}
               </div>
 
               <div className={styles.suggestions}>
@@ -310,7 +438,22 @@ export function AtlasCopilot({
                         <strong>{suggestion.label}</strong>
                         <p>{suggestion.detail}</p>
                       </div>
-                      {suggestion.platform && suggestion.action ? (
+                      {suggestion.actionId &&
+                      suggestion.actionLabel &&
+                      onSuggestionAction ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSuggestionAction(
+                              suggestion.actionId!,
+                            )
+                          }
+                        >
+                          {suggestion.actionLabel}
+                        </button>
+                      ) : suggestion.platform &&
+                        suggestion.action &&
+                        onAction ? (
                         <button
                           type="button"
                           onClick={() =>
@@ -330,6 +473,56 @@ export function AtlasCopilot({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {actions.length > 0 ? (
+        <footer className={styles.actionBar}>
+          <div className={styles.actionSummary}>
+            <span>Available actions</span>
+            <strong>{actions.length}</strong>
+          </div>
+
+          <div className={styles.pipelineActions}>
+            {actions.map((action) => {
+              const running =
+                runningActionId === action.id;
+
+              const disabled =
+                action.disabled ||
+                action.loading ||
+                Boolean(
+                  runningActionId &&
+                    !running,
+                ) ||
+                !onPipelineAction;
+
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  disabled={disabled}
+                  className={
+                    action.variant === "primary"
+                      ? styles.primaryAction
+                      : action.variant === "danger"
+                        ? styles.dangerAction
+                        : action.variant === "ghost"
+                          ? styles.ghostAction
+                          : styles.secondaryAction
+                  }
+                  title={action.description}
+                  onClick={() =>
+                    void runPipelineAction(action)
+                  }
+                >
+                  {running || action.loading
+                    ? "Working..."
+                    : action.label}
+                </button>
+              );
+            })}
+          </div>
+        </footer>
       ) : null}
 
       {explainOpen && result ? (

@@ -86,6 +86,7 @@ export type ScheduledPostCountAggregateOutputType = {
   title: number
   content: number
   mediaUrls: number
+  brandRenderingSettings: number
   scheduledAt: number
   timezone: number
   status: number
@@ -160,6 +161,7 @@ export type ScheduledPostCountAggregateInputType = {
   title?: true
   content?: true
   mediaUrls?: true
+  brandRenderingSettings?: true
   scheduledAt?: true
   timezone?: true
   status?: true
@@ -269,6 +271,7 @@ export type ScheduledPostGroupByOutputType = {
   title: string | null
   content: string
   mediaUrls: string[]
+  brandRenderingSettings: runtime.JsonValue
   scheduledAt: Date
   timezone: string
   status: $Enums.ScheduledPostStatus
@@ -314,6 +317,7 @@ export type ScheduledPostWhereInput = {
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -341,6 +345,7 @@ export type ScheduledPostOrderByWithRelationInput = {
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -371,6 +376,7 @@ export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -398,6 +404,7 @@ export type ScheduledPostOrderByWithAggregationInput = {
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -428,6 +435,7 @@ export type ScheduledPostScalarWhereWithAggregatesInput = {
   title?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringWithAggregatesFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
+  brandRenderingSettings?: Prisma.JsonWithAggregatesFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeWithAggregatesFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringWithAggregatesFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusWithAggregatesFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -446,6 +454,7 @@ export type ScheduledPostCreateInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -473,6 +482,7 @@ export type ScheduledPostUncheckedCreateInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -492,6 +502,7 @@ export type ScheduledPostUpdateInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -519,6 +530,7 @@ export type ScheduledPostUncheckedUpdateInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -542,6 +554,7 @@ export type ScheduledPostCreateManyInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -560,6 +573,7 @@ export type ScheduledPostUpdateManyMutationInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -582,6 +596,7 @@ export type ScheduledPostUncheckedUpdateManyInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -614,6 +629,7 @@ export type ScheduledPostCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -882,6 +898,7 @@ export type ScheduledPostCreateWithoutBrandInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -907,6 +924,7 @@ export type ScheduledPostUncheckedCreateWithoutBrandInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -959,6 +977,7 @@ export type ScheduledPostScalarWhereInput = {
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -977,6 +996,7 @@ export type ScheduledPostCreateWithoutCampaignInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1002,6 +1022,7 @@ export type ScheduledPostUncheckedCreateWithoutCampaignInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1047,6 +1068,7 @@ export type ScheduledPostCreateWithoutHistoryInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1072,6 +1094,7 @@ export type ScheduledPostUncheckedCreateWithoutHistoryInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1117,6 +1140,7 @@ export type ScheduledPostCreateWithoutChannelInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1142,6 +1166,7 @@ export type ScheduledPostUncheckedCreateWithoutChannelInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1187,6 +1212,7 @@ export type ScheduledPostCreateWithoutAttemptsInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1213,6 +1239,7 @@ export type ScheduledPostUncheckedCreateWithoutAttemptsInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1247,6 +1274,7 @@ export type ScheduledPostUpdateWithoutAttemptsInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1273,6 +1301,7 @@ export type ScheduledPostUncheckedUpdateWithoutAttemptsInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1294,6 +1323,7 @@ export type ScheduledPostCreateManyBrandInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1312,6 +1342,7 @@ export type ScheduledPostUpdateWithoutBrandInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1337,6 +1368,7 @@ export type ScheduledPostUncheckedUpdateWithoutBrandInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1359,6 +1391,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutBrandInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1380,6 +1413,7 @@ export type ScheduledPostCreateManyCampaignInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1398,6 +1432,7 @@ export type ScheduledPostUpdateWithoutCampaignInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1423,6 +1458,7 @@ export type ScheduledPostUncheckedUpdateWithoutCampaignInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1445,6 +1481,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutCampaignInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1466,6 +1503,7 @@ export type ScheduledPostCreateManyHistoryInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1484,6 +1522,7 @@ export type ScheduledPostUpdateWithoutHistoryInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1509,6 +1548,7 @@ export type ScheduledPostUncheckedUpdateWithoutHistoryInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1531,6 +1571,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutHistoryInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1552,6 +1593,7 @@ export type ScheduledPostCreateManyChannelInput = {
   title?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1570,6 +1612,7 @@ export type ScheduledPostUpdateWithoutChannelInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1595,6 +1638,7 @@ export type ScheduledPostUncheckedUpdateWithoutChannelInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1617,6 +1661,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutChannelInput = {
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1670,6 +1715,7 @@ export type ScheduledPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   title?: boolean
   content?: boolean
   mediaUrls?: boolean
+  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1698,6 +1744,7 @@ export type ScheduledPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   title?: boolean
   content?: boolean
   mediaUrls?: boolean
+  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1724,6 +1771,7 @@ export type ScheduledPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   title?: boolean
   content?: boolean
   mediaUrls?: boolean
+  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1750,6 +1798,7 @@ export type ScheduledPostSelectScalar = {
   title?: boolean
   content?: boolean
   mediaUrls?: boolean
+  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1762,7 +1811,7 @@ export type ScheduledPostSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "content" | "mediaUrls" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledPost"]>
+export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "content" | "mediaUrls" | "brandRenderingSettings" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledPost"]>
 export type ScheduledPostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
@@ -1803,6 +1852,7 @@ export type $ScheduledPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
     title: string | null
     content: string
     mediaUrls: string[]
+    brandRenderingSettings: runtime.JsonValue
     scheduledAt: Date
     timezone: string
     status: $Enums.ScheduledPostStatus
@@ -2250,6 +2300,7 @@ export interface ScheduledPostFieldRefs {
   readonly title: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly content: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly mediaUrls: Prisma.FieldRef<"ScheduledPost", 'String[]'>
+  readonly brandRenderingSettings: Prisma.FieldRef<"ScheduledPost", 'Json'>
   readonly scheduledAt: Prisma.FieldRef<"ScheduledPost", 'DateTime'>
   readonly timezone: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly status: Prisma.FieldRef<"ScheduledPost", 'ScheduledPostStatus'>
