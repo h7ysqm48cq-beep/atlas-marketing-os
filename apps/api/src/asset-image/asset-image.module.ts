@@ -8,6 +8,7 @@ import {
 import { StorageModule } from '../storage/storage.module';
 import { AssetImageBackgroundJobService } from './asset-image-background-job.service';
 import { AssetImageController } from './asset-image.controller';
+import { AssetImageEditorService } from './asset-image-editor.service';
 import { AssetImageService } from './asset-image.service';
 
 @Module({
@@ -15,6 +16,7 @@ import { AssetImageService } from './asset-image.service';
   controllers: [AssetImageController],
   providers: [
     AssetImageService,
+    AssetImageEditorService,
     AssetImageBackgroundJobService,
     LogoOverlayService,
     LogoLayoutService,
@@ -22,6 +24,7 @@ import { AssetImageService } from './asset-image.service';
   ],
   exports: [
     AssetImageService,
+    AssetImageEditorService,
     AssetImageBackgroundJobService,
     LogoOverlayService,
     LogoLayoutService,
