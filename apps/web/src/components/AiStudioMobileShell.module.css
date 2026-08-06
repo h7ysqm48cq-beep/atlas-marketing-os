@@ -6,6 +6,11 @@
   display: none;
 }
 
+.topicHeaderActions,
+.topicImagePromptButton {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .shell {
     display: grid;
@@ -126,9 +131,41 @@
     min-width: 0 !important;
   }
 
+  .shell :global([class*="AiStudio_formCard"] > label:first-child) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
   .shell :global([class*="AiStudio_formCard"] > label:first-child textarea) {
+    grid-column: 1 / -1 !important;
     min-height: 104px !important;
     font-size: 16px !important;
+  }
+
+  .topicHeaderActions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .topicImagePromptButton {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 11px;
+    border: 1px solid rgba(209, 163, 63, .42);
+    border-radius: 10px;
+    background: rgba(209, 163, 63, .1);
+    color: var(--gold-light);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .topicImagePromptButton::before {
+    content: "✦";
+    margin-right: 6px;
   }
 
   .shell[data-advanced-open="false"] :global([class*="AiStudio_platforms"]),
@@ -157,7 +194,7 @@
 
   .shell :global([class*="AiWorkspace_tabs"]) {
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 6px !important;
     width: 100% !important;
   }
@@ -168,6 +205,10 @@
     padding: 0 6px !important;
     font-size: 11px !important;
     white-space: nowrap;
+  }
+
+  .shell :global([class*="AiWorkspace_tabs"] button:nth-child(3)) {
+    display: none !important;
   }
 
   .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"]))) {
