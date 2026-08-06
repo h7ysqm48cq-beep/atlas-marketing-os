@@ -90,6 +90,13 @@ export type WorkspaceResult = {
 };
 
 type WorkspaceTab = "content" | "analysis" | "image" | "prompt";
+type WorkspaceKey = "facebook" | "telegram" | "reels" | "image";
+type WorkspaceCard = readonly [
+  title: string,
+  description: string,
+  key: WorkspaceKey,
+  score: number | undefined,
+];
 
 export function AiWorkspace({
   topic,
@@ -140,22 +147,41 @@ export function AiWorkspace({
     };
   }, [result?.historyId]);
 
-  const cards = useMemo(
-    () =>
+  const cards = useMemo<WorkspaceCard[]>(() => {
+    const candidates: WorkspaceCard[] = [
       [
-        ["Facebook", "Long-form discussion-led social post.", "facebook", result?.analysis.discussionScore],
-        ["Telegram", "Shorter conversational community post.", "telegram", result?.analysis.shareabilityScore],
-        ["Reels Script", "Scene-by-scene short-form video structure.", "reels", result?.analysis.viralScore],
-        ["Image Prompt", "Production-ready visual direction in English.", "image", result?.analysis.brandFitScore],
-      ].filter(([, , key]) => Boolean(result?.[key as "facebook" | "telegram" | "reels" | "image"]?.trim())) as Array<
-        readonly [string, string, "facebook" | "telegram" | "reels" | "image", number | undefined]
-      >,
-    [result],
-  );
+        "Facebook",
+        "Long-form discussion-led social post.",
+        "facebook",
+        result?.analysis.discussionScore,
+      ],
+      [
+        "Telegram",
+        "Shorter conversational community post.",
+        "telegram",
+        result?.analysis.shareabilityScore,
+      ],
+      [
+        "Reels Script",
+        "Scene-by-scene short-form video structure.",
+        "reels",
+        result?.analysis.viralScore,
+      ],
+      [
+        "Image Prompt",
+        "Production-ready visual direction in English.",
+        "image",
+        result?.analysis.brandFitScore,
+      ],
+    ];
+
+    return candidates.filter(([, , key]) => Boolean(result?.[key]?.trim()));
+  }, [result]);
 
   const hasContent = cards.some(([, , key]) => key !== "image");
   const hasImage = Boolean(result?.image?.trim());
   const imageOnly = hasImage && !hasContent;
+
   const availableTabs = useMemo<WorkspaceTab[]>(() => {
     if (!result) return [];
     if (imageOnly) return ["image", "prompt"];
@@ -172,7 +198,7 @@ export function AiWorkspace({
     if (!availableTabs.includes(tab)) setTab(availableTabs[0]);
   }, [availableTabs, tab]);
 
-  function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
+  function replace(key: WorkspaceKey, content: string) {
     if (!result) return;
     onResultChange({ ...result, [key]: content });
   }
@@ -192,7 +218,8 @@ export function AiWorkspace({
   }
 
   const fullyLoaded =
-    result.promptChain?.loadedSourceCount === result.promptChain?.totalSourceCount;
+    result.promptChain?.loadedSourceCount ===
+    result.promptChain?.totalSourceCount;
 
   return (
     <section className={styles.workspace}>
@@ -225,14 +252,21 @@ export function AiWorkspace({
             <div>
               <p className={styles.eyebrow}>Knowledge Engine</p>
               <h3>
-                {result.promptChain.loadedSourceCount} / {result.promptChain.totalSourceCount} sources loaded
+                {result.promptChain.loadedSourceCount} /{" "}
+                {result.promptChain.totalSourceCount} sources loaded
               </h3>
             </div>
             <div className={styles.knowledgeControls}>
-              <span className={fullyLoaded ? styles.readyStatus : styles.partialStatus}>
+              <span
+                className={
+                  fullyLoaded ? styles.readyStatus : styles.partialStatus
+                }
+              >
                 {fullyLoaded ? "Ready" : "Partial"}
               </span>
-              <span className={styles.chevron}>{knowledgeOpen ? "Hide" : "Show"}</span>
+              <span className={styles.chevron}>
+                {knowledgeOpen ? "Hide" : "Show"}
+              </span>
             </div>
           </button>
 
@@ -241,9 +275,13 @@ export function AiWorkspace({
               {result.promptChain.sources.map((source) => (
                 <article
                   key={source.key}
-                  className={source.loaded ? styles.loadedSource : styles.missingSource}
+                  className={
+                    source.loaded ? styles.loadedSource : styles.missingSource
+                  }
                 >
-                  <strong>{source.loaded ? "✓" : "○"} {source.label}</strong>
+                  <strong>
+                    {source.loaded ? "✓" : "○"} {source.label}
+                  </strong>
                   <p>{source.summary}</p>
                 </article>
               ))}
@@ -278,7 +316,9 @@ export function AiWorkspace({
               historyId={result.historyId}
               approval={approval}
               onApprovalChange={setApproval}
-              copilotRequest={copilotRequest?.platform === title ? copilotRequest : null}
+              copilotRequest={
+                copilotRequest?.platform === title ? copilotRequest : null
+              }
               onReplace={(content) => replace(key, content)}
               onMessage={onMessage}
             />
@@ -291,13 +331,25 @@ export function AiWorkspace({
           <div className={styles.summary}>
             <p className={styles.eyebrow}>AI Coach Summary</p>
             <h3>{result.analysis.summary}</h3>
-            <p>Recommended posting time: <strong>{result.analysis.bestPostingTime || "—"}</strong></p>
+            <p>
+              Recommended posting time:{" "}
+              <strong>{result.analysis.bestPostingTime || "—"}</strong>
+            </p>
           </div>
           <div className={styles.scoreGrid}>
             <Score label="Viral" value={result.analysis.viralScore || 0} />
-            <Score label="Discussion" value={result.analysis.discussionScore || 0} />
-            <Score label="Shareability" value={result.analysis.shareabilityScore || 0} />
-            <Score label="Brand fit" value={result.analysis.brandFitScore || 0} />
+            <Score
+              label="Discussion"
+              value={result.analysis.discussionScore || 0}
+            />
+            <Score
+              label="Shareability"
+              value={result.analysis.shareabilityScore || 0}
+            />
+            <Score
+              label="Brand fit"
+              value={result.analysis.brandFitScore || 0}
+            />
           </div>
         </div>
       ) : null}
@@ -315,7 +367,10 @@ export function AiWorkspace({
       ) : null}
 
       {tab === "prompt" ? (
-        <PromptInspector promptChain={result.promptChain} onMessage={onMessage} />
+        <PromptInspector
+          promptChain={result.promptChain}
+          onMessage={onMessage}
+        />
       ) : null}
 
       {hasContent ? (
@@ -342,8 +397,13 @@ export function AiWorkspace({
 function Score({ label, value }: { label: string; value: number }) {
   return (
     <div className={styles.scoreCard}>
-      <div><span>{label}</span><strong>{value}</strong></div>
-      <div className={styles.scoreTrack}><i style={{ width: `${value}%` }} /></div>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div className={styles.scoreTrack}>
+        <i style={{ width: `${value}%` }} />
+      </div>
     </div>
   );
 }
