@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AtlasCopilot } from "./AtlasCopilot";
-import {
-  marketingCopilotPipeline,
-} from "./copilot-sdk";
+import { marketingCopilotPipeline } from "./copilot-sdk";
 import { AiPublishCard } from "./AiPublishCard";
 import { AiAutoQueueCard } from "./AiAutoQueueCard";
 import { ImageAssetPanel } from "./ImageAssetPanel";
+import { ImageEditorV2 } from "./ImageEditorV2";
 import { PlatformCard } from "./PlatformCard";
 import { PromptInspector } from "./prompt-inspector/PromptInspector";
 import styles from "./AiWorkspace.module.css";
 
 import { API_URL } from "@/lib/api";
+
 export type ContentStatus =
   | "DRAFT"
   | "AI_IMPROVED"
@@ -78,46 +78,18 @@ export type WorkspaceResult = {
       loaded: boolean;
       summary: string;
     }>;
-    queryUnderstanding?: {
-      intent: string;
-      contentType: string;
-      audience: string;
-      tone: string;
-      industry: string;
-      platform: string;
-      language: string;
-      concepts: string[];
-      retrievalQueries: string[];
-      expandedQuery: string;
-      source: "AI" | "FALLBACK";
-    };
     knowledgeUsed?: Array<{
       id: string;
       title: string;
       category: string;
       tags: string[];
       summary: string;
-      similarity: number;
-      similarityPercent: number;
-      hybridScore: number;
-      scoreBreakdown: {
-        semantic: number;
-        keyword: number;
-        usage: number;
-        freshness: number;
-        quality: number;
-      };
-      matchedTerms: string[];
-      matchedQueries: string[];
-      reasons: string[];
-      embeddingModel: string;
-      embeddingDimensions: number;
-      embeddedAt: string;
     }>;
-
     mergedPrompt?: string;
   };
 };
+
+type WorkspaceTab = "content" | "analysis" | "image" | "prompt";
 
 export function AiWorkspace({
   topic,
@@ -140,16 +112,13 @@ export function AiWorkspace({
   onMessage: (message: string) => void;
   onResultChange: (result: WorkspaceResult) => void;
 }) {
-  const [tab, setTab] = useState<"content" | "analysis" | "image" | "prompt">(
-    "content",
-  );
-
+  const [tab, setTab] = useState<WorkspaceTab>("content");
   const [copilotRequest, setCopilotRequest] = useState<{
     platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
     action: "improve" | "shorter" | "rewrite";
     nonce: number;
   } | null>(null);
-  const [knowledgeOpen, setKnowledgeOpen] = useState(true);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [approval, setApproval] = useState<ApprovalState>({ status: "DRAFT" });
 
   useEffect(() => {
@@ -174,80 +143,79 @@ export function AiWorkspace({
   const cards = useMemo(
     () =>
       [
-        [
-          "Facebook",
-          "Long-form discussion-led social post.",
-          "facebook",
-          result?.analysis.discussionScore,
-        ],
-        [
-          "Telegram",
-          "Shorter conversational community post.",
-          "telegram",
-          result?.analysis.shareabilityScore,
-        ],
-        [
-          "Reels Script",
-          "Scene-by-scene short-form video structure.",
-          "reels",
-          result?.analysis.viralScore,
-        ],
-        [
-          "Image Prompt",
-          "Production-ready visual direction in English.",
-          "image",
-          result?.analysis.brandFitScore,
-        ],
-      ] as const,
+        ["Facebook", "Long-form discussion-led social post.", "facebook", result?.analysis.discussionScore],
+        ["Telegram", "Shorter conversational community post.", "telegram", result?.analysis.shareabilityScore],
+        ["Reels Script", "Scene-by-scene short-form video structure.", "reels", result?.analysis.viralScore],
+        ["Image Prompt", "Production-ready visual direction in English.", "image", result?.analysis.brandFitScore],
+      ].filter(([, , key]) => Boolean(result?.[key as "facebook" | "telegram" | "reels" | "image"]?.trim())) as Array<
+        readonly [string, string, "facebook" | "telegram" | "reels" | "image", number | undefined]
+      >,
     [result],
   );
 
-  function replace(
-    key: "facebook" | "telegram" | "reels" | "image",
-    content: string,
-  ) {
+  const hasContent = cards.some(([, , key]) => key !== "image");
+  const hasImage = Boolean(result?.image?.trim());
+  const imageOnly = hasImage && !hasContent;
+  const availableTabs = useMemo<WorkspaceTab[]>(() => {
+    if (!result) return [];
+    if (imageOnly) return ["image", "prompt"];
+
+    const next: WorkspaceTab[] = [];
+    if (cards.length) next.push("content");
+    if (hasContent) next.push("analysis");
+    if (hasImage) next.push("image", "prompt");
+    return next;
+  }, [cards.length, hasContent, hasImage, imageOnly, result]);
+
+  useEffect(() => {
+    if (!availableTabs.length) return;
+    if (!availableTabs.includes(tab)) setTab(availableTabs[0]);
+  }, [availableTabs, tab]);
+
+  function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
     if (!result) return;
     onResultChange({ ...result, [key]: content });
   }
 
+  if (!result) {
+    return isGenerating ? (
+      <section className={styles.workspace}>
+        <AtlasCopilot
+          pipeline={marketingCopilotPipeline}
+          result={null}
+          isGenerating
+          statusMessage={statusMessage}
+          onAction={() => undefined}
+        />
+      </section>
+    ) : null;
+  }
+
   const fullyLoaded =
-    result?.promptChain?.loadedSourceCount ===
-    result?.promptChain?.totalSourceCount;
+    result.promptChain?.loadedSourceCount === result.promptChain?.totalSourceCount;
 
   return (
     <section className={styles.workspace}>
       <div className={styles.workspaceHeader}>
-        <div>
-          <p className={styles.eyebrow}>AI Workspace</p>
-          <h2>{topic || "Untitled content workspace"}</h2>
-          <p>
-            {result?.campaignUsed
-              ? `Linked to ${result.campaignUsed.name}`
-              : "Generate content to activate the complete workspace."}
-          </p>
-        </div>
-
         <div className={styles.tabs}>
-          {(["content", "analysis", "image", "prompt"] as const).map(
-            (value) => (
-              <button
-                type="button"
-                key={value}
-                className={tab === value ? styles.activeTab : ""}
-                onClick={() => setTab(value)}
-              >
-                {value === "image"
-                  ? "AI Image"
-                  : value === "prompt"
-                    ? "Prompt"
-                    : value.charAt(0).toUpperCase() + value.slice(1)}
-              </button>
-            ),
-          )}
+          {availableTabs.map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={tab === value ? styles.activeTab : ""}
+              onClick={() => setTab(value)}
+            >
+              {value === "image"
+                ? "AI Image"
+                : value === "prompt"
+                  ? "Prompt"
+                  : value.charAt(0).toUpperCase() + value.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
-      {result?.promptChain ? (
+      {result.promptChain && !imageOnly ? (
         <section className={styles.knowledgePanel}>
           <button
             type="button"
@@ -257,91 +225,45 @@ export function AiWorkspace({
             <div>
               <p className={styles.eyebrow}>Knowledge Engine</p>
               <h3>
-                {result.promptChain.loadedSourceCount} /{" "}
-                {result.promptChain.totalSourceCount} sources loaded
+                {result.promptChain.loadedSourceCount} / {result.promptChain.totalSourceCount} sources loaded
               </h3>
             </div>
             <div className={styles.knowledgeControls}>
-              <span
-                className={
-                  fullyLoaded ? styles.readyStatus : styles.partialStatus
-                }
-              >
+              <span className={fullyLoaded ? styles.readyStatus : styles.partialStatus}>
                 {fullyLoaded ? "Ready" : "Partial"}
               </span>
-              <span className={styles.chevron}>
-                {knowledgeOpen ? "Hide" : "Show"}
-              </span>
+              <span className={styles.chevron}>{knowledgeOpen ? "Hide" : "Show"}</span>
             </div>
           </button>
 
           {knowledgeOpen ? (
-            <>
-              <div className={styles.sourceGrid}>
-                {result.promptChain.sources.map((source) => (
-                  <article
-                    key={source.key}
-                    className={
-                      source.loaded ? styles.loadedSource : styles.missingSource
-                    }
-                  >
-                    <strong>
-                      {source.loaded ? "✓" : "○"} {source.label}
-                    </strong>
-                    <p>{source.summary}</p>
-                  </article>
-                ))}
-              </div>
-
-              {result.promptChain.knowledgeUsed?.length ? (
-                <div className={styles.knowledgeUsed}>
-                  <div className={styles.knowledgeUsedHeader}>
-                    <span>Knowledge used</span>
-                    <strong>
-                      {result.promptChain.knowledgeUsed.length} documents
-                    </strong>
-                  </div>
-
-                  <div className={styles.knowledgeDocumentGrid}>
-                    {result.promptChain.knowledgeUsed.map((document) => (
-                      <article key={document.id}>
-                        <div>
-                          <span>{document.category}</span>
-                          <a href="/knowledge">Open library</a>
-                        </div>
-
-                        <h4>{document.title}</h4>
-                        <p>{document.summary}</p>
-
-                        <div>
-                          {document.tags.slice(0, 5).map((tag) => (
-                            <small key={tag}>{tag}</small>
-                          ))}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </>
+            <div className={styles.sourceGrid}>
+              {result.promptChain.sources.map((source) => (
+                <article
+                  key={source.key}
+                  className={source.loaded ? styles.loadedSource : styles.missingSource}
+                >
+                  <strong>{source.loaded ? "✓" : "○"} {source.label}</strong>
+                  <p>{source.summary}</p>
+                </article>
+              ))}
+            </div>
           ) : null}
         </section>
       ) : null}
 
-      <AtlasCopilot
-        pipeline={marketingCopilotPipeline}
-        result={result}
-        isGenerating={isGenerating}
-        statusMessage={statusMessage}
-        onAction={(platform, action) => {
-          setTab("content");
-          setCopilotRequest({
-            platform,
-            action,
-            nonce: Date.now(),
-          });
-        }}
-      />
+      {!imageOnly ? (
+        <AtlasCopilot
+          pipeline={marketingCopilotPipeline}
+          result={result}
+          isGenerating={isGenerating}
+          statusMessage={statusMessage}
+          onAction={(platform, action) => {
+            setTab("content");
+            setCopilotRequest({ platform, action, nonce: Date.now() });
+          }}
+        />
+      ) : null}
 
       {tab === "content" ? (
         <div className={styles.cards}>
@@ -350,18 +272,13 @@ export function AiWorkspace({
               key={key}
               title={title}
               description={description}
-              content={
-                result?.[key] ||
-                `Generate content to create the ${title} version.`
-              }
+              content={result[key]}
               score={score}
-              campaignId={result?.campaignUsed?.id || campaignId}
-              historyId={result?.historyId}
+              campaignId={result.campaignUsed?.id || campaignId}
+              historyId={result.historyId}
               approval={approval}
               onApprovalChange={setApproval}
-              copilotRequest={
-                copilotRequest?.platform === title ? copilotRequest : null
-              }
+              copilotRequest={copilotRequest?.platform === title ? copilotRequest : null}
               onReplace={(content) => replace(key, content)}
               onMessage={onMessage}
             />
@@ -373,51 +290,35 @@ export function AiWorkspace({
         <div className={styles.analysis}>
           <div className={styles.summary}>
             <p className={styles.eyebrow}>AI Coach Summary</p>
-            <h3>
-              {result?.analysis.summary ||
-                "Generate content to receive strategic analysis."}
-            </h3>
-            <p>
-              Recommended posting time:{" "}
-              <strong>{result?.analysis.bestPostingTime || "—"}</strong>
-            </p>
+            <h3>{result.analysis.summary}</h3>
+            <p>Recommended posting time: <strong>{result.analysis.bestPostingTime || "—"}</strong></p>
           </div>
-
           <div className={styles.scoreGrid}>
-            <Score label="Viral" value={result?.analysis.viralScore || 0} />
-            <Score
-              label="Discussion"
-              value={result?.analysis.discussionScore || 0}
-            />
-            <Score
-              label="Shareability"
-              value={result?.analysis.shareabilityScore || 0}
-            />
-            <Score
-              label="Brand fit"
-              value={result?.analysis.brandFitScore || 0}
-            />
+            <Score label="Viral" value={result.analysis.viralScore || 0} />
+            <Score label="Discussion" value={result.analysis.discussionScore || 0} />
+            <Score label="Shareability" value={result.analysis.shareabilityScore || 0} />
+            <Score label="Brand fit" value={result.analysis.brandFitScore || 0} />
           </div>
         </div>
       ) : null}
 
       {tab === "image" ? (
-        <ImageAssetPanel
-          prompt={result?.image || ""}
-          topic={topic}
-          campaignId={result?.campaignUsed?.id || campaignId}
-          historyId={result?.historyId}
-        />
+        <>
+          <ImageAssetPanel
+            prompt={result.image}
+            topic={topic}
+            campaignId={result.campaignUsed?.id || campaignId}
+            historyId={result.historyId}
+          />
+          <ImageEditorV2 />
+        </>
       ) : null}
 
       {tab === "prompt" ? (
-        <PromptInspector
-          promptChain={result?.promptChain}
-          onMessage={onMessage}
-        />
+        <PromptInspector promptChain={result.promptChain} onMessage={onMessage} />
       ) : null}
 
-      {result ? (
+      {hasContent ? (
         <>
           <AiAutoQueueCard
             result={result}
@@ -425,7 +326,6 @@ export function AiWorkspace({
             topic={publishTopic}
             onMessage={onMessage}
           />
-
           <AiPublishCard
             result={result}
             campaignId={publishCampaignId}
@@ -442,13 +342,8 @@ export function AiWorkspace({
 function Score({ label, value }: { label: string; value: number }) {
   return (
     <div className={styles.scoreCard}>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </div>
-      <div className={styles.scoreTrack}>
-        <i style={{ width: `${value}%` }} />
-      </div>
+      <div><span>{label}</span><strong>{value}</strong></div>
+      <div className={styles.scoreTrack}><i style={{ width: `${value}%` }} /></div>
     </div>
   );
 }
