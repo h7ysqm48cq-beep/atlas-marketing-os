@@ -1,10 +1,10 @@
-import { AiStudio } from "@/components/AiStudio";
+import { AiStudioMobileShell } from "@/components/AiStudioMobileShell";
 import { AppLayout } from "@/components/AppLayout";
 
 export default function AiStudioPage() {
   return (
     <AppLayout>
-      <AiStudio />
+      <AiStudioMobileShell />
     </AppLayout>
   );
 }
