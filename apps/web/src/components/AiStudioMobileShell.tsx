@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AiStudio } from "./AiStudio";
 import styles from "./AiStudioMobileShell.module.css";
 
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [formCard, setFormCard] = useState<HTMLElement | null>(null);
   const shellRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -13,8 +15,6 @@ export function AiStudioMobileShell() {
 
     const shell = shellRef.current;
     if (!shell) return;
-
-    let actionRow: HTMLDivElement | null = null;
 
     const configureMobileStudio = () => {
       const selectedPlatformButtons = shell.querySelectorAll<HTMLButtonElement>(
@@ -35,52 +35,13 @@ export function AiStudioMobileShell() {
 
       collapseButton?.click();
 
-      if (actionRow?.isConnected) return;
-
-      const topicField = shell.querySelector<HTMLElement>(
-        '[class*="AiStudio_formCard"] > label:first-child',
-      );
-      const textarea = topicField?.querySelector<HTMLTextAreaElement>("textarea");
-      const generatePromptButton = shell.querySelector<HTMLButtonElement>(
-        '[class*="AiStudio_generateButton"]',
-      );
-      const imageTabButton = Array.from(
-        shell.querySelectorAll<HTMLButtonElement>(
-          '[class*="AiWorkspace_tabs"] button',
-        ),
-      ).find((button) =>
-        button.textContent?.trim().toLowerCase().includes("ai image"),
+      const nextFormCard = shell.querySelector<HTMLElement>(
+        '[class*="AiStudio_formCard"]',
       );
 
-      if (!topicField || !textarea || !generatePromptButton || !imageTabButton) {
-        return;
-      }
-
-      actionRow = document.createElement("div");
-      actionRow.className = styles.topicGenerateActions;
-
-      const promptButton = document.createElement("button");
-      promptButton.type = "button";
-      promptButton.className = styles.generatePromptButton;
-      promptButton.textContent = "Generate Prompt";
-      promptButton.addEventListener("click", () => {
-        generatePromptButton.click();
-      });
-
-      const imageButton = document.createElement("button");
-      imageButton.type = "button";
-      imageButton.className = styles.generateImageButton;
-      imageButton.textContent = "Generate Image";
-      imageButton.addEventListener("click", () => {
-        imageTabButton.click();
-        imageTabButton.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
-
-      actionRow.append(promptButton, imageButton);
-      textarea.insertAdjacentElement("afterend", actionRow);
+      setFormCard((current) =>
+        current === nextFormCard ? current : nextFormCard,
+      );
     };
 
     const frame = window.requestAnimationFrame(configureMobileStudio);
@@ -94,7 +55,6 @@ export function AiStudioMobileShell() {
     return () => {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
-      actionRow?.remove();
     };
   }, []);
 
@@ -109,18 +69,26 @@ export function AiStudioMobileShell() {
           <span>AI Studio</span>
           <strong>Create content</strong>
         </div>
-
-        <button
-          type="button"
-          aria-expanded={advancedOpen}
-          onClick={() => setAdvancedOpen((current) => !current)}
-        >
-          {advancedOpen ? "Hide settings" : "Advanced"}
-          <span aria-hidden="true">{advancedOpen ? "⌃" : "⌄"}</span>
-        </button>
       </header>
 
       <AiStudio />
+
+      {formCard
+        ? createPortal(
+            <button
+              className={styles.advancedToggle}
+              type="button"
+              aria-expanded={advancedOpen}
+              onClick={() => setAdvancedOpen((current) => !current)}
+            >
+              <span>
+                {advancedOpen ? "Hide advanced options" : "Advanced options"}
+              </span>
+              <span aria-hidden="true">{advancedOpen ? "⌃" : "⌄"}</span>
+            </button>,
+            formCard,
+          )
+        : null}
     </section>
   );
 }
