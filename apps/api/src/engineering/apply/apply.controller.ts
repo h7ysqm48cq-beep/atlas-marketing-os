@@ -22,11 +22,13 @@ export class ApplyController {
     body: {
       filePath: string;
       content: string;
+before?: string;
     },
   ) {
     return this.applyService.applyChange(
       body.filePath,
       body.content,
+      body.before,
     );
   }
 }

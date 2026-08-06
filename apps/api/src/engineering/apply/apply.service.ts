@@ -11,6 +11,7 @@ import {
   writeFile,
   copyFile,
   mkdir,
+  access,
 } from "node:fs/promises";
 
 import {
@@ -22,6 +23,14 @@ import {
   ChangeHistoryService,
 } from "../history/change-history.service";
 
+import {
+  SnapshotService,
+} from "../snapshot/snapshot.service";
+
+import {
+  PatchValidator,
+} from "../patch/patch.validator";
+
 
 @Injectable()
 export class ApplyService {
@@ -29,17 +38,26 @@ export class ApplyService {
   constructor(
     private readonly history:
       ChangeHistoryService,
+
+    private readonly snapshot:
+      SnapshotService,
+
+    private readonly validator:
+      PatchValidator,
   ) {}
+
 
   async backupFile(
     filePath: string,
   ) {
+
     const backupPath =
       join(
         ".atlas",
         "backup",
         filePath,
       );
+
 
     await mkdir(
       dirname(backupPath),
@@ -48,24 +66,103 @@ export class ApplyService {
       },
     );
 
-    await copyFile(
-      filePath,
-      backupPath,
-    );
 
-    return backupPath;
+    try {
+
+      await access(filePath);
+
+      await copyFile(
+        filePath,
+        backupPath,
+      );
+
+
+      return backupPath;
+
+    } catch {
+
+      return null;
+
+    }
   }
+
 
 
   async applyChange(
     filePath: string,
     content: string,
+    expectedBefore?: string,
   ) {
+
+
+    let currentContent = "";
+
+
+    try {
+
+      currentContent =
+        await readFile(
+          filePath,
+          "utf8",
+        );
+
+    } catch {
+
+      currentContent = "";
+
+    }
+
+
+
+    if (expectedBefore) {
+
+      const validation =
+        this.validator.validate(
+          expectedBefore,
+          currentContent,
+        );
+
+
+      if (!validation.valid) {
+
+        return {
+          filePath,
+          status:
+            "blocked",
+          reason:
+            validation.reason,
+        };
+
+      }
+    }
+
+
 
     const backup =
       await this.backupFile(
         filePath,
       );
+
+
+    const snapshot =
+      await this.snapshot.create(
+        [
+          filePath,
+        ],
+        "Before Atlas apply change",
+        backup,
+      );
+
+
+
+    await mkdir(
+      dirname(filePath),
+      {
+        recursive:
+          true,
+      },
+    );
+
 
     await writeFile(
       filePath,
@@ -73,21 +170,31 @@ export class ApplyService {
       "utf8",
     );
 
+
+
     this.history.add({
       id:
         randomUUID(),
+
       filePath,
+
       action:
         "modify",
+
       status:
         "completed",
+
       createdAt:
-        new Date().toISOString(),
+        new Date()
+          .toISOString(),
     });
+
+
 
     return {
       filePath,
       backup,
+      snapshot,
       status:
         "completed",
     };

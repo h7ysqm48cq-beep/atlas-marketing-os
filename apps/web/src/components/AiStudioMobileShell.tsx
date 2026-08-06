@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AiStudio } from "./AiStudio";
 import styles from "./AiStudioMobileShell.module.css";
 
+<<<<<<< HEAD
 type OutputMode = "prompt" | "image" | null;
 
 type OutputPlatforms = {
@@ -20,6 +21,9 @@ const EMPTY_OUTPUTS: OutputPlatforms = {
   reels: false,
   imagePrompt: false,
 };
+=======
+type GenerateMode = "prompt" | "image" | null;
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
 
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -27,6 +31,7 @@ export function AiStudioMobileShell() {
   const [formCard, setFormCard] = useState<HTMLElement | null>(null);
   const [nativeGenerateButton, setNativeGenerateButton] =
     useState<HTMLButtonElement | null>(null);
+<<<<<<< HEAD
   const [outputMode, setOutputMode] = useState<OutputMode>(null);
   const [outputPlatforms, setOutputPlatforms] =
     useState<OutputPlatforms>(EMPTY_OUTPUTS);
@@ -37,6 +42,18 @@ export function AiStudioMobileShell() {
   function platformButtons() {
     const shell = shellRef.current;
     if (!shell) return [];
+=======
+  const [generateMode, setGenerateMode] = useState<GenerateMode>(null);
+
+  const shellRef = useRef<HTMLElement>(null);
+
+  function getPlatformButtons() {
+    const shell = shellRef.current;
+
+    if (!shell) {
+      return [];
+    }
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
 
     return Array.from(
       shell.querySelectorAll<HTMLButtonElement>(
@@ -45,6 +62,7 @@ export function AiStudioMobileShell() {
     );
   }
 
+<<<<<<< HEAD
   function selectedPlatformLabels() {
     return platformButtons()
       .filter((button) => button.getAttribute("aria-pressed") === "true")
@@ -100,18 +118,64 @@ export function AiStudioMobileShell() {
     setIsRunning(true);
 
     window.requestAnimationFrame(() => nativeGenerateButton.click());
+=======
+  function selectImagePromptOnly() {
+    getPlatformButtons().forEach((button) => {
+      const label = button.textContent?.trim().toLowerCase() || "";
+      const selected = button.getAttribute("aria-pressed") === "true";
+
+      const shouldSelect =
+        label.includes("image prompt") ||
+        label.includes("图片提示词");
+
+      if (selected !== shouldSelect) {
+        button.click();
+      }
+    });
+  }
+
+  function generatePrompt() {
+    if (!nativeGenerateButton || nativeGenerateButton.disabled) {
+      return;
+    }
+
+    setGenerateMode("prompt");
+    nativeGenerateButton.click();
+  }
+
+  function generateImage() {
+    if (!nativeGenerateButton || nativeGenerateButton.disabled) {
+      return;
+    }
+
+    setGenerateMode("image");
+    selectImagePromptOnly();
+
+    window.requestAnimationFrame(() => {
+      nativeGenerateButton.click();
+    });
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
   }
 
   useEffect(() => {
-    if (!window.matchMedia("(max-width: 760px)").matches) return;
+    if (!window.matchMedia("(max-width: 760px)").matches) {
+      return;
+    }
 
     const shell = shellRef.current;
-    if (!shell) return;
+
+    if (!shell) {
+      return;
+    }
 
     const configureMobileStudio = () => {
       const nextFormCard = shell.querySelector<HTMLElement>(
         '[class*="AiStudio_formCard"]',
       );
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
       const nextGenerateButton = shell.querySelector<HTMLButtonElement>(
         '[class*="AiStudio_generateButton"]',
       );
@@ -119,10 +183,15 @@ export function AiStudioMobileShell() {
       setFormCard((current) =>
         current === nextFormCard ? current : nextFormCard,
       );
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
       setNativeGenerateButton((current) =>
         current === nextGenerateButton ? current : nextGenerateButton,
       );
 
+<<<<<<< HEAD
       const collapseButton = Array.from(
         shell.querySelectorAll<HTMLButtonElement>("button"),
       ).find((button) => button.textContent?.trim() === "Collapse");
@@ -152,6 +221,17 @@ export function AiStudioMobileShell() {
           );
         }
       }
+=======
+      if (!nextGenerateButton?.disabled) {
+        setGenerateMode(null);
+      }
+
+      const collapseButton = Array.from(
+        shell.querySelectorAll<HTMLButtonElement>("button"),
+      ).find((button) => button.textContent?.trim() === "Collapse");
+
+      collapseButton?.click();
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
     };
 
     const frame = window.requestAnimationFrame(configureMobileStudio);
@@ -160,9 +240,14 @@ export function AiStudioMobileShell() {
     observer.observe(shell, {
       childList: true,
       subtree: true,
+<<<<<<< HEAD
       characterData: true,
       attributes: true,
       attributeFilter: ["aria-pressed", "disabled"],
+=======
+      attributes: true,
+      attributeFilter: ["disabled"],
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
     });
 
     return () => {
@@ -170,6 +255,8 @@ export function AiStudioMobileShell() {
       observer.disconnect();
     };
   }, [outputMode]);
+
+  const isGenerating = Boolean(nativeGenerateButton?.disabled);
 
   return (
     <section
@@ -211,6 +298,7 @@ export function AiStudioMobileShell() {
                 <button
                   type="button"
                   className={styles.promptButton}
+<<<<<<< HEAD
                   disabled={
                     !nativeGenerateButton ||
                     nativeGenerateButton.disabled ||
@@ -220,12 +308,20 @@ export function AiStudioMobileShell() {
                 >
                   {isRunning && outputMode === "prompt"
                     ? "Generating prompt..."
+=======
+                  disabled={!nativeGenerateButton || isGenerating}
+                  onClick={generatePrompt}
+                >
+                  {isGenerating && generateMode === "prompt"
+                    ? "Generating..."
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
                     : "✦ Generate Prompt"}
                 </button>
 
                 <button
                   type="button"
                   className={styles.imageButton}
+<<<<<<< HEAD
                   disabled={
                     !nativeGenerateButton ||
                     nativeGenerateButton.disabled ||
@@ -235,6 +331,13 @@ export function AiStudioMobileShell() {
                 >
                   {isRunning && outputMode === "image"
                     ? "Generating image..."
+=======
+                  disabled={!nativeGenerateButton || isGenerating}
+                  onClick={generateImage}
+                >
+                  {isGenerating && generateMode === "image"
+                    ? "Generating..."
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
                     : "◇ Generate Image"}
                 </button>
               </div>
@@ -243,12 +346,28 @@ export function AiStudioMobileShell() {
                 className={styles.advancedToggle}
                 type="button"
                 aria-expanded={advancedOpen}
+<<<<<<< HEAD
                 onClick={() => setAdvancedOpen((current) => !current)}
               >
                 <span>
                   {advancedOpen ? "Hide advanced options" : "Advanced options"}
                 </span>
                 <span aria-hidden="true">{advancedOpen ? "⌃" : "⌄"}</span>
+=======
+                onClick={() =>
+                  setAdvancedOpen((current) => !current)
+                }
+              >
+                <span>
+                  {advancedOpen
+                    ? "Hide advanced options"
+                    : "Advanced options"}
+                </span>
+
+                <span aria-hidden="true">
+                  {advancedOpen ? "⌃" : "⌄"}
+                </span>
+>>>>>>> 4a44115 (feat: complete engineering agent apply validation flow)
               </button>
             </>,
             formCard,

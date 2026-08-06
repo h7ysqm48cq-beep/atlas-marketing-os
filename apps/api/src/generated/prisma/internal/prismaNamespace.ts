@@ -423,7 +423,8 @@ export const ModelName = {
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
-  BrandMemoryFact: 'BrandMemoryFact'
+  BrandMemoryFact: 'BrandMemoryFact',
+  EngineeringSnapshot: 'EngineeringSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -439,7 +440,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2441,6 +2442,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EngineeringSnapshot: {
+      payload: Prisma.$EngineeringSnapshotPayload<ExtArgs>
+      fields: Prisma.EngineeringSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EngineeringSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EngineeringSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.EngineeringSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EngineeringSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.EngineeringSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.EngineeringSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.EngineeringSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EngineeringSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.EngineeringSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        update: {
+          args: Prisma.EngineeringSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.EngineeringSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EngineeringSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EngineeringSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.EngineeringSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.EngineeringSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEngineeringSnapshot>
+        }
+        groupBy: {
+          args: Prisma.EngineeringSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EngineeringSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringSnapshotCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3040,6 +3115,19 @@ export const BrandMemoryFactScalarFieldEnum = {
 export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
 
 
+export const EngineeringSnapshotScalarFieldEnum = {
+  id: 'id',
+  files: 'files',
+  description: 'description',
+  backupPath: 'backupPath',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3628,6 +3716,7 @@ export type GlobalOmitConfig = {
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
   promptTemplate?: Prisma.PromptTemplateOmit
   brandMemoryFact?: Prisma.BrandMemoryFactOmit
+  engineeringSnapshot?: Prisma.EngineeringSnapshotOmit
 }
 
 /* Types for Logging */

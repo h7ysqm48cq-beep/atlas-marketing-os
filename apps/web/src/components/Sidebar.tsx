@@ -17,6 +17,7 @@ const mainItems: NavigationItem[] = [
   ["calendar", "□", "/calendar"],
   ["aiStudio", "✦", "/ai-studio"],
   ["brandCopilot", "◎", "/copilot"],
+  ["engineering", "⌘", "/engineering"],
   ["analytics", "⌁", "/ai-usage"],
 ];
 

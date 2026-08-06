@@ -77,7 +77,8 @@ export const ModelName = {
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
-  BrandMemoryFact: 'BrandMemoryFact'
+  BrandMemoryFact: 'BrandMemoryFact',
+  EngineeringSnapshot: 'EngineeringSnapshot'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -654,6 +655,19 @@ export const BrandMemoryFactScalarFieldEnum = {
 } as const
 
 export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
+
+
+export const EngineeringSnapshotScalarFieldEnum = {
+  id: 'id',
+  files: 'files',
+  description: 'description',
+  backupPath: 'backupPath',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
 
 
 export const SortOrder = {

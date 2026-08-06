@@ -140,20 +140,54 @@ export function AiWorkspace({
     };
   }, [result?.historyId]);
 
-  const cards = useMemo(
-    () =>
-      [
-        ["Facebook", "Long-form discussion-led social post.", "facebook", result?.analysis.discussionScore],
-        ["Telegram", "Shorter conversational community post.", "telegram", result?.analysis.shareabilityScore],
-        ["Reels Script", "Scene-by-scene short-form video structure.", "reels", result?.analysis.viralScore],
-        ["Image Prompt", "Production-ready visual direction in English.", "image", result?.analysis.brandFitScore],
-      ].filter(([, , key]) => Boolean(result?.[key as "facebook" | "telegram" | "reels" | "image"]?.trim())) as Array<
-        readonly [string, string, "facebook" | "telegram" | "reels" | "image", number | undefined]
-      >,
-    [result],
-  );
+  type WorkspaceCard = readonly [
+  title: string,
+  description: string,
+  key: "facebook" | "telegram" | "reels" | "image",
+  score: number | undefined,
+];
 
-  const hasContent = cards.some(([, , key]) => key !== "image");
+const cards = useMemo<WorkspaceCard[]>(
+  () => {
+    if (!result) {
+      return [];
+    }
+
+    const candidates: WorkspaceCard[] = [
+      [
+        "Facebook",
+        "Long-form discussion-led social post.",
+        "facebook",
+        result.analysis.discussionScore,
+      ],
+      [
+        "Telegram",
+        "Shorter conversational community post.",
+        "telegram",
+        result.analysis.shareabilityScore,
+      ],
+      [
+        "Reels Script",
+        "Scene-by-scene short-form video structure.",
+        "reels",
+        result.analysis.viralScore,
+      ],
+      [
+        "Image Prompt",
+        "Production-ready visual direction in English.",
+        "image",
+        result.analysis.brandFitScore,
+      ],
+    ];
+
+    return candidates.filter(([, , key]) =>
+      Boolean(result[key]?.trim()),
+    );
+  },
+  [result],
+);
+
+const hasContent = cards.some(([, , key]) => key !== "image");
   const hasImage = Boolean(result?.image?.trim());
   const imageOnly = hasImage && !hasContent;
   const availableTabs = useMemo<WorkspaceTab[]>(() => {
@@ -193,6 +227,31 @@ export function AiWorkspace({
 
   const fullyLoaded =
     result.promptChain?.loadedSourceCount === result.promptChain?.totalSourceCount;
+
+  const hasPublishableContent = Boolean(
+    result?.facebook?.trim() ||
+      result?.telegram?.trim() ||
+      result?.reels?.trim(),
+  );
+
+  const isImageOnly = Boolean(
+    result?.image?.trim() &&
+      !result?.facebook?.trim() &&
+      !result?.telegram?.trim() &&
+      !result?.reels?.trim(),
+  );
+
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    setTab(isImageOnly ? "image" : "content");
+  }, [result?.historyId, isImageOnly]);
+
+  if (!result) {
+    return null;
+  }
 
   return (
     <section className={styles.workspace}>
@@ -252,7 +311,7 @@ export function AiWorkspace({
         </section>
       ) : null}
 
-      {!imageOnly ? (
+      {!isImageOnly ? (
         <AtlasCopilot
           pipeline={marketingCopilotPipeline}
           result={result}
@@ -260,7 +319,11 @@ export function AiWorkspace({
           statusMessage={statusMessage}
           onAction={(platform, action) => {
             setTab("content");
-            setCopilotRequest({ platform, action, nonce: Date.now() });
+            setCopilotRequest({
+              platform,
+              action,
+              nonce: Date.now(),
+            });
           }}
         />
       ) : null}
@@ -318,7 +381,7 @@ export function AiWorkspace({
         <PromptInspector promptChain={result.promptChain} onMessage={onMessage} />
       ) : null}
 
-      {hasContent ? (
+      {hasPublishableContent ? (
         <>
           <AiAutoQueueCard
             result={result}

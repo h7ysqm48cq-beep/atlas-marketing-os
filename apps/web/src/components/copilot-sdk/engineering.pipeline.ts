@@ -89,6 +89,17 @@ export const engineeringReviewActions = [
       "Approve this engineering plan?",
   },
   {
+    id: "apply",
+    label: "Apply Changes",
+    description:
+      "Execute the approved engineering changes.",
+    variant: "primary",
+    requiresConfirmation: true,
+    confirmationMessage:
+      "Apply these engineering changes now?",
+  },
+
+  {
     id: "reject",
     label: "Reject",
     description:

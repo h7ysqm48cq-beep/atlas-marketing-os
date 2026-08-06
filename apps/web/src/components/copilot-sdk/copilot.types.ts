@@ -156,6 +156,49 @@ export type CopilotGitReview = {
 };
 
 
+export type CopilotRollbackStatus =
+  | "idle"
+  | "restoring"
+  | "completed"
+  | "failed";
+
+export type CopilotPatchPreview = {
+  filePath: string;
+
+  action:
+    | "create"
+    | "modify"
+    | "delete";
+
+  before: string;
+
+  after: string;
+
+  explanation: string;
+};
+
+
+
+export type CopilotSnapshot = {
+  id: string;
+  files: string[];
+  description: string;
+  createdAt: string;
+  status:
+    | "active"
+    | "restored";
+  backupPath?: string;
+};
+
+
+export type CopilotRollbackItem = {
+  id: string;
+  filePath: string;
+  backupPath: string;
+  status: CopilotRollbackStatus;
+};
+
+
 export type CopilotFileChange = {
   id: string;
   filePath: string;
@@ -207,6 +250,18 @@ export type CopilotPipeline = {
   emptySuggestions?: CopilotSuggestion[];
 };
 
+export type CopilotTimelineEvent = {
+  id: string;
+  title: string;
+  detail: string;
+  status:
+    | "complete"
+    | "active"
+    | "pending";
+};
+
+
+
 export type CopilotRuntimeView = {
   status: CopilotPipelineStatus;
   statusMessage: string;
@@ -226,4 +281,9 @@ export type CopilotRuntimeView = {
   commitPlan?: CopilotCommitPlan;
   gitReview?: CopilotGitReview;
   commitStatus?: CopilotCommitStatus;
+  rollbackItems?: CopilotRollbackItem[];
+  rollbackStatus?: CopilotRollbackStatus;
+  patches?: CopilotPatchPreview[];
+  snapshots?: CopilotSnapshot[];
+  timeline?: CopilotTimelineEvent[];
 };

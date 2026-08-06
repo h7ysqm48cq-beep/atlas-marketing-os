@@ -10,6 +10,20 @@ import {
 } from './engineering.service';
 
 import {
+  PatchController,
+} from './patch/patch.controller';
+
+import {
+  PatchService,
+} from './patch/patch.service';
+
+
+
+import {
+  PatchValidator,
+} from './patch/patch.validator';
+
+import {
   ApplyController,
 } from './apply/apply.controller';
 
@@ -41,23 +55,47 @@ import {
   GitCommitController,
 } from './git/git.commit.controller';
 
+import {
+  RollbackController,
+} from './rollback/rollback.controller';
+
+import {
+  RollbackService,
+} from './rollback/rollback.service';
+
+import {
+  SnapshotController,
+} from './snapshot/snapshot.controller';
+
+import {
+  SnapshotService,
+} from './snapshot/snapshot.service';
+
 @Module({
   controllers: [
     EngineeringController,
+    PatchController,
     ApplyController,
     ChangeHistoryController,
     GitController,
     GitCommitController,
+    RollbackController,
+    SnapshotController,
   ],
   providers: [
     EngineeringService,
+    PatchService,
+    PatchValidator,
     ApplyService,
     ChangeHistoryService,
     GitService,
     GitCommitService,
+    RollbackService,
+    SnapshotService,
   ],
   exports: [
     EngineeringService,
+    PatchService,
     ApplyService,
   ],
 })

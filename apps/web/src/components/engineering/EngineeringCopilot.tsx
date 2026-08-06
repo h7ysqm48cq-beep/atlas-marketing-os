@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -18,6 +19,7 @@ import {
   engineeringCopilotPipeline,
   engineeringReviewActions,
   type CopilotRuntimeView,
+  type CopilotSnapshot,
 } from "../copilot-sdk";
 
 import type {
@@ -65,6 +67,17 @@ const IDLE_RUNTIME: CopilotRuntimeView = {
 };
 
 
+type EngineeringSnapshot = {
+  id: string;
+  files: string[];
+  description: string;
+  backupPath?: string | null;
+  status: string;
+  createdAt: string;
+};
+
+
+
 function riskScore(
   risk: EngineeringRisk,
 ): number {
@@ -82,6 +95,7 @@ function riskScore(
 
 function buildRuntimeView(
   plan: EngineeringPlan,
+  snapshots: CopilotSnapshot[] = [],
 ): CopilotRuntimeView {
   return {
     status: "completed",
@@ -90,6 +104,46 @@ function buildRuntimeView(
     activeStage:
       engineeringCopilotPipeline
         .stages.length,
+
+    timeline: [
+      {
+        id: "analysis",
+        title: "Repository analyzed",
+        detail:
+          "Atlas scanned repository structure and dependencies.",
+        status: "complete",
+      },
+      {
+        id: "snapshot",
+        title: "Snapshot ready",
+        detail:
+          snapshots.length
+            ? "Restore point created before changes."
+            : "Waiting for snapshot creation.",
+        status:
+          snapshots.length
+            ? "complete"
+            : "pending",
+      },
+      {
+        id: "changes",
+        title: "Changes prepared",
+        detail:
+          `${plan.impact.affected_files} affected files identified.`,
+        status:
+          plan.impact.affected_files > 0
+            ? "complete"
+            : "pending",
+      },
+      {
+        id: "git",
+        title: "Git review",
+        detail:
+          "Changes are ready for engineering review.",
+        status: "complete",
+      },
+    ],
+
     metrics: [
       {
         id: "confidence",
@@ -204,6 +258,9 @@ function buildRuntimeView(
             edge.from !== edge.to,
         ),
     },
+
+    snapshots,
+
 
     gitReview: {
       branch:
@@ -407,6 +464,10 @@ export function EngineeringCopilot() {
       null,
     );
 
+  const [snapshots, setSnapshots] =
+    useState<CopilotSnapshot[]>([]);
+
+
   const [runtimeView, setRuntimeView] =
     useState<CopilotRuntimeView>(
       IDLE_RUNTIME,
@@ -430,6 +491,83 @@ export function EngineeringCopilot() {
 
   const plan =
     analysis?.engineering_plan || null;
+
+
+  async function restoreSnapshot(
+    snapshotId: string,
+  ) {
+    await fetch(
+      `${API_URL}/engineering/rollback`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          snapshotId,
+        }),
+      },
+    );
+
+    const response =
+      await fetch(
+        `${API_URL}/engineering/snapshot`,
+        {
+          cache: "no-store",
+        },
+      );
+
+    const data =
+      await response.json();
+
+    if (Array.isArray(data)) {
+      setSnapshots(
+        data.map(
+          (snapshot) => ({
+            ...snapshot,
+            status:
+              snapshot.status === "restored"
+                ? "restored"
+                : "active",
+          }),
+        ),
+      );
+    }
+  }
+
+
+
+  useEffect(() => {
+    void fetch(
+      `${API_URL}/engineering/snapshot`,
+      {
+        cache: "no-store",
+      },
+    )
+      .then((response) =>
+        response.json(),
+      )
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setSnapshots(
+            data.map(
+              (snapshot) => ({
+                ...snapshot,
+                status:
+                  snapshot.status === "restored"
+                    ? "restored"
+                    : "active",
+              }),
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        setSnapshots([]);
+      });
+  }, []);
+
 
 
   const actions = useMemo(() => {
@@ -521,9 +659,70 @@ export function EngineeringCopilot() {
       setAnalysis(data);
 
       if (data.engineering_plan) {
+
+        const runtime =
+          buildRuntimeView(
+            data.engineering_plan,
+          );
+
+
+        try {
+
+          const patchResponse =
+            await fetch(
+              `${API_URL}/engineering/patch`,
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    request:
+                      cleanText,
+
+                    files:
+                      data.engineering_plan
+                        .related_files
+                        .map(
+                          (file) =>
+                            file.file_path,
+                        ),
+                  }),
+              },
+            );
+
+
+          if (patchResponse.ok) {
+
+            const patchData =
+              await patchResponse.json();
+
+
+            runtime.patches =
+              patchData.patches || [];
+
+          }
+
+        } catch {
+
+          runtime.patches = [];
+
+        }
+
+
+        setRuntimeView(
+          runtime,
+        );
+
         setRuntimeView(
           buildRuntimeView(
             data.engineering_plan,
+            snapshots,
           ),
         );
 
@@ -629,8 +828,108 @@ export function EngineeringCopilot() {
       setDecision("approved");
 
       setMessage(
-        "Plan approved. Apply remains disabled until permission controls are connected.",
+        "Plan approved. Ready to apply changes.",
       );
+
+      return;
+    }
+
+
+    if (actionId === "apply") {
+
+      if (
+        !runtimeView.patches?.length
+      ) {
+        setMessage(
+          "No patch available to apply.",
+        );
+
+        return;
+      }
+
+
+      setRuntimeView({
+        ...runtimeView,
+        applyStatus:
+          "applying",
+        statusMessage:
+          "Applying repository changes...",
+      });
+
+
+      try {
+
+        for (
+          const patch of runtimeView.patches
+        ) {
+
+          const response =
+            await fetch(
+              `${API_URL}/engineering/apply`,
+              {
+                method:
+                  "POST",
+
+                headers:{
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    filePath:
+                      patch.filePath,
+
+                    content:
+                      patch.after,
+
+                before:
+                  patch.before,
+                  }),
+              },
+            );
+
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed applying ${patch.filePath}`,
+            );
+          }
+        }
+
+
+        setRuntimeView({
+          ...runtimeView,
+          applyStatus:
+            "completed",
+          statusMessage:
+            "Repository changes applied.",
+        });
+
+
+        setMessage(
+          "Changes applied successfully.",
+        );
+
+
+      } catch(error) {
+
+        setRuntimeView({
+          ...runtimeView,
+          applyStatus:
+            "failed",
+          statusMessage:
+            error instanceof Error
+              ? error.message
+              : "Apply failed.",
+        });
+
+
+        setMessage(
+          "Repository apply failed.",
+        );
+      }
+
 
       return;
     }
@@ -909,6 +1208,9 @@ export function EngineeringCopilot() {
             }
             runtimeView={runtimeView}
             actions={actions}
+            onRestoreSnapshot={
+              restoreSnapshot
+            }
             onPipelineAction={
               handlePipelineAction
             }

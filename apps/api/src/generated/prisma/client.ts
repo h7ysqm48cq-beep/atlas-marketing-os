@@ -174,3 +174,8 @@ export type PromptTemplate = Prisma.PromptTemplateModel
  * 
  */
 export type BrandMemoryFact = Prisma.BrandMemoryFactModel
+/**
+ * Model EngineeringSnapshot
+ * 
+ */
+export type EngineeringSnapshot = Prisma.EngineeringSnapshotModel

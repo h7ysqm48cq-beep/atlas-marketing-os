@@ -913,3 +913,25 @@ model BrandMemoryFact {
   @@index([brandId, type])
   @@index([updatedAt])
 }
+
+
+model EngineeringSnapshot {
+  id          String   @id @default(cuid())
+
+  files       Json
+
+  description String
+
+  backupPath  String?
+
+  status      String   @default("active")
+
+  createdAt   DateTime @default(now())
+
+  updatedAt   DateTime @updatedAt
+
+
+  @@index([createdAt])
+  @@index([status])
+}
+

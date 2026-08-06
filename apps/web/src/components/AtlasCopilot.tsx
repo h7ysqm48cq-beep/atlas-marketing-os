@@ -22,6 +22,7 @@ export function AtlasCopilot({
   isGenerating,
   statusMessage,
   onAction,
+  onRestoreSnapshot,
   onSuggestionAction,
   onPipelineAction,
   pipeline = marketingCopilotPipeline,
@@ -41,6 +42,10 @@ export function AtlasCopilot({
     platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt",
     action: "improve" | "shorter" | "rewrite",
   ) => void;
+  onRestoreSnapshot?: (
+    snapshotId: string,
+  ) => void;
+
   onSuggestionAction?: (
     actionId: string,
   ) => void;
@@ -424,6 +429,65 @@ export function AtlasCopilot({
                 ))}
               </div>
 
+              {runtimeView?.snapshots?.length ? (
+                <section className={styles.snapshotPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>
+                      Restore Points
+                    </span>
+                    <strong>
+                      {
+                        runtimeView.snapshots.length
+                      }
+                    </strong>
+                  </div>
+
+                  <div className={styles.snapshotList}>
+                    {
+                      runtimeView.snapshots.map(
+                        (snapshot) => (
+                          <article
+                            key={snapshot.id}
+                          >
+                            <strong>
+                              {
+                                snapshot.description
+                              }
+                            </strong>
+
+                            <p>
+                              {
+                                snapshot.files.length
+                              } files
+                            </p>
+
+                            <span>
+                              {
+                                new Date(
+                                  snapshot.createdAt,
+                                ).toLocaleString()
+                              }
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onRestoreSnapshot?.(
+                                  snapshot.id,
+                                )
+                              }
+                            >
+                              Restore
+                            </button>
+                          </article>
+                        ),
+                      )
+                    }
+                  </div>
+                </section>
+              ) : null}
+
+
               {runtimeView?.gitReview ? (
                 <section className={styles.gitPanel}>
                   <div className={styles.sectionHeading}>
@@ -515,6 +579,69 @@ export function AtlasCopilot({
                   )}
                 </section>
               ) : null}
+
+
+              {runtimeView?.patches?.length ? (
+                <section className={styles.diffPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>
+                      Proposed Patch
+                    </span>
+
+                    <strong>
+                      {runtimeView.patches.length}
+                    </strong>
+                  </div>
+
+
+                  {runtimeView.patches.map(
+                    (patch) => (
+                      <article
+                        key={patch.filePath}
+                        className={styles.diffFile}
+                      >
+
+                        <strong>
+                          {patch.filePath}
+                        </strong>
+
+
+                        <p>
+                          {patch.action.toUpperCase()}
+                          {" · "}
+                          {patch.explanation}
+                        </p>
+
+
+                        <details>
+                          <summary>
+                            Before
+                          </summary>
+
+                          <pre>
+                            {patch.before ||
+                              "(empty)"}
+                          </pre>
+                        </details>
+
+
+                        <details>
+                          <summary>
+                            After
+                          </summary>
+
+                          <pre>
+                            {patch.after}
+                          </pre>
+                        </details>
+
+                      </article>
+                    ),
+                  )}
+
+                </section>
+              ) : null}
+
 
 
               {runtimeView?.editProposals?.length ? (
@@ -611,6 +738,37 @@ export function AtlasCopilot({
                   </div>
                 </section>
               ) : null}
+
+              {runtimeView?.timeline?.length ? (
+                <section className={styles.timelinePanel}>
+                  <div className={styles.snapshotHeader}>
+                    <strong>
+                      Engineering Timeline
+                    </strong>
+
+                    <span>
+                      {runtimeView.timeline.length} steps
+                    </span>
+                  </div>
+
+                  <div className={styles.timelineList}>
+                    {runtimeView.timeline.map(
+                      (item) => (
+                        <article key={item.id}>
+                          <strong>
+                            {item.title}
+                          </strong>
+
+                          <p>
+                            {item.detail}
+                          </p>
+                        </article>
+                      ),
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
 
               {runtimeView?.reasoningSteps?.length ? (
                 <section className={styles.reasoningPanel}>
