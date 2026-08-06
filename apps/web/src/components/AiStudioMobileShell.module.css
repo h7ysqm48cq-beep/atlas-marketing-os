@@ -4,7 +4,8 @@
 
 .mobileHeader,
 .historyToggle,
-.advancedToggle {
+.advancedToggle,
+.generateActions {
   display: none;
 }
 
@@ -28,7 +29,7 @@
     box-shadow: var(--shadow);
   }
 
-  .mobileHeader > div {
+  .mobileHeader > div:first-child {
     min-width: 0;
     display: grid;
     gap: 2px;
@@ -149,9 +150,47 @@
     min-width: 0 !important;
   }
 
+  .shell[data-has-result="false"] :global([class*="AiWorkspace_workspace"]),
+  .shell[data-running="true"] :global([class*="AiWorkspace_workspace"]) {
+    display: none !important;
+  }
+
   .shell :global([class*="AiStudio_formCard"] > label:first-child textarea) {
     min-height: 104px !important;
     font-size: 16px !important;
+  }
+
+  .generateActions {
+    order: 850;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .generateActions button {
+    min-width: 0;
+    min-height: 50px;
+    padding: 0 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .promptButton {
+    border: 1px solid color-mix(in srgb, var(--gold-light) 70%, var(--border));
+    background: var(--gold-light);
+    color: #17130a;
+  }
+
+  .imageButton {
+    border: 1px solid var(--border);
+    background: var(--panel-soft);
+    color: var(--text);
+  }
+
+  .generateActions button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
   }
 
   .advancedToggle {
@@ -218,6 +257,38 @@
     white-space: nowrap;
   }
 
+  .shell[data-output-mode="image"] :global([class*="AiWorkspace_tabs"] button:nth-child(1)),
+  .shell[data-output-mode="image"] :global([class*="AiWorkspace_tabs"] button:nth-child(2)) {
+    display: none !important;
+  }
+
+  .shell[data-output-mode="image"] :global([class*="AiWorkspace_tabs"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .shell[data-output-mode="prompt"]:not([data-output-image-prompt="true"]) :global([class*="AiWorkspace_tabs"] button:nth-child(3)),
+  .shell[data-output-mode="prompt"]:not([data-output-image-prompt="true"]) :global([class*="AiWorkspace_tabs"] button:nth-child(4)) {
+    display: none !important;
+  }
+
+  .shell[data-output-facebook="false"] :global([class*="AiWorkspace_cards"] > :nth-child(1)),
+  .shell[data-output-telegram="false"] :global([class*="AiWorkspace_cards"] > :nth-child(2)),
+  .shell[data-output-reels="false"] :global([class*="AiWorkspace_cards"] > :nth-child(3)),
+  .shell[data-output-image-prompt="false"] :global([class*="AiWorkspace_cards"] > :nth-child(4)) {
+    display: none !important;
+  }
+
+  .shell[data-output-mode="image"] :global([class*="AiWorkspace_cards"] > :not(:nth-child(4))) {
+    display: none !important;
+  }
+
+  .shell[data-output-mode="image"] :global([class*="AiWorkspace_knowledgePanel"]),
+  .shell[data-output-mode="image"] :global([class*="AtlasCopilot_panel"]),
+  .shell[data-output-mode="image"] :global([class*="AiAutoQueueCard_"]),
+  .shell[data-output-mode="image"] :global([class*="AiPublishCard_"]) {
+    display: none !important;
+  }
+
   .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"]))) {
     padding: 10px 12px !important;
   }
@@ -240,12 +311,15 @@
   }
 
   .shell :global([class*="AiStudio_generateButton"]) {
-    position: sticky !important;
-    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
-    z-index: 24 !important;
-    min-height: 52px !important;
-    font-size: 14px !important;
-    box-shadow: 0 14px 32px rgba(0, 0, 0, .34) !important;
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .shell :global([class*="AiStudio_message"]) {
