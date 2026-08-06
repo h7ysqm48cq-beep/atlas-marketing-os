@@ -84,6 +84,11 @@ export class AssetImageEditorService {
         );
         if (logoOverlay) composites.push(logoOverlay);
       }
+
+      if (layer.type === 'QR' && layer.qrValue?.trim()) {
+        const qrOverlay = await this.createQrOverlay(layer, width, height);
+        if (qrOverlay) composites.push(qrOverlay);
+      }
     }
 
     const finalBuffer = composites.length
@@ -139,6 +144,9 @@ export class AssetImageEditorService {
             : []),
           ...(visibleLayers.some((layer) => layer.type === 'LOGO')
             ? ['logo-overlay']
+            : []),
+          ...(visibleLayers.some((layer) => layer.type === 'QR')
+            ? ['qr-overlay']
             : []),
         ],
         url: uploaded.publicUrl,
@@ -249,6 +257,53 @@ export class AssetImageEditorService {
     `);
 
     return { input: fadedLogo, left, top };
+  }
+
+  private async createQrOverlay(
+    layer: ImageEditorLayerDto,
+    width: number,
+    height: number,
+  ): Promise<OverlayOptions | null> {
+    const value = layer.qrValue?.trim();
+    if (!value) return null;
+
+    const scale = Math.max(0.4, Math.min(layer.scale ?? 0.85, 2));
+    const targetSize = Math.max(96, Math.round(width * 0.18 * scale));
+    const qrUrl = `https://quickchart.io/qr?size=${targetSize}&margin=1&text=${encodeURIComponent(value)}`;
+    const response = await fetch(qrUrl);
+
+    if (!response.ok) {
+      throw new BadRequestException(
+        `Unable to generate QR code (HTTP ${response.status}).`,
+      );
+    }
+
+    const rawQr = Buffer.from(await response.arrayBuffer());
+    const qrBuffer = await sharp(rawQr)
+      .resize({ width: targetSize, height: targetSize, fit: 'contain' })
+      .png()
+      .toBuffer();
+    const left = Math.round(
+      Math.max(0, Math.min(width - targetSize, layer.x * width - targetSize / 2)),
+    );
+    const top = Math.round(
+      Math.max(0, Math.min(height - targetSize, layer.y * height - targetSize / 2)),
+    );
+
+    if (layer.opacity >= 0.999) {
+      return { input: qrBuffer, left, top };
+    }
+
+    const fadedQr = Buffer.from(`
+      <svg width="${targetSize}" height="${targetSize}" xmlns="http://www.w3.org/2000/svg">
+        <image width="${targetSize}" height="${targetSize}" opacity="${Math.max(
+          0,
+          Math.min(layer.opacity, 1),
+        )}" href="data:image/png;base64,${qrBuffer.toString('base64')}" />
+      </svg>
+    `);
+
+    return { input: fadedQr, left, top };
   }
 
   private escapeXml(value: string) {
