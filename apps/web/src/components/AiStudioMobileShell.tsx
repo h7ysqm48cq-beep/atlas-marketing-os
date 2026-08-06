@@ -7,6 +7,7 @@ import styles from "./AiStudioMobileShell.module.css";
 
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [formCard, setFormCard] = useState<HTMLElement | null>(null);
   const shellRef = useRef<HTMLElement>(null);
 
@@ -63,12 +64,23 @@ export function AiStudioMobileShell() {
       ref={shellRef}
       className={styles.shell}
       data-advanced-open={advancedOpen ? "true" : "false"}
+      data-history-open={historyOpen ? "true" : "false"}
     >
       <header className={styles.mobileHeader}>
         <div>
           <span>AI Studio</span>
           <strong>Create content</strong>
         </div>
+
+        <button
+          type="button"
+          className={styles.historyToggle}
+          aria-expanded={historyOpen}
+          onClick={() => setHistoryOpen((current) => !current)}
+        >
+          <span>{historyOpen ? "Hide history" : "History"}</span>
+          <span aria-hidden="true">{historyOpen ? "⌃" : "⌄"}</span>
+        </button>
       </header>
 
       <AiStudio />
