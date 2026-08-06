@@ -378,7 +378,46 @@ const hasContent = cards.some(([, , key]) => key !== "image");
       ) : null}
 
       {tab === "prompt" ? (
-        <PromptInspector promptChain={result.promptChain} onMessage={onMessage} />
+        <PromptInspector
+  promptChain={
+    result.promptChain
+      ? {
+          ...result.promptChain,
+          knowledgeUsed:
+            result.promptChain.knowledgeUsed?.map(
+              (item) => ({
+                id: item.id,
+                title: item.title,
+                category: item.category,
+                tags: item.tags,
+                summary: item.summary,
+
+                similarity: 0,
+                similarityPercent: 0,
+                hybridScore: 0,
+
+                scoreBreakdown: {
+                  semantic: 0,
+                  keyword: 0,
+                  usage: 0,
+                  freshness: 0,
+                  quality: 0,
+                },
+
+                matchedTerms: [],
+                matchedQueries: [],
+                reasons: [],
+
+                embeddingModel: "unknown",
+                embeddingDimensions: 0,
+                embeddedAt: new Date().toISOString(),
+              }),
+            ),
+        }
+      : undefined
+  }
+  onMessage={onMessage}
+/>
       ) : null}
 
       {hasPublishableContent ? (
