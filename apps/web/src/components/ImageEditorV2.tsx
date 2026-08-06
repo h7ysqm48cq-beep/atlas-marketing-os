@@ -12,13 +12,14 @@ type ImageAsset = {
   height: number | null;
 };
 
-type LayerType = "IMAGE" | "LOGO" | "TEXT";
+type LayerType = "IMAGE" | "LOGO" | "TEXT" | "QR";
 
 type EditorLayer = {
   id: string;
   type: LayerType;
   name: string;
   text?: string;
+  qrValue?: string;
   fontSize?: number;
   color?: string;
   x: number;
@@ -86,7 +87,7 @@ export function ImageEditorV2() {
       setAsset(nextAsset);
       setMessage(
         nextAsset
-          ? "Latest image loaded. Add text, arrange layers and save a new version."
+          ? "Latest image loaded. Add text or QR, arrange layers and save a new version."
           : "No image is available yet. Generate an AI image first.",
       );
     } catch (error) {
@@ -102,6 +103,10 @@ export function ImageEditorV2() {
     void loadLatestImage();
   }, []);
 
+  function nextOrder() {
+    return Math.max(...layers.map((layer) => layer.order)) + 1;
+  }
+
   function addTextLayer() {
     const count = layers.filter((layer) => layer.type === "TEXT").length + 1;
     const id = `text-${Date.now()}`;
@@ -115,7 +120,28 @@ export function ImageEditorV2() {
       x: 0.1,
       y: 0.12 + Math.min(count - 1, 4) * 0.1,
       opacity: 1,
-      order: Math.max(...layers.map((layer) => layer.order)) + 1,
+      order: nextOrder(),
+      visible: true,
+      locked: false,
+    };
+
+    setLayers((current) => [...current, nextLayer]);
+    setSelectedId(id);
+  }
+
+  function addQrLayer() {
+    const count = layers.filter((layer) => layer.type === "QR").length + 1;
+    const id = `qr-${Date.now()}`;
+    const nextLayer: EditorLayer = {
+      id,
+      type: "QR",
+      name: `QR ${count}`,
+      qrValue: "https://",
+      x: 0.82,
+      y: 0.78,
+      opacity: 1,
+      scale: 0.85,
+      order: nextOrder(),
       visible: true,
       locked: false,
     };
@@ -165,8 +191,17 @@ export function ImageEditorV2() {
   async function saveNewVersion() {
     if (!asset) return;
 
+    const invalidQr = layers.find(
+      (layer) => layer.type === "QR" && layer.visible && !layer.qrValue?.trim(),
+    );
+    if (invalidQr) {
+      setSelectedId(invalidQr.id);
+      setMessage("Enter a URL or text for every visible QR layer before saving.");
+      return;
+    }
+
     setIsSaving(true);
-    setMessage("Compositing logo and text layers...");
+    setMessage("Compositing logo, text and QR layers...");
 
     try {
       const response = await fetch(`${API_URL}/asset-images/editor/composite`, {
@@ -189,7 +224,7 @@ export function ImageEditorV2() {
       }
 
       setAsset(data);
-      setMessage("New version saved to Asset Library with logo and text layers.");
+      setMessage("New version saved to Asset Library with logo, text and QR layers.");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Unable to save new version.",
@@ -200,8 +235,11 @@ export function ImageEditorV2() {
   }
 
   const orderedLayers = [...layers].sort((left, right) => right.order - left.order);
-  const previewLayers = [...layers]
+  const previewTextLayers = [...layers]
     .filter((layer) => layer.visible && layer.type === "TEXT")
+    .sort((left, right) => left.order - right.order);
+  const previewQrLayers = [...layers]
+    .filter((layer) => layer.visible && layer.type === "QR" && layer.qrValue?.trim())
     .sort((left, right) => left.order - right.order);
 
   return (
@@ -209,7 +247,7 @@ export function ImageEditorV2() {
       <header className={styles.header}>
         <div>
           <span>Image Editor v2</span>
-          <h2>Text + Layers</h2>
+          <h2>Text + QR + Layers</h2>
           <p>Edit the latest Asset Library image without regenerating the scene.</p>
         </div>
 
@@ -236,7 +274,7 @@ export function ImageEditorV2() {
             {asset ? (
               <>
                 <img src={asset.url} alt={asset.name} />
-                {previewLayers.map((layer) => (
+                {previewTextLayers.map((layer) => (
                   <div
                     key={layer.id}
                     className={styles.textPreview}
@@ -253,6 +291,23 @@ export function ImageEditorV2() {
                   >
                     {layer.text}
                   </div>
+                ))}
+                {previewQrLayers.map((layer) => (
+                  <img
+                    key={layer.id}
+                    className={styles.qrPreview}
+                    src={`https://quickchart.io/qr?size=260&margin=1&text=${encodeURIComponent(
+                      layer.qrValue || "",
+                    )}`}
+                    alt={layer.name}
+                    style={{
+                      left: `${layer.x * 100}%`,
+                      top: `${layer.y * 100}%`,
+                      opacity: layer.opacity,
+                      width: `${Math.round((layer.scale ?? 0.85) * 18)}%`,
+                      zIndex: layer.order + 2,
+                    }}
+                  />
                 ))}
                 {layers.find((layer) => layer.type === "LOGO" && layer.visible) ? (
                   <div
@@ -289,9 +344,10 @@ export function ImageEditorV2() {
               <span>Layers</span>
               <strong>{layers.length}</strong>
             </div>
-            <button type="button" onClick={addTextLayer}>
-              + Text
-            </button>
+            <div className={styles.addActions}>
+              <button type="button" onClick={addTextLayer}>+ Text</button>
+              <button type="button" onClick={addQrLayer}>+ QR</button>
+            </div>
           </div>
 
           <div className={styles.layerList}>
@@ -326,24 +382,8 @@ export function ImageEditorV2() {
                   >
                     {layer.locked ? "▣" : "▢"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      moveLayer(layer.id, 1);
-                    }}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      moveLayer(layer.id, -1);
-                    }}
-                  >
-                    ↓
-                  </button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); moveLayer(layer.id, 1); }}>↑</button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); moveLayer(layer.id, -1); }}>↓</button>
                   {layer.type !== "IMAGE" ? (
                     <button
                       type="button"
@@ -371,57 +411,35 @@ export function ImageEditorV2() {
               {selectedLayer.type === "TEXT" ? (
                 <label>
                   <span>Text</span>
-                  <textarea
-                    rows={3}
-                    value={selectedLayer.text || ""}
-                    disabled={selectedLayer.locked}
-                    onChange={(event) => updateSelected({ text: event.target.value })}
-                  />
+                  <textarea rows={3} value={selectedLayer.text || ""} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ text: event.target.value })} />
+                </label>
+              ) : null}
+
+              {selectedLayer.type === "QR" ? (
+                <label>
+                  <span>QR URL or text</span>
+                  <textarea rows={3} value={selectedLayer.qrValue || ""} disabled={selectedLayer.locked} placeholder="https://t.me/yourchannel" onChange={(event) => updateSelected({ qrValue: event.target.value })} />
                 </label>
               ) : null}
 
               {selectedLayer.type === "TEXT" ? (
                 <label>
                   <span>Font size · {selectedLayer.fontSize}px</span>
-                  <input
-                    type="range"
-                    min="16"
-                    max="120"
-                    value={selectedLayer.fontSize || 48}
-                    disabled={selectedLayer.locked}
-                    onChange={(event) =>
-                      updateSelected({ fontSize: Number(event.target.value) })
-                    }
-                  />
+                  <input type="range" min="16" max="120" value={selectedLayer.fontSize || 48} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ fontSize: Number(event.target.value) })} />
                 </label>
               ) : null}
 
               {selectedLayer.type === "TEXT" ? (
                 <label>
                   <span>Colour</span>
-                  <input
-                    type="color"
-                    value={selectedLayer.color || "#ffffff"}
-                    disabled={selectedLayer.locked}
-                    onChange={(event) => updateSelected({ color: event.target.value })}
-                  />
+                  <input type="color" value={selectedLayer.color || "#ffffff"} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ color: event.target.value })} />
                 </label>
               ) : null}
 
-              {selectedLayer.type === "LOGO" ? (
+              {selectedLayer.type === "LOGO" || selectedLayer.type === "QR" ? (
                 <label>
-                  <span>Logo size · {Math.round((selectedLayer.scale || 0.85) * 100)}%</span>
-                  <input
-                    type="range"
-                    min="0.4"
-                    max="2"
-                    step="0.05"
-                    value={selectedLayer.scale || 0.85}
-                    disabled={selectedLayer.locked}
-                    onChange={(event) =>
-                      updateSelected({ scale: Number(event.target.value) })
-                    }
-                  />
+                  <span>{selectedLayer.type === "QR" ? "QR" : "Logo"} size · {Math.round((selectedLayer.scale || 0.85) * 100)}%</span>
+                  <input type="range" min="0.4" max="2" step="0.05" value={selectedLayer.scale || 0.85} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ scale: Number(event.target.value) })} />
                 </label>
               ) : null}
 
@@ -429,45 +447,15 @@ export function ImageEditorV2() {
                 <>
                   <label>
                     <span>Horizontal · {Math.round(selectedLayer.x * 100)}%</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={selectedLayer.x}
-                      disabled={selectedLayer.locked}
-                      onChange={(event) =>
-                        updateSelected({ x: Number(event.target.value) })
-                      }
-                    />
+                    <input type="range" min="0" max="1" step="0.01" value={selectedLayer.x} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ x: Number(event.target.value) })} />
                   </label>
                   <label>
                     <span>Vertical · {Math.round(selectedLayer.y * 100)}%</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={selectedLayer.y}
-                      disabled={selectedLayer.locked}
-                      onChange={(event) =>
-                        updateSelected({ y: Number(event.target.value) })
-                      }
-                    />
+                    <input type="range" min="0" max="1" step="0.01" value={selectedLayer.y} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ y: Number(event.target.value) })} />
                   </label>
                   <label>
                     <span>Opacity · {Math.round(selectedLayer.opacity * 100)}%</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={selectedLayer.opacity}
-                      disabled={selectedLayer.locked}
-                      onChange={(event) =>
-                        updateSelected({ opacity: Number(event.target.value) })
-                      }
-                    />
+                    <input type="range" min="0" max="1" step="0.05" value={selectedLayer.opacity} disabled={selectedLayer.locked} onChange={(event) => updateSelected({ opacity: Number(event.target.value) })} />
                   </label>
                 </>
               ) : null}
