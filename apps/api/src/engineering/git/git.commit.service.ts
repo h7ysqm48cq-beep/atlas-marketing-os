@@ -61,7 +61,17 @@ export class GitCommitService {
   async commit(
     cwd: string,
     message: string,
+    approved = false,
   ) {
+
+    if (!approved) {
+      return {
+        success: false,
+        status: "approval_required",
+        message:
+          "Commit requires approval.",
+      };
+    }
 
     await execAsync(
       "git add -A",

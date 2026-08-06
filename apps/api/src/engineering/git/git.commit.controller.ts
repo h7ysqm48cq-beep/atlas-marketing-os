@@ -25,12 +25,14 @@ export class GitCommitController {
     @Body()
     body:{
       message:string;
+      approved:boolean;
     },
   ) {
 
     return this.commits.commit(
       process.cwd(),
       body.message,
+      body.approved,
     );
   }
 }

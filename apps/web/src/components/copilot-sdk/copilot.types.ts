@@ -137,6 +137,15 @@ export type CopilotCommitPlan = {
 };
 
 
+export type CopilotCommitStatus =
+  | "draft"
+  | "ready"
+  | "approved"
+  | "committing"
+  | "completed"
+  | "failed";
+
+
 export type CopilotGitReview = {
   branch: string;
   changedFiles: number;
@@ -216,4 +225,5 @@ export type CopilotRuntimeView = {
   gitStatus?: CopilotGitStatus;
   commitPlan?: CopilotCommitPlan;
   gitReview?: CopilotGitReview;
+  commitStatus?: CopilotCommitStatus;
 };
