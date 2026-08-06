@@ -7,6 +7,20 @@ import styles from "./AiStudioMobileShell.module.css";
 
 type OutputMode = "prompt" | "image" | null;
 
+type OutputPlatforms = {
+  facebook: boolean;
+  telegram: boolean;
+  reels: boolean;
+  imagePrompt: boolean;
+};
+
+const EMPTY_OUTPUTS: OutputPlatforms = {
+  facebook: false,
+  telegram: false,
+  reels: false,
+  imagePrompt: false,
+};
+
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -14,6 +28,8 @@ export function AiStudioMobileShell() {
   const [nativeGenerateButton, setNativeGenerateButton] =
     useState<HTMLButtonElement | null>(null);
   const [outputMode, setOutputMode] = useState<OutputMode>(null);
+  const [outputPlatforms, setOutputPlatforms] =
+    useState<OutputPlatforms>(EMPTY_OUTPUTS);
   const [hasResult, setHasResult] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const shellRef = useRef<HTMLElement>(null);
@@ -35,11 +51,24 @@ export function AiStudioMobileShell() {
       .map((button) => button.textContent?.trim().toLowerCase() || "");
   }
 
+  function outputsFromLabels(labels: string[]): OutputPlatforms {
+    return {
+      facebook: labels.some((label) => label.includes("facebook")),
+      telegram: labels.some((label) => label.includes("telegram")),
+      reels: labels.some((label) => label.includes("reels")),
+      imagePrompt: labels.some(
+        (label) =>
+          label.includes("image prompt") || label.includes("图片提示词"),
+      ),
+    };
+  }
+
   function selectOnlyImagePrompt() {
     platformButtons().forEach((button) => {
       const label = button.textContent?.trim().toLowerCase() || "";
       const selected = button.getAttribute("aria-pressed") === "true";
-      const shouldSelect = label.includes("image prompt") || label.includes("图片提示词");
+      const shouldSelect =
+        label.includes("image prompt") || label.includes("图片提示词");
 
       if (selected !== shouldSelect) button.click();
     });
@@ -48,6 +77,8 @@ export function AiStudioMobileShell() {
   function runPromptGeneration() {
     if (!nativeGenerateButton || nativeGenerateButton.disabled) return;
 
+    const selected = outputsFromLabels(selectedPlatformLabels());
+    setOutputPlatforms(selected);
     setOutputMode("prompt");
     setHasResult(false);
     setIsRunning(true);
@@ -58,6 +89,12 @@ export function AiStudioMobileShell() {
     if (!nativeGenerateButton || nativeGenerateButton.disabled) return;
 
     selectOnlyImagePrompt();
+    setOutputPlatforms({
+      facebook: false,
+      telegram: false,
+      reels: false,
+      imagePrompt: true,
+    });
     setOutputMode("image");
     setHasResult(false);
     setIsRunning(true);
@@ -106,12 +143,10 @@ export function AiStudioMobileShell() {
 
         if (!outputMode) {
           const labels = selectedPlatformLabels();
+          const inferredOutputs = outputsFromLabels(labels);
+          setOutputPlatforms(inferredOutputs);
           setOutputMode(
-            labels.length === 1 &&
-              labels.some(
-                (label) =>
-                  label.includes("image prompt") || label.includes("图片提示词"),
-              )
+            labels.length === 1 && inferredOutputs.imagePrompt
               ? "image"
               : "prompt",
           );
@@ -145,6 +180,10 @@ export function AiStudioMobileShell() {
       data-output-mode={outputMode || "none"}
       data-has-result={hasResult ? "true" : "false"}
       data-running={isRunning ? "true" : "false"}
+      data-output-facebook={outputPlatforms.facebook ? "true" : "false"}
+      data-output-telegram={outputPlatforms.telegram ? "true" : "false"}
+      data-output-reels={outputPlatforms.reels ? "true" : "false"}
+      data-output-image-prompt={outputPlatforms.imagePrompt ? "true" : "false"}
     >
       <header className={styles.mobileHeader}>
         <div>
@@ -172,7 +211,11 @@ export function AiStudioMobileShell() {
                 <button
                   type="button"
                   className={styles.promptButton}
-                  disabled={!nativeGenerateButton || nativeGenerateButton.disabled || isRunning}
+                  disabled={
+                    !nativeGenerateButton ||
+                    nativeGenerateButton.disabled ||
+                    isRunning
+                  }
                   onClick={runPromptGeneration}
                 >
                   {isRunning && outputMode === "prompt"
@@ -183,7 +226,11 @@ export function AiStudioMobileShell() {
                 <button
                   type="button"
                   className={styles.imageButton}
-                  disabled={!nativeGenerateButton || nativeGenerateButton.disabled || isRunning}
+                  disabled={
+                    !nativeGenerateButton ||
+                    nativeGenerateButton.disabled ||
+                    isRunning
+                  }
                   onClick={runImageGeneration}
                 >
                   {isRunning && outputMode === "image"
