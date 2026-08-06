@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { API_URL } from "@/lib/api";
-import styles from "./ImageBrandEditor.module.css";
+import styles from "./ImageBrandEditorV3.module.css";
 
 type Asset = {
   id: string;
@@ -39,24 +39,23 @@ type LogoPlacement =
   | "BOTTOM_CENTER"
   | "BOTTOM_RIGHT";
 
-type NormalizedPosition = {
-  x: number;
-  y: number;
-};
-
+type NormalizedPosition = { x: number; y: number };
 type ToolPanel = "images" | "logo" | "layers" | "settings";
 
-const placementOptions: Array<{ value: LogoPlacement; label: string }> = [
-  { value: "AUTO", label: "Auto · Recommended" },
-  { value: "BOTTOM_LEFT", label: "Bottom left" },
-  { value: "BOTTOM_CENTER", label: "Bottom centre" },
-  { value: "BOTTOM_RIGHT", label: "Bottom right" },
-  { value: "TOP_LEFT", label: "Top left" },
-  { value: "TOP_CENTER", label: "Top centre" },
-  { value: "TOP_RIGHT", label: "Top right" },
-  { value: "CENTER_LEFT", label: "Centre left" },
-  { value: "CENTER", label: "Centre" },
-  { value: "CENTER_RIGHT", label: "Centre right" },
+const gridPlacements: Array<{
+  value: Exclude<LogoPlacement, "AUTO">;
+  label: string;
+  mark: string;
+}> = [
+  { value: "TOP_LEFT", label: "Top left", mark: "↖" },
+  { value: "TOP_CENTER", label: "Top centre", mark: "↑" },
+  { value: "TOP_RIGHT", label: "Top right", mark: "↗" },
+  { value: "CENTER_LEFT", label: "Centre left", mark: "←" },
+  { value: "CENTER", label: "Centre", mark: "•" },
+  { value: "CENTER_RIGHT", label: "Centre right", mark: "→" },
+  { value: "BOTTOM_LEFT", label: "Bottom left", mark: "↙" },
+  { value: "BOTTOM_CENTER", label: "Bottom centre", mark: "↓" },
+  { value: "BOTTOM_RIGHT", label: "Bottom right", mark: "↘" },
 ];
 
 export function ImageBrandEditor() {
@@ -88,33 +87,26 @@ export function ImageBrandEditor() {
           fetch(`${API_URL}/assets?type=IMAGE`, { cache: "no-store" }),
           fetch(`${API_URL}/brands`, { cache: "no-store" }),
         ]);
-
         const assetData = (await assetResponse.json()) as Asset[];
         const brandData = (await brandResponse.json()) as Brand[];
-
         if (!assetResponse.ok || !Array.isArray(assetData)) {
           throw new Error("Unable to load Asset Library images.");
         }
-
         setAssets(assetData);
         setSelectedId(assetData[0]?.id ?? "");
-
         const activeBrand = Array.isArray(brandData) ? brandData[0] : null;
         const primaryLogoId = activeBrand?.primaryLogoAssetId;
         const logo = primaryLogoId
           ? assetData.find((asset) => asset.id === primaryLogoId) ?? null
           : null;
-
-        if (logo) {
-          setLogoAsset(logo);
-          setMessage("Ready. Drag the logo directly on the canvas.");
-        } else {
-          setMessage(
-            assetData.length
+        setLogoAsset(logo);
+        setMessage(
+          logo
+            ? "Ready. Drag the logo directly on the canvas."
+            : assetData.length
               ? "Images loaded, but no primary brand logo is configured."
               : "No images are available in Asset Library yet.",
-          );
-        }
+        );
       } catch (error) {
         setMessage(
           error instanceof Error ? error.message : "Unable to load images.",
@@ -123,20 +115,16 @@ export function ImageBrandEditor() {
         setLoading(false);
       }
     }
-
     void load();
   }, []);
 
   useEffect(() => {
     if (!fullscreen) return;
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setFullscreen(false);
     };
-
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
@@ -148,7 +136,7 @@ export function ImageBrandEditor() {
     const query = search.trim().toLowerCase();
     return assets.filter((asset) => {
       if (asset.id === logoAsset?.id) return false;
-      return !query ? true : asset.name.toLowerCase().includes(query);
+      return !query || asset.name.toLowerCase().includes(query);
     });
   }, [assets, logoAsset, search]);
 
@@ -156,24 +144,19 @@ export function ImageBrandEditor() {
 
   const resolvedPlacement = useMemo<Exclude<LogoPlacement, "AUTO">>(() => {
     if (placement !== "AUTO") return placement;
-
     const width = selected?.width ?? 1;
     const height = selected?.height ?? 1;
     const portrait = height > width * 1.08;
     const landscape = width > height * 1.08;
-
     if (platform === "Instagram Story" || platform === "WhatsApp Status") {
       return "BOTTOM_CENTER";
     }
-
     if (platform === "Telegram") {
       return landscape ? "BOTTOM_RIGHT" : "BOTTOM_CENTER";
     }
-
     if (platform === "Facebook") {
       return portrait ? "BOTTOM_CENTER" : "BOTTOM_RIGHT";
     }
-
     return portrait ? "BOTTOM_LEFT" : "BOTTOM_RIGHT";
   }, [placement, platform, selected]);
 
@@ -186,24 +169,17 @@ export function ImageBrandEditor() {
       isStory ? "5.5%" : platform === "Telegram" ? "2.8%" : "3.5%";
     const bottom =
       isStory ? "7.5%" : platform === "Telegram" ? "3%" : "3.5%";
-
-    const style: CSSProperties = {
-      width: `${widthPercent}%`,
-      opacity,
-    };
-
+    const style: CSSProperties = { width: `${widthPercent}%`, opacity };
     if (customPosition) {
       style.left = `${customPosition.x * 100}%`;
       style.top = `${customPosition.y * 100}%`;
       style.transform = "translate(-50%, -50%)";
       return style;
     }
-
     if (resolvedPlacement.includes("LEFT")) style.left = side;
     if (resolvedPlacement.includes("RIGHT")) style.right = side;
     if (resolvedPlacement.includes("TOP")) style.top = side;
     if (resolvedPlacement.includes("BOTTOM")) style.bottom = bottom;
-
     if (
       resolvedPlacement === "TOP_CENTER" ||
       resolvedPlacement === "BOTTOM_CENTER"
@@ -211,7 +187,6 @@ export function ImageBrandEditor() {
       style.left = "50%";
       style.transform = "translateX(-50%)";
     }
-
     if (
       resolvedPlacement === "CENTER_LEFT" ||
       resolvedPlacement === "CENTER_RIGHT"
@@ -219,13 +194,11 @@ export function ImageBrandEditor() {
       style.top = "50%";
       style.transform = "translateY(-50%)";
     }
-
     if (resolvedPlacement === "CENTER") {
       style.left = "50%";
       style.top = "50%";
       style.transform = "translate(-50%, -50%)";
     }
-
     return style;
   }, [customPosition, opacity, platform, resolvedPlacement, scale]);
 
@@ -243,10 +216,14 @@ export function ImageBrandEditor() {
     setActiveTool("logo");
   }
 
+  function choosePlacement(value: LogoPlacement) {
+    setPlacement(value);
+    setCustomPosition(null);
+  }
+
   function updateCustomPosition(event: ReactPointerEvent<HTMLImageElement>) {
     const canvas = event.currentTarget.parentElement;
     if (!canvas) return;
-
     const bounds = canvas.getBoundingClientRect();
     const x = Math.min(
       0.96,
@@ -256,7 +233,6 @@ export function ImageBrandEditor() {
       0.96,
       Math.max(0.04, (event.clientY - bounds.top) / bounds.height),
     );
-
     setCustomPosition({ x, y });
   }
 
@@ -268,8 +244,7 @@ export function ImageBrandEditor() {
   }
 
   function moveLogo(event: ReactPointerEvent<HTMLImageElement>) {
-    if (!draggingLogo) return;
-    updateCustomPosition(event);
+    if (draggingLogo) updateCustomPosition(event);
   }
 
   function endLogoDrag(event: ReactPointerEvent<HTMLImageElement>) {
@@ -281,10 +256,8 @@ export function ImageBrandEditor() {
 
   async function applyLogo() {
     if (!selected) return;
-
     setSaving(true);
     setMessage("Applying the official brand logo...");
-
     try {
       const response = await fetch(`${API_URL}/asset-images/brand-existing`, {
         method: "POST",
@@ -300,18 +273,15 @@ export function ImageBrandEditor() {
           logoY: customPosition?.y,
         }),
       });
-
       const data = (await response.json()) as Asset & {
         message?: string | string[];
       };
-
       if (!response.ok || !data.id) {
         const responseMessage = Array.isArray(data.message)
           ? data.message.join(" ")
           : data.message;
         throw new Error(responseMessage || "Unable to apply logo.");
       }
-
       setResult(data);
       setAssets((current) => [data, ...current]);
       setSelectedId(data.id);
@@ -331,7 +301,6 @@ export function ImageBrandEditor() {
     if (!selected) {
       return <div className={styles.emptyCanvas}>Choose an image to begin.</div>;
     }
-
     return (
       <div
         className={`${styles.canvas} ${
@@ -344,7 +313,6 @@ export function ImageBrandEditor() {
           alt={selected.name}
           draggable={false}
         />
-
         {showSafeArea ? (
           <div
             className={`${styles.safeArea} ${
@@ -355,7 +323,6 @@ export function ImageBrandEditor() {
             }`}
           />
         ) : null}
-
         {showLogo && logoAsset ? (
           <img
             className={`${styles.logoPreview} ${
@@ -375,6 +342,48 @@ export function ImageBrandEditor() {
     );
   }
 
+  function renderPositionPicker() {
+    return (
+      <div className={styles.positionSection}>
+        <div className={styles.positionHeader}>
+          <span>Logo position</span>
+          {customPosition ? (
+            <span className={styles.positionCustom}>Custom</span>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className={`${styles.autoButton} ${
+            placement === "AUTO" && !customPosition
+              ? styles.autoButtonActive
+              : ""
+          }`}
+          onClick={() => choosePlacement("AUTO")}
+        >
+          ✦ Auto · Recommended
+        </button>
+        <div className={styles.positionGrid}>
+          {gridPlacements.map((option) => (
+            <button
+              type="button"
+              key={option.value}
+              title={option.label}
+              aria-label={option.label}
+              className={
+                placement === option.value && !customPosition
+                  ? styles.positionSelected
+                  : ""
+              }
+              onClick={() => choosePlacement(option.value)}
+            >
+              {option.mark}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function renderLogoControls(compact = false) {
     return (
       <div className={compact ? styles.compactControls : styles.controls}>
@@ -384,11 +393,12 @@ export function ImageBrandEditor() {
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder={selected ? `${selected.name} · Branded` : "Branded image"}
+              placeholder={
+                selected ? `${selected.name} · Branded` : "Branded image"
+              }
             />
           </label>
         ) : null}
-
         <label>
           <span>Platform</span>
           <select
@@ -405,24 +415,7 @@ export function ImageBrandEditor() {
             <option value="Multi-platform">Multi-platform</option>
           </select>
         </label>
-
-        <label>
-          <span>Logo position</span>
-          <select
-            value={placement}
-            onChange={(event) => {
-              setPlacement(event.target.value as LogoPlacement);
-              setCustomPosition(null);
-            }}
-          >
-            {placementOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
+        {renderPositionPicker()}
         <label>
           <span>Logo size · {Math.round(scale * 100)}%</span>
           <input
@@ -434,7 +427,6 @@ export function ImageBrandEditor() {
             onChange={(event) => setScale(Number(event.target.value))}
           />
         </label>
-
         <label>
           <span>Opacity · {Math.round(opacity * 100)}%</span>
           <input
@@ -446,7 +438,6 @@ export function ImageBrandEditor() {
             onChange={(event) => setOpacity(Number(event.target.value))}
           />
         </label>
-
         <div className={styles.toggleRow}>
           <button
             type="button"
@@ -463,7 +454,6 @@ export function ImageBrandEditor() {
             Safe area
           </button>
         </div>
-
         {customPosition ? (
           <button
             type="button"
@@ -512,7 +502,6 @@ export function ImageBrandEditor() {
               placeholder="Search images..."
             />
           </div>
-
           <div className={styles.assetGrid}>
             {filteredAssets.map((asset) => (
               <button
@@ -525,7 +514,6 @@ export function ImageBrandEditor() {
                 <span>{asset.name}</span>
               </button>
             ))}
-
             {!loading && !filteredAssets.length ? (
               <p>No matching images.</p>
             ) : null}
@@ -534,38 +522,22 @@ export function ImageBrandEditor() {
 
         <main className={styles.editor}>
           <nav className={styles.toolRail} aria-label="Editor tools">
-            <button
-              type="button"
-              className={activeTool === "images" ? styles.activeTool : ""}
-              onClick={() => setActiveTool("images")}
-            >
-              <span>▦</span>
-              Images
-            </button>
-            <button
-              type="button"
-              className={activeTool === "logo" ? styles.activeTool : ""}
-              onClick={() => setActiveTool("logo")}
-            >
-              <span>◇</span>
-              Logo
-            </button>
-            <button
-              type="button"
-              className={activeTool === "layers" ? styles.activeTool : ""}
-              onClick={() => setActiveTool("layers")}
-            >
-              <span>▤</span>
-              Layers
-            </button>
-            <button
-              type="button"
-              className={activeTool === "settings" ? styles.activeTool : ""}
-              onClick={() => setActiveTool("settings")}
-            >
-              <span>⚙</span>
-              Output
-            </button>
+            {([
+              ["images", "▦", "Images"],
+              ["logo", "◇", "Logo"],
+              ["layers", "▤", "Layers"],
+              ["settings", "⚙", "Output"],
+            ] as Array<[ToolPanel, string, string]>).map(([tool, icon, label]) => (
+              <button
+                type="button"
+                key={tool}
+                className={activeTool === tool ? styles.activeTool : ""}
+                onClick={() => setActiveTool(tool)}
+              >
+                <span>{icon}</span>
+                {label}
+              </button>
+            ))}
           </nav>
 
           <section className={styles.previewPanel}>
@@ -582,7 +554,6 @@ export function ImageBrandEditor() {
                 Open fullscreen
               </button>
             </div>
-
             <button
               type="button"
               className={styles.preview}
@@ -604,7 +575,9 @@ export function ImageBrandEditor() {
                     <button
                       type="button"
                       key={asset.id}
-                      className={selectedId === asset.id ? styles.selectedAsset : ""}
+                      className={
+                        selectedId === asset.id ? styles.selectedAsset : ""
+                      }
                       onClick={() => chooseAsset(asset)}
                     >
                       <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
@@ -621,7 +594,9 @@ export function ImageBrandEditor() {
                 <strong>Layers</strong>
                 <button type="button" className={styles.layerRow}>
                   <span className={styles.layerThumbnail}>
-                    {selected ? <img src={selected.thumbnailUrl || selected.url} alt="" /> : null}
+                    {selected ? (
+                      <img src={selected.thumbnailUrl || selected.url} alt="" />
+                    ) : null}
                   </span>
                   <span>
                     <b>Image</b>
@@ -631,7 +606,7 @@ export function ImageBrandEditor() {
                 </button>
                 <button
                   type="button"
-                  className={`${styles.layerRow} ${styles.activeLayer}`}
+                  className={styles.layerRow}
                   onClick={() => setShowLogo((current) => !current)}
                 >
                   <span className={styles.layerThumbnail}>
@@ -699,7 +674,7 @@ export function ImageBrandEditor() {
         <button type="button" onClick={() => setActiveTool("logo")}>
           <span>◇</span>Logo
         </button>
-        <button type="button" className={styles.mobileCreate} onClick={() => setFullscreen(true)}>
+        <button type="button" onClick={() => setFullscreen(true)}>
           <span>＋</span>Preview
         </button>
         <button type="button" onClick={() => setActiveTool("layers")}>
@@ -717,17 +692,18 @@ export function ImageBrandEditor() {
               <strong>{selected?.name}</strong>
               <span>{positionLabel}</span>
             </div>
-            <button type="button" onClick={() => setFullscreen(false)} aria-label="Close preview">
+            <button
+              type="button"
+              onClick={() => setFullscreen(false)}
+              aria-label="Close preview"
+            >
               ×
             </button>
           </header>
-
           <main className={styles.fullscreenStage}>{renderCanvas(true)}</main>
-
           <section className={styles.fullscreenControls}>
             {renderLogoControls(true)}
           </section>
-
           <footer className={styles.fullscreenFooter}>
             <a href={studioHref}>Continue in Studio</a>
             <button
