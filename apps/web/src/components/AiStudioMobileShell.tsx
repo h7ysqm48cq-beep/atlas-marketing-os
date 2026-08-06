@@ -1,11 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AiStudio } from "./AiStudio";
 import styles from "./AiStudioMobileShell.module.css";
 
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  useEffect(() => {
+    const collapseCopilot = () => {
+      const buttons = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("button"),
+      );
+      const collapseButton = buttons.find(
+        (button) => button.textContent?.trim() === "Collapse",
+      );
+
+      collapseButton?.click();
+    };
+
+    const frame = window.requestAnimationFrame(collapseCopilot);
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <section
