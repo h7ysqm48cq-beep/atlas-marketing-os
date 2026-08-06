@@ -2,10 +2,11 @@
   min-width: 0;
 }
 
-.mobileHeader,
-.topicGenerateActions,
-.generatePromptButton,
-.generateImageButton {
+.mobileHeader {
+  display: none;
+}
+
+.advancedToggle {
   display: none;
 }
 
@@ -49,20 +50,6 @@
     font-size: 16px;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .mobileHeader button {
-    flex: 0 0 auto;
-    min-height: 38px;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel-soft);
-    color: var(--text);
-    font-weight: 750;
   }
 
   .shell :global([class*="AiStudio_hero"]) {
@@ -129,57 +116,32 @@
     min-width: 0 !important;
   }
 
-  .shell :global([class*="AiStudio_formCard"] > label:first-child) {
-    display: grid !important;
-    gap: 8px !important;
-  }
-
   .shell :global([class*="AiStudio_formCard"] > label:first-child textarea) {
-    min-height: 112px !important;
+    min-height: 104px !important;
     font-size: 16px !important;
   }
 
-  .topicGenerateActions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .generatePromptButton,
-  .generateImageButton {
-    min-height: 46px;
-    display: inline-flex;
+  .advancedToggle {
+    order: 900;
+    width: 100%;
+    min-height: 42px;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 10px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 850;
-  }
-
-  .generatePromptButton {
-    border: 1px solid rgba(209, 163, 63, .48);
-    background: linear-gradient(135deg, #f5d16e, #dba938);
-    color: #17130a;
-  }
-
-  .generateImageButton {
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 12px;
     border: 1px solid var(--border);
+    border-radius: 11px;
     background: var(--panel-soft);
     color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: left;
   }
 
-  .generatePromptButton::before,
-  .generateImageButton::before {
-    margin-right: 6px;
-  }
-
-  .generatePromptButton::before {
-    content: "✦";
-  }
-
-  .generateImageButton::before {
-    content: "◇";
+  .advancedToggle span:last-child {
+    color: var(--gold-light);
+    font-size: 14px;
   }
 
   .shell[data-advanced-open="false"] :global([class*="AiStudio_platforms"]),
@@ -216,13 +178,18 @@
   .shell :global([class*="AiWorkspace_tabs"] button) {
     min-width: 0 !important;
     min-height: 40px !important;
-    padding: 0 5px !important;
-    font-size: 10px !important;
+    padding: 0 6px !important;
+    font-size: 11px !important;
     white-space: nowrap;
   }
 
   .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"]))) {
     padding: 10px 12px !important;
+  }
+
+  .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"])) [class*="AtlasCopilot_header"]) {
+    align-items: center !important;
+    gap: 8px !important;
   }
 
   .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"])) [class*="AtlasCopilot_header"] > div:first-child p),
@@ -238,7 +205,12 @@
   }
 
   .shell :global([class*="AiStudio_generateButton"]) {
-    display: none !important;
+    position: sticky !important;
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    z-index: 24 !important;
+    min-height: 52px !important;
+    font-size: 14px !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .34) !important;
   }
 
   .shell :global([class*="AiStudio_message"]) {
