@@ -1398,3 +1398,414 @@
     grid-column: 2;
   }
 }
+
+/* Patch 021B — Repository context */
+
+.contextPanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.contextSection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.contextList {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.contextList article {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.contextList article > div {
+  min-width: 0;
+}
+
+.contextList article strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextList article p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.contextList article > span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(105, 140, 210, .1);
+  color: #5877b0;
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.contextList article[data-tone="success"] {
+  border-color: rgba(61, 168, 108, .22);
+}
+
+.contextList article[data-tone="success"] > span {
+  background: rgba(61, 168, 108, .1);
+  color: #3d8c61;
+}
+
+.contextList article[data-tone="warning"] {
+  border-color: rgba(204, 151, 48, .23);
+}
+
+.contextList article[data-tone="warning"] > span {
+  background: rgba(204, 151, 48, .1);
+  color: #956812;
+}
+
+.contextList article[data-tone="danger"] {
+  border-color: rgba(204, 84, 84, .23);
+}
+
+.contextList article[data-tone="danger"] > span {
+  background: rgba(204, 84, 84, .1);
+  color: #a14c4c;
+}
+
+@media (max-width: 680px) {
+  .contextSection {
+    padding: 11px;
+  }
+
+  .contextList article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contextList article > span {
+    align-self: flex-start;
+  }
+}
+
+/* Patch 021C — Reasoning and dependency graph */
+
+.reasoningPanel,
+.dependencyPanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.reasoningList {
+  display: grid;
+  min-width: 0;
+}
+
+.reasoningList article {
+  display: grid;
+  grid-template-columns:
+    34px
+    minmax(0, 1fr);
+  gap: 11px;
+  min-width: 0;
+}
+
+.reasoningMarker {
+  display: grid;
+  justify-items: center;
+  grid-template-rows:
+    30px
+    minmax(16px, 1fr);
+}
+
+.reasoningMarker span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.reasoningMarker i {
+  width: 1px;
+  min-height: 22px;
+  background: var(--border);
+}
+
+.reasoningList article > div:last-child {
+  min-width: 0;
+  padding: 6px 0 18px;
+}
+
+.reasoningList article strong {
+  display: block;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.reasoningList article p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.reasoningList article[data-status="complete"]
+.reasoningMarker span {
+  border-color: rgba(61, 168, 108, .24);
+  background: rgba(61, 168, 108, .09);
+  color: #3d8c61;
+}
+
+.reasoningList article[data-status="active"]
+.reasoningMarker span {
+  border-color: rgba(97, 137, 214, .28);
+  background: rgba(97, 137, 214, .1);
+  color: #5b7cc0;
+}
+
+.dependencyGraph {
+  display: grid;
+  min-width: 0;
+}
+
+.dependencyNode {
+  display: grid;
+  min-width: 0;
+}
+
+.dependencyNode article {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.dependencyNode article > span {
+  justify-self: start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(96, 135, 208, .09);
+  color: #5b79b2;
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.dependencyNode article strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dependencyNode article p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.dependencyArrow {
+  display: grid;
+  height: 34px;
+  justify-items: center;
+  align-items: center;
+  color: #8b9bb7;
+}
+
+.dependencyArrow i {
+  width: 1px;
+  height: 13px;
+  background: var(--border);
+}
+
+.dependencyArrow span {
+  margin-top: -6px;
+  font-size: 12px;
+}
+
+/* Patch 022B - Change Preview */
+
+.editPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.editList {
+  display: grid;
+  gap: 8px;
+}
+
+.editList article {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.editList strong {
+  display: block;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.editList p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.editList span {
+  align-self: flex-start;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(105,140,210,.1);
+  color: #5877b0;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.approveButton {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: #5f83d2;
+  color: white;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+/* Patch 022C - Diff Preview */
+
+.diffPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.diffFile {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.diffFile strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.diffFile pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: #111827;
+  color: #e5e7eb;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.diffFile pre span {
+  display: block;
+}
+
+.diffFile pre span[data-type="add"] {
+  color: #6ee7a8;
+}
+
+.diffFile pre span[data-type="remove"] {
+  color: #ff8c8c;
+}
+
+.diffFile pre span[data-type="context"] {
+  color: #b8c4d8;
+}
+
+/* Patch 022G - Git Review */
+
+.gitPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.gitCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.gitCard p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.gitCard strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.gitCard span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}

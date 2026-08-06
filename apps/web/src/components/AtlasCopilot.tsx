@@ -424,6 +424,277 @@ export function AtlasCopilot({
                 ))}
               </div>
 
+              {runtimeView?.gitReview ? (
+                <section className={styles.gitPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>Git Review</span>
+                    <strong>
+                      {
+                        runtimeView.gitReview
+                          .changedFiles
+                      }
+                    </strong>
+                  </div>
+
+                  <div className={styles.gitCard}>
+                    <p>
+                      Branch
+                    </p>
+
+                    <strong>
+                      {
+                        runtimeView.gitReview
+                          .branch
+                      }
+                    </strong>
+                  </div>
+
+                  <div className={styles.gitCard}>
+                    <p>
+                      Commit Preview
+                    </p>
+
+                    <strong>
+                      {
+                        runtimeView.gitReview
+                          .commitMessage
+                      }
+                    </strong>
+                  </div>
+
+                  <div className={styles.gitCard}>
+                    <p>
+                      Summary
+                    </p>
+
+                    <span>
+                      {
+                        runtimeView.gitReview
+                          .summary
+                      }
+                    </span>
+                  </div>
+                </section>
+              ) : null}
+
+
+              {runtimeView?.diffPreviews?.length ? (
+                <section className={styles.diffPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>Diff Preview</span>
+                    <strong>
+                      {runtimeView.diffPreviews.length}
+                    </strong>
+                  </div>
+
+                  {runtimeView.diffPreviews.map(
+                    (diff) => (
+                      <article
+                        key={diff.filePath}
+                        className={styles.diffFile}
+                      >
+                        <strong>
+                          {diff.filePath}
+                        </strong>
+
+                        <pre>
+                          {diff.lines.map(
+                            (line, index) => (
+                              <span
+                                key={index}
+                                data-type={line.type}
+                              >
+                                {line.text}
+                                {"\n"}
+                              </span>
+                            ),
+                          )}
+                        </pre>
+                      </article>
+                    ),
+                  )}
+                </section>
+              ) : null}
+
+
+              {runtimeView?.editProposals?.length ? (
+                <section className={styles.editPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>Proposed changes</span>
+                    <strong>
+                      {runtimeView.editProposals.length}
+                    </strong>
+                  </div>
+
+                  <div className={styles.editList}>
+                    {runtimeView.editProposals.map(
+                      (proposal) => (
+                        <article key={proposal.id}>
+                          <div>
+                            <strong>
+                              {proposal.filePath}
+                            </strong>
+
+                            <p>
+                              {proposal.action.toUpperCase()}
+                              {" · "}
+                              {proposal.reason}
+                            </p>
+                          </div>
+
+                          <span>
+                            {proposal.risk}
+                          </span>
+                        </article>
+                      ),
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.approveButton}
+                  >
+                    Approve Changes
+                  </button>
+                </section>
+              ) : null}
+
+
+              {runtimeView?.dependencyGraph?.nodes.length ? (
+                <section className={styles.dependencyPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>
+                      {runtimeView.dependencyGraph.title}
+                    </span>
+
+                    <strong>
+                      {
+                        runtimeView.dependencyGraph
+                          .nodes.length
+                      }
+                    </strong>
+                  </div>
+
+                  <div className={styles.dependencyGraph}>
+                    {runtimeView.dependencyGraph.nodes.map(
+                      (node, index) => (
+                        <div
+                          key={node.id}
+                          className={styles.dependencyNode}
+                        >
+                          <article>
+                            <span>
+                              {node.role || "file"}
+                            </span>
+
+                            <strong>{node.label}</strong>
+
+                            {node.detail ? (
+                              <p>{node.detail}</p>
+                            ) : null}
+                          </article>
+
+                          {index <
+                          runtimeView.dependencyGraph!.nodes.length - 1 ? (
+                            <div
+                              className={
+                                styles.dependencyArrow
+                              }
+                            >
+                              <i />
+                              <span>↓</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
+              {runtimeView?.reasoningSteps?.length ? (
+                <section className={styles.reasoningPanel}>
+                  <div className={styles.sectionHeading}>
+                    <span>Atlas reasoning</span>
+                    <strong>
+                      {runtimeView.reasoningSteps.length}
+                    </strong>
+                  </div>
+
+                  <div className={styles.reasoningList}>
+                    {runtimeView.reasoningSteps.map(
+                      (step, index) => (
+                        <article
+                          key={step.id}
+                          data-status={
+                            step.status || "pending"
+                          }
+                        >
+                          <div className={styles.reasoningMarker}>
+                            <span>{index + 1}</span>
+                            {index <
+                            runtimeView.reasoningSteps!.length - 1 ? (
+                              <i />
+                            ) : null}
+                          </div>
+
+                          <div>
+                            <strong>{step.title}</strong>
+                            <p>{step.detail}</p>
+                          </div>
+                        </article>
+                      ),
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
+              {runtimeView?.contextSections?.length ? (
+                <div className={styles.contextPanel}>
+                  {runtimeView.contextSections.map(
+                    (section) => (
+                      <section
+                        key={section.id}
+                        className={styles.contextSection}
+                      >
+                        <div className={styles.sectionHeading}>
+                          <span>{section.title}</span>
+
+                          {section.count !== undefined ? (
+                            <strong>{section.count}</strong>
+                          ) : null}
+                        </div>
+
+                        <div className={styles.contextList}>
+                          {section.items.map((item) => (
+                            <article
+                              key={item.id}
+                              data-tone={
+                                item.tone || "default"
+                              }
+                            >
+                              <div>
+                                <strong>
+                                  {item.label}
+                                </strong>
+
+                                {item.detail ? (
+                                  <p>{item.detail}</p>
+                                ) : null}
+                              </div>
+
+                              {item.badge ? (
+                                <span>{item.badge}</span>
+                              ) : null}
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ),
+                  )}
+                </div>
+              ) : null}
+
               <div className={styles.suggestions}>
                 <div className={styles.sectionHeading}>
                   <span>Atlas suggestions</span>

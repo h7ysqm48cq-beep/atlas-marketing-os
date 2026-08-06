@@ -2448,3 +2448,39 @@ button {
     background: #f3f5f8;
   }
 }
+
+/* Stable Sidebar Sections */
+
+.sidebar-nav-section {
+  display: grid;
+  gap: 4px;
+}
+
+.nav-section-heading {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  min-height: 38px;
+  pointer-events: none;
+}
+
+.nav-section-heading .nav-section-label {
+  width: 100%;
+  margin: 0;
+}
+
+.desktop-collapsed .nav-section-heading {
+  justify-content: center;
+}
+
+.desktop-collapsed .nav-section-heading,
+.desktop-collapsed .nav-section-label {
+  overflow: hidden;
+}
+
+.desktop-collapsed .nav-section-label {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+}

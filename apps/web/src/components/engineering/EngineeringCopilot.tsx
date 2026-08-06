@@ -126,6 +126,271 @@ function buildRuntimeView(
           completed: true,
         }),
       ),
+
+    reasoningSteps: [
+      {
+        id: "intent",
+        title: "Request understood",
+        detail:
+          `Atlas classified this as ${plan.title}.`,
+        status: "complete",
+      },
+      {
+        id: "primary",
+        title: "Primary files identified",
+        detail:
+          `${plan.impact.component_files} component files are directly related to the request.`,
+        status: "complete",
+      },
+      {
+        id: "styles",
+        title: "Shared styling impact detected",
+        detail:
+          `${plan.impact.style_files} style files may need review for visual consistency.`,
+        status: "complete",
+      },
+      {
+        id: "dependencies",
+        title: "Dependencies analysed",
+        detail:
+          `${plan.impact.affected_files} files may be affected across the repository.`,
+        status: "complete",
+      },
+      {
+        id: "approval",
+        title: "Approval gate enabled",
+        detail:
+          plan.requires_approval
+            ? "No repository changes will run until the plan is approved."
+            : "The plan is ready for execution.",
+        status:
+          plan.requires_approval
+            ? "active"
+            : "complete",
+      },
+    ],
+
+    dependencyGraph: {
+      title: "Repository dependency path",
+      nodes: plan.related_files
+        .slice(0, 7)
+        .map((file) => ({
+          id: file.file_path,
+          label:
+            file.file_path
+              .split("/")
+              .pop() || file.file_path,
+          detail:
+            file.reasons[0] ||
+            "Related repository file.",
+          role: file.role,
+        })),
+      edges: plan.related_files
+        .slice(0, 6)
+        .map((file, index) => ({
+          id: `edge-${index}`,
+          from: file.file_path,
+          to:
+            plan.related_files[index + 1]
+              ?.file_path ||
+            file.file_path,
+          label:
+            index === 0
+              ? "primary relationship"
+              : "repository dependency",
+        }))
+        .filter(
+          (edge) =>
+            edge.from !== edge.to,
+        ),
+    },
+
+    gitReview: {
+      branch:
+        "agent/railway-sync",
+
+      changedFiles:
+        plan.impact.affected_files,
+
+      stagedFiles:
+        0,
+
+      clean:
+        false,
+
+      commitMessage:
+        "feat: improve Atlas engineering workflow",
+
+      summary:
+        "Engineering agent changes ready for review.",
+    },
+
+
+    diffPreviews:
+      plan.related_files
+        .slice(0, 3)
+        .map((file) => ({
+          filePath: file.file_path,
+          lines: [
+            {
+              type: "context",
+              text:
+                `// ${file.file_path}`,
+            },
+            {
+              type: "remove",
+              text:
+                "- Current implementation",
+            },
+            {
+              type: "add",
+              text:
+                "+ Updated implementation based on plan",
+            },
+            {
+              type: "context",
+              text:
+                "// Review required before applying",
+            },
+          ],
+        })),
+
+
+    editProposals:
+      plan.related_files
+        .slice(0, 8)
+        .map((file, index) => ({
+          id: `edit-${index}`,
+          filePath: file.file_path,
+          action:
+            file.role === "primary"
+              ? "modify"
+              : "review",
+          reason:
+            file.reasons?.[0] ||
+            "Repository dependency detected.",
+          risk:
+            plan.risk === "high"
+              ? "high"
+              : plan.risk === "medium"
+                ? "medium"
+                : "low",
+          approved: false,
+        })),
+
+
+    contextSections: [
+      {
+        id: "repository-stack",
+        title: "Repository",
+        count: 4,
+        items: [
+          {
+            id: "nextjs",
+            label: "Next.js",
+            detail: "Web application and App Router.",
+            badge: "Web",
+          },
+          {
+            id: "nestjs",
+            label: "NestJS",
+            detail: "API modules and services.",
+            badge: "API",
+          },
+          {
+            id: "prisma",
+            label: "Prisma",
+            detail: "Database schema and access layer.",
+            badge: "Data",
+          },
+          {
+            id: "supabase",
+            label: "Supabase",
+            detail: "Authentication and platform services.",
+            badge: "Auth",
+          },
+        ],
+      },
+      {
+        id: "affected-files",
+        title: "Affected files",
+        count: plan.related_files.length,
+        items: plan.related_files
+          .slice(0, 6)
+          .map((file) => ({
+            id: file.file_path,
+            label: file.file_path
+              .split("/")
+              .pop() || file.file_path,
+            detail:
+              file.reasons[0] ||
+              "Related repository file.",
+            badge: file.role,
+          })),
+      },
+      {
+        id: "impact-preview",
+        title: "Impact preview",
+        count: plan.impact.affected_files,
+        items: [
+          {
+            id: "impact-files",
+            label:
+              `${plan.impact.affected_files} affected files`,
+            detail:
+              `${plan.impact.component_files} components, ` +
+              `${plan.impact.style_files} style files.`,
+            badge: "Files",
+          },
+          {
+            id: "impact-risk",
+            label:
+              `${plan.risk.toUpperCase()} engineering risk`,
+            detail:
+              plan.risk === "high"
+                ? "Review shared layouts and dependencies before applying."
+                : plan.risk === "medium"
+                  ? "Preview and test the affected modules."
+                  : "Changes appear isolated and reviewable.",
+            badge: "Risk",
+            tone:
+              plan.risk === "high"
+                ? "danger"
+                : plan.risk === "medium"
+                  ? "warning"
+                  : "success",
+          },
+          {
+            id: "impact-approval",
+            label:
+              plan.requires_approval
+                ? "Approval required"
+                : "Ready for execution",
+            detail:
+              plan.requires_approval
+                ? "Atlas will not modify files until the plan is approved."
+                : "The plan can proceed to execution.",
+            badge:
+              plan.requires_approval
+                ? "Review"
+                : "Ready",
+            tone:
+              plan.requires_approval
+                ? "warning"
+                : "success",
+          },
+          ...plan.warnings.slice(0, 2).map(
+            (warning, index) => ({
+              id: `warning-${index}`,
+              label: "Repository warning",
+              detail: warning,
+              badge: "Warning",
+              tone: "warning" as const,
+            }),
+          ),
+        ],
+      },
+    ],
   };
 }
 

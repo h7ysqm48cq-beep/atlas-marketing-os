@@ -33,12 +33,20 @@ export function Sidebar() {
   const { t, language } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [workspaceOpen, setWorkspaceOpen] = useState(true);
-  const [resourcesOpen, setResourcesOpen] = useState(true);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(SIDEBAR_STATE_KEY);
-    setCollapsed(saved === "true");
+    const timer = window.setTimeout(() => {
+      const saved =
+        window.localStorage.getItem(
+          SIDEBAR_STATE_KEY,
+        );
+
+      setCollapsed(saved === "true");
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -93,7 +101,13 @@ export function Sidebar() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    setMobileOpen(false);
+    const timer = window.setTimeout(() => {
+      setMobileOpen(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [pathname]);
 
   function isActive(href: string) {
@@ -196,55 +210,41 @@ export function Sidebar() {
 
         <div className="sidebar-scroll-area">
           <section className="sidebar-nav-section">
-            <button
-              type="button"
-              className="nav-section-toggle"
-              onClick={() => setWorkspaceOpen((current) => !current)}
-              aria-expanded={workspaceOpen}
-              title={collapsed ? t("workspace") : undefined}
-            >
-              <span className="nav-section-label">{t("workspace")}</span>
-              <span className="nav-section-chevron">
-                {workspaceOpen ? "⌃" : "⌄"}
+            <div className="nav-section-heading">
+              <span className="nav-section-label">
+                {t("workspace")}
               </span>
-            </button>
+            </div>
 
-            {workspaceOpen ? (
-              <nav className="nav-list">{renderItems(mainItems)}</nav>
-            ) : null}
+            <nav className="nav-list">
+              {renderItems(mainItems)}
+            </nav>
           </section>
 
           <section className="sidebar-nav-section">
-            <button
-              type="button"
-              className="nav-section-toggle"
-              onClick={() => setResourcesOpen((current) => !current)}
-              aria-expanded={resourcesOpen}
-              title={collapsed ? t("resources") : undefined}
-            >
-              <span className="nav-section-label">{t("resources")}</span>
-              <span className="nav-section-chevron">
-                {resourcesOpen ? "⌃" : "⌄"}
+            <div className="nav-section-heading">
+              <span className="nav-section-label">
+                {t("resources")}
               </span>
-            </button>
+            </div>
 
-            {resourcesOpen ? (
-              <nav className="nav-list">
-                <a
-                  className={`nav-item${imageEditorActive ? " active" : ""}`}
-                  href="/image-editor"
-                  aria-current={imageEditorActive ? "page" : undefined}
-                  aria-label={collapsed ? imageEditorLabel : undefined}
-                  title={collapsed ? imageEditorLabel : undefined}
-                  onClick={closeMobileNavigation}
-                >
-                  <span className="nav-icon">✧</span>
-                  <span className="nav-item-label">{imageEditorLabel}</span>
-                </a>
+            <nav className="nav-list">
+              <a
+                className={`nav-item${imageEditorActive ? " active" : ""}`}
+                href="/image-editor"
+                aria-current={imageEditorActive ? "page" : undefined}
+                aria-label={collapsed ? imageEditorLabel : undefined}
+                title={collapsed ? imageEditorLabel : undefined}
+                onClick={closeMobileNavigation}
+              >
+                <span className="nav-icon">✧</span>
+                <span className="nav-item-label">
+                  {imageEditorLabel}
+                </span>
+              </a>
 
-                {renderItems(resourceItems)}
-              </nav>
-            ) : null}
+              {renderItems(resourceItems)}
+            </nav>
           </section>
         </div>
 
