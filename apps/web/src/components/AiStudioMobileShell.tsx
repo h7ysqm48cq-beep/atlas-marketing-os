@@ -14,8 +14,7 @@ export function AiStudioMobileShell() {
     const shell = shellRef.current;
     if (!shell) return;
 
-    let shortcut: HTMLButtonElement | null = null;
-    let holder: HTMLDivElement | null = null;
+    let actionRow: HTMLDivElement | null = null;
 
     const configureMobileStudio = () => {
       const selectedPlatformButtons = shell.querySelectorAll<HTMLButtonElement>(
@@ -36,12 +35,16 @@ export function AiStudioMobileShell() {
 
       collapseButton?.click();
 
-      if (shortcut?.isConnected) return;
+      if (actionRow?.isConnected) return;
 
       const topicField = shell.querySelector<HTMLElement>(
         '[class*="AiStudio_formCard"] > label:first-child',
       );
-      const originalImageButton = Array.from(
+      const textarea = topicField?.querySelector<HTMLTextAreaElement>("textarea");
+      const generatePromptButton = shell.querySelector<HTMLButtonElement>(
+        '[class*="AiStudio_generateButton"]',
+      );
+      const imageTabButton = Array.from(
         shell.querySelectorAll<HTMLButtonElement>(
           '[class*="AiWorkspace_tabs"] button',
         ),
@@ -49,30 +52,35 @@ export function AiStudioMobileShell() {
         button.textContent?.trim().toLowerCase().includes("ai image"),
       );
 
-      if (!topicField || !originalImageButton) return;
+      if (!topicField || !textarea || !generatePromptButton || !imageTabButton) {
+        return;
+      }
 
-      const topicLabel = topicField.querySelector<HTMLElement>("span");
-      if (!topicLabel) return;
+      actionRow = document.createElement("div");
+      actionRow.className = styles.topicGenerateActions;
 
-      holder = document.createElement("div");
-      holder.className = styles.topicHeaderActions;
+      const promptButton = document.createElement("button");
+      promptButton.type = "button";
+      promptButton.className = styles.generatePromptButton;
+      promptButton.textContent = "Generate Prompt";
+      promptButton.addEventListener("click", () => {
+        generatePromptButton.click();
+      });
 
-      shortcut = document.createElement("button");
-      shortcut.type = "button";
-      shortcut.className = styles.topicImagePromptButton;
-      shortcut.textContent = "AI Image";
-      shortcut.setAttribute("aria-label", "Open AI Image prompt");
-      shortcut.addEventListener("click", () => {
-        originalImageButton.click();
-        originalImageButton.scrollIntoView({
+      const imageButton = document.createElement("button");
+      imageButton.type = "button";
+      imageButton.className = styles.generateImageButton;
+      imageButton.textContent = "Generate Image";
+      imageButton.addEventListener("click", () => {
+        imageTabButton.click();
+        imageTabButton.scrollIntoView({
           behavior: "smooth",
-          block: "nearest",
+          block: "start",
         });
       });
 
-      holder.appendChild(shortcut);
-      topicLabel.insertAdjacentElement("afterend", holder);
-      topicField.dataset.hasImageShortcut = "true";
+      actionRow.append(promptButton, imageButton);
+      textarea.insertAdjacentElement("afterend", actionRow);
     };
 
     const frame = window.requestAnimationFrame(configureMobileStudio);
@@ -86,7 +94,7 @@ export function AiStudioMobileShell() {
     return () => {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
-      holder?.remove();
+      actionRow?.remove();
     };
   }, []);
 
