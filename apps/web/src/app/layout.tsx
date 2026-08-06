@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./sidebar-enhancements.css";
 import "./workspace-compact.css";
+import "./asset-library-mobile-v3.css";
 import { PreferencesProvider } from "@/components/preferences";
 
 export const metadata: Metadata = {
