@@ -13,9 +13,8 @@
   }
 
   .mobileHeader {
-    position: sticky;
-    top: 72px;
-    z-index: 28;
+    position: relative;
+    z-index: 8;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -23,9 +22,8 @@
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: color-mix(in srgb, var(--panel) 96%, transparent);
+    background: var(--panel);
     box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
   }
 
   .mobileHeader > div {
@@ -74,7 +72,6 @@
     gap: 12px !important;
   }
 
-  /* History returns to the top, directly below the compact Studio header. */
   .shell :global([class*="AiStudio_recentSection"]) {
     order: 1;
     padding: 11px !important;
@@ -116,13 +113,17 @@
     gap: 12px !important;
   }
 
-  /* Topic always remains visible. Advanced only controls secondary settings. */
   .shell :global([class*="AiStudio_formCard"]) {
-    order: 1;
+    order: 1 !important;
     display: grid !important;
     gap: 10px !important;
     padding: 12px !important;
     border-radius: 14px !important;
+  }
+
+  .shell :global([class*="AiWorkspace_workspace"]) {
+    order: 2 !important;
+    min-width: 0 !important;
   }
 
   .shell :global([class*="AiStudio_formCard"] > label:first-child textarea) {
@@ -138,15 +139,14 @@
     display: none !important;
   }
 
-  /* Remove the empty workspace introduction but retain quick tabs. */
   .shell :global([class*="AiWorkspace_workspaceHeader"] > div:first-child) {
     display: none !important;
   }
 
   .shell :global([class*="AiWorkspace_workspaceHeader"]) {
     position: sticky !important;
-    top: 132px !important;
-    z-index: 22 !important;
+    top: 76px !important;
+    z-index: 18 !important;
     display: block !important;
     padding: 8px !important;
     border: 1px solid var(--border) !important;
@@ -170,7 +170,6 @@
     white-space: nowrap;
   }
 
-  /* Copilot is a compact summary by default; Expand reveals the details. */
   .shell :global([class*="AtlasCopilot_panel"]:not(:has([class*="AtlasCopilot_body"]))) {
     padding: 10px 12px !important;
   }
