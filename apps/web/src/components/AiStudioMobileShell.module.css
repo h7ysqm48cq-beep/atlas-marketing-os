@@ -1,0 +1,133 @@
+.shell {
+  min-width: 0;
+}
+
+.mobileHeader {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobileHeader {
+    position: sticky;
+    top: 72px;
+    z-index: 18;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobileHeader > div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .mobileHeader span {
+    color: var(--gold-light);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+
+  .mobileHeader strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileHeader button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel-soft);
+    color: var(--text);
+    font-weight: 750;
+  }
+
+  .shell :global([class*="AiStudio_hero"]) {
+    display: none !important;
+  }
+
+  .shell :global([class*="AiStudio_page"]) {
+    gap: 12px !important;
+  }
+
+  .shell :global([class*="AiStudio_recentSection"]) {
+    order: 3;
+    padding: 12px !important;
+  }
+
+  .shell :global([class*="AiStudio_recentHeader"] h2) {
+    font-size: 14px !important;
+  }
+
+  .shell :global([class*="AiStudio_layout"]) {
+    order: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .shell :global([class*="AiStudio_formCard"]) {
+    order: 1;
+    display: grid !important;
+    gap: 12px !important;
+    padding: 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .shell :global([class*="AiStudio_formCard"] > label:first-child textarea) {
+    min-height: 118px !important;
+    font-size: 16px !important;
+  }
+
+  .shell :global([class*="AiStudio_outputArea"]) {
+    order: 2;
+  }
+
+  .shell[data-advanced-open="false"] :global([class*="AiStudio_platforms"]),
+  .shell[data-advanced-open="false"] :global([class*="AiStudio_assetSection"]),
+  .shell[data-advanced-open="false"] :global([class*="AiStudio_linkedContext"]),
+  .shell[data-advanced-open="false"] :global([class*="AiStudio_formCard"] > label:not(:first-child)),
+  .shell[data-advanced-open="false"] :global([class*="AiTopicSuggestions_"]) {
+    display: none !important;
+  }
+
+  .shell :global([class*="AiStudio_generateButton"]) {
+    position: sticky !important;
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    z-index: 20 !important;
+    min-height: 52px !important;
+    font-size: 14px !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .34) !important;
+  }
+
+  .shell :global([class*="AiStudio_message"]) {
+    padding: 0 2px;
+    font-size: 10px !important;
+  }
+
+  .shell :global([class*="AiStudio_assetModalBackdrop"]) {
+    z-index: 160 !important;
+  }
+}
