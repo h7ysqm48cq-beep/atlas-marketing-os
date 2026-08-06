@@ -15,12 +15,16 @@ export class ImageEditorLayerDto {
   @IsString()
   id!: string;
 
-  @IsIn(['IMAGE', 'LOGO', 'TEXT'])
-  type!: 'IMAGE' | 'LOGO' | 'TEXT';
+  @IsIn(['IMAGE', 'LOGO', 'TEXT', 'QR'])
+  type!: 'IMAGE' | 'LOGO' | 'TEXT' | 'QR';
 
   @IsOptional()
   @IsString()
   text?: string;
+
+  @IsOptional()
+  @IsString()
+  qrValue?: string;
 
   @IsOptional()
   @IsNumber()
