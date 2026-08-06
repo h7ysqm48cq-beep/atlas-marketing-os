@@ -1,30 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AiStudio } from "./AiStudio";
 import styles from "./AiStudioMobileShell.module.css";
 
 export function AiStudioMobileShell() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const shellRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const collapseCopilot = () => {
-      const buttons = Array.from(
-        document.querySelectorAll<HTMLButtonElement>("button"),
+    if (!window.matchMedia("(max-width: 760px)").matches) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const shell = shellRef.current;
+      if (!shell) return;
+
+      const selectedPlatformButtons = shell.querySelectorAll<HTMLButtonElement>(
+        '[class*="AiStudio_platforms"] button[aria-pressed="true"]',
       );
-      const collapseButton = buttons.find(
-        (button) => button.textContent?.trim() === "Collapse",
-      );
+
+      selectedPlatformButtons.forEach((button) => {
+        const label = button.textContent?.trim().toLowerCase() || "";
+
+        if (!label.includes("facebook")) {
+          button.click();
+        }
+      });
+
+      const collapseButton = Array.from(
+        shell.querySelectorAll<HTMLButtonElement>("button"),
+      ).find((button) => button.textContent?.trim() === "Collapse");
 
       collapseButton?.click();
-    };
+    });
 
-    const frame = window.requestAnimationFrame(collapseCopilot);
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
   return (
     <section
+      ref={shellRef}
       className={styles.shell}
       data-advanced-open={advancedOpen ? "true" : "false"}
     >
