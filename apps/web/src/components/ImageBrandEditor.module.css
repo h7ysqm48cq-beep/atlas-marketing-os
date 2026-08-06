@@ -1,86 +1,120 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.hero {
+.header {
+  min-height: 58px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  align-items: flex-start;
-  padding: 22px;
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  background: var(--surface-card);
-}
-
-.hero p {
-  margin: 0 0 6px;
-  color: var(--accent);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.hero h1 {
-  margin: 0 0 8px;
-}
-
-.hero span {
-  color: var(--text-muted);
-  max-width: 760px;
-  display: block;
-}
-
-.hero a {
+  gap: 16px;
   padding: 10px 14px;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  text-decoration: none;
-  color: inherit;
+  border-radius: 14px;
+  background: var(--surface-card);
 }
 
-.message {
+.header > div:first-child {
+  min-width: 0;
+}
+
+.header h1 {
   margin: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--surface-card);
-  border: 1px solid var(--border-color);
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.1;
 }
 
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
-  gap: 18px;
+.header span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.library,
-.editor {
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  background: var(--surface-card);
-  padding: 16px;
-}
-
-.libraryHeader {
+.headerActions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.libraryHeader input,
-.controls input,
-.controls select {
-  width: 100%;
-  padding: 11px 12px;
+.headerActions a,
+.headerActions button,
+.previewToolbar button {
+  min-height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--surface-input);
   color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.controls input[type="range"] {
+.headerActions button:disabled,
+.previewToolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.message {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-card);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(230px, 290px) minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.library,
+.editor {
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-card);
+}
+
+.library {
+  padding: 12px;
+}
+
+.libraryHeader {
+  display: grid;
+  gap: 9px;
+}
+
+.libraryHeader input,
+.controls input,
+.controls select,
+.compactControls input,
+.compactControls select,
+.outputPanel input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface-input);
+  color: inherit;
+}
+
+.controls input[type="range"],
+.compactControls input[type="range"] {
+  min-height: 24px;
   padding: 0;
   accent-color: var(--accent);
 }
@@ -88,126 +122,162 @@
 .assetGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-  max-height: 720px;
+  gap: 8px;
+  max-height: calc(100vh - 210px);
+  margin-top: 10px;
   overflow: auto;
+  scrollbar-width: thin;
 }
 
-.assetGrid button {
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+.assetGrid button,
+.mobileAssetGrid button {
+  position: relative;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: inherit;
-  text-align: left;
   cursor: pointer;
 }
 
-.assetGrid button img {
+.assetGrid button img,
+.mobileAssetGrid button img {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 8px;
+  aspect-ratio: 1;
   display: block;
+  object-fit: cover;
+  border-radius: 7px;
 }
 
 .assetGrid button span {
   display: block;
-  margin-top: 7px;
-  font-size: 12px;
-  line-height: 1.35;
+  margin: 5px 2px 1px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .selectedAsset {
-  outline: 2px solid var(--accent);
   border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(270px, 340px);
-  gap: 18px;
-  align-items: start;
+  grid-template-columns: 74px minmax(0, 1fr) minmax(260px, 320px);
+  align-items: stretch;
+  min-height: calc(100vh - 160px);
+  overflow: hidden;
+}
+
+.toolRail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border-color);
+  background: var(--surface-muted);
+}
+
+.toolRail button {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 7px 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.toolRail button span {
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.toolRail .activeTool {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-color));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 
 .previewPanel {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
 }
 
 .previewToolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.previewToolbar > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.previewToolbar > div {
+  min-width: 0;
+}
+
+.previewToolbar strong,
+.previewToolbar span {
+  display: block;
 }
 
 .previewToolbar span {
+  margin-top: 2px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: capitalize;
 }
 
-.previewToolbar > div:last-child {
-  display: flex;
-  gap: 8px;
-}
-
-.previewToolbar button {
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 9px;
-  background: var(--surface-input);
-  color: inherit;
-}
-
-.previewToolbar .activeToggle {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
-}
-
 .preview {
-  min-height: 540px;
-  padding: 18px;
-  border-radius: 14px;
-  background:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
-    var(--surface-muted);
-  background-size: 24px 24px;
-  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+  flex: 1;
+  min-height: 460px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(45deg, rgba(127, 127, 127, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(127, 127, 127, 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(127, 127, 127, 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(127, 127, 127, 0.08) 75%),
+    var(--surface-muted);
+  background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+  background-size: 22px 22px;
+  color: inherit;
+  cursor: zoom-in;
 }
 
 .canvas {
   position: relative;
   display: inline-block;
   max-width: 100%;
-  max-height: 720px;
+  max-height: calc(100vh - 250px);
   line-height: 0;
-  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
   touch-action: none;
 }
 
 .sourceImage {
-  display: block;
-  max-width: 100%;
-  max-height: 720px;
   width: auto;
   height: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 250px);
+  display: block;
   object-fit: contain;
   user-select: none;
 }
@@ -219,33 +289,32 @@
   max-height: 18%;
   object-fit: contain;
   cursor: grab;
-  pointer-events: auto;
   user-select: none;
   touch-action: none;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
   transition:
-    left 0.18s ease,
-    right 0.18s ease,
-    top 0.18s ease,
-    bottom 0.18s ease,
-    width 0.18s ease,
-    opacity 0.18s ease,
-    transform 0.18s ease;
+    left 0.16s ease,
+    right 0.16s ease,
+    top 0.16s ease,
+    bottom 0.16s ease,
+    width 0.16s ease,
+    opacity 0.16s ease,
+    transform 0.16s ease;
 }
 
 .logoDragging {
   cursor: grabbing;
   transition: none;
   filter:
-    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28))
-    drop-shadow(0 0 0.35rem color-mix(in srgb, var(--accent) 75%, transparent));
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 70%, transparent));
 }
 
 .safeArea {
   position: absolute;
   inset: 3.5%;
   z-index: 2;
-  border: 1px dashed rgba(255, 255, 255, 0.8);
+  border: 1px dashed rgba(255, 255, 255, 0.85);
   border-radius: 4px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.08);
   pointer-events: none;
@@ -255,117 +324,536 @@
   inset: 6% 5.5% 9%;
 }
 
-.previewNote {
-  margin: 10px 0 0;
+.emptyCanvas {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.inspector {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  overflow: auto;
+  border-left: 1px solid var(--border-color);
+  background: var(--surface-card);
+}
+
+.controls,
+.compactControls,
+.outputPanel,
+.layersPanel,
+.mobileAssetPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controls label,
+.compactControls label,
+.outputPanel label {
+  display: grid;
+  gap: 6px;
+}
+
+.controls label span,
+.compactControls label span,
+.outputPanel label span {
   color: var(--text-muted);
   font-size: 12px;
-  line-height: 1.5;
 }
 
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  position: sticky;
-  top: 92px;
+.toggleRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.controls label span {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.controls button {
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 11px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 700;
+.toggleRow button,
+.secondaryButton {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface-input);
+  color: inherit;
   cursor: pointer;
 }
 
-.controls .secondaryButton {
-  border: 1px solid var(--border-color);
-  background: var(--surface-input);
-  color: inherit;
+.activeToggle {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  color: var(--accent) !important;
 }
 
-.controls button:disabled {
-  opacity: 0.55;
+.mobileAssetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.layersPanel > strong,
+.mobileAssetPanel > strong,
+.outputPanel > strong {
+  font-size: 13px;
+}
+
+.layerRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--surface-input);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layerThumbnail {
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--surface-muted);
+}
+
+.layerThumbnail img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.layerRow > span:nth-child(2) {
+  min-width: 0;
+}
+
+.layerRow b,
+.layerRow small {
+  display: block;
+}
+
+.layerRow b {
+  font-size: 12px;
+}
+
+.layerRow small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.layerRow em {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.activeLayer {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-color));
+}
+
+.outputPanel p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.primaryActions {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.primaryActions a,
+.primaryActions button,
+.fullscreenFooter a,
+.fullscreenFooter button {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0 13px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primaryActions a,
+.fullscreenFooter a {
+  background: transparent;
+  color: var(--accent);
+}
+
+.primaryActions button:disabled,
+.fullscreenFooter button:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .result {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 12px 12px;
+  padding: 11px 12px;
   border: 1px solid var(--border-color);
+  border-radius: 10px;
   background: var(--surface-muted);
 }
 
 .result div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  min-width: 0;
+}
+
+.result strong,
+.result span {
+  display: block;
+}
+
+.result span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .result a {
+  flex-shrink: 0;
   color: var(--accent);
+  font-size: 12px;
 }
 
-@media (max-width: 1050px) {
-  .workspace,
-  .editor {
+.mobileDock {
+  display: none;
+}
+
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  background: color-mix(in srgb, var(--surface-card) 96%, #000 4%);
+  color: var(--text-primary, inherit);
+}
+
+.fullscreenHeader {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: max(10px, env(safe-area-inset-top)) 14px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-card);
+}
+
+.fullscreenHeader > div {
+  min-width: 0;
+}
+
+.fullscreenHeader strong,
+.fullscreenHeader span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullscreenHeader span {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.fullscreenHeader button {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--surface-input);
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fullscreenStage {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at center, rgba(127, 127, 127, 0.08), transparent 62%),
+    var(--surface-muted);
+}
+
+.fullscreenCanvas {
+  max-height: calc(100dvh - 300px);
+}
+
+.fullscreenCanvas .sourceImage,
+.fullscreenStage .sourceImage {
+  max-height: calc(100dvh - 300px);
+}
+
+.fullscreenControls {
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-card);
+}
+
+.compactControls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  align-items: end;
+  min-width: 760px;
+}
+
+.compactControls .toggleRow {
+  min-width: 220px;
+}
+
+.fullscreenFooter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-card);
+}
+
+@media (max-width: 1120px) {
+  .workspace {
     grid-template-columns: 1fr;
   }
 
-  .controls {
-    position: static;
+  .library {
+    display: none;
   }
 
-  .preview {
-    min-height: 420px;
-  }
-
-  .assetGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    max-height: 360px;
+  .editor {
+    grid-template-columns: 70px minmax(0, 1fr) minmax(240px, 300px);
+    min-height: calc(100vh - 170px);
   }
 }
 
-@media (max-width: 700px) {
-  .hero,
-  .previewToolbar,
-  .result {
-    align-items: flex-start;
-    flex-direction: column;
+@media (max-width: 820px) {
+  .page {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
   }
 
-  .previewToolbar > div:last-child {
-    width: 100%;
+  .header {
+    min-height: 50px;
+    padding: 8px 10px;
+  }
+
+  .header h1 {
+    font-size: 19px;
+  }
+
+  .header span,
+  .message {
+    font-size: 11px;
+  }
+
+  .headerActions a {
+    display: none;
+  }
+
+  .headerActions button {
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  .editor {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .toolRail {
+    display: none;
+  }
+
+  .previewPanel {
+    padding: 0;
+  }
+
+  .previewToolbar {
+    padding: 0 2px;
   }
 
   .previewToolbar button {
-    flex: 1;
+    display: none;
   }
 
   .preview {
-    min-height: 320px;
-    padding: 10px;
+    min-height: 52dvh;
+    max-height: 62dvh;
+    padding: 8px;
+    border: 1px solid var(--border-color);
   }
 
-  .assetGrid {
+  .canvas,
+  .sourceImage {
+    max-height: 58dvh;
+  }
+
+  .inspector {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+  }
+
+  .mobileAssetPanel,
+  .controls,
+  .layersPanel,
+  .outputPanel {
+    max-height: 42dvh;
+    overflow: auto;
+  }
+
+  .mobileAssetGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .primaryActions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 4px;
+  }
+
+  .mobileDock {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 80;
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
+    gap: 3px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobileDock button,
+  .mobileDock a {
+    min-width: 0;
+    min-height: 50px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    padding: 3px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 9px;
+    text-decoration: none;
+  }
+
+  .mobileDock span {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mobileDock .mobileCreate {
+    min-height: 58px;
+    margin-top: -16px;
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+
+  .result {
+    margin: 10px 0 0;
+  }
+
+  .fullscreen {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+  }
+
+  .fullscreenStage {
+    padding: 8px;
+  }
+
+  .fullscreenCanvas,
+  .fullscreenCanvas .sourceImage,
+  .fullscreenStage .sourceImage {
+    max-height: calc(100dvh - 330px);
+  }
+
+  .fullscreenControls {
+    padding: 8px 10px;
+  }
+
+  .compactControls {
+    grid-template-columns: repeat(5, minmax(132px, 1fr));
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 520px) {
+  .headerActions button {
+    font-size: 11px;
+  }
+
+  .message {
+    padding: 8px 10px;
+  }
+
+  .preview {
+    min-height: 48dvh;
+  }
+
+  .mobileAssetGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .primaryActions {
+    grid-template-columns: 1fr;
+  }
+
+  .fullscreenFooter {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fullscreenFooter a,
+  .fullscreenFooter button {
+    min-height: 46px;
+    padding: 0 8px;
+    font-size: 12px;
   }
 }
