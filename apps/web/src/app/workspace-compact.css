@@ -1,39 +1,95 @@
 /* Atlas workspace-first header cleanup.
  * Keeps page identity and actions while removing repeated landing-page copy.
  */
-main [class*="hero"] {
+
+main [class*="hero"],
+main [class*="banner"],
+main [class*="intro"] {
   min-height: auto !important;
   gap: 12px !important;
-  padding-block: 10px !important;
+  padding-block: 8px !important;
 }
 
-main [class*="hero"] h1 {
+main [class*="hero"] h1,
+main [class*="banner"] h1,
+main [class*="intro"] h1,
+main [class*="pageHeader"] h1 {
   max-width: none !important;
   margin-block: 2px !important;
   font-size: clamp(22px, 2.4vw, 30px) !important;
   line-height: 1.12 !important;
 }
 
-main [class*="hero"] > div > p:not(:first-child),
-main [class*="hero"] > div > span {
+/* Remove repeated landing-page explanations, but keep eyebrow labels,
+ * context cards, status text and action controls.
+ */
+main [class*="hero"] > div:first-child > p:not(:first-child),
+main [class*="hero"] > div:first-child > span:not([class]),
+main [class*="banner"] > div:first-child > p:not(:first-child),
+main [class*="intro"] > div:first-child > p:not(:first-child) {
   display: none !important;
 }
 
+main [class*="hero"] [class*="description"],
+main [class*="hero"] [class*="subtitle"],
+main [class*="banner"] [class*="description"],
+main [class*="intro"] [class*="description"] {
+  display: none !important;
+}
+
+/* Large dashboard greetings and marketing-copy blocks should no longer
+ * dominate the workspace. Existing actions and counters remain visible.
+ */
+main [class*="greeting"] h1,
+main [class*="welcome"] h1 {
+  margin: 0 !important;
+  font-size: clamp(24px, 3vw, 34px) !important;
+  line-height: 1.08 !important;
+}
+
+main [class*="greeting"] p,
+main [class*="welcome"] p {
+  margin-block: 3px !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
 @media (max-width: 760px) {
-  main [class*="hero"] {
+  main [class*="hero"],
+  main [class*="banner"],
+  main [class*="intro"],
+  main [class*="pageHeader"] {
     align-items: center !important;
-    min-height: 44px !important;
-    padding: 6px 2px !important;
+    min-height: 42px !important;
+    gap: 8px !important;
+    padding: 5px 2px !important;
   }
 
-  main [class*="hero"] h1 {
-    font-size: 20px !important;
+  main [class*="hero"] h1,
+  main [class*="banner"] h1,
+  main [class*="intro"] h1,
+  main [class*="pageHeader"] h1 {
+    max-width: min(72vw, 520px) !important;
+    font-size: 19px !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  main [class*="hero"] [class*="eyebrow"] {
+  main [class*="hero"] [class*="eyebrow"],
+  main [class*="banner"] [class*="eyebrow"],
+  main [class*="intro"] [class*="eyebrow"] {
     display: none !important;
+  }
+
+  main [class*="hero"] > div:first-child,
+  main [class*="banner"] > div:first-child,
+  main [class*="intro"] > div:first-child {
+    min-width: 0 !important;
+  }
+
+  main [class*="greeting"] h1,
+  main [class*="welcome"] h1 {
+    font-size: 25px !important;
   }
 }
