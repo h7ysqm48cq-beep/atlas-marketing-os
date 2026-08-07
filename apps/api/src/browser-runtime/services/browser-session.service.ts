@@ -103,14 +103,16 @@ export class BrowserSessionService {
         id: accountId,
       },
       data: {
-        loginStatus:
-          'BROWSER_OPEN',
-        cookieStatus:
-          'PROFILE_READY',
+        /*
+         * Browser runtime state and Facebook
+         * identity state are independent.
+         *
+         * Opening Chromium must never overwrite
+         * LOGGED_IN / LOGIN_REQUIRED / 2FA /
+         * CHECKPOINT or the stored cookie state.
+         */
         lastHeartbeatAt:
           new Date(),
-        lastLoginError:
-          null,
       },
     });
 
@@ -146,18 +148,12 @@ export class BrowserSessionService {
         id: accountId,
       },
       data: {
-        loginStatus:
-          result.running === true
-            ? 'BROWSER_OPEN'
-            : 'BROWSER_CLOSED',
-
+        /*
+         * status() reports Chromium runtime only.
+         * Do not mutate Facebook login identity.
+         */
         lastHeartbeatAt:
           new Date(),
-
-        lastLoginError:
-          result.running === true
-            ? null
-            : undefined,
       },
     });
 
@@ -661,13 +657,6 @@ export class BrowserSessionService {
             ipStatus,
             lastHeartbeatAt:
               checkedAt,
-            loginStatus:
-              result.running ===
-                false
-                ? 'BROWSER_CLOSED'
-                : 'BROWSER_OPEN',
-            lastLoginError:
-              null,
           },
         });
 
@@ -754,8 +743,11 @@ export class BrowserSessionService {
         id: accountId,
       },
       data: {
-        loginStatus:
-          'BROWSER_CLOSED',
+        /*
+         * Closing Chromium preserves the
+         * Facebook identity stored inside the
+         * persistent browser profile.
+         */
         lastHeartbeatAt:
           new Date(),
       },

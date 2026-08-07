@@ -2096,3 +2096,142 @@
 }
 
 /* === END BROWSER IDENTITY STATUS === */
+
+
+
+/* === ACCOUNT HEALTH MONITOR === */
+
+.healthMonitor {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid
+    rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+.healthMonitorHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.healthMonitorHeader h2 {
+  margin: 4px 0 6px;
+}
+
+.healthMonitorHeader p {
+  margin: 0;
+  opacity: 0.72;
+}
+
+.healthProgress {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background:
+    rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+
+.healthAccountGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.healthAccountGrid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid
+    rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background:
+    rgba(0, 0, 0, 0.08);
+}
+
+.healthAccountTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.healthAccountTop > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.healthAccountTop > span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.healthAccountTop
+  > span[data-health-status="READY"] {
+  background:
+    rgba(55, 200, 120, 0.14);
+}
+
+.healthAccountTop
+  > span[data-health-status="LOGIN_REQUIRED"] {
+  background:
+    rgba(240, 180, 70, 0.14);
+}
+
+.healthAccountTop
+  > span[data-health-status="ATTENTION"],
+.healthAccountTop
+  > span[data-health-status="FAILED"] {
+  background:
+    rgba(230, 90, 90, 0.14);
+}
+
+.healthAccountTop
+  > span[data-health-status="UNKNOWN"] {
+  background:
+    rgba(160, 160, 160, 0.12);
+}
+
+.healthAccountGrid small {
+  display: block;
+  margin-top: 9px;
+  line-height: 1.45;
+  opacity: 0.75;
+}
+
+.healthMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+  .healthMonitorHeader {
+    flex-direction: column;
+  }
+
+  .healthMonitorHeader button {
+    width: 100%;
+  }
+
+  .healthAccountGrid {
+    grid-template-columns:
+      1fr;
+  }
+}
+
+/* === END ACCOUNT HEALTH MONITOR === */

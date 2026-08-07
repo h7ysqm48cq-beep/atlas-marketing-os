@@ -168,6 +168,21 @@ type InspectionResult = {
   };
 };
 
+
+type AccountHealthResult = {
+  accountId: string;
+  status:
+    | "READY"
+    | "LOGIN_REQUIRED"
+    | "ATTENTION"
+    | "UNKNOWN"
+    | "FAILED";
+  loginStatus: string;
+  browserWasRunning: boolean;
+  checkedAt: string;
+  message: string;
+};
+
 const EMPTY_RUNTIME: AccountRuntime = {
   loading: false,
   running: false,
@@ -372,6 +387,39 @@ function readableStatus(
     "_",
     " ",
   );
+}
+
+
+function healthStatusFromLogin(
+  value?: string | null,
+): AccountHealthResult["status"] {
+  const status =
+    normalizeStatus(
+      value,
+    );
+
+  if (
+    status === "LOGGED_IN"
+  ) {
+    return "READY";
+  }
+
+  if (
+    status === "LOGIN_REQUIRED"
+  ) {
+    return "LOGIN_REQUIRED";
+  }
+
+  if (
+    status ===
+      "TWO_FACTOR_REQUIRED" ||
+    status ===
+      "CHECKPOINT_REQUIRED"
+  ) {
+    return "ATTENTION";
+  }
+
+  return "UNKNOWN";
 }
 
 
@@ -607,6 +655,27 @@ export function BrowserAccountsManagerV2({
   ] = useState<string | null>(
     null,
   );
+
+
+  const [
+    healthResults,
+    setHealthResults,
+  ] = useState<
+    Record<
+      string,
+      AccountHealthResult
+    >
+  >({});
+
+  const [
+    healthCheckRunning,
+    setHealthCheckRunning,
+  ] = useState(false);
+
+  const [
+    healthCheckProgress,
+    setHealthCheckProgress,
+  ] = useState("");
 
   const viewerRef =
     useRef<HTMLElement | null>(
@@ -1592,6 +1661,316 @@ export function BrowserAccountsManagerV2({
     );
   }
 
+  async function healthCheckAccount(
+    account: BrowserAccount,
+  ): Promise<AccountHealthResult> {
+    const apiOrigin =
+      getBrowserRuntimeApiUrl();
+
+    let browserWasRunning =
+      false;
+
+    let openedTemporarily =
+      false;
+
+    try {
+      const statusResponse =
+        await fetch(
+          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/status`,
+          {
+            cache:
+              "no-store",
+          },
+        );
+
+      const statusBody =
+        await readJson(
+          statusResponse,
+        );
+
+      if (
+        !statusResponse.ok
+      ) {
+        throw new Error(
+          getErrorMessage(
+            statusBody,
+            "Unable to read browser status.",
+          ),
+        );
+      }
+
+      browserWasRunning =
+        statusBody.running ===
+        true;
+
+      /*
+       * If stopped, temporarily start this
+       * account's own persistent profile.
+       *
+       * No Live Viewer is opened.
+       * No other account profile is reused.
+       */
+      if (
+        !browserWasRunning
+      ) {
+        const openResponse =
+          await fetch(
+            `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/open`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  headless:
+                    true,
+
+                  startUrl:
+                    "https://www.facebook.com/",
+                }),
+            },
+          );
+
+        const openBody =
+          await readJson(
+            openResponse,
+          );
+
+        if (
+          !openResponse.ok
+        ) {
+          throw new Error(
+            getErrorMessage(
+              openBody,
+              "Unable to open browser for health check.",
+            ),
+          );
+        }
+
+        openedTemporarily =
+          true;
+      }
+
+      const inspectResponse =
+        await fetch(
+          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/inspect`,
+          {
+            method:
+              "POST",
+          },
+        );
+
+      const inspectBody =
+        await readJson(
+          inspectResponse,
+        );
+
+      if (
+        !inspectResponse.ok
+      ) {
+        throw new Error(
+          getErrorMessage(
+            inspectBody,
+            "Unable to inspect Facebook identity.",
+          ),
+        );
+      }
+
+      const inspection =
+        inspectBody as
+          InspectionResult;
+
+      const loginStatus =
+        normalizeStatus(
+          inspection.loginStatus,
+        );
+
+      return {
+        accountId:
+          account.id,
+
+        status:
+          healthStatusFromLogin(
+            loginStatus,
+          ),
+
+        loginStatus,
+
+        browserWasRunning,
+
+        checkedAt:
+          new Date()
+            .toISOString(),
+
+        message:
+          facebookIdentityMessage(
+            loginStatus,
+          ),
+      };
+    } catch (error) {
+      return {
+        accountId:
+          account.id,
+
+        status:
+          "FAILED",
+
+        loginStatus:
+          "UNKNOWN",
+
+        browserWasRunning,
+
+        checkedAt:
+          new Date()
+            .toISOString(),
+
+        message:
+          error instanceof Error
+            ? error.message
+            : "Health check failed.",
+      };
+    } finally {
+      /*
+       * Never close a browser the user
+       * already had open.
+       *
+       * Only close sessions created by
+       * Health Monitor itself.
+       */
+      if (
+        openedTemporarily
+      ) {
+        await fetch(
+          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/close`,
+          {
+            method:
+              "POST",
+          },
+        ).catch(
+          () =>
+            undefined,
+        );
+      }
+    }
+  }
+
+
+  async function runAllHealthChecks() {
+    if (
+      healthCheckRunning ||
+      !accounts.length
+    ) {
+      return;
+    }
+
+    setHealthCheckRunning(
+      true,
+    );
+
+    setGlobalError("");
+    setActionMessage("");
+
+    const nextResults:
+      Record<
+        string,
+        AccountHealthResult
+      > = {};
+
+    try {
+      for (
+        let index = 0;
+        index <
+          accounts.length;
+        index += 1
+      ) {
+        const account =
+          accounts[index];
+
+        setHealthCheckProgress(
+          `Checking ${index + 1}/${accounts.length}: ${account.displayName}`,
+        );
+
+        const result =
+          await healthCheckAccount(
+            account,
+          );
+
+        nextResults[
+          account.id
+        ] = result;
+
+        setHealthResults({
+          ...nextResults,
+        });
+      }
+
+      const results =
+        Object.values(
+          nextResults,
+        );
+
+      const ready =
+        results.filter(
+          (item) =>
+            item.status ===
+            "READY",
+        ).length;
+
+      const loginRequired =
+        results.filter(
+          (item) =>
+            item.status ===
+            "LOGIN_REQUIRED",
+        ).length;
+
+      const attention =
+        results.filter(
+          (item) =>
+            item.status ===
+            "ATTENTION",
+        ).length;
+
+      const failed =
+        results.filter(
+          (item) =>
+            item.status ===
+            "FAILED",
+        ).length;
+
+      setActionMessage(
+        [
+          "Health check completed.",
+          `${ready} ready.`,
+          `${loginRequired} login required.`,
+          `${attention} need attention.`,
+          `${failed} failed.`,
+        ].join(" "),
+      );
+
+      await loadAccounts();
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to complete health check.",
+      );
+    } finally {
+      setHealthCheckProgress(
+        "",
+      );
+
+      setHealthCheckRunning(
+        false,
+      );
+    }
+  }
+
+
   async function openBrowser(
     accountId: string,
   ) {
@@ -1653,6 +2032,8 @@ export function BrowserAccountsManagerV2({
       ),
       loadAccounts(),
     ]);
+
+    await connectSecureBrowserViewer();
 
     await connectSecureBrowserViewer();
 
@@ -2711,6 +3092,160 @@ export function BrowserAccountsManagerV2({
           </table>
         </div>
       </section>
+
+      <section
+        className={
+          styles.healthMonitor
+        }
+      >
+        <div
+          className={
+            styles.healthMonitorHeader
+          }
+        >
+          <div>
+            <p
+              className={
+                styles.eyebrow
+              }
+            >
+              ACCOUNT HEALTH MONITOR
+            </p>
+
+            <h2>
+              Facebook Account Health
+            </h2>
+
+            <p>
+              Check every browser profile and verify whether its stored Facebook identity is still usable.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className={
+              styles.primaryButton
+            }
+            disabled={
+              healthCheckRunning ||
+              accounts.length === 0
+            }
+            onClick={() => {
+              void runAllHealthChecks();
+            }}
+          >
+            {healthCheckRunning
+              ? "Checking…"
+              : "Check All Accounts"}
+          </button>
+        </div>
+
+        {healthCheckProgress ? (
+          <div
+            className={
+              styles.healthProgress
+            }
+          >
+            {healthCheckProgress}
+          </div>
+        ) : null}
+
+        <div
+          className={
+            styles.healthAccountGrid
+          }
+        >
+          {accounts.map(
+            (account) => {
+              const result =
+                healthResults[
+                  account.id
+                ];
+
+              const status =
+                result?.status ||
+                healthStatusFromLogin(
+                  account.loginStatus,
+                );
+
+              const runtime =
+                runtimes[
+                  account.id
+                ];
+
+              return (
+                <article
+                  key={
+                    account.id
+                  }
+                >
+                  <div
+                    className={
+                      styles.healthAccountTop
+                    }
+                  >
+                    <strong>
+                      {
+                        account.displayName
+                      }
+                    </strong>
+
+                    <span
+                      data-health-status={
+                        status
+                      }
+                    >
+                      {status}
+                    </span>
+                  </div>
+
+                  <small>
+                    {result
+                      ? result.message
+                      : facebookIdentityMessage(
+                          account.loginStatus,
+                        )}
+                  </small>
+
+                  <div
+                    className={
+                      styles.healthMeta
+                    }
+                  >
+                    <span>
+                      Facebook:{" "}
+                      {result
+                        ? readableStatus(
+                            result.loginStatus,
+                          )
+                        : readableStatus(
+                            account.loginStatus,
+                          )}
+                    </span>
+
+                    <span>
+                      Browser:{" "}
+                      {runtime?.running
+                        ? "RUNNING"
+                        : "STOPPED"}
+                    </span>
+
+                    {result ? (
+                      <span>
+                        Checked:{" "}
+                        {formatDate(
+                          result.checkedAt,
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            },
+          )}
+        </div>
+      </section>
+
 
       <section className={styles.detailsPanel}>
         {!selectedAccount ? (
