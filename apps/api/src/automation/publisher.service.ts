@@ -117,8 +117,189 @@ export class PublisherService {
     );
 
     let published = 0;
+    let blocked = 0;
 
     for (const post of posts) {
+
+      /*
+       * FACEBOOK_BROWSER_SAFETY_GATE_V1
+       *
+       * Do this BEFORE changing the post to PUBLISHING.
+       *
+       * If Facebook identity is unhealthy, the post
+       * remains QUEUED/SCHEDULED and can automatically
+       * continue on a later scheduler run after the
+       * Browser Account is repaired.
+       */
+      let facebookSafetyGate:
+        Awaited<
+          ReturnType<
+            RuntimeProfileService[
+              "getBrowserPublishingSafety"
+            ]
+          >
+        > | null =
+        null;
+
+      let facebookPublishNetwork:
+        Awaited<
+          ReturnType<
+            RuntimeProfileService[
+              "getPublishNetwork"
+            ]
+          >
+        > | null =
+        null;
+
+      if (
+        post.platform ===
+        SocialPlatform.FACEBOOK
+      ) {
+        try {
+          facebookSafetyGate =
+            await this.runtimeProfiles
+              .getBrowserPublishingSafety(
+                post.channel.id,
+              );
+
+          if (
+            facebookSafetyGate
+              .hasLinkedAccounts &&
+            !facebookSafetyGate
+              .allowed
+          ) {
+            blocked += 1;
+
+            const candidateSummary =
+              facebookSafetyGate
+                .candidates
+                .map(
+                  (candidate) =>
+                    [
+                      candidate
+                        .displayName,
+                      `login=${candidate.loginStatus}`,
+                      `cookie=${candidate.cookieStatus}`,
+                    ].join(" "),
+                )
+                .join("; ");
+
+            const blockMessage =
+              [
+                "Facebook publishing is waiting for a ready Browser Account.",
+                `Channel: ${post.channel.name}.`,
+                candidateSummary
+                  ? `Accounts: ${candidateSummary}.`
+                  : "No ready Browser Account is available.",
+              ]
+                .join(" ")
+                .slice(
+                  0,
+                  1000,
+                );
+
+            this.logger.warn(
+              [
+                "Facebook Safety Gate blocked publish.",
+                `Post: ${post.id}.`,
+                `Channel: ${post.channel.id}.`,
+                `Reason: ${facebookSafetyGate.reason}.`,
+                blockMessage,
+              ].join(" "),
+            );
+
+            await this.prisma
+              .scheduledPost
+              .updateMany({
+                where: {
+                  id:
+                    post.id,
+
+                  status: {
+                    in: [
+                      ScheduledPostStatus.SCHEDULED,
+                      ScheduledPostStatus.QUEUED,
+                    ],
+                  },
+                },
+
+                data: {
+                  lastError:
+                    blockMessage,
+                },
+              });
+
+            continue;
+          }
+
+          facebookPublishNetwork =
+            await this.runtimeProfiles
+              .getPublishNetwork(
+                post.channel.id,
+              );
+
+          if (
+            facebookSafetyGate
+              .hasLinkedAccounts &&
+            facebookSafetyGate
+              .selected
+          ) {
+            this.logger.log(
+              [
+                "Facebook Safety Gate passed.",
+                `Post: ${post.id}.`,
+                `Browser Account: ${facebookSafetyGate.selected.displayName}.`,
+                `Profile: ${facebookSafetyGate.selected.browserProfileKey}.`,
+              ].join(" "),
+            );
+          }
+        } catch (error) {
+          blocked += 1;
+
+          const message =
+            (
+              error instanceof Error
+                ? error.message
+                : "Unable to evaluate Facebook Browser Account safety."
+            ).slice(
+              0,
+              1000,
+            );
+
+          this.logger.warn(
+            [
+              "Facebook Safety Gate could not complete.",
+              `Post: ${post.id}.`,
+              `Reason: ${message}`,
+              "Post remains queued.",
+            ].join(" "),
+          );
+
+          await this.prisma
+            .scheduledPost
+            .updateMany({
+              where: {
+                id:
+                  post.id,
+
+                status: {
+                  in: [
+                    ScheduledPostStatus.SCHEDULED,
+                    ScheduledPostStatus.QUEUED,
+                  ],
+                },
+              },
+
+              data: {
+                lastError:
+                  `Facebook publishing paused: ${message}`,
+              },
+            });
+
+          continue;
+        }
+      }
+
 
       /*
        * Atomically claim this post before publishing.
@@ -141,6 +322,8 @@ export class PublisherService {
           data: {
             status:
               ScheduledPostStatus.PUBLISHING,
+            lastError:
+              null,
           },
         });
 
@@ -171,41 +354,77 @@ export class PublisherService {
       const runtimeContext = {
         channelId:
           post.channel.id,
+
         channelName:
           post.channel.name,
+
         platform:
           post.platform,
+
+        browserAccountId:
+          facebookSafetyGate
+            ?.selected
+            ?.id ??
+          facebookPublishNetwork
+            ?.browserAccountId ??
+          null,
+
+        browserSafetyReason:
+          facebookSafetyGate
+            ?.reason ??
+          null,
+
         browserProfileId:
           runtimeProfile?.id ??
           null,
+
         browserProfileKey:
+          facebookPublishNetwork
+            ?.browserProfileKey ??
           runtimeProfile
             ?.browserProfileKey ??
           null,
+
         browserProfileName:
+          facebookSafetyGate
+            ?.selected
+            ?.browserProfileName ??
           runtimeProfile
             ?.browserProfileName ??
           null,
+
         locale:
+          facebookPublishNetwork
+            ?.locale ??
           runtimeProfile?.locale ??
           null,
+
         timezone:
-          runtimeProfile?.timezone ??
+          facebookPublishNetwork
+            ?.timezone ??
+          runtimeProfile
+            ?.timezone ??
           post.timezone,
+
         proxyType:
+          facebookPublishNetwork
+            ?.proxyType ??
           runtimeProfile
             ?.proxyType ??
           'DIRECT',
+
         proxyHostConfigured:
           Boolean(
             runtimeProfile
               ?.proxyHost,
           ),
+
         proxyPortConfigured:
           Boolean(
             runtimeProfile
               ?.proxyPort,
           ),
+
         proxyCredentialsConfigured:
           Boolean(
             runtimeProfile
@@ -213,15 +432,24 @@ export class PublisherService {
             runtimeProfile
               ?.proxyPasswordEncrypted,
           ),
+
         proxyCountry:
+          facebookSafetyGate
+            ?.selected
+            ?.proxyCountry ??
           runtimeProfile
             ?.proxyCountry ??
           null,
+
         lastKnownIp:
+          facebookSafetyGate
+            ?.selected
+            ?.lastKnownIp ??
           runtimeProfile
             ?.lastKnownIp ??
           null,
       };
+
 
       const attempt =
         await this.prisma.publishAttempt.create({
@@ -256,6 +484,7 @@ export class PublisherService {
         ) {
 
           const publishNetwork =
+            facebookPublishNetwork ??
             await this.runtimeProfiles
               .getPublishNetwork(
                 post.channel.id,
@@ -293,46 +522,14 @@ export class PublisherService {
             );
           }
 
-          if (!encryptedToken) {
-            throw new Error(
-              [
-                `Facebook channel ${post.channel.id}`,
-                `(${post.channel.name})`,
-                "does not have an access token.",
-              ].join(" "),
-            );
-          }
-
           if (
-            post.channel.tokenExpiresAt &&
-            post.channel.tokenExpiresAt <=
-              new Date()
-          ) {
-            throw new Error(
-              [
-                `Facebook access token for`,
-                `${post.channel.name}`,
-                `expired at`,
-                post.channel
-                  .tokenExpiresAt
-                  .toISOString(),
-              ].join(" "),
-            );
-          }
-
-          const accessToken =
-            this.socialTokenCrypto.decrypt(
-              encryptedToken,
-            );
-
-          if (
-            runtimeContext.browserProfileKey
+            publishNetwork.browserProfileKey
           ) {
             this.logger.log(
               [
                 "Using Browser Runtime Facebook publisher.",
                 "Profile:",
-                runtimeContext.browserProfileKey,
+                publishNetwork.browserProfileKey,
               ].join(" "),
             );
 
@@ -432,6 +629,38 @@ export class PublisherService {
             }
 
           } else {
+            if (!encryptedToken) {
+              throw new Error(
+                [
+                  `Facebook channel ${post.channel.id}`,
+                  `(${post.channel.name})`,
+                  "does not have an access token for Native API publishing.",
+                ].join(" "),
+              );
+            }
+
+            if (
+              post.channel.tokenExpiresAt &&
+              post.channel.tokenExpiresAt <=
+                new Date()
+            ) {
+              throw new Error(
+                [
+                  `Facebook access token for`,
+                  `${post.channel.name}`,
+                  `expired at`,
+                  post.channel
+                    .tokenExpiresAt
+                    .toISOString(),
+                ].join(" "),
+              );
+            }
+
+            const accessToken =
+              this.socialTokenCrypto.decrypt(
+                encryptedToken,
+              );
+
             result =
               await this.facebook.publish({
                 pageId,
@@ -647,6 +876,7 @@ export class PublisherService {
       success: true,
       found: posts.length,
       published,
+      blocked,
     };
 
   }

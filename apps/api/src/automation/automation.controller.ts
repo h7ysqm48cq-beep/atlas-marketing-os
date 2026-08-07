@@ -227,6 +227,22 @@ export class AutomationController {
     return this.automationService.listChannels();
   }
 
+  /*
+   * PUBLISHING_READINESS_DRY_RUN_V1
+   *
+   * Read-only diagnostic route.
+   * Does NOT queue or publish anything.
+   */
+  @Get('channels/:id/publishing-readiness')
+  publishingReadiness(
+    @Param('id') id: string,
+  ) {
+    return this.runtimeProfiles
+      .getBrowserPublishingSafety(
+        id,
+      );
+  }
+
   @Get('channels/:id')
   getChannel(
     @Param('id') id: string,

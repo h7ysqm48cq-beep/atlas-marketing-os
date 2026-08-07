@@ -343,29 +343,425 @@ export class RuntimeProfileService {
     };
   }
 
-  async getBrowserLaunchProfile(
+  private normalizeBrowserAccountState(
+    value?: string | null,
+  ) {
+    return String(
+      value || 'UNKNOWN',
+    )
+      .trim()
+      .toUpperCase();
+  }
+
+
+  private async getLinkedBrowserAccountSelection(
     channelId: string,
-  ): Promise<{
-    channelId: string;
-    browserProfileKey: string;
-    browserProfileName: string;
-    locale: string;
-    timezone: string;
-    proxyType:
-      | 'DIRECT'
-      | 'HTTP'
-      | 'HTTPS'
-      | 'SOCKS5';
-    proxyHost: string | null;
-    proxyPort: number | null;
-    proxyUsername: string | null;
-    proxyPassword: string | null;
-  }> {
+  ) {
+    const links =
+      await this.prisma
+        .browserAccountChannel
+        .findMany({
+          where: {
+            channelId,
+          },
+          orderBy: [
+            {
+              isPrimary:
+                'desc',
+            },
+            {
+              createdAt:
+                'asc',
+            },
+          ],
+          include: {
+            browserAccount:
+              true,
+          },
+        });
+
+    const readyLink =
+      links.find(
+        (link) => {
+          const account =
+            link.browserAccount;
+
+          const loginStatus =
+            this.normalizeBrowserAccountState(
+              account.loginStatus,
+            );
+
+          const cookieStatus =
+            this.normalizeBrowserAccountState(
+              account.cookieStatus,
+            );
+
+          return (
+            loginStatus ===
+              'LOGGED_IN' &&
+            cookieStatus ===
+              'ACTIVE'
+          );
+        },
+      ) || null;
+
+    /*
+     * Runtime preference:
+     *
+     * 1. A READY account.
+     * 2. Otherwise the primary/first account,
+     *    so the user can still open it manually
+     *    and repair its Facebook login.
+     */
+    const preferredLink =
+      readyLink ||
+      links[0] ||
+      null;
+
+    return {
+      links,
+      readyLink,
+      preferredLink,
+    };
+  }
+
+
+  async getBrowserPublishingSafety(
+    channelId: string,
+  ) {
     const channel =
       await this.ensureChannel(
         channelId,
       );
 
+    const {
+      links,
+      readyLink,
+    } =
+      await this
+        .getLinkedBrowserAccountSelection(
+          channelId,
+        );
+
+    const candidates =
+      links.map(
+        (link) => {
+          const account =
+            link.browserAccount;
+
+          return {
+            id:
+              account.id,
+
+            displayName:
+              account.displayName,
+
+            browserProfileKey:
+              account.browserProfileKey,
+
+            browserProfileName:
+              account.browserProfileName,
+
+            loginStatus:
+              this.normalizeBrowserAccountState(
+                account.loginStatus,
+              ),
+
+            cookieStatus:
+              this.normalizeBrowserAccountState(
+                account.cookieStatus,
+              ),
+
+            proxyType:
+              account.proxyType,
+
+            proxyCountry:
+              account.proxyCountry,
+
+            lastKnownIp:
+              account.lastKnownIp,
+
+            lastVerifiedAt:
+              account.lastVerifiedAt,
+
+            lastHeartbeatAt:
+              account.lastHeartbeatAt,
+
+            lastLoginError:
+              account.lastLoginError,
+
+            isPrimary:
+              link.isPrimary,
+          };
+        },
+      );
+
+    /*
+     * No BrowserAccount link means this is still a
+     * legacy/native channel. Do not unexpectedly
+     * block those channels in Safety Gate v1.
+     */
+    if (!links.length) {
+      return {
+        hasLinkedAccounts:
+          false,
+
+        allowed:
+          true,
+
+        reason:
+          'NO_LINKED_BROWSER_ACCOUNT',
+
+        channel: {
+          id:
+            channel.id,
+
+          name:
+            channel.name,
+
+          platform:
+            channel.platform,
+        },
+
+        selected:
+          null,
+
+        candidates,
+      };
+    }
+
+    if (!readyLink) {
+      return {
+        hasLinkedAccounts:
+          true,
+
+        allowed:
+          false,
+
+        reason:
+          'NO_READY_BROWSER_ACCOUNT',
+
+        channel: {
+          id:
+            channel.id,
+
+          name:
+            channel.name,
+
+          platform:
+            channel.platform,
+        },
+
+        selected:
+          null,
+
+        candidates,
+      };
+    }
+
+    const account =
+      readyLink.browserAccount;
+
+    return {
+      hasLinkedAccounts:
+        true,
+
+      allowed:
+        true,
+
+      reason:
+        'READY_BROWSER_ACCOUNT',
+
+      channel: {
+        id:
+          channel.id,
+
+        name:
+          channel.name,
+
+        platform:
+          channel.platform,
+      },
+
+      selected: {
+        id:
+          account.id,
+
+        displayName:
+          account.displayName,
+
+        browserProfileKey:
+          account.browserProfileKey,
+
+        browserProfileName:
+          account.browserProfileName,
+
+        loginStatus:
+          this.normalizeBrowserAccountState(
+            account.loginStatus,
+          ),
+
+        cookieStatus:
+          this.normalizeBrowserAccountState(
+            account.cookieStatus,
+          ),
+
+        proxyType:
+          account.proxyType,
+
+        proxyCountry:
+          account.proxyCountry,
+
+        lastKnownIp:
+          account.lastKnownIp,
+
+        lastVerifiedAt:
+          account.lastVerifiedAt,
+
+        lastHeartbeatAt:
+          account.lastHeartbeatAt,
+
+        isPrimary:
+          readyLink.isPrimary,
+      },
+
+      candidates,
+    };
+  }
+
+
+  async getBrowserLaunchProfile(
+    channelId: string,
+  ) {
+    const channel =
+      await this.ensureChannel(
+        channelId,
+      );
+
+    const {
+      preferredLink,
+    } =
+      await this
+        .getLinkedBrowserAccountSelection(
+          channelId,
+        );
+
+    /*
+     * BrowserAccount is now the authoritative
+     * persistent browser identity whenever one
+     * is linked to this channel.
+     */
+    if (preferredLink) {
+      const account =
+        preferredLink
+          .browserAccount;
+
+      return {
+        channelId,
+
+        browserAccountId:
+          account.id,
+
+        source: 'BROWSER_ACCOUNT' as const,
+
+        browserProfileKey:
+          account.browserProfileKey,
+
+        browserProfileName:
+          account.browserProfileName,
+
+        browserEngine:
+          account.browserEngine,
+
+        operatingSystem:
+          account.operatingSystem,
+
+        userAgent:
+          account.userAgent,
+
+        viewport: {
+          width:
+            account.screenWidth,
+
+          height:
+            account.screenHeight,
+        },
+
+        screenWidth:
+          account.screenWidth,
+
+        screenHeight:
+          account.screenHeight,
+
+        deviceScaleFactor:
+          account.deviceScaleFactor,
+
+        colorScheme:
+          account.colorScheme,
+
+        hardwareConcurrency:
+          account.hardwareConcurrency,
+
+        deviceMemory:
+          account.deviceMemory,
+
+        locale:
+          account.locale,
+
+        timezone:
+          account.timezone,
+
+        identityLocked:
+          account.identityLocked,
+
+        identityVersion:
+          account.identityVersion,
+
+        fingerprintStatus:
+          account.fingerprintStatus,
+
+        proxyType:
+          account.proxyType,
+
+        proxyHost:
+          account.proxyHost,
+
+        proxyPort:
+          account.proxyPort,
+
+        proxyUsername:
+          account
+            .proxyUsernameEncrypted
+            ? this.socialTokenCrypto
+                .decrypt(
+                  account
+                    .proxyUsernameEncrypted,
+                )
+            : null,
+
+        proxyPassword:
+          account
+            .proxyPasswordEncrypted
+            ? this.socialTokenCrypto
+                .decrypt(
+                  account
+                    .proxyPasswordEncrypted,
+                )
+            : null,
+
+        headless:
+          false,
+
+        startUrl:
+          'https://www.facebook.com/',
+      };
+    }
+
+    /*
+     * Backwards-compatible fallback for channels
+     * that have not yet been linked to the new
+     * Browser Account system.
+     */
     const profile =
       await this.ensureForChannel(
         channelId,
@@ -374,31 +770,51 @@ export class RuntimeProfileService {
 
     return {
       channelId,
+
+      browserAccountId:
+        null,
+
+      source: 'LEGACY_RUNTIME_PROFILE' as const,
+
       browserProfileKey:
         profile.browserProfileKey,
+
       browserProfileName:
         profile.browserProfileName,
+
       locale:
         profile.locale,
+
       timezone:
         profile.timezone,
+
       proxyType:
         profile.proxyType,
+
       proxyHost:
         profile.proxyHost,
+
       proxyPort:
         profile.proxyPort,
+
       proxyUsername:
-        profile.proxyUsernameEncrypted
-          ? this.socialTokenCrypto.decrypt(
-              profile.proxyUsernameEncrypted,
-            )
+        profile
+          .proxyUsernameEncrypted
+          ? this.socialTokenCrypto
+              .decrypt(
+                profile
+                  .proxyUsernameEncrypted,
+              )
           : null,
+
       proxyPassword:
-        profile.proxyPasswordEncrypted
-          ? this.socialTokenCrypto.decrypt(
-              profile.proxyPasswordEncrypted,
-            )
+        profile
+          .proxyPasswordEncrypted
+          ? this.socialTokenCrypto
+              .decrypt(
+                profile
+                  .proxyPasswordEncrypted,
+              )
           : null,
     };
   }
@@ -412,11 +828,83 @@ export class RuntimeProfileService {
       | 'HTTP'
       | 'HTTPS'
       | 'SOCKS5';
-    proxyUrl: string | null;
-    locale: string;
-    timezone: string;
-    browserProfileKey: string | null;
+
+    proxyUrl:
+      string | null;
+
+    locale:
+      string;
+
+    timezone:
+      string;
+
+    browserProfileKey:
+      string | null;
+
+    browserAccountId:
+      string | null;
+
+    source:
+      | 'BROWSER_ACCOUNT'
+      | 'LEGACY_RUNTIME_PROFILE'
+      | 'NONE';
   }> {
+    await this.ensureChannel(
+      channelId,
+    );
+
+    const {
+      preferredLink,
+    } =
+      await this
+        .getLinkedBrowserAccountSelection(
+          channelId,
+        );
+
+    if (preferredLink) {
+      const account =
+        preferredLink
+          .browserAccount;
+
+      let proxyUrl:
+        string | null =
+        null;
+
+      if (
+        account.proxyType !==
+          SocialProxyType.DIRECT &&
+        account.proxyType !==
+          SocialProxyType.SOCKS5
+      ) {
+        proxyUrl =
+          this.buildProxyUrl(
+            account,
+          );
+      }
+
+      return {
+        proxyType:
+          account.proxyType,
+
+        proxyUrl,
+
+        locale:
+          account.locale,
+
+        timezone:
+          account.timezone,
+
+        browserProfileKey:
+          account.browserProfileKey,
+
+        browserAccountId:
+          account.id,
+
+        source:
+          'BROWSER_ACCOUNT',
+      };
+    }
+
     const profile =
       await this.prisma
         .socialChannelRuntimeProfile
@@ -428,13 +916,26 @@ export class RuntimeProfileService {
 
     if (!profile) {
       return {
-        proxyType: 'DIRECT',
-        proxyUrl: null,
-        locale: 'en-MY',
+        proxyType:
+          'DIRECT',
+
+        proxyUrl:
+          null,
+
+        locale:
+          'en-MY',
+
         timezone:
           'Asia/Kuala_Lumpur',
+
         browserProfileKey:
           null,
+
+        browserAccountId:
+          null,
+
+        source:
+          'NONE',
       };
     }
 
@@ -443,14 +944,26 @@ export class RuntimeProfileService {
       SocialProxyType.DIRECT
     ) {
       return {
-        proxyType: 'DIRECT',
-        proxyUrl: null,
+        proxyType:
+          'DIRECT',
+
+        proxyUrl:
+          null,
+
         locale:
           profile.locale,
+
         timezone:
           profile.timezone,
+
         browserProfileKey:
           profile.browserProfileKey,
+
+        browserAccountId:
+          null,
+
+        source:
+          'LEGACY_RUNTIME_PROFILE',
       };
     }
 
@@ -459,74 +972,54 @@ export class RuntimeProfileService {
       SocialProxyType.SOCKS5
     ) {
       return {
-        proxyType: 'SOCKS5',
-        proxyUrl: null,
+        proxyType:
+          'SOCKS5',
+
+        proxyUrl:
+          null,
+
         locale:
           profile.locale,
+
         timezone:
           profile.timezone,
+
         browserProfileKey:
           profile.browserProfileKey,
+
+        browserAccountId:
+          null,
+
+        source:
+          'LEGACY_RUNTIME_PROFILE',
       };
     }
 
-    const host =
-      profile.proxyHost?.trim();
-
-    const port =
-      profile.proxyPort;
-
-    if (!host || !port) {
-      throw new BadRequestException(
-        'Runtime proxy host and port are required.',
+    const proxyUrl =
+      this.buildProxyUrl(
+        profile,
       );
-    }
-
-    const username =
-      profile.proxyUsernameEncrypted
-        ? this.socialTokenCrypto.decrypt(
-            profile.proxyUsernameEncrypted,
-          )
-        : '';
-
-    const password =
-      profile.proxyPasswordEncrypted
-        ? this.socialTokenCrypto.decrypt(
-            profile.proxyPasswordEncrypted,
-          )
-        : '';
-
-    const credentials =
-      username
-        ? `${encodeURIComponent(
-            username,
-          )}:${encodeURIComponent(
-            password,
-          )}@`
-        : '';
-
-    const protocol =
-      profile.proxyType ===
-      SocialProxyType.HTTPS
-        ? 'https'
-        : 'http';
 
     return {
       proxyType:
         profile.proxyType,
-      proxyUrl: [
-        `${protocol}://`,
-        credentials,
-        host,
-        ':',
-        String(port),
-      ].join(''),
+
+      proxyUrl,
+
       locale:
         profile.locale,
+
       timezone:
         profile.timezone,
+
       browserProfileKey:
         profile.browserProfileKey,
+
+      browserAccountId:
+        null,
+
+      source:
+        'LEGACY_RUNTIME_PROFILE',
     };
   }
 
