@@ -3364,8 +3364,76 @@ app.post(
         },
       );
 
-      await page.waitForTimeout(
-        1500,
+      /*
+       * FACEBOOK_PAGE_READY_WAIT_V1
+       *
+       * Facebook frequently returns from
+       * domcontentloaded while the Page is still
+       * displaying its loading skeleton.
+       *
+       * Wait for meaningful rendered content before
+       * searching for the Composer.
+       */
+      const pageReadyStartedAt =
+        Date.now();
+
+      let pageReadyText =
+        "";
+
+      for (
+        let attempt = 1;
+        attempt <= 30;
+        attempt += 1
+      ) {
+        pageReadyText =
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "");
+
+        const mainVisible =
+          await page
+            .locator('[role="main"]')
+            .first()
+            .isVisible()
+            .catch(() => false);
+
+        const readyState =
+          await page
+            .evaluate(
+              () => document.readyState,
+            )
+            .catch(() => "");
+
+        if (
+          (
+            readyState === "complete" ||
+            readyState === "interactive"
+          ) &&
+          (
+            pageReadyText.trim().length > 80 ||
+            mainVisible
+          )
+        ) {
+          break;
+        }
+
+        await page.waitForTimeout(
+          1000,
+        );
+      }
+
+      console.log(
+        "[facebook/page-ready]",
+        {
+          url:
+            page.url(),
+          durationMs:
+            Date.now() -
+            pageReadyStartedAt,
+          textLength:
+            pageReadyText.trim().length,
+        },
       );
 
       const pageText =
@@ -3462,85 +3530,279 @@ app.post(
        * commonly expose "Create post".
        */
       const composerTriggerPattern =
-        /what'?s on your mind|create (?:a )?post|write (?:a )?post|你在想什麼|你在想什么|建立貼文|创建帖子|建立帖子|發佈貼文|发布帖子|apa yang (?:sedang )?anda fikirkan|cipta siaran|buat siaran/i;
+        /what'?s on your mind|create (?:a )?post|write (?:a )?post|post something|write something|share something|new post|你在想什麼|你在想什么|建立貼文|建立帖子|创建帖子|创建贴文|發佈貼文|发布帖子|发布贴文|發帖|发帖|寫點什麼|写点什么|apa yang (?:sedang )?anda fikirkan|cipta siaran|buat siaran|tulis siaran/i;
 
-      const composerTriggers = [
-        page.getByRole(
-          "button",
-          {
-            name:
-              composerTriggerPattern,
-          },
-        ),
-        page.locator(
-          '[role="button"]',
-        ).filter({
-          hasText:
-            composerTriggerPattern,
-        }),
-        page.getByText(
-          composerTriggerPattern,
-          {
-            exact: false,
-          },
-        ),
-      ];
-
+      /*
+       * FACEBOOK_COMPOSER_TRIGGER_RETRY_V1
+       *
+       * Facebook Page UI is rendered asynchronously.
+       * Retry Composer discovery for up to 30 seconds
+       * instead of checking the DOM only once.
+       */
       let composerOpened =
         false;
 
+      let composerTriggerAttempt =
+        0;
+
+      const composerTriggerStartedAt =
+        Date.now();
+
       for (
-        const trigger
-        of composerTriggers
+        let attempt = 1;
+        attempt <= 30 &&
+        !composerOpened;
+        attempt += 1
       ) {
-        const candidate =
-          trigger.first();
+        composerTriggerAttempt =
+          attempt;
 
-        if (
-          await candidate
-            .isVisible()
-            .catch(() => false)
+        const composerTriggers = [
+          page.getByRole(
+            "button",
+            {
+              name:
+                composerTriggerPattern,
+            },
+          ),
+
+          page.getByRole(
+            "link",
+            {
+              name:
+                composerTriggerPattern,
+            },
+          ),
+
+          page.getByRole(
+            "textbox",
+            {
+              name:
+                composerTriggerPattern,
+            },
+          ),
+
+          page.locator(
+            '[role="button"]',
+          ).filter({
+            hasText:
+              composerTriggerPattern,
+          }),
+
+          page.locator(
+            '[role="link"]',
+          ).filter({
+            hasText:
+              composerTriggerPattern,
+          }),
+
+          page.getByText(
+            composerTriggerPattern,
+            {
+              exact: false,
+            },
+          ),
+        ];
+
+        for (
+          const trigger
+          of composerTriggers
         ) {
-          const clicked =
-            await candidate
-              .click({
-                timeout: 5000,
-                force: true,
-              })
-              .then(() => true)
-              .catch(() => false);
+          const count =
+            await trigger
+              .count()
+              .catch(() => 0);
 
-          if (clicked) {
-            composerOpened =
-              true;
-            break;
+          for (
+            let index = 0;
+            index < count;
+            index += 1
+          ) {
+            const candidate =
+              trigger.nth(index);
+
+            if (
+              !await candidate
+                .isVisible()
+                .catch(() => false)
+            ) {
+              continue;
+            }
+
+            const clicked =
+              await candidate
+                .click({
+                  timeout: 5000,
+                  force: true,
+                })
+                .then(() => true)
+                .catch(() => false);
+
+            if (clicked) {
+              composerOpened =
+                true;
+              break;
+            }
+
+            const domClicked =
+              await candidate
+                .evaluate(
+                  (element) => {
+                    (
+                      element as HTMLElement
+                    ).click();
+                  },
+                )
+                .then(() => true)
+                .catch(() => false);
+
+            if (domClicked) {
+              composerOpened =
+                true;
+              break;
+            }
           }
 
-          const domClicked =
-            await candidate
-              .evaluate(
-                (element) => {
-                  (
-                    element as HTMLElement
-                  ).click();
-                },
-              )
-              .then(() => true)
-              .catch(() => false);
-
-          if (domClicked) {
-            composerOpened =
-              true;
+          if (composerOpened) {
             break;
           }
+        }
+
+        if (!composerOpened) {
+          await page.waitForTimeout(
+            1000,
+          );
         }
       }
 
       if (!composerOpened) {
+        const bodyPreview =
+          (
+            await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(
+              /\s+/g,
+              " ",
+            )
+            .trim()
+            .slice(
+              0,
+              1200,
+            );
+
+        const visibleActions =
+          await page
+            .locator(
+              [
+                "button",
+                '[role="button"]',
+                '[role="link"]',
+              ].join(", "),
+            )
+            .evaluateAll(
+              (elements) =>
+                elements
+                  .filter(
+                    (element) => {
+                      const html =
+                        element as HTMLElement;
+
+                      const rect =
+                        html.getBoundingClientRect();
+
+                      const style =
+                        window.getComputedStyle(
+                          html,
+                        );
+
+                      return (
+                        rect.width > 0 &&
+                        rect.height > 0 &&
+                        style.display !== "none" &&
+                        style.visibility !== "hidden"
+                      );
+                    },
+                  )
+                  .slice(
+                    0,
+                    40,
+                  )
+                  .map(
+                    (element) => {
+                      const html =
+                        element as HTMLElement;
+
+                      return {
+                        text:
+                          (
+                            html.innerText ||
+                            ""
+                          )
+                            .replace(
+                              /\s+/g,
+                              " ",
+                            )
+                            .trim()
+                            .slice(
+                              0,
+                              120,
+                            ),
+
+                        ariaLabel:
+                          html.getAttribute(
+                            "aria-label",
+                          ),
+                      };
+                    },
+                  ),
+            )
+            .catch(() => []);
+
+        console.error(
+          "[facebook/composer-trigger-not-found]",
+          {
+            targetUrl,
+            finalUrl:
+              page.url(),
+            title:
+              await page
+                .title()
+                .catch(() => ""),
+            attempts:
+              composerTriggerAttempt,
+            waitedMs:
+              Date.now() -
+              composerTriggerStartedAt,
+            bodyPreview,
+            visibleActions,
+          },
+        );
+
         throw new Error(
-          "Facebook composer trigger was not found.",
+          [
+            "Facebook composer trigger was not found",
+            `after ${composerTriggerAttempt} attempts.`,
+            `URL: ${page.url()}.`,
+            `Page text: ${bodyPreview.slice(0, 500)}`,
+          ].join(" "),
         );
       }
+
+      console.log(
+        "[facebook/composer-trigger-found]",
+        {
+          url:
+            page.url(),
+          attempt:
+            composerTriggerAttempt,
+          waitedMs:
+            Date.now() -
+            composerTriggerStartedAt,
+        },
+      );
 
       await page.waitForTimeout(
         1200,
