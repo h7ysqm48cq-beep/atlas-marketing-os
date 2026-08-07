@@ -55,6 +55,15 @@ async analyze(
       '../../',
     );
 
+    console.log(
+      '[Engineering Debug]',
+      {
+        cwd:
+          process.cwd(),
+        repositoryRoot,
+      },
+    );
+
     const requestedRoot = input.projectRoot
       ? resolve(input.projectRoot)
       : repositoryRoot;
