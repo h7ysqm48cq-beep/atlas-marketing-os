@@ -226,3 +226,72 @@
     flex-wrap: wrap;
   }
 }
+
+
+/* === UNIFIED AUTOMATION TABLE SCROLL === */
+
+.tableScroll {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.tableScroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableScroll::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 6%,
+      transparent
+    );
+}
+
+.tableScroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background:
+    color-mix(
+      in srgb,
+      currentColor 24%,
+      transparent
+    );
+}
+
+.tableScroll::-webkit-scrollbar-thumb:hover {
+  background:
+    color-mix(
+      in srgb,
+      currentColor 38%,
+      transparent
+    );
+}
+
+@media (max-width: 900px) {
+  .tableScroll {
+    margin-inline: -14px;
+    width: calc(100% + 28px);
+    padding-inline: 14px;
+    padding-bottom: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .tableScroll {
+    cursor: grab;
+  }
+
+  .tableScroll:active {
+    cursor: grabbing;
+  }
+}
+
+/* === END UNIFIED AUTOMATION TABLE SCROLL === */
