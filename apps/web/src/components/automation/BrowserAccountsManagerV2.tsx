@@ -174,9 +174,55 @@ const EMPTY_RUNTIME: AccountRuntime = {
   error: "",
 };
 
+function buildNoVncUrl() {
+  const configured =
+    process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
+    "https://browser-worker-production-536a.up.railway.app/vnc.html";
+
+  try {
+    const url =
+      new URL(configured);
+
+    /*
+     * Railway already routes this domain directly to
+     * websockify/noVNC on port 6080.
+     *
+     * Use same-origin websocket transport and connect
+     * automatically when the viewer opens.
+     */
+    url.searchParams.set(
+      "autoconnect",
+      "1",
+    );
+
+    url.searchParams.set(
+      "resize",
+      "scale",
+    );
+
+    url.searchParams.set(
+      "path",
+      "websockify",
+    );
+
+    url.searchParams.set(
+      "reconnect",
+      "1",
+    );
+
+    url.searchParams.set(
+      "reconnect_delay",
+      "1000",
+    );
+
+    return url.toString();
+  } catch {
+    return configured;
+  }
+}
+
 const NOVNC_URL =
-  process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
-  "https://browser-worker-production-536a.up.railway.app/vnc.html";
+  buildNoVncUrl();
 
 async function readJson(
   response: Response,
