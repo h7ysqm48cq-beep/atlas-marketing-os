@@ -715,16 +715,13 @@ export function EngineeringCopilot() {
         }
 
 
-        setRuntimeView(
-          runtime,
-        );
-
-        setRuntimeView(
-          buildRuntimeView(
+        setRuntimeView({
+          ...buildRuntimeView(
             data.engineering_plan,
             snapshots,
           ),
-        );
+          ...runtime,
+        });
 
         setMessage(
           "Engineering plan is ready for review.",
@@ -804,6 +801,107 @@ export function EngineeringCopilot() {
   }
 
 
+  async function handleRecoveryApply(
+    patches:
+      {
+        filePath: string;
+        before?: string;
+        after?: string;
+      }[] | undefined,
+  ) {
+
+    if (!patches?.length) {
+      setMessage(
+        "No recovery patch available.",
+      );
+
+      return;
+    }
+
+
+    setRuntimeView({
+      ...runtimeView,
+      applyStatus:
+        "applying",
+      statusMessage:
+        "Applying recovery fix...",
+    });
+
+
+    const response =
+      await fetch(
+        `${API_URL}/engineering/apply/batch`,
+        {
+          method:
+            "POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify({
+              patches:
+                patches.map(
+                  patch => ({
+                    filePath:
+                      patch.filePath,
+
+                    content:
+                      patch.after,
+
+                    before:
+                      patch.before,
+                  }),
+                ),
+            }),
+        },
+      );
+
+
+    if (!response.ok) {
+      setMessage(
+        "Recovery fix failed.",
+      );
+
+      return;
+    }
+
+
+    const validationResponse =
+      await fetch(
+        `${API_URL}/engineering/validation/typescript`,
+        {
+          method:
+            "POST",
+        },
+      );
+
+
+    const validation =
+      await validationResponse.json();
+
+
+    setRuntimeView({
+      ...runtimeView,
+
+      applyStatus:
+        validation.status === "passed"
+          ? "completed"
+          : "failed",
+
+      validation,
+
+      statusMessage:
+        validation.status === "passed"
+          ? "Recovery fix applied successfully."
+          : "Recovery fix applied but validation failed.",
+    });
+
+  }
+
+
   async function handlePipelineAction(
     actionId: string,
   ) {
@@ -837,8 +935,15 @@ export function EngineeringCopilot() {
 
     if (actionId === "apply") {
 
+  const availablePatches =
+    runtimeView.patches?.length
+      ? runtimeView.patches
+      : runtimeView.recovery
+          ?.suggestions[0]
+          ?.patch;
+
       if (
-        !runtimeView.patches?.length
+        !availablePatches?.length
       ) {
         setMessage(
           "No patch available to apply.",
@@ -859,13 +964,70 @@ export function EngineeringCopilot() {
 
       try {
 
-        for (
-          const patch of runtimeView.patches
-        ) {
 
           const response =
+        await fetch(
+          `${API_URL}/engineering/apply/batch`,
+          {
+            method:
+              "POST",
+
+            headers:{
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                patches:
+                  availablePatches.map(
+                    patch => ({
+                      filePath:
+                        patch.filePath,
+
+                      content:
+                        patch.after,
+
+                      before:
+                        patch.before,
+                    }),
+                  ),
+              }),
+          },
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed applying repository changes.",
+        );
+      }
+
+
+const validationResponse =
+          await fetch(
+            `${API_URL}/engineering/validation/typescript`,
+            {
+              method:
+                "POST",
+            },
+          );
+
+
+        const validation =
+          await validationResponse.json();
+
+
+        let recovery = null;
+
+
+        if (
+          validation.status !== "passed"
+        ) {
+
+          const recoveryResponse =
             await fetch(
-              `${API_URL}/engineering/apply`,
+              `${API_URL}/engineering/recovery/analyze`,
               {
                 method:
                   "POST",
@@ -877,38 +1039,47 @@ export function EngineeringCopilot() {
 
                 body:
                   JSON.stringify({
-                    filePath:
-                      patch.filePath,
-
-                    content:
-                      patch.after,
-
-                before:
-                  patch.before,
+                    error:
+                      JSON.stringify(
+                        validation,
+                      ),
                   }),
               },
             );
 
 
-          if (!response.ok) {
-            throw new Error(
-              `Failed applying ${patch.filePath}`,
-            );
+          if (
+            recoveryResponse.ok
+          ) {
+            recovery =
+              await recoveryResponse.json();
           }
         }
 
 
         setRuntimeView({
           ...runtimeView,
+
           applyStatus:
-            "completed",
+            validation.status === "passed"
+              ? "completed"
+              : "failed",
+
+          validation,
+
+          recovery,
+
           statusMessage:
-            "Repository changes applied.",
+            validation.status === "passed"
+              ? "Repository changes validated successfully."
+              : "Repository validation failed after apply.",
         });
 
 
         setMessage(
-          "Changes applied successfully.",
+          validation.status === "passed"
+            ? "Changes applied and validated successfully."
+            : "Changes applied but validation failed.",
         );
 
 
@@ -1099,6 +1270,69 @@ export function EngineeringCopilot() {
                   ) : plan ? (
                     <div className={styles.responseText}>
                       <p>{plan.summary}</p>
+
+
+                  {runtimeView.recovery && (
+                    <div className={styles.recoveryCard}>
+
+                      <strong>
+                        Recovery Agent
+                      </strong>
+
+                      <p>
+                        {runtimeView.recovery.analysis}
+                      </p>
+
+
+                      {runtimeView.recovery.suggestions.map(
+                        (
+                          suggestion,
+                          index,
+                        ) => (
+                          <div
+                            key={index}
+                            className={
+                              styles.recoveryItem
+                            }
+                          >
+                            <strong>
+                              {suggestion.reason}
+                            </strong>
+
+                            <p>
+                              {suggestion.nextStep}
+                            </p>
+
+                            <small>
+                              {
+                                suggestion.patch?.length ?? 0
+                              }
+                              {" "}
+                              patch generated
+                            </small>
+
+
+                            <button
+                              type="button"
+                              disabled={
+                                !suggestion.patch?.length
+                              }
+                              onClick={() =>
+                                void handleRecoveryApply(
+                                  suggestion.patch,
+                                )
+                              }
+                            >
+                              Apply Recovery Fix
+                            </button>
+
+                          </div>
+                        ),
+                      )}
+
+                    </div>
+                  )}
+
 
                       <div className={styles.responseMetrics}>
                         <span>

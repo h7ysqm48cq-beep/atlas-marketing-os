@@ -71,7 +71,49 @@ import {
   SnapshotService,
 } from './snapshot/snapshot.service';
 
+import {
+RepositoryController,
+} from './repository/repository.controller';
+
+import {
+RepositoryService,
+} from './repository/repository.service';
+
+import {
+RepositoryScanner,
+} from './repository/repository.scanner';
+
+import {
+RepositoryContextService,
+} from './repository/repository.context.service';
+
+
+import {
+RecoveryController,
+} from './recovery/recovery.controller';
+
+import {
+RecoveryService,
+} from './recovery/recovery.service';
+
+
+import {
+RecoveryModule,
+} from './recovery/recovery.module';
+
+
+import {
+ValidationController,
+} from './validation/validation.controller';
+
+import {
+ValidationService,
+} from './validation/validation.service';
+
 @Module({
+  imports: [
+    RecoveryModule,
+  ],
   controllers: [
     EngineeringController,
     PatchController,
@@ -81,6 +123,8 @@ import {
     GitCommitController,
     RollbackController,
     SnapshotController,
+    RepositoryController,
+    ValidationController,
   ],
   providers: [
     EngineeringService,
@@ -92,11 +136,17 @@ import {
     GitCommitService,
     RollbackService,
     SnapshotService,
+    RepositoryService,
+    RepositoryScanner,
+    RepositoryContextService,
+    ValidationService,
   ],
   exports: [
     EngineeringService,
     PatchService,
     ApplyService,
+    ValidationService,
+    RepositoryContextService,
   ],
 })
 export class EngineeringModule {}

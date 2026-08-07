@@ -17,18 +17,39 @@ export class ApplyController {
   ) {}
 
   @Post()
-  async apply(
-    @Body()
-    body: {
-      filePath: string;
-      content: string;
-before?: string;
-    },
-  ) {
-    return this.applyService.applyChange(
-      body.filePath,
-      body.content,
-      body.before,
-    );
-  }
+async apply(
+@Body()
+body: {
+  filePath: string;
+  content: string;
+  before?: string;
+},
+) {
+
+return this.applyService.applyChange(
+  body.filePath,
+  body.content,
+  body.before,
+);
+
+}
+
+
+@Post("batch")
+async applyBatch(
+@Body()
+body: {
+  patches: {
+    filePath: string;
+    content: string;
+    before?: string;
+  }[];
+},
+) {
+
+return this.applyService.applyBatch(
+  body.patches,
+);
+
+}
 }

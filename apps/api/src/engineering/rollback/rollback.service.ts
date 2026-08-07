@@ -45,50 +45,101 @@ export class RollbackService {
   }
 
 
-  async restoreSnapshot(
-    snapshotId: string,
+async restoreSnapshot(
+snapshotId: string,
+) {
+
+const snapshot =
+  await this.snapshot.find(
+    snapshotId,
+  );
+
+
+if (!snapshot) {
+  throw new Error(
+    "Snapshot not found.",
+  );
+}
+
+
+const restoredFiles: {
+  filePath: string;
+  status: string;
+  restoredAt: string;
+}[] = [];
+
+
+const files =
+  Array.isArray(snapshot.files)
+    ? snapshot.files
+    : [];
+
+
+for (
+  const file of files
+) {
+
+  if (
+    typeof file === "object" &&
+    file !== null &&
+    "filePath" in file &&
+    "backupPath" in file
   ) {
 
-    const snapshot =
-      await this.snapshot.find(
-        snapshotId,
-      );
+    const item =
+      file as {
+        filePath: string;
+        backupPath: string;
+      };
 
 
-    if (
-      !snapshot ||
-      !snapshot.backupPath
-    ) {
-      throw new Error(
-        "Snapshot backup not found.",
-      );
-    }
-
-
-    const files =
-      Array.isArray(snapshot.files)
-        ? snapshot.files.filter(
-            (file): file is string =>
-              typeof file === "string",
-          )
-        : [];
-
-    if (!files[0]) {
-      throw new Error(
-        "Snapshot file not found.",
-      );
-    }
-
-    const result =
+    restoredFiles.push(
       await this.restore(
-        files[0],
-        snapshot.backupPath,
-      );
-
-    await this.snapshot.markRestored(
-      snapshotId,
+        item.filePath,
+        item.backupPath,
+      ),
     );
 
-    return result;
+    continue;
   }
+
+
+  if (
+    typeof file === "string" &&
+    snapshot.backupPath
+  ) {
+
+    restoredFiles.push(
+      await this.restore(
+        file,
+        snapshot.backupPath,
+      ),
+    );
+
+  }
+
+}
+
+
+if (!restoredFiles.length) {
+  throw new Error(
+    "Snapshot files not found.",
+  );
+}
+
+
+await this.snapshot.markRestored(
+  snapshotId,
+);
+
+
+return {
+  snapshotId,
+  status:
+    "completed",
+  restoredFiles,
+};
+
+}
+
 }

@@ -262,6 +262,29 @@ export type CopilotTimelineEvent = {
 
 
 
+
+export type CopilotValidationCheck = {
+  name: string;
+  status:
+    | "passed"
+    | "failed";
+  output?: string;
+};
+
+
+export type CopilotValidationResult = {
+  status:
+    | "passed"
+    | "failed";
+
+  command: string;
+
+  checks: CopilotValidationCheck[];
+
+  duration?: number;
+};
+
+
 export type CopilotRuntimeView = {
   status: CopilotPipelineStatus;
   statusMessage: string;
@@ -286,4 +309,23 @@ export type CopilotRuntimeView = {
   patches?: CopilotPatchPreview[];
   snapshots?: CopilotSnapshot[];
   timeline?: CopilotTimelineEvent[];
+  validation?: CopilotValidationResult;
+
+  recovery?: {
+    status: string;
+    analysis: string;
+    suggestions: {
+      reason: string;
+      action: string;
+      patchRequired?: boolean;
+      nextStep?: string;
+      patch?: {
+        filePath: string;
+        before?: string;
+        after?: string;
+        action?: string;
+        explanation?: string;
+      }[];
+    }[];
+  } | null;
 };

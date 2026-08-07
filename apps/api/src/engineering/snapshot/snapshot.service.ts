@@ -17,10 +17,16 @@ export class SnapshotService {
 
 
   async create(
-    files: string[],
-    description: string,
-    backupPath?: string | null,
-  ) {
+files:
+  | string[]
+  | {
+      filePath: string;
+      backupPath: string;
+    }[],
+
+description: string,
+backupPath?: string | null,
+) {
 
     return this.prisma.engineeringSnapshot.create({
       data: {

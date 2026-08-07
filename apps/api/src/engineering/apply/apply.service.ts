@@ -32,6 +32,11 @@ import {
 } from "../patch/patch.validator";
 
 
+
+import {
+ValidationService,
+} from "../validation/validation.service";
+
 @Injectable()
 export class ApplyService {
 
@@ -44,6 +49,9 @@ export class ApplyService {
 
     private readonly validator:
       PatchValidator,
+
+private readonly validation:
+ValidationService,
   ) {}
 
 
@@ -199,4 +207,147 @@ export class ApplyService {
         "completed",
     };
   }
+
+async applyBatch(
+patches: {
+  filePath: string;
+  content: string;
+  before?: string;
+}[],
+) {
+
+const backups: {
+  filePath: string;
+  backupPath: string;
+}[] = [];
+
+
+for (
+  const patch of patches
+) {
+
+  let currentContent = "";
+
+  try {
+
+    currentContent =
+      await readFile(
+        patch.filePath,
+        "utf8",
+      );
+
+  } catch {
+
+    currentContent = "";
+
+  }
+
+
+  if (patch.before) {
+
+    const validation =
+      this.validator.validate(
+        patch.before,
+        currentContent,
+      );
+
+
+    if (!validation.valid) {
+
+      return {
+        filePath:
+          patch.filePath,
+
+        status:
+          "blocked",
+
+        reason:
+          validation.reason,
+      };
+
+    }
+  }
+
+
+  const backup =
+    await this.backupFile(
+      patch.filePath,
+    );
+
+
+  if (backup) {
+
+    backups.push({
+      filePath:
+        patch.filePath,
+
+      backupPath:
+        backup,
+    });
+
+  }
+
+}
+
+
+const snapshot =
+  await this.snapshot.create(
+    backups,
+    "Before Atlas batch apply change",
+  );
+
+
+for (
+  const patch of patches
+) {
+
+  await mkdir(
+    dirname(patch.filePath),
+    {
+      recursive:
+        true,
+    },
+  );
+
+
+  await writeFile(
+    patch.filePath,
+    patch.content,
+    "utf8",
+  );
+
+
+  this.history.add({
+    id:
+      randomUUID(),
+
+    filePath:
+      patch.filePath,
+
+    action:
+      "modify",
+
+    status:
+      "completed",
+
+    createdAt:
+      new Date()
+        .toISOString(),
+  });
+
+}
+
+
+return {
+  snapshot,
+  status:
+    "completed",
+  files:
+    patches.map(
+      patch => patch.filePath,
+    ),
+};
+
+}
+
 }

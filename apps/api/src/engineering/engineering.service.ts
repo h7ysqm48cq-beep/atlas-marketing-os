@@ -17,9 +17,18 @@ import {
   AnalyzeEngineeringRequestDto,
 } from './dto/analyze-engineering-request.dto';
 
+
+import {
+RepositoryContextService,
+} from './repository/repository.context.service';
+
 const execFileAsync = promisify(execFile);
 
 type EngineeringCliResult = {
+  repositoryContext?: {
+    request: string;
+    relatedFiles: unknown[];
+  };
   success: boolean;
   intent?: Record<string, unknown>;
   adaptation?: Record<string, unknown> | null;
@@ -32,7 +41,13 @@ type EngineeringCliResult = {
 
 @Injectable()
 export class EngineeringService {
-  async analyze(
+  
+constructor(
+private readonly repositoryContext:
+RepositoryContextService,
+) {}
+
+async analyze(
     input: AnalyzeEngineeringRequestDto,
   ): Promise<EngineeringCliResult> {
     const repositoryRoot = resolve(
@@ -52,7 +67,14 @@ export class EngineeringService {
       );
     }
 
-    const pythonCommand =
+    
+const repositoryContext =
+  await this.repositoryContext.buildContext(
+    repositoryRoot,
+    input.text,
+  );
+
+const pythonCommand =
       process.env.ATLAS_PYTHON_COMMAND ||
       'python3';
 
@@ -102,7 +124,10 @@ export class EngineeringService {
         );
       }
 
-      return result;
+      return {
+    ...result,
+    repositoryContext,
+  };
     } catch (error) {
       if (
         error instanceof

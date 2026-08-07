@@ -695,3 +695,14 @@
     flex-direction: column;
   }
 }
+
+
+.recoveryCard {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.recoveryItem {
+  margin-top: 12px;
+}
