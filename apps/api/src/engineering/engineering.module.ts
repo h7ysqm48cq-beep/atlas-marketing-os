@@ -85,6 +85,10 @@ RepositoryService,
 } from './repository/repository.service';
 
 import {
+AuditModule,
+} from './audit/audit.module';
+
+import {
 RepositoryScanner,
 } from './repository/repository.scanner';
 
@@ -119,6 +123,7 @@ ValidationService,
   imports: [
     RecoveryModule,
     RepairModule,
+    AuditModule,
   ],
   controllers: [
     EngineeringController,

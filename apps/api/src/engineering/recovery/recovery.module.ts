@@ -18,10 +18,16 @@ PatchModule,
 } from "../patch/patch.module";
 
 
+import {
+RepairModule,
+} from "../repair/repair.module";
+
+
 @Module({
 
 imports:[
 PatchModule,
+RepairModule,
 ],
 
 

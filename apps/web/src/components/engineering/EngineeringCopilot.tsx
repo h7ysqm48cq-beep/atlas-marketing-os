@@ -925,6 +925,15 @@ export function EngineeringCopilot() {
     if (actionId === "approve") {
       setDecision("approved");
 
+
+      setRuntimeView({
+        ...runtimeView,
+
+        approvalState:
+          "APPROVED",
+      });
+
+
       setMessage(
         "Plan approved. Ready to apply changes.",
       );
@@ -934,6 +943,32 @@ export function EngineeringCopilot() {
 
 
     if (actionId === "apply") {
+
+
+      const recoveryApprovalRequired =
+        runtimeView.recovery
+          ?.suggestions
+          ?.some(
+            suggestion =>
+              suggestion.approvalRequired
+          );
+
+
+      if (
+        recoveryApprovalRequired
+        &&
+        runtimeView.approvalState !==
+          "APPROVED"
+      ) {
+
+        setMessage(
+          "Human approval required before applying recovery fix.",
+        );
+
+        return;
+
+      }
+
 
   const availablePatches =
     runtimeView.patches?.length
@@ -1018,7 +1053,18 @@ const validationResponse =
           await validationResponse.json();
 
 
-        let recovery = null;
+    
+    const auditResponse =
+      await fetch(
+        `${API_URL}/engineering/audit`,
+      );
+
+
+    const auditRecords =
+      await auditResponse.json();
+
+
+    let recovery = null;
 
 
         if (
@@ -1042,6 +1088,9 @@ const validationResponse =
                     error:
                       JSON.stringify(
                         validation,
+
+          auditRecords,
+
                       ),
                   }),
               },
@@ -1272,7 +1321,50 @@ const validationResponse =
                       <p>{plan.summary}</p>
 
 
-                  {runtimeView.recovery && (
+    
+              {runtimeView.auditRecords?.length ? (
+                <div className={styles.auditCard}>
+
+                  <strong>
+                    Recent Engineering Actions
+                  </strong>
+
+
+                  {runtimeView.auditRecords.map(
+                    (
+                      record,
+                      index,
+                    ) => (
+                      <div
+                        key={index}
+                        className={
+                          styles.auditItem
+                        }
+                      >
+
+                        <strong>
+                          {record.action}
+                        </strong>
+
+
+                        <p>
+                          {record.filePath}
+                        </p>
+
+
+                        <small>
+                          {record.status}
+                        </small>
+
+                      </div>
+                    ),
+                  )}
+
+                </div>
+              ) : null}
+
+
+              {runtimeView.recovery && (
                     <div className={styles.recoveryCard}>
 
                       <strong>
@@ -1310,6 +1402,36 @@ const validationResponse =
                               {" "}
                               patch generated
                             </small>
+
+
+
+                        {suggestion.confidence !== undefined && (
+                          <small>
+                            Confidence:
+                            {" "}
+                            {Math.round(
+                              suggestion.confidence * 100,
+                            )}
+                            %
+                          </small>
+                        )}
+
+
+                        {suggestion.riskLevel && (
+                          <small>
+                            Risk:
+                            {" "}
+                            {suggestion.riskLevel}
+                          </small>
+                        )}
+
+
+                        {suggestion.approvalRequired && (
+                          <small>
+                            ⚠ Human approval required
+                          </small>
+                        )}
+
 
 
                             <button

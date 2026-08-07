@@ -706,3 +706,14 @@
 .recoveryItem {
   margin-top: 12px;
 }
+
+
+.auditCard {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.auditItem {
+  margin-top: 12px;
+}

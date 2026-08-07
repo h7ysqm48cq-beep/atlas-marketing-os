@@ -37,6 +37,10 @@ import {
 ValidationService,
 } from "../validation/validation.service";
 
+import {
+AuditService,
+} from "../audit/audit.service";
+
 @Injectable()
 export class ApplyService {
 
@@ -52,6 +56,10 @@ export class ApplyService {
 
 private readonly validation:
 ValidationService,
+
+
+private readonly audit:
+AuditService,
   ) {}
 
 
@@ -177,6 +185,32 @@ ValidationService,
       content,
       "utf8",
     );
+
+
+    this.audit.record({
+
+      action:
+        "recovery_apply",
+
+      filePath,
+
+      riskLevel:
+        "unknown",
+
+      confidence:
+        0,
+
+      approvalState:
+        "APPROVED",
+
+      status:
+        "COMPLETED",
+
+      createdAt:
+        new Date()
+          .toISOString(),
+
+    });
 
 
 
@@ -315,6 +349,33 @@ for (
     patch.content,
     "utf8",
   );
+
+
+  this.audit.record({
+
+    action:
+      "recovery_apply",
+
+    filePath:
+      patch.filePath,
+
+    riskLevel:
+      "unknown",
+
+    confidence:
+      0,
+
+    approvalState:
+      "APPROVED",
+
+    status:
+      "COMPLETED",
+
+    createdAt:
+      new Date()
+        .toISOString(),
+
+  });
 
 
   this.history.add({

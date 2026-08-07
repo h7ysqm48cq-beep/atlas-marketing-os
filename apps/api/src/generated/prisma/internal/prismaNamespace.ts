@@ -424,7 +424,8 @@ export const ModelName = {
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
   BrandMemoryFact: 'BrandMemoryFact',
-  EngineeringSnapshot: 'EngineeringSnapshot'
+  EngineeringSnapshot: 'EngineeringSnapshot',
+  EngineeringAudit: 'EngineeringAudit'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -440,7 +441,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2516,6 +2517,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EngineeringAudit: {
+      payload: Prisma.$EngineeringAuditPayload<ExtArgs>
+      fields: Prisma.EngineeringAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EngineeringAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EngineeringAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.EngineeringAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EngineeringAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        findMany: {
+          args: Prisma.EngineeringAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>[]
+        }
+        create: {
+          args: Prisma.EngineeringAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        createMany: {
+          args: Prisma.EngineeringAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EngineeringAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.EngineeringAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        update: {
+          args: Prisma.EngineeringAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.EngineeringAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EngineeringAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EngineeringAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.EngineeringAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.EngineeringAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEngineeringAudit>
+        }
+        groupBy: {
+          args: Prisma.EngineeringAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EngineeringAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringAuditCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3128,6 +3203,20 @@ export const EngineeringSnapshotScalarFieldEnum = {
 export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
 
 
+export const EngineeringAuditScalarFieldEnum = {
+  id: 'id',
+  action: 'action',
+  filePath: 'filePath',
+  riskLevel: 'riskLevel',
+  confidence: 'confidence',
+  approvalState: 'approvalState',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type EngineeringAuditScalarFieldEnum = (typeof EngineeringAuditScalarFieldEnum)[keyof typeof EngineeringAuditScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3717,6 +3806,7 @@ export type GlobalOmitConfig = {
   promptTemplate?: Prisma.PromptTemplateOmit
   brandMemoryFact?: Prisma.BrandMemoryFactOmit
   engineeringSnapshot?: Prisma.EngineeringSnapshotOmit
+  engineeringAudit?: Prisma.EngineeringAuditOmit
 }
 
 /* Types for Logging */

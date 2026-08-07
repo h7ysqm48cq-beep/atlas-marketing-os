@@ -78,7 +78,8 @@ export const ModelName = {
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
   BrandMemoryFact: 'BrandMemoryFact',
-  EngineeringSnapshot: 'EngineeringSnapshot'
+  EngineeringSnapshot: 'EngineeringSnapshot',
+  EngineeringAudit: 'EngineeringAudit'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -668,6 +669,20 @@ export const EngineeringSnapshotScalarFieldEnum = {
 } as const
 
 export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
+
+
+export const EngineeringAuditScalarFieldEnum = {
+  id: 'id',
+  action: 'action',
+  filePath: 'filePath',
+  riskLevel: 'riskLevel',
+  confidence: 'confidence',
+  approvalState: 'approvalState',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type EngineeringAuditScalarFieldEnum = (typeof EngineeringAuditScalarFieldEnum)[keyof typeof EngineeringAuditScalarFieldEnum]
 
 
 export const SortOrder = {

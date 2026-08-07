@@ -128,23 +128,23 @@ model Brand {
 }
 
 model Campaign {
-  id                   String                @id @default(cuid())
-  brandId              String
-  brand                Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  name                 String
-  description          String?
-  objective            String?
-  status               CampaignStatus        @default(DRAFT)
-  startDate            DateTime?
-  endDate              DateTime?
-  brandRenderingSettings Json                @default("{}")
-  ideas                CampaignIdea[]
-  generations          GenerationHistory[]
-  assets               Asset[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  scheduledPosts       ScheduledPost[]
-  copilotConversations CopilotConversation[]
+  id                     String                @id @default(cuid())
+  brandId                String
+  brand                  Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name                   String
+  description            String?
+  objective              String?
+  status                 CampaignStatus        @default(DRAFT)
+  startDate              DateTime?
+  endDate                DateTime?
+  brandRenderingSettings Json                  @default("{}")
+  ideas                  CampaignIdea[]
+  generations            GenerationHistory[]
+  assets                 Asset[]
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  scheduledPosts         ScheduledPost[]
+  copilotConversations   CopilotConversation[]
 
   @@index([brandId])
   @@index([status])
@@ -658,11 +658,11 @@ model ScheduledPost {
   historyId  String?
   history    GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
 
-  platform  SocialPlatform
-  title     String?
-  content   String
-  mediaUrls String[]
-  brandRenderingSettings Json @default("{}")
+  platform               SocialPlatform
+  title                  String?
+  content                String
+  mediaUrls              String[]
+  brandRenderingSettings Json           @default("{}")
 
   scheduledAt DateTime
   timezone    String              @default("Asia/Kuala_Lumpur")
@@ -914,24 +914,42 @@ model BrandMemoryFact {
   @@index([updatedAt])
 }
 
-
 model EngineeringSnapshot {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  files       Json
+  files Json
 
   description String
 
-  backupPath  String?
+  backupPath String?
 
-  status      String   @default("active")
+  status String @default("active")
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  updatedAt   DateTime @updatedAt
-
+  updatedAt DateTime @updatedAt
 
   @@index([createdAt])
   @@index([status])
 }
 
+model EngineeringAudit {
+  id String @id @default(uuid())
+
+  action String
+
+  filePath String
+
+  riskLevel String
+
+  confidence Float
+
+  approvalState String
+
+  status String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([filePath])
+}

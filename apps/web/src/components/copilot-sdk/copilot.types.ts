@@ -1,3 +1,26 @@
+export type EngineeringAuditRecord = {
+  action: string;
+
+  filePath:
+    string;
+
+  riskLevel:
+    string;
+
+  confidence:
+    number;
+
+  approvalState:
+    string;
+
+  status:
+    string;
+
+  createdAt:
+    string;
+};
+
+
 export type CopilotStage = {
   id: string;
   label: string;
@@ -311,6 +334,10 @@ export type CopilotRuntimeView = {
   timeline?: CopilotTimelineEvent[];
   validation?: CopilotValidationResult;
 
+  auditRecords?:
+    EngineeringAuditRecord[];
+
+
   recovery?: {
     status: string;
     analysis: string;
@@ -319,6 +346,13 @@ export type CopilotRuntimeView = {
       action: string;
       patchRequired?: boolean;
       nextStep?: string;
+
+      confidence?: number;
+
+      riskLevel?: string;
+
+      approvalRequired?: boolean;
+
       patch?: {
         filePath: string;
         before?: string;

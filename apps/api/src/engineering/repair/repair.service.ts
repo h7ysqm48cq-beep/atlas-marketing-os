@@ -8,8 +8,29 @@ import {
 } from "./repair.types";
 
 
+import {
+  buildRepairPrompt,
+} from "./repair.prompt";
+
+
+import {
+  RepairClient,
+} from "./repair.client";
+
+
+import {
+  analyzeRepairRisk,
+} from "./repair.risk";
+
+
 @Injectable()
 export class RepairService {
+
+
+  constructor(
+    private readonly repairClient:
+      RepairClient,
+  ) {}
 
 
   async generate(
@@ -17,16 +38,36 @@ export class RepairService {
   ): Promise<RepairResult> {
 
 
+    const prompt =
+      buildRepairPrompt(
+        request,
+      );
+
+
+    const generated =
+      await this.repairClient.generate(
+        prompt,
+      );
+
+
+    const risk =
+      analyzeRepairRisk(
+        request.filePath,
+      );
+
+
     return {
 
       after:
-        request.currentContent,
+        generated,
 
       explanation:
-        "Repair engine generated a safe preview. AI generation will be connected next.",
+        "Repair engine generated a repair candidate.",
 
       confidence:
-        0.5,
+        0.7,
+
+      ...risk,
 
     };
 

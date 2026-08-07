@@ -157,3 +157,8 @@ export type BrandMemoryFact = Prisma.BrandMemoryFactModel
  * 
  */
 export type EngineeringSnapshot = Prisma.EngineeringSnapshotModel
+/**
+ * Model EngineeringAudit
+ * 
+ */
+export type EngineeringAudit = Prisma.EngineeringAuditModel

@@ -1,21 +1,39 @@
 import {
-  Module,
+Module,
 } from "@nestjs/common";
 
+
 import {
-  RepairService,
+RepairService,
 } from "./repair.service";
+
+
+import {
+RepairClient,
+} from "./repair.client";
+
+
+import {
+AiProviderModule,
+} from "../../ai-provider/ai-provider.module";
 
 
 @Module({
 
-  providers:[
-    RepairService,
-  ],
+imports:[
+  AiProviderModule,
+],
 
-  exports:[
-    RepairService,
-  ],
+
+providers:[
+  RepairService,
+  RepairClient,
+],
+
+
+exports:[
+  RepairService,
+],
 
 })
 export class RepairModule {}
