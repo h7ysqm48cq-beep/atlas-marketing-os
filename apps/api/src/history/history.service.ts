@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { UpdateFavoriteDto } from './dto/update-favorite.dto';
@@ -155,6 +155,20 @@ export class HistoryService {
         publishedAt:
           dto.status === ContentStatus.PUBLISHED ? now : undefined,
       },
+    });
+  }
+
+  async updateImagePrompt(id: string, imagePrompt: string) {
+    await this.get(id);
+    const cleanPrompt = imagePrompt.trim();
+
+    if (!cleanPrompt) {
+      throw new BadRequestException('Image prompt cannot be empty.');
+    }
+
+    return this.prisma.generationHistory.update({
+      where: { id },
+      data: { imagePrompt: cleanPrompt },
     });
   }
 

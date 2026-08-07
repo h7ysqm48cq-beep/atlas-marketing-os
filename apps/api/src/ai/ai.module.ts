@@ -8,6 +8,7 @@ import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ContentQualityService } from './content-quality.service';
+import { AiBackgroundJobService } from './ai-background-job.service';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ContentQualityService } from './content-quality.service';
     AiService,
     PromptBuilderService,
     ContentQualityService,
+    AiBackgroundJobService,
   ],
   exports: [PromptBuilderService],
 })

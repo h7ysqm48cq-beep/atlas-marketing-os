@@ -733,10 +733,6 @@ export type BrandCreateexamplePostsInput = {
   set: string[]
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type BrandUpdatecallsToActionInput = {
   set?: string[]
   push?: string | string[]

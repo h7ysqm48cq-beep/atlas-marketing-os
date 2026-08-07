@@ -100,9 +100,10 @@ export class FacebookConnectorService {
         .find(Boolean);
 
     if (firstMediaUrl) {
-      return this.publishPhoto(
+      return this.publishPostWithPhoto(
         message,
         firstMediaUrl,
+        link,
       );
     }
 
@@ -110,6 +111,61 @@ export class FacebookConnectorService {
       message,
       link,
     );
+  }
+
+  /**
+   * Upload the image as unpublished media, then attach it to a Page feed
+   * post. Posting directly to /photos makes Facebook classify the item as a
+   * Photo instead of a normal Page post.
+   */
+  async publishPostWithPhoto(
+    message: string,
+    mediaUrl: string,
+    link?: string,
+  ) {
+    const media = await this.uploadUnpublishedPhoto(mediaUrl);
+    const payload: Record<string, string> = {
+      message: message?.trim(),
+      'attached_media[0]': JSON.stringify({
+        media_fbid: media.id,
+      }),
+    };
+
+    if (!payload.message) {
+      throw new BadRequestException(
+        'Facebook message cannot be empty.',
+      );
+    }
+
+    if (link?.trim()) {
+      payload.link = link.trim();
+    }
+
+    return this.graphPost<FacebookPostResult>(
+      `${this.getPageId()}/feed`,
+      payload,
+    );
+  }
+
+  private async uploadUnpublishedPhoto(
+    mediaUrl: string,
+  ) {
+    const media = await this.fetchMedia(mediaUrl);
+    const form = new FormData();
+
+    form.set('published', 'false');
+    form.set('access_token', this.getAccessToken());
+    form.set('source', media.blob, media.filename);
+
+    const response = await fetch(
+      `${this.getBaseUrl()}/${this.getPageId()}/photos`,
+      { method: 'POST', body: form },
+    );
+    const result =
+      (await response.json()) as FacebookApiResponse<FacebookPhotoResult>;
+
+    this.throwFacebookError(response.ok, result.error);
+    return result;
   }
 
   async publishPhoto(

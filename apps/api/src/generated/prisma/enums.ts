@@ -60,6 +60,25 @@ export const AssetType = {
 export type AssetType = (typeof AssetType)[keyof typeof AssetType]
 
 
+export const BackgroundJobStatus = {
+  QUEUED: 'QUEUED',
+  RUNNING: 'RUNNING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED'
+} as const
+
+export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof BackgroundJobStatus]
+
+
+export const BackgroundJobType = {
+  AI_STUDIO: 'AI_STUDIO',
+  COPILOT_CHAT: 'COPILOT_CHAT',
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN'
+} as const
+
+export type BackgroundJobType = (typeof BackgroundJobType)[keyof typeof BackgroundJobType]
+
+
 export const SocialPlatform = {
   FACEBOOK: 'FACEBOOK',
   TELEGRAM: 'TELEGRAM'

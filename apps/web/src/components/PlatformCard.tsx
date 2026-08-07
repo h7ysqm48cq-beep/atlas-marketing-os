@@ -125,11 +125,18 @@ export function PlatformCard({
   const [reviewer, setReviewer] = useState(approval.reviewedBy || "Loh");
   const [approvalBusy, setApprovalBusy] = useState(false);
   const [approvalOpen, setApprovalOpen] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState(false);
+  const [promptDraft, setPromptDraft] = useState(content);
+  const [savingPrompt, setSavingPrompt] = useState(false);
 
   useEffect(() => {
     setReviewNote(approval.reviewNote || "");
     setReviewer(approval.reviewedBy || "Loh");
   }, [approval.reviewNote, approval.reviewedBy]);
+
+  useEffect(() => {
+    if (!editingPrompt) setPromptDraft(content);
+  }, [content, editingPrompt]);
 
   const hasGeneratedContent = useMemo(
     () => Boolean(content && !content.startsWith("Generate content")),
@@ -327,6 +334,47 @@ export function PlatformCard({
       onMessage(error instanceof Error ? error.message : "Unable to update approval status.");
     } finally {
       setApprovalBusy(false);
+    }
+  }
+
+  async function savePromptEdit() {
+    const cleanPrompt = promptDraft.trim();
+    if (!cleanPrompt) {
+      onMessage("Image Prompt cannot be empty.");
+      return;
+    }
+
+    setSavingPrompt(true);
+    try {
+      if (historyId) {
+        const response = await fetch(
+          `${API_URL}/history/${historyId}/image-prompt`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imagePrompt: cleanPrompt }),
+          },
+        );
+        const data = (await response.json()) as { message?: string };
+        if (!response.ok) {
+          throw new Error(data.message || "Unable to save image prompt.");
+        }
+        await saveVersion(cleanPrompt, "manual-edit");
+      }
+
+      onReplace(cleanPrompt);
+      setEditingPrompt(false);
+      onMessage(
+        historyId
+          ? "Image Prompt edited and saved."
+          : "Image Prompt edited locally.",
+      );
+    } catch (error) {
+      onMessage(
+        error instanceof Error ? error.message : "Unable to save image prompt.",
+      );
+    } finally {
+      setSavingPrompt(false);
     }
   }
 
@@ -561,6 +609,18 @@ export function PlatformCard({
               {copied ? "Copied ✓" : "Copy"}
             </button>
 
+            {title === "Image Prompt" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPromptDraft(content);
+                  setEditingPrompt((value) => !value);
+                }}
+              >
+                {editingPrompt ? "Cancel edit" : "Edit prompt"}
+              </button>
+            ) : null}
+
             <button
               type="button"
               className={styles.featuredAction}
@@ -665,7 +725,27 @@ export function PlatformCard({
           ) : null}
 
           <div className={styles.contentBody}>
-            <p>{content}</p>
+            {title === "Image Prompt" && editingPrompt ? (
+              <div className={styles.promptEditor}>
+                <textarea
+                  value={promptDraft}
+                  onChange={(event) => setPromptDraft(event.target.value)}
+                  aria-label="Edit generated image prompt"
+                />
+                <div>
+                  <span>{promptDraft.length.toLocaleString()} characters</span>
+                  <button
+                    type="button"
+                    disabled={savingPrompt || !promptDraft.trim()}
+                    onClick={() => void savePromptEdit()}
+                  >
+                    {savingPrompt ? "Saving..." : "Save prompt"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p>{content}</p>
+            )}
           </div>
 
           <footer className={styles.secondaryToolbar}>

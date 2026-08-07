@@ -397,6 +397,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  BackgroundJob: 'BackgroundJob',
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
@@ -430,10 +431,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    BackgroundJob: {
+      payload: Prisma.$BackgroundJobPayload<ExtArgs>
+      fields: Prisma.BackgroundJobFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackgroundJobFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackgroundJobFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findFirst: {
+          args: Prisma.BackgroundJobFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackgroundJobFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findMany: {
+          args: Prisma.BackgroundJobFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        create: {
+          args: Prisma.BackgroundJobCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        createMany: {
+          args: Prisma.BackgroundJobCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackgroundJobCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        delete: {
+          args: Prisma.BackgroundJobDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        update: {
+          args: Prisma.BackgroundJobUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackgroundJobDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackgroundJobUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackgroundJobUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackgroundJobUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        aggregate: {
+          args: Prisma.BackgroundJobAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackgroundJob>
+        }
+        groupBy: {
+          args: Prisma.BackgroundJobGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackgroundJobCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobCountAggregateOutputType> | number
+        }
+      }
+    }
     Workspace: {
       payload: Prisma.$WorkspacePayload<ExtArgs>
       fields: Prisma.WorkspaceFieldRefs
@@ -1805,6 +1880,23 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  payload: 'payload',
+  result: 'result',
+  error: 'error',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
+
+
 export const WorkspaceScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -2182,14 +2274,6 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -2197,6 +2281,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -2216,6 +2308,62 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType'
+ */
+export type EnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType[]'
+ */
+export type ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus'
+ */
+export type EnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus[]'
+ */
+export type ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2272,34 +2420,6 @@ export type EnumCampaignIdeaStatusFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'CampaignIdeaStatus[]'
  */
 export type ListEnumCampaignIdeaStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignIdeaStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2600,6 +2720,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
+  backgroundJob?: Prisma.BackgroundJobOmit
   workspace?: Prisma.WorkspaceOmit
   brand?: Prisma.BrandOmit
   campaign?: Prisma.CampaignOmit
