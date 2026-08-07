@@ -175,7 +175,45 @@ const EMPTY_RUNTIME: AccountRuntime = {
   error: "",
 };
 
-function buildNoVncUrl() {
+const DEFAULT_BROWSER_RUNTIME_API_URL =
+  "https://api-production-7f7d.up.railway.app";
+
+
+function getBrowserRuntimeApiUrl() {
+  const configured =
+    process.env
+      .NEXT_PUBLIC_BROWSER_RUNTIME_API_URL
+      ?.trim();
+
+  if (configured) {
+    return configured.replace(
+      /\/+$/,
+      "",
+    );
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    (
+      window.location.hostname ===
+        "localhost" ||
+      window.location.hostname ===
+        "127.0.0.1"
+    )
+  ) {
+    return DEFAULT_BROWSER_RUNTIME_API_URL;
+  }
+
+  return API_URL.replace(
+    /\/+$/,
+    "",
+  );
+}
+
+
+function buildNoVncUrl(
+  viewerToken: string,
+) {
   const configured =
     process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
     "https://browser-worker-production-536a.up.railway.app/vnc.html";
@@ -203,7 +241,9 @@ function buildNoVncUrl() {
 
     url.searchParams.set(
       "path",
-      "websockify",
+      `websockify?token=${encodeURIComponent(
+        viewerToken,
+      )}`,
     );
 
     url.searchParams.set(
@@ -222,8 +262,6 @@ function buildNoVncUrl() {
   }
 }
 
-const NOVNC_URL =
-  buildNoVncUrl();
 
 async function readJson(
   response: Response,
@@ -334,6 +372,60 @@ function readableStatus(
     "_",
     " ",
   );
+}
+
+
+function facebookIdentityMessage(
+  value?: string | null,
+) {
+  const status =
+    normalizeStatus(
+      value,
+    );
+
+  if (
+    status === "LOGGED_IN"
+  ) {
+    return "Facebook is logged in for this browser profile.";
+  }
+
+  if (
+    status ===
+    "LOGIN_REQUIRED"
+  ) {
+    return "Facebook login is required once for this browser profile.";
+  }
+
+  if (
+    status ===
+    "TWO_FACTOR_REQUIRED"
+  ) {
+    return "Facebook 2FA verification is required.";
+  }
+
+  if (
+    status ===
+    "CHECKPOINT_REQUIRED"
+  ) {
+    return "Facebook security checkpoint requires attention.";
+  }
+
+  if (
+    status ===
+      "BROWSER_OPEN" ||
+    status ===
+      "BROWSER_CLOSED" ||
+    status ===
+      "PENDING" ||
+    status ===
+      "UNKNOWN"
+  ) {
+    return "Facebook identity has not been verified yet.";
+  }
+
+  return `Facebook identity: ${readableStatus(
+    value,
+  )}.`;
 }
 
 export function BrowserAccountsManagerV2({
@@ -509,10 +601,69 @@ export function BrowserAccountsManagerV2({
     setViewerKey,
   ] = useState(0);
 
+  const [
+    viewerUrl,
+    setViewerUrl,
+  ] = useState<string | null>(
+    null,
+  );
+
   const viewerRef =
     useRef<HTMLElement | null>(
       null,
     );
+
+
+  async function connectSecureBrowserViewer() {
+    const response =
+      await fetch(
+        "/api/browser-viewer/session",
+        {
+          method:
+            "POST",
+          cache:
+            "no-store",
+          headers: {
+            Accept:
+              "application/json",
+          },
+        },
+      );
+
+    const body =
+      await readJson(
+        response,
+      );
+
+    const token =
+      typeof body.token ===
+        "string"
+        ? body.token
+        : "";
+
+    if (
+      !response.ok ||
+      !token
+    ) {
+      throw new Error(
+        getErrorMessage(
+          body,
+          "Unable to authorize Live Browser.",
+        ),
+      );
+    }
+
+    const nextUrl =
+      buildNoVncUrl(
+        token,
+      );
+
+    setViewerUrl(
+      nextUrl,
+    );
+
+    return nextUrl;
+  }
 
 
   /*
@@ -656,7 +807,7 @@ export function BrowserAccountsManagerV2({
         try {
           const response =
             await fetch(
-              `${API_URL}/browser-runtime/accounts/${accountId}/browser/status`,
+              `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/status`,
               {
                 cache:
                   "no-store",
@@ -777,7 +928,7 @@ export function BrowserAccountsManagerV2({
         try {
           const response =
             await fetch(
-              `${API_URL}/browser-runtime/accounts`,
+              `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
               {
                 cache:
                   "no-store",
@@ -985,7 +1136,7 @@ export function BrowserAccountsManagerV2({
 
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts/${selectedAccount.id}`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}`,
           {
             method: "PATCH",
             headers: {
@@ -1070,7 +1221,7 @@ export function BrowserAccountsManagerV2({
     try {
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts/${accountId}/automation-policy`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/automation-policy`,
           {
             cache:
               "no-store",
@@ -1114,7 +1265,7 @@ export function BrowserAccountsManagerV2({
     try {
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts/${accountId}/timeline`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/timeline`,
           {
             cache:
               "no-store",
@@ -1182,7 +1333,7 @@ export function BrowserAccountsManagerV2({
     try {
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
           {
             method:
               "PATCH",
@@ -1302,7 +1453,7 @@ export function BrowserAccountsManagerV2({
 
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts/${accountId}/onboarding/run`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/onboarding/run`,
           {
             method:
               "POST",
@@ -1455,7 +1606,7 @@ export function BrowserAccountsManagerV2({
 
     const response =
       await fetch(
-        `${API_URL}/browser-runtime/accounts/${accountId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
         {
           method: "POST",
           headers: {
@@ -1503,15 +1654,61 @@ export function BrowserAccountsManagerV2({
       loadAccounts(),
     ]);
 
+    await connectSecureBrowserViewer();
+
     setActionMessage(
       "Browser profile opened.",
     );
 
     setViewerOpen(true);
+
     setViewerKey(
       (current) =>
         current + 1,
     );
+
+    /*
+     * Browser running and Facebook logged in
+     * are two separate states.
+     *
+     * Automatically inspect Facebook after
+     * every browser open so the UI reflects
+     * the actual identity stored in this
+     * persistent browser profile.
+     */
+    try {
+      const inspection =
+        await verifyLogin(
+          accountId,
+        );
+
+      const identityStatus =
+        inspection?.loginStatus ||
+        "UNKNOWN";
+
+      setActionMessage(
+        [
+          "Browser profile opened.",
+          facebookIdentityMessage(
+            identityStatus,
+          ),
+        ].join(" "),
+      );
+    } catch (error) {
+      console.warn(
+        "Facebook identity auto-check failed:",
+        error,
+      );
+
+      /*
+       * Browser opening succeeded.
+       * A verification failure must not make
+       * the browser itself appear failed.
+       */
+      setActionMessage(
+        "Browser profile opened. Facebook identity could not be verified automatically.",
+      );
+    }
   }
 
   async function verifyLogin(
@@ -1529,7 +1726,7 @@ export function BrowserAccountsManagerV2({
 
     const response =
       await fetch(
-        `${API_URL}/browser-runtime/accounts/${accountId}/browser/inspect`,
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/inspect`,
         {
           method: "POST",
         },
@@ -1585,6 +1782,8 @@ export function BrowserAccountsManagerV2({
     setActionMessage(
       `Login verification: ${status}.`,
     );
+
+    return result;
   }
 
   async function closeBrowser(
@@ -1602,7 +1801,7 @@ export function BrowserAccountsManagerV2({
 
     const response =
       await fetch(
-        `${API_URL}/browser-runtime/accounts/${accountId}/browser/close`,
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/close`,
         {
           method: "POST",
         },
@@ -1642,6 +1841,10 @@ export function BrowserAccountsManagerV2({
     ]);
 
     setViewerOpen(false);
+
+    setViewerUrl(
+      null,
+    );
 
     setActionMessage(
       "Browser profile closed. Cookies remain stored in the profile.",
@@ -1888,7 +2091,7 @@ export function BrowserAccountsManagerV2({
     try {
       const response =
         await fetch(
-          `${API_URL}/browser-runtime/accounts`,
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
           {
             method: "POST",
             headers: {
@@ -2636,6 +2839,63 @@ export function BrowserAccountsManagerV2({
 
 
             <div
+              className={
+                styles.identityStatusGrid
+              }
+            >
+              <article>
+                <span>
+                  BROWSER
+                </span>
+
+                <strong
+                  className={
+                    selectedRuntime.running
+                      ? styles.good
+                      : styles.neutral
+                  }
+                >
+                  {selectedRuntime.loading
+                    ? "CHECKING"
+                    : selectedRuntime.running
+                      ? "RUNNING"
+                      : "STOPPED"}
+                </strong>
+
+                <small>
+                  {selectedRuntime.running
+                    ? "Remote Chromium session is active."
+                    : "Browser session is currently closed."}
+                </small>
+              </article>
+
+              <article>
+                <span>
+                  FACEBOOK IDENTITY
+                </span>
+
+                <strong
+                  className={
+                    loginStatusClass(
+                      selectedAccount.loginStatus,
+                    )
+                  }
+                >
+                  {readableStatus(
+                    selectedAccount.loginStatus,
+                  )}
+                </strong>
+
+                <small>
+                  {facebookIdentityMessage(
+                    selectedAccount.loginStatus,
+                  )}
+                </small>
+              </article>
+            </div>
+
+
+            <div
               className={styles.actions}
               id={`browser-account-${selectedAccount.id}-actions`}
             >
@@ -2755,12 +3015,24 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.secondaryButton}
                 type="button"
-                onClick={() =>
-                  setViewerKey(
-                    (current) =>
-                      current + 1,
-                  )
-                }
+                onClick={() => {
+                  void connectSecureBrowserViewer()
+                    .then(() => {
+                      setViewerKey(
+                        (current) =>
+                          current + 1,
+                      );
+                    })
+                    .catch(
+                      (error) => {
+                        setGlobalError(
+                          error instanceof Error
+                            ? error.message
+                            : "Unable to reload Live Browser.",
+                        );
+                      },
+                    );
+                }}
               >
                 Reload Viewer
               </button>
@@ -2771,14 +3043,37 @@ export function BrowserAccountsManagerV2({
                 onClick={() => {
                   const popup =
                     window.open(
-                      NOVNC_URL,
+                      "",
                       "_blank",
                     );
 
-                  if (popup) {
-                    popup.opener =
-                      null;
-                  }
+                  void connectSecureBrowserViewer()
+                    .then(
+                      (nextUrl) => {
+                        if (!popup) {
+                          throw new Error(
+                            "Browser blocked the new tab.",
+                          );
+                        }
+
+                        popup.opener =
+                          null;
+
+                        popup.location.href =
+                          nextUrl;
+                      },
+                    )
+                    .catch(
+                      (error) => {
+                        popup?.close();
+
+                        setGlobalError(
+                          error instanceof Error
+                            ? error.message
+                            : "Unable to open Live Browser.",
+                        );
+                      },
+                    );
                 }}
               >
                 Open in New Tab
@@ -2787,11 +3082,15 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.dangerButton}
                 type="button"
-                onClick={() =>
+                onClick={() => {
                   setViewerOpen(
                     false,
-                  )
-                }
+                  );
+
+                  setViewerUrl(
+                    null,
+                  );
+                }}
               >
                 Hide Viewer
               </button>
@@ -2799,13 +3098,19 @@ export function BrowserAccountsManagerV2({
           </div>
 
           <div className={styles.viewerFrameWrap}>
-            <iframe
-              className={styles.viewerFrame}
-              key={viewerKey}
-              src={NOVNC_URL}
-              title={`${selectedAccount.displayName} browser viewer`}
-              allow="clipboard-read; clipboard-write; fullscreen"
-            />
+            {viewerUrl ? (
+              <iframe
+                className={styles.viewerFrame}
+                key={viewerKey}
+                src={viewerUrl}
+                title={`${selectedAccount.displayName} browser viewer`}
+                allow="clipboard-read; clipboard-write; fullscreen"
+              />
+            ) : (
+              <div className={styles.previewEmpty}>
+                Authorizing secure Live Browser…
+              </div>
+            )}
           </div>
         </section>
       ) : null}

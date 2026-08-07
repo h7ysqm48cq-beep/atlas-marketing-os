@@ -2044,3 +2044,55 @@
 }
 
 /* === END UNIFIED AUTOMATION TABLE SCROLL === */
+
+
+
+/* === BROWSER IDENTITY STATUS === */
+
+.identityStatusGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.identityStatusGrid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid
+    var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+.identityStatusGrid article > span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  opacity: 0.65;
+}
+
+.identityStatusGrid article > strong {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.identityStatusGrid article > small {
+  display: block;
+  line-height: 1.45;
+  opacity: 0.72;
+}
+
+@media (max-width: 720px) {
+  .identityStatusGrid {
+    grid-template-columns:
+      1fr;
+  }
+}
+
+/* === END BROWSER IDENTITY STATUS === */
