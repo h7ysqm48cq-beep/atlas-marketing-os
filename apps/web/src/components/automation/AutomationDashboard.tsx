@@ -1,10 +1,102 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./AutomationDashboard.module.css";
 import { usePreferences } from "@/components/preferences";
 
+
 import { API_URL } from "@/lib/api";
+
+
+const DEFAULT_BROWSER_RUNTIME_API_URL =
+  "https://api-production-7f7d.up.railway.app";
+
+
+function getBrowserRuntimeApiUrl() {
+  const configured =
+    process.env
+      .NEXT_PUBLIC_BROWSER_RUNTIME_API_URL
+      ?.trim();
+
+  if (configured) {
+    return configured.replace(
+      /\/+$/,
+      "",
+    );
+  }
+
+  /*
+   * Local UI cannot reach Railway private networking.
+   * Browser operations therefore use the public Atlas API,
+   * which then talks privately to browser-worker:4010.
+   */
+  if (
+    typeof window !== "undefined" &&
+    (
+      window.location.hostname ===
+        "localhost" ||
+      window.location.hostname ===
+        "127.0.0.1"
+    )
+  ) {
+    return DEFAULT_BROWSER_RUNTIME_API_URL;
+  }
+
+  return API_URL.replace(
+    /\/+$/,
+    "",
+  );
+}
+
+
+function buildBrowserViewUrl() {
+  const configured =
+    process.env
+      .NEXT_PUBLIC_BROWSER_VIEW_URL
+      ?.trim() ||
+    "https://browser-worker-production-536a.up.railway.app/vnc.html";
+
+  try {
+    const url =
+      new URL(
+        configured,
+      );
+
+    url.searchParams.set(
+      "autoconnect",
+      "1",
+    );
+
+    url.searchParams.set(
+      "resize",
+      "scale",
+    );
+
+    url.searchParams.set(
+      "path",
+      "websockify",
+    );
+
+    url.searchParams.set(
+      "reconnect",
+      "1",
+    );
+
+    url.searchParams.set(
+      "reconnect_delay",
+      "1000",
+    );
+
+    return url.toString();
+  } catch {
+    return configured;
+  }
+}
+
+
+const BROWSER_VIEW_URL =
+  buildBrowserViewUrl();
+
 type Channel = {
   id: string;
   platform: "FACEBOOK" | "TELEGRAM";
@@ -326,7 +418,7 @@ function browserActionScreenshotUrl(
     | "after",
 ) {
   const base =
-    `${API_URL}/automation/browser-actions/${actionId}/screenshot`;
+    `${getBrowserRuntimeApiUrl()}/automation/browser-actions/${actionId}/screenshot`;
 
   return variant
     ? `${base}?variant=${variant}`
@@ -802,6 +894,16 @@ export function AutomationDashboard() {
   const [browserRunning, setBrowserRunning] =
     useState(false);
 
+  const [
+    browserViewerKey,
+    setBrowserViewerKey,
+  ] = useState(0);
+
+  const browserPreviewRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
   const [browserAction, setBrowserAction] =
     useState<
       | "open"
@@ -925,9 +1027,7 @@ export function AutomationDashboard() {
 
     try {
       const apiOrigin =
-        process.env
-          .NEXT_PUBLIC_API_URL ||
-        "http://localhost:3001";
+        getBrowserRuntimeApiUrl();
 
       const response =
         await fetch(
@@ -1011,7 +1111,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/browser-actions?limit=20`,
+        `${getBrowserRuntimeApiUrl()}/automation/browser-actions?limit=20`,
         {
           cache: "no-store",
         },
@@ -1068,6 +1168,30 @@ export function AutomationDashboard() {
     selectedFacebookChannelId,
   ]);
 
+  function revealBrowserViewer() {
+    setBrowserViewerKey(
+      (current) =>
+        current + 1,
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        window.requestAnimationFrame(
+          () => {
+            browserPreviewRef.current
+              ?.scrollIntoView({
+                behavior:
+                  "smooth",
+                block:
+                  "start",
+              });
+          },
+        );
+      },
+    );
+  }
+
+
   async function openBrowser() {
     if (!selectedFacebookChannelId) {
       setBrowserError(
@@ -1082,7 +1206,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/open`,
         {
           method: "POST",
           headers: {
@@ -1112,9 +1236,12 @@ export function AutomationDashboard() {
       }
 
       setBrowserRunning(true);
+
       setBrowserMessage(
         copy.browserRunning,
       );
+
+      revealBrowserViewer();
     } catch (actionError) {
       setBrowserError(
         actionError instanceof Error
@@ -1136,7 +1263,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/status`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/status`,
         {
           cache: "no-store",
         },
@@ -1155,6 +1282,10 @@ export function AutomationDashboard() {
       setBrowserRunning(
         Boolean(body.running),
       );
+
+      if (body.running) {
+        revealBrowserViewer();
+      }
 
       setBrowserMessage(
         body.running
@@ -1183,7 +1314,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/close`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/close`,
         {
           method: "POST",
         },
@@ -1234,7 +1365,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/browser-actions/${item.id}/retry`,
+        `${getBrowserRuntimeApiUrl()}/automation/browser-actions/${item.id}/retry`,
         {
           method: "POST",
         },
@@ -1331,7 +1462,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/prepare-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/prepare-post`,
         {
           method: "POST",
           headers: {
@@ -1407,7 +1538,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/discard-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/discard-post`,
         {
           method: "POST",
         },
@@ -1478,7 +1609,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${selectedFacebookChannelId}/browser/facebook/publish-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/publish-post`,
         {
           method: "POST",
           headers: {
@@ -2044,12 +2175,29 @@ export function AutomationDashboard() {
             ) : null}
           </div>
 
-          <div className={styles.browserPreview}>
+          <div
+            ref={browserPreviewRef}
+            className={styles.browserPreview}
+          >
             <div className={styles.previewHeader}>
-              <strong>{copy.screenshotPreview}</strong>
+              <strong>
+                {browserRunning
+                  ? "Live Browser"
+                  : copy.screenshotPreview}
+              </strong>
             </div>
 
-            {draftScreenshot ? (
+            {browserRunning ? (
+              <iframe
+                key={browserViewerKey}
+                className={
+                  styles.liveBrowserFrame
+                }
+                src={BROWSER_VIEW_URL}
+                title="Atlas Live Browser"
+                allow="clipboard-read; clipboard-write; fullscreen"
+              />
+            ) : draftScreenshot ? (
               <img
                 src={draftScreenshot}
                 alt={copy.screenshotPreview}
