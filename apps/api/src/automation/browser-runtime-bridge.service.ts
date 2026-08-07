@@ -149,6 +149,7 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      targetUrl?: string | null;
     },
   ) {
     const normalizedInput =
@@ -186,19 +187,33 @@ export class BrowserRuntimeBridgeService {
       imagePath?: string | null;
     },
   ) {
-    const profile =
-      await this.ensureProfile(
-        channelId,
-        {
-          headless: false,
-          startUrl:
-            'https://www.facebook.com/',
-        },
-      );
+    const [
+      profile,
+      target,
+    ] =
+      await Promise.all([
+        this.ensureProfile(
+          channelId,
+          {
+            headless: false,
+            startUrl:
+              'https://www.facebook.com/',
+          },
+        ),
+
+        this.runtimeProfiles
+          .getFacebookPublishingTarget(
+            channelId,
+          ),
+      ]);
 
     return this.prepareFacebookPost(
       profile.browserProfileKey,
-      input,
+      {
+        ...input,
+        targetUrl:
+          target.targetUrl,
+      },
     );
   }
 
@@ -391,6 +406,7 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      targetUrl?: string | null;
     },
   ) {
     const caption =
@@ -411,11 +427,52 @@ export class BrowserRuntimeBridgeService {
       );
     }
 
+    const targetUrl =
+      input.targetUrl?.trim() ||
+      null;
+
+    if (targetUrl) {
+      let parsed:
+        URL;
+
+      try {
+        parsed =
+          new URL(
+            targetUrl,
+          );
+      } catch {
+        throw new BadRequestException(
+          'Invalid Facebook Page target URL.',
+        );
+      }
+
+      const hostname =
+        parsed.hostname
+          .toLowerCase();
+
+      if (
+        hostname !==
+          'facebook.com' &&
+        hostname !==
+          'www.facebook.com' &&
+        !hostname.endsWith(
+          '.facebook.com',
+        )
+      ) {
+        throw new BadRequestException(
+          'Facebook Page target must use facebook.com.',
+        );
+      }
+    }
+
     return {
       caption,
+
       imagePath:
         input.imagePath?.trim() ||
         null,
+
+      targetUrl,
     };
   }
 

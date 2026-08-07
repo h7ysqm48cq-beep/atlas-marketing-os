@@ -630,6 +630,106 @@ export class RuntimeProfileService {
   }
 
 
+  /*
+   * FACEBOOK_PAGE_PUBLISH_TARGET_V1
+   *
+   * Browser publishing must target the SocialChannel
+   * Facebook Page, never the Browser Account owner's
+   * personal Facebook home composer.
+   */
+  async getFacebookPublishingTarget(
+    channelId: string,
+  ) {
+    const channel =
+      await this.prisma
+        .socialChannel
+        .findUnique({
+          where: {
+            id:
+              channelId,
+          },
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+            externalId: true,
+            username: true,
+          },
+        });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel was not found.',
+      );
+    }
+
+    if (
+      String(
+        channel.platform,
+      ).toUpperCase() !==
+      'FACEBOOK'
+    ) {
+      throw new BadRequestException(
+        'Facebook publishing target requires a Facebook channel.',
+      );
+    }
+
+    const username =
+      channel.username
+        ?.trim() ||
+      '';
+
+    const pageId =
+      channel.externalId
+        ?.trim() ||
+      '';
+
+    const targetUrl =
+      username
+        ? (
+            'https://www.facebook.com/' +
+            encodeURIComponent(
+              username,
+            ) +
+            '/'
+          )
+        : pageId
+          ? (
+              'https://www.facebook.com/profile.php?id=' +
+              encodeURIComponent(
+                pageId,
+              )
+            )
+          : null;
+
+    if (!targetUrl) {
+      throw new BadRequestException(
+        [
+          'Facebook channel',
+          channel.name,
+          'does not have a Page username or Page ID.',
+        ].join(' '),
+      );
+    }
+
+    return {
+      channelId:
+        channel.id,
+
+      channelName:
+        channel.name,
+
+      pageId:
+        pageId || null,
+
+      username:
+        username || null,
+
+      targetUrl,
+    };
+  }
+
+
   async getBrowserLaunchProfile(
     channelId: string,
   ) {

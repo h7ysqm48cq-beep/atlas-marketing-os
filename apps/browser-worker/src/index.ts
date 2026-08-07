@@ -3121,6 +3121,7 @@ app.post(
       request.body as {
         caption?: string;
         imagePath?: string | null;
+        targetUrl?: string | null;
       };
 
     const caption =
@@ -3129,6 +3130,48 @@ app.post(
     const imagePath =
       input.imagePath?.trim() ||
       null;
+
+    const targetUrl =
+      input.targetUrl?.trim() ||
+      "https://www.facebook.com/";
+
+    let parsedTarget:
+      URL;
+
+    try {
+      parsedTarget =
+        new URL(
+          targetUrl,
+        );
+    } catch {
+      response.status(400).json({
+        success: false,
+        message:
+          "Invalid Facebook Page target URL.",
+      });
+      return;
+    }
+
+    const targetHostname =
+      parsedTarget.hostname
+        .toLowerCase();
+
+    if (
+      targetHostname !==
+        "facebook.com" &&
+      targetHostname !==
+        "www.facebook.com" &&
+      !targetHostname.endsWith(
+        ".facebook.com",
+      )
+    ) {
+      response.status(400).json({
+        success: false,
+        message:
+          "Facebook target must use facebook.com.",
+      });
+      return;
+    }
 
     if (!caption) {
       response.status(400).json({
@@ -3313,7 +3356,7 @@ app.post(
        * Facebook home feed, so navigate explicitly.
        */
       await page.goto(
-        "https://www.facebook.com/",
+        targetUrl,
         {
           waitUntil:
             "domcontentloaded",
@@ -3411,8 +3454,15 @@ app.post(
       const openComposerStartedAt =
         Date.now();
 
+      /*
+       * FACEBOOK_PAGE_COMPOSER_TRIGGER_V1
+       *
+       * Personal profiles commonly use
+       * "What's on your mind?" while Facebook Pages
+       * commonly expose "Create post".
+       */
       const composerTriggerPattern =
-        /what'?s on your mind|你在想什麼|你在想什么|apa yang (?:sedang )?anda fikirkan/i;
+        /what'?s on your mind|create (?:a )?post|write (?:a )?post|你在想什麼|你在想什么|建立貼文|创建帖子|建立帖子|發佈貼文|发布帖子|apa yang (?:sedang )?anda fikirkan|cipta siaran|buat siaran/i;
 
       const composerTriggers = [
         page.getByRole(
@@ -4101,6 +4151,8 @@ app.post(
           url:
             page?.url() ||
             null,
+
+          targetUrl,
         },
       );
 

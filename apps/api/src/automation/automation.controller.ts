@@ -680,8 +680,8 @@ export class AutomationController {
     try {
       const result =
         await this.browserRuntime
-          .prepareFacebookPost(
-            profile.browserProfileKey,
+          .prepareFacebookPostForChannel(
+            id,
             {
               caption,
               imagePath,
