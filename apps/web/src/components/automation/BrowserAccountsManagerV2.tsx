@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { API_URL } from "@/lib/api";
@@ -507,6 +508,64 @@ export function BrowserAccountsManagerV2({
     viewerKey,
     setViewerKey,
   ] = useState(0);
+
+  const viewerRef =
+    useRef<HTMLElement | null>(
+      null,
+    );
+
+
+  /*
+   * Auto-focus the live browser viewer.
+   *
+   * openBrowser() already increments viewerKey after the
+   * remote browser has opened. Once React renders the viewer,
+   * move it directly into view so the user does not need to
+   * manually scroll down.
+   */
+  useEffect(
+    () => {
+
+      if (
+        !viewerOpen
+      ) {
+        return;
+      }
+
+
+      const timer =
+        window.setTimeout(
+          () => {
+
+            viewerRef.current
+              ?.scrollIntoView({
+                behavior:
+                  "smooth",
+
+                block:
+                  "start",
+              });
+
+          },
+          120,
+        );
+
+
+      return () => {
+
+        window.clearTimeout(
+          timer,
+        );
+
+      };
+
+    },
+    [
+      viewerOpen,
+      viewerKey,
+    ],
+  );
+
 
   const selectedAccount =
     accounts.find(
@@ -1971,22 +2030,7 @@ export function BrowserAccountsManagerV2({
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>
-            Browser Management Center
-          </p>
 
-          <h1>
-            Browser Accounts
-          </h1>
-
-          <p className={styles.subtitle}>
-            Manage independent Facebook
-            profiles, cookies, proxies,
-            login sessions and automation
-            from one control center.
-          </p>
-        </div>
 
         <div className={styles.headerActions}>
           <button
@@ -2371,7 +2415,7 @@ export function BrowserAccountsManagerV2({
                           account.lastVerifiedAt,
                         )}
                       </td>
-                    
+
                       <td
                         className={styles.quickActionCell}
                         onClick={(event) =>
@@ -2478,10 +2522,10 @@ export function BrowserAccountsManagerV2({
             >
               {[
                 ["overview", "Overview"],
+                ["actions", "Actions"],
                 ["automation", "Automation"],
                 ["timeline", "Timeline"],
                 ["onboarding", "Onboarding"],
-                ["actions", "Actions"],
               ].map(
                 ([section, label]) => (
                   <button
@@ -2590,7 +2634,184 @@ export function BrowserAccountsManagerV2({
               </article>
             </div>
 
-            <dl className={styles.definitionList}>
+
+            <div
+              className={styles.actions}
+              id={`browser-account-${selectedAccount.id}-actions`}
+            >
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={
+                  selectedRuntime.loading
+                }
+                onClick={() =>
+                  openEdit(
+                    selectedAccount,
+                  )
+                }
+              >
+                Edit Account
+              </button>
+
+              <button
+                className={styles.primaryButton}
+                type="button"
+                disabled={
+                  selectedRuntime.loading
+                }
+                onClick={() =>
+                  void openBrowser(
+                    selectedAccount.id,
+                  ).catch(
+                    (error) =>
+                      setGlobalError(
+                        error instanceof
+                          Error
+                          ? error.message
+                          : "Unable to open browser.",
+                      ),
+                  )
+                }
+              >
+                Open Browser
+              </button>
+
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                disabled={
+                  selectedRuntime.loading
+                }
+                onClick={() =>
+                  void verifyLogin(
+                    selectedAccount.id,
+                  ).catch(
+                    (error) =>
+                      setGlobalError(
+                        error instanceof
+                          Error
+                          ? error.message
+                          : "Unable to verify login.",
+                      ),
+                  )
+                }
+              >
+                Verify Login
+              </button>
+
+              <button
+                className={styles.dangerButton}
+                type="button"
+                disabled={
+                  selectedRuntime.loading ||
+                  !selectedRuntime.running
+                }
+                onClick={() =>
+                  void closeBrowser(
+                    selectedAccount.id,
+                  ).catch(
+                    (error) =>
+                      setGlobalError(
+                        error instanceof
+                          Error
+                          ? error.message
+                          : "Unable to close browser.",
+                      ),
+                  )
+                }
+              >
+                Close Browser
+              </button>
+            </div>
+
+
+            {viewerOpen &&
+      selectedAccount ? (
+        <section
+          ref={viewerRef}
+          className={styles.viewerPanel}
+        >
+          <div className={styles.viewerHeader}>
+            <div>
+              <p className={styles.eyebrow}>
+                Live Browser
+              </p>
+
+              <h2>
+                {selectedAccount.displayName}
+              </h2>
+
+              <p>
+                {
+                  selectedRuntime.session
+                    ?.currentUrl ||
+                  "Remote Chromium session"
+                }
+              </p>
+            </div>
+
+            <div className={styles.viewerActions}>
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() =>
+                  setViewerKey(
+                    (current) =>
+                      current + 1,
+                  )
+                }
+              >
+                Reload Viewer
+              </button>
+
+              <button
+                className={styles.secondaryButton}
+                type="button"
+                onClick={() => {
+                  const popup =
+                    window.open(
+                      NOVNC_URL,
+                      "_blank",
+                    );
+
+                  if (popup) {
+                    popup.opener =
+                      null;
+                  }
+                }}
+              >
+                Open in New Tab
+              </button>
+
+              <button
+                className={styles.dangerButton}
+                type="button"
+                onClick={() =>
+                  setViewerOpen(
+                    false,
+                  )
+                }
+              >
+                Hide Viewer
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.viewerFrameWrap}>
+            <iframe
+              className={styles.viewerFrame}
+              key={viewerKey}
+              src={NOVNC_URL}
+              title={`${selectedAccount.displayName} browser viewer`}
+              allow="clipboard-read; clipboard-write; fullscreen"
+            />
+          </div>
+        </section>
+      ) : null}
+
+
+<dl className={styles.definitionList}>
               <div>
                 <dt>
                   Brand
@@ -3150,179 +3371,12 @@ export function BrowserAccountsManagerV2({
               ) : null}
             </section>
 
-            <div
-              className={styles.actions}
-              id={`browser-account-${selectedAccount.id}-actions`}
-            >
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
-                onClick={() =>
-                  openEdit(
-                    selectedAccount,
-                  )
-                }
-              >
-                Edit Account
-              </button>
 
-              <button
-                className={styles.primaryButton}
-                type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
-                onClick={() =>
-                  void openBrowser(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to open browser.",
-                      ),
-                  )
-                }
-              >
-                Open Browser
-              </button>
-
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
-                onClick={() =>
-                  void verifyLogin(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to verify login.",
-                      ),
-                  )
-                }
-              >
-                Verify Login
-              </button>
-
-              <button
-                className={styles.dangerButton}
-                type="button"
-                disabled={
-                  selectedRuntime.loading ||
-                  !selectedRuntime.running
-                }
-                onClick={() =>
-                  void closeBrowser(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to close browser.",
-                      ),
-                  )
-                }
-              >
-                Close Browser
-              </button>
-            </div>
           </>
         )}
       </section>
 
-      {viewerOpen &&
-      selectedAccount ? (
-        <section className={styles.viewerPanel}>
-          <div className={styles.viewerHeader}>
-            <div>
-              <p className={styles.eyebrow}>
-                Live Browser
-              </p>
 
-              <h2>
-                {selectedAccount.displayName}
-              </h2>
-
-              <p>
-                {
-                  selectedRuntime.session
-                    ?.currentUrl ||
-                  "Remote Chromium session"
-                }
-              </p>
-            </div>
-
-            <div className={styles.viewerActions}>
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() =>
-                  setViewerKey(
-                    (current) =>
-                      current + 1,
-                  )
-                }
-              >
-                Reload Viewer
-              </button>
-
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() => {
-                  const popup =
-                    window.open(
-                      NOVNC_URL,
-                      "_blank",
-                    );
-
-                  if (popup) {
-                    popup.opener =
-                      null;
-                  }
-                }}
-              >
-                Open in New Tab
-              </button>
-
-              <button
-                className={styles.dangerButton}
-                type="button"
-                onClick={() =>
-                  setViewerOpen(
-                    false,
-                  )
-                }
-              >
-                Hide Viewer
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.viewerFrameWrap}>
-            <iframe
-              className={styles.viewerFrame}
-              key={viewerKey}
-              src={NOVNC_URL}
-              title={`${selectedAccount.displayName} browser viewer`}
-              allow="clipboard-read; clipboard-write; fullscreen"
-            />
-          </div>
-        </section>
-      ) : null}
       {createAccountOpen ? (
         <div
           className={styles.modalBackdrop}

@@ -493,9 +493,15 @@ export class BrowserRuntimeBridgeService {
         )
         ?.trim();
 
+    const defaultWorkerUrl =
+      process.env.NODE_ENV ===
+      'production'
+        ? 'http://browser-worker.railway.internal:4010'
+        : 'http://localhost:4010';
+
     let workerUrl =
       configuredValue ||
-      'http://localhost:4010';
+      defaultWorkerUrl;
 
     if (
       !workerUrl.startsWith(
