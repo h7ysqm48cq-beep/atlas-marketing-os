@@ -9,6 +9,11 @@ import {
   EngineeringService,
 } from './engineering.service';
 
+
+import {
+  RepairModule,
+} from './repair/repair.module';
+
 import {
   PatchController,
 } from './patch/patch.controller';
@@ -113,6 +118,7 @@ ValidationService,
 @Module({
   imports: [
     RecoveryModule,
+    RepairModule,
   ],
   controllers: [
     EngineeringController,

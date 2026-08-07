@@ -15,6 +15,11 @@ PatchService,
 } from "../patch/patch.service";
 
 
+import {
+RepairService,
+} from "../repair/repair.service";
+
+
 @Injectable()
 export class RecoveryService {
 
@@ -22,6 +27,9 @@ export class RecoveryService {
 constructor(
 private readonly patchService:
 PatchService,
+
+private readonly repairService:
+RepairService,
 ) {}
 
 
@@ -45,6 +53,24 @@ const patchResult =
   );
 
 
+const repairResult =
+  await this.repairService.generate({
+
+    error:
+      request.error,
+
+    filePath:
+      request.files?.[0]
+      ||
+      "apps/api/src/engineering/recovery/recovery.service.ts",
+
+    currentContent:
+      patchResult.patches[0]?.before
+      || "",
+
+  });
+
+
 const suggestions: RecoverySuggestion[] = [];
 
 
@@ -64,7 +90,17 @@ if (
       true,
 
     patch:
-      patchResult.patches,
+      patchResult.patches.map(
+        patch => ({
+          ...patch,
+
+          after:
+            repairResult.after,
+
+          explanation:
+            repairResult.explanation,
+        }),
+      ),
 
     nextStep:
       "Generate fix patch.",
@@ -89,7 +125,17 @@ if (
       true,
 
     patch:
-      patchResult.patches,
+      patchResult.patches.map(
+        patch => ({
+          ...patch,
+
+          after:
+            repairResult.after,
+
+          explanation:
+            repairResult.explanation,
+        }),
+      ),
 
     nextStep:
       "Generate fix patch.",

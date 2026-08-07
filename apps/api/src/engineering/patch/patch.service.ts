@@ -85,9 +85,10 @@ export class PatchService {
 
         after:
           this.generateContent(
-            request,
-            filePath,
-          ),
+        request,
+        filePath,
+        currentContent,
+      ),
 
         explanation:
           `Atlas prepared a patch preview for ${filePath}.`,
@@ -111,9 +112,10 @@ export class PatchService {
 
 
   private generateContent(
-    request: string,
-    filePath: string,
-  ) {
+request: string,
+filePath: string,
+currentContent: string,
+) {
 
     return `/**
  * Atlas Engineering Patch Preview
