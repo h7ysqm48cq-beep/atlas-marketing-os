@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import { AiTopicSuggestions } from "./AiTopicSuggestions";
 import styles from "./AiStudio.module.css";
@@ -41,7 +41,35 @@ type RecentHistory = {
   };
 };
 
-export function AiStudio() {
+export type ExternalGenerationRequest = {
+  requestId: number;
+  mode: "prompt" | "image";
+};
+
+
+export type ExternalGenerationEvent = {
+  requestId: number;
+  mode: "prompt" | "image";
+  phase:
+    | "workspace"
+    | "image"
+    | "done"
+    | "error";
+  message?: string;
+};
+
+
+export function AiStudio({
+  externalGenerateRequest,
+  onExternalGenerationEvent,
+}: {
+  externalGenerateRequest?:
+    ExternalGenerationRequest | null;
+
+  onExternalGenerationEvent?: (
+    event: ExternalGenerationEvent,
+  ) => void;
+}) {
   const { language: interfaceLanguage } = usePreferences();
 
   function ui(en: string, zh: string) {
@@ -98,6 +126,18 @@ export function AiStudio() {
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [
+    imageGenerateRequestId,
+    setImageGenerateRequestId,
+  ] = useState<number | null>(
+    null,
+  );
+
+  const lastExternalRequestRef =
+    useRef<number | null>(
+      null,
+    );
   const [recentHistory, setRecentHistory] = useState<RecentHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [message, setMessage] = useState(
@@ -316,34 +356,84 @@ export function AiStudio() {
 
     setIsGenerating(true);
     setMessage("Restoring AI task running in the background...");
-    void completeJob(pendingJobId);
+    void completeJob(
+      pendingJobId,
+    ).catch(
+      () => undefined,
+    );
   }, []);
 
-  async function completeJob(jobId: string) {
+  async function completeJob(
+    jobId: string,
+  ): Promise<WorkspaceResult> {
+
     try {
-      const data = await waitForBackgroundJob<WorkspaceResult>(
-        `${API_URL}/ai/jobs/${jobId}`,
+
+      const data =
+        await waitForBackgroundJob<WorkspaceResult>(
+          `${API_URL}/ai/jobs/${jobId}`,
+        );
+
+
+      window.localStorage.removeItem(
+        AI_STUDIO_JOB_KEY,
       );
-      window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
-      setResult(data);
+
+
+      setResult(
+        data,
+      );
+
+
       setMessage(
         data.campaignUsed
           ? `Workspace complete · Saved to ${data.campaignUsed.name}`
           : "Workspace complete · Saved to Content History",
       );
+
+
+      return data;
+
     } catch (error) {
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unable to generate content.";
+
+
       setMessage(
-        error instanceof Error ? error.message : "Unable to generate content.",
+        errorMessage,
       );
+
+
       if (
-        !(error instanceof Error) ||
-        !error.message.includes("still running")
+        !(
+          error instanceof Error
+        )
+        ||
+        !error.message.includes(
+          "still running",
+        )
       ) {
-        window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
+
+        window.localStorage.removeItem(
+          AI_STUDIO_JOB_KEY,
+        );
+
       }
+
+
+      throw error;
+
     } finally {
-      setIsGenerating(false);
+
+      setIsGenerating(
+        false,
+      );
+
     }
+
   }
 
   function togglePlatform(platform: StudioPlatform) {
@@ -429,18 +519,106 @@ export function AiStudio() {
     );
   }
 
-  async function generateContent() {
-    if (!topic.trim()) {
-      setMessage(ui("Topic is required.", "请填写主题。"));
+  async function generateContent(
+    platformOverride?: StudioPlatform[],
+    externalRequest?: ExternalGenerationRequest,
+  ) {
+
+    const requestedPlatforms =
+      platformOverride?.length
+        ? platformOverride
+        : platforms;
+
+
+    if (
+      !topic.trim()
+    ) {
+
+      const errorMessage =
+        ui(
+          "Topic is required.",
+          "请填写主题。",
+        );
+
+
+      setMessage(
+        errorMessage,
+      );
+
+
+      if (
+        externalRequest
+      ) {
+
+        onExternalGenerationEvent?.({
+          requestId:
+            externalRequest.requestId,
+
+          mode:
+            externalRequest.mode,
+
+          phase:
+            "error",
+
+          message:
+            errorMessage,
+        });
+
+      }
+
+
       return;
+
     }
 
-    if (!platforms.length) {
-      setMessage(ui("Select at least one platform.", "请至少选择一个平台。"));
+
+    if (
+      !requestedPlatforms.length
+    ) {
+
+      const errorMessage =
+        ui(
+          "Select at least one platform.",
+          "请至少选择一个平台。",
+        );
+
+
+      setMessage(
+        errorMessage,
+      );
+
+
+      if (
+        externalRequest
+      ) {
+
+        onExternalGenerationEvent?.({
+          requestId:
+            externalRequest.requestId,
+
+          mode:
+            externalRequest.mode,
+
+          phase:
+            "error",
+
+          message:
+            errorMessage,
+        });
+
+      }
+
+
       return;
+
     }
 
-    setIsGenerating(true);
+
+    setIsGenerating(
+      true,
+    );
+
+
     setMessage(
       ui(
         "Reading Brand Brain and Campaign context...",
@@ -448,53 +626,270 @@ export function AiStudio() {
       ),
     );
 
-    try {
-      const response = await fetch(`${API_URL}/ai/jobs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topic: topic.trim(),
-          platforms,
-          style,
-          language,
-          campaignId: campaignId || undefined,
-          ideaId: ideaId || undefined,
-          assetIds: selectedAssets.map((asset) => asset.id),
-        }),
+
+    if (
+      externalRequest
+    ) {
+
+      onExternalGenerationEvent?.({
+        requestId:
+          externalRequest.requestId,
+
+        mode:
+          externalRequest.mode,
+
+        phase:
+          "workspace",
       });
 
-      const job = (await response.json()) as {
-        id?: string;
-        message?: string;
-      };
+    }
 
-      if (!response.ok || !job.id) {
+
+    try {
+
+      const response =
+        await fetch(
+          `${API_URL}/ai/jobs`,
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                topic:
+                  topic.trim(),
+
+                platforms:
+                  requestedPlatforms,
+
+                style,
+
+                language,
+
+                campaignId:
+                  campaignId
+                  ||
+                  undefined,
+
+                ideaId:
+                  ideaId
+                  ||
+                  undefined,
+
+                assetIds:
+                  selectedAssets.map(
+                    asset =>
+                      asset.id,
+                  ),
+              }),
+          },
+        );
+
+
+      const job =
+        await response.json() as {
+          id?: string;
+          status?: string;
+          message?: string;
+          error?: string;
+        };
+
+
+      if (
+        !response.ok
+        ||
+        !job.id
+      ) {
+
         throw new Error(
           job.message
-            ? job.message
-            : ui("Unable to generate content.", "无法生成内容。"),
+          ||
+          job.error
+          ||
+          "Unable to create AI background job.",
         );
+
       }
-      window.localStorage.setItem(AI_STUDIO_JOB_KEY, job.id);
+
+
+      window.localStorage.setItem(
+        AI_STUDIO_JOB_KEY,
+        job.id,
+      );
+
+
       setMessage(
         ui(
           "AI task is running safely in the background...",
           "AI 任务正在后台安全运行……",
         ),
       );
-      await completeJob(job.id);
+
+
+      await completeJob(
+        job.id,
+      );
+
+
+      if (
+        externalRequest?.mode
+        ===
+        "image"
+      ) {
+
+        /*
+         * Content job has completed.
+         * result.image + result.historyId now exist.
+         *
+         * AiWorkspace will mount ImageAssetPanel and
+         * ImageAssetPanel will invoke the real image job.
+         */
+        setImageGenerateRequestId(
+          externalRequest.requestId,
+        );
+
+
+        onExternalGenerationEvent?.({
+          requestId:
+            externalRequest.requestId,
+
+          mode:
+            "image",
+
+          phase:
+            "image",
+        });
+
+      } else if (
+        externalRequest
+      ) {
+
+        onExternalGenerationEvent?.({
+          requestId:
+            externalRequest.requestId,
+
+          mode:
+            externalRequest.mode,
+
+          phase:
+            "done",
+        });
+
+      }
+
     } catch (error) {
-      setMessage(
+
+      const errorMessage =
         error instanceof Error
           ? error.message
-          : ui("Unable to generate content.", "无法生成内容。"),
+          : ui(
+              "Unable to generate content.",
+              "无法生成内容。",
+            );
+
+
+      setMessage(
+        errorMessage,
       );
+
+
+      if (
+        externalRequest
+      ) {
+
+        onExternalGenerationEvent?.({
+          requestId:
+            externalRequest.requestId,
+
+          mode:
+            externalRequest.mode,
+
+          phase:
+            "error",
+
+          message:
+            errorMessage,
+        });
+
+      }
+
     } finally {
-      setIsGenerating(false);
+
+      setIsGenerating(
+        false,
+      );
+
     }
+
   }
+
+
+  /*
+   * External MobileShell generation request.
+   *
+   * Prompt:
+   * use currently selected platforms.
+   *
+   * Image:
+   * generate Image Prompt first, then real image.
+   */
+  useEffect(
+    () => {
+
+      const request =
+        externalGenerateRequest;
+
+
+      if (
+        !request
+        ||
+        lastExternalRequestRef.current
+          ===
+          request.requestId
+      ) {
+
+        return;
+
+      }
+
+
+      lastExternalRequestRef.current =
+        request.requestId;
+
+
+      if (
+        request.mode
+        ===
+        "image"
+      ) {
+
+        void generateContent(
+          [
+            "Image Prompt",
+          ],
+          request,
+        );
+
+        return;
+
+      }
+
+
+      void generateContent(
+        undefined,
+        request,
+      );
+
+    },
+    [
+      externalGenerateRequest?.requestId,
+    ],
+  );
 
   return (
     <div className={styles.page}>
@@ -781,6 +1176,52 @@ export function AiStudio() {
           statusMessage={message}
           onMessage={setMessage}
           onResultChange={setResult}
+
+          imageGenerateRequestId={
+            imageGenerateRequestId
+            ??
+            undefined
+          }
+
+          onImageGenerateSettled={
+            ({
+              requestId,
+              success,
+              message:
+                imageMessage,
+            }) => {
+
+              if (
+                requestId
+                !==
+                imageGenerateRequestId
+              ) {
+                return;
+              }
+
+
+              setImageGenerateRequestId(
+                null,
+              );
+
+
+              onExternalGenerationEvent?.({
+                requestId,
+
+                mode:
+                  "image",
+
+                phase:
+                  success
+                    ? "done"
+                    : "error",
+
+                message:
+                  imageMessage,
+              });
+
+            }
+          }
         />
       </section>
       {isAssetPickerOpen ? (

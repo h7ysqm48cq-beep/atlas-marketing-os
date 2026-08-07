@@ -101,6 +101,8 @@ export function AiWorkspace({
   statusMessage,
   onMessage,
   onResultChange,
+  imageGenerateRequestId,
+  onImageGenerateSettled,
 }: {
   topic: string;
   result: WorkspaceResult | null;
@@ -111,6 +113,16 @@ export function AiWorkspace({
   statusMessage: string;
   onMessage: (message: string) => void;
   onResultChange: (result: WorkspaceResult) => void;
+
+  imageGenerateRequestId?: number;
+
+  onImageGenerateSettled?: (
+    result: {
+      requestId: number;
+      success: boolean;
+      message?: string;
+    },
+  ) => void;
 }) {
   const [tab, setTab] = useState<WorkspaceTab>("content");
   const [copilotRequest, setCopilotRequest] = useState<{
@@ -120,6 +132,33 @@ export function AiWorkspace({
   } | null>(null);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [approval, setApproval] = useState<ApprovalState>({ status: "DRAFT" });
+
+
+  /*
+   * If AiStudio requests a real image,
+   * mount ImageAssetPanel first.
+   */
+  useEffect(
+    () => {
+
+      if (
+        imageGenerateRequestId
+        &&
+        result?.image?.trim()
+      ) {
+
+        setTab(
+          "image",
+        );
+
+      }
+
+    },
+    [
+      imageGenerateRequestId,
+      result?.image,
+    ],
+  );
 
   useEffect(() => {
     if (!result?.historyId) {
@@ -206,6 +245,50 @@ const hasContent = cards.some(([, , key]) => key !== "image");
     if (!availableTabs.includes(tab)) setTab(availableTabs[0]);
   }, [availableTabs, tab]);
 
+  /*
+   * Keep hook order stable across renders.
+   *
+   * This must execute before the early `!result` return.
+   */
+  useEffect(
+    () => {
+
+      if (
+        !result
+      ) {
+        return;
+      }
+
+
+      const nextIsImageOnly =
+        Boolean(
+          result.image?.trim()
+          &&
+          !result.facebook?.trim()
+          &&
+          !result.telegram?.trim()
+          &&
+          !result.reels?.trim(),
+        );
+
+
+      setTab(
+        nextIsImageOnly
+          ? "image"
+          : "content",
+      );
+
+    },
+    [
+      result?.historyId,
+      result?.image,
+      result?.facebook,
+      result?.telegram,
+      result?.reels,
+    ],
+  );
+
+
   function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
     if (!result) return;
     onResultChange({ ...result, [key]: content });
@@ -241,13 +324,6 @@ const hasContent = cards.some(([, , key]) => key !== "image");
       !result?.reels?.trim(),
   );
 
-  useEffect(() => {
-    if (!result) {
-      return;
-    }
-
-    setTab(isImageOnly ? "image" : "content");
-  }, [result?.historyId, isImageOnly]);
 
   if (!result) {
     return null;
@@ -372,6 +448,12 @@ const hasContent = cards.some(([, , key]) => key !== "image");
             topic={topic}
             campaignId={result.campaignUsed?.id || campaignId}
             historyId={result.historyId}
+            autoGenerateRequestId={
+              imageGenerateRequestId
+            }
+            onAutoGenerateSettled={
+              onImageGenerateSettled
+            }
           />
           <ImageEditorV2 />
         </>

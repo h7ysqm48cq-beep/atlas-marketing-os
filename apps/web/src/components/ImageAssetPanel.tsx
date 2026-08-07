@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
@@ -91,11 +91,23 @@ export function ImageAssetPanel({
   topic,
   campaignId,
   historyId,
+  autoGenerateRequestId,
+  onAutoGenerateSettled,
 }: {
   prompt: string;
   topic: string;
   campaignId?: string;
   historyId?: string;
+
+  autoGenerateRequestId?: number;
+
+  onAutoGenerateSettled?: (
+    result: {
+      requestId: number;
+      success: boolean;
+      message?: string;
+    },
+  ) => void;
 }) {
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
@@ -109,6 +121,9 @@ export function ImageAssetPanel({
   const [selectedVersion, setSelectedVersion] = useState(0);
   const [revision, setRevision] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const handledAutoRequestRef =
+    useRef<number | null>(null);
 
   const [message, setMessage] = useState(
     prompt ? "Image prompt is ready." : "Generate the content package first.",
@@ -146,14 +161,67 @@ export function ImageAssetPanel({
     ].join("\n");
   }
 
-  async function generateImage(revisionRequest?: string) {
+  async function generateImage(
+    revisionRequest?: string,
+    externalRequestId?: number,
+  ) {
+
+    let generationSucceeded =
+      false;
+
+    let generationError:
+      string | undefined;
     if (!prompt.trim()) {
-      setMessage("Generate the content package before creating an image.");
+
+      const errorMessage =
+        "Generate the content package before creating an image.";
+
+      setMessage(
+        errorMessage,
+      );
+
+      if (
+        externalRequestId
+      ) {
+        onAutoGenerateSettled?.({
+          requestId:
+            externalRequestId,
+
+          success:
+            false,
+
+          message:
+            errorMessage,
+        });
+      }
+
       return;
     }
 
     if (!historyId) {
-      setMessage("A saved Content History record is required.");
+
+      const errorMessage =
+        "A saved Content History record is required.";
+
+      setMessage(
+        errorMessage,
+      );
+
+      if (
+        externalRequestId
+      ) {
+        onAutoGenerateSettled?.({
+          requestId:
+            externalRequestId,
+
+          success:
+            false,
+
+          message:
+            errorMessage,
+        });
+      }
+
       return;
     }
 
@@ -230,19 +298,95 @@ export function ImageAssetPanel({
       setSelectedVersion(nextVersion);
       setRevision("");
 
+      generationSucceeded =
+        true;
+
       setMessage(
         nextVersion === 1
           ? "Image generated and saved to Asset Library."
           : `Version ${nextVersion} generated and saved. Previous versions remain available.`,
       );
     } catch (error) {
+
+      generationError =
+        error instanceof Error
+          ? error.message
+          : "Unable to generate image.";
+
       setMessage(
-        error instanceof Error ? error.message : "Unable to generate image.",
+        generationError,
       );
+
     } finally {
-      setIsGenerating(false);
+
+      setIsGenerating(
+        false,
+      );
+
+      if (
+        externalRequestId
+      ) {
+
+        onAutoGenerateSettled?.({
+          requestId:
+            externalRequestId,
+
+          success:
+            generationSucceeded,
+
+          message:
+            generationError,
+        });
+
+      }
+
     }
   }
+
+
+  /*
+   * Formal external image-generation bridge.
+   *
+   * No querySelector.
+   * No simulated click.
+   */
+  useEffect(
+    () => {
+
+      const requestId =
+        autoGenerateRequestId;
+
+
+      if (
+        !requestId
+        ||
+        handledAutoRequestRef.current
+          ===
+          requestId
+        ||
+        isGenerating
+      ) {
+        return;
+      }
+
+
+      handledAutoRequestRef.current =
+        requestId;
+
+
+      void generateImage(
+        undefined,
+        requestId,
+      );
+
+    },
+    [
+      autoGenerateRequestId,
+      isGenerating,
+      prompt,
+      historyId,
+    ],
+  );
 
   function applyPreset(instruction: string) {
     setRevision((current) =>
