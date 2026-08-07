@@ -21,7 +21,7 @@ type OutputPlatforms = {
 };
 
 const EMPTY_OUTPUTS: OutputPlatforms = {
-  facebook: false,
+  facebook: true,
   telegram: false,
   reels: false,
   imagePrompt: false,
@@ -29,7 +29,7 @@ const EMPTY_OUTPUTS: OutputPlatforms = {
 
 
 export function AiStudioMobileShell() {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [formCard, setFormCard] = useState<HTMLElement | null>(null);
   const [outputMode, setOutputMode] = useState<OutputMode>(null);
@@ -288,6 +288,67 @@ export function AiStudioMobileShell() {
         null,
       );
 
+
+      /*
+       * After a real image has finished generating,
+       * reveal it automatically on mobile.
+       *
+       * Two animation frames allow React to:
+       * 1. remove data-running=true
+       * 2. reveal AiWorkspace / ImageAssetPanel
+       * before scrolling.
+       */
+      if (
+        event.mode
+        ===
+        "image"
+      ) {
+
+        window.requestAnimationFrame(
+          () => {
+
+            window.requestAnimationFrame(
+              () => {
+
+                const shell =
+                  shellRef.current;
+
+
+                const imageResult =
+                  shell?.querySelector<HTMLElement>(
+                    '[class*="ImageAssetPanel_result"]',
+                  );
+
+
+                const imagePanel =
+                  shell?.querySelector<HTMLElement>(
+                    '[class*="ImageAssetPanel_panel"]',
+                  );
+
+
+                const target =
+                  imageResult
+                  ||
+                  imagePanel;
+
+
+                target?.scrollIntoView({
+                  behavior:
+                    "smooth",
+
+                  block:
+                    "start",
+                });
+
+              },
+            );
+
+          },
+        );
+
+      }
+
+
       return;
 
     }
@@ -407,6 +468,150 @@ export function AiStudioMobileShell() {
     };
 
   }, []);
+
+  /*
+   * Reliable post-render image reveal.
+   *
+   * The background image job may finish before React has
+   * committed the generated image element to the DOM.
+   * Wait for the actual result before scrolling.
+   */
+  useEffect(
+    () => {
+
+      if (
+        outputMode !== "image"
+        ||
+        !hasResult
+        ||
+        isRunning
+      ) {
+        return;
+      }
+
+
+      let cancelled =
+        false;
+
+      let attempts =
+        0;
+
+      let timer:
+        number | undefined;
+
+
+      const reveal =
+        () => {
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+
+          const currentShell =
+            shellRef.current;
+
+
+          const imageResult =
+            currentShell?.querySelector<HTMLElement>(
+              '[class*="ImageAssetPanel_result"]',
+            );
+
+
+          if (
+            imageResult
+          ) {
+
+            imageResult.scrollIntoView({
+              behavior:
+                "smooth",
+
+              block:
+                "start",
+            });
+
+
+            return;
+          }
+
+
+          attempts +=
+            1;
+
+
+          /*
+           * Give React / image state up to ~3 seconds.
+           */
+          if (
+            attempts < 30
+          ) {
+
+            timer =
+              window.setTimeout(
+                reveal,
+                100,
+              );
+
+            return;
+          }
+
+
+          /*
+           * Last fallback:
+           * at least bring the AI Image panel into view.
+           */
+          const imagePanel =
+            currentShell?.querySelector<HTMLElement>(
+              '[class*="ImageAssetPanel_panel"]',
+            );
+
+
+          imagePanel?.scrollIntoView({
+            behavior:
+              "smooth",
+
+            block:
+              "start",
+          });
+
+        };
+
+
+      timer =
+        window.setTimeout(
+          reveal,
+          100,
+        );
+
+
+      return () => {
+
+        cancelled =
+          true;
+
+
+        if (
+          timer !== undefined
+        ) {
+
+          window.clearTimeout(
+            timer,
+          );
+
+        }
+
+      };
+
+    },
+    [
+      outputMode,
+      hasResult,
+      isRunning,
+    ],
+  );
+
 
   const isGenerating =
     isRunning;

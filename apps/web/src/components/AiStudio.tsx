@@ -113,7 +113,7 @@ export function AiStudio({
   const [style, setStyle] = useState("Nostalgia");
   const [language, setLanguage] = useState("Chinese");
   const [platforms, setPlatforms] = useState<StudioPlatform[]>([
-    ...platformOptions,
+    "Facebook",
   ]);
   const [campaignId, setCampaignId] = useState("");
   const [ideaId, setIdeaId] = useState("");
