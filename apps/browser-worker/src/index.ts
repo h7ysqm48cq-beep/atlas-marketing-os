@@ -3259,13 +3259,26 @@ app.post(
       });
     };
 
-    try {
-      const pages =
-        session.context.pages();
+    let automationPage:
+      Page | null =
+      null;
 
+    try {
+      /*
+       * DEDICATED_FACEBOOK_AUTOMATION_PAGE_V2
+       *
+       * Always create a dedicated automation tab
+       * inside the same persistent BrowserContext.
+       *
+       * This preserves the Facebook cookies/session
+       * but prevents automation from depending on
+       * whichever tab the user is currently viewing.
+       */
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await session.context.newPage();
+
+      automationPage =
+        page;
 
       const resetComposerStartedAt =
         Date.now();
@@ -3293,23 +3306,24 @@ app.post(
       const openFacebookStartedAt =
         Date.now();
 
-      const currentUrl =
-        page.url();
+      /*
+       * business.facebook.com and other Meta pages
+       * also contain facebook.com in the hostname.
+       * Composer automation requires the normal
+       * Facebook home feed, so navigate explicitly.
+       */
+      await page.goto(
+        "https://www.facebook.com/",
+        {
+          waitUntil:
+            "domcontentloaded",
+          timeout: 30000,
+        },
+      );
 
-      if (
-        !currentUrl.includes(
-          "facebook.com",
-        )
-      ) {
-        await page.goto(
-          "https://www.facebook.com/",
-          {
-            waitUntil:
-              "domcontentloaded",
-            timeout: 30000,
-          },
-        );
-      }
+      await page.waitForTimeout(
+        1500,
+      );
 
       const pageText =
         await page
@@ -3397,22 +3411,25 @@ app.post(
       const openComposerStartedAt =
         Date.now();
 
+      const composerTriggerPattern =
+        /what'?s on your mind|你在想什麼|你在想什么|apa yang (?:sedang )?anda fikirkan/i;
+
       const composerTriggers = [
         page.getByRole(
           "button",
           {
             name:
-              /what'?s on your mind/i,
+              composerTriggerPattern,
           },
         ),
         page.locator(
           '[role="button"]',
         ).filter({
           hasText:
-            /what'?s on your mind/i,
+            composerTriggerPattern,
         }),
         page.getByText(
-          /what'?s on your mind/i,
+          composerTriggerPattern,
           {
             exact: false,
           },
@@ -4070,11 +4087,22 @@ app.post(
             .toISOString(),
       });
     } catch (error) {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1);
+        automationPage;
+
+      console.error(
+        "[facebook/prepare-post]",
+        {
+          profileKey,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unknown prepare error",
+          url:
+            page?.url() ||
+            null,
+        },
+      );
 
       const screenshot =
         page
@@ -4086,6 +4114,17 @@ app.post(
               })
               .catch(() => null)
           : null;
+
+      if (
+        automationPage &&
+        !automationPage.isClosed()
+      ) {
+        await automationPage
+          .close()
+          .catch(
+            () => undefined,
+          );
+      }
 
       response.status(400).json({
         success: false,
