@@ -10,6 +10,10 @@ import {
   resolve,
 } from "node:path";
 
+import {
+  AstBridgeService,
+} from "../ast/ast.bridge.service";
+
 
 export type EngineeringPatchAction =
   | "create"
@@ -17,7 +21,26 @@ export type EngineeringPatchAction =
   | "delete";
 
 
+export type EngineeringPatchAst = {
+  analyzed: boolean;
+
+  ok?: boolean;
+
+  schemaVersion?: number;
+
+  statistics?: Record<
+    string,
+    number
+  >;
+
+  classes?: string[];
+
+  error?: string;
+};
+
+
 export type EngineeringPatch = {
+
   filePath: string;
 
   action:
@@ -28,11 +51,145 @@ export type EngineeringPatch = {
   after: string;
 
   explanation: string;
+
+  ast?:
+    EngineeringPatchAst;
+
 };
 
 
 @Injectable()
 export class PatchService {
+
+
+  constructor(
+    private readonly ast:
+      AstBridgeService,
+  ) {}
+
+
+  private repositoryRoot():
+    string {
+
+    return resolve(
+      process.cwd(),
+      "../..",
+    );
+
+  }
+
+
+  private async analyzeAst(
+    filePath: string,
+    currentContent: string,
+  ): Promise<EngineeringPatchAst> {
+
+    if (
+      !currentContent
+      ||
+      !(
+        filePath.endsWith(".ts")
+        ||
+        filePath.endsWith(".tsx")
+      )
+    ) {
+
+      return {
+        analyzed:
+          false,
+      };
+
+    }
+
+
+    try {
+
+      const result =
+          await this.ast.analyze(
+            filePath,
+          );
+
+
+      const classes =
+        Array.isArray(
+          result.classes,
+        )
+          ? result.classes
+              .map(
+                (item) => {
+
+                  if (
+                    !item
+                    ||
+                    typeof item !==
+                      "object"
+                  ) {
+
+                    return null;
+
+                  }
+
+
+                  const name =
+                    (
+                      item as {
+                        name?: unknown;
+                      }
+                    ).name;
+
+
+                  return typeof name ===
+                    "string"
+                    ? name
+                    : null;
+
+                },
+              )
+              .filter(
+                (
+                  value,
+                ): value is string =>
+                  Boolean(value),
+              )
+          : [];
+
+
+      return {
+
+        analyzed:
+          true,
+
+        ok:
+          result.ok,
+
+        schemaVersion:
+          result.schemaVersion,
+
+        statistics:
+          result.statistics,
+
+        classes,
+
+      };
+
+    } catch (error) {
+
+      return {
+
+        analyzed:
+          false,
+
+        error:
+          error instanceof Error
+            ? error.message
+            : "AST analysis failed.",
+
+      };
+
+    }
+
+  }
+
 
   async generate(
     request: string,
@@ -43,11 +200,16 @@ export class PatchService {
       EngineeringPatch[] = [];
 
 
+    const repositoryRoot =
+      this.repositoryRoot();
+
+
     for (
       const filePath of files
     ) {
 
-      let currentContent = "";
+      let currentContent =
+        "";
 
 
       try {
@@ -55,9 +217,7 @@ export class PatchService {
         currentContent =
           await readFile(
             resolve(
-              process.cwd(),
-              "..",
-              "..",
+              repositoryRoot,
               filePath,
             ),
             "utf8",
@@ -71,32 +231,54 @@ export class PatchService {
       }
 
 
+      const ast =
+        await this.analyzeAst(
+          filePath,
+          currentContent,
+        );
+
+
+      const action:
+        EngineeringPatchAction =
+          currentContent
+            ? "modify"
+            : "create";
+
+
       patches.push({
 
         filePath,
 
-        action:
-          currentContent
-            ? "modify"
-            : "create",
+        action,
 
         before:
           currentContent,
 
+        /*
+         * PatchService no longer invents
+         * replacement source code.
+         *
+         * Recovery / Repair generates the
+         * candidate source. AST provides
+         * structural repository context.
+         */
         after:
-          this.generateContent(
-        request,
-        filePath,
-        currentContent,
-      ),
+          currentContent,
 
         explanation:
-          `Atlas prepared a patch preview for ${filePath}.`,
+          ast.analyzed
+            ? `Atlas AST analyzed ${filePath} before preparing the repair candidate.`
+            : `Atlas prepared ${filePath} for repair analysis.`,
+
+        ast,
+
       });
+
     }
 
 
     return {
+
       request,
 
       patches,
@@ -104,30 +286,19 @@ export class PatchService {
       count:
         patches.length,
 
+      astAnalyzed:
+        patches.filter(
+          patch =>
+            patch.ast?.analyzed,
+        ).length,
+
       generatedAt:
         new Date()
           .toISOString(),
+
     };
+
   }
 
 
-  private generateContent(
-request: string,
-filePath: string,
-currentContent: string,
-) {
-
-    return `/**
- * Atlas Engineering Patch Preview
- *
- * File:
- * ${filePath}
- *
- * Request:
- * ${request}
- *
- * Generated content requires review.
- */
-`;
-  }
 }

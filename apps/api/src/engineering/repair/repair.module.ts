@@ -18,11 +18,17 @@ AiProviderModule,
 } from "../../ai-provider/ai-provider.module";
 
 
+import {
+  AstModule,
+} from "../ast/ast.module";
+
+
 @Module({
 
 imports:[
   AiProviderModule,
-],
+    AstModule,
+  ],
 
 
 providers:[

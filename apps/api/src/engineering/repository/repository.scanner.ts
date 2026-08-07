@@ -88,10 +88,16 @@ export class RepositoryScanner {
       }
 
 
-      const info =
-        await stat(
-          fullPath,
-        );
+      let info;
+
+      try {
+        info =
+          await stat(
+            fullPath,
+          );
+      } catch {
+        continue;
+      }
 
 
       output.push({

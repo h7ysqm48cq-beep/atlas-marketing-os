@@ -53,22 +53,43 @@ const patchResult =
   );
 
 
-const repairResult =
-  await this.repairService.generate({
+const repairEntries =
+      await Promise.all(
+        patchResult.patches.map(
+          async (patch) => ({
+            filePath:
+              patch.filePath,
 
-    error:
-      request.error,
+            repair:
+              await this.repairService.generate({
+                error:
+                  request.error,
 
-    filePath:
-      request.files?.[0]
-      ||
-      "apps/api/src/engineering/recovery/recovery.service.ts",
+                filePath:
+                  patch.filePath,
 
-    currentContent:
-      patchResult.patches[0]?.before
-      || "",
+                currentContent:
+                  patch.before
+                  ||
+                  "",
+              }),
+          }),
+        ),
+      );
 
-  });
+
+    const repairByFile =
+      new Map(
+        repairEntries.map(
+          ({
+            filePath,
+            repair,
+          }) => [
+            filePath,
+            repair,
+          ],
+        ),
+      );
 
 
 const suggestions: RecoverySuggestion[] = [];
@@ -95,10 +116,10 @@ if (
           ...patch,
 
           after:
-            repairResult.after,
+            repairByFile.get(patch.filePath)!.after,
 
           explanation:
-            repairResult.explanation,
+            repairByFile.get(patch.filePath)!.explanation,
         }),
       ),
 
@@ -130,10 +151,10 @@ if (
           ...patch,
 
           after:
-            repairResult.after,
+            repairByFile.get(patch.filePath)!.after,
 
           explanation:
-            repairResult.explanation,
+            repairByFile.get(patch.filePath)!.explanation,
         }),
       ),
 

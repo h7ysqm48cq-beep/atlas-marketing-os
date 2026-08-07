@@ -39,6 +39,28 @@ export function AiStudioMobileShell() {
   const [isRunning, setIsRunning] = useState(false);
   const shellRef = useRef<HTMLElement>(null);
 
+  /*
+   * MobileShell must follow AiStudio's real generation
+   * lifecycle instead of guessing completion from output DOM.
+   */
+  const nativeGenerationStartedRef =
+    useRef(false);
+
+  /*
+   * Mobile Generate Image is a two-stage flow:
+   *
+   * 1. Generate / refresh Image Prompt in AiStudio.
+   * 2. Trigger the real ImageAssetPanel image generator.
+   */
+  const pendingImageGenerationRef =
+    useRef(false);
+
+  const imageClickIssuedRef =
+    useRef(false);
+
+  const imageBusyObservedRef =
+    useRef(false);
+
   function platformButtons() {
     const shell = shellRef.current;
     if (!shell) return [];
@@ -69,6 +91,60 @@ export function AiStudioMobileShell() {
     };
   }
 
+  function findImageGenerateButton(
+    shell: HTMLElement,
+  ): HTMLButtonElement | null {
+
+    const panel =
+      shell.querySelector<HTMLElement>(
+        '[class*="ImageAssetPanel_panel"]',
+      );
+
+
+    if (!panel) {
+      return null;
+    }
+
+
+    return (
+      Array.from(
+        panel.querySelectorAll<HTMLButtonElement>(
+          "button",
+        ),
+      ).find(
+        (button) => {
+
+          const label =
+            button.textContent
+              ?.trim()
+              .toLowerCase()
+              ||
+              "";
+
+
+          return (
+            label.includes(
+              "generate and save",
+            )
+            ||
+            label.includes(
+              "generate another concept",
+            )
+            ||
+            label.includes(
+              "generating image",
+            )
+          );
+
+        },
+      )
+      ||
+      null
+    );
+
+  }
+
+
   function selectOnlyImagePrompt() {
     platformButtons().forEach((button) => {
       const label = button.textContent?.trim().toLowerCase() || "";
@@ -81,31 +157,121 @@ export function AiStudioMobileShell() {
   }
 
   function runPromptGeneration() {
-    if (!nativeGenerateButton || nativeGenerateButton.disabled) return;
 
-    const selected = outputsFromLabels(selectedPlatformLabels());
-    setOutputPlatforms(selected);
-    setOutputMode("prompt");
-    setHasResult(false);
-    setIsRunning(true);
+    if (
+      !nativeGenerateButton
+      ||
+      nativeGenerateButton.disabled
+    ) {
+      return;
+    }
+
+
+    /*
+     * Explicit prompt generation must never accidentally
+     * continue into image generation.
+     */
+    pendingImageGenerationRef.current =
+      false;
+
+    imageClickIssuedRef.current =
+      false;
+
+    imageBusyObservedRef.current =
+      false;
+
+
+    const selected =
+      outputsFromLabels(
+        selectedPlatformLabels(),
+      );
+
+
+    setOutputPlatforms(
+      selected,
+    );
+
+    setOutputMode(
+      "prompt",
+    );
+
+    setGenerateMode(
+      "prompt",
+    );
+
+    setHasResult(
+      false,
+    );
+
+    setIsRunning(
+      true,
+    );
+
+
     nativeGenerateButton.click();
+
   }
 
   function runImageGeneration() {
-    if (!nativeGenerateButton || nativeGenerateButton.disabled) return;
+
+    if (
+      !nativeGenerateButton
+      ||
+      nativeGenerateButton.disabled
+    ) {
+      return;
+    }
+
+
+    /*
+     * Stage 1:
+     * Generate a fresh Image Prompt through the normal
+     * AI Studio background-job pipeline.
+     */
+    pendingImageGenerationRef.current =
+      true;
+
+    imageClickIssuedRef.current =
+      false;
+
+    imageBusyObservedRef.current =
+      false;
+
 
     selectOnlyImagePrompt();
+
+
     setOutputPlatforms({
       facebook: false,
       telegram: false,
       reels: false,
       imagePrompt: true,
     });
-    setOutputMode("image");
-    setHasResult(false);
-    setIsRunning(true);
 
-    window.requestAnimationFrame(() => nativeGenerateButton.click());
+    setOutputMode(
+      "image",
+    );
+
+    setGenerateMode(
+      "image",
+    );
+
+    setHasResult(
+      false,
+    );
+
+    setIsRunning(
+      true,
+    );
+
+
+    window.requestAnimationFrame(
+      () => {
+
+        nativeGenerateButton.click();
+
+      },
+    );
 
   }
 
@@ -142,29 +308,208 @@ export function AiStudioMobileShell() {
       ).find((button) => button.textContent?.trim() === "Collapse");
       collapseButton?.click();
 
-      const text = shell.textContent || "";
-      const generated =
-        !text.includes("Generate content to create the Facebook version") &&
-        !text.includes("Generate content to create the Telegram version") &&
-        !text.includes("Generate content to create the Reels Script version") &&
-        !text.includes("Generate content to create the Image Prompt version") &&
-        (Boolean(shell.querySelector('[class*="AiWorkspace_cards"]')) ||
-          Boolean(shell.querySelector('[class*="ImageAssetPanel_panel"]')));
+      /*
+       * There are two independent async generators:
+       *
+       * - AiStudio workspace / Image Prompt generation
+       * - ImageAssetPanel real image generation
+       *
+       * Follow their actual disabled states rather than
+       * guessing completion from placeholder text.
+       */
 
-      if (generated) {
-        setHasResult(true);
-        setIsRunning(false);
+      const imageGenerateButton =
+        findImageGenerateButton(
+          shell,
+        );
 
-        if (!outputMode) {
-          const labels = selectedPlatformLabels();
-          const inferredOutputs = outputsFromLabels(labels);
-          setOutputPlatforms(inferredOutputs);
-          setOutputMode(
-            labels.length === 1 && inferredOutputs.imagePrompt
-              ? "image"
-              : "prompt",
+
+      /*
+       * Observe the real image generator entering busy state.
+       */
+      if (
+        pendingImageGenerationRef.current
+        &&
+        imageClickIssuedRef.current
+        &&
+        imageGenerateButton?.disabled
+      ) {
+
+        imageBusyObservedRef.current =
+          true;
+
+      }
+
+
+      /*
+       * Real image generation completed.
+       *
+       * We only consider it complete after seeing the
+       * button disabled at least once, preventing a race
+       * immediately after click().
+       */
+      if (
+        pendingImageGenerationRef.current
+        &&
+        imageClickIssuedRef.current
+        &&
+        imageBusyObservedRef.current
+        &&
+        imageGenerateButton
+        &&
+        !imageGenerateButton.disabled
+      ) {
+
+        pendingImageGenerationRef.current =
+          false;
+
+        imageClickIssuedRef.current =
+          false;
+
+        imageBusyObservedRef.current =
+          false;
+
+        setHasResult(
+          true,
+        );
+
+        setIsRunning(
+          false,
+        );
+
+        setGenerateMode(
+          null,
+        );
+
+      }
+
+
+      /*
+       * Observe normal AI Studio generation.
+       */
+      if (
+        nextGenerateButton?.disabled
+      ) {
+
+        nativeGenerationStartedRef.current =
+          true;
+
+      } else if (
+        nativeGenerationStartedRef.current
+      ) {
+
+        nativeGenerationStartedRef.current =
+          false;
+
+
+        const hasWorkspaceResult =
+          Boolean(
+            shell.querySelector(
+              '[class*="AiWorkspace_cards"]',
+            ),
+          )
+          ||
+          Boolean(
+            shell.querySelector(
+              '[class*="ImageAssetPanel_panel"]',
+            ),
           );
+
+
+        if (
+          hasWorkspaceResult
+        ) {
+
+          setHasResult(
+            true,
+          );
+
         }
+
+
+        /*
+         * Prompt-only generation ends here.
+         *
+         * Image generation remains running because it still
+         * needs Stage 2 below.
+         */
+        if (
+          !pendingImageGenerationRef.current
+        ) {
+
+          setIsRunning(
+            false,
+          );
+
+          setGenerateMode(
+            null,
+          );
+
+
+          if (
+            !outputMode
+          ) {
+
+            const labels =
+              selectedPlatformLabels();
+
+            const inferredOutputs =
+              outputsFromLabels(
+                labels,
+              );
+
+            setOutputPlatforms(
+              inferredOutputs,
+            );
+
+            setOutputMode(
+              labels.length === 1
+              &&
+              inferredOutputs.imagePrompt
+                ? "image"
+                : "prompt",
+            );
+
+          }
+
+        }
+
+      }
+
+
+      /*
+       * Stage 2:
+       *
+       * Once Image Prompt generation has settled and the
+       * ImageAssetPanel has mounted with an enabled button,
+       * automatically invoke its REAL image generator.
+       */
+      if (
+        pendingImageGenerationRef.current
+        &&
+        !nativeGenerationStartedRef.current
+        &&
+        !nextGenerateButton?.disabled
+        &&
+        !imageClickIssuedRef.current
+        &&
+        imageGenerateButton
+        &&
+        !imageGenerateButton.disabled
+      ) {
+
+        imageClickIssuedRef.current =
+          true;
+
+
+        window.requestAnimationFrame(
+          () => {
+
+            imageGenerateButton.click();
+
+          },
+        );
+
       }
 
     };

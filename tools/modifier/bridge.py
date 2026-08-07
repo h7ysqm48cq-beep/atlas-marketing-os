@@ -623,3 +623,46 @@ class TypeScriptBridge:
             statistics=payload.get("statistics", {}),
             raw=payload,
         )
+
+
+def main() -> None:
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="Atlas TypeScript AST Bridge"
+    )
+
+    parser.add_argument(
+        "--file",
+        required=True,
+        help="TypeScript file path",
+    )
+
+    parser.add_argument(
+        "--project",
+        default=".",
+        help="Repository root",
+    )
+
+    args = parser.parse_args()
+
+    bridge = TypeScriptBridge(
+        project_root=args.project,
+    )
+
+    result = bridge.parse(
+        args.file,
+    )
+
+    print(
+        json.dumps(
+            result.raw,
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

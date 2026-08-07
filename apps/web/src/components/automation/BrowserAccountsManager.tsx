@@ -93,9 +93,31 @@ const EMPTY_DETAILS: AccountDetails = {
   error: "",
 };
 
-const NOVNC_URL =
+const DEFAULT_BROWSER_VIEW_URL =
   process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
   "https://browser-worker-production-536a.up.railway.app/vnc.html";
+
+
+function getBrowserViewUrl(
+  session?: Record<string, unknown> | null,
+): string {
+
+  const vncUrl =
+    typeof session?.vncUrl === "string"
+      ? session.vncUrl
+      : null;
+
+  const viewUrl =
+    typeof session?.viewUrl === "string"
+      ? session.viewUrl
+      : null;
+
+  return (
+    vncUrl ||
+    viewUrl ||
+    DEFAULT_BROWSER_VIEW_URL
+  );
+}
 
 async function readJson(
   response: Response,
@@ -481,11 +503,30 @@ export function BrowserAccountsManager({
 
     await loadDetails(channelId);
 
-    window.open(
-      NOVNC_URL,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    const currentDetails =
+      detailsById[channelId] ||
+      EMPTY_DETAILS;
+
+
+    const viewUrl =
+      getBrowserViewUrl(
+        currentDetails.session,
+      );
+
+
+    const browserWindow =
+      window.open(
+        viewUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
+
+
+    if (!browserWindow) {
+      throw new Error(
+        "Browser window blocked. Please allow popups and retry.",
+      );
+    }
   }
 
   async function closeBrowser(

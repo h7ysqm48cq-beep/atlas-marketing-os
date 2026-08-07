@@ -1,4 +1,14 @@
 import {
+  existsSync,
+} from "node:fs";
+
+import {
+  isAbsolute,
+  relative,
+  resolve,
+} from "node:path";
+
+import {
   Injectable,
 } from "@nestjs/common";
 
@@ -62,6 +72,135 @@ private readonly audit:
 AuditService,
   ) {}
 
+  private repositoryRoot():
+    string {
+
+    let current =
+      resolve(
+        process.cwd(),
+      );
+
+
+    for (
+      let depth = 0;
+      depth < 8;
+      depth += 1
+    ) {
+
+      const apiExists =
+        existsSync(
+          resolve(
+            current,
+            "apps/api",
+          ),
+        );
+
+      const parserExists =
+        existsSync(
+          resolve(
+            current,
+            "tools/modifier/parser.js",
+          ),
+        );
+
+
+      if (
+        apiExists
+        &&
+        parserExists
+      ) {
+
+        return current;
+
+      }
+
+
+      const parent =
+        resolve(
+          current,
+          "..",
+        );
+
+
+      if (
+        parent === current
+      ) {
+
+        break;
+
+      }
+
+
+      current =
+        parent;
+
+    }
+
+
+    throw new Error(
+      "Atlas repository root could not be resolved.",
+    );
+
+  }
+
+
+  private repositoryFile(
+    filePath: string,
+  ): string {
+
+    const root =
+      this.repositoryRoot();
+
+
+    const absolute =
+      isAbsolute(
+        filePath,
+      )
+        ? resolve(
+            filePath,
+          )
+        : resolve(
+            root,
+            filePath,
+          );
+
+
+    const relativePath =
+      relative(
+        root,
+        absolute,
+      );
+
+
+    if (
+      relativePath === ""
+      ||
+      (
+        relativePath !== ".."
+        &&
+        !relativePath.startsWith(
+          "../",
+        )
+        &&
+        !isAbsolute(
+          relativePath,
+        )
+      )
+    ) {
+
+      return absolute;
+
+    }
+
+
+    throw new Error(
+      `File escapes repository root: ${filePath}`,
+    );
+
+  }
+
+
+
 
   async backupFile(
     filePath: string,
@@ -69,6 +208,7 @@ AuditService,
 
     const backupPath =
       join(
+        this.repositoryRoot(),
         ".atlas",
         "backup",
         filePath,
@@ -85,10 +225,16 @@ AuditService,
 
     try {
 
-      await access(filePath);
+      await access(
+        this.repositoryFile(
+          filePath,
+        ),
+      );
 
       await copyFile(
-        filePath,
+        this.repositoryFile(
+          filePath,
+        ),
         backupPath,
       );
 
@@ -118,7 +264,9 @@ AuditService,
 
       currentContent =
         await readFile(
-          filePath,
+          this.repositoryFile(
+            filePath,
+          ),
           "utf8",
         );
 
@@ -172,7 +320,11 @@ AuditService,
 
 
     await mkdir(
-      dirname(filePath),
+      dirname(
+        this.repositoryFile(
+          filePath,
+        ),
+      ),
       {
         recursive:
           true,
@@ -181,7 +333,9 @@ AuditService,
 
 
     await writeFile(
-      filePath,
+      this.repositoryFile(
+        filePath,
+      ),
       content,
       "utf8",
     );
@@ -266,7 +420,9 @@ for (
 
     currentContent =
       await readFile(
-        patch.filePath,
+        this.repositoryFile(
+          patch.filePath,
+        ),
         "utf8",
       );
 
@@ -336,7 +492,11 @@ for (
 ) {
 
   await mkdir(
-    dirname(patch.filePath),
+    dirname(
+      this.repositoryFile(
+        patch.filePath,
+      ),
+    ),
     {
       recursive:
         true,
@@ -345,10 +505,12 @@ for (
 
 
   await writeFile(
-    patch.filePath,
-    patch.content,
-    "utf8",
-  );
+      this.repositoryFile(
+        patch.filePath,
+      ),
+      patch.content,
+      "utf8",
+    );
 
 
   this.audit.record({

@@ -1,4 +1,5 @@
 import {
+
   Module,
 } from '@nestjs/common';
 
@@ -119,11 +120,17 @@ import {
 ValidationService,
 } from './validation/validation.service';
 
+import {
+  AstModule,
+} from "./ast/ast.module";
+
 @Module({
   imports: [
     RecoveryModule,
     RepairModule,
     AuditModule,
+  
+    AstModule,
   ],
   controllers: [
     EngineeringController,
