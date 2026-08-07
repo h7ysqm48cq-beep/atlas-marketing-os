@@ -4,7 +4,6 @@ import {
 } from '@nestjs/common';
 import {
   Cron,
-  CronExpression,
 } from '@nestjs/schedule';
 import { PublisherService } from './publisher.service';
 
@@ -21,7 +20,7 @@ export class AutomationSchedulerService {
   ) {}
 
   @Cron(
-    CronExpression.EVERY_MINUTE,
+    '*/10 * * * *',
     {
       name: 'atlas-publisher',
       timeZone: 'Asia/Kuala_Lumpur',
