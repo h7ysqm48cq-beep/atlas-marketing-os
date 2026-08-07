@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 DISPLAY_NUMBER="${DISPLAY:-:99}"
 NOVNC_PORT="${NOVNC_PORT:-6080}"
+NOVNC_INTERNAL_PORT="${NOVNC_INTERNAL_PORT:-6081}"
 SCREEN_WIDTH="${SCREEN_WIDTH:-1365}"
 SCREEN_HEIGHT="${SCREEN_HEIGHT:-768}"
 SCREEN_DEPTH="${SCREEN_DEPTH:-24}"
@@ -65,25 +66,33 @@ fluxbox   -display "${DISPLAY_NUMBER}"   > /tmp/fluxbox.log 2>&1 &
 
 FLUXBOX_PID=$!
 
-VNC_PASSWORD_FILE="/data/vnc/passwd"
-
-x11vnc -storepasswd   "${VNC_PASSWORD}"   "${VNC_PASSWORD_FILE}"   >/dev/null
-
-chmod 600 "${VNC_PASSWORD_FILE}"
-
-echo "Starting x11vnc..."
-x11vnc   -display "${DISPLAY_NUMBER}"   -rfbauth "${VNC_PASSWORD_FILE}"   -forever   -shared   -listen 127.0.0.1   -rfbport 5900   -noxdamage   -repeat   > /tmp/x11vnc.log 2>&1 &
+echo "Starting x11vnc (loopback only)..."
+x11vnc \
+  -display "${DISPLAY_NUMBER}" \
+  -nopw \
+  -forever \
+  -shared \
+  -listen 127.0.0.1 \
+  -rfbport 5900 \
+  -noxdamage \
+  -repeat \
+  > /tmp/x11vnc.log 2>&1 &
 
 VNC_PID=$!
 
-echo "Starting noVNC on port ${NOVNC_PORT}..."
-websockify   --web=/usr/share/novnc   "0.0.0.0:${NOVNC_PORT}"   "127.0.0.1:5900"   > /tmp/novnc.log 2>&1 &
+echo "Starting private noVNC websocket on port ${NOVNC_INTERNAL_PORT}..."
+websockify \
+  --web=/usr/share/novnc \
+  "127.0.0.1:${NOVNC_INTERNAL_PORT}" \
+  "127.0.0.1:5900" \
+  > /tmp/novnc.log 2>&1 &
 
 NOVNC_PID=$!
 
 echo "Starting Atlas Browser Worker..."
 echo "API port: ${BROWSER_WORKER_PORT:-4010}"
-echo "noVNC port: ${NOVNC_PORT}"
+echo "Secure viewer port: ${NOVNC_PORT}"
+echo "Private noVNC websocket port: ${NOVNC_INTERNAL_PORT}"
 echo "Display: ${DISPLAY_NUMBER}"
 
 exec npm run start --workspace apps/browser-worker

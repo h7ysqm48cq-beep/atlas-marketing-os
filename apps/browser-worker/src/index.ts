@@ -27,6 +27,9 @@ import {
 import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
+import {
+  startSecureViewerServer,
+} from "./viewer-server.js";
 
 type ProxyType =
   | "DIRECT"
@@ -5577,6 +5580,12 @@ process.on(
     process.exit(0);
   },
 );
+
+/*
+ * Browser Worker API remains private on 4010.
+ * Secure noVNC viewer is exposed separately on 6080.
+ */
+startSecureViewerServer();
 
 app.listen(
   port,

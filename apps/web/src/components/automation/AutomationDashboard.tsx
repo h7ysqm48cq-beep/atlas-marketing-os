@@ -49,7 +49,9 @@ function getBrowserRuntimeApiUrl() {
 }
 
 
-function buildBrowserViewUrl() {
+function buildBrowserViewUrl(
+  viewerToken: string,
+) {
   const configured =
     process.env
       .NEXT_PUBLIC_BROWSER_VIEW_URL
@@ -74,7 +76,9 @@ function buildBrowserViewUrl() {
 
     url.searchParams.set(
       "path",
-      "websockify",
+      `websockify?token=${encodeURIComponent(
+        viewerToken,
+      )}`,
     );
 
     url.searchParams.set(
@@ -94,8 +98,6 @@ function buildBrowserViewUrl() {
 }
 
 
-const BROWSER_VIEW_URL =
-  buildBrowserViewUrl();
 
 type Channel = {
   id: string;
@@ -899,6 +901,13 @@ export function AutomationDashboard() {
     setBrowserViewerKey,
   ] = useState(0);
 
+  const [
+    browserViewerUrl,
+    setBrowserViewerUrl,
+  ] = useState<string | null>(
+    null,
+  );
+
   const browserPreviewRef =
     useRef<HTMLDivElement | null>(
       null,
@@ -1168,6 +1177,52 @@ export function AutomationDashboard() {
     selectedFacebookChannelId,
   ]);
 
+  async function connectSecureBrowserViewer() {
+    const response =
+      await fetch(
+        "/api/browser-viewer/session",
+        {
+          method:
+            "POST",
+          cache:
+            "no-store",
+          headers: {
+            Accept:
+              "application/json",
+          },
+        },
+      );
+
+    const body =
+      (await response.json()) as {
+        token?: string;
+        expiresAt?: string;
+        message?: string;
+      };
+
+    if (
+      !response.ok ||
+      !body.token
+    ) {
+      throw new Error(
+        body.message ||
+          "Unable to authorize Live Browser.",
+      );
+    }
+
+    const nextUrl =
+      buildBrowserViewUrl(
+        body.token,
+      );
+
+    setBrowserViewerUrl(
+      nextUrl,
+    );
+
+    return nextUrl;
+  }
+
+
   function revealBrowserViewer() {
     setBrowserViewerKey(
       (current) =>
@@ -1237,6 +1292,8 @@ export function AutomationDashboard() {
 
       setBrowserRunning(true);
 
+      await connectSecureBrowserViewer();
+
       setBrowserMessage(
         copy.browserRunning,
       );
@@ -1284,7 +1341,12 @@ export function AutomationDashboard() {
       );
 
       if (body.running) {
+        await connectSecureBrowserViewer();
         revealBrowserViewer();
+      } else {
+        setBrowserViewerUrl(
+          null,
+        );
       }
 
       setBrowserMessage(
@@ -1333,6 +1395,11 @@ export function AutomationDashboard() {
       }
 
       setBrowserRunning(false);
+
+      setBrowserViewerUrl(
+        null,
+      );
+
       setBrowserMessage(
         copy.browserStopped,
       );
@@ -2187,16 +2254,30 @@ export function AutomationDashboard() {
               </strong>
             </div>
 
-            {browserRunning ? (
+            {browserRunning &&
+            browserViewerUrl ? (
               <iframe
                 key={browserViewerKey}
                 className={
                   styles.liveBrowserFrame
                 }
-                src={BROWSER_VIEW_URL}
+                src={browserViewerUrl}
                 title="Atlas Live Browser"
                 allow="clipboard-read; clipboard-write; fullscreen"
               />
+            ) : browserRunning ? (
+              <div
+                className={
+                  styles.previewEmpty
+                }
+              >
+                <span>
+                  Connecting Live Browser…
+                </span>
+                <small>
+                  Authorizing secure viewer session.
+                </small>
+              </div>
             ) : draftScreenshot ? (
               <img
                 src={draftScreenshot}
