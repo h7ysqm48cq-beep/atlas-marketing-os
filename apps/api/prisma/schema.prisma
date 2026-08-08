@@ -22,6 +22,7 @@ model Workspace {
   socialChannels SocialChannel[]
   automationSetting AutomationSetting?
   sportsNewsSetting SportsNewsSetting?
+  sportsNewsRuns SportsNewsRun[]
 }
 
 model Brand {
@@ -341,6 +342,25 @@ model SportsNewsSetting {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([telegramChannelId]) @@index([facebookChannelId])
+}
+
+model SportsNewsRun {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runKey String @unique
+  kind String
+  trigger String
+  status String @default("RUNNING")
+  sourceCount Int @default(0)
+  rejectedSourceCount Int @default(0)
+  scheduledPostIds String[] @default([])
+  error String?
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([workspaceId]) @@index([kind]) @@index([status]) @@index([startedAt])
 }
 
 enum CopilotMessageRole { USER ASSISTANT SYSTEM }
