@@ -9,8 +9,10 @@ import { SportsNewsSettingsController } from './sports-news-settings.controller'
 import { SportsNewsSettingsService } from './sports-news-settings.service';
 import { SportsNewsSourceValidatorService } from './sports-news-source-validator.service';
 import { SportsNewsRunnerService } from './sports-news-runner.service';
+import { NewsModule } from '../news/news.module';
 
 @Module({
+  imports: [NewsModule],
   controllers: [AutomationController, SportsNewsSettingsController],
   providers: [AutomationSchedulerService, AutomationService, SportsNewsSettingsService, SportsNewsSourceValidatorService, SportsNewsRunnerService, TelegramConnectorService, FacebookConnectorService, PublisherService],
   exports: [AutomationService, SportsNewsSettingsService, SportsNewsSourceValidatorService, SportsNewsRunnerService, TelegramConnectorService, FacebookConnectorService, PublisherService],
