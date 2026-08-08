@@ -22,7 +22,7 @@ import { VersionsModule } from './versions/versions.module';
 import { AiUsageModule } from './ai-usage/ai-usage.module';
 import { AutomationModule } from './automation/automation.module';
 import { WorkflowModule } from './workflow/workflow.module';
-
+import { NewsModule } from './news/news.module';
 import { PromptChainModule } from './prompt-chain/prompt-chain.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StrategyModule } from './strategy/strategy.module';
@@ -36,35 +36,14 @@ import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engi
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 @Module({
   imports: [
-    PlannerModule,
-    PromptBuilderModule,
-    AiProviderModule,
-    ContentEngineModule,
-    ContentValidatorModule,
-    ImagePromptEngineModule,
-    AgentWorkflowModule,
-    DashboardModule,
-    StrategyModule,
-    PromptsModule,
-    ScheduleModule.forRoot(), AutomationModule, WorkflowModule, AiUsageModule, 
-    PromptChainModule,
-    ConfigModule.forRoot({ isGlobal: true }),
-    DatabaseModule,
-    CommonModule,
-    BrandsModule,
-    CampaignsModule,
-    CampaignPlannerModule,
-    CampaignStrategyModule,
-    HistoryModule,
-    MemoryModule,
-    KnowledgeModule,
-    AssetsModule,
-    AssetImageModule,
-    CopilotModule,
-    RewriteModule,
-    VersionsModule,
-    AiModule,
-    ImageModule,
+    PlannerModule, PromptBuilderModule, AiProviderModule, ContentEngineModule,
+    ContentValidatorModule, ImagePromptEngineModule, AgentWorkflowModule,
+    DashboardModule, StrategyModule, PromptsModule,
+    ScheduleModule.forRoot(), AutomationModule, NewsModule, WorkflowModule, AiUsageModule,
+    PromptChainModule, ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, CommonModule,
+    BrandsModule, CampaignsModule, CampaignPlannerModule, CampaignStrategyModule, HistoryModule,
+    MemoryModule, KnowledgeModule, AssetsModule, AssetImageModule, CopilotModule, RewriteModule,
+    VersionsModule, AiModule, ImageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
