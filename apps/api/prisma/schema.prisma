@@ -4,9 +4,7 @@ generator client {
   moduleFormat = "cjs"
 }
 
-datasource db {
-  provider = "postgresql"
-}
+datasource db { provider = "postgresql" }
 
 enum BrandStatus { ACTIVE ARCHIVED }
 enum CampaignStatus { DRAFT ACTIVE PAUSED COMPLETED ARCHIVED }
@@ -59,8 +57,7 @@ model Brand {
   @@index([workspaceId])
 }
 
-model Campaign {
-  id String @id @default(cuid())
+model Campaign { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   name String
@@ -76,12 +73,8 @@ model Campaign {
   updatedAt DateTime @updatedAt
   scheduledPosts ScheduledPost[]
   copilotConversations CopilotConversation[]
-  @@index([brandId])
-  @@index([status])
-}
-
-model CampaignIdea {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([status]) }
+model CampaignIdea { id String @id @default(cuid())
   campaignId String
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   title String
@@ -95,13 +88,8 @@ model CampaignIdea {
   generations GenerationHistory[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([campaignId])
-  @@index([status])
-  @@index([sortOrder])
-}
-
-model GenerationHistory {
-  versions ContentVersion[]
+  @@index([campaignId]) @@index([status]) @@index([sortOrder]) }
+model GenerationHistory { versions ContentVersion[]
   id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -130,15 +118,8 @@ model GenerationHistory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   scheduledPosts ScheduledPost[]
-  @@index([brandId])
-  @@index([campaignId])
-  @@index([ideaId])
-  @@index([createdAt])
-  @@index([status])
-}
-
-model ContentVersion {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([campaignId]) @@index([ideaId]) @@index([createdAt]) @@index([status]) }
+model ContentVersion { id String @id @default(cuid())
   historyId String
   history GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
   platform String
@@ -146,14 +127,8 @@ model ContentVersion {
   sourceAction String
   versionNumber Int
   createdAt DateTime @default(now())
-  @@unique([historyId, platform, versionNumber])
-  @@index([historyId])
-  @@index([platform])
-  @@index([createdAt])
-}
-
-model Asset {
-  id String @id @default(cuid())
+  @@unique([historyId, platform, versionNumber]) @@index([historyId]) @@index([platform]) @@index([createdAt]) }
+model Asset { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   campaignId String?
@@ -187,17 +162,8 @@ model Asset {
   lastUsedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([brandId])
-  @@index([campaignId])
-  @@index([historyId])
-  @@index([type])
-  @@index([collection])
-  @@index([isFavorite])
-  @@index([createdAt])
-}
-
-model KnowledgeDocument {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([campaignId]) @@index([historyId]) @@index([type]) @@index([collection]) @@index([isFavorite]) @@index([createdAt]) }
+model KnowledgeDocument { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   embeddings KnowledgeEmbedding[]
@@ -215,13 +181,8 @@ model KnowledgeDocument {
   lastUsedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([brandId])
-  @@index([category])
-  @@index([createdAt])
-}
-
-model KnowledgeEmbedding {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([category]) @@index([createdAt]) }
+model KnowledgeEmbedding { id String @id @default(cuid())
   documentId String
   document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   brandId String
@@ -235,14 +196,8 @@ model KnowledgeEmbedding {
   contentHash String
   embeddedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@unique([documentId, chunkIndex])
-  @@index([documentId])
-  @@index([brandId])
-  @@index([embeddedAt])
-}
-
-model AiUsage {
-  id String @id @default(cuid())
+  @@unique([documentId, chunkIndex]) @@index([documentId]) @@index([brandId]) @@index([embeddedAt]) }
+model AiUsage { id String @id @default(cuid())
   historyId String?
   history GenerationHistory? @relation(fields: [historyId], references: [id], onDelete: SetNull)
   model String
@@ -254,18 +209,13 @@ model AiUsage {
   estimatedCostMyr Float
   durationMs Int
   createdAt DateTime @default(now())
-  @@index([historyId])
-  @@index([model])
-  @@index([createdAt])
-}
+  @@index([historyId]) @@index([model]) @@index([createdAt]) }
 
 enum SocialPlatform { FACEBOOK TELEGRAM }
 enum SocialChannelStatus { DISCONNECTED CONNECTED EXPIRED ERROR }
 enum ScheduledPostStatus { DRAFT SCHEDULED QUEUED PUBLISHING PUBLISHED FAILED CANCELLED }
 enum PublishAttemptStatus { PENDING SUCCESS FAILED }
-
-model SocialChannel {
-  id String @id @default(cuid())
+model SocialChannel { id String @id @default(cuid())
   workspaceId String
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   brandId String
@@ -284,15 +234,8 @@ model SocialChannel {
   sportsNewsFacebookSettings SportsNewsSetting[] @relation("SportsNewsFacebookChannel")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@unique([brandId, platform, externalId])
-  @@index([workspaceId])
-  @@index([brandId])
-  @@index([platform])
-  @@index([status])
-}
-
-model ScheduledPost {
-  id String @id @default(cuid())
+  @@unique([brandId, platform, externalId]) @@index([workspaceId]) @@index([brandId]) @@index([platform]) @@index([status]) }
+model ScheduledPost { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   channelId String
@@ -316,17 +259,8 @@ model ScheduledPost {
   attempts PublishAttempt[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([brandId])
-  @@index([channelId])
-  @@index([campaignId])
-  @@index([historyId])
-  @@index([platform])
-  @@index([status])
-  @@index([scheduledAt])
-}
-
-model PublishAttempt {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([channelId]) @@index([campaignId]) @@index([historyId]) @@index([platform]) @@index([status]) @@index([scheduledAt]) }
+model PublishAttempt { id String @id @default(cuid())
   scheduledPostId String
   scheduledPost ScheduledPost @relation(fields: [scheduledPostId], references: [id], onDelete: Cascade)
   attemptNumber Int
@@ -337,13 +271,8 @@ model PublishAttempt {
   startedAt DateTime @default(now())
   completedAt DateTime?
   createdAt DateTime @default(now())
-  @@index([scheduledPostId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model AutomationSetting {
-  id String @id @default(cuid())
+  @@index([scheduledPostId]) @@index([status]) @@index([createdAt]) }
+model AutomationSetting { id String @id @default(cuid())
   workspaceId String @unique
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   timezone String @default("Asia/Kuala_Lumpur")
@@ -354,8 +283,7 @@ model AutomationSetting {
   defaultFacebookTime String @default("20:00")
   defaultTelegramTime String @default("20:05")
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  updatedAt DateTime @updatedAt }
 
 model SportsNewsSetting {
   id String @id @default(cuid())
@@ -373,12 +301,22 @@ model SportsNewsSetting {
   facebookEnabled Boolean @default(false)
   facebookChannelId String?
   facebookChannel SocialChannel? @relation("SportsNewsFacebookChannel", fields: [facebookChannelId], references: [id], onDelete: SetNull)
+  morningTelegramEnabled Boolean @default(true)
+  morningFacebookEnabled Boolean @default(false)
+  eveningTelegramEnabled Boolean @default(true)
+  eveningFacebookEnabled Boolean @default(false)
   autoPublishEnabled Boolean @default(true)
   approvalRequired Boolean @default(false)
   language String @default("zh-en")
   sportsKnowledgeEnabled Boolean @default(true)
   discussionQuestionEnabled Boolean @default(true)
   referenceLinksEnabled Boolean @default(true)
+  sameDaySourcesOnly Boolean @default(true)
+  maxSourceAgeHours Int @default(24)
+  requirePublishedAt Boolean @default(true)
+  requireSourceUrl Boolean @default(true)
+  minimumSources Int @default(2)
+  freshnessFallbackEnabled Boolean @default(false)
   customPromptEnabled Boolean @default(false)
   systemPrompt String?
   morningPrompt String?
@@ -402,13 +340,11 @@ model SportsNewsSetting {
   lastError String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([telegramChannelId])
-  @@index([facebookChannelId])
+  @@index([telegramChannelId]) @@index([facebookChannelId])
 }
 
 enum CopilotMessageRole { USER ASSISTANT SYSTEM }
-model CopilotConversation {
-  id String @id @default(cuid())
+model CopilotConversation { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   campaignId String?
@@ -419,24 +355,16 @@ model CopilotConversation {
   messages CopilotConversationMessage[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([brandId])
-  @@index([campaignId])
-  @@index([updatedAt])
-  @@index([isArchived])
-}
-model CopilotConversationMessage {
-  id String @id @default(cuid())
+  @@index([brandId]) @@index([campaignId]) @@index([updatedAt]) @@index([isArchived]) }
+model CopilotConversationMessage { id String @id @default(cuid())
   conversationId String
   conversation CopilotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role CopilotMessageRole
   content String
   metadata Json?
   createdAt DateTime @default(now())
-  @@index([conversationId])
-  @@index([createdAt])
-}
-model PromptTemplate {
-  id String @id @default(cuid())
+  @@index([conversationId]) @@index([createdAt]) }
+model PromptTemplate { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   title String
@@ -447,15 +375,10 @@ model PromptTemplate {
   usageCount Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([brandId])
-  @@index([brandId, category])
-  @@index([brandId, isFavorite])
-  @@index([updatedAt])
-}
+  @@index([brandId]) @@index([brandId, category]) @@index([brandId, isFavorite]) @@index([updatedAt]) }
 enum BrandMemoryFactType { PREFERENCE AVOIDANCE AUDIENCE VOICE VISUAL CONTENT PLATFORM WORKFLOW OTHER }
 enum BrandMemoryFactStatus { CANDIDATE CONFIRMED REJECTED }
-model BrandMemoryFact {
-  id String @id @default(cuid())
+model BrandMemoryFact { id String @id @default(cuid())
   brandId String
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
   type BrandMemoryFactType @default(PREFERENCE)
@@ -470,8 +393,4 @@ model BrandMemoryFact {
   updatedAt DateTime @updatedAt
   confirmedAt DateTime?
   rejectedAt DateTime?
-  @@index([brandId])
-  @@index([brandId, status])
-  @@index([brandId, type])
-  @@index([updatedAt])
-}
+  @@index([brandId]) @@index([brandId, status]) @@index([brandId, type]) @@index([updatedAt]) }
