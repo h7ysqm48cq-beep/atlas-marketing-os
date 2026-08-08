@@ -95,7 +95,7 @@ export class TelegramConnectorService {
   async sendTestMessage() {
     const result =
       await this.sendMessage(
-        '✅ Atlas Telegram connection test successful.',
+        '✅ M-Sports Telegram connection test successful.',
       );
 
     return {
@@ -113,33 +113,146 @@ export class TelegramConnectorService {
     mediaUrls: string[] = [],
     credentials?: TelegramChannelCredentials,
   ): Promise<TelegramMessage> {
-    const firstMediaUrl =
-      mediaUrls
-        .map((url) => url?.trim())
-        .find(Boolean);
+    const cleanText = text?.trim();
+
+    if (!cleanText) {
+      throw new BadRequestException(
+        'Telegram message cannot be empty.',
+      );
+    }
+
+    const firstMediaUrl = mediaUrls
+      .map((url) => url?.trim())
+      .find(Boolean);
+
+    const chunks = this.splitMessage(cleanText);
+    let lastMessage: TelegramMessage | null = null;
 
     if (firstMediaUrl) {
-      if (text.trim().length <= 1024) {
-        return this.sendPhoto(
-          text,
-          firstMediaUrl,
-          credentials,
-        );
-      }
-
-      await this.sendPhoto(
-        'Atlas Sports News',
+      lastMessage = await this.sendPhoto(
+        this.buildPhotoCaption(cleanText),
         firstMediaUrl,
-        credentials,
-      );
-
-      return this.sendMessage(
-        text,
         credentials,
       );
     }
 
-    return this.sendMessage(text, credentials);
+    for (const chunk of chunks) {
+      lastMessage = await this.sendMessage(
+        chunk,
+        credentials,
+      );
+    }
+
+    if (!lastMessage) {
+      throw new BadRequestException(
+        'Telegram publication returned no message.',
+      );
+    }
+
+    return lastMessage;
+  }
+
+  private buildPhotoCaption(text: string): string {
+    const limit = 900;
+
+    if (text.length <= limit) {
+      return text;
+    }
+
+    const paragraphs = text
+      .split(/\n{2,}/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    let caption = '';
+
+    for (const paragraph of paragraphs) {
+      const candidate = caption
+        ? `${caption}\n\n${paragraph}`
+        : paragraph;
+
+      if (candidate.length > limit) {
+        break;
+      }
+
+      caption = candidate;
+    }
+
+    if (caption) {
+      return caption;
+    }
+
+    return `${text.slice(0, limit - 1).trimEnd()}…`;
+  }
+
+  private splitMessage(
+    text: string,
+    limit = 3800,
+  ): string[] {
+    const clean = text.trim();
+
+    if (!clean) {
+      return [];
+    }
+
+    if (clean.length <= limit) {
+      return [clean];
+    }
+
+    const chunks: string[] = [];
+    let remaining = clean;
+
+    while (remaining.length > limit) {
+      const window = remaining.slice(0, limit);
+      const paragraphBreak = window.lastIndexOf('\n\n');
+      const lineBreak = window.lastIndexOf('\n');
+      const punctuationBreak = Math.max(
+        window.lastIndexOf('。'),
+        window.lastIndexOf('！'),
+        window.lastIndexOf('？'),
+        window.lastIndexOf('. '),
+        window.lastIndexOf('! '),
+        window.lastIndexOf('? '),
+      );
+
+      let splitAt = Math.max(
+        paragraphBreak,
+        lineBreak,
+        punctuationBreak,
+      );
+
+      if (splitAt < Math.floor(limit * 0.5)) {
+        splitAt = limit;
+      } else {
+        const character = remaining.charAt(splitAt);
+
+        if (
+          character === '。' ||
+          character === '！' ||
+          character === '？'
+        ) {
+          splitAt += 1;
+        }
+      }
+
+      const chunk = remaining
+        .slice(0, splitAt)
+        .trim();
+
+      if (chunk) {
+        chunks.push(chunk);
+      }
+
+      remaining = remaining
+        .slice(splitAt)
+        .trim();
+    }
+
+    if (remaining) {
+      chunks.push(remaining);
+    }
+
+    return chunks;
   }
 
   async sendPhoto(
@@ -262,6 +375,10 @@ export class TelegramConnectorService {
       );
     }
 
+    if (cleanUrl.startsWith('data:image/')) {
+      return this.dataImage(cleanUrl, 'm-sports-news');
+    }
+
     let response: Response;
 
     try {
@@ -307,7 +424,7 @@ export class TelegramConnectorService {
 
     const filename =
       pathname.split('/').pop() ||
-      'atlas-image';
+      'm-sports-image';
 
     const bytes =
       await response.arrayBuffer();
@@ -320,6 +437,29 @@ export class TelegramConnectorService {
           type: contentType,
         },
       ),
+    };
+  }
+
+  private dataImage(value: string, name: string) {
+    const match =
+      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(value);
+
+    if (!match) {
+      throw new BadRequestException(
+        'Invalid generated image data.',
+      );
+    }
+
+    const type = match[1];
+    const bytes = Buffer.from(match[2], 'base64');
+    const ext =
+      type === 'image/jpeg'
+        ? 'jpg'
+        : type.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+
+    return {
+      filename: `${name}.${ext}`,
+      blob: new Blob([bytes], { type }),
     };
   }
 
@@ -398,6 +538,7 @@ export class TelegramConnectorService {
 
     return body.result;
   }
+
   async publishPhotoUrlDirect(input: {
     botToken: string;
     chatId: string;
@@ -450,5 +591,4 @@ export class TelegramConnectorService {
 
     return textBody;
   }
-
 }
