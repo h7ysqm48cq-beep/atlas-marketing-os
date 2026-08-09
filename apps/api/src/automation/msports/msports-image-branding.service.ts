@@ -21,7 +21,10 @@ export class MSportsImageBrandingService {
     footerText?: string;
     qrLink?: string | null;
     edition?: 'MORNING' | 'EVENING';
-    highlights?: string[];
+    highlights?: Array<{
+      zh: string;
+      en: string;
+    }>;
   }) {
     const {
       imageUrl,
@@ -127,8 +130,11 @@ export class MSportsImageBrandingService {
      * SportsNewsAutomationService.
      */
     const visibleHighlights = highlights
-      .map((item) => item?.trim())
-      .filter((item): item is string => Boolean(item))
+      .map((item) => ({
+        zh: item?.zh?.trim() || '',
+        en: item?.en?.trim() || '',
+      }))
+      .filter((item) => Boolean(item.zh || item.en))
       .slice(0, 3);
 
     if (visibleHighlights.length > 0) {
@@ -139,16 +145,6 @@ export class MSportsImageBrandingService {
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&apos;');
-
-      const compactHighlight = (value: string, maxLength = 72) => {
-        const compact = value.replace(/\s+/g, ' ').trim();
-
-        if (compact.length <= maxLength) {
-          return compact;
-        }
-
-        return `${compact.slice(0, maxLength - 1).trim()}…`;
-      };
 
       const panelWidth = Math.round(width * 0.9);
       const panelLeft = Math.round((width - panelWidth) / 2);
@@ -162,19 +158,22 @@ export class MSportsImageBrandingService {
       );
 
       const titleSize = Math.max(25, Math.round(width * 0.03));
-      const itemSize = Math.max(22, Math.round(width * 0.026));
 
       const editionLabel =
         edition === 'EVENING'
           ? '今日晚报重点  /  EVENING HIGHLIGHTS'
           : '今日早报重点  /  MORNING HIGHLIGHTS';
 
-      const itemStartY = Math.round(panelHeight * 0.42);
-      const itemGap = Math.round(panelHeight * 0.2);
+      const itemStartY = Math.round(panelHeight * 0.38);
+      const itemGap = Math.round(panelHeight * 0.205);
+
+      const zhSize = Math.max(23, Math.round(width * 0.027));
+      const enSize = Math.max(18, Math.round(width * 0.021));
 
       const itemSvg = visibleHighlights
         .map((highlight, index) => {
-          const safeText = escapeXml(compactHighlight(highlight));
+          const safeZh = escapeXml(highlight.zh);
+          const safeEn = escapeXml(highlight.en);
           const number = String(index + 1).padStart(2, '0');
           const y = itemStartY + index * itemGap;
 
@@ -182,16 +181,28 @@ export class MSportsImageBrandingService {
             <text
               x="42"
               y="${y}"
-              font-size="${itemSize}"
+              font-size="${zhSize}"
               font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
-              font-weight="600"
+              font-weight="700"
               fill="#ffffff"
             >
               <tspan
                 fill="#d6b36a"
                 font-weight="700"
               >${number}</tspan>
-              <tspan dx="18">${safeText}</tspan>
+
+              <tspan dx="18">${safeZh}</tspan>
+            </text>
+
+            <text
+              x="92"
+              y="${y + Math.round(enSize * 1.55)}"
+              font-size="${enSize}"
+              font-family="Arial, Helvetica, sans-serif"
+              font-weight="500"
+              fill="rgba(255,255,255,0.76)"
+            >
+              ${safeEn}
             </text>
           `;
         })
