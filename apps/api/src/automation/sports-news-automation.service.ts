@@ -280,9 +280,11 @@ export class SportsNewsAutomationService {
           'Do not use league logos or team logos.',
           'Do not render sports headlines, scores, results, fixtures or factual story text.',
           'The verified sports highlights will be added later by deterministic post-processing.',
-          'Leave a visually clean lower-middle area for one dark translucent editorial highlights panel.',
-          'Do not draw any extra translucent card, white card, glass card or rounded rectangle in that reserved area.',
-          'Do not place important subjects or visual details in that reserved lower-middle area.',
+          'Leave natural open visual space in the lower-middle area for later post-processing.',
+          'Do not draw any panel, card, box, banner, rectangle, text container, glass surface, translucent surface or UI element anywhere in the image.',
+          'Do not pre-design a placeholder for headlines.',
+          'Do not place important subjects or visual details in the reserved lower-middle area.',
+          'The only highlights panel will be created later by deterministic Sharp/SVG post-processing.',
           'Do not generate any MGM logo, M logo, QR code, website URL or footer branding.',
           'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
           'All factual date information and branding will be added later by deterministic post-processing.',
@@ -441,7 +443,7 @@ export class SportsNewsAutomationService {
 
         'Return JSON only. Do not return markdown.',
         'The JSON shape must be:',
-        '{"stories":[{"headlineZh":"","headlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+        '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
 
         'FRESHNESS RULES:',
         `Same-day sources only: ${freshness.sameDaySourcesOnly ? 'YES' : 'NO'}.`,
@@ -464,6 +466,17 @@ export class SportsNewsAutomationService {
         'Never invent publishedAt, URL, eventTime or finalScore.',
         'Use exactly 3 to 5 stories.',
         'Prioritise football, then basketball, Formula 1, badminton, tennis and major sports.',
+
+        'IMAGE HEADLINE RULES:',
+        'For every story, also return imageHeadlineZh and imageHeadlineEn.',
+        'These are short image-display versions of the same verified headline, not separate stories.',
+        'imageHeadlineZh should normally be 8 to 16 Chinese characters where practical.',
+        'imageHeadlineEn should normally be 4 to 7 short English words where practical.',
+        'Keep the same factual meaning and event status as headlineZh/headlineEn.',
+        'Do not add a score, location, opponent, player, competition or claim that is not already verified in that story.',
+        'Do not use ellipsis in imageHeadlineZh or imageHeadlineEn.',
+        'Do not write clickbait.',
+        'Do not change an UPCOMING event into a completed result or a COMPLETED event into a preview.',
       ].join('\n'),
     });
 
@@ -477,6 +490,8 @@ export class SportsNewsAutomationService {
       stories?: Array<{
         headlineZh?: string;
         headlineEn?: string;
+        imageHeadlineZh?: string;
+        imageHeadlineEn?: string;
         summaryZh?: string;
         summaryEn?: string;
         eventStatus?: string;
@@ -595,26 +610,42 @@ export class SportsNewsAutomationService {
       '立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门',
     );
 
-    const compactImageHeadline = (
-      value: string | undefined,
+    const cleanImageHeadline = (
+      preferred: string | undefined,
+      fallback: string | undefined,
       maxLength: number,
     ) => {
-      const compact = value?.replace(/\s+/g, ' ').trim() || '';
+      const selected =
+        preferred?.replace(/\s+/g, ' ').trim() ||
+        fallback?.replace(/\s+/g, ' ').trim() ||
+        '';
 
-      if (!compact) {
+      if (!selected) {
         return '';
       }
 
-      if (compact.length <= maxLength) {
-        return compact;
+      /*
+       * imageHeadline* should already be concise because
+       * the news model is explicitly instructed to produce
+       * display-ready headlines.
+       *
+       * This hard limit is only a final layout safeguard.
+       */
+      if (selected.length <= maxLength) {
+        return selected;
       }
 
-      return `${compact.slice(0, maxLength - 1).trim()}…`;
+      return selected.slice(0, maxLength).trim();
     };
 
     const imageHighlights = acceptedStories.slice(0, 3).map((story) => ({
-      zh: compactImageHeadline(story.headlineZh, 20) || '今日体育焦点',
-      en: compactImageHeadline(story.headlineEn, 42) || 'Sports Update',
+      zh:
+        cleanImageHeadline(story.imageHeadlineZh, story.headlineZh, 22) ||
+        '今日体育焦点',
+
+      en:
+        cleanImageHeadline(story.imageHeadlineEn, story.headlineEn, 46) ||
+        'Sports Update',
     }));
 
     const visualContext = acceptedStories
