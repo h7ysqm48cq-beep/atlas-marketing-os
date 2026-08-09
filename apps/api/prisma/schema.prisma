@@ -85,6 +85,7 @@ model Workspace {
   updatedAt         DateTime           @updatedAt
   socialChannels    SocialChannel[]
   automationSetting AutomationSetting?
+  sportsNewsSetting SportsNewsSetting?
 }
 
 model Brand {
@@ -413,8 +414,10 @@ model SocialChannel {
   lastConnectedAt      DateTime?
   lastError            String?
 
-  scheduledPosts       ScheduledPost[]
-  browserActionHistory BrowserActionHistory[]
+  scheduledPosts             ScheduledPost[]
+  browserActionHistory       BrowserActionHistory[]
+  sportsNewsTelegramSettings SportsNewsSetting[]    @relation("SportsNewsTelegramChannel")
+  sportsNewsFacebookSettings SportsNewsSetting[]    @relation("SportsNewsFacebookChannel")
 
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
@@ -787,6 +790,82 @@ model BrowserActionTrace {
   @@index([status])
   @@index([stepKey])
   @@index([createdAt])
+}
+
+model SportsNewsSetting {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  enabled  Boolean @default(true)
+  timezone String  @default("Asia/Kuala_Lumpur")
+
+  morningEnabled Boolean @default(true)
+  morningTime    String  @default("09:00")
+
+  eveningEnabled Boolean @default(true)
+  eveningTime    String  @default("20:00")
+
+  telegramEnabled   Boolean        @default(true)
+  telegramChannelId String?
+  telegramChannel   SocialChannel? @relation("SportsNewsTelegramChannel", fields: [telegramChannelId], references: [id], onDelete: SetNull)
+
+  facebookEnabled   Boolean        @default(false)
+  facebookChannelId String?
+  facebookChannel   SocialChannel? @relation("SportsNewsFacebookChannel", fields: [facebookChannelId], references: [id], onDelete: SetNull)
+
+  morningTelegramEnabled Boolean @default(true)
+  morningFacebookEnabled Boolean @default(false)
+  eveningTelegramEnabled Boolean @default(true)
+  eveningFacebookEnabled Boolean @default(false)
+
+  autoPublishEnabled Boolean @default(true)
+  approvalRequired   Boolean @default(false)
+
+  language String @default("zh-en")
+
+  sportsKnowledgeEnabled    Boolean @default(true)
+  discussionQuestionEnabled Boolean @default(true)
+  referenceLinksEnabled     Boolean @default(true)
+
+  sameDaySourcesOnly       Boolean @default(true)
+  maxSourceAgeHours        Int     @default(24)
+  requirePublishedAt       Boolean @default(true)
+  requireSourceUrl         Boolean @default(false)
+  minimumSources           Int     @default(2)
+  freshnessFallbackEnabled Boolean @default(false)
+
+  customPromptEnabled Boolean @default(false)
+  systemPrompt        String?
+  morningPrompt       String?
+  eveningPrompt       String?
+  knowledgePrompt     String?
+  customInstructions  String?
+
+  imageEnabled       Boolean @default(true)
+  imagePrompt        String?
+  morningImagePrompt String?
+  eveningImagePrompt String?
+  imageAspectRatio   String  @default("4:5")
+  imageTextMode      String  @default("minimal")
+  imageVisualStyle   String?
+
+  logoEnabled  Boolean @default(true)
+  logoPosition String  @default("bottom-right")
+
+  brandFooterEnabled Boolean @default(true)
+  brandFooterText    String  @default("满贯门 mgmbetmyr.com")
+
+  lastMorningRunAt DateTime?
+  lastEveningRunAt DateTime?
+  lastRunStatus    String?
+  lastError        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([telegramChannelId])
+  @@index([facebookChannelId])
 }
 
 model AutomationSetting {

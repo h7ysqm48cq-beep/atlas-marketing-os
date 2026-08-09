@@ -4,6 +4,11 @@ import { Cron } from '@nestjs/schedule';
 import OpenAI from 'openai';
 import { AssetImageService } from '../asset-image/asset-image.service';
 import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
+import { SportsNewsSettingsService } from './sports-news-settings.service';
+import {
+  SportsNewsSourceValidatorService,
+  type SportsNewsFreshnessRules,
+} from './sports-news-source-validator.service';
 import { PrismaService } from '../database/prisma.service';
 import {
   ScheduledPostStatus,
@@ -91,6 +96,8 @@ export class SportsNewsAutomationService {
     private readonly prisma: PrismaService,
     private readonly assetImages: AssetImageService,
     private readonly msportsBranding: MSportsImageBrandingService,
+    private readonly sportsNewsSettings: SportsNewsSettingsService,
+    private readonly sportsNewsSourceValidator: SportsNewsSourceValidatorService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -172,7 +179,18 @@ export class SportsNewsAutomationService {
     this.running = true;
 
     try {
-      const channel = await this.resolveChannel();
+      const settings = await this.sportsNewsSettings.get();
+
+      if (!settings.enabled) {
+        return {
+          success: false,
+          skipped: true,
+          reason: 'Sports News is disabled in settings.',
+          edition,
+        };
+      }
+
+      const channel = await this.resolveChannel(settings.telegramChannelId);
       if (!channel) {
         const reason = 'No connected Sports News Telegram channel was found.';
 
@@ -214,7 +232,15 @@ export class SportsNewsAutomationService {
         };
       }
 
-      const generatedContent = await this.generateNews(edition, dateKey);
+      const generatedContent = await this.generateNews(edition, dateKey, {
+        timezone: settings.timezone,
+        sameDaySourcesOnly: settings.sameDaySourcesOnly,
+        maxSourceAgeHours: settings.maxSourceAgeHours,
+        requirePublishedAt: settings.requirePublishedAt,
+        requireSourceUrl: settings.requireSourceUrl,
+        minimumSources: settings.minimumSources,
+        freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
+      });
       const content = this.cleanPublishedContent(generatedContent);
       const image = await this.assetImages.generateAndSave({
         name: title,
@@ -232,6 +258,8 @@ export class SportsNewsAutomationService {
           'Do not imitate real athlete faces.',
           'Do not use league logos or team logos.',
           'Do not generate any MGM logo, QR code, website URL or footer branding.',
+          'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
+          'All factual date information will be added later by deterministic post-processing.',
           'Keep the lower edge visually clean for real post-processing branding.',
           edition === 'MORNING'
             ? 'Use concise visible edition wording: M-Sports / 满贯门体育早报.'
@@ -255,7 +283,7 @@ export class SportsNewsAutomationService {
         const branded = await this.msportsBranding.apply({
           imageUrl: image.asset.url,
           logoAssetId: activeBrand?.primaryLogoAssetId ?? null,
-          footerText: '满贯门 mgmbetmyr.com',
+          footerText: `满贯门 mgmbetmyr.com  •  ${dateKey}`,
           qrLink: 'https:' + '//' + 'mgmbetmyr.com',
         });
 
@@ -330,10 +358,10 @@ export class SportsNewsAutomationService {
     }
   }
 
-  private async resolveChannel() {
-    const configuredId = this.config
-      .get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID')
-      ?.trim();
+  private async resolveChannel(settingsChannelId?: string | null) {
+    const configuredId =
+      settingsChannelId?.trim() ||
+      this.config.get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID')?.trim();
     const connectedWhere = {
       platform: SocialPlatform.TELEGRAM,
       status: SocialChannelStatus.CONNECTED,
@@ -358,106 +386,164 @@ export class SportsNewsAutomationService {
     return named ?? (channels.length === 1 ? channels[0] : null);
   }
 
-  private async generateNews(edition: Edition, dateKey: string) {
+  private async generateNews(
+    edition: Edition,
+    dateKey: string,
+    freshness: SportsNewsFreshnessRules,
+  ) {
+    const editionInstruction =
+      edition === 'MORNING'
+        ? [
+            'This is the MORNING edition.',
+            'Prioritise verified results and developments from the previous 24 hours.',
+          ].join('\n')
+        : [
+            'This is the EVENING edition.',
+            'Prioritise developments since the morning edition.',
+          ].join('\n');
+
     const response = await this.client!.responses.create({
       model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.5',
       tools: [{ type: 'web_search' }],
       input: [
-        `Today is ${dateKey} in Malaysia.`,
-        edition === 'MORNING'
-          ? 'Find the most important verified sports developments from the previous 24 hours.'
-          : 'Find important verified sports developments since this morning and avoid repeating routine earlier stories.',
-        'Prioritise football, then basketball, Formula 1 and other major sports.',
-        'SOURCE EDITORIAL RULES:',
-        'Use source publishers only for internal fact verification.',
-        'Do not mention publisher names such as Flashscore, Reuters, ESPN, BBC, Sky Sports, The New York Times, Yahoo Sports or Google News in normal article sentences.',
-        'Do not write phrases such as according to Flashscore, reported by, records show, 据报道, 报道指出, 报道称 or 记录显示.',
-        'Write the verified sporting fact directly in professional newsroom style.',
-        'Example: write Chelsea and Manchester United drew 0-0, not Flashscore recorded a 0-0 draw.',
-        'Do not expose citation markers, search-result numbers or internal source notation.',
+        'You are the verification editor for M-Sports / 满贯门体育新闻.',
+        `Publication date in Malaysia is ${dateKey}.`,
+        `Publication timezone is ${freshness.timezone}.`,
+        editionInstruction,
 
-        'The news brand name must be M-Sports / 满贯门体育新闻.',
-        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
-        'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
-        'The Telegram post must be image plus caption in one message, so keep the full caption under 900 Unicode characters.',
-        'Use short conversion-focused sports media copy, not a long report.',
-        'Tone: premium, sharp, Malaysian Chinese audience, sports fan community, soft conversion, no hard selling.',
-        'Use bilingual Chinese and English, but keep it compact.',
-        'Use 3 to 5 top items only.',
-        'Each item must have a short bilingual headline and one short bilingual sentence.',
-        'For sources, do not output raw long URLs.',
-        'Do not include source URLs inside the caption body.',
-        'Do not use markdown links.',
-        'Do not use HTML tags or markdown bold. Do not use Telegram HTML tags such as <b> or <a>.',
-        'Final CTA must be plain text and include this raw URL exactly: https://rebrand.ly/mgmbetae0dcf.',
-        'The final line must invite users to follow the latest sports focus through the CTA link.',
-        'The digest must be bilingual: Chinese first, then English, or Chinese and English together in each item.',
-        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
-        'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
-        'Keep the digest clean and compact for Telegram.',
-        'Each item should be concise and readable, not overly long.',
-        'Do not include source URLs inside the caption body.',
-        'Do not output raw long URLs inside each item.',
-        'Do not duplicate links.',
-        'Do not use markdown links.',
-        'Do not wrap source URLs in parentheses.',
-        'Only the final line may be a raw URL, and it must be exactly https://rebrand.ly/mgmbetae0dcf.',
-        'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
-        'The digest must be bilingual: Chinese first, then English, or Chinese and English together in each item.',
-        'Every headline must include both Chinese and English.',
-        'Every item summary must include Chinese and English.',
-        `The final line must be exactly ${CTA_URL} and nothing may appear after it.`,
-        'Write one Telegram-ready bilingual digest for Malaysian readers, Chinese first and English second.',
-        'FINAL TELEGRAM CAPTION RULES:',
-        'The final caption must be plain text only.',
-        'Do not include source links or source URLs in the final caption.',
-        'Do not include HTML tags such as <b>, </b>, <a>, or </a>.',
-        'Do not include markdown links.',
-        'Keep the final caption short, clean, and conversion-focused.',
+        'Return JSON only. Do not return markdown.',
+        'The JSON shape must be:',
+        '{"stories":[{"headlineZh":"","headlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
 
-        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
-        'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
-        'The Telegram post should be image plus caption in one message whenever possible.',
-        'Keep the full caption compact and Telegram-friendly.',
-        'Use bilingual Chinese and English, compact and readable.',
-        'Use conversion-focused sports media copy: lead users to click, follow, and join, but do not hard sell.',
-        'Tone: premium, sharp, exciting, Malaysian Chinese sports community.',
-        'Use 3 to 5 top items only.',
-        'Each item must have a short bilingual headline and one short bilingual summary sentence.',
-        'Do not output raw long source URLs inside news items.',
-        'For each source, use short source text only: 来源 / Source: Read more.',
-        'Do not use markdown links.',
-        'Do not use HTML tags or markdown bold.',
-        'The final CTA must include this raw URL exactly: https://rebrand.ly/mgmbetae0dcf',
-        'The final CTA must encourage users to join/follow for more sports focus.',
-        'Use 5 to 8 concise items, ordered by importance. Each item needs a headline, 1 to 2 short summary sentences and a direct source URL.',
-        'Use only established reliable sources, verify event timing, remove rumours and duplicates, and never invent facts or URLs.',
-        'STRICT STORY DEDUPLICATION:',
-        'A single real-world event may appear only once.',
-        'When multiple publishers cover the same match, transfer, player or event, merge those reports into one story.',
-        'Do not repeat the same story with a different headline.',
-        'Before finalising, compare every story semantically and remove duplicates.',
+        'FRESHNESS RULES:',
+        `Same-day sources only: ${freshness.sameDaySourcesOnly ? 'YES' : 'NO'}.`,
+        `Maximum source age: ${freshness.maxSourceAgeHours} hours.`,
+        `Published date required: ${freshness.requirePublishedAt ? 'YES' : 'NO'}.`,
+        `Source URL required internally: ${freshness.requireSourceUrl ? 'YES' : 'NO'}.`,
+        `Minimum verified sources: ${freshness.minimumSources}.`,
+        `Older-news fallback allowed: ${
+          freshness.freshnessFallbackEnabled ? 'YES' : 'NO'
+        }.`,
 
-        'Keep the complete post under 3500 Unicode characters.',
-        `The final line must be exactly ${CTA_URL} and nothing may appear after it.`,
+        'MANDATORY VERIFICATION:',
+        'Every story must contain its own sources array.',
+        'Use independently verifiable current sources.',
+        'Do not use a stale fixture preview after a match has already finished.',
+        'If the match is finished, eventStatus must be COMPLETED and finalScore must contain the verified final score.',
+        'If the match has not started, eventStatus must be UPCOMING and eventTime should contain the verified scheduled time when available.',
+        'For transfers, injuries, announcements or other non-match items, use DEVELOPMENT.',
+        'If status or timing cannot be confidently verified, exclude the story.',
+        'Never invent publishedAt, URL, eventTime or finalScore.',
+        'Use exactly 3 to 5 stories.',
+        'Prioritise football, then basketball, Formula 1, badminton, tennis and major sports.',
       ].join('\n'),
     });
 
-    const text = response.output_text?.trim();
-    if (!text) {
-      throw new Error('The news model returned empty content.');
+    const raw = response.output_text?.trim();
+
+    if (!raw) {
+      throw new Error('The news model returned empty structured content.');
     }
 
-    const withoutTrailingCta = text
-      .replace(
-        new RegExp(
-          `\\s*${CTA_URL.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`,
-        ),
-        '',
-      )
-      .trim();
-    return this.compactTelegramCaption(withoutTrailingCta);
+    let parsed: {
+      stories?: Array<{
+        headlineZh?: string;
+        headlineEn?: string;
+        summaryZh?: string;
+        summaryEn?: string;
+        eventStatus?: string;
+        eventTime?: string | null;
+        finalScore?: string | null;
+        sources?: Array<{
+          title?: string;
+          url?: string | null;
+          publishedAt?: string | null;
+          sourceName?: string | null;
+        }>;
+      }>;
+    };
+
+    try {
+      parsed = JSON.parse(
+        raw
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/, ''),
+      );
+    } catch {
+      throw new Error(
+        'The news model returned invalid JSON and publication was blocked.',
+      );
+    }
+
+    const stories = Array.isArray(parsed.stories) ? parsed.stories : [];
+
+    if (stories.length < 3) {
+      throw new Error(
+        `Only ${stories.length} structured sports story/stories returned. Publication blocked.`,
+      );
+    }
+
+    const acceptedStories: typeof stories = [];
+
+    for (const story of stories.slice(0, 5)) {
+      const sources = Array.isArray(story.sources)
+        ? story.sources.map((source) => ({
+            title: source.title?.trim() || 'Untitled source',
+            url: source.url ?? null,
+            publishedAt: source.publishedAt ?? null,
+            sourceName: source.sourceName ?? null,
+          }))
+        : [];
+
+      this.sportsNewsSourceValidator.validate(sources, freshness);
+
+      if (story.eventStatus === 'COMPLETED' && !story.finalScore?.trim()) {
+        throw new Error(
+          `Completed event "${story.headlineEn || story.headlineZh || 'Unknown'}" has no verified finalScore. Publication blocked.`,
+        );
+      }
+
+      acceptedStories.push(story);
+    }
+
+    if (acceptedStories.length < 3) {
+      throw new Error(
+        'Fewer than 3 stories passed freshness validation. Publication blocked.',
+      );
+    }
+
+    const lines: string[] = [
+      'M-Sports / 满贯门体育新闻｜体育焦点 / Sports Focus',
+      '',
+    ];
+
+    acceptedStories.forEach((story, index) => {
+      const headlineZh = story.headlineZh?.trim() || '体育焦点';
+      const headlineEn = story.headlineEn?.trim() || 'Sports Update';
+
+      lines.push(`${index + 1}. ${headlineZh}｜${headlineEn}`);
+
+      const summaryZh = story.summaryZh?.trim() || '';
+      const summaryEn = story.summaryEn?.trim() || '';
+
+      const scoreSuffix =
+        story.eventStatus === 'COMPLETED' && story.finalScore?.trim()
+          ? ` 比分：${story.finalScore.trim()}`
+          : '';
+
+      lines.push(`${summaryZh}${scoreSuffix}｜${summaryEn}`.trim());
+
+      lines.push('');
+    });
+
+    lines.push(
+      '立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门',
+    );
+
+    return this.compactTelegramCaption(lines.join('\n'));
   }
+
   private compactTelegramCaption(content: string): string {
     const sourceLine = new RegExp('^来源\\s*/\\s*Source\\s*:', 'i');
     const numberedLine = new RegExp('^[0-9１-９]\\s*[️⃣.)、-]?');

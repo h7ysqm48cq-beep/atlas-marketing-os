@@ -419,6 +419,7 @@ export const ModelName = {
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
   BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
@@ -441,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsSetting" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2073,6 +2074,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SportsNewsSetting: {
+      payload: Prisma.$SportsNewsSettingPayload<ExtArgs>
+      fields: Prisma.SportsNewsSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SportsNewsSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SportsNewsSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.SportsNewsSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SportsNewsSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        findMany: {
+          args: Prisma.SportsNewsSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        create: {
+          args: Prisma.SportsNewsSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        createMany: {
+          args: Prisma.SportsNewsSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SportsNewsSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.SportsNewsSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        update: {
+          args: Prisma.SportsNewsSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.SportsNewsSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SportsNewsSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SportsNewsSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.SportsNewsSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.SportsNewsSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSportsNewsSetting>
+        }
+        groupBy: {
+          args: Prisma.SportsNewsSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SportsNewsSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsSettingCountAggregateOutputType> | number
+        }
+      }
+    }
     AutomationSetting: {
       payload: Prisma.$AutomationSettingPayload<ExtArgs>
       fields: Prisma.AutomationSettingFieldRefs
@@ -3111,6 +3186,63 @@ export const BrowserActionTraceScalarFieldEnum = {
 export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
 
 
+export const SportsNewsSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  enabled: 'enabled',
+  timezone: 'timezone',
+  morningEnabled: 'morningEnabled',
+  morningTime: 'morningTime',
+  eveningEnabled: 'eveningEnabled',
+  eveningTime: 'eveningTime',
+  telegramEnabled: 'telegramEnabled',
+  telegramChannelId: 'telegramChannelId',
+  facebookEnabled: 'facebookEnabled',
+  facebookChannelId: 'facebookChannelId',
+  morningTelegramEnabled: 'morningTelegramEnabled',
+  morningFacebookEnabled: 'morningFacebookEnabled',
+  eveningTelegramEnabled: 'eveningTelegramEnabled',
+  eveningFacebookEnabled: 'eveningFacebookEnabled',
+  autoPublishEnabled: 'autoPublishEnabled',
+  approvalRequired: 'approvalRequired',
+  language: 'language',
+  sportsKnowledgeEnabled: 'sportsKnowledgeEnabled',
+  discussionQuestionEnabled: 'discussionQuestionEnabled',
+  referenceLinksEnabled: 'referenceLinksEnabled',
+  sameDaySourcesOnly: 'sameDaySourcesOnly',
+  maxSourceAgeHours: 'maxSourceAgeHours',
+  requirePublishedAt: 'requirePublishedAt',
+  requireSourceUrl: 'requireSourceUrl',
+  minimumSources: 'minimumSources',
+  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
+  customPromptEnabled: 'customPromptEnabled',
+  systemPrompt: 'systemPrompt',
+  morningPrompt: 'morningPrompt',
+  eveningPrompt: 'eveningPrompt',
+  knowledgePrompt: 'knowledgePrompt',
+  customInstructions: 'customInstructions',
+  imageEnabled: 'imageEnabled',
+  imagePrompt: 'imagePrompt',
+  morningImagePrompt: 'morningImagePrompt',
+  eveningImagePrompt: 'eveningImagePrompt',
+  imageAspectRatio: 'imageAspectRatio',
+  imageTextMode: 'imageTextMode',
+  imageVisualStyle: 'imageVisualStyle',
+  logoEnabled: 'logoEnabled',
+  logoPosition: 'logoPosition',
+  brandFooterEnabled: 'brandFooterEnabled',
+  brandFooterText: 'brandFooterText',
+  lastMorningRunAt: 'lastMorningRunAt',
+  lastEveningRunAt: 'lastEveningRunAt',
+  lastRunStatus: 'lastRunStatus',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
+
+
 export const AutomationSettingScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -3800,6 +3932,7 @@ export type GlobalOmitConfig = {
   publishAttempt?: Prisma.PublishAttemptOmit
   browserActionHistory?: Prisma.BrowserActionHistoryOmit
   browserActionTrace?: Prisma.BrowserActionTraceOmit
+  sportsNewsSetting?: Prisma.SportsNewsSettingOmit
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
