@@ -232,7 +232,7 @@ export class SportsNewsAutomationService {
         };
       }
 
-      const generatedContent = await this.generateNews(edition, dateKey, {
+      const generatedNews = await this.generateNews(edition, dateKey, {
         timezone: settings.timezone,
 
         /*
@@ -254,7 +254,13 @@ export class SportsNewsAutomationService {
         minimumSources: settings.minimumSources,
         freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
       });
-      const content = this.cleanPublishedContent(generatedContent);
+      const content = this.cleanPublishedContent(generatedNews.content);
+
+      const imageHighlights = generatedNews.imageHighlights
+        .slice(0, 3)
+        .map((item, index) => `${index + 1}. ${item}`)
+        .join(' | ');
+
       const image = await this.assetImages.generateAndSave({
         name: title,
         platform: 'Telegram',
@@ -270,9 +276,15 @@ export class SportsNewsAutomationService {
           'Photorealistic, cinematic, clean editorial layout.',
           'Do not imitate real athlete faces.',
           'Do not use league logos or team logos.',
-          'Do not generate any MGM logo, QR code, website URL or footer branding.',
+          'Do not invent sports headlines, scores, results, fixtures or story text.',
+          'Use ONLY the verified daily highlights supplied below as editorial highlight text.',
+          `Verified daily highlights: ${imageHighlights || 'No additional highlight text.'}`,
+          'Keep each visible highlight extremely concise and headline-like.',
+          'Do not rewrite the meaning of the supplied highlights.',
+          'Do not add any factual claim that is not present in the supplied highlights.',
+          'Do not generate any MGM logo, M logo, QR code, website URL or footer branding.',
           'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
-          'All factual date information will be added later by deterministic post-processing.',
+          'All factual date information and branding will be added later by deterministic post-processing.',
           'Keep the lower edge visually clean for real post-processing branding.',
           edition === 'MORNING'
             ? 'Use concise visible edition wording: M-Sports / 满贯门体育早报.'
@@ -580,7 +592,21 @@ export class SportsNewsAutomationService {
       '立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门',
     );
 
-    return this.compactTelegramCaption(lines.join('\n'));
+    const imageHighlights = acceptedStories.slice(0, 3).map((story) => {
+      const zh = story.headlineZh?.trim();
+      const en = story.headlineEn?.trim();
+
+      if (zh && en) {
+        return `${zh} / ${en}`;
+      }
+
+      return zh || en || '今日体育焦点';
+    });
+
+    return {
+      content: this.compactTelegramCaption(lines.join('\n')),
+      imageHighlights,
+    };
   }
 
   private compactTelegramCaption(content: string): string {
