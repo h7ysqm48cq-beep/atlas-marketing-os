@@ -48,11 +48,20 @@ export class SportsNewsSourceValidatorService {
     const enoughSources = accepted.length >= minimumSources;
 
     if (!enoughSources && !rules.freshnessFallbackEnabled) {
+      const rejectionSummary = rejected.reduce<Record<string, number>>(
+        (summary, item) => {
+          summary[item.reason] = (summary[item.reason] ?? 0) + 1;
+          return summary;
+        },
+        {},
+      );
+
       throw new BadRequestException(
         [
           'Fresh sports-news validation failed.',
           `${accepted.length} valid source(s),`,
           `minimum ${minimumSources}.`,
+          `rejected=${JSON.stringify(rejectionSummary)}.`,
           'Refusing to publish stale or unverifiable news.',
         ].join(' '),
       );
