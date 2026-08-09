@@ -496,7 +496,33 @@ export class SportsNewsAutomationService {
           }))
         : [];
 
-      this.sportsNewsSourceValidator.validate(sources, freshness);
+      try {
+        this.sportsNewsSourceValidator.validate(sources, freshness);
+      } catch (error) {
+        const storyName =
+          story.headlineEn?.trim() ||
+          story.headlineZh?.trim() ||
+          'Unknown sports story';
+
+        const sourceDiagnostics = sources.map((source) => ({
+          sourceName: source.sourceName,
+          publishedAt: source.publishedAt,
+          hasUrl: Boolean(source.url?.trim()),
+          title: source.title,
+        }));
+
+        this.logger.error(
+          `Freshness validation rejected "${storyName}". ` +
+            `sources=${JSON.stringify(sourceDiagnostics)}. ` +
+            `${
+              error instanceof Error
+                ? error.message
+                : 'Unknown validation error'
+            }`,
+        );
+
+        throw error;
+      }
 
       if (story.eventStatus === 'COMPLETED' && !story.finalScore?.trim()) {
         throw new Error(
