@@ -679,12 +679,15 @@ export class SportsNewsAutomationService {
 
     const dateKey = formatter.format(new Date());
 
-    const title = `M-Sports / 满贯门体育新闻 ${edition} ${dateKey}`;
+    const title =
+      edition === 'MORNING'
+        ? `满贯门体育早报 | M-Sports Morning ${dateKey}`
+        : `满贯门体育晚报 | M-Sports Evening ${dateKey}`;
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
         title,
-        platform: 'TELEGRAM',
+        platform: SocialPlatform.TELEGRAM,
       },
       select: {
         id: true,
