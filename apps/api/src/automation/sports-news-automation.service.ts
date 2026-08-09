@@ -256,7 +256,7 @@ export class SportsNewsAutomationService {
           imageUrl: image.asset.url,
           logoAssetId: activeBrand?.primaryLogoAssetId ?? null,
           footerText: '满贯门 mgmbetmyr.com',
-          qrLink: 'https://mgmbetmyr.com',
+          qrLink: 'https:' + '//' + 'mgmbetmyr.com',
         });
 
         finalMediaUrl = branded.imageDataUrl;

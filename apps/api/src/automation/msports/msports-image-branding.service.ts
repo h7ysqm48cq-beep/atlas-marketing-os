@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import QRCode from 'qrcode';
 import { PrismaService } from '../../database/prisma.service';
 import { LogoOverlayService, LogoPlacement } from '../../image/logo';
+import { SupabaseStorageService } from '../../storage/supabase-storage.service';
 
 @Injectable()
 export class MSportsImageBrandingService {
@@ -11,6 +12,7 @@ export class MSportsImageBrandingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logoOverlay: LogoOverlayService,
+    private readonly storageService: SupabaseStorageService,
   ) {}
 
   async apply(input: {
@@ -259,8 +261,28 @@ export class MSportsImageBrandingService {
       .png()
       .toBuffer();
 
+    const uploaded = await this.storageService.uploadImage({
+      buffer: output,
+      path: [
+        'automation',
+        'msports',
+        new Date().toISOString().slice(0, 10),
+        `sports-news-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 10)}.png`,
+      ].join('/'),
+      contentType: 'image/png',
+    });
+
+    this.logger.log(
+      `M-Sports branded image uploaded to Supabase: ${uploaded.path}`,
+    );
+
     return {
-      imageDataUrl: `data:image/png;base64,${output.toString('base64')}`,
+      imageDataUrl: uploaded.publicUrl,
+      imageUrl: uploaded.publicUrl,
+      storageProvider: uploaded.provider,
+      storagePath: uploaded.path,
       footerApplied: true,
       qrApplied: Boolean(qrSize),
       logoApplied: Boolean(logoWidth),

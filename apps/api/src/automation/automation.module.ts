@@ -14,9 +14,10 @@ import { AutomationSchedulerService } from './automation-scheduler.service';
 import { SportsNewsAutomationService } from './sports-news-automation.service';
 import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
 import { AssetImageModule } from '../asset-image/asset-image.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [AssetImageModule],
+  imports: [AssetImageModule, StorageModule],
   controllers: [AutomationController],
   providers: [
     AutomationSchedulerService,
