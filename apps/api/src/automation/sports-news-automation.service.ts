@@ -44,6 +44,44 @@ type Edition = 'MORNING' | 'EVENING';
 
 @Injectable()
 export class SportsNewsAutomationService {
+  private cleanPublishedContent(content: string): string {
+    return (
+      content
+        // Remove Markdown heading markers but keep heading text.
+        .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, '')
+
+        // Remove Markdown bold / italic markers.
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+
+        // Remove internal citation markers such as [1], [10][37], [3][20][30].
+        .replace(/(?:\s*\[\d+\])+/g, '')
+
+        // Remove common source-attribution wording from visible copy.
+        .replace(
+          /\b(?:according to|reported by|reports from|records show)\s+(?:Flashscore|Reuters|ESPN|BBC|Sky Sports|The New York Times|Yahoo Sports|Goal|Google News)[,:]?\s*/gi,
+          '',
+        )
+        .replace(
+          /(?:《纽约时报》|路透社|ESPN|BBC|天空体育|Flashscore|Goal)(?:报道|报道称|报道指出|分析称|记录显示)[，,:：]?\s*/g,
+          '',
+        )
+
+        // Remove Markdown separators.
+        .replace(/^[ \t]*---+[ \t]*$/gm, '')
+
+        // Collapse excessive blank lines.
+        .replace(/\n{3,}/g, '\n\n')
+
+        // Clean stray spaces before punctuation.
+        .replace(/[ \t]+([，。！？：；,.!?;:])/g, '$1')
+
+        .trim()
+    );
+  }
+
   private readonly logger = new Logger(SportsNewsAutomationService.name);
   private readonly client: OpenAI | null;
   private running = false;
@@ -176,7 +214,8 @@ export class SportsNewsAutomationService {
         };
       }
 
-      const content = await this.generateNews(edition, dateKey);
+      const generatedContent = await this.generateNews(edition, dateKey);
+      const content = this.cleanPublishedContent(generatedContent);
       const image = await this.assetImages.generateAndSave({
         name: title,
         platform: 'Telegram',
