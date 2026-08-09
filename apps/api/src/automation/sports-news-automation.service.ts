@@ -256,11 +256,6 @@ export class SportsNewsAutomationService {
       });
       const content = this.cleanPublishedContent(generatedNews.content);
 
-      const imageHighlights = generatedNews.imageHighlights
-        .slice(0, 3)
-        .map((item, index) => `${index + 1}. ${item}`)
-        .join(' | ');
-
       const image = await this.assetImages.generateAndSave({
         name: title,
         platform: 'Telegram',
@@ -276,12 +271,10 @@ export class SportsNewsAutomationService {
           'Photorealistic, cinematic, clean editorial layout.',
           'Do not imitate real athlete faces.',
           'Do not use league logos or team logos.',
-          'Do not invent sports headlines, scores, results, fixtures or story text.',
-          'Use ONLY the verified daily highlights supplied below as editorial highlight text.',
-          `Verified daily highlights: ${imageHighlights || 'No additional highlight text.'}`,
-          'Keep each visible highlight extremely concise and headline-like.',
-          'Do not rewrite the meaning of the supplied highlights.',
-          'Do not add any factual claim that is not present in the supplied highlights.',
+          'Do not render sports headlines, scores, results, fixtures or factual story text.',
+          'The verified sports highlights will be added later by deterministic post-processing.',
+          'Leave a visually clean lower-middle area for a translucent editorial highlights panel.',
+          'Do not place important subjects or visual details in that reserved lower-middle area.',
           'Do not generate any MGM logo, M logo, QR code, website URL or footer branding.',
           'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
           'All factual date information and branding will be added later by deterministic post-processing.',
@@ -310,6 +303,8 @@ export class SportsNewsAutomationService {
           logoAssetId: activeBrand?.primaryLogoAssetId ?? null,
           footerText: `满贯门 mgmbetmyr.com  •  ${dateKey}`,
           qrLink: 'https:' + '//' + 'mgmbetmyr.com',
+          edition,
+          highlights: generatedNews.imageHighlights,
         });
 
         finalMediaUrl = branded.imageDataUrl;
