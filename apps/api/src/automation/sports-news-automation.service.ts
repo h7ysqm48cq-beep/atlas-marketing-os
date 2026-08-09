@@ -234,7 +234,20 @@ export class SportsNewsAutomationService {
 
       const generatedContent = await this.generateNews(edition, dateKey, {
         timezone: settings.timezone,
-        sameDaySourcesOnly: settings.sameDaySourcesOnly,
+
+        /*
+         * Morning editions use a rolling freshness window.
+         *
+         * Example:
+         * 10 Aug 09:00 MYT may legitimately report an important
+         * verified result published late on 9 Aug.
+         *
+         * Evening editions remain strict same-calendar-day when
+         * sameDaySourcesOnly is enabled in Settings.
+         */
+        sameDaySourcesOnly:
+          edition === 'MORNING' ? false : settings.sameDaySourcesOnly,
+
         maxSourceAgeHours: settings.maxSourceAgeHours,
         requirePublishedAt: settings.requirePublishedAt,
         requireSourceUrl: settings.requireSourceUrl,
