@@ -139,7 +139,7 @@ export class MSportsImageBrandingService {
           y="${Math.round(footerHeight / 2)}"
           dominant-baseline="middle"
           font-size="${Math.max(22, Math.round(footerHeight * 0.26))}"
-          font-family="Arial, sans-serif"
+          font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
           fill="#ffffff"
         >
           ${safeFooterText}

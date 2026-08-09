@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 type TelegramApiResponse<T> = {
@@ -39,16 +36,10 @@ export type TelegramChannelCredentials = {
 
 @Injectable()
 export class TelegramConnectorService {
-  constructor(
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   async inspectBot(botToken: string) {
-    const bot = await this.call<TelegramUser>(
-      'getMe',
-      {},
-      botToken,
-    );
+    const bot = await this.call<TelegramUser>('getMe', {}, botToken);
 
     return {
       id: bot.id,
@@ -57,9 +48,7 @@ export class TelegramConnectorService {
     };
   }
 
-  async testConnection(
-    credentials?: TelegramChannelCredentials,
-  ) {
+  async testConnection(credentials?: TelegramChannelCredentials) {
     const bot = await this.call<TelegramUser>(
       'getMe',
       {},
@@ -93,18 +82,15 @@ export class TelegramConnectorService {
   }
 
   async sendTestMessage() {
-    const result =
-      await this.sendMessage(
-        '✅ M-Sports Telegram connection test successful.',
-      );
+    const result = await this.sendMessage(
+      '✅ M-Sports Telegram connection test successful.',
+    );
 
     return {
       published: true,
       messageId: result.message_id,
       chatId: result.chat.id,
-      sentAt: new Date(
-        result.date * 1000,
-      ).toISOString(),
+      sentAt: new Date(result.date * 1000).toISOString(),
     };
   }
 
@@ -116,31 +102,31 @@ export class TelegramConnectorService {
     const cleanText = text?.trim();
 
     if (!cleanText) {
-      throw new BadRequestException(
-        'Telegram message cannot be empty.',
-      );
+      throw new BadRequestException('Telegram message cannot be empty.');
     }
 
-    const firstMediaUrl = mediaUrls
-      .map((url) => url?.trim())
-      .find(Boolean);
+    const firstMediaUrl = mediaUrls.map((url) => url?.trim()).find(Boolean);
 
-    const chunks = this.splitMessage(cleanText);
     let lastMessage: TelegramMessage | null = null;
 
     if (firstMediaUrl) {
-      lastMessage = await this.sendPhoto(
-        this.buildPhotoCaption(cleanText),
-        firstMediaUrl,
-        credentials,
-      );
-    }
+      const caption = this.buildPhotoCaption(cleanText);
 
-    for (const chunk of chunks) {
-      lastMessage = await this.sendMessage(
-        chunk,
-        credentials,
-      );
+      lastMessage = await this.sendPhoto(caption, firstMediaUrl, credentials);
+
+      const remainingText = this.removePhotoCaption(cleanText, caption);
+
+      const chunks = this.splitMessage(remainingText);
+
+      for (const chunk of chunks) {
+        lastMessage = await this.sendMessage(chunk, credentials);
+      }
+    } else {
+      const chunks = this.splitMessage(cleanText);
+
+      for (const chunk of chunks) {
+        lastMessage = await this.sendMessage(chunk, credentials);
+      }
     }
 
     if (!lastMessage) {
@@ -167,9 +153,7 @@ export class TelegramConnectorService {
     let caption = '';
 
     for (const paragraph of paragraphs) {
-      const candidate = caption
-        ? `${caption}\n\n${paragraph}`
-        : paragraph;
+      const candidate = caption ? `${caption}\n\n${paragraph}` : paragraph;
 
       if (candidate.length > limit) {
         break;
@@ -185,10 +169,39 @@ export class TelegramConnectorService {
     return `${text.slice(0, limit - 1).trimEnd()}…`;
   }
 
-  private splitMessage(
-    text: string,
-    limit = 3800,
-  ): string[] {
+  private removePhotoCaption(fullText: string, caption: string): string {
+    const cleanFullText = fullText.trim();
+    const cleanCaption = caption.trim();
+
+    if (!cleanFullText || !cleanCaption) {
+      return cleanFullText;
+    }
+
+    if (cleanFullText === cleanCaption) {
+      return '';
+    }
+
+    if (cleanFullText.startsWith(cleanCaption)) {
+      return cleanFullText.slice(cleanCaption.length).trim();
+    }
+
+    if (cleanCaption.endsWith('…') && cleanCaption.length > 1) {
+      const prefix = cleanCaption.slice(0, -1).trimEnd();
+
+      if (cleanFullText.startsWith(prefix)) {
+        return cleanFullText.slice(prefix.length).trim();
+      }
+    }
+
+    /*
+     * Safety fallback:
+     * if caption extraction cannot be matched exactly,
+     * do not resend the entire original article.
+     */
+    return '';
+  }
+
+  private splitMessage(text: string, limit = 3800): string[] {
     const clean = text.trim();
 
     if (!clean) {
@@ -215,37 +228,25 @@ export class TelegramConnectorService {
         window.lastIndexOf('? '),
       );
 
-      let splitAt = Math.max(
-        paragraphBreak,
-        lineBreak,
-        punctuationBreak,
-      );
+      let splitAt = Math.max(paragraphBreak, lineBreak, punctuationBreak);
 
       if (splitAt < Math.floor(limit * 0.5)) {
         splitAt = limit;
       } else {
         const character = remaining.charAt(splitAt);
 
-        if (
-          character === '。' ||
-          character === '！' ||
-          character === '？'
-        ) {
+        if (character === '。' || character === '！' || character === '？') {
           splitAt += 1;
         }
       }
 
-      const chunk = remaining
-        .slice(0, splitAt)
-        .trim();
+      const chunk = remaining.slice(0, splitAt).trim();
 
       if (chunk) {
         chunks.push(chunk);
       }
 
-      remaining = remaining
-        .slice(splitAt)
-        .trim();
+      remaining = remaining.slice(splitAt).trim();
     }
 
     if (remaining) {
@@ -260,36 +261,21 @@ export class TelegramConnectorService {
     mediaUrl: string,
     credentials?: TelegramChannelCredentials,
   ): Promise<TelegramMessage> {
-    const cleanCaption =
-      caption?.trim();
+    const cleanCaption = caption?.trim();
 
     if (!cleanCaption) {
-      throw new BadRequestException(
-        'Telegram caption cannot be empty.',
-      );
+      throw new BadRequestException('Telegram caption cannot be empty.');
     }
 
-    const media =
-      await this.fetchMedia(mediaUrl);
+    const media = await this.fetchMedia(mediaUrl);
 
-    const form =
-      new FormData();
+    const form = new FormData();
 
-    form.set(
-      'chat_id',
-      this.getChatId(credentials?.chatId),
-    );
+    form.set('chat_id', this.getChatId(credentials?.chatId));
 
-    form.set(
-      'caption',
-      cleanCaption,
-    );
+    form.set('caption', cleanCaption);
 
-    form.set(
-      'photo',
-      media.blob,
-      media.filename,
-    );
+    form.set('photo', media.blob, media.filename);
 
     return this.callMultipart<TelegramMessage>(
       'sendPhoto',
@@ -305,9 +291,7 @@ export class TelegramConnectorService {
     const cleanText = text?.trim();
 
     if (!cleanText) {
-      throw new BadRequestException(
-        'Telegram message cannot be empty.',
-      );
+      throw new BadRequestException('Telegram message cannot be empty.');
     }
 
     return this.call<TelegramMessage>(
@@ -326,19 +310,10 @@ export class TelegramConnectorService {
       return override.trim();
     }
 
-    const token =
-      this.configService.get<string>(
-        'TELEGRAM_BOT_TOKEN',
-      );
+    const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
 
-    if (
-      !token ||
-      token ===
-        'PASTE_YOUR_BOT_TOKEN_HERE'
-    ) {
-      throw new BadRequestException(
-        'TELEGRAM_BOT_TOKEN is not configured.',
-      );
+    if (!token || token === 'PASTE_YOUR_BOT_TOKEN_HERE') {
+      throw new BadRequestException('TELEGRAM_BOT_TOKEN is not configured.');
     }
 
     return token.trim();
@@ -349,30 +324,20 @@ export class TelegramConnectorService {
       return override.trim();
     }
 
-    const chatId =
-      this.configService.get<string>(
-        'TELEGRAM_CHAT_ID',
-      );
+    const chatId = this.configService.get<string>('TELEGRAM_CHAT_ID');
 
     if (!chatId?.trim()) {
-      throw new BadRequestException(
-        'TELEGRAM_CHAT_ID is not configured.',
-      );
+      throw new BadRequestException('TELEGRAM_CHAT_ID is not configured.');
     }
 
     return chatId.trim();
   }
 
-  private async fetchMedia(
-    mediaUrl: string,
-  ) {
-    const cleanUrl =
-      mediaUrl?.trim();
+  private async fetchMedia(mediaUrl: string) {
+    const cleanUrl = mediaUrl?.trim();
 
     if (!cleanUrl) {
-      throw new BadRequestException(
-        'Telegram media URL is required.',
-      );
+      throw new BadRequestException('Telegram media URL is required.');
     }
 
     if (cleanUrl.startsWith('data:image/')) {
@@ -382,13 +347,10 @@ export class TelegramConnectorService {
     let response: Response;
 
     try {
-      response =
-        await fetch(cleanUrl);
+      response = await fetch(cleanUrl);
     } catch (error: unknown) {
       const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown media fetch error';
+        error instanceof Error ? error.message : 'Unknown media fetch error';
 
       throw new BadRequestException(
         `Unable to read Telegram media: ${message}`,
@@ -397,57 +359,38 @@ export class TelegramConnectorService {
 
     if (!response.ok) {
       throw new BadRequestException(
-        [
-          'Unable to read Telegram media.',
-          `HTTP ${response.status}`,
-        ].join(' '),
+        ['Unable to read Telegram media.', `HTTP ${response.status}`].join(' '),
       );
     }
 
     const contentType =
-      response.headers.get(
-        'content-type',
-      ) || 'application/octet-stream';
+      response.headers.get('content-type') || 'application/octet-stream';
 
-    if (
-      !contentType.startsWith(
-        'image/',
-      )
-    ) {
+    if (!contentType.startsWith('image/')) {
       throw new BadRequestException(
         `Telegram media must be an image. Received ${contentType}.`,
       );
     }
 
-    const pathname =
-      new URL(cleanUrl).pathname;
+    const pathname = new URL(cleanUrl).pathname;
 
-    const filename =
-      pathname.split('/').pop() ||
-      'm-sports-image';
+    const filename = pathname.split('/').pop() || 'm-sports-image';
 
-    const bytes =
-      await response.arrayBuffer();
+    const bytes = await response.arrayBuffer();
 
     return {
       filename,
-      blob: new Blob(
-        [bytes],
-        {
-          type: contentType,
-        },
-      ),
+      blob: new Blob([bytes], {
+        type: contentType,
+      }),
     };
   }
 
   private dataImage(value: string, name: string) {
-    const match =
-      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(value);
+    const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(value);
 
     if (!match) {
-      throw new BadRequestException(
-        'Invalid generated image data.',
-      );
+      throw new BadRequestException('Invalid generated image data.');
     }
 
     const type = match[1];
@@ -468,32 +411,23 @@ export class TelegramConnectorService {
     form: FormData,
     token?: string,
   ): Promise<T> {
-    const response =
-      await fetch(
-        `https://api.telegram.org/bot${this.getToken(token)}/${method}`,
-        {
-          method: 'POST',
-          body: form,
-        },
-      );
+    const response = await fetch(
+      `https://api.telegram.org/bot${this.getToken(token)}/${method}`,
+      {
+        method: 'POST',
+        body: form,
+      },
+    );
 
-    const body =
-      (await response.json()) as
-        TelegramApiResponse<T>;
+    const body = (await response.json()) as TelegramApiResponse<T>;
 
-    if (
-      !response.ok ||
-      !body.ok
-    ) {
+    if (!response.ok || !body.ok) {
       throw new BadRequestException(
-        body.description ||
-          `Telegram API request failed: ${method}`,
+        body.description || `Telegram API request failed: ${method}`,
       );
     }
 
-    if (
-      body.result === undefined
-    ) {
+    if (body.result === undefined) {
       throw new BadRequestException(
         `Telegram API returned no result: ${method}`,
       );
@@ -512,21 +446,17 @@ export class TelegramConnectorService {
       {
         method: 'POST',
         headers: {
-          'Content-Type':
-            'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       },
     );
 
-    const body =
-      await response.json() as
-        TelegramApiResponse<T>;
+    const body = (await response.json()) as TelegramApiResponse<T>;
 
     if (!response.ok || !body.ok) {
       throw new BadRequestException(
-        body.description ||
-          `Telegram API request failed: ${method}`,
+        body.description || `Telegram API request failed: ${method}`,
       );
     }
 

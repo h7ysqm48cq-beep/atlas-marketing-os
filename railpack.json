@@ -1,0 +1,14 @@
+{
+  "buildAptPackages": [
+    "...",
+    "python3",
+    "fonts-noto-cjk"
+  ],
+  "deploy": {
+    "aptPackages": [
+      "...",
+      "python3",
+      "fonts-noto-cjk"
+    ]
+  }
+}
