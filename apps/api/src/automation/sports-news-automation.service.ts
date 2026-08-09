@@ -267,13 +267,21 @@ export class SportsNewsAutomationService {
           edition === 'MORNING'
             ? 'Fresh energetic morning sports atmosphere.'
             : 'Dramatic evening stadium atmosphere.',
-          'Football should be the main visual focus, with subtle basketball and motorsport context only when relevant.',
+          'Use the verified daily sports context below only to guide the visual scene and sport selection.',
+          `Verified visual context: ${
+            generatedNews.visualContext ||
+            'General current sports editorial atmosphere.'
+          }`,
+          'If the verified context includes football, basketball, motorsport, badminton, tennis or another sport, reflect those sports visually where composition allows.',
+          'Do not invent unrelated sports merely to fill the composition.',
+          'The visual scene should clearly feel connected to today’s verified sports stories.',
           'Photorealistic, cinematic, clean editorial layout.',
           'Do not imitate real athlete faces.',
           'Do not use league logos or team logos.',
           'Do not render sports headlines, scores, results, fixtures or factual story text.',
           'The verified sports highlights will be added later by deterministic post-processing.',
-          'Leave a visually clean lower-middle area for a translucent editorial highlights panel.',
+          'Leave a visually clean lower-middle area for one dark translucent editorial highlights panel.',
+          'Do not draw any extra translucent card, white card, glass card or rounded rectangle in that reserved area.',
           'Do not place important subjects or visual details in that reserved lower-middle area.',
           'Do not generate any MGM logo, M logo, QR code, website URL or footer branding.',
           'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
@@ -587,20 +595,46 @@ export class SportsNewsAutomationService {
       '立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门',
     );
 
-    const imageHighlights = acceptedStories.slice(0, 3).map((story) => {
-      const zh = story.headlineZh?.trim();
-      const en = story.headlineEn?.trim();
+    const compactImageHeadline = (
+      value: string | undefined,
+      maxLength: number,
+    ) => {
+      const compact = value?.replace(/\s+/g, ' ').trim() || '';
 
-      if (zh && en) {
-        return `${zh} / ${en}`;
+      if (!compact) {
+        return '';
       }
 
-      return zh || en || '今日体育焦点';
-    });
+      if (compact.length <= maxLength) {
+        return compact;
+      }
+
+      return `${compact.slice(0, maxLength - 1).trim()}…`;
+    };
+
+    const imageHighlights = acceptedStories.slice(0, 3).map((story) => ({
+      zh: compactImageHeadline(story.headlineZh, 20) || '今日体育焦点',
+      en: compactImageHeadline(story.headlineEn, 42) || 'Sports Update',
+    }));
+
+    const visualContext = acceptedStories
+      .slice(0, 3)
+      .map((story) => {
+        const headline =
+          story.headlineEn?.trim() || story.headlineZh?.trim() || '';
+
+        const summary =
+          story.summaryEn?.trim() || story.summaryZh?.trim() || '';
+
+        return [headline, summary].filter(Boolean).join(' — ');
+      })
+      .filter(Boolean)
+      .join(' | ');
 
     return {
       content: this.compactTelegramCaption(lines.join('\n')),
       imageHighlights,
+      visualContext,
     };
   }
 
