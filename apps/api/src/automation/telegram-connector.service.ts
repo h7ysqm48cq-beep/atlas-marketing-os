@@ -110,17 +110,14 @@ export class TelegramConnectorService {
     let lastMessage: TelegramMessage | null = null;
 
     if (firstMediaUrl) {
+      /*
+       * A Telegram media publication must remain one post.
+       * The image caption is the complete visible publication.
+       * Never resend the same article as continuation messages.
+       */
       const caption = this.buildPhotoCaption(cleanText);
 
       lastMessage = await this.sendPhoto(caption, firstMediaUrl, credentials);
-
-      const remainingText = this.removePhotoCaption(cleanText, caption);
-
-      const chunks = this.splitMessage(remainingText);
-
-      for (const chunk of chunks) {
-        lastMessage = await this.sendMessage(chunk, credentials);
-      }
     } else {
       const chunks = this.splitMessage(cleanText);
 
