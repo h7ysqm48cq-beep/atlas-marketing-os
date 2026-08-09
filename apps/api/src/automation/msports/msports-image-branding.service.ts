@@ -2,12 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp';
 import QRCode from 'qrcode';
 import { PrismaService } from '../../database/prisma.service';
+import { LogoOverlayService, LogoPlacement } from '../../image/logo';
 
 @Injectable()
 export class MSportsImageBrandingService {
   private readonly logger = new Logger(MSportsImageBrandingService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logoOverlay: LogoOverlayService,
+  ) {}
 
   async apply(input: {
     imageUrl: string;
@@ -32,14 +36,76 @@ export class MSportsImageBrandingService {
 
     const baseBuffer = Buffer.from(await response.arrayBuffer());
 
-    const metadata = await sharp(baseBuffer).metadata();
+    const baseMetadata = await sharp(baseBuffer).metadata();
 
-    if (!metadata.width || !metadata.height) {
+    if (!baseMetadata.width || !baseMetadata.height) {
       throw new Error('Unable to determine generated image dimensions.');
     }
 
-    const width = metadata.width;
-    const height = metadata.height;
+    const width = baseMetadata.width;
+    const height = baseMetadata.height;
+
+    let workingBuffer: Buffer = baseBuffer;
+
+    /*
+     * M-Sports watermark:
+     * reuse the existing global LogoOverlayService.
+     *
+     * Keep the watermark away from the bottom footer,
+     * footer logo and QR area.
+     */
+    if (logoAssetId) {
+      try {
+        const logoAsset = await this.prisma.asset.findUnique({
+          where: {
+            id: logoAssetId,
+          },
+          select: {
+            url: true,
+          },
+        });
+
+        if (logoAsset?.url) {
+          const logoResponse = await fetch(logoAsset.url);
+
+          if (logoResponse.ok) {
+            const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
+
+            const overlaid = await this.logoOverlay.overlay({
+              image: workingBuffer,
+              logo: logoBuffer,
+              width,
+              height,
+              platform: 'Telegram',
+              placement: LogoPlacement.TOP_RIGHT,
+              scale: 0.72,
+              opacity: 0.72,
+            });
+
+            /*
+             * Normalize the returned Buffer so Node's generic
+             * Buffer<ArrayBufferLike> typing does not leak into
+             * the rest of the Sharp pipeline.
+             */
+            workingBuffer = Buffer.from(overlaid);
+
+            this.logger.log(
+              'M-Sports watermark applied using global LogoOverlayService.',
+            );
+          } else {
+            this.logger.warn(
+              `M-Sports watermark logo download returned HTTP ${logoResponse.status}.`,
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `M-Sports watermark skipped: ${
+            error instanceof Error ? error.message : 'Unknown watermark error'
+          }`,
+        );
+      }
+    }
 
     const footerHeight = Math.max(88, Math.round(height * 0.085));
 
@@ -188,7 +254,7 @@ export class MSportsImageBrandingService {
       });
     }
 
-    const output = await sharp(baseBuffer)
+    const output = await sharp(workingBuffer)
       .composite(composites)
       .png()
       .toBuffer();
