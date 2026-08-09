@@ -13,14 +13,14 @@ import {
 const CTA_URL = 'https://rebrand.ly/mgmbetae0dcf';
 const SPORTS_NEWS_IMAGE_RULES = [
   'Do not create a fake MGM logo, fake crest, fake crown, or fake monogram.',
-  'The real brand logo will be added by Atlas after image generation as a watermark overlay.',
+  'The real brand logo will be composited after image generation.',
   'ABSOLUTE IMAGE TEXT RULES:',
   'This is a 满贯门 branded sports news image.',
   'The exact main title text on the image must be: 满贯门 Sports News.',
   'The image must not show the title as 满贯门 Sports News alone.',
   'If the words Sports News appear, they must appear together with 满贯门 on the same line: 满贯门 Sports News.',
   'The image must include the subtitle: 体育焦点 / Sports Focus.',
-  'Do not draw or invent any MGM logo. Atlas will add the real 满贯门 logo as a post-processing watermark after image generation.',
+  'Do not draw or invent any MGM logo. The real 满贯门 logo will be composited after image generation.',
   'The image footer must include exactly: mgmbetmyr.com.',
   'Do not include https://rebrand.ly/mgmbetae0dcf in the image.',
   'Do not include Atlas, Atlas Sports News, Atlas News, MGM News, or plain 满贯门 Sports News as a standalone title.',
@@ -30,7 +30,7 @@ const SPORTS_NEWS_IMAGE_RULES = [
 ].join('\\n');
 
 const SPORTS_NEWS_IMAGE_BRAND_RULES = [
-  'Use 满贯门 M-News as the only visible news brand title in the image.',
+  'Use M-Sports / 满贯门体育新闻 as the only visible news brand title in the image.',
   'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
   'Place a small clean 满贯门 / MGM logo in the image footer.',
   'Include a small clean footer link: mgmbetmyr.com',
@@ -57,7 +57,7 @@ export class SportsNewsAutomationService {
   }
 
   @Cron('0 9 * * *', {
-    name: 'atlas-sports-news-morning',
+    name: 'm-sports-news-morning',
     timeZone: TIMEZONE,
     waitForCompletion: true,
   })
@@ -66,7 +66,7 @@ export class SportsNewsAutomationService {
   }
 
   @Cron('0 20 * * *', {
-    name: 'atlas-sports-news-evening',
+    name: 'm-sports-news-evening',
     timeZone: TIMEZONE,
     waitForCompletion: true,
   })
@@ -86,15 +86,10 @@ export class SportsNewsAutomationService {
     const channel = await this.resolveChannel();
 
     return {
-      enabled:
-        this.config.get<string>('SPORTS_NEWS_ENABLED') === 'true',
-      hasOpenAiKey: Boolean(
-        this.config.get<string>('OPENAI_API_KEY'),
-      ),
+      enabled: this.config.get<string>('SPORTS_NEWS_ENABLED') === 'true',
+      hasOpenAiKey: Boolean(this.config.get<string>('OPENAI_API_KEY')),
       configuredTelegramChannelId:
-        this.config.get<string>(
-          'SPORTS_NEWS_TELEGRAM_CHANNEL_ID',
-        ) ?? null,
+        this.config.get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID') ?? null,
       resolvedChannel: channel
         ? {
             id: channel.id,
@@ -139,8 +134,7 @@ export class SportsNewsAutomationService {
     try {
       const channel = await this.resolveChannel();
       if (!channel) {
-        const reason =
-          'No connected Sports News Telegram channel was found.';
+        const reason = 'No connected Sports News Telegram channel was found.';
 
         this.logger.warn(reason);
 
@@ -158,7 +152,10 @@ export class SportsNewsAutomationService {
         month: '2-digit',
         day: '2-digit',
       }).format(new Date());
-      const title = `满贯门 M-News ${edition} ${dateKey}`;
+      const title =
+        edition === 'MORNING'
+          ? `满贯门体育早报 | M-Sports Morning ${dateKey}`
+          : `满贯门体育晚报 | M-Sports Evening ${dateKey}`;
 
       const existing = await this.prisma.scheduledPost.findFirst({
         where: { channelId: channel.id, title },
@@ -224,10 +221,7 @@ export class SportsNewsAutomationService {
         mediaUrls: post.mediaUrls,
       };
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
 
       this.logger.error(
         `Sports news generation failed: ${message}`,
@@ -246,7 +240,9 @@ export class SportsNewsAutomationService {
   }
 
   private async resolveChannel() {
-    const configuredId = this.config.get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID')?.trim();
+    const configuredId = this.config
+      .get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID')
+      ?.trim();
     const connectedWhere = {
       platform: SocialPlatform.TELEGRAM,
       status: SocialChannelStatus.CONNECTED,
@@ -263,7 +259,9 @@ export class SportsNewsAutomationService {
       orderBy: { updatedAt: 'desc' },
     });
     const named = channels.find((channel) =>
-      /sports|sport|体育|新聞|新闻/i.test(`${channel.name} ${channel.username ?? ''}`),
+      /sports|sport|体育|新聞|新闻/i.test(
+        `${channel.name} ${channel.username ?? ''}`,
+      ),
     );
 
     return named ?? (channels.length === 1 ? channels[0] : null);
@@ -279,8 +277,16 @@ export class SportsNewsAutomationService {
           ? 'Find the most important verified sports developments from the previous 24 hours.'
           : 'Find important verified sports developments since this morning and avoid repeating routine earlier stories.',
         'Prioritise football, then basketball, Formula 1 and other major sports.',
-        'The news brand name must be 满贯门 M-News.',
-        'Use 满贯门 M-News as the only visible news brand name.',
+        'SOURCE EDITORIAL RULES:',
+        'Use source publishers only for internal fact verification.',
+        'Do not mention publisher names such as Flashscore, Reuters, ESPN, BBC, Sky Sports, The New York Times, Yahoo Sports or Google News in normal article sentences.',
+        'Do not write phrases such as according to Flashscore, reported by, records show, 据报道, 报道指出, 报道称 or 记录显示.',
+        'Write the verified sporting fact directly in professional newsroom style.',
+        'Example: write Chelsea and Manchester United drew 0-0, not Flashscore recorded a 0-0 draw.',
+        'Do not expose citation markers, search-result numbers or internal source notation.',
+
+        'The news brand name must be M-Sports / 满贯门体育新闻.',
+        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
         'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
         'The Telegram post must be image plus caption in one message, so keep the full caption under 900 Unicode characters.',
         'Use short conversion-focused sports media copy, not a long report.',
@@ -295,7 +301,7 @@ export class SportsNewsAutomationService {
         'Final CTA must be plain text and include this raw URL exactly: https://rebrand.ly/mgmbetae0dcf.',
         'The final line must invite users to follow the latest sports focus through the CTA link.',
         'The digest must be bilingual: Chinese first, then English, or Chinese and English together in each item.',
-        'Use 满贯门 M-News as the only visible news brand name.',
+        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
         'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
         'Keep the digest clean and compact for Telegram.',
         'Each item should be concise and readable, not overly long.',
@@ -318,7 +324,7 @@ export class SportsNewsAutomationService {
         'Do not include markdown links.',
         'Keep the final caption short, clean, and conversion-focused.',
 
-        'Use 满贯门 M-News as the only visible news brand name.',
+        'Use M-Sports / 满贯门体育新闻 as the only visible news brand name.',
         'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
         'The Telegram post should be image plus caption in one message whenever possible.',
         'Keep the full caption compact and Telegram-friendly.',
@@ -335,6 +341,12 @@ export class SportsNewsAutomationService {
         'The final CTA must encourage users to join/follow for more sports focus.',
         'Use 5 to 8 concise items, ordered by importance. Each item needs a headline, 1 to 2 short summary sentences and a direct source URL.',
         'Use only established reliable sources, verify event timing, remove rumours and duplicates, and never invent facts or URLs.',
+        'STRICT STORY DEDUPLICATION:',
+        'A single real-world event may appear only once.',
+        'When multiple publishers cover the same match, transfer, player or event, merge those reports into one story.',
+        'Do not repeat the same story with a different headline.',
+        'Before finalising, compare every story semantically and remove duplicates.',
+
         'Keep the complete post under 3500 Unicode characters.',
         `The final line must be exactly ${CTA_URL} and nothing may appear after it.`,
       ].join('\n'),
@@ -346,7 +358,12 @@ export class SportsNewsAutomationService {
     }
 
     const withoutTrailingCta = text
-      .replace(new RegExp(`\\s*${CTA_URL.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`), '')
+      .replace(
+        new RegExp(
+          `\\s*${CTA_URL.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`,
+        ),
+        '',
+      )
       .trim();
     return this.compactTelegramCaption(withoutTrailingCta);
   }
@@ -359,15 +376,33 @@ export class SportsNewsAutomationService {
       .replace(new RegExp('\\\\n', 'g'), '\n')
       .replace(new RegExp('<[^>]+>', 'g'), '')
       .replace(
-        new RegExp('\$begin:math:display$\(\[\^\\$end:math:display$]+)\\]\$begin:math:text$https\?\:\/\/\[\^\\\\s\)\]\+\\$end:math:text$', 'g'),
+        new RegExp(
+          '\$begin:math:display$\(\[\^\\$end:math:display$]+)\\]\$begin:math:text$https\?\:\/\/\[\^\\\\s\)\]\+\\$end:math:text$',
+          'g',
+        ),
         '$1',
       )
-      .replace(new RegExp('\\(\$begin:math:display$\[\^\\$end:math:display$]+\\]', 'g'), '')
-      .replace(new RegExp('\$begin:math:display$\[\^\\$end:math:display$]+\\]', 'g'), '')
-      .replace(new RegExp('https?://(?!rebrand\\.ly/mgmbetae0dcf)\\S+', 'g'), '')
+      .replace(
+        new RegExp(
+          '\\(\$begin:math:display$\[\^\\$end:math:display$]+\\]',
+          'g',
+        ),
+        '',
+      )
+      .replace(
+        new RegExp('\$begin:math:display$\[\^\\$end:math:display$]+\\]', 'g'),
+        '',
+      )
+      .replace(
+        new RegExp('https?://(?!rebrand\\.ly/mgmbetae0dcf)\\S+', 'g'),
+        '',
+      )
       .replace(new RegExp('\\*\\*', 'g'), '')
-      .replace(new RegExp('Atlas Sports News', 'gi'), '满贯门 M-News')
-      .replace(new RegExp('Atlas News', 'gi'), '满贯门 M-News')
+      .replace(
+        new RegExp('Atlas Sports News', 'gi'),
+        'M-Sports / 满贯门体育新闻',
+      )
+      .replace(new RegExp('Atlas News', 'gi'), 'M-Sports / 满贯门体育新闻')
       .replace(new RegExp('[ \\t]+\\n', 'g'), '\n')
       .replace(new RegExp('\\n{3,}', 'g'), '\n\n')
       .trim();
@@ -377,7 +412,9 @@ export class SportsNewsAutomationService {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    const finalLines: string[] = ['满贯门 M-News｜体育焦点 / Sports Focus'];
+    const finalLines: string[] = [
+      'M-Sports / 满贯门体育新闻｜体育焦点 / Sports Focus',
+    ];
     let itemCount = 0;
 
     for (const line of lines) {
@@ -390,7 +427,7 @@ export class SportsNewsAutomationService {
       }
 
       if (
-        line.includes('满贯门 M-News') ||
+        line.includes('M-Sports / 满贯门体育新闻') ||
         line.includes('体育焦点') ||
         line.includes('Sports Focus') ||
         line.toLowerCase().includes('malaysia sports focus')
@@ -398,7 +435,8 @@ export class SportsNewsAutomationService {
         continue;
       }
 
-      const isItemTitle = numberedLine.test(line) || numberedEmojiLine.test(line);
+      const isItemTitle =
+        numberedLine.test(line) || numberedEmojiLine.test(line);
 
       if (isItemTitle) {
         itemCount += 1;
@@ -409,9 +447,7 @@ export class SportsNewsAutomationService {
 
         finalLines.push('');
         finalLines.push(
-          line
-            .replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '')
-            .trim(),
+          line.replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '').trim(),
         );
 
         continue;
@@ -466,7 +502,7 @@ export class SportsNewsAutomationService {
 
     const dateKey = formatter.format(new Date());
 
-    const title = `满贯门 M-News ${edition} ${dateKey}`;
+    const title = `M-Sports / 满贯门体育新闻 ${edition} ${dateKey}`;
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
@@ -511,5 +547,4 @@ export class SportsNewsAutomationService {
     // is connected to this processor.
     return imageUrl;
   }
-
 }
