@@ -12,16 +12,16 @@ import { BrowserActionTraceService } from './browser-action-trace.service';
 import { PublisherService } from './publisher.service';
 import { AutomationSchedulerService } from './automation-scheduler.service';
 import { SportsNewsAutomationService } from './sports-news-automation.service';
+import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
 import { AssetImageModule } from '../asset-image/asset-image.module';
 
 @Module({
   imports: [AssetImageModule],
-  controllers: [
-    AutomationController,
-  ],
+  controllers: [AutomationController],
   providers: [
     AutomationSchedulerService,
     SportsNewsAutomationService,
+    MSportsImageBrandingService,
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import OpenAI from 'openai';
 import { AssetImageService } from '../asset-image/asset-image.service';
+import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
 import { PrismaService } from '../database/prisma.service';
 import {
   ScheduledPostStatus,
@@ -51,6 +52,7 @@ export class SportsNewsAutomationService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly assetImages: AssetImageService,
+    private readonly msportsBranding: MSportsImageBrandingService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -178,20 +180,70 @@ export class SportsNewsAutomationService {
       const image = await this.assetImages.generateAndSave({
         name: title,
         platform: 'Telegram',
-        size: '1536x1024',
+        size: '1024x1536',
         quality: 'medium',
-        logoMode: 'AUTO',
+        logoMode: 'NEVER',
         prompt: [
-          'Premium editorial sports news cover for a Malaysian audience.',
+          'Premium editorial M-Sports / 满贯门体育新闻 poster for a Malaysian audience.',
           edition === 'MORNING'
-            ? 'Fresh energetic morning atmosphere.'
+            ? 'Fresh energetic morning sports atmosphere.'
             : 'Dramatic evening stadium atmosphere.',
-          'Blend football as the main focus with subtle basketball and motorsport cues.',
-          'Photorealistic, dynamic, clean layout, no real athlete likeness, no league logos,',
-          'no brand logos, no betting imagery, no scores, no text except a small neutral 满贯门 Sports News title area.',
-          'Landscape 3:2 composition suitable for Telegram.',
+          'Football should be the main visual focus, with subtle basketball and motorsport context only when relevant.',
+          'Photorealistic, cinematic, clean editorial layout.',
+          'Do not imitate real athlete faces.',
+          'Do not use league logos or team logos.',
+          'Do not generate any MGM logo, QR code, website URL or footer branding.',
+          'Keep the lower edge visually clean for real post-processing branding.',
+          edition === 'MORNING'
+            ? 'Use concise visible edition wording: M-Sports / 满贯门体育早报.'
+            : 'Use concise visible edition wording: M-Sports / 满贯门体育晚报.',
+          'Vertical 4:5 social-media composition.',
         ].join(' '),
       });
+
+      const activeBrand = await this.prisma.brand.findFirst({
+        where: {
+          id: channel.brandId,
+        },
+        select: {
+          primaryLogoAssetId: true,
+        },
+      });
+
+      let finalMediaUrl = image.asset.url;
+
+      try {
+        const branded = await this.msportsBranding.apply({
+          imageUrl: image.asset.url,
+          logoAssetId: activeBrand?.primaryLogoAssetId ?? null,
+          footerText: '满贯门 mgmbetmyr.com',
+          qrLink: 'https://mgmbetmyr.com',
+        });
+
+        finalMediaUrl = branded.imageDataUrl;
+
+        this.logger.log(
+          [
+            `M-Sports branding applied for ${title}.`,
+            `logo=${branded.logoApplied}`,
+            `footer=${branded.footerApplied}`,
+            `qr=${branded.qrApplied}`,
+          ].join(' '),
+        );
+      } catch (error) {
+        /*
+         * Do not reuse any historical image.
+         * If branding fails, use only the newly generated
+         * image from this exact run.
+         */
+        this.logger.warn(
+          `M-Sports branding failed for ${title}. ` +
+            `Using this run's newly generated image only. ` +
+            `${
+              error instanceof Error ? error.message : 'Unknown branding error'
+            }`,
+        );
+      }
 
       const post = await this.prisma.scheduledPost.create({
         data: {
@@ -200,7 +252,7 @@ export class SportsNewsAutomationService {
           platform: SocialPlatform.TELEGRAM,
           title,
           content,
-          mediaUrls: [image.asset.url],
+          mediaUrls: [finalMediaUrl],
           scheduledAt: new Date(),
           timezone: TIMEZONE,
           status: ScheduledPostStatus.QUEUED,
