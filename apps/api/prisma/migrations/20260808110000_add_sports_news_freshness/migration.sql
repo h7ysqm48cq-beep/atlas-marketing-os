@@ -1,0 +1,7 @@
+ALTER TABLE "SportsNewsSetting"
+ADD COLUMN "sameDaySourcesOnly" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "maxSourceAgeHours" INTEGER NOT NULL DEFAULT 24,
+ADD COLUMN "requirePublishedAt" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "requireSourceUrl" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "minimumSources" INTEGER NOT NULL DEFAULT 2,
+ADD COLUMN "freshnessFallbackEnabled" BOOLEAN NOT NULL DEFAULT false;
