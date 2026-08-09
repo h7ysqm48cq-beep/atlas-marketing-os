@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "SocialChannelRuntimeProfile" ADD COLUMN     "browserEngine" TEXT NOT NULL DEFAULT 'CHROMIUM',
+ADD COLUMN     "deviceScaleFactor" DOUBLE PRECISION NOT NULL DEFAULT 1,
+ADD COLUMN     "identityLocked" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "operatingSystem" TEXT NOT NULL DEFAULT 'MACOS',
+ADD COLUMN     "screenHeight" INTEGER NOT NULL DEFAULT 768,
+ADD COLUMN     "screenWidth" INTEGER NOT NULL DEFAULT 1365,
+ADD COLUMN     "userAgent" TEXT;
