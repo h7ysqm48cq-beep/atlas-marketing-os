@@ -128,6 +128,11 @@ export type BrowserActionHistory = Prisma.BrowserActionHistoryModel
  */
 export type BrowserActionTrace = Prisma.BrowserActionTraceModel
 /**
+ * Model SportsNewsSetting
+ * 
+ */
+export type SportsNewsSetting = Prisma.SportsNewsSettingModel
+/**
  * Model AutomationSetting
  * 
  */

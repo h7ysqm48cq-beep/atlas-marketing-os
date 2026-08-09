@@ -15,13 +15,18 @@ import { SportsNewsAutomationService } from './sports-news-automation.service';
 import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
 import { AssetImageModule } from '../asset-image/asset-image.module';
 import { StorageModule } from '../storage/storage.module';
+import { SportsNewsSettingsService } from './sports-news-settings.service';
+import { SportsNewsSettingsController } from './sports-news-settings.controller';
+import { SportsNewsSourceValidatorService } from './sports-news-source-validator.service';
 
 @Module({
   imports: [AssetImageModule, StorageModule],
-  controllers: [AutomationController],
+  controllers: [AutomationController, SportsNewsSettingsController],
   providers: [
     AutomationSchedulerService,
     SportsNewsAutomationService,
+    SportsNewsSettingsService,
+    SportsNewsSourceValidatorService,
     MSportsImageBrandingService,
     AutomationService,
     TelegramConnectorService,

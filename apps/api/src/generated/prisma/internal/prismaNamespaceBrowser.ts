@@ -73,6 +73,7 @@ export const ModelName = {
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
   BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
@@ -577,6 +578,63 @@ export const BrowserActionTraceScalarFieldEnum = {
 } as const
 
 export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
+
+
+export const SportsNewsSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  enabled: 'enabled',
+  timezone: 'timezone',
+  morningEnabled: 'morningEnabled',
+  morningTime: 'morningTime',
+  eveningEnabled: 'eveningEnabled',
+  eveningTime: 'eveningTime',
+  telegramEnabled: 'telegramEnabled',
+  telegramChannelId: 'telegramChannelId',
+  facebookEnabled: 'facebookEnabled',
+  facebookChannelId: 'facebookChannelId',
+  morningTelegramEnabled: 'morningTelegramEnabled',
+  morningFacebookEnabled: 'morningFacebookEnabled',
+  eveningTelegramEnabled: 'eveningTelegramEnabled',
+  eveningFacebookEnabled: 'eveningFacebookEnabled',
+  autoPublishEnabled: 'autoPublishEnabled',
+  approvalRequired: 'approvalRequired',
+  language: 'language',
+  sportsKnowledgeEnabled: 'sportsKnowledgeEnabled',
+  discussionQuestionEnabled: 'discussionQuestionEnabled',
+  referenceLinksEnabled: 'referenceLinksEnabled',
+  sameDaySourcesOnly: 'sameDaySourcesOnly',
+  maxSourceAgeHours: 'maxSourceAgeHours',
+  requirePublishedAt: 'requirePublishedAt',
+  requireSourceUrl: 'requireSourceUrl',
+  minimumSources: 'minimumSources',
+  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
+  customPromptEnabled: 'customPromptEnabled',
+  systemPrompt: 'systemPrompt',
+  morningPrompt: 'morningPrompt',
+  eveningPrompt: 'eveningPrompt',
+  knowledgePrompt: 'knowledgePrompt',
+  customInstructions: 'customInstructions',
+  imageEnabled: 'imageEnabled',
+  imagePrompt: 'imagePrompt',
+  morningImagePrompt: 'morningImagePrompt',
+  eveningImagePrompt: 'eveningImagePrompt',
+  imageAspectRatio: 'imageAspectRatio',
+  imageTextMode: 'imageTextMode',
+  imageVisualStyle: 'imageVisualStyle',
+  logoEnabled: 'logoEnabled',
+  logoPosition: 'logoPosition',
+  brandFooterEnabled: 'brandFooterEnabled',
+  brandFooterText: 'brandFooterText',
+  lastMorningRunAt: 'lastMorningRunAt',
+  lastEveningRunAt: 'lastEveningRunAt',
+  lastRunStatus: 'lastRunStatus',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
