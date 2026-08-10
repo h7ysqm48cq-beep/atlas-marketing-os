@@ -476,6 +476,16 @@ export class SportsNewsAutomationService {
         'Do not use ellipsis in imageHeadlineZh or imageHeadlineEn.',
         'Do not write clickbait.',
         'Do not change an UPCOMING event into a completed result or a COMPLETED event into a preview.',
+
+        'VISIBLE COPY CLEANLINESS:',
+        'All headlineZh, headlineEn, imageHeadlineZh, imageHeadlineEn, summaryZh and summaryEn values must contain plain text only.',
+        'Never include Markdown headings such as #, ## or ###.',
+        'Never include blockquote markers such as > or >>.',
+        'Never include Markdown emphasis markers such as *, **, *** or _.',
+        'Never include citation markers such as [1], [2], [3], 【1】 or source-reference numbers.',
+        'Never include markdown links.',
+        'Never include horizontal separators such as --- or ***.',
+        'Do not mention source names or citation numbers inside visible story text.',
       ].join('\n'),
     });
 
@@ -582,18 +592,25 @@ export class SportsNewsAutomationService {
     }
 
     const lines: string[] = [
-      'M-Sports / 满贯门体育新闻｜体育焦点 / Sports Focus',
+      edition === 'MORNING'
+        ? '⚡ 满贯门体育早报 | M-Sports Morning'
+        : '🌙 满贯门体育晚报 | M-Sports Evening',
+      '',
+      '🔥 今日焦点 | Top Stories',
       '',
     ];
 
     acceptedStories.forEach((story, index) => {
-      const headlineZh = story.headlineZh?.trim() || '体育焦点';
-      const headlineEn = story.headlineEn?.trim() || 'Sports Update';
+      const headlineZh =
+        this.cleanSportsVisibleText(story.headlineZh) || '体育焦点';
+
+      const headlineEn =
+        this.cleanSportsVisibleText(story.headlineEn) || 'Sports Update';
 
       lines.push(`${index + 1}. ${headlineZh}｜${headlineEn}`);
 
-      const summaryZh = story.summaryZh?.trim() || '';
-      const summaryEn = story.summaryEn?.trim() || '';
+      const summaryZh = this.cleanSportsVisibleText(story.summaryZh);
+      const summaryEn = this.cleanSportsVisibleText(story.summaryEn);
 
       const scoreSuffix =
         story.eventStatus === 'COMPLETED' && story.finalScore?.trim()
@@ -614,10 +631,9 @@ export class SportsNewsAutomationService {
       fallback: string | undefined,
       maxLength: number,
     ) => {
-      const selected =
-        preferred?.replace(/\s+/g, ' ').trim() ||
-        fallback?.replace(/\s+/g, ' ').trim() ||
-        '';
+      const selected = this.cleanSportsVisibleText(
+        preferred || fallback || '',
+      ).replace(/\s+/g, ' ');
 
       if (!selected) {
         return '';
@@ -666,6 +682,38 @@ export class SportsNewsAutomationService {
       imageHighlights,
       visualContext,
     };
+  }
+
+  private cleanSportsVisibleText(value: string | undefined | null): string {
+    return (
+      (value || '')
+        // Markdown headings / blockquotes.
+        .replace(/^[ \t]*#{1,6}[ \t]*/gm, '')
+        .replace(/^[ \t]*>{1,3}[ \t]*/gm, '')
+
+        // Markdown separators.
+        .replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '')
+
+        // Markdown emphasis.
+        .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+        .replace(/_{1,3}([^_]+)_{1,3}/g, '$1')
+
+        // Numeric citation markers: [1], [2,3], [1-3], 【1】.
+        .replace(/\[(?:\d+[\s,;–—-]*)+\]/g, '')
+        .replace(/【\s*\d+(?:\s*[-–—,]\s*\d+)*\s*】/g, '')
+
+        // Markdown links: [label](url) -> label.
+        .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1')
+
+        // Bare markdown control characters left behind.
+        .replace(/^[ \t]*[`*_~]+[ \t]*/gm, '')
+        .replace(/[ \t]+[`*_~]+[ \t]*$/gm, '')
+
+        // Normalise spacing.
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+    );
   }
 
   private compactTelegramCaption(content: string): string {
