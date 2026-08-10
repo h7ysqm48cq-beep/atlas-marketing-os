@@ -29,6 +29,10 @@ export class GenerateAssetImageDto {
   @IsOptional()
   platform?: string;
 
+  @IsString()
+  @IsOptional()
+  model?: string;
+
   @IsIn(['1024x1024', '1024x1536', '1536x1024'])
   @IsOptional()
   size?: '1024x1024' | '1024x1536' | '1536x1024';

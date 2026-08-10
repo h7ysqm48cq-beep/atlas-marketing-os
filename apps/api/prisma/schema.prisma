@@ -856,6 +856,245 @@ model SportsNewsSetting {
   brandFooterEnabled Boolean @default(true)
   brandFooterText    String  @default("满贯门 mgmbetmyr.com")
 
+  // =========================================================
+  // M-Sports Settings v2 — News Content
+  // =========================================================
+
+  storyMinimum Int @default(3)
+  storyMaximum Int @default(5)
+
+  sportsPriority String @default("football,basketball,formula1,badminton,tennis,baseball,motorsport")
+
+  verificationInstructions  String? @db.Text
+  imageHeadlineInstructions String? @db.Text
+  visibleCopyInstructions   String? @db.Text
+
+  // =========================================================
+  // M-Sports Settings v2 — Telegram Copy
+  // =========================================================
+
+  telegramMorningHeader String @default("⚡ 满贯门体育早报 | M-Sports Morning")
+  telegramEveningHeader String @default("🌙 满贯门体育晚报 | M-Sports Evening")
+  telegramSectionLabel  String @default("🔥 今日焦点 | Top Stories")
+
+  telegramCtaEnabled Boolean @default(true)
+  telegramCtaText    String  @default("立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门")
+  telegramCtaUrl     String  @default("https://rebrand.ly/mgmbetae0dcf")
+
+  telegramShowSummaries Boolean @default(true)
+  telegramCaptionTarget Int     @default(940)
+
+  telegramSummaryZhLong    Int @default(72)
+  telegramSummaryEnLong    Int @default(112)
+  telegramSummaryZhMedium  Int @default(58)
+  telegramSummaryEnMedium  Int @default(88)
+  telegramSummaryZhShort   Int @default(46)
+  telegramSummaryEnShort   Int @default(68)
+  telegramSummaryZhCompact Int @default(34)
+  telegramSummaryEnCompact Int @default(52)
+
+  // =========================================================
+  // M-Sports Settings v2 — Visual Director
+  // =========================================================
+
+  visualDirectorEnabled Boolean @default(true)
+
+  visualDirectorPrompt String? @db.Text
+
+  heroStoryWeight Int @default(65)
+
+  singleSportVisualPrompt String? @db.Text
+  multiSportVisualPrompt  String? @db.Text
+
+  completedEventVisualPrompt String? @db.Text
+  upcomingEventVisualPrompt  String? @db.Text
+  developmentVisualPrompt    String? @db.Text
+
+  morningVisualDirection String? @db.Text
+  eveningVisualDirection String? @db.Text
+
+  imagePhotographyPrompt String? @db.Text
+  imageNegativePrompt    String? @db.Text
+
+  imageUpperSafeAreaPrompt String? @db.Text
+  imageLowerSafeAreaPrompt String? @db.Text
+
+  // =========================================================
+  // M-Sports Settings v2 — Image Layout
+  // =========================================================
+
+  imageLayoutEnabled Boolean @default(true)
+
+  mastheadScale      Float @default(1.0)
+  mastheadTopPercent Float @default(0.018)
+
+  highlightsPanelWidthPercent  Float @default(0.89)
+  highlightsPanelHeightPercent Float @default(0.235)
+  highlightsPanelTopPercent    Float @default(0.61)
+  highlightsPanelOpacityStart  Float @default(0.80)
+  highlightsPanelOpacityMiddle Float @default(0.60)
+  highlightsPanelOpacityEnd    Float @default(0.22)
+  highlightsPanelRadius        Int   @default(10)
+
+  heroHeadlineScale      Float @default(1.0)
+  secondaryHeadlineScale Float @default(1.0)
+
+  story02PositionPercent Float @default(0.70)
+  story03PositionPercent Float @default(0.89)
+
+  footerHeightPercent Float @default(0.085)
+
+  qrEnabled Boolean @default(true)
+  qrLink    String  @default("https://mgmbetmyr.com")
+
+  // =========================================================
+  // M-Sports Settings v2 — Branding / Typography
+  // =========================================================
+
+  mastheadBrandText String @default("M-SPORTS")
+
+  morningEditionZh String @default("满贯门体育早报")
+  eveningEditionZh String @default("满贯门体育晚报")
+
+  morningEditionEn String @default("MORNING REPORT")
+  eveningEditionEn String @default("EVENING REPORT")
+
+  imageSectionLabel String @default("今日焦点  /  TOP STORIES")
+
+  morningAccentColor    String @default("#f0c14b")
+  eveningAccentColor    String @default("#d7a449")
+  morningSecondaryColor String @default("#1476d4")
+  eveningSecondaryColor String @default("#b9232f")
+
+  mastheadPrimaryColor   String @default("#ffffff")
+  mastheadEnglishColor   String @default("rgba(255,255,255,0.84)")
+  headlinePrimaryColor   String @default("#ffffff")
+  headlineSecondaryColor String @default("rgba(255,255,255,0.72)")
+
+  panelBaseColor String @default("4,10,18")
+
+  // =========================================================
+  // Logo / QR
+  // =========================================================
+
+  watermarkEnabled  Boolean @default(true)
+  watermarkScale    Float   @default(0.72)
+  watermarkOpacity  Float   @default(0.72)
+  watermarkPosition String  @default("top-right")
+
+  qrSizePercent   Float @default(0.105)
+  qrMarginPercent Float @default(0.025)
+
+  // =========================================================
+  // Footer / Date
+  // =========================================================
+
+  footerDateEnabled     Boolean @default(true)
+  footerDateSeparator   String  @default("  •  ")
+  footerBackgroundColor String  @default("rgba(8,12,20,0.95)")
+  footerSeparatorColor  String  @default("rgba(255,255,255,0.14)")
+
+  // =========================================================
+  // Image Generation
+  // =========================================================
+
+  imageGenerationSize    String @default("1024x1536")
+  imageGenerationQuality String @default("medium")
+
+  // =========================================================
+  // Runtime / Story Detection
+  // =========================================================
+
+  footballKeywords   String @default("football,soccer,premier league,champions league,carabao,efl,fa cup,laliga,serie a,bundesliga,superliga,allsvenskan,jdt,chelsea,liverpool,arsenal,manchester")
+  basketballKeywords String @default("nba,wnba,basketball,cba")
+  motorsportKeywords String @default("formula 1,formula one,f1,grand prix,motorsport")
+  motorcycleKeywords String @default("motogp,motorcycle,superbike")
+  tennisKeywords     String @default("tennis,atp,wta,wimbledon")
+  badmintonKeywords  String @default("badminton,bwf,thomas cup,sudirman")
+  baseballKeywords   String @default("mlb,baseball,dodgers,yankees,red sox,astros,giants,padres,brewers,royals")
+  combatKeywords     String @default("ufc,mma,boxing")
+
+  completedScoreRequired    Boolean @default(true)
+  invalidStoryPolicy        String  @default("SKIP")
+  morningSameDaySourcesOnly Boolean @default(false)
+
+  // =========================================================
+  // M-Sports Settings v2 — AI Runtime
+  // =========================================================
+
+  newsAiModel          String  @default("gpt-5.5")
+  newsWebSearchEnabled Boolean @default(true)
+
+  imageAiModel           String?
+  imageGenerationEnabled Boolean @default(true)
+
+  // =========================================================
+  // M-Sports Settings v2 — Publishing Behaviour
+  // =========================================================
+
+  duplicateEditionPolicy String @default("SKIP")
+  forceRunExistingPolicy String @default("MARK_OLD")
+
+  queueStatusOnCreate String @default("QUEUED")
+
+  publishRetryEnabled      Boolean @default(true)
+  publishRetryLimit        Int     @default(3)
+  publishRetryDelayMinutes Int     @default(10)
+
+  generationFailurePolicy String @default("BLOCK")
+  imageFailurePolicy      String @default("BLOCK")
+  brandingFailurePolicy   String @default("USE_GENERATED_IMAGE")
+
+  // =========================================================
+  // M-Sports Settings v2 — Validation Behaviour
+  // =========================================================
+
+  minimumSourcesPerStory   Int @default(1)
+  minimumStoriesPerEdition Int @default(3)
+
+  completedEventPolicy   String @default("REQUIRE_FINAL_SCORE")
+  upcomingEventPolicy    String @default("ALLOW")
+  developmentStoryPolicy String @default("ALLOW")
+
+  sourceDeduplicationEnabled Boolean @default(true)
+
+  // =========================================================
+  // M-Sports Settings v2 — Runtime Branding Rules
+  // =========================================================
+
+  imageRulesEnabled Boolean @default(true)
+  imageRulesPrompt  String? @db.Text
+
+  imageBrandRulesEnabled Boolean @default(true)
+  imageBrandRulesPrompt  String? @db.Text
+
+  // =========================================================
+  // M-Sports Settings v2 — Force Run
+  // =========================================================
+
+  forceRunEnabled     Boolean @default(true)
+  forceMorningEnabled Boolean @default(true)
+  forceEveningEnabled Boolean @default(true)
+
+  // =========================================================
+  // M-Sports Settings v2 — Titles / Queue / Preview
+  // =========================================================
+
+  morningPostTitleTemplate String @default("满贯门体育早报 | M-Sports Morning {date}")
+  eveningPostTitleTemplate String @default("满贯门体育晚报 | M-Sports Evening {date}")
+
+  imageModelOverrideEnabled Boolean @default(false)
+
+  previewNewsPromptEnabled      Boolean @default(true)
+  previewImagePromptEnabled     Boolean @default(true)
+  previewTelegramCaptionEnabled Boolean @default(true)
+
+  // =========================================================
+  // M-Sports Settings v2 — Reset / Recommended Defaults
+  // =========================================================
+
+  recommendedDefaultsVersion String @default("v2")
+
   lastMorningRunAt DateTime?
   lastEveningRunAt DateTime?
   lastRunStatus    String?

@@ -16,35 +16,6 @@ import {
   SocialPlatform,
 } from '../generated/prisma/enums';
 
-const CTA_URL = 'https://rebrand.ly/mgmbetae0dcf';
-const SPORTS_NEWS_IMAGE_RULES = [
-  'Do not create a fake MGM logo, fake crest, fake crown, or fake monogram.',
-  'The real brand logo will be composited after image generation.',
-  'ABSOLUTE IMAGE TEXT RULES:',
-  'This is a 满贯门 branded sports news image.',
-  'The exact main title text on the image must be: 满贯门 Sports News.',
-  'The image must not show the title as 满贯门 Sports News alone.',
-  'If the words Sports News appear, they must appear together with 满贯门 on the same line: 满贯门 Sports News.',
-  'The image must include the subtitle: 体育焦点 / Sports Focus.',
-  'Do not draw or invent any MGM logo. The real 满贯门 logo will be composited after image generation.',
-  'The image footer must include exactly: mgmbetmyr.com.',
-  'Do not include https://rebrand.ly/mgmbetae0dcf in the image.',
-  'Do not include Atlas, Atlas Sports News, Atlas News, MGM News, or plain 满贯门 Sports News as a standalone title.',
-  'Use only these visible text elements: 满贯门 Sports News and 体育焦点 / Sports Focus. Do not add website text unless Atlas post-processing adds it.',
-  'Keep the design premium, clean, cinematic, sports-focused, Malaysian audience, not overcrowded.',
-  'Place the logo and mgmbetmyr.com in the bottom footer area.',
-].join('\\n');
-
-const SPORTS_NEWS_IMAGE_BRAND_RULES = [
-  'Use M-Sports / 满贯门体育新闻 as the only visible news brand title in the image.',
-  'Do not write or show Atlas, Atlas Sports News, Atlas News, or MGM News.',
-  'Place a small clean 满贯门 / MGM logo in the image footer.',
-  'Include a small clean footer link: mgmbetmyr.com',
-  'Keep the image clean, premium, readable, and not overcrowded.',
-].join('\n');
-
-const TIMEZONE = 'Asia/Kuala_Lumpur';
-
 type Edition = 'MORNING' | 'EVENING';
 
 @Injectable()
@@ -103,22 +74,50 @@ export class SportsNewsAutomationService {
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
   }
 
-  @Cron('0 9 * * *', {
-    name: 'm-sports-news-morning',
-    timeZone: TIMEZONE,
+  /*
+   * Runtime scheduler:
+   *
+   * The cron expression only provides a lightweight one-minute
+   * infrastructure tick. Actual publication time and timezone
+   * are controlled entirely by Sports News Settings.
+   *
+   * This allows operators to change timezone, morningTime and
+   * eveningTime from the frontend without redeploying Railway.
+   */
+  @Cron('0 * * * * *', {
+    name: 'm-sports-news-runtime-scheduler',
     waitForCompletion: true,
   })
-  async createMorningEdition() {
-    await this.createEdition('MORNING');
-  }
+  async runScheduledEditions() {
+    const settings = await this.sportsNewsSettings.get();
 
-  @Cron('0 20 * * *', {
-    name: 'm-sports-news-evening',
-    timeZone: TIMEZONE,
-    waitForCompletion: true,
-  })
-  async createEveningEdition() {
-    await this.createEdition('EVENING');
+    if (!settings.enabled) {
+      return;
+    }
+
+    const now = new Date();
+
+    const localParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: settings.timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(now);
+
+    const hour = localParts.find((part) => part.type === 'hour')?.value ?? '00';
+
+    const minute =
+      localParts.find((part) => part.type === 'minute')?.value ?? '00';
+
+    const currentTime = `${hour}:${minute}`;
+
+    if (settings.morningEnabled && currentTime === settings.morningTime) {
+      await this.createEdition('MORNING');
+    }
+
+    if (settings.eveningEnabled && currentTime === settings.eveningTime) {
+      await this.createEdition('EVENING');
+    }
   }
 
   async createMorningEditionNow() {
@@ -130,13 +129,14 @@ export class SportsNewsAutomationService {
   }
 
   async getStatus() {
-    const channel = await this.resolveChannel();
+    const settings = await this.sportsNewsSettings.get();
+
+    const channel = await this.resolveChannel(settings.telegramChannelId);
 
     return {
-      enabled: this.config.get<string>('SPORTS_NEWS_ENABLED') === 'true',
+      enabled: settings.enabled,
       hasOpenAiKey: Boolean(this.config.get<string>('OPENAI_API_KEY')),
-      configuredTelegramChannelId:
-        this.config.get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID') ?? null,
+      configuredTelegramChannelId: settings.telegramChannelId ?? null,
       resolvedChannel: channel
         ? {
             id: channel.id,
@@ -147,20 +147,11 @@ export class SportsNewsAutomationService {
           }
         : null,
       running: this.running,
-      timezone: TIMEZONE,
+      timezone: settings.timezone,
     };
   }
 
   private async createEdition(edition: Edition) {
-    if (this.config.get<string>('SPORTS_NEWS_ENABLED') !== 'true') {
-      return {
-        success: false,
-        skipped: true,
-        reason: 'SPORTS_NEWS_ENABLED is not true',
-        edition,
-      };
-    }
-
     if (!this.client || this.running) {
       const reason = this.running
         ? 'Sports news generation is already running.'
@@ -205,147 +196,290 @@ export class SportsNewsAutomationService {
       }
 
       const dateKey = new Intl.DateTimeFormat('en-CA', {
-        timeZone: TIMEZONE,
+        timeZone: settings.timezone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
       }).format(new Date());
-      const title =
-        edition === 'MORNING'
-          ? `满贯门体育早报 | M-Sports Morning ${dateKey}`
-          : `满贯门体育晚报 | M-Sports Evening ${dateKey}`;
+      const title = this.renderPostTitle(edition, dateKey, settings);
 
       const existing = await this.prisma.scheduledPost.findFirst({
         where: { channelId: channel.id, title },
       });
       if (existing) {
-        this.logger.log(`Sports news already exists: ${title}`);
+        if (settings.duplicateEditionPolicy === 'SKIP') {
+          this.logger.log(`Sports news already exists: ${title}`);
 
-        return {
-          success: true,
-          skipped: true,
-          reason: 'Sports news already exists',
-          edition,
-          title,
-          postId: existing.id,
-          status: existing.status,
-        };
+          return {
+            success: true,
+            skipped: true,
+            reason: 'Sports news already exists',
+            edition,
+            title,
+            postId: existing.id,
+            status: existing.status,
+          };
+        }
+
+        if (settings.duplicateEditionPolicy === 'REPLACE') {
+          await this.prisma.scheduledPost.update({
+            where: {
+              id: existing.id,
+            },
+            data: {
+              title: `${existing.title} [REPLACED ${new Date().toISOString()}]`,
+            },
+          });
+
+          this.logger.log(
+            `Existing Sports News edition marked as replaced: ${existing.id}`,
+          );
+        }
+
+        /*
+         * ALLOW:
+         * continue without changing the existing edition.
+         */
       }
 
-      const generatedNews = await this.generateNews(edition, dateKey, {
-        timezone: settings.timezone,
+      const generatedNews = await this.generateNews(
+        edition,
+        dateKey,
+        {
+          timezone: settings.timezone,
 
-        /*
-         * Morning editions use a rolling freshness window.
-         *
-         * Example:
-         * 10 Aug 09:00 MYT may legitimately report an important
-         * verified result published late on 9 Aug.
-         *
-         * Evening editions remain strict same-calendar-day when
-         * sameDaySourcesOnly is enabled in Settings.
-         */
-        sameDaySourcesOnly:
-          edition === 'MORNING' ? false : settings.sameDaySourcesOnly,
+          sameDaySourcesOnly:
+            edition === 'MORNING'
+              ? settings.morningSameDaySourcesOnly
+              : settings.sameDaySourcesOnly,
 
-        maxSourceAgeHours: settings.maxSourceAgeHours,
-        requirePublishedAt: settings.requirePublishedAt,
-        requireSourceUrl: settings.requireSourceUrl,
-        minimumSources: settings.minimumSources,
-        freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
-      });
+          maxSourceAgeHours: settings.maxSourceAgeHours,
+          requirePublishedAt: settings.requirePublishedAt,
+          requireSourceUrl: settings.requireSourceUrl,
+          minimumSources: settings.minimumSources,
+          freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
+        },
+        settings,
+      );
       const content = this.cleanPublishedContent(generatedNews.content);
 
-      const image = await this.assetImages.generateAndSave({
-        name: title,
-        platform: 'Telegram',
-        size: '1024x1536',
-        quality: 'medium',
-        logoMode: 'NEVER',
-        prompt: [
-          'Premium editorial M-Sports / 满贯门体育新闻 poster for a Malaysian audience.',
-          edition === 'MORNING'
-            ? 'Fresh energetic morning sports atmosphere.'
-            : 'Dramatic evening stadium atmosphere.',
-          'Follow the deterministic M-Sports Visual Director below as the primary art direction.',
-          `M-Sports Visual Director: ${
-            generatedNews.visualDirection ||
-            'Create one premium current-sports editorial hero composition.'
-          }`,
-          'Use the verified daily sports context below only as factual visual grounding.',
-          `Verified visual context: ${
-            generatedNews.visualContext ||
-            'General current sports editorial atmosphere.'
-          }`,
-          'Do not invent unrelated sports merely to fill the composition.',
-          'Do not create a random generic sports collage.',
-          'The scene must visibly prioritise Story 01 while Stories 02 and 03 remain secondary.',
-          'Aim for premium international sports-media cover photography: cinematic, editorial, dramatic and highly polished, while remaining an original M-Sports visual identity.',
-          'Photorealistic, cinematic, premium editorial photography.',
-          'Do not imitate real athlete faces.',
-          'Do not use league logos or team logos.',
-          'Do not render sports headlines, scores, results, fixtures or factual story text.',
-          'The verified sports highlights will be added later by deterministic post-processing.',
-          'Compose the image like a premium sports editorial cover with one dominant hero sports visual.',
-          'Keep the upper-left area moderately clean for a compact deterministic masthead.',
-          'Keep the lower 30 percent visually calmer for deterministic editorial story overlays.',
-          'Do not draw any panel, card, box, banner, rectangle, text container, glass surface, translucent surface or UI element anywhere in the image.',
-          'Do not pre-design a placeholder for headlines.',
-          'Do not place critical faces, balls, trophies or key action details inside the lower editorial text zone.',
-          'All story hierarchy and editorial labels will be added later by deterministic Sharp/SVG post-processing.',
-          'Do not generate any MGM logo, M logo, QR code, website URL or footer branding.',
-          'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
-          'All factual date information and branding will be added later by deterministic post-processing.',
-          'Keep the lower edge visually clean for real post-processing branding.',
-          'Do not render M-Sports, 满贯门体育早报 or 满贯门体育晚报 as visible text.',
-          'The masthead and edition title will be added later by deterministic post-processing.',
-          'Vertical 4:5 social-media composition.',
-        ].join(' '),
-      });
+      let finalMediaUrl: string | null = null;
 
-      const activeBrand = await this.prisma.brand.findFirst({
-        where: {
-          id: channel.brandId,
-        },
-        select: {
-          primaryLogoAssetId: true,
-        },
-      });
+      if (settings.imageGenerationEnabled) {
+        try {
+          const image = await this.assetImages.generateAndSave({
+            name: title,
+            platform: 'Telegram',
 
-      let finalMediaUrl = image.asset.url;
+            model:
+              settings.imageModelOverrideEnabled &&
+              settings.imageAiModel?.trim()
+                ? settings.imageAiModel.trim()
+                : undefined,
 
-      try {
-        const branded = await this.msportsBranding.apply({
-          imageUrl: image.asset.url,
-          logoAssetId: activeBrand?.primaryLogoAssetId ?? null,
-          footerText: `满贯门 mgmbetmyr.com  •  ${dateKey}`,
-          qrLink: 'https:' + '//' + 'mgmbetmyr.com',
-          edition,
-          highlights: generatedNews.imageHighlights,
-        });
+            size: settings.imageGenerationSize as
+              '1024x1536' | '1024x1024' | '1536x1024',
 
-        finalMediaUrl = branded.imageDataUrl;
+            quality: settings.imageGenerationQuality as
+              'low' | 'medium' | 'high',
 
-        this.logger.log(
-          [
-            `M-Sports branding applied for ${title}.`,
-            `logo=${branded.logoApplied}`,
-            `footer=${branded.footerApplied}`,
-            `qr=${branded.qrApplied}`,
-          ].join(' '),
-        );
-      } catch (error) {
-        /*
-         * Do not reuse any historical image.
-         * If branding fails, use only the newly generated
-         * image from this exact run.
-         */
-        this.logger.warn(
-          `M-Sports branding failed for ${title}. ` +
-            `Using this run's newly generated image only. ` +
+            logoMode: 'NEVER',
+
+            prompt: [
+              settings.imagePrompt?.trim(),
+              settings.imageVisualStyle?.trim(),
+
+              edition === 'MORNING'
+                ? settings.morningImagePrompt?.trim()
+                : settings.eveningImagePrompt?.trim(),
+
+              settings.visualDirectorEnabled
+                ? generatedNews.visualDirection?.trim()
+                : '',
+
+              generatedNews.visualContext
+                ? `Verified visual context: ${generatedNews.visualContext}`
+                : '',
+
+              settings.imageRulesEnabled
+                ? settings.imageRulesPrompt?.trim()
+                : '',
+
+              settings.imageBrandRulesEnabled
+                ? settings.imageBrandRulesPrompt?.trim()
+                : '',
+
+              settings.imagePhotographyPrompt?.trim(),
+              settings.imageNegativePrompt?.trim(),
+              settings.imageUpperSafeAreaPrompt?.trim(),
+              settings.imageLowerSafeAreaPrompt?.trim(),
+            ]
+              .filter(Boolean)
+              .join(' '),
+          });
+
+          finalMediaUrl = image.asset.url;
+
+          const activeBrand = await this.prisma.brand.findFirst({
+            where: {
+              id: channel.brandId,
+            },
+            select: {
+              primaryLogoAssetId: true,
+            },
+          });
+
+          try {
+            const branded = await this.msportsBranding.apply({
+              imageUrl: image.asset.url,
+
+              logoAssetId: settings.logoEnabled
+                ? (activeBrand?.primaryLogoAssetId ?? null)
+                : null,
+
+              footerText: settings.brandFooterEnabled
+                ? [
+                    settings.brandFooterText,
+                    settings.footerDateEnabled ? dateKey : '',
+                  ]
+                    .filter(Boolean)
+                    .join(settings.footerDateSeparator)
+                : '',
+
+              qrLink: settings.qrEnabled ? settings.qrLink : null,
+
+              edition,
+
+              highlights: generatedNews.imageHighlights,
+
+              branding: {
+                mastheadBrandText: settings.mastheadBrandText,
+
+                morningEditionZh: settings.morningEditionZh,
+
+                eveningEditionZh: settings.eveningEditionZh,
+
+                morningEditionEn: settings.morningEditionEn,
+
+                eveningEditionEn: settings.eveningEditionEn,
+
+                sectionLabel: settings.imageSectionLabel,
+
+                morningAccentColor: settings.morningAccentColor,
+
+                eveningAccentColor: settings.eveningAccentColor,
+
+                morningSecondaryColor: settings.morningSecondaryColor,
+
+                eveningSecondaryColor: settings.eveningSecondaryColor,
+
+                mastheadPrimaryColor: settings.mastheadPrimaryColor,
+
+                mastheadEnglishColor: settings.mastheadEnglishColor,
+
+                headlinePrimaryColor: settings.headlinePrimaryColor,
+
+                headlineSecondaryColor: settings.headlineSecondaryColor,
+
+                panelBaseColor: settings.panelBaseColor,
+
+                watermarkEnabled: settings.watermarkEnabled,
+
+                watermarkScale: settings.watermarkScale,
+
+                watermarkOpacity: settings.watermarkOpacity,
+
+                watermarkPosition: settings.watermarkPosition,
+
+                qrSizePercent: settings.qrSizePercent,
+
+                qrMarginPercent: settings.qrMarginPercent,
+
+                footerBackgroundColor: settings.footerBackgroundColor,
+
+                footerSeparatorColor: settings.footerSeparatorColor,
+              },
+
+              layout: {
+                enabled: settings.imageLayoutEnabled,
+
+                mastheadScale: settings.mastheadScale,
+
+                mastheadTopPercent: settings.mastheadTopPercent,
+
+                panelWidthPercent: settings.highlightsPanelWidthPercent,
+
+                panelHeightPercent: settings.highlightsPanelHeightPercent,
+
+                panelTopPercent: settings.highlightsPanelTopPercent,
+
+                panelOpacityStart: settings.highlightsPanelOpacityStart,
+
+                panelOpacityMiddle: settings.highlightsPanelOpacityMiddle,
+
+                panelOpacityEnd: settings.highlightsPanelOpacityEnd,
+
+                panelRadius: settings.highlightsPanelRadius,
+
+                heroHeadlineScale: settings.heroHeadlineScale,
+
+                secondaryHeadlineScale: settings.secondaryHeadlineScale,
+
+                story02PositionPercent: settings.story02PositionPercent,
+
+                story03PositionPercent: settings.story03PositionPercent,
+
+                footerHeightPercent: settings.footerHeightPercent,
+              },
+            });
+
+            finalMediaUrl = branded.imageDataUrl;
+
+            this.logger.log(
+              [
+                `M-Sports branding applied for ${title}.`,
+                `logo=${branded.logoApplied}`,
+                `footer=${branded.footerApplied}`,
+                `qr=${branded.qrApplied}`,
+              ].join(' '),
+            );
+          } catch (error) {
+            const message =
+              `M-Sports branding failed for ${title}. ` +
+              `${
+                error instanceof Error
+                  ? error.message
+                  : 'Unknown branding error'
+              }`;
+
+            if (settings.brandingFailurePolicy === 'BLOCK') {
+              throw new Error(message);
+            }
+
+            this.logger.warn(
+              `${message} Using the newly generated image without deterministic branding.`,
+            );
+          }
+        } catch (error) {
+          const message =
+            `M-Sports image generation failed for ${title}. ` +
             `${
-              error instanceof Error ? error.message : 'Unknown branding error'
-            }`,
+              error instanceof Error
+                ? error.message
+                : 'Unknown image generation error'
+            }`;
+
+          if (settings.imageFailurePolicy === 'BLOCK') {
+            throw new Error(message);
+          }
+
+          this.logger.warn(`${message} Continuing with text-only publication.`);
+
+          finalMediaUrl = null;
+        }
+      } else {
+        this.logger.log(
+          `Image generation disabled for ${title}; publishing text only.`,
         );
       }
 
@@ -356,10 +490,10 @@ export class SportsNewsAutomationService {
           platform: SocialPlatform.TELEGRAM,
           title,
           content,
-          mediaUrls: [finalMediaUrl],
+          mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
           scheduledAt: new Date(),
-          timezone: TIMEZONE,
-          status: ScheduledPostStatus.QUEUED,
+          timezone: settings.timezone,
+          status: this.resolveQueueStatus(settings.queueStatusOnCreate),
         },
       });
 
@@ -395,10 +529,42 @@ export class SportsNewsAutomationService {
     }
   }
 
+  private renderPostTitle(
+    edition: Edition,
+    dateKey: string,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ): string {
+    const template =
+      edition === 'MORNING'
+        ? settings.morningPostTitleTemplate
+        : settings.eveningPostTitleTemplate;
+
+    return template
+      .replaceAll('{date}', dateKey)
+      .replaceAll('{edition}', edition)
+      .trim();
+  }
+
+  private resolveQueueStatus(value: string): ScheduledPostStatus {
+    const normalized = value.trim().toUpperCase();
+
+    switch (normalized) {
+      case 'DRAFT':
+        return ScheduledPostStatus.DRAFT;
+
+      case 'SCHEDULED':
+        return ScheduledPostStatus.SCHEDULED;
+
+      case 'QUEUED':
+        return ScheduledPostStatus.QUEUED;
+
+      default:
+        throw new Error(`Unsupported Sports News queue status: ${value}`);
+    }
+  }
+
   private async resolveChannel(settingsChannelId?: string | null) {
-    const configuredId =
-      settingsChannelId?.trim() ||
-      this.config.get<string>('SPORTS_NEWS_TELEGRAM_CHANNEL_ID')?.trim();
+    const configuredId = settingsChannelId?.trim();
     const connectedWhere = {
       platform: SocialPlatform.TELEGRAM,
       status: SocialChannelStatus.CONNECTED,
@@ -427,74 +593,69 @@ export class SportsNewsAutomationService {
     edition: Edition,
     dateKey: string,
     freshness: SportsNewsFreshnessRules,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
   ) {
     const editionInstruction =
       edition === 'MORNING'
-        ? [
-            'This is the MORNING edition.',
-            'Prioritise verified results and developments from the previous 24 hours.',
-          ].join('\n')
-        : [
-            'This is the EVENING edition.',
-            'Prioritise developments since the morning edition.',
-          ].join('\n');
+        ? settings.morningPrompt?.trim() || ''
+        : settings.eveningPrompt?.trim() || '';
 
     const response = await this.client!.responses.create({
-      model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.5',
-      tools: [{ type: 'web_search' }],
+      model: settings.newsAiModel.trim(),
+      tools: settings.newsWebSearchEnabled
+        ? [{ type: 'web_search' as const }]
+        : [],
       input: [
-        'You are the verification editor for M-Sports / 满贯门体育新闻.',
+        settings.systemPrompt?.trim(),
+
         `Publication date in Malaysia is ${dateKey}.`,
         `Publication timezone is ${freshness.timezone}.`,
+
         editionInstruction,
 
-        'Return JSON only. Do not return markdown.',
-        'The JSON shape must be:',
-        '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+        settings.customInstructions?.trim(),
 
-        'FRESHNESS RULES:',
-        `Same-day sources only: ${freshness.sameDaySourcesOnly ? 'YES' : 'NO'}.`,
+        `Return exactly ${settings.storyMinimum} to ${settings.storyMaximum} verified sports stories.`,
+
+        settings.sportsPriority?.trim()
+          ? `Sports priority: ${settings.sportsPriority}.`
+          : '',
+
+        `Same-day sources only: ${
+          freshness.sameDaySourcesOnly ? 'YES' : 'NO'
+        }.`,
+
         `Maximum source age: ${freshness.maxSourceAgeHours} hours.`,
-        `Published date required: ${freshness.requirePublishedAt ? 'YES' : 'NO'}.`,
-        `Source URL required internally: ${freshness.requireSourceUrl ? 'YES' : 'NO'}.`,
+
+        `Published date required: ${
+          freshness.requirePublishedAt ? 'YES' : 'NO'
+        }.`,
+
+        `Source URL required internally: ${
+          freshness.requireSourceUrl ? 'YES' : 'NO'
+        }.`,
+
         `Minimum verified sources: ${freshness.minimumSources}.`,
+
         `Older-news fallback allowed: ${
           freshness.freshnessFallbackEnabled ? 'YES' : 'NO'
         }.`,
 
-        'MANDATORY VERIFICATION:',
-        'Every story must contain its own sources array.',
-        'Use independently verifiable current sources.',
-        'Do not use a stale fixture preview after a match has already finished.',
-        'If the match is finished, eventStatus must be COMPLETED and finalScore must contain the verified final score.',
-        'If the match has not started, eventStatus must be UPCOMING and eventTime should contain the verified scheduled time when available.',
-        'For transfers, injuries, announcements or other non-match items, use DEVELOPMENT.',
-        'If status or timing cannot be confidently verified, exclude the story.',
-        'Never invent publishedAt, URL, eventTime or finalScore.',
-        'Use exactly 3 to 5 stories.',
-        'Prioritise football, then basketball, Formula 1, badminton, tennis and major sports.',
+        settings.verificationInstructions?.trim(),
 
-        'IMAGE HEADLINE RULES:',
-        'For every story, also return imageHeadlineZh and imageHeadlineEn.',
-        'These are short image-display versions of the same verified headline, not separate stories.',
-        'imageHeadlineZh should normally be 8 to 16 Chinese characters where practical.',
-        'imageHeadlineEn should normally be 4 to 7 short English words where practical.',
-        'Keep the same factual meaning and event status as headlineZh/headlineEn.',
-        'Do not add a score, location, opponent, player, competition or claim that is not already verified in that story.',
-        'Do not use ellipsis in imageHeadlineZh or imageHeadlineEn.',
-        'Do not write clickbait.',
-        'Do not change an UPCOMING event into a completed result or a COMPLETED event into a preview.',
+        settings.imageHeadlineInstructions?.trim(),
 
-        'VISIBLE COPY CLEANLINESS:',
-        'All headlineZh, headlineEn, imageHeadlineZh, imageHeadlineEn, summaryZh and summaryEn values must contain plain text only.',
-        'Never include Markdown headings such as #, ## or ###.',
-        'Never include blockquote markers such as > or >>.',
-        'Never include Markdown emphasis markers such as *, **, *** or _.',
-        'Never include citation markers such as [1], [2], [3], 【1】 or source-reference numbers.',
-        'Never include markdown links.',
-        'Never include horizontal separators such as --- or ***.',
-        'Do not mention source names or citation numbers inside visible story text.',
-      ].join('\n'),
+        settings.visibleCopyInstructions?.trim(),
+
+        [
+          'Return JSON only.',
+          'Do not return Markdown.',
+          'Required JSON shape:',
+          '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+        ].join('\n'),
+      ]
+        .filter(Boolean)
+        .join('\n'),
     });
 
     const raw = response.output_text?.trim();
@@ -538,9 +699,9 @@ export class SportsNewsAutomationService {
 
     const stories = Array.isArray(parsed.stories) ? parsed.stories : [];
 
-    if (stories.length < 3) {
+    if (stories.length < settings.storyMinimum) {
       throw new Error(
-        `Only ${stories.length} structured sports story/stories returned. Publication blocked.`,
+        `Only ${stories.length} structured sports story/stories returned. Minimum ${settings.storyMinimum} required. Publication blocked.`,
       );
     }
 
@@ -567,7 +728,7 @@ export class SportsNewsAutomationService {
       freshnessFallbackEnabled: false,
     };
 
-    for (const story of stories.slice(0, 5)) {
+    for (const story of stories.slice(0, settings.storyMaximum)) {
       const sources = Array.isArray(story.sources)
         ? story.sources.map((source) => ({
             title: source.title?.trim() || 'Untitled source',
@@ -604,33 +765,77 @@ export class SportsNewsAutomationService {
           title: source.title,
         }));
 
-        this.logger.warn(
+        const rejectionMessage =
           `Sports story rejected by freshness validation: "${storyName}". ` +
-            `sources=${JSON.stringify(sourceDiagnostics)}. ` +
-            `${
-              error instanceof Error
-                ? error.message
-                : 'Unknown validation error'
-            }`,
-        );
+          `sources=${JSON.stringify(sourceDiagnostics)}. ` +
+          `${
+            error instanceof Error ? error.message : 'Unknown validation error'
+          }`;
+
+        if (settings.invalidStoryPolicy === 'BLOCK') {
+          throw new Error(rejectionMessage);
+        }
+
+        this.logger.warn(rejectionMessage);
 
         continue;
       }
 
-      if (story.eventStatus === 'COMPLETED' && !story.finalScore?.trim()) {
-        this.logger.warn(
-          `Completed sports story rejected because finalScore is missing: "${storyName}".`,
-        );
+      if (
+        settings.completedEventPolicy === 'REQUIRE_FINAL_SCORE' &&
+        settings.completedScoreRequired &&
+        story.eventStatus === 'COMPLETED' &&
+        !story.finalScore?.trim()
+      ) {
+        const message = `Completed sports story rejected because finalScore is missing: "${storyName}".`;
 
+        if (settings.invalidStoryPolicy === 'BLOCK') {
+          throw new Error(message);
+        }
+
+        this.logger.warn(message);
+        continue;
+      }
+
+      if (
+        story.eventStatus === 'UPCOMING' &&
+        settings.upcomingEventPolicy === 'BLOCK'
+      ) {
+        const message = `Upcoming sports story blocked by Settings: "${storyName}".`;
+
+        if (settings.invalidStoryPolicy === 'BLOCK') {
+          throw new Error(message);
+        }
+
+        this.logger.warn(message);
+        continue;
+      }
+
+      if (
+        story.eventStatus === 'DEVELOPMENT' &&
+        settings.developmentStoryPolicy === 'BLOCK'
+      ) {
+        const message = `Development sports story blocked by Settings: "${storyName}".`;
+
+        if (settings.invalidStoryPolicy === 'BLOCK') {
+          throw new Error(message);
+        }
+
+        this.logger.warn(message);
         continue;
       }
 
       acceptedStories.push(story);
     }
 
-    if (acceptedStories.length < 3) {
+    const requiredStoryCount = Math.max(
+      settings.storyMinimum,
+      settings.minimumStoriesPerEdition,
+    );
+
+    if (acceptedStories.length < requiredStoryCount) {
       throw new Error(
-        `Only ${acceptedStories.length} sports stories passed freshness validation. Minimum 3 required. Publication blocked.`,
+        `Only ${acceptedStories.length} sports stories passed validation. Minimum ${requiredStoryCount} required. Publication blocked.`,
       );
     }
 
@@ -640,36 +845,38 @@ export class SportsNewsAutomationService {
      *
      * Duplicate URLs count only once.
      */
-    const uniqueAcceptedSources = Array.from(
-      new Map(
-        acceptedSources.map((source) => [
-          source.url?.trim() ||
-            `${source.sourceName ?? ''}:${source.title}:${source.publishedAt ?? ''}`,
-          source,
-        ]),
-      ).values(),
-    );
+    const editionAcceptedSources = settings.sourceDeduplicationEnabled
+      ? Array.from(
+          new Map(
+            acceptedSources.map((source) => [
+              source.url?.trim() ||
+                `${source.sourceName ?? ''}:${source.title}:${source.publishedAt ?? ''}`,
+              source,
+            ]),
+          ).values(),
+        )
+      : acceptedSources;
 
     const requiredSourceCount = Math.max(1, freshness.minimumSources);
 
-    if (uniqueAcceptedSources.length < requiredSourceCount) {
+    if (editionAcceptedSources.length < requiredSourceCount) {
       throw new Error(
-        `Sports edition has ${uniqueAcceptedSources.length} unique fresh verified source(s). ` +
+        `Sports edition has ${editionAcceptedSources.length} unique fresh verified source(s). ` +
           `Minimum ${requiredSourceCount} required. Publication blocked.`,
       );
     }
 
     this.logger.log(
       `Sports edition verified: ${acceptedStories.length} stories, ` +
-        `${uniqueAcceptedSources.length} unique fresh source(s).`,
+        `${editionAcceptedSources.length} unique fresh source(s).`,
     );
 
     const lines: string[] = [
       edition === 'MORNING'
-        ? '⚡ 满贯门体育早报 | M-Sports Morning'
-        : '🌙 满贯门体育晚报 | M-Sports Evening',
+        ? settings.telegramMorningHeader
+        : settings.telegramEveningHeader,
       '',
-      '🔥 今日焦点 | Top Stories',
+      settings.telegramSectionLabel,
       '',
     ];
 
@@ -694,10 +901,6 @@ export class SportsNewsAutomationService {
 
       lines.push('');
     });
-
-    lines.push(
-      '立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门',
-    );
 
     const cleanImageHeadline = (
       preferred: string | undefined,
@@ -736,49 +939,57 @@ export class SportsNewsAutomationService {
         'Sports Update',
     }));
 
+    const parseSportKeywords = (value: string | null | undefined) =>
+      (value || '')
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+
+    const matchesSportKeywords = (source: string, keywords: string[]) =>
+      keywords.some((keyword) => source.includes(keyword));
+
     const detectSport = (value: string): string => {
-      const textValue = value.toLowerCase();
+      const source = value.toLowerCase();
 
-      if (
-        /football|soccer|premier league|champions league|carabao|efl|fa cup|laliga|serie a|bundesliga|superliga|allsvenskan|jdt|chelsea|liverpool|arsenal|manchester|plymouth|exeter/.test(
-          textValue,
-        )
-      ) {
-        return 'football';
-      }
+      const rules = [
+        {
+          sport: 'football',
+          keywords: parseSportKeywords(settings.footballKeywords),
+        },
+        {
+          sport: 'basketball',
+          keywords: parseSportKeywords(settings.basketballKeywords),
+        },
+        {
+          sport: 'motorsport',
+          keywords: parseSportKeywords(settings.motorsportKeywords),
+        },
+        {
+          sport: 'motorcycle racing',
+          keywords: parseSportKeywords(settings.motorcycleKeywords),
+        },
+        {
+          sport: 'tennis',
+          keywords: parseSportKeywords(settings.tennisKeywords),
+        },
+        {
+          sport: 'badminton',
+          keywords: parseSportKeywords(settings.badmintonKeywords),
+        },
+        {
+          sport: 'baseball',
+          keywords: parseSportKeywords(settings.baseballKeywords),
+        },
+        {
+          sport: 'combat sports',
+          keywords: parseSportKeywords(settings.combatKeywords),
+        },
+      ];
 
-      if (/nba|wnba|basketball|cba/.test(textValue)) {
-        return 'basketball';
-      }
-
-      if (
-        /formula 1|formula one|\bf1\b|grand prix|motorsport/.test(textValue)
-      ) {
-        return 'motorsport';
-      }
-
-      if (/motogp|motorcycle|superbike/.test(textValue)) {
-        return 'motorcycle racing';
-      }
-
-      if (/tennis|atp|wta|open|wimbledon/.test(textValue)) {
-        return 'tennis';
-      }
-
-      if (/badminton|bwf|thomas cup|sudirman/.test(textValue)) {
-        return 'badminton';
-      }
-
-      if (
-        /mlb|baseball|dodgers|yankees|red sox|astros|giants|padres|brewers|royals/.test(
-          textValue,
-        )
-      ) {
-        return 'baseball';
-      }
-
-      if (/ufc|mma|boxing/.test(textValue)) {
-        return 'combat sports';
+      for (const rule of rules) {
+        if (matchesSportKeywords(source, rule.keywords)) {
+          return rule.sport;
+        }
       }
 
       return 'sports';
@@ -814,32 +1025,39 @@ export class SportsNewsAutomationService {
 
     const heroEmotion =
       heroStory?.eventStatus === 'COMPLETED'
-        ? 'post-match result emotion: decisive action, celebration, relief or disappointment appropriate to a completed event'
+        ? settings.completedEventVisualPrompt?.trim() || ''
         : heroStory?.eventStatus === 'UPCOMING'
-          ? 'pre-match anticipation: confrontation, readiness, stadium tension and a sense that the event is about to begin'
-          : 'breaking sports development: focused, high-stakes editorial tension';
+          ? settings.upcomingEventVisualPrompt?.trim() || ''
+          : settings.developmentVisualPrompt?.trim() || '';
 
-    const visualDirection = [
-      `VISUAL MODE: ${visualMode}.`,
-      `HERO SPORT: ${heroStory?.sport || 'sports'}.`,
-      `HERO EMOTION: ${heroEmotion}.`,
-      'Story 01 must control roughly 65 percent of the visual attention.',
-      'Stories 02 and 03 may appear only as smaller supporting visual vignettes when they improve the composition.',
-      uniqueSports.length === 1
-        ? `All three stories are primarily ${uniqueSports[0]}; create one cohesive premium ${uniqueSports[0]} editorial cover rather than unrelated generic sports imagery.`
-        : `The verified stories span ${uniqueSports.join(', ')}; use a sophisticated editorial montage with one dominant hero sport and smaller secondary sport scenes.`,
-      'Avoid generic stock-sports composition. The image should feel like a commissioned front-page sports feature.',
-      'Use dynamic camera angles, real stadium or arena atmosphere, controlled depth of field, dramatic but believable lighting and strong foreground/background separation.',
-      'Do not imitate a specific real athlete or reproduce identifiable team badges, league logos or exact copyrighted uniforms.',
-      'Use fictional unbranded kits and equipment while keeping the correct sport visually obvious.',
-      edition === 'MORNING'
-        ? 'Morning art direction: brighter premium editorial photography, crisp daylight or early-day stadium light, energetic blue-white atmosphere with restrained warm highlights.'
-        : 'Evening art direction: cinematic floodlights, deep navy shadows, controlled red/gold highlights, premium contrast, but do not make the entire image dark or muddy.',
-      ...visualStories.map(
-        (story) =>
-          `STORY ${story.priority}: sport=${story.sport}; status=${story.eventStatus}; verified context=${story.headline} — ${story.summary}`,
-      ),
-    ].join(' ');
+    const visualDirection = settings.visualDirectorEnabled
+      ? [
+          settings.visualDirectorPrompt?.trim(),
+
+          `VISUAL MODE: ${visualMode}.`,
+
+          heroStory?.sport ? `HERO SPORT: ${heroStory.sport}.` : '',
+
+          heroEmotion,
+
+          `Story 01 visual weight: ${settings.heroStoryWeight}%.`,
+
+          uniqueSports.length === 1
+            ? settings.singleSportVisualPrompt?.trim()
+            : settings.multiSportVisualPrompt?.trim(),
+
+          edition === 'MORNING'
+            ? settings.morningVisualDirection?.trim()
+            : settings.eveningVisualDirection?.trim(),
+
+          ...visualStories.map(
+            (story) =>
+              `STORY ${story.priority}: sport=${story.sport}; status=${story.eventStatus}; verified context=${story.headline} — ${story.summary}`,
+          ),
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : '';
 
     const visualContext = visualStories
       .map((story) => `${story.headline} — ${story.summary}`)
@@ -847,7 +1065,7 @@ export class SportsNewsAutomationService {
       .join(' | ');
 
     return {
-      content: this.compactTelegramCaption(lines.join('\n'), edition),
+      content: this.compactTelegramCaption(lines.join('\n'), edition, settings),
       imageHighlights,
       visualContext,
       visualDirection,
@@ -889,6 +1107,7 @@ export class SportsNewsAutomationService {
   private compactTelegramCaption(
     content: string,
     edition: 'MORNING' | 'EVENING',
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
   ): string {
     const sourceLine = new RegExp('^来源\\s*/\\s*Source\\s*:', 'i');
     const numberedLine = new RegExp('^[0-9１-９]\\s*[️⃣.)、-]?');
@@ -904,9 +1123,12 @@ export class SportsNewsAutomationService {
       .replace(new RegExp('\\*\\*', 'g'), '')
       .replace(
         new RegExp('Atlas Sports News', 'gi'),
-        'M-Sports / 满贯门体育新闻',
+        settings.mastheadBrandText?.trim() || '',
       )
-      .replace(new RegExp('Atlas News', 'gi'), 'M-Sports / 满贯门体育新闻')
+      .replace(
+        new RegExp('Atlas News', 'gi'),
+        settings.mastheadBrandText?.trim() || '',
+      )
       .replace(new RegExp('[ \\t]+\\n', 'g'), '\n')
       .replace(new RegExp('\\n{3,}', 'g'), '\n\n')
       .trim();
@@ -927,22 +1149,6 @@ export class SportsNewsAutomationService {
 
     for (const line of lines) {
       if (sourceLine.test(line)) {
-        continue;
-      }
-
-      if (line.includes('rebrand.ly/mgmbetae0dcf')) {
-        continue;
-      }
-
-      if (
-        line.includes('M-Sports / 满贯门体育新闻') ||
-        line.includes('⚡ 满贯门体育早报') ||
-        line.includes('🌙 满贯门体育晚报') ||
-        line === '🔥 今日焦点 | Top Stories' ||
-        line.includes('体育焦点') ||
-        line.includes('Sports Focus') ||
-        line.toLowerCase().includes('malaysia sports focus')
-      ) {
         continue;
       }
 
@@ -1084,33 +1290,43 @@ export class SportsNewsAutomationService {
 
     const header =
       edition === 'MORNING'
-        ? '⚡ 满贯门体育早报 | M-Sports Morning'
-        : '🌙 满贯门体育晚报 | M-Sports Evening';
+        ? settings.telegramMorningHeader
+        : settings.telegramEveningHeader;
 
-    const cta =
-      `立即查看今日体育焦点，加入满贯门 / ` +
-      `Follow today’s sports focus with 满贯门\n` +
-      CTA_URL;
+    const cta = settings.telegramCtaEnabled
+      ? [settings.telegramCtaText?.trim(), settings.telegramCtaUrl?.trim()]
+          .filter(Boolean)
+          .join('\n')
+      : '';
 
-    /*
-     * The Telegram photo publisher works with a ~1000 character
-     * budget. Keep a safety margin so all three story titles and
-     * the CTA always survive.
-     */
-    const targetLength = 940;
+    const targetLength = settings.telegramCaptionTarget;
 
-    const summaryBudgets = [
-      { zh: 72, en: 112 },
-      { zh: 58, en: 88 },
-      { zh: 46, en: 68 },
-      { zh: 34, en: 52 },
-      { zh: 0, en: 0 },
-    ];
+    const summaryBudgets = settings.telegramShowSummaries
+      ? [
+          {
+            zh: settings.telegramSummaryZhLong,
+            en: settings.telegramSummaryEnLong,
+          },
+          {
+            zh: settings.telegramSummaryZhMedium,
+            en: settings.telegramSummaryEnMedium,
+          },
+          {
+            zh: settings.telegramSummaryZhShort,
+            en: settings.telegramSummaryEnShort,
+          },
+          {
+            zh: settings.telegramSummaryZhCompact,
+            en: settings.telegramSummaryEnCompact,
+          },
+          { zh: 0, en: 0 },
+        ]
+      : [{ zh: 0, en: 0 }];
 
     const buildCaption = (zhMax: number, enMax: number) => {
-      const output: string[] = [header, '', '🔥 今日焦点 | Top Stories'];
+      const output: string[] = [header, '', settings.telegramSectionLabel];
 
-      stories.slice(0, 3).forEach((story) => {
+      stories.slice(0, settings.storyMinimum).forEach((story) => {
         output.push('');
         output.push(story.title);
 
@@ -1131,7 +1347,9 @@ export class SportsNewsAutomationService {
         }
       });
 
-      return `${output.join('\n').trim()}\n\n${cta}`;
+      const body = output.join('\n').trim();
+
+      return cta ? `${body}\n\n${cta}` : body;
     };
 
     for (const budget of summaryBudgets) {
@@ -1150,20 +1368,60 @@ export class SportsNewsAutomationService {
   }
 
   async forceCreateMorningEditionNow() {
-    await this.markTodayEditionAsOld('MORNING');
-
-    return this.createEdition('MORNING');
+    return this.forceCreateEditionNow('MORNING');
   }
 
   async forceCreateEveningEditionNow() {
-    await this.markTodayEditionAsOld('EVENING');
-
-    return this.createEdition('EVENING');
+    return this.forceCreateEditionNow('EVENING');
   }
 
-  private async markTodayEditionAsOld(edition: 'MORNING' | 'EVENING') {
+  private async forceCreateEditionNow(edition: Edition) {
+    const settings = await this.sportsNewsSettings.get();
+
+    if (!settings.forceRunEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Run is disabled in Sports News Settings.',
+      };
+    }
+
+    if (edition === 'MORNING' && !settings.forceMorningEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Morning is disabled in Sports News Settings.',
+      };
+    }
+
+    if (edition === 'EVENING' && !settings.forceEveningEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Evening is disabled in Sports News Settings.',
+      };
+    }
+
+    if (settings.forceRunExistingPolicy === 'MARK_OLD') {
+      await this.markTodayEditionAsOld(edition, settings);
+    }
+
+    if (settings.forceRunExistingPolicy === 'DELETE') {
+      await this.deleteTodayEdition(edition, settings);
+    }
+
+    return this.createEdition(edition);
+  }
+
+  private async markTodayEditionAsOld(
+    edition: Edition,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ) {
     const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Kuala_Lumpur',
+      timeZone: settings.timezone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -1171,10 +1429,7 @@ export class SportsNewsAutomationService {
 
     const dateKey = formatter.format(new Date());
 
-    const title =
-      edition === 'MORNING'
-        ? `满贯门体育早报 | M-Sports Morning ${dateKey}`
-        : `满贯门体育晚报 | M-Sports Evening ${dateKey}`;
+    const title = this.renderPostTitle(edition, dateKey, settings);
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
@@ -1202,21 +1457,28 @@ export class SportsNewsAutomationService {
     return posts.length;
   }
 
-  private async applyMNewsWatermark(imageUrl: string): Promise<string> {
-    // TODO:
-    // Atlas watermark stage.
-    //
-    // Do not ask AI to draw the MGM / 满贯门 logo.
-    // The real logo should be overlaid here after image generation.
-    //
-    // Expected final overlay:
-    // - Real 满贯门 / MGM logo watermark
-    // - Top-left or bottom-right placement
-    // - Small, premium, not too large
-    // - No fake AI-generated logo
-    //
-    // For now, return the original URL until the real logo asset path/URL
-    // is connected to this processor.
-    return imageUrl;
+  private async deleteTodayEdition(
+    edition: Edition,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: settings.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const dateKey = formatter.format(new Date());
+
+    const title = this.renderPostTitle(edition, dateKey, settings);
+
+    const result = await this.prisma.scheduledPost.deleteMany({
+      where: {
+        title,
+        platform: SocialPlatform.TELEGRAM,
+      },
+    });
+
+    return result.count;
   }
 }
