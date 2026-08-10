@@ -397,9 +397,11 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
+  BackgroundJob: 'BackgroundJob',
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
+  AudienceSegment: 'AudienceSegment',
   CampaignIdea: 'CampaignIdea',
   GenerationHistory: 'GenerationHistory',
   ContentVersion: 'ContentVersion',
@@ -408,13 +410,26 @@ export const ModelName = {
   KnowledgeEmbedding: 'KnowledgeEmbedding',
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
+  SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
+  BrowserAccount: 'BrowserAccount',
+  BrowserAutomationPolicy: 'BrowserAutomationPolicy',
+  BrowserAccountEvent: 'BrowserAccountEvent',
+  BrowserAccountLease: 'BrowserAccountLease',
+  BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
+  BrowserActionHistory: 'BrowserActionHistory',
+  BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
-  BrandMemoryFact: 'BrandMemoryFact'
+  Lead: 'Lead',
+  LeadActivity: 'LeadActivity',
+  BrandMemoryFact: 'BrandMemoryFact',
+  EngineeringSnapshot: 'EngineeringSnapshot',
+  SportsNewsRun: 'SportsNewsRun'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -430,10 +445,84 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "scheduledPost" | "publishAttempt" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "audienceSegment" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsSetting" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "lead" | "leadActivity" | "brandMemoryFact" | "engineeringSnapshot" | "sportsNewsRun"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
+    BackgroundJob: {
+      payload: Prisma.$BackgroundJobPayload<ExtArgs>
+      fields: Prisma.BackgroundJobFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackgroundJobFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackgroundJobFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findFirst: {
+          args: Prisma.BackgroundJobFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackgroundJobFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        findMany: {
+          args: Prisma.BackgroundJobFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        create: {
+          args: Prisma.BackgroundJobCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        createMany: {
+          args: Prisma.BackgroundJobCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackgroundJobCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        delete: {
+          args: Prisma.BackgroundJobDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        update: {
+          args: Prisma.BackgroundJobUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackgroundJobDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackgroundJobUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackgroundJobUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackgroundJobUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackgroundJobPayload>
+        }
+        aggregate: {
+          args: Prisma.BackgroundJobAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackgroundJob>
+        }
+        groupBy: {
+          args: Prisma.BackgroundJobGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackgroundJobCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackgroundJobCountAggregateOutputType> | number
+        }
+      }
+    }
     Workspace: {
       payload: Prisma.$WorkspacePayload<ExtArgs>
       fields: Prisma.WorkspaceFieldRefs
@@ -653,6 +742,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CampaignCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CampaignCountAggregateOutputType> | number
+        }
+      }
+    }
+    AudienceSegment: {
+      payload: Prisma.$AudienceSegmentPayload<ExtArgs>
+      fields: Prisma.AudienceSegmentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AudienceSegmentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AudienceSegmentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        findFirst: {
+          args: Prisma.AudienceSegmentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AudienceSegmentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        findMany: {
+          args: Prisma.AudienceSegmentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>[]
+        }
+        create: {
+          args: Prisma.AudienceSegmentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        createMany: {
+          args: Prisma.AudienceSegmentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AudienceSegmentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>[]
+        }
+        delete: {
+          args: Prisma.AudienceSegmentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        update: {
+          args: Prisma.AudienceSegmentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        deleteMany: {
+          args: Prisma.AudienceSegmentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AudienceSegmentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AudienceSegmentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>[]
+        }
+        upsert: {
+          args: Prisma.AudienceSegmentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AudienceSegmentPayload>
+        }
+        aggregate: {
+          args: Prisma.AudienceSegmentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAudienceSegment>
+        }
+        groupBy: {
+          args: Prisma.AudienceSegmentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AudienceSegmentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AudienceSegmentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AudienceSegmentCountAggregateOutputType> | number
         }
       }
     }
@@ -1248,6 +1411,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SocialChannelRuntimeProfile: {
+      payload: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>
+      fields: Prisma.SocialChannelRuntimeProfileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SocialChannelRuntimeProfileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SocialChannelRuntimeProfileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        findFirst: {
+          args: Prisma.SocialChannelRuntimeProfileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SocialChannelRuntimeProfileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        findMany: {
+          args: Prisma.SocialChannelRuntimeProfileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        create: {
+          args: Prisma.SocialChannelRuntimeProfileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        createMany: {
+          args: Prisma.SocialChannelRuntimeProfileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SocialChannelRuntimeProfileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        delete: {
+          args: Prisma.SocialChannelRuntimeProfileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        update: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        deleteMany: {
+          args: Prisma.SocialChannelRuntimeProfileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SocialChannelRuntimeProfileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>[]
+        }
+        upsert: {
+          args: Prisma.SocialChannelRuntimeProfileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SocialChannelRuntimeProfilePayload>
+        }
+        aggregate: {
+          args: Prisma.SocialChannelRuntimeProfileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSocialChannelRuntimeProfile>
+        }
+        groupBy: {
+          args: Prisma.SocialChannelRuntimeProfileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SocialChannelRuntimeProfileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SocialChannelRuntimeProfileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SocialChannelRuntimeProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccount: {
+      payload: Prisma.$BrowserAccountPayload<ExtArgs>
+      fields: Prisma.BrowserAccountFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccount>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAutomationPolicy: {
+      payload: Prisma.$BrowserAutomationPolicyPayload<ExtArgs>
+      fields: Prisma.BrowserAutomationPolicyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAutomationPolicyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAutomationPolicyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAutomationPolicyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAutomationPolicyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAutomationPolicyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAutomationPolicyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAutomationPolicyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAutomationPolicyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAutomationPolicyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        update: {
+          args: Prisma.BrowserAutomationPolicyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAutomationPolicyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAutomationPolicyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAutomationPolicyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAutomationPolicyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAutomationPolicyPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAutomationPolicyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAutomationPolicy>
+        }
+        groupBy: {
+          args: Prisma.BrowserAutomationPolicyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAutomationPolicyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAutomationPolicyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAutomationPolicyCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccountEvent: {
+      payload: Prisma.$BrowserAccountEventPayload<ExtArgs>
+      fields: Prisma.BrowserAccountEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountEventPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountEvent>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountEventCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccountLease: {
+      payload: Prisma.$BrowserAccountLeasePayload<ExtArgs>
+      fields: Prisma.BrowserAccountLeaseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountLeaseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountLeaseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountLeaseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountLeaseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountLeaseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountLeaseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountLeaseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountLeaseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountLeaseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountLeaseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountLeaseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountLeaseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountLeaseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountLeaseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountLeasePayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountLeaseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountLease>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountLeaseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountLeaseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountLeaseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountLeaseCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserAccountChannel: {
+      payload: Prisma.$BrowserAccountChannelPayload<ExtArgs>
+      fields: Prisma.BrowserAccountChannelFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserAccountChannelFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserAccountChannelFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserAccountChannelFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserAccountChannelFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserAccountChannelFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserAccountChannelCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserAccountChannelCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserAccountChannelCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserAccountChannelDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        update: {
+          args: Prisma.BrowserAccountChannelUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserAccountChannelDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserAccountChannelUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserAccountChannelUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserAccountChannelUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserAccountChannelPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserAccountChannelAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserAccountChannel>
+        }
+        groupBy: {
+          args: Prisma.BrowserAccountChannelGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountChannelGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserAccountChannelCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserAccountChannelCountAggregateOutputType> | number
+        }
+      }
+    }
     ScheduledPost: {
       payload: Prisma.$ScheduledPostPayload<ExtArgs>
       fields: Prisma.ScheduledPostFieldRefs
@@ -1393,6 +2000,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PublishAttemptCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PublishAttemptCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserActionHistory: {
+      payload: Prisma.$BrowserActionHistoryPayload<ExtArgs>
+      fields: Prisma.BrowserActionHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserActionHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserActionHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserActionHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserActionHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.BrowserActionHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.BrowserActionHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.BrowserActionHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserActionHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserActionHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        update: {
+          args: Prisma.BrowserActionHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserActionHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserActionHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserActionHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserActionHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserActionHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserActionHistory>
+        }
+        groupBy: {
+          args: Prisma.BrowserActionHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserActionHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrowserActionTrace: {
+      payload: Prisma.$BrowserActionTracePayload<ExtArgs>
+      fields: Prisma.BrowserActionTraceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrowserActionTraceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrowserActionTraceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        findFirst: {
+          args: Prisma.BrowserActionTraceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrowserActionTraceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        findMany: {
+          args: Prisma.BrowserActionTraceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        create: {
+          args: Prisma.BrowserActionTraceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        createMany: {
+          args: Prisma.BrowserActionTraceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrowserActionTraceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        delete: {
+          args: Prisma.BrowserActionTraceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        update: {
+          args: Prisma.BrowserActionTraceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrowserActionTraceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrowserActionTraceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrowserActionTraceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrowserActionTraceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrowserActionTracePayload>
+        }
+        aggregate: {
+          args: Prisma.BrowserActionTraceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrowserActionTrace>
+        }
+        groupBy: {
+          args: Prisma.BrowserActionTraceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionTraceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrowserActionTraceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrowserActionTraceCountAggregateOutputType> | number
+        }
+      }
+    }
+    SportsNewsSetting: {
+      payload: Prisma.$SportsNewsSettingPayload<ExtArgs>
+      fields: Prisma.SportsNewsSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SportsNewsSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SportsNewsSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.SportsNewsSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SportsNewsSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        findMany: {
+          args: Prisma.SportsNewsSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        create: {
+          args: Prisma.SportsNewsSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        createMany: {
+          args: Prisma.SportsNewsSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SportsNewsSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.SportsNewsSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        update: {
+          args: Prisma.SportsNewsSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.SportsNewsSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SportsNewsSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SportsNewsSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.SportsNewsSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.SportsNewsSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSportsNewsSetting>
+        }
+        groupBy: {
+          args: Prisma.SportsNewsSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SportsNewsSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsSettingCountAggregateOutputType> | number
         }
       }
     }
@@ -1692,6 +2521,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Lead: {
+      payload: Prisma.$LeadPayload<ExtArgs>
+      fields: Prisma.LeadFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LeadFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LeadFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        findFirst: {
+          args: Prisma.LeadFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LeadFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        findMany: {
+          args: Prisma.LeadFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>[]
+        }
+        create: {
+          args: Prisma.LeadCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        createMany: {
+          args: Prisma.LeadCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LeadCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>[]
+        }
+        delete: {
+          args: Prisma.LeadDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        update: {
+          args: Prisma.LeadUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        deleteMany: {
+          args: Prisma.LeadDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LeadUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LeadUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>[]
+        }
+        upsert: {
+          args: Prisma.LeadUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadPayload>
+        }
+        aggregate: {
+          args: Prisma.LeadAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLead>
+        }
+        groupBy: {
+          args: Prisma.LeadGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LeadCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadCountAggregateOutputType> | number
+        }
+      }
+    }
+    LeadActivity: {
+      payload: Prisma.$LeadActivityPayload<ExtArgs>
+      fields: Prisma.LeadActivityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LeadActivityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LeadActivityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        findFirst: {
+          args: Prisma.LeadActivityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LeadActivityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        findMany: {
+          args: Prisma.LeadActivityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>[]
+        }
+        create: {
+          args: Prisma.LeadActivityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        createMany: {
+          args: Prisma.LeadActivityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LeadActivityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>[]
+        }
+        delete: {
+          args: Prisma.LeadActivityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        update: {
+          args: Prisma.LeadActivityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        deleteMany: {
+          args: Prisma.LeadActivityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LeadActivityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LeadActivityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>[]
+        }
+        upsert: {
+          args: Prisma.LeadActivityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadActivityPayload>
+        }
+        aggregate: {
+          args: Prisma.LeadActivityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLeadActivity>
+        }
+        groupBy: {
+          args: Prisma.LeadActivityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadActivityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LeadActivityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadActivityCountAggregateOutputType> | number
+        }
+      }
+    }
     BrandMemoryFact: {
       payload: Prisma.$BrandMemoryFactPayload<ExtArgs>
       fields: Prisma.BrandMemoryFactFieldRefs
@@ -1766,6 +2743,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EngineeringSnapshot: {
+      payload: Prisma.$EngineeringSnapshotPayload<ExtArgs>
+      fields: Prisma.EngineeringSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EngineeringSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EngineeringSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.EngineeringSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EngineeringSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.EngineeringSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.EngineeringSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.EngineeringSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EngineeringSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.EngineeringSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        update: {
+          args: Prisma.EngineeringSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.EngineeringSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EngineeringSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EngineeringSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.EngineeringSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EngineeringSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.EngineeringSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEngineeringSnapshot>
+        }
+        groupBy: {
+          args: Prisma.EngineeringSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EngineeringSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EngineeringSnapshotCountAggregateOutputType> | number
+        }
+      }
+    }
+    SportsNewsRun: {
+      payload: Prisma.$SportsNewsRunPayload<ExtArgs>
+      fields: Prisma.SportsNewsRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SportsNewsRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SportsNewsRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        findFirst: {
+          args: Prisma.SportsNewsRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SportsNewsRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        findMany: {
+          args: Prisma.SportsNewsRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        create: {
+          args: Prisma.SportsNewsRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        createMany: {
+          args: Prisma.SportsNewsRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SportsNewsRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        delete: {
+          args: Prisma.SportsNewsRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        update: {
+          args: Prisma.SportsNewsRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.SportsNewsRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SportsNewsRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SportsNewsRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.SportsNewsRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        aggregate: {
+          args: Prisma.SportsNewsRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSportsNewsRun>
+        }
+        groupBy: {
+          args: Prisma.SportsNewsRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SportsNewsRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsRunCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1805,6 +2930,23 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  payload: 'payload',
+  result: 'result',
+  error: 'error',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
+
+
 export const WorkspaceScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1835,7 +2977,12 @@ export const BrandScalarFieldEnum = {
   examplePosts: 'examplePosts',
   status: 'status',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  primaryLogoAssetId: 'primaryLogoAssetId',
+  brandBannerAssetId: 'brandBannerAssetId',
+  mascotAssetId: 'mascotAssetId',
+  brandKit: 'brandKit',
+  referenceAssetIds: 'referenceAssetIds'
 } as const
 
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
@@ -1851,10 +2998,29 @@ export const CampaignScalarFieldEnum = {
   startDate: 'startDate',
   endDate: 'endDate',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings'
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
+export const AudienceSegmentScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  name: 'name',
+  description: 'description',
+  country: 'country',
+  region: 'region',
+  industry: 'industry',
+  language: 'language',
+  criteria: 'criteria',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AudienceSegmentScalarFieldEnum = (typeof AudienceSegmentScalarFieldEnum)[keyof typeof AudienceSegmentScalarFieldEnum]
 
 
 export const CampaignIdeaScalarFieldEnum = {
@@ -1878,8 +3044,6 @@ export type CampaignIdeaScalarFieldEnum = (typeof CampaignIdeaScalarFieldEnum)[k
 export const GenerationHistoryScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
-  campaignId: 'campaignId',
-  ideaId: 'ideaId',
   topic: 'topic',
   platforms: 'platforms',
   style: 'style',
@@ -1890,14 +3054,17 @@ export const GenerationHistoryScalarFieldEnum = {
   imagePrompt: 'imagePrompt',
   analysis: 'analysis',
   isFavorite: 'isFavorite',
-  status: 'status',
-  reviewNote: 'reviewNote',
-  reviewedBy: 'reviewedBy',
-  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  campaignId: 'campaignId',
+  ideaId: 'ideaId',
   approvedAt: 'approvedAt',
   publishedAt: 'publishedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  reviewNote: 'reviewNote',
+  reviewedAt: 'reviewedAt',
+  reviewedBy: 'reviewedBy',
+  status: 'status',
+  socialChannelRuntimeProfileId: 'socialChannelRuntimeProfileId'
 } as const
 
 export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
@@ -1926,28 +3093,30 @@ export const AssetScalarFieldEnum = {
   provider: 'provider',
   platform: 'platform',
   prompt: 'prompt',
-  revisedPrompt: 'revisedPrompt',
-  negativePrompt: 'negativePrompt',
-  generationModel: 'generationModel',
-  generationSize: 'generationSize',
-  generationQuality: 'generationQuality',
-  generationDurationMs: 'generationDurationMs',
   url: 'url',
   thumbnailUrl: 'thumbnailUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  fileSize: 'fileSize',
   mimeType: 'mimeType',
   width: 'width',
   height: 'height',
-  tags: 'tags',
-  collection: 'collection',
   isFavorite: 'isFavorite',
-  downloadCount: 'downloadCount',
-  usedCount: 'usedCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  collection: 'collection',
+  downloadCount: 'downloadCount',
+  fileSize: 'fileSize',
+  generationDurationMs: 'generationDurationMs',
+  generationModel: 'generationModel',
+  generationQuality: 'generationQuality',
+  generationSize: 'generationSize',
+  lastUsedAt: 'lastUsedAt',
+  negativePrompt: 'negativePrompt',
+  revisedPrompt: 'revisedPrompt',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider',
+  tags: 'tags',
+  usedCount: 'usedCount',
+  remark: 'remark',
+  aiEnabled: 'aiEnabled'
 } as const
 
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
@@ -1960,16 +3129,16 @@ export const KnowledgeDocumentScalarFieldEnum = {
   category: 'category',
   content: 'content',
   tags: 'tags',
-  sourceFileName: 'sourceFileName',
-  sourceMimeType: 'sourceMimeType',
-  sourceFileSize: 'sourceFileSize',
-  sourceUrl: 'sourceUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  usageCount: 'usageCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  lastUsedAt: 'lastUsedAt',
+  usageCount: 'usageCount',
+  sourceFileName: 'sourceFileName',
+  sourceFileSize: 'sourceFileSize',
+  sourceMimeType: 'sourceMimeType',
+  sourceUrl: 'sourceUrl',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider'
 } as const
 
 export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
@@ -1979,16 +3148,16 @@ export const KnowledgeEmbeddingScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
   brandId: 'brandId',
-  chunkIndex: 'chunkIndex',
-  chunkText: 'chunkText',
-  startOffset: 'startOffset',
-  endOffset: 'endOffset',
   vector: 'vector',
   model: 'model',
   dimensions: 'dimensions',
   contentHash: 'contentHash',
   embeddedAt: 'embeddedAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  chunkIndex: 'chunkIndex',
+  chunkText: 'chunkText',
+  endOffset: 'endOffset',
+  startOffset: 'startOffset'
 } as const
 
 export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalarFieldEnum)[keyof typeof KnowledgeEmbeddingScalarFieldEnum]
@@ -1999,13 +3168,16 @@ export const AiUsageScalarFieldEnum = {
   historyId: 'historyId',
   model: 'model',
   promptTokens: 'promptTokens',
-  cachedInputTokens: 'cachedInputTokens',
   completionTokens: 'completionTokens',
   totalTokens: 'totalTokens',
   estimatedCostUsd: 'estimatedCostUsd',
   estimatedCostMyr: 'estimatedCostMyr',
   durationMs: 'durationMs',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  cachedInputTokens: 'cachedInputTokens',
+  conversationId: 'conversationId',
+  feature: 'feature',
+  reasoningTokens: 'reasoningTokens'
 } as const
 
 export type AiUsageScalarFieldEnum = (typeof AiUsageScalarFieldEnum)[keyof typeof AiUsageScalarFieldEnum]
@@ -2031,6 +3203,150 @@ export const SocialChannelScalarFieldEnum = {
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
 
 
+export const SocialChannelRuntimeProfileScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  lastKnownIp: 'lastKnownIp',
+  lastConnectionStatus: 'lastConnectionStatus',
+  lastConnectionError: 'lastConnectionError',
+  lastConnectionTestAt: 'lastConnectionTestAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  deviceScaleFactor: 'deviceScaleFactor',
+  identityLocked: 'identityLocked',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent'
+} as const
+
+export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
+
+
+export const BrowserAccountScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  platform: 'platform',
+  displayName: 'displayName',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  facebookUserId: 'facebookUserId',
+  facebookUserName: 'facebookUserName',
+  loginStatus: 'loginStatus',
+  cookieStatus: 'cookieStatus',
+  lastKnownIp: 'lastKnownIp',
+  lastLoginAt: 'lastLoginAt',
+  lastVerifiedAt: 'lastVerifiedAt',
+  lastHeartbeatAt: 'lastHeartbeatAt',
+  lastLoginError: 'lastLoginError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  colorScheme: 'colorScheme',
+  deviceMemory: 'deviceMemory',
+  deviceScaleFactor: 'deviceScaleFactor',
+  expectedIp: 'expectedIp',
+  facebookEmailEncrypted: 'facebookEmailEncrypted',
+  facebookPasswordEncrypted: 'facebookPasswordEncrypted',
+  fingerprintStatus: 'fingerprintStatus',
+  hardwareConcurrency: 'hardwareConcurrency',
+  identityError: 'identityError',
+  identityLocked: 'identityLocked',
+  identityVersion: 'identityVersion',
+  ipStatus: 'ipStatus',
+  lastIpCheckedAt: 'lastIpCheckedAt',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent',
+  webglRenderer: 'webglRenderer',
+  webglVendor: 'webglVendor',
+  facebookEmailHash: 'facebookEmailHash'
+} as const
+
+export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
+
+
+export const BrowserAutomationPolicyScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  autoVerifyLogin: 'autoVerifyLogin',
+  autoDiscoverPages: 'autoDiscoverPages',
+  autoSyncPages: 'autoSyncPages',
+  autoHealthCheck: 'autoHealthCheck',
+  autoCloseBrowser: 'autoCloseBrowser',
+  autoNotifications: 'autoNotifications',
+  keepBrowserOpenAfterLogin: 'keepBrowserOpenAfterLogin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAutomationPolicyScalarFieldEnum = (typeof BrowserAutomationPolicyScalarFieldEnum)[keyof typeof BrowserAutomationPolicyScalarFieldEnum]
+
+
+export const BrowserAccountEventScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  eventType: 'eventType',
+  status: 'status',
+  title: 'title',
+  message: 'message',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
+
+
+export const BrowserAccountLeaseScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  leaseToken: 'leaseToken',
+  ownerKey: 'ownerKey',
+  channelId: 'channelId',
+  acquiredAt: 'acquiredAt',
+  expiresAt: 'expiresAt',
+  releasedAt: 'releasedAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountLeaseScalarFieldEnum = (typeof BrowserAccountLeaseScalarFieldEnum)[keyof typeof BrowserAccountLeaseScalarFieldEnum]
+
+
+export const BrowserAccountChannelScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  channelId: 'channelId',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountChannelScalarFieldEnum = (typeof BrowserAccountChannelScalarFieldEnum)[keyof typeof BrowserAccountChannelScalarFieldEnum]
+
+
 export const ScheduledPostScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -2050,7 +3366,8 @@ export const ScheduledPostScalarFieldEnum = {
   lastError: 'lastError',
   retryCount: 'retryCount',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings'
 } as const
 
 export type ScheduledPostScalarFieldEnum = (typeof ScheduledPostScalarFieldEnum)[keyof typeof ScheduledPostScalarFieldEnum]
@@ -2070,6 +3387,238 @@ export const PublishAttemptScalarFieldEnum = {
 } as const
 
 export type PublishAttemptScalarFieldEnum = (typeof PublishAttemptScalarFieldEnum)[keyof typeof PublishAttemptScalarFieldEnum]
+
+
+export const BrowserActionHistoryScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  action: 'action',
+  status: 'status',
+  browserProfileKey: 'browserProfileKey',
+  caption: 'caption',
+  imagePath: 'imagePath',
+  screenshotPath: 'screenshotPath',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt',
+  flowId: 'flowId'
+} as const
+
+export type BrowserActionHistoryScalarFieldEnum = (typeof BrowserActionHistoryScalarFieldEnum)[keyof typeof BrowserActionHistoryScalarFieldEnum]
+
+
+export const BrowserActionTraceScalarFieldEnum = {
+  id: 'id',
+  browserActionId: 'browserActionId',
+  stepKey: 'stepKey',
+  stepName: 'stepName',
+  stepOrder: 'stepOrder',
+  status: 'status',
+  metadata: 'metadata',
+  errorMessage: 'errorMessage',
+  screenshotPath: 'screenshotPath',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
+
+
+export const SportsNewsSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  enabled: 'enabled',
+  timezone: 'timezone',
+  morningEnabled: 'morningEnabled',
+  morningTime: 'morningTime',
+  eveningEnabled: 'eveningEnabled',
+  eveningTime: 'eveningTime',
+  telegramEnabled: 'telegramEnabled',
+  telegramChannelId: 'telegramChannelId',
+  facebookEnabled: 'facebookEnabled',
+  facebookChannelId: 'facebookChannelId',
+  autoPublishEnabled: 'autoPublishEnabled',
+  approvalRequired: 'approvalRequired',
+  language: 'language',
+  sportsKnowledgeEnabled: 'sportsKnowledgeEnabled',
+  discussionQuestionEnabled: 'discussionQuestionEnabled',
+  referenceLinksEnabled: 'referenceLinksEnabled',
+  customPromptEnabled: 'customPromptEnabled',
+  systemPrompt: 'systemPrompt',
+  morningPrompt: 'morningPrompt',
+  eveningPrompt: 'eveningPrompt',
+  knowledgePrompt: 'knowledgePrompt',
+  customInstructions: 'customInstructions',
+  imageEnabled: 'imageEnabled',
+  imagePrompt: 'imagePrompt',
+  morningImagePrompt: 'morningImagePrompt',
+  eveningImagePrompt: 'eveningImagePrompt',
+  imageAspectRatio: 'imageAspectRatio',
+  imageTextMode: 'imageTextMode',
+  imageVisualStyle: 'imageVisualStyle',
+  logoEnabled: 'logoEnabled',
+  logoPosition: 'logoPosition',
+  brandFooterEnabled: 'brandFooterEnabled',
+  brandFooterText: 'brandFooterText',
+  lastMorningRunAt: 'lastMorningRunAt',
+  lastEveningRunAt: 'lastEveningRunAt',
+  lastRunStatus: 'lastRunStatus',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  morningTelegramEnabled: 'morningTelegramEnabled',
+  morningFacebookEnabled: 'morningFacebookEnabled',
+  eveningTelegramEnabled: 'eveningTelegramEnabled',
+  eveningFacebookEnabled: 'eveningFacebookEnabled',
+  sameDaySourcesOnly: 'sameDaySourcesOnly',
+  maxSourceAgeHours: 'maxSourceAgeHours',
+  requirePublishedAt: 'requirePublishedAt',
+  requireSourceUrl: 'requireSourceUrl',
+  minimumSources: 'minimumSources',
+  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
+  logoAssetId: 'logoAssetId',
+  logoSize: 'logoSize',
+  logoOpacity: 'logoOpacity',
+  logoMargin: 'logoMargin',
+  footerLogoEnabled: 'footerLogoEnabled',
+  footerLogoAssetId: 'footerLogoAssetId',
+  footerQrEnabled: 'footerQrEnabled',
+  footerQrAssetId: 'footerQrAssetId',
+  footerQrLink: 'footerQrLink',
+  footerPlacement: 'footerPlacement',
+  storyMinimum: 'storyMinimum',
+  storyMaximum: 'storyMaximum',
+  sportsPriority: 'sportsPriority',
+  verificationInstructions: 'verificationInstructions',
+  imageHeadlineInstructions: 'imageHeadlineInstructions',
+  visibleCopyInstructions: 'visibleCopyInstructions',
+  telegramMorningHeader: 'telegramMorningHeader',
+  telegramEveningHeader: 'telegramEveningHeader',
+  telegramSectionLabel: 'telegramSectionLabel',
+  telegramCtaEnabled: 'telegramCtaEnabled',
+  telegramCtaText: 'telegramCtaText',
+  telegramCtaUrl: 'telegramCtaUrl',
+  telegramShowSummaries: 'telegramShowSummaries',
+  telegramCaptionTarget: 'telegramCaptionTarget',
+  telegramSummaryZhLong: 'telegramSummaryZhLong',
+  telegramSummaryEnLong: 'telegramSummaryEnLong',
+  telegramSummaryZhMedium: 'telegramSummaryZhMedium',
+  telegramSummaryEnMedium: 'telegramSummaryEnMedium',
+  telegramSummaryZhShort: 'telegramSummaryZhShort',
+  telegramSummaryEnShort: 'telegramSummaryEnShort',
+  telegramSummaryZhCompact: 'telegramSummaryZhCompact',
+  telegramSummaryEnCompact: 'telegramSummaryEnCompact',
+  visualDirectorEnabled: 'visualDirectorEnabled',
+  visualDirectorPrompt: 'visualDirectorPrompt',
+  heroStoryWeight: 'heroStoryWeight',
+  singleSportVisualPrompt: 'singleSportVisualPrompt',
+  multiSportVisualPrompt: 'multiSportVisualPrompt',
+  completedEventVisualPrompt: 'completedEventVisualPrompt',
+  upcomingEventVisualPrompt: 'upcomingEventVisualPrompt',
+  developmentVisualPrompt: 'developmentVisualPrompt',
+  morningVisualDirection: 'morningVisualDirection',
+  eveningVisualDirection: 'eveningVisualDirection',
+  imagePhotographyPrompt: 'imagePhotographyPrompt',
+  imageNegativePrompt: 'imageNegativePrompt',
+  imageUpperSafeAreaPrompt: 'imageUpperSafeAreaPrompt',
+  imageLowerSafeAreaPrompt: 'imageLowerSafeAreaPrompt',
+  imageLayoutEnabled: 'imageLayoutEnabled',
+  mastheadScale: 'mastheadScale',
+  mastheadTopPercent: 'mastheadTopPercent',
+  highlightsPanelWidthPercent: 'highlightsPanelWidthPercent',
+  highlightsPanelHeightPercent: 'highlightsPanelHeightPercent',
+  highlightsPanelTopPercent: 'highlightsPanelTopPercent',
+  highlightsPanelOpacityStart: 'highlightsPanelOpacityStart',
+  highlightsPanelOpacityMiddle: 'highlightsPanelOpacityMiddle',
+  highlightsPanelOpacityEnd: 'highlightsPanelOpacityEnd',
+  highlightsPanelRadius: 'highlightsPanelRadius',
+  heroHeadlineScale: 'heroHeadlineScale',
+  secondaryHeadlineScale: 'secondaryHeadlineScale',
+  story02PositionPercent: 'story02PositionPercent',
+  story03PositionPercent: 'story03PositionPercent',
+  footerHeightPercent: 'footerHeightPercent',
+  qrEnabled: 'qrEnabled',
+  qrLink: 'qrLink',
+  mastheadBrandText: 'mastheadBrandText',
+  morningEditionZh: 'morningEditionZh',
+  eveningEditionZh: 'eveningEditionZh',
+  morningEditionEn: 'morningEditionEn',
+  eveningEditionEn: 'eveningEditionEn',
+  imageSectionLabel: 'imageSectionLabel',
+  morningAccentColor: 'morningAccentColor',
+  eveningAccentColor: 'eveningAccentColor',
+  morningSecondaryColor: 'morningSecondaryColor',
+  eveningSecondaryColor: 'eveningSecondaryColor',
+  mastheadPrimaryColor: 'mastheadPrimaryColor',
+  mastheadEnglishColor: 'mastheadEnglishColor',
+  headlinePrimaryColor: 'headlinePrimaryColor',
+  headlineSecondaryColor: 'headlineSecondaryColor',
+  panelBaseColor: 'panelBaseColor',
+  watermarkEnabled: 'watermarkEnabled',
+  watermarkScale: 'watermarkScale',
+  watermarkOpacity: 'watermarkOpacity',
+  watermarkPosition: 'watermarkPosition',
+  qrSizePercent: 'qrSizePercent',
+  qrMarginPercent: 'qrMarginPercent',
+  footerDateEnabled: 'footerDateEnabled',
+  footerDateSeparator: 'footerDateSeparator',
+  footerBackgroundColor: 'footerBackgroundColor',
+  footerSeparatorColor: 'footerSeparatorColor',
+  imageGenerationSize: 'imageGenerationSize',
+  imageGenerationQuality: 'imageGenerationQuality',
+  footballKeywords: 'footballKeywords',
+  basketballKeywords: 'basketballKeywords',
+  motorsportKeywords: 'motorsportKeywords',
+  motorcycleKeywords: 'motorcycleKeywords',
+  tennisKeywords: 'tennisKeywords',
+  badmintonKeywords: 'badmintonKeywords',
+  baseballKeywords: 'baseballKeywords',
+  combatKeywords: 'combatKeywords',
+  completedScoreRequired: 'completedScoreRequired',
+  invalidStoryPolicy: 'invalidStoryPolicy',
+  morningSameDaySourcesOnly: 'morningSameDaySourcesOnly',
+  newsAiModel: 'newsAiModel',
+  newsWebSearchEnabled: 'newsWebSearchEnabled',
+  imageAiModel: 'imageAiModel',
+  imageGenerationEnabled: 'imageGenerationEnabled',
+  duplicateEditionPolicy: 'duplicateEditionPolicy',
+  forceRunExistingPolicy: 'forceRunExistingPolicy',
+  queueStatusOnCreate: 'queueStatusOnCreate',
+  publishRetryEnabled: 'publishRetryEnabled',
+  publishRetryLimit: 'publishRetryLimit',
+  publishRetryDelayMinutes: 'publishRetryDelayMinutes',
+  generationFailurePolicy: 'generationFailurePolicy',
+  imageFailurePolicy: 'imageFailurePolicy',
+  brandingFailurePolicy: 'brandingFailurePolicy',
+  minimumSourcesPerStory: 'minimumSourcesPerStory',
+  minimumStoriesPerEdition: 'minimumStoriesPerEdition',
+  completedEventPolicy: 'completedEventPolicy',
+  upcomingEventPolicy: 'upcomingEventPolicy',
+  developmentStoryPolicy: 'developmentStoryPolicy',
+  sourceDeduplicationEnabled: 'sourceDeduplicationEnabled',
+  imageRulesEnabled: 'imageRulesEnabled',
+  imageRulesPrompt: 'imageRulesPrompt',
+  imageBrandRulesEnabled: 'imageBrandRulesEnabled',
+  imageBrandRulesPrompt: 'imageBrandRulesPrompt',
+  forceRunEnabled: 'forceRunEnabled',
+  forceMorningEnabled: 'forceMorningEnabled',
+  forceEveningEnabled: 'forceEveningEnabled',
+  morningPostTitleTemplate: 'morningPostTitleTemplate',
+  eveningPostTitleTemplate: 'eveningPostTitleTemplate',
+  imageModelOverrideEnabled: 'imageModelOverrideEnabled',
+  previewNewsPromptEnabled: 'previewNewsPromptEnabled',
+  previewImagePromptEnabled: 'previewImagePromptEnabled',
+  previewTelegramCaptionEnabled: 'previewTelegramCaptionEnabled',
+  recommendedDefaultsVersion: 'recommendedDefaultsVersion'
+} as const
+
+export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
@@ -2131,6 +3680,56 @@ export const PromptTemplateScalarFieldEnum = {
 export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
 
 
+export const LeadScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  audienceSegmentId: 'audienceSegmentId',
+  sourceCampaignId: 'sourceCampaignId',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  company: 'company',
+  industry: 'industry',
+  country: 'country',
+  region: 'region',
+  language: 'language',
+  source: 'source',
+  sourcePlatform: 'sourcePlatform',
+  externalId: 'externalId',
+  status: 'status',
+  score: 'score',
+  tags: 'tags',
+  consentStatus: 'consentStatus',
+  consentSource: 'consentSource',
+  consentAt: 'consentAt',
+  metadata: 'metadata',
+  convertedAt: 'convertedAt',
+  lastInteractionAt: 'lastInteractionAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const LeadActivityScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  type: 'type',
+  channel: 'channel',
+  source: 'source',
+  title: 'title',
+  description: 'description',
+  scoreDelta: 'scoreDelta',
+  metadata: 'metadata',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type LeadActivityScalarFieldEnum = (typeof LeadActivityScalarFieldEnum)[keyof typeof LeadActivityScalarFieldEnum]
+
+
 export const BrandMemoryFactScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -2149,6 +3748,39 @@ export const BrandMemoryFactScalarFieldEnum = {
 } as const
 
 export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
+
+
+export const EngineeringSnapshotScalarFieldEnum = {
+  id: 'id',
+  files: 'files',
+  description: 'description',
+  backupPath: 'backupPath',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
+
+
+export const SportsNewsRunScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  runKey: 'runKey',
+  kind: 'kind',
+  trigger: 'trigger',
+  status: 'status',
+  sourceCount: 'sourceCount',
+  rejectedSourceCount: 'rejectedSourceCount',
+  scheduledPostIds: 'scheduledPostIds',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsRunScalarFieldEnum = (typeof SportsNewsRunScalarFieldEnum)[keyof typeof SportsNewsRunScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2182,14 +3814,6 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -2197,6 +3821,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -2216,6 +3848,62 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType'
+ */
+export type EnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobType[]'
+ */
+export type ListEnumBackgroundJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus'
+ */
+export type EnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BackgroundJobStatus[]'
+ */
+export type ListEnumBackgroundJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackgroundJobStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2276,34 +3964,6 @@ export type ListEnumCampaignIdeaStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
@@ -2353,6 +4013,20 @@ export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMode
 
 
 /**
+ * Reference to a field of type 'AiUsageFeature'
+ */
+export type EnumAiUsageFeatureFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiUsageFeature'>
+    
+
+
+/**
+ * Reference to a field of type 'AiUsageFeature[]'
+ */
+export type ListEnumAiUsageFeatureFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiUsageFeature[]'>
+    
+
+
+/**
  * Reference to a field of type 'SocialPlatform'
  */
 export type EnumSocialPlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialPlatform'>
@@ -2377,6 +4051,34 @@ export type EnumSocialChannelStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
  * Reference to a field of type 'SocialChannelStatus[]'
  */
 export type ListEnumSocialChannelStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialChannelStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SocialProxyType'
+ */
+export type EnumSocialProxyTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialProxyType'>
+    
+
+
+/**
+ * Reference to a field of type 'SocialProxyType[]'
+ */
+export type ListEnumSocialProxyTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SocialProxyType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserAccountEventStatus'
+ */
+export type EnumBrowserAccountEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserAccountEventStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserAccountEventStatus[]'
+ */
+export type ListEnumBrowserAccountEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserAccountEventStatus[]'>
     
 
 
@@ -2409,6 +4111,48 @@ export type ListEnumPublishAttemptStatusFieldRefInput<$PrismaModel> = FieldRefIn
 
 
 /**
+ * Reference to a field of type 'BrowserActionType'
+ */
+export type EnumBrowserActionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionType'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionType[]'
+ */
+export type ListEnumBrowserActionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionStatus'
+ */
+export type EnumBrowserActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserActionStatus[]'
+ */
+export type ListEnumBrowserActionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserActionStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserTraceStatus'
+ */
+export type EnumBrowserTraceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserTraceStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BrowserTraceStatus[]'
+ */
+export type ListEnumBrowserTraceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BrowserTraceStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'CopilotMessageRole'
  */
 export type EnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CopilotMessageRole'>
@@ -2419,6 +4163,48 @@ export type EnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'CopilotMessageRole[]'
  */
 export type ListEnumCopilotMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CopilotMessageRole[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadStatus'
+ */
+export type EnumLeadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadStatus[]'
+ */
+export type ListEnumLeadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadConsentStatus'
+ */
+export type EnumLeadConsentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadConsentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadConsentStatus[]'
+ */
+export type ListEnumLeadConsentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadConsentStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadActivityType'
+ */
+export type EnumLeadActivityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadActivityType'>
+    
+
+
+/**
+ * Reference to a field of type 'LeadActivityType[]'
+ */
+export type ListEnumLeadActivityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadActivityType[]'>
     
 
 
@@ -2600,9 +4386,11 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
+  backgroundJob?: Prisma.BackgroundJobOmit
   workspace?: Prisma.WorkspaceOmit
   brand?: Prisma.BrandOmit
   campaign?: Prisma.CampaignOmit
+  audienceSegment?: Prisma.AudienceSegmentOmit
   campaignIdea?: Prisma.CampaignIdeaOmit
   generationHistory?: Prisma.GenerationHistoryOmit
   contentVersion?: Prisma.ContentVersionOmit
@@ -2611,13 +4399,26 @@ export type GlobalOmitConfig = {
   knowledgeEmbedding?: Prisma.KnowledgeEmbeddingOmit
   aiUsage?: Prisma.AiUsageOmit
   socialChannel?: Prisma.SocialChannelOmit
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOmit
+  browserAccount?: Prisma.BrowserAccountOmit
+  browserAutomationPolicy?: Prisma.BrowserAutomationPolicyOmit
+  browserAccountEvent?: Prisma.BrowserAccountEventOmit
+  browserAccountLease?: Prisma.BrowserAccountLeaseOmit
+  browserAccountChannel?: Prisma.BrowserAccountChannelOmit
   scheduledPost?: Prisma.ScheduledPostOmit
   publishAttempt?: Prisma.PublishAttemptOmit
+  browserActionHistory?: Prisma.BrowserActionHistoryOmit
+  browserActionTrace?: Prisma.BrowserActionTraceOmit
+  sportsNewsSetting?: Prisma.SportsNewsSettingOmit
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
   promptTemplate?: Prisma.PromptTemplateOmit
+  lead?: Prisma.LeadOmit
+  leadActivity?: Prisma.LeadActivityOmit
   brandMemoryFact?: Prisma.BrandMemoryFactOmit
+  engineeringSnapshot?: Prisma.EngineeringSnapshotOmit
+  sportsNewsRun?: Prisma.SportsNewsRunOmit
 }
 
 /* Types for Logging */

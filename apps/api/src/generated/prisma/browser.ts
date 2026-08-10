@@ -18,6 +18,11 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
+ * Model BackgroundJob
+ * 
+ */
+export type BackgroundJob = Prisma.BackgroundJobModel
+/**
  * Model Workspace
  * 
  */
@@ -32,6 +37,11 @@ export type Brand = Prisma.BrandModel
  * 
  */
 export type Campaign = Prisma.CampaignModel
+/**
+ * Model AudienceSegment
+ * 
+ */
+export type AudienceSegment = Prisma.AudienceSegmentModel
 /**
  * Model CampaignIdea
  * 
@@ -73,6 +83,36 @@ export type AiUsage = Prisma.AiUsageModel
  */
 export type SocialChannel = Prisma.SocialChannelModel
 /**
+ * Model SocialChannelRuntimeProfile
+ * 
+ */
+export type SocialChannelRuntimeProfile = Prisma.SocialChannelRuntimeProfileModel
+/**
+ * Model BrowserAccount
+ * 
+ */
+export type BrowserAccount = Prisma.BrowserAccountModel
+/**
+ * Model BrowserAutomationPolicy
+ * 
+ */
+export type BrowserAutomationPolicy = Prisma.BrowserAutomationPolicyModel
+/**
+ * Model BrowserAccountEvent
+ * 
+ */
+export type BrowserAccountEvent = Prisma.BrowserAccountEventModel
+/**
+ * Model BrowserAccountLease
+ * 
+ */
+export type BrowserAccountLease = Prisma.BrowserAccountLeaseModel
+/**
+ * Model BrowserAccountChannel
+ * 
+ */
+export type BrowserAccountChannel = Prisma.BrowserAccountChannelModel
+/**
  * Model ScheduledPost
  * 
  */
@@ -82,6 +122,21 @@ export type ScheduledPost = Prisma.ScheduledPostModel
  * 
  */
 export type PublishAttempt = Prisma.PublishAttemptModel
+/**
+ * Model BrowserActionHistory
+ * 
+ */
+export type BrowserActionHistory = Prisma.BrowserActionHistoryModel
+/**
+ * Model BrowserActionTrace
+ * 
+ */
+export type BrowserActionTrace = Prisma.BrowserActionTraceModel
+/**
+ * Model SportsNewsSetting
+ * 
+ */
+export type SportsNewsSetting = Prisma.SportsNewsSettingModel
 /**
  * Model AutomationSetting
  * 
@@ -103,7 +158,27 @@ export type CopilotConversationMessage = Prisma.CopilotConversationMessageModel
  */
 export type PromptTemplate = Prisma.PromptTemplateModel
 /**
+ * Model Lead
+ * 
+ */
+export type Lead = Prisma.LeadModel
+/**
+ * Model LeadActivity
+ * 
+ */
+export type LeadActivity = Prisma.LeadActivityModel
+/**
  * Model BrandMemoryFact
  * 
  */
 export type BrandMemoryFact = Prisma.BrandMemoryFactModel
+/**
+ * Model EngineeringSnapshot
+ * 
+ */
+export type EngineeringSnapshot = Prisma.EngineeringSnapshotModel
+/**
+ * Model SportsNewsRun
+ * 
+ */
+export type SportsNewsRun = Prisma.SportsNewsRunModel

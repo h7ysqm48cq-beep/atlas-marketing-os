@@ -38,6 +38,48 @@ export const CampaignIdeaStatus = {
 export type CampaignIdeaStatus = (typeof CampaignIdeaStatus)[keyof typeof CampaignIdeaStatus]
 
 
+export const LeadStatus = {
+  NEW: 'NEW',
+  CONTACTED: 'CONTACTED',
+  ENGAGED: 'ENGAGED',
+  QUALIFIED: 'QUALIFIED',
+  CONVERTED: 'CONVERTED',
+  LOST: 'LOST',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus]
+
+
+export const LeadConsentStatus = {
+  UNKNOWN: 'UNKNOWN',
+  NOT_REQUIRED: 'NOT_REQUIRED',
+  PENDING: 'PENDING',
+  GRANTED: 'GRANTED',
+  REVOKED: 'REVOKED'
+} as const
+
+export type LeadConsentStatus = (typeof LeadConsentStatus)[keyof typeof LeadConsentStatus]
+
+
+export const LeadActivityType = {
+  CREATED: 'CREATED',
+  IMPORTED: 'IMPORTED',
+  FORM_SUBMITTED: 'FORM_SUBMITTED',
+  MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
+  MESSAGE_SENT: 'MESSAGE_SENT',
+  COMMENTED: 'COMMENTED',
+  CLICKED: 'CLICKED',
+  QUALIFIED: 'QUALIFIED',
+  SCORE_CHANGED: 'SCORE_CHANGED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  CONVERTED: 'CONVERTED',
+  NOTE: 'NOTE'
+} as const
+
+export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
+
+
 export const ContentStatus = {
   DRAFT: 'DRAFT',
   AI_IMPROVED: 'AI_IMPROVED',
@@ -58,6 +100,37 @@ export const AssetType = {
 } as const
 
 export type AssetType = (typeof AssetType)[keyof typeof AssetType]
+
+
+export const BackgroundJobStatus = {
+  QUEUED: 'QUEUED',
+  RUNNING: 'RUNNING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type BackgroundJobStatus = (typeof BackgroundJobStatus)[keyof typeof BackgroundJobStatus]
+
+
+export const BackgroundJobType = {
+  AI_STUDIO: 'AI_STUDIO',
+  COPILOT_CHAT: 'COPILOT_CHAT',
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN',
+  ASSET_IMAGE: 'ASSET_IMAGE'
+} as const
+
+export type BackgroundJobType = (typeof BackgroundJobType)[keyof typeof BackgroundJobType]
+
+
+export const AiUsageFeature = {
+  CONTENT_GENERATION: 'CONTENT_GENERATION',
+  COPILOT_CHAT: 'COPILOT_CHAT',
+  COPILOT_MARKETING_PLAN: 'COPILOT_MARKETING_PLAN',
+  OTHER: 'OTHER'
+} as const
+
+export type AiUsageFeature = (typeof AiUsageFeature)[keyof typeof AiUsageFeature]
 
 
 export const SocialPlatform = {
@@ -98,6 +171,54 @@ export const PublishAttemptStatus = {
 } as const
 
 export type PublishAttemptStatus = (typeof PublishAttemptStatus)[keyof typeof PublishAttemptStatus]
+
+
+export const SocialProxyType = {
+  DIRECT: 'DIRECT',
+  HTTP: 'HTTP',
+  HTTPS: 'HTTPS',
+  SOCKS5: 'SOCKS5'
+} as const
+
+export type SocialProxyType = (typeof SocialProxyType)[keyof typeof SocialProxyType]
+
+
+export const BrowserAccountEventStatus = {
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS',
+  WARNING: 'WARNING',
+  FAILED: 'FAILED'
+} as const
+
+export type BrowserAccountEventStatus = (typeof BrowserAccountEventStatus)[keyof typeof BrowserAccountEventStatus]
+
+
+export const BrowserActionType = {
+  PREPARE: 'PREPARE',
+  PUBLISH: 'PUBLISH',
+  DISCARD: 'DISCARD'
+} as const
+
+export type BrowserActionType = (typeof BrowserActionType)[keyof typeof BrowserActionType]
+
+
+export const BrowserActionStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+} as const
+
+export type BrowserActionStatus = (typeof BrowserActionStatus)[keyof typeof BrowserActionStatus]
+
+
+export const BrowserTraceStatus = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED'
+} as const
+
+export type BrowserTraceStatus = (typeof BrowserTraceStatus)[keyof typeof BrowserTraceStatus]
 
 
 export const CopilotMessageRole = {

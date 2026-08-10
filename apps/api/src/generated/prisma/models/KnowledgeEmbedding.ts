@@ -27,125 +27,125 @@ export type AggregateKnowledgeEmbedding = {
 }
 
 export type KnowledgeEmbeddingAvgAggregateOutputType = {
-  chunkIndex: number | null
-  startOffset: number | null
-  endOffset: number | null
   dimensions: number | null
+  chunkIndex: number | null
+  endOffset: number | null
+  startOffset: number | null
 }
 
 export type KnowledgeEmbeddingSumAggregateOutputType = {
-  chunkIndex: number | null
-  startOffset: number | null
-  endOffset: number | null
   dimensions: number | null
+  chunkIndex: number | null
+  endOffset: number | null
+  startOffset: number | null
 }
 
 export type KnowledgeEmbeddingMinAggregateOutputType = {
   id: string | null
   documentId: string | null
   brandId: string | null
-  chunkIndex: number | null
-  chunkText: string | null
-  startOffset: number | null
-  endOffset: number | null
   model: string | null
   dimensions: number | null
   contentHash: string | null
   embeddedAt: Date | null
   updatedAt: Date | null
+  chunkIndex: number | null
+  chunkText: string | null
+  endOffset: number | null
+  startOffset: number | null
 }
 
 export type KnowledgeEmbeddingMaxAggregateOutputType = {
   id: string | null
   documentId: string | null
   brandId: string | null
-  chunkIndex: number | null
-  chunkText: string | null
-  startOffset: number | null
-  endOffset: number | null
   model: string | null
   dimensions: number | null
   contentHash: string | null
   embeddedAt: Date | null
   updatedAt: Date | null
+  chunkIndex: number | null
+  chunkText: string | null
+  endOffset: number | null
+  startOffset: number | null
 }
 
 export type KnowledgeEmbeddingCountAggregateOutputType = {
   id: number
   documentId: number
   brandId: number
-  chunkIndex: number
-  chunkText: number
-  startOffset: number
-  endOffset: number
   vector: number
   model: number
   dimensions: number
   contentHash: number
   embeddedAt: number
   updatedAt: number
+  chunkIndex: number
+  chunkText: number
+  endOffset: number
+  startOffset: number
   _all: number
 }
 
 
 export type KnowledgeEmbeddingAvgAggregateInputType = {
-  chunkIndex?: true
-  startOffset?: true
-  endOffset?: true
   dimensions?: true
+  chunkIndex?: true
+  endOffset?: true
+  startOffset?: true
 }
 
 export type KnowledgeEmbeddingSumAggregateInputType = {
-  chunkIndex?: true
-  startOffset?: true
-  endOffset?: true
   dimensions?: true
+  chunkIndex?: true
+  endOffset?: true
+  startOffset?: true
 }
 
 export type KnowledgeEmbeddingMinAggregateInputType = {
   id?: true
   documentId?: true
   brandId?: true
-  chunkIndex?: true
-  chunkText?: true
-  startOffset?: true
-  endOffset?: true
   model?: true
   dimensions?: true
   contentHash?: true
   embeddedAt?: true
   updatedAt?: true
+  chunkIndex?: true
+  chunkText?: true
+  endOffset?: true
+  startOffset?: true
 }
 
 export type KnowledgeEmbeddingMaxAggregateInputType = {
   id?: true
   documentId?: true
   brandId?: true
-  chunkIndex?: true
-  chunkText?: true
-  startOffset?: true
-  endOffset?: true
   model?: true
   dimensions?: true
   contentHash?: true
   embeddedAt?: true
   updatedAt?: true
+  chunkIndex?: true
+  chunkText?: true
+  endOffset?: true
+  startOffset?: true
 }
 
 export type KnowledgeEmbeddingCountAggregateInputType = {
   id?: true
   documentId?: true
   brandId?: true
-  chunkIndex?: true
-  chunkText?: true
-  startOffset?: true
-  endOffset?: true
   vector?: true
   model?: true
   dimensions?: true
   contentHash?: true
   embeddedAt?: true
   updatedAt?: true
+  chunkIndex?: true
+  chunkText?: true
+  endOffset?: true
+  startOffset?: true
   _all?: true
 }
 
@@ -239,16 +239,16 @@ export type KnowledgeEmbeddingGroupByOutputType = {
   id: string
   documentId: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset: number | null
-  endOffset: number | null
   vector: runtime.JsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt: Date
   updatedAt: Date
+  chunkIndex: number
+  chunkText: string
+  endOffset: number | null
+  startOffset: number | null
   _count: KnowledgeEmbeddingCountAggregateOutputType | null
   _avg: KnowledgeEmbeddingAvgAggregateOutputType | null
   _sum: KnowledgeEmbeddingSumAggregateOutputType | null
@@ -278,16 +278,16 @@ export type KnowledgeEmbeddingWhereInput = {
   id?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   documentId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   brandId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
-  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
-  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
   vector?: Prisma.JsonFilter<"KnowledgeEmbedding">
   model?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   dimensions?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
   contentHash?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   embeddedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
+  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
+  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
+  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
+  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
   document?: Prisma.XOR<Prisma.KnowledgeDocumentScalarRelationFilter, Prisma.KnowledgeDocumentWhereInput>
 }
 
@@ -295,16 +295,16 @@ export type KnowledgeEmbeddingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
-  chunkIndex?: Prisma.SortOrder
-  chunkText?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrderInput | Prisma.SortOrder
-  endOffset?: Prisma.SortOrderInput | Prisma.SortOrder
   vector?: Prisma.SortOrder
   model?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
   contentHash?: Prisma.SortOrder
   embeddedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  chunkText?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrderInput | Prisma.SortOrder
+  startOffset?: Prisma.SortOrderInput | Prisma.SortOrder
   document?: Prisma.KnowledgeDocumentOrderByWithRelationInput
 }
 
@@ -316,16 +316,16 @@ export type KnowledgeEmbeddingWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.KnowledgeEmbeddingWhereInput | Prisma.KnowledgeEmbeddingWhereInput[]
   documentId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   brandId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
-  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
-  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
   vector?: Prisma.JsonFilter<"KnowledgeEmbedding">
   model?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   dimensions?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
   contentHash?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   embeddedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
+  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
+  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
+  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
+  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
   document?: Prisma.XOR<Prisma.KnowledgeDocumentScalarRelationFilter, Prisma.KnowledgeDocumentWhereInput>
 }, "id" | "documentId_chunkIndex">
 
@@ -333,16 +333,16 @@ export type KnowledgeEmbeddingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
-  chunkIndex?: Prisma.SortOrder
-  chunkText?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrderInput | Prisma.SortOrder
-  endOffset?: Prisma.SortOrderInput | Prisma.SortOrder
   vector?: Prisma.SortOrder
   model?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
   contentHash?: Prisma.SortOrder
   embeddedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  chunkText?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrderInput | Prisma.SortOrder
+  startOffset?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.KnowledgeEmbeddingCountOrderByAggregateInput
   _avg?: Prisma.KnowledgeEmbeddingAvgOrderByAggregateInput
   _max?: Prisma.KnowledgeEmbeddingMaxOrderByAggregateInput
@@ -357,31 +357,31 @@ export type KnowledgeEmbeddingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
   documentId?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
   brandId?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
-  chunkIndex?: Prisma.IntWithAggregatesFilter<"KnowledgeEmbedding"> | number
-  chunkText?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
-  startOffset?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeEmbedding"> | number | null
-  endOffset?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeEmbedding"> | number | null
   vector?: Prisma.JsonWithAggregatesFilter<"KnowledgeEmbedding">
   model?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
   dimensions?: Prisma.IntWithAggregatesFilter<"KnowledgeEmbedding"> | number
   contentHash?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
   embeddedAt?: Prisma.DateTimeWithAggregatesFilter<"KnowledgeEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"KnowledgeEmbedding"> | Date | string
+  chunkIndex?: Prisma.IntWithAggregatesFilter<"KnowledgeEmbedding"> | number
+  chunkText?: Prisma.StringWithAggregatesFilter<"KnowledgeEmbedding"> | string
+  endOffset?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeEmbedding"> | number | null
+  startOffset?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeEmbedding"> | number | null
 }
 
 export type KnowledgeEmbeddingCreateInput = {
   id?: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
   document: Prisma.KnowledgeDocumentCreateNestedOneWithoutEmbeddingsInput
 }
 
@@ -389,31 +389,31 @@ export type KnowledgeEmbeddingUncheckedCreateInput = {
   id?: string
   documentId: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
 }
 
 export type KnowledgeEmbeddingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   document?: Prisma.KnowledgeDocumentUpdateOneRequiredWithoutEmbeddingsNestedInput
 }
 
@@ -421,63 +421,63 @@ export type KnowledgeEmbeddingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   documentId?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type KnowledgeEmbeddingCreateManyInput = {
   id?: string
   documentId: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
 }
 
 export type KnowledgeEmbeddingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type KnowledgeEmbeddingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   documentId?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type KnowledgeEmbeddingListRelationFilter = {
@@ -499,60 +499,60 @@ export type KnowledgeEmbeddingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
-  chunkIndex?: Prisma.SortOrder
-  chunkText?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrder
-  endOffset?: Prisma.SortOrder
   vector?: Prisma.SortOrder
   model?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
   contentHash?: Prisma.SortOrder
   embeddedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  chunkText?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrder
+  startOffset?: Prisma.SortOrder
 }
 
 export type KnowledgeEmbeddingAvgOrderByAggregateInput = {
-  chunkIndex?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrder
-  endOffset?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrder
+  startOffset?: Prisma.SortOrder
 }
 
 export type KnowledgeEmbeddingMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
-  chunkIndex?: Prisma.SortOrder
-  chunkText?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrder
-  endOffset?: Prisma.SortOrder
   model?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
   contentHash?: Prisma.SortOrder
   embeddedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  chunkText?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrder
+  startOffset?: Prisma.SortOrder
 }
 
 export type KnowledgeEmbeddingMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
-  chunkIndex?: Prisma.SortOrder
-  chunkText?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrder
-  endOffset?: Prisma.SortOrder
   model?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
   contentHash?: Prisma.SortOrder
   embeddedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  chunkText?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrder
+  startOffset?: Prisma.SortOrder
 }
 
 export type KnowledgeEmbeddingSumOrderByAggregateInput = {
-  chunkIndex?: Prisma.SortOrder
-  startOffset?: Prisma.SortOrder
-  endOffset?: Prisma.SortOrder
   dimensions?: Prisma.SortOrder
+  chunkIndex?: Prisma.SortOrder
+  endOffset?: Prisma.SortOrder
+  startOffset?: Prisma.SortOrder
 }
 
 export type KnowledgeEmbeddingCreateNestedManyWithoutDocumentInput = {
@@ -600,31 +600,31 @@ export type KnowledgeEmbeddingUncheckedUpdateManyWithoutDocumentNestedInput = {
 export type KnowledgeEmbeddingCreateWithoutDocumentInput = {
   id?: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
 }
 
 export type KnowledgeEmbeddingUncheckedCreateWithoutDocumentInput = {
   id?: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
 }
 
 export type KnowledgeEmbeddingCreateOrConnectWithoutDocumentInput = {
@@ -660,76 +660,76 @@ export type KnowledgeEmbeddingScalarWhereInput = {
   id?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   documentId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   brandId?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
-  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
-  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
-  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
   vector?: Prisma.JsonFilter<"KnowledgeEmbedding">
   model?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   dimensions?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
   contentHash?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
   embeddedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeEmbedding"> | Date | string
+  chunkIndex?: Prisma.IntFilter<"KnowledgeEmbedding"> | number
+  chunkText?: Prisma.StringFilter<"KnowledgeEmbedding"> | string
+  endOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
+  startOffset?: Prisma.IntNullableFilter<"KnowledgeEmbedding"> | number | null
 }
 
 export type KnowledgeEmbeddingCreateManyDocumentInput = {
   id?: string
   brandId: string
-  chunkIndex: number
-  chunkText: string
-  startOffset?: number | null
-  endOffset?: number | null
   vector: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model: string
   dimensions: number
   contentHash: string
   embeddedAt?: Date | string
   updatedAt?: Date | string
+  chunkIndex: number
+  chunkText: string
+  endOffset?: number | null
+  startOffset?: number | null
 }
 
 export type KnowledgeEmbeddingUpdateWithoutDocumentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type KnowledgeEmbeddingUncheckedUpdateWithoutDocumentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type KnowledgeEmbeddingUncheckedUpdateManyWithoutDocumentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
-  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vector?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   model?: Prisma.StringFieldUpdateOperationsInput | string
   dimensions?: Prisma.IntFieldUpdateOperationsInput | number
   contentHash?: Prisma.StringFieldUpdateOperationsInput | string
   embeddedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  chunkText?: Prisma.StringFieldUpdateOperationsInput | string
+  endOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  startOffset?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -738,16 +738,16 @@ export type KnowledgeEmbeddingSelect<ExtArgs extends runtime.Types.Extensions.In
   id?: boolean
   documentId?: boolean
   brandId?: boolean
-  chunkIndex?: boolean
-  chunkText?: boolean
-  startOffset?: boolean
-  endOffset?: boolean
   vector?: boolean
   model?: boolean
   dimensions?: boolean
   contentHash?: boolean
   embeddedAt?: boolean
   updatedAt?: boolean
+  chunkIndex?: boolean
+  chunkText?: boolean
+  endOffset?: boolean
+  startOffset?: boolean
   document?: boolean | Prisma.KnowledgeDocumentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["knowledgeEmbedding"]>
 
@@ -755,16 +755,16 @@ export type KnowledgeEmbeddingSelectCreateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   documentId?: boolean
   brandId?: boolean
-  chunkIndex?: boolean
-  chunkText?: boolean
-  startOffset?: boolean
-  endOffset?: boolean
   vector?: boolean
   model?: boolean
   dimensions?: boolean
   contentHash?: boolean
   embeddedAt?: boolean
   updatedAt?: boolean
+  chunkIndex?: boolean
+  chunkText?: boolean
+  endOffset?: boolean
+  startOffset?: boolean
   document?: boolean | Prisma.KnowledgeDocumentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["knowledgeEmbedding"]>
 
@@ -772,16 +772,16 @@ export type KnowledgeEmbeddingSelectUpdateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   documentId?: boolean
   brandId?: boolean
-  chunkIndex?: boolean
-  chunkText?: boolean
-  startOffset?: boolean
-  endOffset?: boolean
   vector?: boolean
   model?: boolean
   dimensions?: boolean
   contentHash?: boolean
   embeddedAt?: boolean
   updatedAt?: boolean
+  chunkIndex?: boolean
+  chunkText?: boolean
+  endOffset?: boolean
+  startOffset?: boolean
   document?: boolean | Prisma.KnowledgeDocumentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["knowledgeEmbedding"]>
 
@@ -789,19 +789,19 @@ export type KnowledgeEmbeddingSelectScalar = {
   id?: boolean
   documentId?: boolean
   brandId?: boolean
-  chunkIndex?: boolean
-  chunkText?: boolean
-  startOffset?: boolean
-  endOffset?: boolean
   vector?: boolean
   model?: boolean
   dimensions?: boolean
   contentHash?: boolean
   embeddedAt?: boolean
   updatedAt?: boolean
+  chunkIndex?: boolean
+  chunkText?: boolean
+  endOffset?: boolean
+  startOffset?: boolean
 }
 
-export type KnowledgeEmbeddingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "documentId" | "brandId" | "chunkIndex" | "chunkText" | "startOffset" | "endOffset" | "vector" | "model" | "dimensions" | "contentHash" | "embeddedAt" | "updatedAt", ExtArgs["result"]["knowledgeEmbedding"]>
+export type KnowledgeEmbeddingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "documentId" | "brandId" | "vector" | "model" | "dimensions" | "contentHash" | "embeddedAt" | "updatedAt" | "chunkIndex" | "chunkText" | "endOffset" | "startOffset", ExtArgs["result"]["knowledgeEmbedding"]>
 export type KnowledgeEmbeddingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   document?: boolean | Prisma.KnowledgeDocumentDefaultArgs<ExtArgs>
 }
@@ -821,16 +821,16 @@ export type $KnowledgeEmbeddingPayload<ExtArgs extends runtime.Types.Extensions.
     id: string
     documentId: string
     brandId: string
-    chunkIndex: number
-    chunkText: string
-    startOffset: number | null
-    endOffset: number | null
     vector: runtime.JsonValue
     model: string
     dimensions: number
     contentHash: string
     embeddedAt: Date
     updatedAt: Date
+    chunkIndex: number
+    chunkText: string
+    endOffset: number | null
+    startOffset: number | null
   }, ExtArgs["result"]["knowledgeEmbedding"]>
   composites: {}
 }
@@ -1258,16 +1258,16 @@ export interface KnowledgeEmbeddingFieldRefs {
   readonly id: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
   readonly documentId: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
   readonly brandId: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
-  readonly chunkIndex: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
-  readonly chunkText: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
-  readonly startOffset: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
-  readonly endOffset: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
   readonly vector: Prisma.FieldRef<"KnowledgeEmbedding", 'Json'>
   readonly model: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
   readonly dimensions: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
   readonly contentHash: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
   readonly embeddedAt: Prisma.FieldRef<"KnowledgeEmbedding", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"KnowledgeEmbedding", 'DateTime'>
+  readonly chunkIndex: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
+  readonly chunkText: Prisma.FieldRef<"KnowledgeEmbedding", 'String'>
+  readonly endOffset: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
+  readonly startOffset: Prisma.FieldRef<"KnowledgeEmbedding", 'Int'>
 }
     
 

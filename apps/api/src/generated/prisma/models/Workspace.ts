@@ -182,9 +182,13 @@ export type WorkspaceWhereInput = {
   slug?: Prisma.StringFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
+  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
   brands?: Prisma.BrandListRelationFilter
   socialChannels?: Prisma.SocialChannelListRelationFilter
-  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
+  SportsNewsRun?: Prisma.SportsNewsRunListRelationFilter
+  sportsNewsSetting?: Prisma.XOR<Prisma.SportsNewsSettingNullableScalarRelationFilter, Prisma.SportsNewsSettingWhereInput> | null
+  audienceSegments?: Prisma.AudienceSegmentListRelationFilter
+  leads?: Prisma.LeadListRelationFilter
 }
 
 export type WorkspaceOrderByWithRelationInput = {
@@ -193,9 +197,13 @@ export type WorkspaceOrderByWithRelationInput = {
   slug?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  automationSetting?: Prisma.AutomationSettingOrderByWithRelationInput
   brands?: Prisma.BrandOrderByRelationAggregateInput
   socialChannels?: Prisma.SocialChannelOrderByRelationAggregateInput
-  automationSetting?: Prisma.AutomationSettingOrderByWithRelationInput
+  SportsNewsRun?: Prisma.SportsNewsRunOrderByRelationAggregateInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingOrderByWithRelationInput
+  audienceSegments?: Prisma.AudienceSegmentOrderByRelationAggregateInput
+  leads?: Prisma.LeadOrderByRelationAggregateInput
 }
 
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -207,9 +215,13 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Workspace"> | string
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
+  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
   brands?: Prisma.BrandListRelationFilter
   socialChannels?: Prisma.SocialChannelListRelationFilter
-  automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
+  SportsNewsRun?: Prisma.SportsNewsRunListRelationFilter
+  sportsNewsSetting?: Prisma.XOR<Prisma.SportsNewsSettingNullableScalarRelationFilter, Prisma.SportsNewsSettingWhereInput> | null
+  audienceSegments?: Prisma.AudienceSegmentListRelationFilter
+  leads?: Prisma.LeadListRelationFilter
 }, "id" | "slug">
 
 export type WorkspaceOrderByWithAggregationInput = {
@@ -240,9 +252,13 @@ export type WorkspaceCreateInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
   brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
   socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
-  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateInput = {
@@ -251,9 +267,13 @@ export type WorkspaceUncheckedCreateInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
   socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
-  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUpdateInput = {
@@ -262,9 +282,13 @@ export type WorkspaceUpdateInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
   brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
   socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
-  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateInput = {
@@ -273,9 +297,13 @@ export type WorkspaceUncheckedUpdateInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
   brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
-  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateManyInput = {
@@ -331,14 +359,6 @@ export type WorkspaceScalarRelationFilter = {
   isNot?: Prisma.WorkspaceWhereInput
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type WorkspaceCreateNestedOneWithoutBrandsInput = {
   create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBrandsInput, Prisma.WorkspaceUncheckedCreateWithoutBrandsInput>
   connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBrandsInput
@@ -351,6 +371,20 @@ export type WorkspaceUpdateOneRequiredWithoutBrandsNestedInput = {
   upsert?: Prisma.WorkspaceUpsertWithoutBrandsInput
   connect?: Prisma.WorkspaceWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutBrandsInput, Prisma.WorkspaceUpdateWithoutBrandsInput>, Prisma.WorkspaceUncheckedUpdateWithoutBrandsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutAudienceSegmentsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedCreateWithoutAudienceSegmentsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutAudienceSegmentsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutAudienceSegmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedCreateWithoutAudienceSegmentsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutAudienceSegmentsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutAudienceSegmentsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutAudienceSegmentsInput, Prisma.WorkspaceUpdateWithoutAudienceSegmentsInput>, Prisma.WorkspaceUncheckedUpdateWithoutAudienceSegmentsInput>
 }
 
 export type WorkspaceCreateNestedOneWithoutSocialChannelsInput = {
@@ -367,6 +401,20 @@ export type WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutSocialChannelsInput, Prisma.WorkspaceUpdateWithoutSocialChannelsInput>, Prisma.WorkspaceUncheckedUpdateWithoutSocialChannelsInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutSportsNewsSettingInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsSettingInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSportsNewsSettingInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutSportsNewsSettingNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsSettingInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSportsNewsSettingInput
+  upsert?: Prisma.WorkspaceUpsertWithoutSportsNewsSettingInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutSportsNewsSettingInput, Prisma.WorkspaceUpdateWithoutSportsNewsSettingInput>, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsSettingInput>
+}
+
 export type WorkspaceCreateNestedOneWithoutAutomationSettingInput = {
   create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutAutomationSettingInput, Prisma.WorkspaceUncheckedCreateWithoutAutomationSettingInput>
   connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutAutomationSettingInput
@@ -381,14 +429,46 @@ export type WorkspaceUpdateOneRequiredWithoutAutomationSettingNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutAutomationSettingInput, Prisma.WorkspaceUpdateWithoutAutomationSettingInput>, Prisma.WorkspaceUncheckedUpdateWithoutAutomationSettingInput>
 }
 
+export type WorkspaceCreateNestedOneWithoutLeadsInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutLeadsInput, Prisma.WorkspaceUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutLeadsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutLeadsNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutLeadsInput, Prisma.WorkspaceUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutLeadsInput
+  upsert?: Prisma.WorkspaceUpsertWithoutLeadsInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutLeadsInput, Prisma.WorkspaceUpdateWithoutLeadsInput>, Prisma.WorkspaceUncheckedUpdateWithoutLeadsInput>
+}
+
+export type WorkspaceCreateNestedOneWithoutSportsNewsRunInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsRunInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSportsNewsRunInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+}
+
+export type WorkspaceUpdateOneRequiredWithoutSportsNewsRunNestedInput = {
+  create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsRunInput>
+  connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutSportsNewsRunInput
+  upsert?: Prisma.WorkspaceUpsertWithoutSportsNewsRunInput
+  connect?: Prisma.WorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkspaceUpdateToOneWithWhereWithoutSportsNewsRunInput, Prisma.WorkspaceUpdateWithoutSportsNewsRunInput>, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsRunInput>
+}
+
 export type WorkspaceCreateWithoutBrandsInput = {
   id?: string
   name: string
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
-  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutBrandsInput = {
@@ -397,8 +477,12 @@ export type WorkspaceUncheckedCreateWithoutBrandsInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
-  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutBrandsInput = {
@@ -423,8 +507,12 @@ export type WorkspaceUpdateWithoutBrandsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
@@ -433,8 +521,84 @@ export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutAudienceSegmentsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutAudienceSegmentsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutAudienceSegmentsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedCreateWithoutAudienceSegmentsInput>
+}
+
+export type WorkspaceUpsertWithoutAudienceSegmentsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedUpdateWithoutAudienceSegmentsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedCreateWithoutAudienceSegmentsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutAudienceSegmentsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutAudienceSegmentsInput, Prisma.WorkspaceUncheckedUpdateWithoutAudienceSegmentsInput>
+}
+
+export type WorkspaceUpdateWithoutAudienceSegmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutAudienceSegmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutSocialChannelsInput = {
@@ -443,8 +607,12 @@ export type WorkspaceCreateWithoutSocialChannelsInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
-  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutSocialChannelsInput = {
@@ -453,8 +621,12 @@ export type WorkspaceUncheckedCreateWithoutSocialChannelsInput = {
   slug: string
   createdAt?: Date | string
   updatedAt?: Date | string
-  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutSocialChannelsInput = {
@@ -479,8 +651,12 @@ export type WorkspaceUpdateWithoutSocialChannelsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutSocialChannelsInput = {
@@ -489,8 +665,84 @@ export type WorkspaceUncheckedUpdateWithoutSocialChannelsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutSportsNewsSettingInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutSportsNewsSettingInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutSportsNewsSettingInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsSettingInput>
+}
+
+export type WorkspaceUpsertWithoutSportsNewsSettingInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsSettingInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsSettingInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutSportsNewsSettingInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSportsNewsSettingInput, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsSettingInput>
+}
+
+export type WorkspaceUpdateWithoutSportsNewsSettingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutSportsNewsSettingInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceCreateWithoutAutomationSettingInput = {
@@ -501,6 +753,10 @@ export type WorkspaceCreateWithoutAutomationSettingInput = {
   updatedAt?: Date | string
   brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
   socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceUncheckedCreateWithoutAutomationSettingInput = {
@@ -511,6 +767,10 @@ export type WorkspaceUncheckedCreateWithoutAutomationSettingInput = {
   updatedAt?: Date | string
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
   socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type WorkspaceCreateOrConnectWithoutAutomationSettingInput = {
@@ -537,6 +797,10 @@ export type WorkspaceUpdateWithoutAutomationSettingInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
   socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type WorkspaceUncheckedUpdateWithoutAutomationSettingInput = {
@@ -547,6 +811,154 @@ export type WorkspaceUncheckedUpdateWithoutAutomationSettingInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutLeadsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutLeadsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutLeadsInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutLeadsInput, Prisma.WorkspaceUncheckedCreateWithoutLeadsInput>
+}
+
+export type WorkspaceUpsertWithoutLeadsInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutLeadsInput, Prisma.WorkspaceUncheckedUpdateWithoutLeadsInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutLeadsInput, Prisma.WorkspaceUncheckedCreateWithoutLeadsInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutLeadsInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutLeadsInput, Prisma.WorkspaceUncheckedUpdateWithoutLeadsInput>
+}
+
+export type WorkspaceUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  SportsNewsRun?: Prisma.SportsNewsRunUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceCreateWithoutSportsNewsRunInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceUncheckedCreateWithoutSportsNewsRunInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutWorkspaceInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedCreateNestedOneWithoutWorkspaceInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type WorkspaceCreateOrConnectWithoutSportsNewsRunInput = {
+  where: Prisma.WorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsRunInput>
+}
+
+export type WorkspaceUpsertWithoutSportsNewsRunInput = {
+  update: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsRunInput>
+  create: Prisma.XOR<Prisma.WorkspaceCreateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedCreateWithoutSportsNewsRunInput>
+  where?: Prisma.WorkspaceWhereInput
+}
+
+export type WorkspaceUpdateToOneWithWhereWithoutSportsNewsRunInput = {
+  where?: Prisma.WorkspaceWhereInput
+  data: Prisma.XOR<Prisma.WorkspaceUpdateWithoutSportsNewsRunInput, Prisma.WorkspaceUncheckedUpdateWithoutSportsNewsRunInput>
+}
+
+export type WorkspaceUpdateWithoutSportsNewsRunInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type WorkspaceUncheckedUpdateWithoutSportsNewsRunInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutWorkspaceNestedInput
+  sportsNewsSetting?: Prisma.SportsNewsSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 
@@ -557,11 +969,17 @@ export type WorkspaceUncheckedUpdateWithoutAutomationSettingInput = {
 export type WorkspaceCountOutputType = {
   brands: number
   socialChannels: number
+  SportsNewsRun: number
+  audienceSegments: number
+  leads: number
 }
 
 export type WorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brands?: boolean | WorkspaceCountOutputTypeCountBrandsArgs
   socialChannels?: boolean | WorkspaceCountOutputTypeCountSocialChannelsArgs
+  SportsNewsRun?: boolean | WorkspaceCountOutputTypeCountSportsNewsRunArgs
+  audienceSegments?: boolean | WorkspaceCountOutputTypeCountAudienceSegmentsArgs
+  leads?: boolean | WorkspaceCountOutputTypeCountLeadsArgs
 }
 
 /**
@@ -588,6 +1006,27 @@ export type WorkspaceCountOutputTypeCountSocialChannelsArgs<ExtArgs extends runt
   where?: Prisma.SocialChannelWhereInput
 }
 
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountSportsNewsRunArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SportsNewsRunWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountAudienceSegmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AudienceSegmentWhereInput
+}
+
+/**
+ * WorkspaceCountOutputType without action
+ */
+export type WorkspaceCountOutputTypeCountLeadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LeadWhereInput
+}
+
 
 export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -595,9 +1034,13 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   slug?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
   brands?: boolean | Prisma.Workspace$brandsArgs<ExtArgs>
   socialChannels?: boolean | Prisma.Workspace$socialChannelsArgs<ExtArgs>
-  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
+  SportsNewsRun?: boolean | Prisma.Workspace$SportsNewsRunArgs<ExtArgs>
+  sportsNewsSetting?: boolean | Prisma.Workspace$sportsNewsSettingArgs<ExtArgs>
+  audienceSegments?: boolean | Prisma.Workspace$audienceSegmentsArgs<ExtArgs>
+  leads?: boolean | Prisma.Workspace$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["workspace"]>
 
@@ -627,9 +1070,13 @@ export type WorkspaceSelectScalar = {
 
 export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
 export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
   brands?: boolean | Prisma.Workspace$brandsArgs<ExtArgs>
   socialChannels?: boolean | Prisma.Workspace$socialChannelsArgs<ExtArgs>
-  automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
+  SportsNewsRun?: boolean | Prisma.Workspace$SportsNewsRunArgs<ExtArgs>
+  sportsNewsSetting?: boolean | Prisma.Workspace$sportsNewsSettingArgs<ExtArgs>
+  audienceSegments?: boolean | Prisma.Workspace$audienceSegmentsArgs<ExtArgs>
+  leads?: boolean | Prisma.Workspace$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -638,9 +1085,13 @@ export type WorkspaceIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Workspace"
   objects: {
+    automationSetting: Prisma.$AutomationSettingPayload<ExtArgs> | null
     brands: Prisma.$BrandPayload<ExtArgs>[]
     socialChannels: Prisma.$SocialChannelPayload<ExtArgs>[]
-    automationSetting: Prisma.$AutomationSettingPayload<ExtArgs> | null
+    SportsNewsRun: Prisma.$SportsNewsRunPayload<ExtArgs>[]
+    sportsNewsSetting: Prisma.$SportsNewsSettingPayload<ExtArgs> | null
+    audienceSegments: Prisma.$AudienceSegmentPayload<ExtArgs>[]
+    leads: Prisma.$LeadPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1042,9 +1493,13 @@ readonly fields: WorkspaceFieldRefs;
  */
 export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  automationSetting<T extends Prisma.Workspace$automationSettingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$automationSettingArgs<ExtArgs>>): Prisma.Prisma__AutomationSettingClient<runtime.Types.Result.GetResult<Prisma.$AutomationSettingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   brands<T extends Prisma.Workspace$brandsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$brandsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   socialChannels<T extends Prisma.Workspace$socialChannelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$socialChannelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  automationSetting<T extends Prisma.Workspace$automationSettingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$automationSettingArgs<ExtArgs>>): Prisma.Prisma__AutomationSettingClient<runtime.Types.Result.GetResult<Prisma.$AutomationSettingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  SportsNewsRun<T extends Prisma.Workspace$SportsNewsRunArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$SportsNewsRunArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sportsNewsSetting<T extends Prisma.Workspace$sportsNewsSettingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$sportsNewsSettingArgs<ExtArgs>>): Prisma.Prisma__SportsNewsSettingClient<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  audienceSegments<T extends Prisma.Workspace$audienceSegmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$audienceSegmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AudienceSegmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  leads<T extends Prisma.Workspace$leadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Workspace$leadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1472,6 +1927,25 @@ export type WorkspaceDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * Workspace.automationSetting
+ */
+export type Workspace$automationSettingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AutomationSetting
+   */
+  select?: Prisma.AutomationSettingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AutomationSetting
+   */
+  omit?: Prisma.AutomationSettingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AutomationSettingInclude<ExtArgs> | null
+  where?: Prisma.AutomationSettingWhereInput
+}
+
+/**
  * Workspace.brands
  */
 export type Workspace$brandsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1520,22 +1994,94 @@ export type Workspace$socialChannelsArgs<ExtArgs extends runtime.Types.Extension
 }
 
 /**
- * Workspace.automationSetting
+ * Workspace.SportsNewsRun
  */
-export type Workspace$automationSettingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Workspace$SportsNewsRunArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the AutomationSetting
+   * Select specific fields to fetch from the SportsNewsRun
    */
-  select?: Prisma.AutomationSettingSelect<ExtArgs> | null
+  select?: Prisma.SportsNewsRunSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the AutomationSetting
+   * Omit specific fields from the SportsNewsRun
    */
-  omit?: Prisma.AutomationSettingOmit<ExtArgs> | null
+  omit?: Prisma.SportsNewsRunOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.AutomationSettingInclude<ExtArgs> | null
-  where?: Prisma.AutomationSettingWhereInput
+  include?: Prisma.SportsNewsRunInclude<ExtArgs> | null
+  where?: Prisma.SportsNewsRunWhereInput
+  orderBy?: Prisma.SportsNewsRunOrderByWithRelationInput | Prisma.SportsNewsRunOrderByWithRelationInput[]
+  cursor?: Prisma.SportsNewsRunWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SportsNewsRunScalarFieldEnum | Prisma.SportsNewsRunScalarFieldEnum[]
+}
+
+/**
+ * Workspace.sportsNewsSetting
+ */
+export type Workspace$sportsNewsSettingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SportsNewsSetting
+   */
+  select?: Prisma.SportsNewsSettingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SportsNewsSetting
+   */
+  omit?: Prisma.SportsNewsSettingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SportsNewsSettingInclude<ExtArgs> | null
+  where?: Prisma.SportsNewsSettingWhereInput
+}
+
+/**
+ * Workspace.audienceSegments
+ */
+export type Workspace$audienceSegmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AudienceSegment
+   */
+  select?: Prisma.AudienceSegmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AudienceSegment
+   */
+  omit?: Prisma.AudienceSegmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AudienceSegmentInclude<ExtArgs> | null
+  where?: Prisma.AudienceSegmentWhereInput
+  orderBy?: Prisma.AudienceSegmentOrderByWithRelationInput | Prisma.AudienceSegmentOrderByWithRelationInput[]
+  cursor?: Prisma.AudienceSegmentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AudienceSegmentScalarFieldEnum | Prisma.AudienceSegmentScalarFieldEnum[]
+}
+
+/**
+ * Workspace.leads
+ */
+export type Workspace$leadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Lead
+   */
+  select?: Prisma.LeadSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Lead
+   */
+  omit?: Prisma.LeadOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LeadInclude<ExtArgs> | null
+  where?: Prisma.LeadWhereInput
+  orderBy?: Prisma.LeadOrderByWithRelationInput | Prisma.LeadOrderByWithRelationInput[]
+  cursor?: Prisma.LeadWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LeadScalarFieldEnum | Prisma.LeadScalarFieldEnum[]
 }
 
 /**

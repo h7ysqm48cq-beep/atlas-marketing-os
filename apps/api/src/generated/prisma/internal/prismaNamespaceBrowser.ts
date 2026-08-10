@@ -51,9 +51,11 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
+  BackgroundJob: 'BackgroundJob',
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
+  AudienceSegment: 'AudienceSegment',
   CampaignIdea: 'CampaignIdea',
   GenerationHistory: 'GenerationHistory',
   ContentVersion: 'ContentVersion',
@@ -62,13 +64,26 @@ export const ModelName = {
   KnowledgeEmbedding: 'KnowledgeEmbedding',
   AiUsage: 'AiUsage',
   SocialChannel: 'SocialChannel',
+  SocialChannelRuntimeProfile: 'SocialChannelRuntimeProfile',
+  BrowserAccount: 'BrowserAccount',
+  BrowserAutomationPolicy: 'BrowserAutomationPolicy',
+  BrowserAccountEvent: 'BrowserAccountEvent',
+  BrowserAccountLease: 'BrowserAccountLease',
+  BrowserAccountChannel: 'BrowserAccountChannel',
   ScheduledPost: 'ScheduledPost',
   PublishAttempt: 'PublishAttempt',
+  BrowserActionHistory: 'BrowserActionHistory',
+  BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
-  BrandMemoryFact: 'BrandMemoryFact'
+  Lead: 'Lead',
+  LeadActivity: 'LeadActivity',
+  BrandMemoryFact: 'BrandMemoryFact',
+  EngineeringSnapshot: 'EngineeringSnapshot',
+  SportsNewsRun: 'SportsNewsRun'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -85,6 +100,23 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
+
+
+export const BackgroundJobScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  payload: 'payload',
+  result: 'result',
+  error: 'error',
+  attempts: 'attempts',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BackgroundJobScalarFieldEnum = (typeof BackgroundJobScalarFieldEnum)[keyof typeof BackgroundJobScalarFieldEnum]
 
 
 export const WorkspaceScalarFieldEnum = {
@@ -117,7 +149,12 @@ export const BrandScalarFieldEnum = {
   examplePosts: 'examplePosts',
   status: 'status',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  primaryLogoAssetId: 'primaryLogoAssetId',
+  brandBannerAssetId: 'brandBannerAssetId',
+  mascotAssetId: 'mascotAssetId',
+  brandKit: 'brandKit',
+  referenceAssetIds: 'referenceAssetIds'
 } as const
 
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
@@ -133,10 +170,29 @@ export const CampaignScalarFieldEnum = {
   startDate: 'startDate',
   endDate: 'endDate',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings'
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
+export const AudienceSegmentScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  name: 'name',
+  description: 'description',
+  country: 'country',
+  region: 'region',
+  industry: 'industry',
+  language: 'language',
+  criteria: 'criteria',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AudienceSegmentScalarFieldEnum = (typeof AudienceSegmentScalarFieldEnum)[keyof typeof AudienceSegmentScalarFieldEnum]
 
 
 export const CampaignIdeaScalarFieldEnum = {
@@ -160,8 +216,6 @@ export type CampaignIdeaScalarFieldEnum = (typeof CampaignIdeaScalarFieldEnum)[k
 export const GenerationHistoryScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
-  campaignId: 'campaignId',
-  ideaId: 'ideaId',
   topic: 'topic',
   platforms: 'platforms',
   style: 'style',
@@ -172,14 +226,17 @@ export const GenerationHistoryScalarFieldEnum = {
   imagePrompt: 'imagePrompt',
   analysis: 'analysis',
   isFavorite: 'isFavorite',
-  status: 'status',
-  reviewNote: 'reviewNote',
-  reviewedBy: 'reviewedBy',
-  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  campaignId: 'campaignId',
+  ideaId: 'ideaId',
   approvedAt: 'approvedAt',
   publishedAt: 'publishedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  reviewNote: 'reviewNote',
+  reviewedAt: 'reviewedAt',
+  reviewedBy: 'reviewedBy',
+  status: 'status',
+  socialChannelRuntimeProfileId: 'socialChannelRuntimeProfileId'
 } as const
 
 export type GenerationHistoryScalarFieldEnum = (typeof GenerationHistoryScalarFieldEnum)[keyof typeof GenerationHistoryScalarFieldEnum]
@@ -208,28 +265,30 @@ export const AssetScalarFieldEnum = {
   provider: 'provider',
   platform: 'platform',
   prompt: 'prompt',
-  revisedPrompt: 'revisedPrompt',
-  negativePrompt: 'negativePrompt',
-  generationModel: 'generationModel',
-  generationSize: 'generationSize',
-  generationQuality: 'generationQuality',
-  generationDurationMs: 'generationDurationMs',
   url: 'url',
   thumbnailUrl: 'thumbnailUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  fileSize: 'fileSize',
   mimeType: 'mimeType',
   width: 'width',
   height: 'height',
-  tags: 'tags',
-  collection: 'collection',
   isFavorite: 'isFavorite',
-  downloadCount: 'downloadCount',
-  usedCount: 'usedCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  collection: 'collection',
+  downloadCount: 'downloadCount',
+  fileSize: 'fileSize',
+  generationDurationMs: 'generationDurationMs',
+  generationModel: 'generationModel',
+  generationQuality: 'generationQuality',
+  generationSize: 'generationSize',
+  lastUsedAt: 'lastUsedAt',
+  negativePrompt: 'negativePrompt',
+  revisedPrompt: 'revisedPrompt',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider',
+  tags: 'tags',
+  usedCount: 'usedCount',
+  remark: 'remark',
+  aiEnabled: 'aiEnabled'
 } as const
 
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
@@ -242,16 +301,16 @@ export const KnowledgeDocumentScalarFieldEnum = {
   category: 'category',
   content: 'content',
   tags: 'tags',
-  sourceFileName: 'sourceFileName',
-  sourceMimeType: 'sourceMimeType',
-  sourceFileSize: 'sourceFileSize',
-  sourceUrl: 'sourceUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  usageCount: 'usageCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  lastUsedAt: 'lastUsedAt',
+  usageCount: 'usageCount',
+  sourceFileName: 'sourceFileName',
+  sourceFileSize: 'sourceFileSize',
+  sourceMimeType: 'sourceMimeType',
+  sourceUrl: 'sourceUrl',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider'
 } as const
 
 export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
@@ -261,16 +320,16 @@ export const KnowledgeEmbeddingScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
   brandId: 'brandId',
-  chunkIndex: 'chunkIndex',
-  chunkText: 'chunkText',
-  startOffset: 'startOffset',
-  endOffset: 'endOffset',
   vector: 'vector',
   model: 'model',
   dimensions: 'dimensions',
   contentHash: 'contentHash',
   embeddedAt: 'embeddedAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  chunkIndex: 'chunkIndex',
+  chunkText: 'chunkText',
+  endOffset: 'endOffset',
+  startOffset: 'startOffset'
 } as const
 
 export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalarFieldEnum)[keyof typeof KnowledgeEmbeddingScalarFieldEnum]
@@ -281,13 +340,16 @@ export const AiUsageScalarFieldEnum = {
   historyId: 'historyId',
   model: 'model',
   promptTokens: 'promptTokens',
-  cachedInputTokens: 'cachedInputTokens',
   completionTokens: 'completionTokens',
   totalTokens: 'totalTokens',
   estimatedCostUsd: 'estimatedCostUsd',
   estimatedCostMyr: 'estimatedCostMyr',
   durationMs: 'durationMs',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  cachedInputTokens: 'cachedInputTokens',
+  conversationId: 'conversationId',
+  feature: 'feature',
+  reasoningTokens: 'reasoningTokens'
 } as const
 
 export type AiUsageScalarFieldEnum = (typeof AiUsageScalarFieldEnum)[keyof typeof AiUsageScalarFieldEnum]
@@ -313,6 +375,150 @@ export const SocialChannelScalarFieldEnum = {
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
 
 
+export const SocialChannelRuntimeProfileScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  lastKnownIp: 'lastKnownIp',
+  lastConnectionStatus: 'lastConnectionStatus',
+  lastConnectionError: 'lastConnectionError',
+  lastConnectionTestAt: 'lastConnectionTestAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  deviceScaleFactor: 'deviceScaleFactor',
+  identityLocked: 'identityLocked',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent'
+} as const
+
+export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
+
+
+export const BrowserAccountScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  platform: 'platform',
+  displayName: 'displayName',
+  browserProfileKey: 'browserProfileKey',
+  browserProfileName: 'browserProfileName',
+  locale: 'locale',
+  timezone: 'timezone',
+  proxyType: 'proxyType',
+  proxyHost: 'proxyHost',
+  proxyPort: 'proxyPort',
+  proxyUsernameEncrypted: 'proxyUsernameEncrypted',
+  proxyPasswordEncrypted: 'proxyPasswordEncrypted',
+  proxyCountry: 'proxyCountry',
+  facebookUserId: 'facebookUserId',
+  facebookUserName: 'facebookUserName',
+  loginStatus: 'loginStatus',
+  cookieStatus: 'cookieStatus',
+  lastKnownIp: 'lastKnownIp',
+  lastLoginAt: 'lastLoginAt',
+  lastVerifiedAt: 'lastVerifiedAt',
+  lastHeartbeatAt: 'lastHeartbeatAt',
+  lastLoginError: 'lastLoginError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  colorScheme: 'colorScheme',
+  deviceMemory: 'deviceMemory',
+  deviceScaleFactor: 'deviceScaleFactor',
+  expectedIp: 'expectedIp',
+  facebookEmailEncrypted: 'facebookEmailEncrypted',
+  facebookPasswordEncrypted: 'facebookPasswordEncrypted',
+  fingerprintStatus: 'fingerprintStatus',
+  hardwareConcurrency: 'hardwareConcurrency',
+  identityError: 'identityError',
+  identityLocked: 'identityLocked',
+  identityVersion: 'identityVersion',
+  ipStatus: 'ipStatus',
+  lastIpCheckedAt: 'lastIpCheckedAt',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent',
+  webglRenderer: 'webglRenderer',
+  webglVendor: 'webglVendor',
+  facebookEmailHash: 'facebookEmailHash'
+} as const
+
+export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
+
+
+export const BrowserAutomationPolicyScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  autoVerifyLogin: 'autoVerifyLogin',
+  autoDiscoverPages: 'autoDiscoverPages',
+  autoSyncPages: 'autoSyncPages',
+  autoHealthCheck: 'autoHealthCheck',
+  autoCloseBrowser: 'autoCloseBrowser',
+  autoNotifications: 'autoNotifications',
+  keepBrowserOpenAfterLogin: 'keepBrowserOpenAfterLogin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAutomationPolicyScalarFieldEnum = (typeof BrowserAutomationPolicyScalarFieldEnum)[keyof typeof BrowserAutomationPolicyScalarFieldEnum]
+
+
+export const BrowserAccountEventScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  eventType: 'eventType',
+  status: 'status',
+  title: 'title',
+  message: 'message',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserAccountEventScalarFieldEnum = (typeof BrowserAccountEventScalarFieldEnum)[keyof typeof BrowserAccountEventScalarFieldEnum]
+
+
+export const BrowserAccountLeaseScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  leaseToken: 'leaseToken',
+  ownerKey: 'ownerKey',
+  channelId: 'channelId',
+  acquiredAt: 'acquiredAt',
+  expiresAt: 'expiresAt',
+  releasedAt: 'releasedAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountLeaseScalarFieldEnum = (typeof BrowserAccountLeaseScalarFieldEnum)[keyof typeof BrowserAccountLeaseScalarFieldEnum]
+
+
+export const BrowserAccountChannelScalarFieldEnum = {
+  id: 'id',
+  browserAccountId: 'browserAccountId',
+  channelId: 'channelId',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BrowserAccountChannelScalarFieldEnum = (typeof BrowserAccountChannelScalarFieldEnum)[keyof typeof BrowserAccountChannelScalarFieldEnum]
+
+
 export const ScheduledPostScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -332,7 +538,8 @@ export const ScheduledPostScalarFieldEnum = {
   lastError: 'lastError',
   retryCount: 'retryCount',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings'
 } as const
 
 export type ScheduledPostScalarFieldEnum = (typeof ScheduledPostScalarFieldEnum)[keyof typeof ScheduledPostScalarFieldEnum]
@@ -352,6 +559,238 @@ export const PublishAttemptScalarFieldEnum = {
 } as const
 
 export type PublishAttemptScalarFieldEnum = (typeof PublishAttemptScalarFieldEnum)[keyof typeof PublishAttemptScalarFieldEnum]
+
+
+export const BrowserActionHistoryScalarFieldEnum = {
+  id: 'id',
+  channelId: 'channelId',
+  action: 'action',
+  status: 'status',
+  browserProfileKey: 'browserProfileKey',
+  caption: 'caption',
+  imagePath: 'imagePath',
+  screenshotPath: 'screenshotPath',
+  requestPayload: 'requestPayload',
+  responsePayload: 'responsePayload',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt',
+  flowId: 'flowId'
+} as const
+
+export type BrowserActionHistoryScalarFieldEnum = (typeof BrowserActionHistoryScalarFieldEnum)[keyof typeof BrowserActionHistoryScalarFieldEnum]
+
+
+export const BrowserActionTraceScalarFieldEnum = {
+  id: 'id',
+  browserActionId: 'browserActionId',
+  stepKey: 'stepKey',
+  stepName: 'stepName',
+  stepOrder: 'stepOrder',
+  status: 'status',
+  metadata: 'metadata',
+  errorMessage: 'errorMessage',
+  screenshotPath: 'screenshotPath',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
+
+
+export const SportsNewsSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  enabled: 'enabled',
+  timezone: 'timezone',
+  morningEnabled: 'morningEnabled',
+  morningTime: 'morningTime',
+  eveningEnabled: 'eveningEnabled',
+  eveningTime: 'eveningTime',
+  telegramEnabled: 'telegramEnabled',
+  telegramChannelId: 'telegramChannelId',
+  facebookEnabled: 'facebookEnabled',
+  facebookChannelId: 'facebookChannelId',
+  autoPublishEnabled: 'autoPublishEnabled',
+  approvalRequired: 'approvalRequired',
+  language: 'language',
+  sportsKnowledgeEnabled: 'sportsKnowledgeEnabled',
+  discussionQuestionEnabled: 'discussionQuestionEnabled',
+  referenceLinksEnabled: 'referenceLinksEnabled',
+  customPromptEnabled: 'customPromptEnabled',
+  systemPrompt: 'systemPrompt',
+  morningPrompt: 'morningPrompt',
+  eveningPrompt: 'eveningPrompt',
+  knowledgePrompt: 'knowledgePrompt',
+  customInstructions: 'customInstructions',
+  imageEnabled: 'imageEnabled',
+  imagePrompt: 'imagePrompt',
+  morningImagePrompt: 'morningImagePrompt',
+  eveningImagePrompt: 'eveningImagePrompt',
+  imageAspectRatio: 'imageAspectRatio',
+  imageTextMode: 'imageTextMode',
+  imageVisualStyle: 'imageVisualStyle',
+  logoEnabled: 'logoEnabled',
+  logoPosition: 'logoPosition',
+  brandFooterEnabled: 'brandFooterEnabled',
+  brandFooterText: 'brandFooterText',
+  lastMorningRunAt: 'lastMorningRunAt',
+  lastEveningRunAt: 'lastEveningRunAt',
+  lastRunStatus: 'lastRunStatus',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  morningTelegramEnabled: 'morningTelegramEnabled',
+  morningFacebookEnabled: 'morningFacebookEnabled',
+  eveningTelegramEnabled: 'eveningTelegramEnabled',
+  eveningFacebookEnabled: 'eveningFacebookEnabled',
+  sameDaySourcesOnly: 'sameDaySourcesOnly',
+  maxSourceAgeHours: 'maxSourceAgeHours',
+  requirePublishedAt: 'requirePublishedAt',
+  requireSourceUrl: 'requireSourceUrl',
+  minimumSources: 'minimumSources',
+  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
+  logoAssetId: 'logoAssetId',
+  logoSize: 'logoSize',
+  logoOpacity: 'logoOpacity',
+  logoMargin: 'logoMargin',
+  footerLogoEnabled: 'footerLogoEnabled',
+  footerLogoAssetId: 'footerLogoAssetId',
+  footerQrEnabled: 'footerQrEnabled',
+  footerQrAssetId: 'footerQrAssetId',
+  footerQrLink: 'footerQrLink',
+  footerPlacement: 'footerPlacement',
+  storyMinimum: 'storyMinimum',
+  storyMaximum: 'storyMaximum',
+  sportsPriority: 'sportsPriority',
+  verificationInstructions: 'verificationInstructions',
+  imageHeadlineInstructions: 'imageHeadlineInstructions',
+  visibleCopyInstructions: 'visibleCopyInstructions',
+  telegramMorningHeader: 'telegramMorningHeader',
+  telegramEveningHeader: 'telegramEveningHeader',
+  telegramSectionLabel: 'telegramSectionLabel',
+  telegramCtaEnabled: 'telegramCtaEnabled',
+  telegramCtaText: 'telegramCtaText',
+  telegramCtaUrl: 'telegramCtaUrl',
+  telegramShowSummaries: 'telegramShowSummaries',
+  telegramCaptionTarget: 'telegramCaptionTarget',
+  telegramSummaryZhLong: 'telegramSummaryZhLong',
+  telegramSummaryEnLong: 'telegramSummaryEnLong',
+  telegramSummaryZhMedium: 'telegramSummaryZhMedium',
+  telegramSummaryEnMedium: 'telegramSummaryEnMedium',
+  telegramSummaryZhShort: 'telegramSummaryZhShort',
+  telegramSummaryEnShort: 'telegramSummaryEnShort',
+  telegramSummaryZhCompact: 'telegramSummaryZhCompact',
+  telegramSummaryEnCompact: 'telegramSummaryEnCompact',
+  visualDirectorEnabled: 'visualDirectorEnabled',
+  visualDirectorPrompt: 'visualDirectorPrompt',
+  heroStoryWeight: 'heroStoryWeight',
+  singleSportVisualPrompt: 'singleSportVisualPrompt',
+  multiSportVisualPrompt: 'multiSportVisualPrompt',
+  completedEventVisualPrompt: 'completedEventVisualPrompt',
+  upcomingEventVisualPrompt: 'upcomingEventVisualPrompt',
+  developmentVisualPrompt: 'developmentVisualPrompt',
+  morningVisualDirection: 'morningVisualDirection',
+  eveningVisualDirection: 'eveningVisualDirection',
+  imagePhotographyPrompt: 'imagePhotographyPrompt',
+  imageNegativePrompt: 'imageNegativePrompt',
+  imageUpperSafeAreaPrompt: 'imageUpperSafeAreaPrompt',
+  imageLowerSafeAreaPrompt: 'imageLowerSafeAreaPrompt',
+  imageLayoutEnabled: 'imageLayoutEnabled',
+  mastheadScale: 'mastheadScale',
+  mastheadTopPercent: 'mastheadTopPercent',
+  highlightsPanelWidthPercent: 'highlightsPanelWidthPercent',
+  highlightsPanelHeightPercent: 'highlightsPanelHeightPercent',
+  highlightsPanelTopPercent: 'highlightsPanelTopPercent',
+  highlightsPanelOpacityStart: 'highlightsPanelOpacityStart',
+  highlightsPanelOpacityMiddle: 'highlightsPanelOpacityMiddle',
+  highlightsPanelOpacityEnd: 'highlightsPanelOpacityEnd',
+  highlightsPanelRadius: 'highlightsPanelRadius',
+  heroHeadlineScale: 'heroHeadlineScale',
+  secondaryHeadlineScale: 'secondaryHeadlineScale',
+  story02PositionPercent: 'story02PositionPercent',
+  story03PositionPercent: 'story03PositionPercent',
+  footerHeightPercent: 'footerHeightPercent',
+  qrEnabled: 'qrEnabled',
+  qrLink: 'qrLink',
+  mastheadBrandText: 'mastheadBrandText',
+  morningEditionZh: 'morningEditionZh',
+  eveningEditionZh: 'eveningEditionZh',
+  morningEditionEn: 'morningEditionEn',
+  eveningEditionEn: 'eveningEditionEn',
+  imageSectionLabel: 'imageSectionLabel',
+  morningAccentColor: 'morningAccentColor',
+  eveningAccentColor: 'eveningAccentColor',
+  morningSecondaryColor: 'morningSecondaryColor',
+  eveningSecondaryColor: 'eveningSecondaryColor',
+  mastheadPrimaryColor: 'mastheadPrimaryColor',
+  mastheadEnglishColor: 'mastheadEnglishColor',
+  headlinePrimaryColor: 'headlinePrimaryColor',
+  headlineSecondaryColor: 'headlineSecondaryColor',
+  panelBaseColor: 'panelBaseColor',
+  watermarkEnabled: 'watermarkEnabled',
+  watermarkScale: 'watermarkScale',
+  watermarkOpacity: 'watermarkOpacity',
+  watermarkPosition: 'watermarkPosition',
+  qrSizePercent: 'qrSizePercent',
+  qrMarginPercent: 'qrMarginPercent',
+  footerDateEnabled: 'footerDateEnabled',
+  footerDateSeparator: 'footerDateSeparator',
+  footerBackgroundColor: 'footerBackgroundColor',
+  footerSeparatorColor: 'footerSeparatorColor',
+  imageGenerationSize: 'imageGenerationSize',
+  imageGenerationQuality: 'imageGenerationQuality',
+  footballKeywords: 'footballKeywords',
+  basketballKeywords: 'basketballKeywords',
+  motorsportKeywords: 'motorsportKeywords',
+  motorcycleKeywords: 'motorcycleKeywords',
+  tennisKeywords: 'tennisKeywords',
+  badmintonKeywords: 'badmintonKeywords',
+  baseballKeywords: 'baseballKeywords',
+  combatKeywords: 'combatKeywords',
+  completedScoreRequired: 'completedScoreRequired',
+  invalidStoryPolicy: 'invalidStoryPolicy',
+  morningSameDaySourcesOnly: 'morningSameDaySourcesOnly',
+  newsAiModel: 'newsAiModel',
+  newsWebSearchEnabled: 'newsWebSearchEnabled',
+  imageAiModel: 'imageAiModel',
+  imageGenerationEnabled: 'imageGenerationEnabled',
+  duplicateEditionPolicy: 'duplicateEditionPolicy',
+  forceRunExistingPolicy: 'forceRunExistingPolicy',
+  queueStatusOnCreate: 'queueStatusOnCreate',
+  publishRetryEnabled: 'publishRetryEnabled',
+  publishRetryLimit: 'publishRetryLimit',
+  publishRetryDelayMinutes: 'publishRetryDelayMinutes',
+  generationFailurePolicy: 'generationFailurePolicy',
+  imageFailurePolicy: 'imageFailurePolicy',
+  brandingFailurePolicy: 'brandingFailurePolicy',
+  minimumSourcesPerStory: 'minimumSourcesPerStory',
+  minimumStoriesPerEdition: 'minimumStoriesPerEdition',
+  completedEventPolicy: 'completedEventPolicy',
+  upcomingEventPolicy: 'upcomingEventPolicy',
+  developmentStoryPolicy: 'developmentStoryPolicy',
+  sourceDeduplicationEnabled: 'sourceDeduplicationEnabled',
+  imageRulesEnabled: 'imageRulesEnabled',
+  imageRulesPrompt: 'imageRulesPrompt',
+  imageBrandRulesEnabled: 'imageBrandRulesEnabled',
+  imageBrandRulesPrompt: 'imageBrandRulesPrompt',
+  forceRunEnabled: 'forceRunEnabled',
+  forceMorningEnabled: 'forceMorningEnabled',
+  forceEveningEnabled: 'forceEveningEnabled',
+  morningPostTitleTemplate: 'morningPostTitleTemplate',
+  eveningPostTitleTemplate: 'eveningPostTitleTemplate',
+  imageModelOverrideEnabled: 'imageModelOverrideEnabled',
+  previewNewsPromptEnabled: 'previewNewsPromptEnabled',
+  previewImagePromptEnabled: 'previewImagePromptEnabled',
+  previewTelegramCaptionEnabled: 'previewTelegramCaptionEnabled',
+  recommendedDefaultsVersion: 'recommendedDefaultsVersion'
+} as const
+
+export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
@@ -413,6 +852,56 @@ export const PromptTemplateScalarFieldEnum = {
 export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
 
 
+export const LeadScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  audienceSegmentId: 'audienceSegmentId',
+  sourceCampaignId: 'sourceCampaignId',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  company: 'company',
+  industry: 'industry',
+  country: 'country',
+  region: 'region',
+  language: 'language',
+  source: 'source',
+  sourcePlatform: 'sourcePlatform',
+  externalId: 'externalId',
+  status: 'status',
+  score: 'score',
+  tags: 'tags',
+  consentStatus: 'consentStatus',
+  consentSource: 'consentSource',
+  consentAt: 'consentAt',
+  metadata: 'metadata',
+  convertedAt: 'convertedAt',
+  lastInteractionAt: 'lastInteractionAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const LeadActivityScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  type: 'type',
+  channel: 'channel',
+  source: 'source',
+  title: 'title',
+  description: 'description',
+  scoreDelta: 'scoreDelta',
+  metadata: 'metadata',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type LeadActivityScalarFieldEnum = (typeof LeadActivityScalarFieldEnum)[keyof typeof LeadActivityScalarFieldEnum]
+
+
 export const BrandMemoryFactScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -431,6 +920,39 @@ export const BrandMemoryFactScalarFieldEnum = {
 } as const
 
 export type BrandMemoryFactScalarFieldEnum = (typeof BrandMemoryFactScalarFieldEnum)[keyof typeof BrandMemoryFactScalarFieldEnum]
+
+
+export const EngineeringSnapshotScalarFieldEnum = {
+  id: 'id',
+  files: 'files',
+  description: 'description',
+  backupPath: 'backupPath',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EngineeringSnapshotScalarFieldEnum = (typeof EngineeringSnapshotScalarFieldEnum)[keyof typeof EngineeringSnapshotScalarFieldEnum]
+
+
+export const SportsNewsRunScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  runKey: 'runKey',
+  kind: 'kind',
+  trigger: 'trigger',
+  status: 'status',
+  sourceCount: 'sourceCount',
+  rejectedSourceCount: 'rejectedSourceCount',
+  scheduledPostIds: 'scheduledPostIds',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsRunScalarFieldEnum = (typeof SportsNewsRunScalarFieldEnum)[keyof typeof SportsNewsRunScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -464,14 +986,6 @@ export const QueryMode = {
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
 export const JsonNullValueFilter = {
   DbNull: DbNull,
   JsonNull: JsonNull,
@@ -479,4 +993,12 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
