@@ -792,26 +792,8 @@ export class SportsNewsAutomationService {
     const numberedEmojiLine = new RegExp('^[0-9]\\ufe0f?\\u20e3');
 
     const normalised = (content || '')
-      .replace(new RegExp('\\\\n', 'g'), '\n')
+      .replace(new RegExp('\\\\\\n', 'g'), '\n')
       .replace(new RegExp('<[^>]+>', 'g'), '')
-      .replace(
-        new RegExp(
-          '\$begin:math:display$\(\[\^\\$end:math:display$]+)\\]\$begin:math:text$https\?\:\/\/\[\^\\\\s\)\]\+\\$end:math:text$',
-          'g',
-        ),
-        '$1',
-      )
-      .replace(
-        new RegExp(
-          '\\(\$begin:math:display$\[\^\\$end:math:display$]+\\]',
-          'g',
-        ),
-        '',
-      )
-      .replace(
-        new RegExp('\$begin:math:display$\[\^\\$end:math:display$]+\\]', 'g'),
-        '',
-      )
       .replace(
         new RegExp('https?://(?!rebrand\\.ly/mgmbetae0dcf)\\S+', 'g'),
         '',
@@ -831,14 +813,14 @@ export class SportsNewsAutomationService {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    const finalLines: string[] = [
-      edition === 'MORNING'
-        ? '⚡ 满贯门体育早报 | M-Sports Morning'
-        : '🌙 满贯门体育晚报 | M-Sports Evening',
-      '',
-      '🔥 今日焦点 | Top Stories',
-    ];
-    let itemCount = 0;
+    type StoryBlock = {
+      title: string;
+      summary: string[];
+    };
+
+    const stories: StoryBlock[] = [];
+
+    let currentStory: StoryBlock | null = null;
 
     for (const line of lines) {
       if (sourceLine.test(line)) {
@@ -865,61 +847,146 @@ export class SportsNewsAutomationService {
         numberedLine.test(line) || numberedEmojiLine.test(line);
 
       if (isItemTitle) {
-        itemCount += 1;
-
-        if (itemCount > 3) {
+        if (stories.length >= 3) {
           break;
         }
 
-        finalLines.push('');
-        finalLines.push(
-          line.replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '').trim(),
-        );
+        currentStory = {
+          title: line
+            .replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '')
+            .trim(),
+          summary: [],
+        };
 
+        stories.push(currentStory);
         continue;
       }
 
-      if (itemCount > 0 && itemCount <= 3) {
+      if (currentStory && stories.length <= 3) {
         const cleanedLine = line
           .replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '')
           .replace(new RegExp('Read more.*$', 'i'), '')
           .trim();
 
         if (cleanedLine) {
-          finalLines.push(cleanedLine);
+          currentStory.summary.push(cleanedLine);
         }
       }
     }
 
-    let compact = finalLines
-      .join('\n')
-      .replace(new RegExp('\\n{3,}', 'g'), '\n\n')
-      .replace(new RegExp('[ \\t]+', 'g'), ' ')
-      .trim();
+    const cleanCompact = (value: string, maxLength: number) => {
+      const compact = value.replace(/[ \t]+/g, ' ').trim();
 
-    /*
-     * Never cut a sentence in the middle.
-     *
-     * If Telegram copy becomes too long, remove complete
-     * trailing lines while preserving the title/summary
-     * relationship and CTA.
-     */
-    const maxBodyLength = 900;
-
-    if (compact.length > maxBodyLength) {
-      const compactLines = compact.split('\n');
-
-      while (
-        compactLines.length > 5 &&
-        compactLines.join('\n').length > maxBodyLength
-      ) {
-        compactLines.pop();
+      if (compact.length <= maxLength) {
+        return compact;
       }
 
-      compact = compactLines.join('\n').trim();
+      const sliced = compact.slice(0, maxLength);
+
+      const punctuationIndex = Math.max(
+        sliced.lastIndexOf('。'),
+        sliced.lastIndexOf('！'),
+        sliced.lastIndexOf('？'),
+        sliced.lastIndexOf('.'),
+        sliced.lastIndexOf('!'),
+        sliced.lastIndexOf('?'),
+        sliced.lastIndexOf(','),
+        sliced.lastIndexOf('，'),
+        sliced.lastIndexOf(' '),
+      );
+
+      if (punctuationIndex >= Math.round(maxLength * 0.62)) {
+        return sliced.slice(0, punctuationIndex + 1).trim();
+      }
+
+      return sliced.trim();
+    };
+
+    const compactBilingualSummary = (
+      value: string,
+      zhMax: number,
+      enMax: number,
+    ) => {
+      const parts = value
+        .split('｜')
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      if (parts.length >= 2) {
+        const zh = cleanCompact(parts[0], zhMax);
+        const en = cleanCompact(parts.slice(1).join('｜'), enMax);
+
+        return [zh, en].filter(Boolean).join('｜');
+      }
+
+      return cleanCompact(value, zhMax + enMax);
+    };
+
+    const header =
+      edition === 'MORNING'
+        ? '⚡ 满贯门体育早报 | M-Sports Morning'
+        : '🌙 满贯门体育晚报 | M-Sports Evening';
+
+    const cta =
+      `立即查看今日体育焦点，加入满贯门 / ` +
+      `Follow today’s sports focus with 满贯门\n` +
+      CTA_URL;
+
+    /*
+     * The Telegram photo publisher works with a ~1000 character
+     * budget. Keep a safety margin so all three story titles and
+     * the CTA always survive.
+     */
+    const targetLength = 940;
+
+    const summaryBudgets = [
+      { zh: 72, en: 112 },
+      { zh: 58, en: 88 },
+      { zh: 46, en: 68 },
+      { zh: 34, en: 52 },
+      { zh: 0, en: 0 },
+    ];
+
+    const buildCaption = (zhMax: number, enMax: number) => {
+      const output: string[] = [header, '', '🔥 今日焦点 | Top Stories'];
+
+      stories.slice(0, 3).forEach((story) => {
+        output.push('');
+        output.push(story.title);
+
+        if (zhMax <= 0 || enMax <= 0) {
+          return;
+        }
+
+        const summary = story.summary.join(' ').trim();
+
+        if (!summary) {
+          return;
+        }
+
+        const compactSummary = compactBilingualSummary(summary, zhMax, enMax);
+
+        if (compactSummary) {
+          output.push(`   ${compactSummary}`);
+        }
+      });
+
+      return `${output.join('\n').trim()}\n\n${cta}`;
+    };
+
+    for (const budget of summaryBudgets) {
+      const candidate = buildCaption(budget.zh, budget.en);
+
+      if (candidate.length <= targetLength) {
+        return candidate;
+      }
     }
 
-    return `${compact}\n\n立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门\n${CTA_URL}`;
+    /*
+     * Final safety fallback:
+     * Never remove story titles or CTA.
+     */
+    return buildCaption(0, 0);
   }
 
   async forceCreateMorningEditionNow() {
