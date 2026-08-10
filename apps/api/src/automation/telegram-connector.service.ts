@@ -136,7 +136,7 @@ export class TelegramConnectorService {
   }
 
   private buildPhotoCaption(text: string): string {
-    const limit = 900;
+    const limit = 1000;
 
     if (text.length <= limit) {
       return text;
@@ -147,16 +147,37 @@ export class TelegramConnectorService {
       .map((part) => part.trim())
       .filter(Boolean);
 
+    const ctaIndex = paragraphs.findIndex((paragraph) =>
+      paragraph.includes('rebrand.ly/mgmbetae0dcf'),
+    );
+
+    const ctaParagraph = ctaIndex >= 0 ? paragraphs[ctaIndex] : '';
+
+    const bodyParagraphs =
+      ctaIndex >= 0
+        ? paragraphs.filter((_, index) => index !== ctaIndex)
+        : paragraphs;
+
+    const reservedCtaLength = ctaParagraph ? ctaParagraph.length + 2 : 0;
+
+    const bodyLimit = Math.max(0, limit - reservedCtaLength);
+
     let caption = '';
 
-    for (const paragraph of paragraphs) {
+    for (const paragraph of bodyParagraphs) {
       const candidate = caption ? `${caption}\n\n${paragraph}` : paragraph;
 
-      if (candidate.length > limit) {
+      if (candidate.length > bodyLimit) {
         break;
       }
 
       caption = candidate;
+    }
+
+    if (ctaParagraph) {
+      return caption
+        ? `${caption}\n\n${ctaParagraph}`
+        : ctaParagraph.slice(0, limit);
     }
 
     if (caption) {
