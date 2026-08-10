@@ -438,12 +438,40 @@ export function SportsNewsSettings() {
   const patch = <K extends keyof Settings>(k: K, v: Settings[K]) =>
     setS((x) => (x ? { ...x, [k]: v } : x));
   const saveSettings = async (settingsToSave: Settings) => {
+    /*
+     * GET /sports-news/settings returns Prisma metadata and
+     * expanded channel relations together with editable settings.
+     *
+     * Strip all read-only/runtime fields before PATCH so Prisma
+     * receives operator-editable settings only.
+     */
+    const {
+      id: _id,
+      workspaceId: _workspaceId,
+      telegramChannel: _telegramChannel,
+      facebookChannel: _facebookChannel,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      lastMorningRunAt: _lastMorningRunAt,
+      lastEveningRunAt: _lastEveningRunAt,
+      lastRunStatus: _lastRunStatus,
+      lastError: _lastError,
+      ...editableSettings
+    } = settingsToSave as Settings & {
+      id?: string;
+      workspaceId?: string;
+      telegramChannel?: unknown;
+      facebookChannel?: unknown;
+      createdAt?: string;
+      updatedAt?: string;
+    };
+
     const r = await fetch(`${API_URL}/sports-news/settings`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(settingsToSave),
+      body: JSON.stringify(editableSettings),
     });
 
     if (!r.ok) {

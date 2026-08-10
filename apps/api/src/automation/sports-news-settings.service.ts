@@ -274,17 +274,51 @@ export class SportsNewsSettingsService {
   async update(input: UpdateSportsNewsSettingsInput) {
     const settings = await this.get();
 
-    if (input.morningTime) {
-      this.validateTime(input.morningTime, 'morningTime');
+    /*
+     * Runtime API boundary protection.
+     *
+     * UpdateSportsNewsSettingsInput is a TypeScript type, so arbitrary
+     * JSON properties can still exist at runtime. Build the editable
+     * allowlist from the actual persisted SportsNewsSetting fields and
+     * explicitly remove system metadata, runtime status and expanded
+     * relations before Prisma receives the update payload.
+     */
+    const readOnlyFields = new Set([
+      'id',
+      'workspaceId',
+      'workspace',
+      'telegramChannel',
+      'facebookChannel',
+      'createdAt',
+      'updatedAt',
+      'lastMorningRunAt',
+      'lastEveningRunAt',
+      'lastRunStatus',
+      'lastError',
+    ]);
+
+    const editableFields = new Set(
+      Object.keys(settings).filter((key) => !readOnlyFields.has(key)),
+    );
+
+    const sanitizedInput = Object.fromEntries(
+      Object.entries(input as Record<string, unknown>).filter(([key]) =>
+        editableFields.has(key),
+      ),
+    ) as UpdateSportsNewsSettingsInput;
+
+    if (sanitizedInput.morningTime) {
+      this.validateTime(sanitizedInput.morningTime, 'morningTime');
     }
 
-    if (input.eveningTime) {
-      this.validateTime(input.eveningTime, 'eveningTime');
+    if (sanitizedInput.eveningTime) {
+      this.validateTime(sanitizedInput.eveningTime, 'eveningTime');
     }
 
     if (
-      input.maxSourceAgeHours !== undefined &&
-      (input.maxSourceAgeHours < 1 || input.maxSourceAgeHours > 168)
+      sanitizedInput.maxSourceAgeHours !== undefined &&
+      (sanitizedInput.maxSourceAgeHours < 1 ||
+        sanitizedInput.maxSourceAgeHours > 168)
     ) {
       throw new BadRequestException(
         'maxSourceAgeHours must be between 1 and 168.',
@@ -292,15 +326,17 @@ export class SportsNewsSettingsService {
     }
 
     if (
-      input.minimumSources !== undefined &&
-      (input.minimumSources < 1 || input.minimumSources > 20)
+      sanitizedInput.minimumSources !== undefined &&
+      (sanitizedInput.minimumSources < 1 || sanitizedInput.minimumSources > 20)
     ) {
       throw new BadRequestException('minimumSources must be between 1 and 20.');
     }
 
-    const nextStoryMinimum = input.storyMinimum ?? settings.storyMinimum;
+    const nextStoryMinimum =
+      sanitizedInput.storyMinimum ?? settings.storyMinimum;
 
-    const nextStoryMaximum = input.storyMaximum ?? settings.storyMaximum;
+    const nextStoryMaximum =
+      sanitizedInput.storyMaximum ?? settings.storyMaximum;
 
     if (
       nextStoryMinimum < 1 ||
@@ -315,8 +351,9 @@ export class SportsNewsSettingsService {
     }
 
     if (
-      input.telegramCaptionTarget !== undefined &&
-      (input.telegramCaptionTarget < 300 || input.telegramCaptionTarget > 1000)
+      sanitizedInput.telegramCaptionTarget !== undefined &&
+      (sanitizedInput.telegramCaptionTarget < 300 ||
+        sanitizedInput.telegramCaptionTarget > 1000)
     ) {
       throw new BadRequestException(
         'telegramCaptionTarget must be between 300 and 1000.',
@@ -324,8 +361,9 @@ export class SportsNewsSettingsService {
     }
 
     if (
-      input.heroStoryWeight !== undefined &&
-      (input.heroStoryWeight < 20 || input.heroStoryWeight > 90)
+      sanitizedInput.heroStoryWeight !== undefined &&
+      (sanitizedInput.heroStoryWeight < 20 ||
+        sanitizedInput.heroStoryWeight > 90)
     ) {
       throw new BadRequestException(
         'heroStoryWeight must be between 20 and 90.',
@@ -333,16 +371,28 @@ export class SportsNewsSettingsService {
     }
 
     const percentageFields = [
-      ['mastheadTopPercent', input.mastheadTopPercent],
-      ['highlightsPanelWidthPercent', input.highlightsPanelWidthPercent],
-      ['highlightsPanelHeightPercent', input.highlightsPanelHeightPercent],
-      ['highlightsPanelTopPercent', input.highlightsPanelTopPercent],
-      ['highlightsPanelOpacityStart', input.highlightsPanelOpacityStart],
-      ['highlightsPanelOpacityMiddle', input.highlightsPanelOpacityMiddle],
-      ['highlightsPanelOpacityEnd', input.highlightsPanelOpacityEnd],
-      ['story02PositionPercent', input.story02PositionPercent],
-      ['story03PositionPercent', input.story03PositionPercent],
-      ['footerHeightPercent', input.footerHeightPercent],
+      ['mastheadTopPercent', sanitizedInput.mastheadTopPercent],
+      [
+        'highlightsPanelWidthPercent',
+        sanitizedInput.highlightsPanelWidthPercent,
+      ],
+      [
+        'highlightsPanelHeightPercent',
+        sanitizedInput.highlightsPanelHeightPercent,
+      ],
+      ['highlightsPanelTopPercent', sanitizedInput.highlightsPanelTopPercent],
+      [
+        'highlightsPanelOpacityStart',
+        sanitizedInput.highlightsPanelOpacityStart,
+      ],
+      [
+        'highlightsPanelOpacityMiddle',
+        sanitizedInput.highlightsPanelOpacityMiddle,
+      ],
+      ['highlightsPanelOpacityEnd', sanitizedInput.highlightsPanelOpacityEnd],
+      ['story02PositionPercent', sanitizedInput.story02PositionPercent],
+      ['story03PositionPercent', sanitizedInput.story03PositionPercent],
+      ['footerHeightPercent', sanitizedInput.footerHeightPercent],
     ] as const;
 
     for (const [field, value] of percentageFields) {
@@ -352,9 +402,9 @@ export class SportsNewsSettingsService {
     }
 
     const positiveFields = [
-      ['mastheadScale', input.mastheadScale],
-      ['heroHeadlineScale', input.heroHeadlineScale],
-      ['secondaryHeadlineScale', input.secondaryHeadlineScale],
+      ['mastheadScale', sanitizedInput.mastheadScale],
+      ['heroHeadlineScale', sanitizedInput.heroHeadlineScale],
+      ['secondaryHeadlineScale', sanitizedInput.secondaryHeadlineScale],
     ] as const;
 
     for (const [field, value] of positiveFields) {
@@ -366,14 +416,14 @@ export class SportsNewsSettingsService {
     }
 
     const summaryFields = [
-      input.telegramSummaryZhLong,
-      input.telegramSummaryEnLong,
-      input.telegramSummaryZhMedium,
-      input.telegramSummaryEnMedium,
-      input.telegramSummaryZhShort,
-      input.telegramSummaryEnShort,
-      input.telegramSummaryZhCompact,
-      input.telegramSummaryEnCompact,
+      sanitizedInput.telegramSummaryZhLong,
+      sanitizedInput.telegramSummaryEnLong,
+      sanitizedInput.telegramSummaryZhMedium,
+      sanitizedInput.telegramSummaryEnMedium,
+      sanitizedInput.telegramSummaryZhShort,
+      sanitizedInput.telegramSummaryEnShort,
+      sanitizedInput.telegramSummaryZhCompact,
+      sanitizedInput.telegramSummaryEnCompact,
     ];
 
     if (
@@ -386,16 +436,16 @@ export class SportsNewsSettingsService {
       );
     }
 
-    if (input.telegramChannelId) {
+    if (sanitizedInput.telegramChannelId) {
       await this.validateChannel(
-        input.telegramChannelId,
+        sanitizedInput.telegramChannelId,
         SocialPlatform.TELEGRAM,
       );
     }
 
-    if (input.facebookChannelId) {
+    if (sanitizedInput.facebookChannelId) {
       await this.validateChannel(
-        input.facebookChannelId,
+        sanitizedInput.facebookChannelId,
         SocialPlatform.FACEBOOK,
       );
     }
@@ -404,7 +454,7 @@ export class SportsNewsSettingsService {
       where: {
         id: settings.id,
       },
-      data: input,
+      data: sanitizedInput,
       include: {
         telegramChannel: true,
         facebookChannel: true,
