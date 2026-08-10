@@ -244,30 +244,30 @@ export class MSportsImageBrandingService {
     if (visibleHighlights.length > 0) {
       const panelWidth = Math.round(width * 0.89);
       const panelLeft = Math.round(width * 0.055);
-      const panelHeight = Math.max(300, Math.round(height * 0.245));
+      const panelHeight = Math.max(300, Math.round(height * 0.235));
 
       const panelTop = Math.max(
-        Math.round(height * 0.59),
-        footerTop - panelHeight - Math.round(height * 0.035),
+        Math.round(height * 0.61),
+        footerTop - panelHeight - Math.round(height * 0.024),
       );
 
       const hero = visibleHighlights[0];
 
       const secondary = visibleHighlights.slice(1, 3);
 
-      const heroZhSize = Math.max(31, Math.round(width * 0.036));
+      const heroZhSize = Math.max(33, Math.round(width * 0.039));
 
-      const heroEnSize = Math.max(18, Math.round(width * 0.02));
+      const heroEnSize = Math.max(18, Math.round(width * 0.019));
 
-      const secondaryZhSize = Math.max(22, Math.round(width * 0.025));
+      const secondaryZhSize = Math.max(20, Math.round(width * 0.023));
 
-      const secondaryEnSize = Math.max(15, Math.round(width * 0.017));
+      const secondaryEnSize = Math.max(14, Math.round(width * 0.0155));
 
       const secondarySvg = secondary
         .map((story, index) => {
           const y =
-            Math.round(panelHeight * 0.72) +
-            index * Math.round(panelHeight * 0.145);
+            Math.round(panelHeight * 0.7) +
+            index * Math.round(panelHeight * 0.19);
 
           return `
             <text
@@ -322,15 +322,15 @@ export class MSportsImageBrandingService {
             >
               <stop
                 offset="0%"
-                stop-color="rgba(4,10,18,0.88)"
+                stop-color="rgba(4,10,18,0.80)"
               />
               <stop
-                offset="72%"
-                stop-color="rgba(4,10,18,0.70)"
+                offset="64%"
+                stop-color="rgba(4,10,18,0.60)"
               />
               <stop
                 offset="100%"
-                stop-color="rgba(4,10,18,0.42)"
+                stop-color="rgba(4,10,18,0.22)"
               />
             </linearGradient>
           </defs>
@@ -340,8 +340,8 @@ export class MSportsImageBrandingService {
             y="0"
             width="${panelWidth}"
             height="${panelHeight}"
-            rx="18"
-            ry="18"
+            rx="10"
+            ry="10"
             fill="url(#editorialPanel)"
           />
 
@@ -388,7 +388,7 @@ export class MSportsImageBrandingService {
 
           <text
             x="${Math.round(panelWidth * 0.12)}"
-            y="${Math.round(panelHeight * 0.36)}"
+            y="${Math.round(panelHeight * 0.355)}"
             font-size="${heroZhSize}"
             font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
             font-weight="800"
@@ -399,7 +399,7 @@ export class MSportsImageBrandingService {
 
           <text
             x="${Math.round(panelWidth * 0.12)}"
-            y="${Math.round(panelHeight * 0.48)}"
+            y="${Math.round(panelHeight * 0.485)}"
             font-size="${heroEnSize}"
             font-family="Arial, Helvetica, sans-serif"
             font-weight="600"
@@ -410,9 +410,9 @@ export class MSportsImageBrandingService {
 
           <line
             x1="${Math.round(panelWidth * 0.03)}"
-            y1="${Math.round(panelHeight * 0.59)}"
+            y1="${Math.round(panelHeight * 0.605)}"
             x2="${Math.round(panelWidth * 0.97)}"
-            y2="${Math.round(panelHeight * 0.59)}"
+            y2="${Math.round(panelHeight * 0.605)}"
             stroke="rgba(255,255,255,0.16)"
             stroke-width="1"
           />
@@ -428,7 +428,7 @@ export class MSportsImageBrandingService {
       });
 
       this.logger.log(
-        `M-Sports Editorial Layout v2 applied: ${visibleHighlights.length} story item(s).`,
+        `M-Sports Editorial Layout v2.1 applied: ${visibleHighlights.length} story item(s).`,
       );
     }
 
