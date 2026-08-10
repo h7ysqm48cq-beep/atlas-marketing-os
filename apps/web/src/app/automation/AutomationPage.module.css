@@ -1,0 +1,84 @@
+.page {
+  min-width: 0;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+
+  background: rgba(16, 20, 29, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  scrollbar-width: thin;
+}
+
+.nav a {
+  flex: 0 0 auto;
+
+  padding: 9px 13px;
+
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+
+  color: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1;
+
+  text-decoration: none;
+  white-space: nowrap;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.nav a:hover {
+  border-color: rgba(124, 108, 255, 0.5);
+  background: rgba(124, 108, 255, 0.12);
+}
+
+.section {
+  scroll-margin-top: 82px;
+}
+
+@media (max-width: 700px) {
+  .nav {
+    top: 0;
+    margin-inline: -2px;
+    padding: 9px 8px;
+    border-radius: 12px;
+  }
+
+  .nav a {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .section {
+    scroll-margin-top: 76px;
+  }
+}
+
+:global(html[data-theme="light"]) .nav {
+  background: rgba(255, 255, 255, 0.94);
+}

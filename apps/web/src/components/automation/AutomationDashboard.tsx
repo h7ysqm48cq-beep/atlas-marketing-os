@@ -4,25 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./AutomationDashboard.module.css";
 import { usePreferences } from "@/components/preferences";
 
-
 import { API_URL } from "@/lib/api";
-
 
 const DEFAULT_BROWSER_RUNTIME_API_URL =
   "https://api-production-7f7d.up.railway.app";
 
-
 function getBrowserRuntimeApiUrl() {
-  const configured =
-    process.env
-      .NEXT_PUBLIC_BROWSER_RUNTIME_API_URL
-      ?.trim();
+  const configured = process.env.NEXT_PUBLIC_BROWSER_RUNTIME_API_URL?.trim();
 
   if (configured) {
-    return configured.replace(
-      /\/+$/,
-      "",
-    );
+    return configured.replace(/\/+$/, "");
   }
 
   /*
@@ -32,72 +23,41 @@ function getBrowserRuntimeApiUrl() {
    */
   if (
     typeof window !== "undefined" &&
-    (
-      window.location.hostname ===
-        "localhost" ||
-      window.location.hostname ===
-        "127.0.0.1"
-    )
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1")
   ) {
     return DEFAULT_BROWSER_RUNTIME_API_URL;
   }
 
-  return API_URL.replace(
-    /\/+$/,
-    "",
-  );
+  return API_URL.replace(/\/+$/, "");
 }
 
-
-function buildBrowserViewUrl(
-  viewerToken: string,
-) {
+function buildBrowserViewUrl(viewerToken: string) {
   const configured =
-    process.env
-      .NEXT_PUBLIC_BROWSER_VIEW_URL
-      ?.trim() ||
+    process.env.NEXT_PUBLIC_BROWSER_VIEW_URL?.trim() ||
     "https://browser-worker-production-536a.up.railway.app/vnc.html";
 
   try {
-    const url =
-      new URL(
-        configured,
-      );
+    const url = new URL(configured);
 
-    url.searchParams.set(
-      "autoconnect",
-      "1",
-    );
+    url.searchParams.set("autoconnect", "1");
 
-    url.searchParams.set(
-      "resize",
-      "scale",
-    );
+    url.searchParams.set("resize", "scale");
 
     url.searchParams.set(
       "path",
-      `websockify?token=${encodeURIComponent(
-        viewerToken,
-      )}`,
+      `websockify?token=${encodeURIComponent(viewerToken)}`,
     );
 
-    url.searchParams.set(
-      "reconnect",
-      "1",
-    );
+    url.searchParams.set("reconnect", "1");
 
-    url.searchParams.set(
-      "reconnect_delay",
-      "1000",
-    );
+    url.searchParams.set("reconnect_delay", "1000");
 
     return url.toString();
   } catch {
     return configured;
   }
 }
-
-
 
 type Channel = {
   id: string;
@@ -156,11 +116,7 @@ type BrowserActionTraceItem = {
   stepKey: string;
   stepName: string;
   stepOrder: number;
-  status:
-    | "PENDING"
-    | "SUCCESS"
-    | "FAILED"
-    | "SKIPPED";
+  status: "PENDING" | "SUCCESS" | "FAILED" | "SKIPPED";
   metadata: unknown;
   errorMessage: string | null;
   screenshotPath: string | null;
@@ -174,14 +130,8 @@ type BrowserActionHistoryItem = {
   id: string;
   flowId: string | null;
   traces?: BrowserActionTraceItem[];
-  action:
-    | "PREPARE"
-    | "PUBLISH"
-    | "DISCARD";
-  status:
-    | "PENDING"
-    | "SUCCESS"
-    | "FAILED";
+  action: "PREPARE" | "PUBLISH" | "DISCARD";
+  status: "PENDING" | "SUCCESS" | "FAILED";
   browserProfileKey: string | null;
   caption: string | null;
   imagePath: string | null;
@@ -210,11 +160,7 @@ type BrowserActionHistoryItem = {
       };
     };
     verification?: {
-      status?:
-        | "CONFIRMED"
-        | "COMPOSER_CLOSED"
-        | "UNCONFIRMED"
-        | "FAILED";
+      status?: "CONFIRMED" | "COMPOSER_CLOSED" | "UNCONFIRMED" | "FAILED";
       waitedMs?: number;
       timeoutMs?: number;
       composerClosed?: boolean;
@@ -271,11 +217,7 @@ function formatDate(value: string, locale: string) {
 }
 
 type BrowserTraceDiagnostic = {
-  severity:
-    | "CRITICAL"
-    | "WARNING"
-    | "INFO"
-    | "HEALTHY";
+  severity: "CRITICAL" | "WARNING" | "INFO" | "HEALTHY";
   title: string;
   message: string;
   stepKey?: string;
@@ -288,114 +230,74 @@ function analyzeBrowserTrace(
     return [];
   }
 
-  const diagnostics:
-    BrowserTraceDiagnostic[] = [];
+  const diagnostics: BrowserTraceDiagnostic[] = [];
 
-  const failedSteps =
-    traces.filter(
-      (trace) =>
-        trace.status === "FAILED",
-    );
+  const failedSteps = traces.filter((trace) => trace.status === "FAILED");
 
   for (const trace of failedSteps) {
     diagnostics.push({
-      severity:
-        "CRITICAL",
-      title:
-        `${trace.stepName} failed`,
+      severity: "CRITICAL",
+      title: `${trace.stepName} failed`,
       message:
-        trace.errorMessage ||
-        "The browser step did not complete successfully.",
-      stepKey:
-        trace.stepKey,
+        trace.errorMessage || "The browser step did not complete successfully.",
+      stepKey: trace.stepKey,
     });
   }
 
-  const verySlowSteps =
-    traces.filter(
-      (trace) =>
-        trace.status === "SUCCESS" &&
-        (trace.durationMs || 0) >=
-          5000,
-    );
+  const verySlowSteps = traces.filter(
+    (trace) => trace.status === "SUCCESS" && (trace.durationMs || 0) >= 5000,
+  );
 
   for (const trace of verySlowSteps) {
     diagnostics.push({
-      severity:
-        "WARNING",
-      title:
-        `${trace.stepName} was very slow`,
-      message:
-        `This step took ${formatTraceDuration(
-          trace.durationMs,
-        )}. Check browser responsiveness, network latency, or page state.`,
-      stepKey:
-        trace.stepKey,
+      severity: "WARNING",
+      title: `${trace.stepName} was very slow`,
+      message: `This step took ${formatTraceDuration(
+        trace.durationMs,
+      )}. Check browser responsiveness, network latency, or page state.`,
+      stepKey: trace.stepKey,
     });
   }
 
-  const slowSteps =
-    traces.filter(
-      (trace) =>
-        trace.status === "SUCCESS" &&
-        (trace.durationMs || 0) >=
-          2000 &&
-        (trace.durationMs || 0) <
-          5000,
-    );
+  const slowSteps = traces.filter(
+    (trace) =>
+      trace.status === "SUCCESS" &&
+      (trace.durationMs || 0) >= 2000 &&
+      (trace.durationMs || 0) < 5000,
+  );
 
   for (const trace of slowSteps) {
     diagnostics.push({
-      severity:
-        "INFO",
-      title:
-        `${trace.stepName} was slower than usual`,
-      message:
-        `This step took ${formatTraceDuration(
-          trace.durationMs,
-        )}.`,
-      stepKey:
-        trace.stepKey,
+      severity: "INFO",
+      title: `${trace.stepName} was slower than usual`,
+      message: `This step took ${formatTraceDuration(trace.durationMs)}.`,
+      stepKey: trace.stepKey,
     });
   }
 
-  const skippedSteps =
-    traces.filter(
-      (trace) =>
-        trace.status === "SKIPPED",
-    );
+  const skippedSteps = traces.filter((trace) => trace.status === "SKIPPED");
 
   for (const trace of skippedSteps) {
     diagnostics.push({
-      severity:
-        "INFO",
-      title:
-        `${trace.stepName} was skipped`,
-      message:
-        trace.errorMessage ||
-        "This optional step was not required.",
-      stepKey:
-        trace.stepKey,
+      severity: "INFO",
+      title: `${trace.stepName} was skipped`,
+      message: trace.errorMessage || "This optional step was not required.",
+      stepKey: trace.stepKey,
     });
   }
 
   if (!diagnostics.length) {
     diagnostics.push({
-      severity:
-        "HEALTHY",
-      title:
-        "Execution completed normally",
-      message:
-        "No failed or unusually slow browser steps were detected.",
+      severity: "HEALTHY",
+      title: "Execution completed normally",
+      message: "No failed or unusually slow browser steps were detected.",
     });
   }
 
   return diagnostics;
 }
 
-function formatTraceDuration(
-  durationMs: number | null,
-) {
+function formatTraceDuration(durationMs: number | null) {
   if (durationMs === null) {
     return "-";
   }
@@ -404,9 +306,7 @@ function formatTraceDuration(
     return `${durationMs}ms`;
   }
 
-  return `${(
-    durationMs / 1000
-  ).toFixed(2)}s`;
+  return `${(durationMs / 1000).toFixed(2)}s`;
 }
 
 function platformLabel(platform: string) {
@@ -415,18 +315,12 @@ function platformLabel(platform: string) {
 
 function browserActionScreenshotUrl(
   actionId: string,
-  variant?:
-    | "before"
-    | "after",
+  variant?: "before" | "after",
 ) {
-  const base =
-    `${getBrowserRuntimeApiUrl()}/automation/browser-actions/${actionId}/screenshot`;
+  const base = `${getBrowserRuntimeApiUrl()}/automation/browser-actions/${actionId}/screenshot`;
 
-  return variant
-    ? `${base}?variant=${variant}`
-    : base;
+  return variant ? `${base}?variant=${variant}` : base;
 }
-
 
 type BrowserActionTimelineGroup = {
   id: string;
@@ -438,32 +332,21 @@ type BrowserActionTimelineGroup = {
 function groupBrowserActionsByFlow(
   items: BrowserActionHistoryItem[],
 ): BrowserActionTimelineGroup[] {
-  const grouped =
-    new Map<
-      string,
-      BrowserActionTimelineGroup
-    >();
+  const grouped = new Map<string, BrowserActionTimelineGroup>();
 
   for (const item of items) {
-    const key =
-      item.flowId
-        ? `flow:${item.flowId}`
-        : `single:${item.id}`;
+    const key = item.flowId ? `flow:${item.flowId}` : `single:${item.id}`;
 
-    const existing =
-      grouped.get(key);
+    const existing = grouped.get(key);
 
     if (existing) {
       existing.items.push(item);
 
       if (
         new Date(item.createdAt).getTime() <
-        new Date(
-          existing.createdAt,
-        ).getTime()
+        new Date(existing.createdAt).getTime()
       ) {
-        existing.createdAt =
-          item.createdAt;
+        existing.createdAt = item.createdAt;
       }
 
       continue;
@@ -471,87 +354,52 @@ function groupBrowserActionsByFlow(
 
     grouped.set(key, {
       id: key,
-      flowId:
-        item.flowId,
+      flowId: item.flowId,
       items: [item],
-      createdAt:
-        item.createdAt,
+      createdAt: item.createdAt,
     });
   }
 
-  return Array.from(
-    grouped.values(),
-  )
+  return Array.from(grouped.values())
     .map((group) => ({
       ...group,
       items: [...group.items].sort(
         (left, right) =>
-          new Date(
-            left.createdAt,
-          ).getTime() -
-          new Date(
-            right.createdAt,
-          ).getTime(),
+          new Date(left.createdAt).getTime() -
+          new Date(right.createdAt).getTime(),
       ),
     }))
     .sort(
       (left, right) =>
-        new Date(
-          right.createdAt,
-        ).getTime() -
-        new Date(
-          left.createdAt,
-        ).getTime(),
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
     );
 }
 
-function summarizeBrowserFlow(
-  group: BrowserActionTimelineGroup,
-) {
+function summarizeBrowserFlow(group: BrowserActionTimelineGroup) {
   const terminal =
     [...group.items]
       .reverse()
-      .find(
-        (item) =>
-          item.action ===
-            "PUBLISH" ||
-          item.action ===
-            "DISCARD",
-      ) ||
+      .find((item) => item.action === "PUBLISH" || item.action === "DISCARD") ||
     group.items.at(-1);
 
-  const hasFailed =
-    group.items.some(
-      (item) =>
-        item.status === "FAILED",
-    );
+  const hasFailed = group.items.some((item) => item.status === "FAILED");
 
-  const totalDurationMs =
-    group.items.reduce(
-      (total, item) =>
-        total +
-        (item.durationMs || 0),
-      0,
-    );
+  const totalDurationMs = group.items.reduce(
+    (total, item) => total + (item.durationMs || 0),
+    0,
+  );
 
-  const verificationStatus =
-    terminal?.responsePayload
-      ?.verification
-      ?.status;
+  const verificationStatus = terminal?.responsePayload?.verification?.status;
 
   return {
     terminal,
     hasFailed,
     totalDurationMs,
     verificationStatus,
-    status:
-      hasFailed
-        ? "FAILED"
-        : terminal?.status ||
-          "PENDING",
+    status: hasFailed ? "FAILED" : terminal?.status || "PENDING",
   };
 }
-
 
 export function AutomationDashboard() {
   const { language } = usePreferences();
@@ -612,8 +460,7 @@ export function AutomationDashboard() {
           captionLabel: "文案",
           captionPlaceholder: "输入要放入 Facebook 帖子的文案……",
           imagePathLabel: "Mac 图片路径",
-          imagePathPlaceholder:
-            "/Users/your-name/Downloads/image.png",
+          imagePathPlaceholder: "/Users/your-name/Downloads/image.png",
           openBrowser: "打开浏览器",
           openingBrowser: "正在打开……",
           checkStatus: "检查状态",
@@ -633,8 +480,7 @@ export function AutomationDashboard() {
           publishPost: "发布帖子",
           publishingPost: "正在发布……",
           publishConfirmTitle: "确认发布 Facebook 帖子？",
-          publishConfirmText:
-            "这会真实点击 Facebook 的 Post 按钮并立即发布。",
+          publishConfirmText: "这会真实点击 Facebook 的 Post 按钮并立即发布。",
           cancelPublish: "取消",
           confirmPublish: "确认发布",
           publishedSuccessfully: "Facebook 帖子已成功发布。",
@@ -642,14 +488,12 @@ export function AutomationDashboard() {
           discardDraft: "取消草稿",
           discardingDraft: "正在取消……",
           discardConfirmTitle: "确认取消当前草稿？",
-          discardConfirmText:
-            "当前 Facebook Composer 中的文案和图片将被清除。",
+          discardConfirmText: "当前 Facebook Composer 中的文案和图片将被清除。",
           confirmDiscard: "确认取消",
           discardedSuccessfully: "Facebook 草稿已取消。",
           discardFailed: "无法取消 Facebook 草稿。",
           recentBrowserActions: "最近 Browser Agent 操作",
-          browserActionsDescription:
-            "查看草稿准备、发布、取消与失败记录。",
+          browserActionsDescription: "查看草稿准备、发布、取消与失败记录。",
           noBrowserActions: "暂时没有 Browser Agent 操作记录。",
           actionPrepare: "准备草稿",
           actionPublish: "发布帖子",
@@ -659,20 +503,15 @@ export function AutomationDashboard() {
           actionFailed: "失败",
           retryAction: "重新尝试",
           retryingAction: "正在重试……",
-          retrySucceeded:
-            "失败操作已重新准备为草稿，请检查浏览器。",
-          retryFailed:
-            "无法重新尝试这个 Browser Agent 操作。",
-          openBrowserBeforeRetry:
-            "请先打开对应的浏览器，再重新尝试。",
+          retrySucceeded: "失败操作已重新准备为草稿，请检查浏览器。",
+          retryFailed: "无法重新尝试这个 Browser Agent 操作。",
+          openBrowserBeforeRetry: "请先打开对应的浏览器，再重新尝试。",
           duration: "耗时",
           viewCaption: "文案",
           imagePath: "图片路径",
           verificationConfirmed: "发布已确认",
-          verificationComposerClosed:
-            "Composer 已关闭",
-          verificationUnconfirmed:
-            "发布状态未确认",
+          verificationComposerClosed: "Composer 已关闭",
+          verificationUnconfirmed: "发布状态未确认",
           verificationFailed: "发布验证失败",
           verificationWaited: "验证耗时",
           viewScreenshot: "查看截图",
@@ -754,11 +593,9 @@ export function AutomationDashboard() {
             "Prepare a caption and image in your Mac browser, then stop before publishing for manual review.",
           facebookChannel: "Facebook channel",
           captionLabel: "Caption",
-          captionPlaceholder:
-            "Enter the Facebook post caption...",
+          captionPlaceholder: "Enter the Facebook post caption...",
           imagePathLabel: "Mac image path",
-          imagePathPlaceholder:
-            "/Users/your-name/Downloads/image.png",
+          imagePathPlaceholder: "/Users/your-name/Downloads/image.png",
           openBrowser: "Open browser",
           openingBrowser: "Opening...",
           checkStatus: "Check status",
@@ -769,44 +606,33 @@ export function AutomationDashboard() {
           preparingDraft: "Preparing draft...",
           browserRunning: "Browser running",
           browserStopped: "Browser stopped",
-          draftReady:
-            "Draft is ready. Review it in the browser.",
-          browserDraftFailed:
-            "Unable to prepare browser draft.",
-          noFacebookChannel:
-            "No Facebook channel is available.",
+          draftReady: "Draft is ready. Review it in the browser.",
+          browserDraftFailed: "Unable to prepare browser draft.",
+          noFacebookChannel: "No Facebook channel is available.",
           screenshotPreview: "Draft preview",
           localPathHint:
             "This version uses a local file path on the Mac running Browser Worker.",
           publishPost: "Publish post",
           publishingPost: "Publishing...",
-          publishConfirmTitle:
-            "Publish this Facebook post?",
+          publishConfirmTitle: "Publish this Facebook post?",
           publishConfirmText:
             "This will click Facebook's Post button and publish the post immediately.",
           cancelPublish: "Cancel",
           confirmPublish: "Confirm publish",
-          publishedSuccessfully:
-            "Facebook post published successfully.",
-          publishFailed:
-            "Unable to publish Facebook post.",
+          publishedSuccessfully: "Facebook post published successfully.",
+          publishFailed: "Unable to publish Facebook post.",
           discardDraft: "Discard draft",
           discardingDraft: "Discarding...",
-          discardConfirmTitle:
-            "Discard the current draft?",
+          discardConfirmTitle: "Discard the current draft?",
           discardConfirmText:
             "The caption and image in the Facebook Composer will be cleared.",
           confirmDiscard: "Confirm discard",
-          discardedSuccessfully:
-            "Facebook draft discarded.",
-          discardFailed:
-            "Unable to discard Facebook draft.",
-          recentBrowserActions:
-            "Recent Browser Agent actions",
+          discardedSuccessfully: "Facebook draft discarded.",
+          discardFailed: "Unable to discard Facebook draft.",
+          recentBrowserActions: "Recent Browser Agent actions",
           browserActionsDescription:
             "Review draft preparation, publishing, discard and failure records.",
-          noBrowserActions:
-            "No Browser Agent actions yet.",
+          noBrowserActions: "No Browser Agent actions yet.",
           actionPrepare: "Prepare draft",
           actionPublish: "Publish post",
           actionDiscard: "Discard draft",
@@ -817,35 +643,26 @@ export function AutomationDashboard() {
           retryingAction: "Retrying...",
           retrySucceeded:
             "The failed action was prepared again. Review it in the browser.",
-          retryFailed:
-            "Unable to retry this Browser Agent action.",
+          retryFailed: "Unable to retry this Browser Agent action.",
           openBrowserBeforeRetry:
             "Open the corresponding browser before retrying.",
           duration: "Duration",
           viewCaption: "Caption",
           imagePath: "Image path",
-          verificationConfirmed:
-            "Publish confirmed",
-          verificationComposerClosed:
-            "Composer closed",
-          verificationUnconfirmed:
-            "Publish unconfirmed",
-          verificationFailed:
-            "Verification failed",
-          verificationWaited:
-            "Verification time",
+          verificationConfirmed: "Publish confirmed",
+          verificationComposerClosed: "Composer closed",
+          verificationUnconfirmed: "Publish unconfirmed",
+          verificationFailed: "Verification failed",
+          verificationWaited: "Verification time",
           viewScreenshot: "View screenshot",
-          viewBeforeScreenshot:
-            "Before publish",
-          viewAfterScreenshot:
-            "After publish",
+          viewBeforeScreenshot: "Before publish",
+          viewAfterScreenshot: "After publish",
           filterAll: "All",
           filterAction: "Action",
           filterStatus: "Status",
           showDetails: "Show details",
           hideDetails: "Hide details",
-          historyDetailsTitle:
-            "Browser Agent action details",
+          historyDetailsTitle: "Browser Agent action details",
           closeDetails: "Close",
           actionId: "Action ID",
           channelName: "Channel",
@@ -853,14 +670,10 @@ export function AutomationDashboard() {
           resultStatus: "Result",
           browserFlow: "Browser flow",
           flowSteps: "steps",
-          flowTotalDuration:
-            "Total duration",
-          flowCompleted:
-            "Flow completed",
-          flowFailed:
-            "Flow failed",
-          flowInProgress:
-            "Flow in progress",
+          flowTotalDuration: "Total duration",
+          flowCompleted: "Flow completed",
+          flowFailed: "Flow failed",
+          flowInProgress: "Flow in progress",
           startedAt: "Started",
           completedAt: "Completed",
           browserProfile: "Browser profile",
@@ -870,127 +683,77 @@ export function AutomationDashboard() {
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
 
-  const [
-    replayingBrowserActionId,
-    setReplayingBrowserActionId,
-  ] = useState<string | null>(
-    null,
-  );
+  const [replayingBrowserActionId, setReplayingBrowserActionId] = useState<
+    string | null
+  >(null);
 
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [
-    selectedFacebookChannelId,
-    setSelectedFacebookChannelId,
-  ] = useState("");
-
-  const [browserCaption, setBrowserCaption] =
+  const [selectedFacebookChannelId, setSelectedFacebookChannelId] =
     useState("");
 
-  const [browserImagePath, setBrowserImagePath] =
-    useState("");
+  const [browserCaption, setBrowserCaption] = useState("");
 
-  const [browserRunning, setBrowserRunning] =
-    useState(false);
+  const [browserImagePath, setBrowserImagePath] = useState("");
 
-  const [
-    browserViewerKey,
-    setBrowserViewerKey,
-  ] = useState(0);
+  const [browserRunning, setBrowserRunning] = useState(false);
 
-  const [
-    browserViewerUrl,
-    setBrowserViewerUrl,
-  ] = useState<string | null>(
-    null,
-  );
+  const [browserViewerKey, setBrowserViewerKey] = useState(0);
 
-  const browserPreviewRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    );
+  const [browserViewerUrl, setBrowserViewerUrl] = useState<string | null>(null);
 
-  const [browserAction, setBrowserAction] =
-    useState<
-      | "open"
-      | "status"
-      | "close"
-      | "prepare"
-      | "publish"
-      | "discard"
-      | "retry"
-      | null
-    >(null);
+  const browserPreviewRef = useRef<HTMLDivElement | null>(null);
 
-  const [browserMessage, setBrowserMessage] =
-    useState("");
+  const [browserAction, setBrowserAction] = useState<
+    | "open"
+    | "status"
+    | "close"
+    | "prepare"
+    | "publish"
+    | "discard"
+    | "retry"
+    | null
+  >(null);
 
-  const [browserError, setBrowserError] =
-    useState("");
+  const [browserMessage, setBrowserMessage] = useState("");
 
-  const [draftScreenshot, setDraftScreenshot] =
-    useState<string | null>(null);
+  const [browserError, setBrowserError] = useState("");
 
-  const [draftReady, setDraftReady] =
-    useState(false);
+  const [draftScreenshot, setDraftScreenshot] = useState<string | null>(null);
 
-  const [publishConfirmOpen, setPublishConfirmOpen] =
-    useState(false);
+  const [draftReady, setDraftReady] = useState(false);
 
-  const [discardConfirmOpen, setDiscardConfirmOpen] =
-    useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
 
-  const [
-    browserActions,
-    setBrowserActions,
-  ] = useState<
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+
+  const [browserActions, setBrowserActions] = useState<
     BrowserActionHistoryItem[]
   >([]);
 
-  const [
-    browserActionsLoading,
-    setBrowserActionsLoading,
-  ] = useState(false);
+  const [browserActionsLoading, setBrowserActionsLoading] = useState(false);
 
-  const [
-    retryingBrowserActionId,
-    setRetryingBrowserActionId,
-  ] = useState<string | null>(null);
-
-  const [
-    browserActionFilter,
-    setBrowserActionFilter,
-  ] = useState<
-    | "ALL"
-    | "PREPARE"
-    | "PUBLISH"
-    | "DISCARD"
-  >("ALL");
-
-  const [
-    browserStatusFilter,
-    setBrowserStatusFilter,
-  ] = useState<
-    | "ALL"
-    | "PENDING"
-    | "SUCCESS"
-    | "FAILED"
-  >("ALL");
-
-  const [
-    expandedBrowserActionId,
-    setExpandedBrowserActionId,
-  ] = useState<string | null>(null);
-
-  const [
-    selectedBrowserHistoryItem,
-    setSelectedBrowserHistoryItem,
-  ] = useState<
-    BrowserActionHistoryItem | null
+  const [retryingBrowserActionId, setRetryingBrowserActionId] = useState<
+    string | null
   >(null);
+
+  const [browserActionFilter, setBrowserActionFilter] = useState<
+    "ALL" | "PREPARE" | "PUBLISH" | "DISCARD"
+  >("ALL");
+
+  const [browserStatusFilter, setBrowserStatusFilter] = useState<
+    "ALL" | "PENDING" | "SUCCESS" | "FAILED"
+  >("ALL");
+
+  const [expandedBrowserActionId, setExpandedBrowserActionId] = useState<
+    string | null
+  >(null);
+
+  const [selectedBrowserHistoryItem, setSelectedBrowserHistoryItem] =
+    useState<BrowserActionHistoryItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1023,84 +786,55 @@ export function AutomationDashboard() {
     }
   }, []);
 
-  async function replayBrowserAction(
-    actionId: string,
-  ) {
+  async function replayBrowserAction(actionId: string) {
     if (replayingBrowserActionId) {
       return;
     }
 
-    setReplayingBrowserActionId(
-      actionId,
-    );
+    setReplayingBrowserActionId(actionId);
 
     try {
-      const apiOrigin =
-        getBrowserRuntimeApiUrl();
+      const apiOrigin = getBrowserRuntimeApiUrl();
 
-      const response =
-        await fetch(
-          `${apiOrigin}/automation/browser-actions/${actionId}/replay`,
-          {
-            method:
-              "POST",
-            headers: {
-              Accept:
-                "application/json",
-              "Content-Type":
-                "application/json",
-            },
+      const response = await fetch(
+        `${apiOrigin}/automation/browser-actions/${actionId}/replay`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
           },
-        );
+        },
+      );
 
-      const responseText =
-        await response.text();
+      const responseText = await response.text();
 
-      let payload:
-        Record<string, unknown> | null =
-        null;
+      let payload: Record<string, unknown> | null = null;
 
       if (responseText) {
         try {
-          payload =
-            JSON.parse(
-              responseText,
-            ) as Record<
-              string,
-              unknown
-            >;
+          payload = JSON.parse(responseText) as Record<string, unknown>;
         } catch {
-          payload =
-            null;
+          payload = null;
         }
       }
 
       if (!response.ok) {
         const message =
-          typeof payload?.message ===
-          "string"
+          typeof payload?.message === "string"
             ? payload.message
-            : typeof payload?.error ===
-                "string"
+            : typeof payload?.error === "string"
               ? payload.error
-              : responseText ||
-                `Replay failed with HTTP ${response.status}.`;
+              : responseText || `Replay failed with HTTP ${response.status}.`;
 
-        throw new Error(
-          message,
-        );
+        throw new Error(message);
       }
 
       await loadBrowserActions();
 
-      setSelectedBrowserHistoryItem(
-        null,
-      );
+      setSelectedBrowserHistoryItem(null);
     } catch (error) {
-      console.error(
-        "Browser Action replay failed:",
-        error,
-      );
+      console.error("Browser Action replay failed:", error);
 
       window.alert(
         error instanceof Error
@@ -1108,12 +842,9 @@ export function AutomationDashboard() {
           : "Unable to replay browser action.",
       );
     } finally {
-      setReplayingBrowserActionId(
-        null,
-      );
+      setReplayingBrowserActionId(null);
     }
   }
-
 
   async function loadBrowserActions() {
     setBrowserActionsLoading(true);
@@ -1127,21 +858,14 @@ export function AutomationDashboard() {
       );
 
       if (!response.ok) {
-        throw new Error(
-          copy.loadFailed,
-        );
+        throw new Error(copy.loadFailed);
       }
 
-      const body =
-        (await response.json()) as
-          BrowserActionHistoryItem[];
+      const body = (await response.json()) as BrowserActionHistoryItem[];
 
       setBrowserActions(body);
     } catch (loadError) {
-      console.error(
-        "Unable to load Browser Agent history:",
-        loadError,
-      );
+      console.error("Unable to load Browser Agent history:", loadError);
       setBrowserActions([]);
     } finally {
       setBrowserActionsLoading(false);
@@ -1154,104 +878,61 @@ export function AutomationDashboard() {
   }, [load]);
 
   useEffect(() => {
-    if (
-      selectedFacebookChannelId ||
-      !dashboard
-    ) {
+    if (selectedFacebookChannelId || !dashboard) {
       return;
     }
 
-    const facebookChannel =
-      dashboard.channels.find(
-        (channel) =>
-          channel.platform === "FACEBOOK",
-      );
+    const facebookChannel = dashboard.channels.find(
+      (channel) => channel.platform === "FACEBOOK",
+    );
 
     if (facebookChannel) {
-      setSelectedFacebookChannelId(
-        facebookChannel.id,
-      );
+      setSelectedFacebookChannelId(facebookChannel.id);
     }
-  }, [
-    dashboard,
-    selectedFacebookChannelId,
-  ]);
+  }, [dashboard, selectedFacebookChannelId]);
 
   async function connectSecureBrowserViewer() {
-    const response =
-      await fetch(
-        "/api/browser-viewer/session",
-        {
-          method:
-            "POST",
-          cache:
-            "no-store",
-          headers: {
-            Accept:
-              "application/json",
-          },
-        },
-      );
+    const response = await fetch("/api/browser-viewer/session", {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
-    const body =
-      (await response.json()) as {
-        token?: string;
-        expiresAt?: string;
-        message?: string;
-      };
+    const body = (await response.json()) as {
+      token?: string;
+      expiresAt?: string;
+      message?: string;
+    };
 
-    if (
-      !response.ok ||
-      !body.token
-    ) {
-      throw new Error(
-        body.message ||
-          "Unable to authorize Live Browser.",
-      );
+    if (!response.ok || !body.token) {
+      throw new Error(body.message || "Unable to authorize Live Browser.");
     }
 
-    const nextUrl =
-      buildBrowserViewUrl(
-        body.token,
-      );
+    const nextUrl = buildBrowserViewUrl(body.token);
 
-    setBrowserViewerUrl(
-      nextUrl,
-    );
+    setBrowserViewerUrl(nextUrl);
 
     return nextUrl;
   }
 
-
   function revealBrowserViewer() {
-    setBrowserViewerKey(
-      (current) =>
-        current + 1,
-    );
+    setBrowserViewerKey((current) => current + 1);
 
-    window.requestAnimationFrame(
-      () => {
-        window.requestAnimationFrame(
-          () => {
-            browserPreviewRef.current
-              ?.scrollIntoView({
-                behavior:
-                  "smooth",
-                block:
-                  "start",
-              });
-          },
-        );
-      },
-    );
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        browserPreviewRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
   }
-
 
   async function openBrowser() {
     if (!selectedFacebookChannelId) {
-      setBrowserError(
-        copy.noFacebookChannel,
-      );
+      setBrowserError(copy.noFacebookChannel);
       return;
     }
 
@@ -1265,38 +946,30 @@ export function AutomationDashboard() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             headless: false,
-            startUrl:
-              "https://www.facebook.com/",
+            startUrl: "https://www.facebook.com/",
           }),
         },
       );
 
-      const body =
-        (await response.json()) as {
-          opened?: boolean;
-          alreadyRunning?: boolean;
-          message?: string;
-        };
+      const body = (await response.json()) as {
+        opened?: boolean;
+        alreadyRunning?: boolean;
+        message?: string;
+      };
 
       if (!response.ok) {
-        throw new Error(
-          body.message ||
-            copy.browserDraftFailed,
-        );
+        throw new Error(body.message || copy.browserDraftFailed);
       }
 
       setBrowserRunning(true);
 
       await connectSecureBrowserViewer();
 
-      setBrowserMessage(
-        copy.browserRunning,
-      );
+      setBrowserMessage(copy.browserRunning);
 
       revealBrowserViewer();
     } catch (actionError) {
@@ -1326,33 +999,23 @@ export function AutomationDashboard() {
         },
       );
 
-      const body =
-        (await response.json()) as
-          BrowserStatusResponse;
+      const body = (await response.json()) as BrowserStatusResponse;
 
       if (!response.ok) {
-        throw new Error(
-          copy.browserDraftFailed,
-        );
+        throw new Error(copy.browserDraftFailed);
       }
 
-      setBrowserRunning(
-        Boolean(body.running),
-      );
+      setBrowserRunning(Boolean(body.running));
 
       if (body.running) {
         await connectSecureBrowserViewer();
         revealBrowserViewer();
       } else {
-        setBrowserViewerUrl(
-          null,
-        );
+        setBrowserViewerUrl(null);
       }
 
       setBrowserMessage(
-        body.running
-          ? copy.browserRunning
-          : copy.browserStopped,
+        body.running ? copy.browserRunning : copy.browserStopped,
       );
     } catch (actionError) {
       setBrowserError(
@@ -1382,27 +1045,19 @@ export function AutomationDashboard() {
         },
       );
 
-      const body =
-        (await response.json()) as {
-          message?: string;
-        };
+      const body = (await response.json()) as {
+        message?: string;
+      };
 
       if (!response.ok) {
-        throw new Error(
-          body.message ||
-            copy.browserDraftFailed,
-        );
+        throw new Error(body.message || copy.browserDraftFailed);
       }
 
       setBrowserRunning(false);
 
-      setBrowserViewerUrl(
-        null,
-      );
+      setBrowserViewerUrl(null);
 
-      setBrowserMessage(
-        copy.browserStopped,
-      );
+      setBrowserMessage(copy.browserStopped);
     } catch (actionError) {
       setBrowserError(
         actionError instanceof Error
@@ -1414,13 +1069,8 @@ export function AutomationDashboard() {
     }
   }
 
-  async function retryBrowserAction(
-    item: BrowserActionHistoryItem,
-  ) {
-    if (
-      item.status !== "FAILED" ||
-      item.action !== "PREPARE"
-    ) {
+  async function retryBrowserAction(item: BrowserActionHistoryItem) {
+    if (item.status !== "FAILED" || item.action !== "PREPARE") {
       return;
     }
 
@@ -1438,69 +1088,42 @@ export function AutomationDashboard() {
         },
       );
 
-      const body =
-        (await response.json()) as {
-          success?: boolean;
-          retried?: boolean;
-          message?: string;
-          result?: BrowserDraftResponse;
-        };
+      const body = (await response.json()) as {
+        success?: boolean;
+        retried?: boolean;
+        message?: string;
+        result?: BrowserDraftResponse;
+      };
 
-      if (
-        !response.ok ||
-        !body.success ||
-        !body.retried
-      ) {
-        if (
-          body.message ===
-          "Browser profile is not running."
-        ) {
-          throw new Error(
-            copy.openBrowserBeforeRetry,
-          );
+      if (!response.ok || !body.success || !body.retried) {
+        if (body.message === "Browser profile is not running.") {
+          throw new Error(copy.openBrowserBeforeRetry);
         }
 
-        throw new Error(
-          body.message ||
-            copy.retryFailed,
-        );
+        throw new Error(body.message || copy.retryFailed);
       }
 
-      const result =
-        body.result;
+      const result = body.result;
 
-      if (
-        result?.screenshot?.base64 &&
-        result.screenshot.mimeType
-      ) {
+      if (result?.screenshot?.base64 && result.screenshot.mimeType) {
         setDraftScreenshot(
           `data:${result.screenshot.mimeType};base64,${result.screenshot.base64}`,
         );
       }
 
-      setSelectedFacebookChannelId(
-        item.channel.id,
-      );
+      setSelectedFacebookChannelId(item.channel.id);
 
-      setBrowserCaption(
-        item.caption || "",
-      );
+      setBrowserCaption(item.caption || "");
 
-      setBrowserImagePath(
-        item.imagePath || "",
-      );
+      setBrowserImagePath(item.imagePath || "");
 
       setBrowserRunning(true);
       setDraftReady(true);
 
-      setBrowserMessage(
-        copy.retrySucceeded,
-      );
+      setBrowserMessage(copy.retrySucceeded);
     } catch (actionError) {
       setBrowserError(
-        actionError instanceof Error
-          ? actionError.message
-          : copy.retryFailed,
+        actionError instanceof Error ? actionError.message : copy.retryFailed,
       );
     } finally {
       setBrowserAction(null);
@@ -1509,15 +1132,9 @@ export function AutomationDashboard() {
     }
   }
 
-
   async function prepareBrowserDraft() {
-    if (
-      !selectedFacebookChannelId ||
-      !browserCaption.trim()
-    ) {
-      setBrowserError(
-        copy.browserDraftFailed,
-      );
+    if (!selectedFacebookChannelId || !browserCaption.trim()) {
+      setBrowserError(copy.browserDraftFailed);
       return;
     }
 
@@ -1533,49 +1150,31 @@ export function AutomationDashboard() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            caption:
-              browserCaption.trim(),
-            imagePath:
-              browserImagePath.trim() ||
-              null,
+            caption: browserCaption.trim(),
+            imagePath: browserImagePath.trim() || null,
           }),
         },
       );
 
-      const body =
-        (await response.json()) as
-          BrowserDraftResponse;
+      const body = (await response.json()) as BrowserDraftResponse;
 
-      if (
-        !response.ok ||
-        !body.success
-      ) {
-        throw new Error(
-          body.message ||
-            copy.browserDraftFailed,
-        );
+      if (!response.ok || !body.success) {
+        throw new Error(body.message || copy.browserDraftFailed);
       }
 
-      const encoded =
-        body.screenshot?.base64;
+      const encoded = body.screenshot?.base64;
 
-      if (
-        encoded &&
-        body.screenshot?.mimeType
-      ) {
+      if (encoded && body.screenshot?.mimeType) {
         setDraftScreenshot(
           `data:${body.screenshot.mimeType};base64,${encoded}`,
         );
       }
 
       setBrowserRunning(true);
-      setBrowserMessage(
-        copy.draftReady,
-      );
+      setBrowserMessage(copy.draftReady);
 
       setDraftReady(true);
     } catch (actionError) {
@@ -1591,10 +1190,7 @@ export function AutomationDashboard() {
   }
 
   async function discardBrowserDraft() {
-    if (
-      !selectedFacebookChannelId ||
-      !draftReady
-    ) {
+    if (!selectedFacebookChannelId || !draftReady) {
       return;
     }
 
@@ -1611,31 +1207,21 @@ export function AutomationDashboard() {
         },
       );
 
-      const body =
-        (await response.json()) as {
-          success?: boolean;
-          discarded?: boolean;
-          message?: string;
-          screenshot?: {
-            mimeType?: string;
-            base64?: string;
-          };
+      const body = (await response.json()) as {
+        success?: boolean;
+        discarded?: boolean;
+        message?: string;
+        screenshot?: {
+          mimeType?: string;
+          base64?: string;
         };
+      };
 
-      if (
-        !response.ok ||
-        !body.success
-      ) {
-        throw new Error(
-          body.message ||
-            copy.discardFailed,
-        );
+      if (!response.ok || !body.success) {
+        throw new Error(body.message || copy.discardFailed);
       }
 
-      if (
-        body.screenshot?.base64 &&
-        body.screenshot.mimeType
-      ) {
+      if (body.screenshot?.base64 && body.screenshot.mimeType) {
         setDraftScreenshot(
           `data:${body.screenshot.mimeType};base64,${body.screenshot.base64}`,
         );
@@ -1645,14 +1231,10 @@ export function AutomationDashboard() {
       setBrowserCaption("");
       setBrowserImagePath("");
 
-      setBrowserMessage(
-        copy.discardedSuccessfully,
-      );
+      setBrowserMessage(copy.discardedSuccessfully);
     } catch (actionError) {
       setBrowserError(
-        actionError instanceof Error
-          ? actionError.message
-          : copy.discardFailed,
+        actionError instanceof Error ? actionError.message : copy.discardFailed,
       );
     } finally {
       setBrowserAction(null);
@@ -1660,12 +1242,8 @@ export function AutomationDashboard() {
     }
   }
 
-
   async function publishBrowserDraft() {
-    if (
-      !selectedFacebookChannelId ||
-      !draftReady
-    ) {
+    if (!selectedFacebookChannelId || !draftReady) {
       return;
     }
 
@@ -1680,61 +1258,41 @@ export function AutomationDashboard() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            confirmation:
-              "PUBLISH",
+            confirmation: "PUBLISH",
           }),
         },
       );
 
-      const body =
-        (await response.json()) as {
-          success?: boolean;
-          published?: boolean;
-          message?: string;
-          screenshots?: {
-            after?: {
-              mimeType?: string;
-              base64?: string;
-            };
+      const body = (await response.json()) as {
+        success?: boolean;
+        published?: boolean;
+        message?: string;
+        screenshots?: {
+          after?: {
+            mimeType?: string;
+            base64?: string;
           };
         };
+      };
 
-      if (
-        !response.ok ||
-        !body.success ||
-        !body.published
-      ) {
-        throw new Error(
-          body.message ||
-            copy.publishFailed,
-        );
+      if (!response.ok || !body.success || !body.published) {
+        throw new Error(body.message || copy.publishFailed);
       }
 
-      const after =
-        body.screenshots?.after;
+      const after = body.screenshots?.after;
 
-      if (
-        after?.base64 &&
-        after.mimeType
-      ) {
-        setDraftScreenshot(
-          `data:${after.mimeType};base64,${after.base64}`,
-        );
+      if (after?.base64 && after.mimeType) {
+        setDraftScreenshot(`data:${after.mimeType};base64,${after.base64}`);
       }
 
       setDraftReady(false);
-      setBrowserMessage(
-        copy.publishedSuccessfully,
-      );
+      setBrowserMessage(copy.publishedSuccessfully);
     } catch (actionError) {
       setBrowserError(
-        actionError instanceof Error
-          ? actionError.message
-          : copy.publishFailed,
+        actionError instanceof Error ? actionError.message : copy.publishFailed,
       );
     } finally {
       setBrowserAction(null);
@@ -1742,28 +1300,15 @@ export function AutomationDashboard() {
     }
   }
 
-  const filteredBrowserActions =
-    browserActions.filter(
-      (item) => {
-        const actionMatches =
-          browserActionFilter === "ALL" ||
-          item.action ===
-            browserActionFilter;
+  const filteredBrowserActions = browserActions.filter((item) => {
+    const actionMatches =
+      browserActionFilter === "ALL" || item.action === browserActionFilter;
 
+    const statusMatches =
+      browserStatusFilter === "ALL" || item.status === browserStatusFilter;
 
-
-
-        const statusMatches =
-          browserStatusFilter === "ALL" ||
-          item.status ===
-            browserStatusFilter;
-
-        return (
-          actionMatches &&
-          statusMatches
-        );
-      },
-    );
+    return actionMatches && statusMatches;
+  });
 
   if (loading && !dashboard) {
     return (
@@ -1778,18 +1323,19 @@ export function AutomationDashboard() {
       <section className={styles.state}>
         <p>{error || copy.unavailable}</p>
 
-        <button onClick={() => {
-              void load();
-              void loadBrowserActions();
-            }}>Try again</button>
+        <button
+          onClick={() => {
+            void load();
+            void loadBrowserActions();
+          }}
+        >
+          Try again
+        </button>
       </section>
     );
   }
 
   const counts = dashboard.statusCounts;
-
-
-
 
   return (
     <div className={styles.dashboard}>
@@ -1852,7 +1398,7 @@ export function AutomationDashboard() {
       </section>
 
       <section className={styles.contentGrid}>
-        <article className={styles.panel}>
+        <article id="connected-platforms" className={styles.panel}>
           <header>
             <div>
               <p className={styles.eyebrow}>Channels</p>
@@ -1862,7 +1408,7 @@ export function AutomationDashboard() {
             <strong>{dashboard.channels.length}</strong>
           </header>
 
-          <div className={styles.channelTableWrap}>
+          <div className={styles.channelTableShell}>
             <div className={styles.channelTableToolbar}>
               <span>
                 {dashboard.channels.length} {copy.channels}
@@ -1876,108 +1422,88 @@ export function AutomationDashboard() {
               </a>
             </div>
 
-            <div
-              className={styles.channelTable}
-              role="table"
-              aria-label={copy.connectedPlatforms}
-            >
+            <div className={styles.channelTableWrap}>
               <div
-                className={styles.channelTableHeader}
-                role="row"
+                className={styles.channelTable}
+                role="table"
+                aria-label={copy.connectedPlatforms}
               >
-                <span role="columnheader">Platform</span>
-                <span role="columnheader">Account</span>
-                <span role="columnheader">Username</span>
-                <span role="columnheader">Status</span>
-                <span role="columnheader">Posts</span>
-                <span role="columnheader">Details</span>
+                <div className={styles.channelTableHeader} role="row">
+                  <span role="columnheader">Platform</span>
+                  <span role="columnheader">Account</span>
+                  <span role="columnheader">Username</span>
+                  <span role="columnheader">Status</span>
+                  <span role="columnheader">Posts</span>
+                  <span role="columnheader">Details</span>
+                </div>
+
+                {dashboard.channels.map((channel) => {
+                  const detailsHref =
+                    channel.platform === "FACEBOOK"
+                      ? `/automation/browser-accounts?channelId=${encodeURIComponent(
+                          channel.id,
+                        )}`
+                      : `/settings?channelId=${encodeURIComponent(channel.id)}`;
+
+                  return (
+                    <a
+                      className={styles.channelTableRow}
+                      href={detailsHref}
+                      key={channel.id}
+                      role="row"
+                    >
+                      <span className={styles.channelPlatformCell} role="cell">
+                        <span
+                          className={`${styles.channelTableIcon} ${
+                            channel.platform === "FACEBOOK"
+                              ? styles.facebook
+                              : styles.telegram
+                          }`}
+                        >
+                          {channel.platform === "FACEBOOK" ? "f" : "✈"}
+                        </span>
+
+                        <small>{channel.platform}</small>
+                      </span>
+
+                      <strong className={styles.channelNameCell} role="cell">
+                        {channel.name}
+                      </strong>
+
+                      <span className={styles.channelUsernameCell} role="cell">
+                        {channel.username
+                          ? `@${channel.username}`
+                          : copy.noUsername}
+                      </span>
+
+                      <span role="cell">
+                        <span
+                          className={`${styles.statusBadge} ${
+                            channel.status === "CONNECTED"
+                              ? styles.connected
+                              : styles.disconnected
+                          }`}
+                        >
+                          {channel.status}
+                        </span>
+                      </span>
+
+                      <span className={styles.channelPostsCell} role="cell">
+                        {channel._count.scheduledPosts}
+                      </span>
+
+                      <span className={styles.channelDetailsCell} role="cell">
+                        View →
+                      </span>
+                    </a>
+                  );
+                })}
               </div>
-
-              {dashboard.channels.map((channel) => {
-                const detailsHref =
-                  channel.platform === "FACEBOOK"
-                    ? `/automation/browser-accounts?channelId=${encodeURIComponent(
-                        channel.id,
-                      )}`
-                    : `/settings?channelId=${encodeURIComponent(
-                        channel.id,
-                      )}`;
-
-                return (
-                  <a
-                    className={styles.channelTableRow}
-                    href={detailsHref}
-                    key={channel.id}
-                    role="row"
-                  >
-                    <span
-                      className={styles.channelPlatformCell}
-                      role="cell"
-                    >
-                      <span
-                        className={`${styles.channelTableIcon} ${
-                          channel.platform === "FACEBOOK"
-                            ? styles.facebook
-                            : styles.telegram
-                        }`}
-                      >
-                        {channel.platform === "FACEBOOK"
-                          ? "f"
-                          : "✈"}
-                      </span>
-
-                      <small>{channel.platform}</small>
-                    </span>
-
-                    <strong
-                      className={styles.channelNameCell}
-                      role="cell"
-                    >
-                      {channel.name}
-                    </strong>
-
-                    <span
-                      className={styles.channelUsernameCell}
-                      role="cell"
-                    >
-                      {channel.username
-                        ? `@${channel.username}`
-                        : copy.noUsername}
-                    </span>
-
-                    <span role="cell">
-                      <span
-                        className={`${styles.statusBadge} ${
-                          channel.status === "CONNECTED"
-                            ? styles.connected
-                            : styles.disconnected
-                        }`}
-                      >
-                        {channel.status}
-                      </span>
-                    </span>
-
-                    <span
-                      className={styles.channelPostsCell}
-                      role="cell"
-                    >
-                      {channel._count.scheduledPosts}
-                    </span>
-
-                    <span
-                      className={styles.channelDetailsCell}
-                      role="cell"
-                    >
-                      View →
-                    </span>
-                  </a>
-                );
-              })}
             </div>
           </div>
         </article>
 
-        <article className={styles.panel}>
+        <article id="publishing" className={styles.panel}>
           <header>
             <div>
               <p className={styles.eyebrow}>Automation</p>
@@ -2029,13 +1555,12 @@ export function AutomationDashboard() {
       </section>
 
       <section
+        id="browser-tools"
         className={`${styles.panel} ${styles.browserDraftPanel}`}
       >
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Browser Agent
-            </p>
+            <p className={styles.eyebrow}>Browser Agent</p>
 
             <h2>{copy.browserDraft}</h2>
 
@@ -2046,14 +1571,10 @@ export function AutomationDashboard() {
 
           <span
             className={`${styles.browserStatus} ${
-              browserRunning
-                ? styles.browserOnline
-                : styles.browserOffline
+              browserRunning ? styles.browserOnline : styles.browserOffline
             }`}
           >
-            {browserRunning
-              ? copy.browserRunning
-              : copy.browserStopped}
+            {browserRunning ? copy.browserRunning : copy.browserStopped}
           </span>
         </header>
 
@@ -2065,25 +1586,16 @@ export function AutomationDashboard() {
               <select
                 value={selectedFacebookChannelId}
                 onChange={(event) => {
-                  setSelectedFacebookChannelId(
-                    event.target.value,
-                  );
+                  setSelectedFacebookChannelId(event.target.value);
                   setBrowserMessage("");
                   setBrowserError("");
                   setDraftScreenshot(null);
                 }}
               >
                 {dashboard.channels
-                  .filter(
-                    (channel) =>
-                      channel.platform ===
-                      "FACEBOOK",
-                  )
+                  .filter((channel) => channel.platform === "FACEBOOK")
                   .map((channel) => (
-                    <option
-                      key={channel.id}
-                      value={channel.id}
-                    >
+                    <option key={channel.id} value={channel.id}>
                       {channel.name}
                     </option>
                   ))}
@@ -2095,20 +1607,12 @@ export function AutomationDashboard() {
 
               <textarea
                 value={browserCaption}
-                onChange={(event) =>
-                  setBrowserCaption(
-                    event.target.value,
-                  )
-                }
-                placeholder={
-                  copy.captionPlaceholder
-                }
+                onChange={(event) => setBrowserCaption(event.target.value)}
+                placeholder={copy.captionPlaceholder}
                 rows={7}
               />
 
-              <small>
-                {browserCaption.length} / 10000
-              </small>
+              <small>{browserCaption.length} / 10000</small>
             </label>
 
             <label>
@@ -2117,14 +1621,8 @@ export function AutomationDashboard() {
               <input
                 type="text"
                 value={browserImagePath}
-                onChange={(event) =>
-                  setBrowserImagePath(
-                    event.target.value,
-                  )
-                }
-                placeholder={
-                  copy.imagePathPlaceholder
-                }
+                onChange={(event) => setBrowserImagePath(event.target.value)}
+                placeholder={copy.imagePathPlaceholder}
               />
 
               <small>{copy.localPathHint}</small>
@@ -2133,13 +1631,8 @@ export function AutomationDashboard() {
             <div className={styles.browserActions}>
               <button
                 type="button"
-                onClick={() =>
-                  void openBrowser()
-                }
-                disabled={
-                  browserAction !== null ||
-                  !selectedFacebookChannelId
-                }
+                onClick={() => void openBrowser()}
+                disabled={browserAction !== null || !selectedFacebookChannelId}
               >
                 {browserAction === "open"
                   ? copy.openingBrowser
@@ -2149,13 +1642,8 @@ export function AutomationDashboard() {
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() =>
-                  void checkBrowserStatus()
-                }
-                disabled={
-                  browserAction !== null ||
-                  !selectedFacebookChannelId
-                }
+                onClick={() => void checkBrowserStatus()}
+                disabled={browserAction !== null || !selectedFacebookChannelId}
               >
                 {browserAction === "status"
                   ? copy.checkingStatus
@@ -2165,13 +1653,8 @@ export function AutomationDashboard() {
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() =>
-                  void closeBrowser()
-                }
-                disabled={
-                  browserAction !== null ||
-                  !selectedFacebookChannelId
-                }
+                onClick={() => void closeBrowser()}
+                disabled={browserAction !== null || !selectedFacebookChannelId}
               >
                 {browserAction === "close"
                   ? copy.closingBrowser
@@ -2182,9 +1665,7 @@ export function AutomationDashboard() {
             <button
               type="button"
               className={styles.prepareDraftButton}
-              onClick={() =>
-                void prepareBrowserDraft()
-              }
+              onClick={() => void prepareBrowserDraft()}
               disabled={
                 browserAction !== null ||
                 !selectedFacebookChannelId ||
@@ -2199,13 +1680,8 @@ export function AutomationDashboard() {
             <button
               type="button"
               className={styles.discardDraftButton}
-              onClick={() =>
-                setDiscardConfirmOpen(true)
-              }
-              disabled={
-                browserAction !== null ||
-                !draftReady
-              }
+              onClick={() => setDiscardConfirmOpen(true)}
+              disabled={browserAction !== null || !draftReady}
             >
               {browserAction === "discard"
                 ? copy.discardingDraft
@@ -2215,80 +1691,49 @@ export function AutomationDashboard() {
             <button
               type="button"
               className={styles.publishDraftButton}
-              onClick={() =>
-                setPublishConfirmOpen(true)
-              }
-              disabled={
-                browserAction !== null ||
-                !draftReady
-              }
+              onClick={() => setPublishConfirmOpen(true)}
+              disabled={browserAction !== null || !draftReady}
             >
-              {browserAction === "prepare" &&
-              draftReady
+              {browserAction === "prepare" && draftReady
                 ? copy.publishingPost
                 : copy.publishPost}
             </button>
 
             {browserMessage ? (
-              <div className={styles.browserSuccess}>
-                {browserMessage}
-              </div>
+              <div className={styles.browserSuccess}>{browserMessage}</div>
             ) : null}
 
             {browserError ? (
-              <div className={styles.browserError}>
-                {browserError}
-              </div>
+              <div className={styles.browserError}>{browserError}</div>
             ) : null}
           </div>
 
-          <div
-            ref={browserPreviewRef}
-            className={styles.browserPreview}
-          >
+          <div ref={browserPreviewRef} className={styles.browserPreview}>
             <div className={styles.previewHeader}>
               <strong>
-                {browserRunning
-                  ? "Live Browser"
-                  : copy.screenshotPreview}
+                {browserRunning ? "Live Browser" : copy.screenshotPreview}
               </strong>
             </div>
 
-            {browserRunning &&
-            browserViewerUrl ? (
+            {browserRunning && browserViewerUrl ? (
               <iframe
                 key={browserViewerKey}
-                className={
-                  styles.liveBrowserFrame
-                }
+                className={styles.liveBrowserFrame}
                 src={browserViewerUrl}
                 title="Atlas Live Browser"
                 allow="clipboard-read; clipboard-write; fullscreen"
               />
             ) : browserRunning ? (
-              <div
-                className={
-                  styles.previewEmpty
-                }
-              >
-                <span>
-                  Connecting Live Browser…
-                </span>
-                <small>
-                  Authorizing secure viewer session.
-                </small>
+              <div className={styles.previewEmpty}>
+                <span>Connecting Live Browser…</span>
+                <small>Authorizing secure viewer session.</small>
               </div>
             ) : draftScreenshot ? (
-              <img
-                src={draftScreenshot}
-                alt={copy.screenshotPreview}
-              />
+              <img src={draftScreenshot} alt={copy.screenshotPreview} />
             ) : (
               <div className={styles.previewEmpty}>
                 <span>Facebook</span>
-                <small>
-                  {copy.browserDraftDescription}
-                </small>
+                <small>{copy.browserDraftDescription}</small>
               </div>
             )}
           </div>
@@ -2298,22 +1743,16 @@ export function AutomationDashboard() {
       <section className={styles.panel} id="browser-history">
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Browser History
-            </p>
+            <p className={styles.eyebrow}>Browser History</p>
 
-            <h2>
-              {copy.recentBrowserActions}
-            </h2>
+            <h2>{copy.recentBrowserActions}</h2>
 
             <p className={styles.panelDescription}>
               {copy.browserActionsDescription}
             </p>
           </div>
 
-          <strong>
-            {browserActions.length}
-          </strong>
+          <strong>{browserActions.length}</strong>
         </header>
 
         <div className={styles.historyFilters}>
@@ -2325,28 +1764,17 @@ export function AutomationDashboard() {
               onChange={(event) =>
                 setBrowserActionFilter(
                   event.target.value as
-                    | "ALL"
-                    | "PREPARE"
-                    | "PUBLISH"
-                    | "DISCARD",
+                    "ALL" | "PREPARE" | "PUBLISH" | "DISCARD",
                 )
               }
             >
-              <option value="ALL">
-                {copy.filterAll}
-              </option>
+              <option value="ALL">{copy.filterAll}</option>
 
-              <option value="PREPARE">
-                {copy.actionPrepare}
-              </option>
+              <option value="PREPARE">{copy.actionPrepare}</option>
 
-              <option value="PUBLISH">
-                {copy.actionPublish}
-              </option>
+              <option value="PUBLISH">{copy.actionPublish}</option>
 
-              <option value="DISCARD">
-                {copy.actionDiscard}
-              </option>
+              <option value="DISCARD">{copy.actionDiscard}</option>
             </select>
           </label>
 
@@ -2358,385 +1786,258 @@ export function AutomationDashboard() {
               onChange={(event) =>
                 setBrowserStatusFilter(
                   event.target.value as
-                    | "ALL"
-                    | "PENDING"
-                    | "SUCCESS"
-                    | "FAILED",
+                    "ALL" | "PENDING" | "SUCCESS" | "FAILED",
                 )
               }
             >
-              <option value="ALL">
-                {copy.filterAll}
-              </option>
+              <option value="ALL">{copy.filterAll}</option>
 
-              <option value="PENDING">
-                {copy.actionPending}
-              </option>
+              <option value="PENDING">{copy.actionPending}</option>
 
-              <option value="SUCCESS">
-                {copy.actionSuccess}
-              </option>
+              <option value="SUCCESS">{copy.actionSuccess}</option>
 
-              <option value="FAILED">
-                {copy.actionFailed}
-              </option>
+              <option value="FAILED">{copy.actionFailed}</option>
             </select>
           </label>
         </div>
 
         <div className={styles.browserHistoryList}>
-          {groupBrowserActionsByFlow(
-            filteredBrowserActions,
-          ).flatMap((group) => {
-            const flowSummary =
-              summarizeBrowserFlow(
-                group,
-              );
+          {groupBrowserActionsByFlow(filteredBrowserActions).flatMap(
+            (group) => {
+              const flowSummary = summarizeBrowserFlow(group);
 
-            return group.items.map(
-              (item, itemIndex) => {
-            const actionLabel =
-              item.action === "PREPARE"
-                ? copy.actionPrepare
-                : item.action === "PUBLISH"
-                  ? copy.actionPublish
-                  : copy.actionDiscard;
+              return group.items.map((item, itemIndex) => {
+                const actionLabel =
+                  item.action === "PREPARE"
+                    ? copy.actionPrepare
+                    : item.action === "PUBLISH"
+                      ? copy.actionPublish
+                      : copy.actionDiscard;
 
-            const statusLabel =
-              item.status === "SUCCESS"
-                ? copy.actionSuccess
-                : item.status === "FAILED"
-                  ? copy.actionFailed
-                  : copy.actionPending;
+                const statusLabel =
+                  item.status === "SUCCESS"
+                    ? copy.actionSuccess
+                    : item.status === "FAILED"
+                      ? copy.actionFailed
+                      : copy.actionPending;
 
-            return (
-              <div
-                key={item.id}
-                className={
-                  styles.timelineStepWrapper
-                }
-              >
-                {group.flowId &&
-                itemIndex === 0 ? (
-                  <div
-                    className={
-                      styles.timelineFlowHeader
-                    }
-                  >
-                    <div>
-                      <strong>
-                        {copy.browserFlow}
-                      </strong>
+                return (
+                  <div key={item.id} className={styles.timelineStepWrapper}>
+                    {group.flowId && itemIndex === 0 ? (
+                      <div className={styles.timelineFlowHeader}>
+                        <div>
+                          <strong>{copy.browserFlow}</strong>
 
-                      <small>
-                        {group.flowId.slice(
-                          0,
-                          8,
-                        )}
-                      </small>
-                    </div>
+                          <small>{group.flowId.slice(0, 8)}</small>
+                        </div>
 
-                    <div
-                      className={
-                        styles.timelineFlowSummary
-                      }
-                    >
-                      <span>
-                        {group.items.length}{" "}
-                        {copy.flowSteps}
-                      </span>
+                        <div className={styles.timelineFlowSummary}>
+                          <span>
+                            {group.items.length} {copy.flowSteps}
+                          </span>
 
-                      <span>
-                        {copy.flowTotalDuration}:{" "}
-                        {(
-                          flowSummary
-                            .totalDurationMs /
-                          1000
-                        ).toFixed(1)}
-                        s
-                      </span>
+                          <span>
+                            {copy.flowTotalDuration}:{" "}
+                            {(flowSummary.totalDurationMs / 1000).toFixed(1)}s
+                          </span>
 
-                      <strong>
-                        {flowSummary.status ===
-                        "FAILED"
-                          ? copy.flowFailed
-                          : flowSummary.status ===
-                              "SUCCESS"
-                            ? copy.flowCompleted
-                            : copy.flowInProgress}
-                      </strong>
+                          <strong>
+                            {flowSummary.status === "FAILED"
+                              ? copy.flowFailed
+                              : flowSummary.status === "SUCCESS"
+                                ? copy.flowCompleted
+                                : copy.flowInProgress}
+                          </strong>
 
-                      {flowSummary
-                        .verificationStatus ===
-                      "CONFIRMED" ? (
-                        <em>
-                          {
-                            copy.verificationConfirmed
-                          }
-                        </em>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
-                {group.flowId &&
-                itemIndex > 0 ? (
-                  <div
-                    className={
-                      styles.timelineConnector
-                    }
-                    aria-hidden="true"
-                  >
-                    <span>↓</span>
-                  </div>
-                ) : null}
-
-                <article
-                  className={
-                    styles.browserHistoryItem
-                  }
-                >
-                <div
-                  className={`${styles.historyStatusDot} ${
-                    item.status === "SUCCESS"
-                      ? styles.historySuccess
-                      : item.status === "FAILED"
-                        ? styles.historyFailed
-                        : styles.historyPending
-                  }`}
-                />
-
-                <div className={styles.historyMain}>
-                  <div className={styles.historyTitleRow}>
-                    <strong>{actionLabel}</strong>
-
-                    <span>
-                      {item.channel.name}
-                    </span>
-                  </div>
-
-                  <div className={styles.historyMeta}>
-                    <span>{statusLabel}</span>
-
-                    <span>
-                      {formatDate(
-                        item.createdAt,
-                        locale,
-                      )}
-                    </span>
-
-                    {item.durationMs !== null ? (
-                      <span>
-                        {copy.duration}:{" "}
-                        {(item.durationMs / 1000).toFixed(1)}s
-                      </span>
+                          {flowSummary.verificationStatus === "CONFIRMED" ? (
+                            <em>{copy.verificationConfirmed}</em>
+                          ) : null}
+                        </div>
+                      </div>
                     ) : null}
-                  </div>
 
-                  <button
-                    type="button"
-                    className={styles.historyDetailsButton}
-                    onClick={() =>
-                      setSelectedBrowserHistoryItem(
-                        item,
-                      )
-                    }
-                  >
-                    {copy.showDetails}
-                  </button>
-
-                  {item.status === "FAILED" &&
-                  item.action === "PREPARE" ? (
-                    <button
-                      type="button"
-                      className={styles.retryHistoryButton}
-                      onClick={() =>
-                        void retryBrowserAction(
-                          item,
-                        )
-                      }
-                      disabled={
-                        browserAction !== null
-                      }
-                    >
-                      {retryingBrowserActionId ===
-                      item.id
-                        ? copy.retryingAction
-                        : copy.retryAction}
-                    </button>
-                  ) : null}
-
-                  {item.action === "PUBLISH" &&
-                  item.responsePayload
-                    ?.verification
-                    ?.status ? (
-                    <div
-                      className={
-                        styles.publishVerificationRow
-                      }
-                    >
-                      <span
-                        className={`${styles.publishVerificationBadge} ${
-                          item.responsePayload
-                            .verification
-                            .status ===
-                          "CONFIRMED"
-                            ? styles.verificationConfirmed
-                            : item.responsePayload
-                                  .verification
-                                  .status ===
-                                "COMPOSER_CLOSED"
-                              ? styles.verificationComposerClosed
-                              : item.responsePayload
-                                    .verification
-                                    .status ===
-                                  "FAILED"
-                                ? styles.verificationFailed
-                                : styles.verificationUnconfirmed
-                        }`}
+                    {group.flowId && itemIndex > 0 ? (
+                      <div
+                        className={styles.timelineConnector}
+                        aria-hidden="true"
                       >
-                        {item.responsePayload
-                          .verification
-                          .status ===
-                        "CONFIRMED"
-                          ? copy.verificationConfirmed
-                          : item.responsePayload
-                                .verification
-                                .status ===
-                              "COMPOSER_CLOSED"
-                            ? copy.verificationComposerClosed
-                            : item.responsePayload
-                                  .verification
-                                  .status ===
-                                "FAILED"
-                              ? copy.verificationFailed
-                              : copy.verificationUnconfirmed}
-                      </span>
+                        <span>↓</span>
+                      </div>
+                    ) : null}
 
-                      {typeof item
-                        .responsePayload
-                        .verification
-                        .waitedMs ===
-                      "number" ? (
-                        <small>
-                          {copy.verificationWaited}:{" "}
-                          {(
-                            item
-                              .responsePayload
-                              .verification
-                              .waitedMs /
-                            1000
-                          ).toFixed(1)}
-                          s
-                        </small>
-                      ) : null}
-                    </div>
-                  ) : null}
+                    <article className={styles.browserHistoryItem}>
+                      <div
+                        className={`${styles.historyStatusDot} ${
+                          item.status === "SUCCESS"
+                            ? styles.historySuccess
+                            : item.status === "FAILED"
+                              ? styles.historyFailed
+                              : styles.historyPending
+                        }`}
+                      />
 
-                  {(
-                    item.responsePayload
-                      ?.screenshot
-                      ?.absolutePath ||
-                    item.responsePayload
-                      ?.screenshots
-                      ?.before
-                      ?.absolutePath ||
-                    item.responsePayload
-                      ?.screenshots
-                      ?.after
-                      ?.absolutePath
-                  ) ? (
-                    <div
-                      className={
-                        styles.historyScreenshotActions
-                      }
-                    >
-                      {item.responsePayload
-                        ?.screenshot
-                        ?.absolutePath ? (
-                        <a
-                          href={browserActionScreenshotUrl(
-                            item.id,
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
+                      <div className={styles.historyMain}>
+                        <div className={styles.historyTitleRow}>
+                          <strong>{actionLabel}</strong>
+
+                          <span>{item.channel.name}</span>
+                        </div>
+
+                        <div className={styles.historyMeta}>
+                          <span>{statusLabel}</span>
+
+                          <span>{formatDate(item.createdAt, locale)}</span>
+
+                          {item.durationMs !== null ? (
+                            <span>
+                              {copy.duration}:{" "}
+                              {(item.durationMs / 1000).toFixed(1)}s
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <button
+                          type="button"
+                          className={styles.historyDetailsButton}
+                          onClick={() => setSelectedBrowserHistoryItem(item)}
                         >
-                          {copy.viewScreenshot}
-                        </a>
-                      ) : null}
+                          {copy.showDetails}
+                        </button>
 
-                      {item.responsePayload
-                        ?.screenshots
-                        ?.before
-                        ?.absolutePath ? (
-                        <a
-                          href={browserActionScreenshotUrl(
-                            item.id,
-                            "before",
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {copy.viewBeforeScreenshot}
-                        </a>
-                      ) : null}
+                        {item.status === "FAILED" &&
+                        item.action === "PREPARE" ? (
+                          <button
+                            type="button"
+                            className={styles.retryHistoryButton}
+                            onClick={() => void retryBrowserAction(item)}
+                            disabled={browserAction !== null}
+                          >
+                            {retryingBrowserActionId === item.id
+                              ? copy.retryingAction
+                              : copy.retryAction}
+                          </button>
+                        ) : null}
 
-                      {item.responsePayload
-                        ?.screenshots
-                        ?.after
-                        ?.absolutePath ? (
-                        <a
-                          href={browserActionScreenshotUrl(
-                            item.id,
-                            "after",
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {copy.viewAfterScreenshot}
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        {item.action === "PUBLISH" &&
+                        item.responsePayload?.verification?.status ? (
+                          <div className={styles.publishVerificationRow}>
+                            <span
+                              className={`${styles.publishVerificationBadge} ${
+                                item.responsePayload.verification.status ===
+                                "CONFIRMED"
+                                  ? styles.verificationConfirmed
+                                  : item.responsePayload.verification.status ===
+                                      "COMPOSER_CLOSED"
+                                    ? styles.verificationComposerClosed
+                                    : item.responsePayload.verification
+                                          .status === "FAILED"
+                                      ? styles.verificationFailed
+                                      : styles.verificationUnconfirmed
+                              }`}
+                            >
+                              {item.responsePayload.verification.status ===
+                              "CONFIRMED"
+                                ? copy.verificationConfirmed
+                                : item.responsePayload.verification.status ===
+                                    "COMPOSER_CLOSED"
+                                  ? copy.verificationComposerClosed
+                                  : item.responsePayload.verification.status ===
+                                      "FAILED"
+                                    ? copy.verificationFailed
+                                    : copy.verificationUnconfirmed}
+                            </span>
 
-                  {item.caption ? (
-                    <p className={styles.historyCaption}>
-                      {item.caption}
-                    </p>
-                  ) : null}
+                            {typeof item.responsePayload.verification
+                              .waitedMs === "number" ? (
+                              <small>
+                                {copy.verificationWaited}:{" "}
+                                {(
+                                  item.responsePayload.verification.waitedMs /
+                                  1000
+                                ).toFixed(1)}
+                                s
+                              </small>
+                            ) : null}
+                          </div>
+                        ) : null}
 
-                  {item.imagePath ? (
-                    <small className={styles.historyPath}>
-                      {copy.imagePath}:{" "}
-                      {item.imagePath}
-                    </small>
-                  ) : null}
+                        {item.responsePayload?.screenshot?.absolutePath ||
+                        item.responsePayload?.screenshots?.before
+                          ?.absolutePath ||
+                        item.responsePayload?.screenshots?.after
+                          ?.absolutePath ? (
+                          <div className={styles.historyScreenshotActions}>
+                            {item.responsePayload?.screenshot?.absolutePath ? (
+                              <a
+                                href={browserActionScreenshotUrl(item.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {copy.viewScreenshot}
+                              </a>
+                            ) : null}
 
-                  {item.errorMessage ? (
-                    <small className={styles.historyError}>
-                      {item.errorMessage}
-                    </small>
-                  ) : null}
+                            {item.responsePayload?.screenshots?.before
+                              ?.absolutePath ? (
+                              <a
+                                href={browserActionScreenshotUrl(
+                                  item.id,
+                                  "before",
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {copy.viewBeforeScreenshot}
+                              </a>
+                            ) : null}
 
-                </div>
-                </article>
-              </div>
-            );
-              },
-            );
-          })}
+                            {item.responsePayload?.screenshots?.after
+                              ?.absolutePath ? (
+                              <a
+                                href={browserActionScreenshotUrl(
+                                  item.id,
+                                  "after",
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {copy.viewAfterScreenshot}
+                              </a>
+                            ) : null}
+                          </div>
+                        ) : null}
 
-          {!filteredBrowserActions.length &&
-          !browserActionsLoading ? (
-            <div className={styles.historyEmpty}>
-              {copy.noBrowserActions}
-            </div>
+                        {item.caption ? (
+                          <p className={styles.historyCaption}>
+                            {item.caption}
+                          </p>
+                        ) : null}
+
+                        {item.imagePath ? (
+                          <small className={styles.historyPath}>
+                            {copy.imagePath}: {item.imagePath}
+                          </small>
+                        ) : null}
+
+                        {item.errorMessage ? (
+                          <small className={styles.historyError}>
+                            {item.errorMessage}
+                          </small>
+                        ) : null}
+                      </div>
+                    </article>
+                  </div>
+                );
+              });
+            },
+          )}
+
+          {!filteredBrowserActions.length && !browserActionsLoading ? (
+            <div className={styles.historyEmpty}>{copy.noBrowserActions}</div>
           ) : null}
 
           {browserActionsLoading ? (
-            <div className={styles.historyEmpty}>
-              {copy.loading}
-            </div>
+            <div className={styles.historyEmpty}>{copy.loading}</div>
           ) : null}
         </div>
       </section>
@@ -2746,13 +2047,8 @@ export function AutomationDashboard() {
           className={styles.historyModalOverlay}
           role="presentation"
           onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              setSelectedBrowserHistoryItem(
-                null,
-              );
+            if (event.target === event.currentTarget) {
+              setSelectedBrowserHistoryItem(null);
             }
           }}
         >
@@ -2762,17 +2058,11 @@ export function AutomationDashboard() {
             aria-modal="true"
             aria-labelledby="browser-history-dialog-title"
           >
-            <header
-              className={styles.historyModalHeader}
-            >
+            <header className={styles.historyModalHeader}>
               <div>
-                <p className={styles.eyebrow}>
-                  Browser History
-                </p>
+                <p className={styles.eyebrow}>Browser History</p>
 
-                <h3
-                  id="browser-history-dialog-title"
-                >
+                <h3 id="browser-history-dialog-title">
                   {copy.historyDetailsTitle}
                 </h3>
               </div>
@@ -2780,77 +2070,48 @@ export function AutomationDashboard() {
               <button
                 type="button"
                 className={styles.historyModalClose}
-                onClick={() =>
-                  setSelectedBrowserHistoryItem(
-                    null,
-                  )
-                }
+                onClick={() => setSelectedBrowserHistoryItem(null)}
                 aria-label={copy.closeDetails}
               >
                 ×
               </button>
             </header>
 
-            <div
-              className={styles.historyModalSummary}
-            >
+            <div className={styles.historyModalSummary}>
               <dl>
                 <div>
                   <dt>{copy.actionId}</dt>
-                  <dd>
-                    {selectedBrowserHistoryItem.id}
-                  </dd>
+                  <dd>{selectedBrowserHistoryItem.id}</dd>
                 </div>
 
                 <div>
                   <dt>{copy.channelName}</dt>
-                  <dd>
-                    {
-                      selectedBrowserHistoryItem
-                        .channel.name
-                    }
-                  </dd>
+                  <dd>{selectedBrowserHistoryItem.channel.name}</dd>
                 </div>
 
                 <div>
                   <dt>{copy.actionType}</dt>
-                  <dd>
-                    {
-                      selectedBrowserHistoryItem
-                        .action
-                    }
-                  </dd>
+                  <dd>{selectedBrowserHistoryItem.action}</dd>
                 </div>
 
                 <div>
                   <dt>{copy.resultStatus}</dt>
-                  <dd>
-                    {
-                      selectedBrowserHistoryItem
-                        .status
-                    }
-                  </dd>
+                  <dd>{selectedBrowserHistoryItem.status}</dd>
                 </div>
 
                 <div>
                   <dt>{copy.startedAt}</dt>
                   <dd>
-                    {formatDate(
-                      selectedBrowserHistoryItem
-                        .startedAt,
-                      locale,
-                    )}
+                    {formatDate(selectedBrowserHistoryItem.startedAt, locale)}
                   </dd>
                 </div>
 
                 <div>
                   <dt>{copy.completedAt}</dt>
                   <dd>
-                    {selectedBrowserHistoryItem
-                      .completedAt
+                    {selectedBrowserHistoryItem.completedAt
                       ? formatDate(
-                          selectedBrowserHistoryItem
-                            .completedAt,
+                          selectedBrowserHistoryItem.completedAt,
                           locale,
                         )
                       : "-"}
@@ -2860,12 +2121,9 @@ export function AutomationDashboard() {
                 <div>
                   <dt>{copy.duration}</dt>
                   <dd>
-                    {selectedBrowserHistoryItem
-                      .durationMs !== null
+                    {selectedBrowserHistoryItem.durationMs !== null
                       ? `${(
-                          selectedBrowserHistoryItem
-                            .durationMs /
-                          1000
+                          selectedBrowserHistoryItem.durationMs / 1000
                         ).toFixed(1)}s`
                       : "-"}
                   </dd>
@@ -2873,304 +2131,154 @@ export function AutomationDashboard() {
 
                 <div>
                   <dt>{copy.browserProfile}</dt>
-                  <dd>
-                    {selectedBrowserHistoryItem
-                      .browserProfileKey ||
-                      "-"}
-                  </dd>
+                  <dd>{selectedBrowserHistoryItem.browserProfileKey || "-"}</dd>
                 </div>
               </dl>
             </div>
 
-            {selectedBrowserHistoryItem
-              .caption ? (
-              <section
-                className={
-                  styles.historyModalSection
-                }
-              >
+            {selectedBrowserHistoryItem.caption ? (
+              <section className={styles.historyModalSection}>
                 <strong>{copy.viewCaption}</strong>
-                <p>
-                  {
-                    selectedBrowserHistoryItem
-                      .caption
-                  }
+                <p>{selectedBrowserHistoryItem.caption}</p>
+              </section>
+            ) : null}
+
+            {selectedBrowserHistoryItem.errorMessage ? (
+              <section className={styles.historyModalSection}>
+                <strong>{copy.errorDetails}</strong>
+                <p className={styles.historyModalError}>
+                  {selectedBrowserHistoryItem.errorMessage}
                 </p>
               </section>
             ) : null}
 
-            {selectedBrowserHistoryItem
-              .errorMessage ? (
-              <section
-                className={
-                  styles.historyModalSection
+            {selectedBrowserHistoryItem.action === "PREPARE" ? (
+              <button
+                type="button"
+                className={styles.replayBrowserActionButton}
+                disabled={
+                  replayingBrowserActionId === selectedBrowserHistoryItem.id
+                }
+                onClick={() =>
+                  void replayBrowserAction(selectedBrowserHistoryItem.id)
                 }
               >
-                <strong>
-                  {copy.errorDetails}
-                </strong>
-                <p
-                  className={
-                    styles.historyModalError
-                  }
-                >
-                  {
-                    selectedBrowserHistoryItem
-                      .errorMessage
-                  }
-                </p>
-              </section>
+                {replayingBrowserActionId === selectedBrowserHistoryItem.id
+                  ? "Replaying..."
+                  : "Replay PREPARE"}
+              </button>
             ) : null}
 
-              {selectedBrowserHistoryItem
-                .action ===
-              "PREPARE" ? (
-                <button
-                  type="button"
-                  className={
-                    styles
-                      .replayBrowserActionButton
-                  }
-                  disabled={
-                    replayingBrowserActionId ===
-                    selectedBrowserHistoryItem
-                      .id
-                  }
-                  onClick={() =>
-                    void replayBrowserAction(
-                      selectedBrowserHistoryItem
-                        .id,
-                    )
-                  }
-                >
-                  {replayingBrowserActionId ===
-                  selectedBrowserHistoryItem
-                    .id
-                    ? "Replaying..."
-                    : "Replay PREPARE"}
-                </button>
-              ) : null}
-
-            {(
-              selectedBrowserHistoryItem
-                .traces || []
-            ).length ? (
-              <section
-                className={
-                  styles.historyModalSection
-                }
-              >
-                <div
-                  className={
-                    styles.traceDiagnostics
-                  }
-                >
-                  <div
-                    className={
-                      styles.traceDiagnosticsHeader
-                    }
-                  >
-                    <strong>
-                      Trace Diagnostics
-                    </strong>
+            {(selectedBrowserHistoryItem.traces || []).length ? (
+              <section className={styles.historyModalSection}>
+                <div className={styles.traceDiagnostics}>
+                  <div className={styles.traceDiagnosticsHeader}>
+                    <strong>Trace Diagnostics</strong>
 
                     <span>
                       {
                         analyzeBrowserTrace(
-                          selectedBrowserHistoryItem
-                            .traces || [],
+                          selectedBrowserHistoryItem.traces || [],
                         ).length
                       }{" "}
                       findings
                     </span>
                   </div>
 
-                  <div
-                    className={
-                      styles.traceDiagnosticsList
-                    }
-                  >
+                  <div className={styles.traceDiagnosticsList}>
                     {analyzeBrowserTrace(
-                      selectedBrowserHistoryItem
-                        .traces || [],
-                    ).map(
-                      (
-                        diagnostic,
-                        diagnosticIndex,
-                      ) => (
-                        <div
-                          key={`${diagnostic.stepKey || "flow"}-${diagnosticIndex}`}
-                          className={`${styles.traceDiagnosticItem} ${
-                            diagnostic.severity ===
-                            "CRITICAL"
-                              ? styles.traceDiagnosticCritical
-                              : diagnostic.severity ===
-                                  "WARNING"
-                                ? styles.traceDiagnosticWarning
-                                : diagnostic.severity ===
-                                    "HEALTHY"
-                                  ? styles.traceDiagnosticHealthy
-                                  : styles.traceDiagnosticInfo
-                          }`}
+                      selectedBrowserHistoryItem.traces || [],
+                    ).map((diagnostic, diagnosticIndex) => (
+                      <div
+                        key={`${diagnostic.stepKey || "flow"}-${diagnosticIndex}`}
+                        className={`${styles.traceDiagnosticItem} ${
+                          diagnostic.severity === "CRITICAL"
+                            ? styles.traceDiagnosticCritical
+                            : diagnostic.severity === "WARNING"
+                              ? styles.traceDiagnosticWarning
+                              : diagnostic.severity === "HEALTHY"
+                                ? styles.traceDiagnosticHealthy
+                                : styles.traceDiagnosticInfo
+                        }`}
+                      >
+                        <span
+                          className={styles.traceDiagnosticIcon}
+                          aria-hidden="true"
                         >
-                          <span
-                            className={
-                              styles.traceDiagnosticIcon
-                            }
-                            aria-hidden="true"
-                          >
-                            {diagnostic.severity ===
-                            "CRITICAL"
-                              ? "×"
-                              : diagnostic.severity ===
-                                  "WARNING"
-                                ? "!"
-                                : diagnostic.severity ===
-                                    "HEALTHY"
-                                  ? "✓"
-                                  : "i"}
-                          </span>
+                          {diagnostic.severity === "CRITICAL"
+                            ? "×"
+                            : diagnostic.severity === "WARNING"
+                              ? "!"
+                              : diagnostic.severity === "HEALTHY"
+                                ? "✓"
+                                : "i"}
+                        </span>
 
-                          <div>
-                            <strong>
-                              {diagnostic.title}
-                            </strong>
+                        <div>
+                          <strong>{diagnostic.title}</strong>
 
-                            <p>
-                              {
-                                diagnostic.message
-                              }
-                            </p>
+                          <p>{diagnostic.message}</p>
 
-                            {diagnostic.stepKey ? (
-                              <code>
-                                {
-                                  diagnostic.stepKey
-                                }
-                              </code>
-                            ) : null}
-                          </div>
+                          {diagnostic.stepKey ? (
+                            <code>{diagnostic.stepKey}</code>
+                          ) : null}
                         </div>
-                      ),
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div
-                  className={
-                    styles.executionTraceHeader
-                  }
-                >
-                  <strong>
-                    Execution Trace
-                  </strong>
+                <div className={styles.executionTraceHeader}>
+                  <strong>Execution Trace</strong>
 
-                  <span>
-                    {
-                      selectedBrowserHistoryItem
-                        .traces?.length
-                    } steps
-                  </span>
+                  <span>{selectedBrowserHistoryItem.traces?.length} steps</span>
                 </div>
 
-                <div
-                  className={
-                    styles.executionTraceList
-                  }
-                >
-                  {(
-                    selectedBrowserHistoryItem
-                      .traces || []
-                  ).map((trace) => (
-                    <div
-                      key={trace.id}
-                      className={
-                        styles.executionTraceStep
-                      }
-                    >
-                      <div
-                        className={
-                          styles.executionTraceRail
-                        }
-                      >
+                <div className={styles.executionTraceList}>
+                  {(selectedBrowserHistoryItem.traces || []).map((trace) => (
+                    <div key={trace.id} className={styles.executionTraceStep}>
+                      <div className={styles.executionTraceRail}>
                         <span
                           className={
-                            trace.status ===
-                            "SUCCESS"
+                            trace.status === "SUCCESS"
                               ? styles.executionTraceSuccess
-                              : trace.status ===
-                                  "FAILED"
+                              : trace.status === "FAILED"
                                 ? styles.executionTraceFailed
-                                : trace.status ===
-                                    "SKIPPED"
+                                : trace.status === "SKIPPED"
                                   ? styles.executionTraceSkipped
                                   : styles.executionTracePending
                           }
                         >
-                          {trace.status ===
-                          "SUCCESS"
+                          {trace.status === "SUCCESS"
                             ? "✓"
-                            : trace.status ===
-                                "FAILED"
+                            : trace.status === "FAILED"
                               ? "×"
-                              : trace.status ===
-                                  "SKIPPED"
+                              : trace.status === "SKIPPED"
                                 ? "–"
                                 : "•"}
                         </span>
                       </div>
 
-                      <div
-                        className={
-                          styles.executionTraceContent
-                        }
-                      >
-                        <div
-                          className={
-                            styles.executionTraceTitle
-                          }
-                        >
+                      <div className={styles.executionTraceContent}>
+                        <div className={styles.executionTraceTitle}>
                           <div>
-                            <strong>
-                              {trace.stepName}
-                            </strong>
+                            <strong>{trace.stepName}</strong>
 
-                            <code>
-                              {trace.stepKey}
-                            </code>
+                            <code>{trace.stepKey}</code>
                           </div>
 
-                          <span>
-                            {formatTraceDuration(
-                              trace.durationMs,
-                            )}
-                          </span>
+                          <span>{formatTraceDuration(trace.durationMs)}</span>
                         </div>
 
-                        <div
-                          className={
-                            styles.executionTraceMeta
-                          }
-                        >
-                          <span>
-                            Step{" "}
-                            {trace.stepOrder}
-                          </span>
+                        <div className={styles.executionTraceMeta}>
+                          <span>Step {trace.stepOrder}</span>
 
-                          <span>
-                            {trace.status}
-                          </span>
+                          <span>{trace.status}</span>
                         </div>
 
                         {trace.errorMessage ? (
-                          <p
-                            className={
-                              styles.executionTraceError
-                            }
-                          >
-                            {
-                              trace.errorMessage
-                            }
+                          <p className={styles.executionTraceError}>
+                            {trace.errorMessage}
                           </p>
                         ) : null}
                       </div>
@@ -3180,37 +2288,17 @@ export function AutomationDashboard() {
               </section>
             ) : null}
 
-            {(selectedBrowserHistoryItem
-              .responsePayload
-              ?.screenshot
+            {selectedBrowserHistoryItem.responsePayload?.screenshot
               ?.absolutePath ||
-              selectedBrowserHistoryItem
-                .responsePayload
-                ?.screenshots
-                ?.before
-                ?.absolutePath ||
-              selectedBrowserHistoryItem
-                .responsePayload
-                ?.screenshots
-                ?.after
-                ?.absolutePath) ? (
-              <section
-                className={
-                  styles.historyModalSection
-                }
-              >
-                <strong>
-                  {copy.screenshotPreview}
-                </strong>
+            selectedBrowserHistoryItem.responsePayload?.screenshots?.before
+              ?.absolutePath ||
+            selectedBrowserHistoryItem.responsePayload?.screenshots?.after
+              ?.absolutePath ? (
+              <section className={styles.historyModalSection}>
+                <strong>{copy.screenshotPreview}</strong>
 
-                <div
-                  className={
-                    styles.historyModalScreenshots
-                  }
-                >
-                  {selectedBrowserHistoryItem
-                    .responsePayload
-                    ?.screenshot
+                <div className={styles.historyModalScreenshots}>
+                  {selectedBrowserHistoryItem.responsePayload?.screenshot
                     ?.absolutePath ? (
                     <a
                       href={browserActionScreenshotUrl(
@@ -3225,17 +2313,12 @@ export function AutomationDashboard() {
                         )}
                         alt={copy.viewScreenshot}
                       />
-                      <span>
-                        {copy.viewScreenshot}
-                      </span>
+                      <span>{copy.viewScreenshot}</span>
                     </a>
                   ) : null}
 
-                  {selectedBrowserHistoryItem
-                    .responsePayload
-                    ?.screenshots
-                    ?.before
-                    ?.absolutePath ? (
+                  {selectedBrowserHistoryItem.responsePayload?.screenshots
+                    ?.before?.absolutePath ? (
                     <a
                       href={browserActionScreenshotUrl(
                         selectedBrowserHistoryItem.id,
@@ -3249,23 +2332,14 @@ export function AutomationDashboard() {
                           selectedBrowserHistoryItem.id,
                           "before",
                         )}
-                        alt={
-                          copy.viewBeforeScreenshot
-                        }
+                        alt={copy.viewBeforeScreenshot}
                       />
-                      <span>
-                        {
-                          copy.viewBeforeScreenshot
-                        }
-                      </span>
+                      <span>{copy.viewBeforeScreenshot}</span>
                     </a>
                   ) : null}
 
-                  {selectedBrowserHistoryItem
-                    .responsePayload
-                    ?.screenshots
-                    ?.after
-                    ?.absolutePath ? (
+                  {selectedBrowserHistoryItem.responsePayload?.screenshots
+                    ?.after?.absolutePath ? (
                     <a
                       href={browserActionScreenshotUrl(
                         selectedBrowserHistoryItem.id,
@@ -3279,40 +2353,22 @@ export function AutomationDashboard() {
                           selectedBrowserHistoryItem.id,
                           "after",
                         )}
-                        alt={
-                          copy.viewAfterScreenshot
-                        }
+                        alt={copy.viewAfterScreenshot}
                       />
-                      <span>
-                        {
-                          copy.viewAfterScreenshot
-                        }
-                      </span>
+                      <span>{copy.viewAfterScreenshot}</span>
                     </a>
                   ) : null}
                 </div>
               </section>
             ) : null}
 
-            {selectedBrowserHistoryItem
-              .responsePayload ? (
-              <section
-                className={
-                  styles.historyModalSection
-                }
-              >
-                <strong>
-                  {copy.responseDetails}
-                </strong>
+            {selectedBrowserHistoryItem.responsePayload ? (
+              <section className={styles.historyModalSection}>
+                <strong>{copy.responseDetails}</strong>
 
-                <pre
-                  className={
-                    styles.historyModalPayload
-                  }
-                >
+                <pre className={styles.historyModalPayload}>
                   {JSON.stringify(
-                    selectedBrowserHistoryItem
-                      .responsePayload,
+                    selectedBrowserHistoryItem.responsePayload,
                     null,
                     2,
                   )}
@@ -3320,17 +2376,11 @@ export function AutomationDashboard() {
               </section>
             ) : null}
 
-            <footer
-              className={styles.historyModalFooter}
-            >
+            <footer className={styles.historyModalFooter}>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() =>
-                  setSelectedBrowserHistoryItem(
-                    null,
-                  )
-                }
+                onClick={() => setSelectedBrowserHistoryItem(null)}
               >
                 {copy.closeDetails}
               </button>
@@ -3340,30 +2390,17 @@ export function AutomationDashboard() {
       ) : null}
 
       {discardConfirmOpen ? (
-        <div
-          className={styles.confirmOverlay}
-          role="presentation"
-        >
-          <div
-            className={styles.confirmDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <h3>
-              {copy.discardConfirmTitle}
-            </h3>
+        <div className={styles.confirmOverlay} role="presentation">
+          <div className={styles.confirmDialog} role="dialog" aria-modal="true">
+            <h3>{copy.discardConfirmTitle}</h3>
 
-            <p>
-              {copy.discardConfirmText}
-            </p>
+            <p>{copy.discardConfirmText}</p>
 
             <div className={styles.confirmActions}>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() =>
-                  setDiscardConfirmOpen(false)
-                }
+                onClick={() => setDiscardConfirmOpen(false)}
               >
                 {copy.cancelPublish}
               </button>
@@ -3371,9 +2408,7 @@ export function AutomationDashboard() {
               <button
                 type="button"
                 className={styles.confirmDiscardButton}
-                onClick={() =>
-                  void discardBrowserDraft()
-                }
+                onClick={() => void discardBrowserDraft()}
               >
                 {copy.confirmDiscard}
               </button>
@@ -3383,30 +2418,17 @@ export function AutomationDashboard() {
       ) : null}
 
       {publishConfirmOpen ? (
-        <div
-          className={styles.confirmOverlay}
-          role="presentation"
-        >
-          <div
-            className={styles.confirmDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <h3>
-              {copy.publishConfirmTitle}
-            </h3>
+        <div className={styles.confirmOverlay} role="presentation">
+          <div className={styles.confirmDialog} role="dialog" aria-modal="true">
+            <h3>{copy.publishConfirmTitle}</h3>
 
-            <p>
-              {copy.publishConfirmText}
-            </p>
+            <p>{copy.publishConfirmText}</p>
 
             <div className={styles.confirmActions}>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() =>
-                  setPublishConfirmOpen(false)
-                }
+                onClick={() => setPublishConfirmOpen(false)}
               >
                 {copy.cancelPublish}
               </button>
@@ -3414,9 +2436,7 @@ export function AutomationDashboard() {
               <button
                 type="button"
                 className={styles.confirmPublishButton}
-                onClick={() =>
-                  void publishBrowserDraft()
-                }
+                onClick={() => void publishBrowserDraft()}
               >
                 {copy.confirmPublish}
               </button>
@@ -3463,11 +2483,15 @@ export function AutomationDashboard() {
                     </div>
                   </td>
 
-                  <td data-label={copy.campaign}>{post.campaign?.name || "—"}</td>
+                  <td data-label={copy.campaign}>
+                    {post.campaign?.name || "—"}
+                  </td>
 
                   <td data-label={copy.status}>{post.status}</td>
 
-                  <td data-label={copy.scheduledTime}>{formatDate(post.scheduledAt, locale)}</td>
+                  <td data-label={copy.scheduledTime}>
+                    {formatDate(post.scheduledAt, locale)}
+                  </td>
                 </tr>
               ))}
 

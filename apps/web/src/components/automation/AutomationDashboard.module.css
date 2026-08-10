@@ -75,13 +75,15 @@
   color: var(--text);
   text-decoration: none;
   cursor: pointer;
-  transition: border-color .16s ease, transform .16s ease;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease;
 }
 
 .kpiAction:hover,
 .kpiAction:focus-visible {
   transform: translateY(-2px);
-  border-color: rgba(120, 104, 255, .48);
+  border-color: rgba(120, 104, 255, 0.48);
   outline: none;
 }
 
@@ -1513,8 +1515,7 @@
 
 .historyModalSummary dl {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 0;
 }
@@ -1556,8 +1557,7 @@
 
 .historyModalScreenshots {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1796,8 +1796,7 @@
   content: "";
 }
 
-.executionTraceStep:last-child
-.executionTraceRail::after {
+.executionTraceStep:last-child .executionTraceRail::after {
   display: none;
 }
 
@@ -1976,8 +1975,7 @@
   background: rgba(239, 68, 68, 0.07);
 }
 
-.traceDiagnosticCritical
-.traceDiagnosticIcon {
+.traceDiagnosticCritical .traceDiagnosticIcon {
   background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
 }
@@ -1987,14 +1985,12 @@
   background: rgba(245, 158, 11, 0.07);
 }
 
-.traceDiagnosticWarning
-.traceDiagnosticIcon {
+.traceDiagnosticWarning .traceDiagnosticIcon {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
 }
 
-.traceDiagnosticInfo
-.traceDiagnosticIcon {
+.traceDiagnosticInfo .traceDiagnosticIcon {
   background: rgba(99, 102, 241, 0.14);
   color: #818cf8;
 }
@@ -2004,8 +2000,7 @@
   background: rgba(34, 197, 94, 0.07);
 }
 
-.traceDiagnosticHealthy
-.traceDiagnosticIcon {
+.traceDiagnosticHealthy .traceDiagnosticIcon {
   background: rgba(34, 197, 94, 0.14);
   color: #22c55e;
 }
@@ -2061,27 +2056,26 @@
   }
 }
 
-/* Connected Platforms — Excel-style table */
+/* Connected Platforms — Data Grid v3 */
 
-.channelTableWrap {
+.channelTableShell {
   width: 100%;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
   border-radius: 14px;
 }
 
 .channelTableToolbar {
+  position: relative;
+  z-index: 8;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
-  background: color-mix(
-    in srgb,
-    currentColor 3%,
-    transparent
-  );
+  background: color-mix(in srgb, currentColor 3%, transparent);
   font-size: 13px;
   font-weight: 700;
 }
@@ -2090,6 +2084,7 @@
   color: inherit;
   text-decoration: none;
   opacity: 0.78;
+  white-space: nowrap;
 }
 
 .manageAccountsLink:hover {
@@ -2097,37 +2092,51 @@
   text-decoration: underline;
 }
 
-.channelTable {
+.channelTableWrap {
+  position: relative;
+  display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable both-edges;
+}
+
+.channelTable {
+  width: max-content;
+  min-width: 940px;
 }
 
 .channelTableHeader,
 .channelTableRow {
   display: grid;
   grid-template-columns:
-    minmax(110px, 0.75fr)
-    minmax(190px, 1.5fr)
-    minmax(150px, 1fr)
-    minmax(110px, 0.75fr)
-    minmax(70px, 0.45fr)
-    minmax(80px, 0.5fr);
+    132px
+    220px
+    180px
+    130px
+    80px
+    90px;
   align-items: center;
+  min-width: 832px;
 }
 
 .channelTableHeader {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   min-height: 42px;
   border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
-  background: color-mix(
-    in srgb,
-    currentColor 5%,
-    transparent
-  );
+  background: var(--panel-bg, #151923);
   color: inherit;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.72;
 }
 
 .channelTableHeader > span,
@@ -2135,8 +2144,7 @@
 .channelTableRow > strong {
   min-width: 0;
   padding: 10px 12px;
-  border-right: 1px solid
-    var(--border-color, rgba(148, 163, 184, 0.18));
+  border-right: 1px solid var(--border-color, rgba(148, 163, 184, 0.18));
 }
 
 .channelTableHeader > span:last-child,
@@ -2145,9 +2153,10 @@
 }
 
 .channelTableRow {
+  position: relative;
   min-height: 58px;
-  border-bottom: 1px solid
-    var(--border-color, rgba(148, 163, 184, 0.18));
+  border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.18));
+  background: var(--panel-bg, #151923);
   color: inherit;
   text-decoration: none;
   transition:
@@ -2160,19 +2169,26 @@
 }
 
 .channelTableRow:hover {
-  background: color-mix(
-    in srgb,
-    currentColor 5%,
-    transparent
-  );
-  box-shadow: inset 3px 0 0
-    var(--accent-color, #6d5dfc);
+  background: color-mix(in srgb, currentColor 5%, var(--panel-bg, #151923));
 }
 
 .channelPlatformCell {
+  position: sticky;
+  left: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 9px;
+  background: inherit;
+  box-shadow: 1px 0 0 var(--border-color, rgba(148, 163, 184, 0.2));
+}
+
+.channelTableHeader > span:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 7;
+  background: var(--panel-bg, #151923);
+  box-shadow: 1px 0 0 var(--border-color, rgba(148, 163, 184, 0.2));
 }
 
 .channelPlatformCell small {
@@ -2202,6 +2218,10 @@
   white-space: nowrap;
 }
 
+.channelNameCell {
+  font-weight: 800;
+}
+
 .channelUsernameCell {
   opacity: 0.7;
 }
@@ -2219,113 +2239,110 @@
   white-space: nowrap;
 }
 
+.channelTableWrap::-webkit-scrollbar {
+  width: 10px;
+  height: 12px;
+}
+
+.channelTableWrap::-webkit-scrollbar-track {
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.channelTableWrap::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 35%, transparent);
+  background-clip: padding-box;
+}
+
+.channelTableWrap::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, currentColor 50%, transparent);
+  background-clip: padding-box;
+}
+
 @media (max-width: 900px) {
+  .channelTableShell {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .channelTableWrap {
-    overflow-x: auto;
+    max-height: min(58vh, 560px);
+    touch-action: pan-x pan-y;
   }
 
   .channelTable {
-    min-width: 820px;
+    min-width: 940px;
+  }
+
+  .channelTableHeader,
+  .channelTableRow {
+    grid-template-columns:
+      118px
+      210px
+      170px
+      125px
+      76px
+      86px;
   }
 }
 
 @media (max-width: 640px) {
   .channelTableToolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    padding: 10px 12px;
   }
-}
 
+  .channelTableToolbar > span {
+    flex: 0 0 auto;
+  }
 
-/* === CONNECTED PLATFORMS HORIZONTAL SCROLL === */
+  .manageAccountsLink {
+    overflow: hidden;
+    max-width: 58%;
+    text-overflow: ellipsis;
+  }
 
-.channelTableWrap {
-  position: relative;
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-gutter: stable;
-}
-
-.channelTable {
-  width: max-content;
-  min-width: 900px !important;
-}
-
-.channelTableWrap::-webkit-scrollbar {
-  height: 9px;
-}
-
-.channelTableWrap::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background:
-    color-mix(
-      in srgb,
-      currentColor 6%,
-      transparent
-    );
-}
-
-.channelTableWrap::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background:
-    color-mix(
-      in srgb,
-      currentColor 28%,
-      transparent
-    );
-}
-
-.channelTableWrap::-webkit-scrollbar-thumb:hover {
-  background:
-    color-mix(
-      in srgb,
-      currentColor 42%,
-      transparent
-    );
-}
-
-/*
- * Keep useful columns readable.
- * Do not squeeze everything into the viewport.
- */
-.channelTableRow,
-.channelTableHeader {
-  min-width: 900px;
-}
-
-@media (max-width: 900px) {
   .channelTableWrap {
-    width: calc(100% + 24px);
-    margin-inline: -12px;
-    padding-inline: 12px;
-    padding-bottom: 8px;
-  }
-
-  .channelTable {
-    min-width: 900px !important;
-  }
-}
-
-@media (max-width: 600px) {
-  .channelTableWrap {
+    width: 100%;
+    max-height: 52vh;
+    margin: 0;
+    padding: 0;
     cursor: grab;
-    touch-action: pan-x pan-y;
   }
 
   .channelTableWrap:active {
     cursor: grabbing;
   }
+
+  .channelTableHeader {
+    min-height: 38px;
+  }
+
+  .channelTableRow {
+    min-height: 54px;
+  }
+
+  .channelTableHeader > span,
+  .channelTableRow > span,
+  .channelTableRow > strong {
+    padding: 9px 10px;
+  }
 }
 
-/* === END CONNECTED PLATFORMS HORIZONTAL SCROLL === */
+:global(html[data-theme="light"]) .channelTableShell {
+  background: #fff;
+}
 
+:global(html[data-theme="light"]) .channelTableHeader,
+:global(html[data-theme="light"]) .channelTableRow,
+:global(html[data-theme="light"]) .channelPlatformCell,
+:global(html[data-theme="light"]) .channelTableHeader > span:first-child {
+  background: #fff;
+}
 
+/* === END CONNECTED PLATFORMS DATA GRID V3 === */
 
 /* === AUTOMATION LIVE BROWSER V2 === */
 
@@ -2354,3 +2371,25 @@
 }
 
 /* === END AUTOMATION LIVE BROWSER V2 === */
+
+/* === AUTOMATION SECTION NAV ANCHORS === */
+
+#connected-platforms,
+#publishing,
+#browser-tools,
+#upcoming-posts,
+#browser-history {
+  scroll-margin-top: 82px;
+}
+
+@media (max-width: 700px) {
+  #connected-platforms,
+  #publishing,
+  #browser-tools,
+  #upcoming-posts,
+  #browser-history {
+    scroll-margin-top: 76px;
+  }
+}
+
+/* === END AUTOMATION SECTION NAV ANCHORS === */
