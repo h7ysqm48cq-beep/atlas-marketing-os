@@ -540,6 +540,27 @@ export class SportsNewsAutomationService {
 
     const acceptedStories: typeof stories = [];
 
+    const acceptedSources: Array<{
+      title: string;
+      url?: string | null;
+      publishedAt?: string | Date | null;
+      sourceName?: string | null;
+    }> = [];
+
+    /*
+     * Validate freshness per story without applying the global
+     * minimumSources requirement to every individual story.
+     *
+     * A story needs at least one fresh, verifiable source.
+     * The configured minimumSources requirement is enforced
+     * across the complete edition after story validation.
+     */
+    const perStoryFreshness: SportsNewsFreshnessRules = {
+      ...freshness,
+      minimumSources: 1,
+      freshnessFallbackEnabled: false,
+    };
+
     for (const story of stories.slice(0, 5)) {
       const sources = Array.isArray(story.sources)
         ? story.sources.map((source) => ({
@@ -550,14 +571,26 @@ export class SportsNewsAutomationService {
           }))
         : [];
 
-      try {
-        this.sportsNewsSourceValidator.validate(sources, freshness);
-      } catch (error) {
-        const storyName =
-          story.headlineEn?.trim() ||
-          story.headlineZh?.trim() ||
-          'Unknown sports story';
+      const storyName =
+        story.headlineEn?.trim() ||
+        story.headlineZh?.trim() ||
+        'Unknown sports story';
 
+      try {
+        const validation = this.sportsNewsSourceValidator.validate(
+          sources,
+          perStoryFreshness,
+        );
+
+        if (!validation.enoughSources || validation.accepted.length < 1) {
+          this.logger.warn(
+            `Sports story rejected because no fresh verified source remained: "${storyName}".`,
+          );
+          continue;
+        }
+
+        acceptedSources.push(...validation.accepted);
+      } catch (error) {
         const sourceDiagnostics = sources.map((source) => ({
           sourceName: source.sourceName,
           publishedAt: source.publishedAt,
@@ -565,8 +598,8 @@ export class SportsNewsAutomationService {
           title: source.title,
         }));
 
-        this.logger.error(
-          `Freshness validation rejected "${storyName}". ` +
+        this.logger.warn(
+          `Sports story rejected by freshness validation: "${storyName}". ` +
             `sources=${JSON.stringify(sourceDiagnostics)}. ` +
             `${
               error instanceof Error
@@ -575,13 +608,15 @@ export class SportsNewsAutomationService {
             }`,
         );
 
-        throw error;
+        continue;
       }
 
       if (story.eventStatus === 'COMPLETED' && !story.finalScore?.trim()) {
-        throw new Error(
-          `Completed event "${story.headlineEn || story.headlineZh || 'Unknown'}" has no verified finalScore. Publication blocked.`,
+        this.logger.warn(
+          `Completed sports story rejected because finalScore is missing: "${storyName}".`,
         );
+
+        continue;
       }
 
       acceptedStories.push(story);
@@ -589,9 +624,39 @@ export class SportsNewsAutomationService {
 
     if (acceptedStories.length < 3) {
       throw new Error(
-        'Fewer than 3 stories passed freshness validation. Publication blocked.',
+        `Only ${acceptedStories.length} sports stories passed freshness validation. Minimum 3 required. Publication blocked.`,
       );
     }
+
+    /*
+     * Enforce the configured minimum source count across the
+     * complete edition rather than independently for each story.
+     *
+     * Duplicate URLs count only once.
+     */
+    const uniqueAcceptedSources = Array.from(
+      new Map(
+        acceptedSources.map((source) => [
+          source.url?.trim() ||
+            `${source.sourceName ?? ''}:${source.title}:${source.publishedAt ?? ''}`,
+          source,
+        ]),
+      ).values(),
+    );
+
+    const requiredSourceCount = Math.max(1, freshness.minimumSources);
+
+    if (uniqueAcceptedSources.length < requiredSourceCount) {
+      throw new Error(
+        `Sports edition has ${uniqueAcceptedSources.length} unique fresh verified source(s). ` +
+          `Minimum ${requiredSourceCount} required. Publication blocked.`,
+      );
+    }
+
+    this.logger.log(
+      `Sports edition verified: ${acceptedStories.length} stories, ` +
+        `${uniqueAcceptedSources.length} unique fresh source(s).`,
+    );
 
     const lines: string[] = [
       edition === 'MORNING'
