@@ -45,7 +45,9 @@ export class AssetImageService {
     await this.validateRelations(brand.id, dto.campaignId, dto.historyId);
 
     const model =
-      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-2';
+      dto.model?.trim() ||
+      this.configService.get<string>('OPENAI_IMAGE_MODEL') ||
+      'gpt-image-2';
     const size = dto.size || '1024x1536';
     const quality = dto.quality || 'medium';
     const generationStartedAt = Date.now();

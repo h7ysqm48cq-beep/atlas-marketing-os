@@ -63,6 +63,176 @@ export type UpdateSportsNewsSettingsInput = {
 
   brandFooterEnabled?: boolean;
   brandFooterText?: string;
+
+  storyMinimum?: number;
+  storyMaximum?: number;
+  sportsPriority?: string;
+
+  verificationInstructions?: string | null;
+  imageHeadlineInstructions?: string | null;
+  visibleCopyInstructions?: string | null;
+
+  telegramMorningHeader?: string;
+  telegramEveningHeader?: string;
+  telegramSectionLabel?: string;
+
+  telegramCtaEnabled?: boolean;
+  telegramCtaText?: string;
+  telegramCtaUrl?: string;
+
+  telegramShowSummaries?: boolean;
+  telegramCaptionTarget?: number;
+
+  telegramSummaryZhLong?: number;
+  telegramSummaryEnLong?: number;
+  telegramSummaryZhMedium?: number;
+  telegramSummaryEnMedium?: number;
+  telegramSummaryZhShort?: number;
+  telegramSummaryEnShort?: number;
+  telegramSummaryZhCompact?: number;
+  telegramSummaryEnCompact?: number;
+
+  visualDirectorEnabled?: boolean;
+  visualDirectorPrompt?: string | null;
+
+  heroStoryWeight?: number;
+
+  singleSportVisualPrompt?: string | null;
+  multiSportVisualPrompt?: string | null;
+
+  completedEventVisualPrompt?: string | null;
+  upcomingEventVisualPrompt?: string | null;
+  developmentVisualPrompt?: string | null;
+
+  morningVisualDirection?: string | null;
+  eveningVisualDirection?: string | null;
+
+  imagePhotographyPrompt?: string | null;
+  imageNegativePrompt?: string | null;
+
+  imageUpperSafeAreaPrompt?: string | null;
+  imageLowerSafeAreaPrompt?: string | null;
+
+  imageLayoutEnabled?: boolean;
+
+  mastheadScale?: number;
+  mastheadTopPercent?: number;
+
+  highlightsPanelWidthPercent?: number;
+  highlightsPanelHeightPercent?: number;
+  highlightsPanelTopPercent?: number;
+  highlightsPanelOpacityStart?: number;
+  highlightsPanelOpacityMiddle?: number;
+  highlightsPanelOpacityEnd?: number;
+  highlightsPanelRadius?: number;
+
+  heroHeadlineScale?: number;
+  secondaryHeadlineScale?: number;
+
+  story02PositionPercent?: number;
+  story03PositionPercent?: number;
+
+  footerHeightPercent?: number;
+
+  qrEnabled?: boolean;
+  qrLink?: string;
+
+  mastheadBrandText?: string;
+
+  morningEditionZh?: string;
+  eveningEditionZh?: string;
+  morningEditionEn?: string;
+  eveningEditionEn?: string;
+
+  imageSectionLabel?: string;
+
+  morningAccentColor?: string;
+  eveningAccentColor?: string;
+  morningSecondaryColor?: string;
+  eveningSecondaryColor?: string;
+
+  mastheadPrimaryColor?: string;
+  mastheadEnglishColor?: string;
+  headlinePrimaryColor?: string;
+  headlineSecondaryColor?: string;
+  panelBaseColor?: string;
+
+  watermarkEnabled?: boolean;
+  watermarkScale?: number;
+  watermarkOpacity?: number;
+  watermarkPosition?: string;
+
+  qrSizePercent?: number;
+  qrMarginPercent?: number;
+
+  footerDateEnabled?: boolean;
+  footerDateSeparator?: string;
+  footerBackgroundColor?: string;
+  footerSeparatorColor?: string;
+
+  imageGenerationSize?: string;
+  imageGenerationQuality?: string;
+
+  footballKeywords?: string;
+  basketballKeywords?: string;
+  motorsportKeywords?: string;
+  motorcycleKeywords?: string;
+  tennisKeywords?: string;
+  badmintonKeywords?: string;
+  baseballKeywords?: string;
+  combatKeywords?: string;
+
+  completedScoreRequired?: boolean;
+  invalidStoryPolicy?: string;
+  morningSameDaySourcesOnly?: boolean;
+
+  newsAiModel?: string;
+  newsWebSearchEnabled?: boolean;
+
+  imageAiModel?: string | null;
+  imageGenerationEnabled?: boolean;
+
+  duplicateEditionPolicy?: string;
+  forceRunExistingPolicy?: string;
+  queueStatusOnCreate?: string;
+
+  publishRetryEnabled?: boolean;
+  publishRetryLimit?: number;
+  publishRetryDelayMinutes?: number;
+
+  generationFailurePolicy?: string;
+  imageFailurePolicy?: string;
+  brandingFailurePolicy?: string;
+
+  minimumSourcesPerStory?: number;
+  minimumStoriesPerEdition?: number;
+
+  completedEventPolicy?: string;
+  upcomingEventPolicy?: string;
+  developmentStoryPolicy?: string;
+
+  sourceDeduplicationEnabled?: boolean;
+
+  imageRulesEnabled?: boolean;
+  imageRulesPrompt?: string | null;
+
+  imageBrandRulesEnabled?: boolean;
+  imageBrandRulesPrompt?: string | null;
+
+  forceRunEnabled?: boolean;
+  forceMorningEnabled?: boolean;
+  forceEveningEnabled?: boolean;
+
+  morningPostTitleTemplate?: string;
+  eveningPostTitleTemplate?: string;
+
+  imageModelOverrideEnabled?: boolean;
+
+  previewNewsPromptEnabled?: boolean;
+  previewImagePromptEnabled?: boolean;
+  previewTelegramCaptionEnabled?: boolean;
+
+  recommendedDefaultsVersion?: string;
 };
 
 @Injectable()
@@ -126,6 +296,94 @@ export class SportsNewsSettingsService {
       (input.minimumSources < 1 || input.minimumSources > 20)
     ) {
       throw new BadRequestException('minimumSources must be between 1 and 20.');
+    }
+
+    const nextStoryMinimum = input.storyMinimum ?? settings.storyMinimum;
+
+    const nextStoryMaximum = input.storyMaximum ?? settings.storyMaximum;
+
+    if (
+      nextStoryMinimum < 1 ||
+      nextStoryMinimum > 10 ||
+      nextStoryMaximum < 1 ||
+      nextStoryMaximum > 10 ||
+      nextStoryMinimum > nextStoryMaximum
+    ) {
+      throw new BadRequestException(
+        'storyMinimum/storyMaximum must be between 1 and 10 and minimum cannot exceed maximum.',
+      );
+    }
+
+    if (
+      input.telegramCaptionTarget !== undefined &&
+      (input.telegramCaptionTarget < 300 || input.telegramCaptionTarget > 1000)
+    ) {
+      throw new BadRequestException(
+        'telegramCaptionTarget must be between 300 and 1000.',
+      );
+    }
+
+    if (
+      input.heroStoryWeight !== undefined &&
+      (input.heroStoryWeight < 20 || input.heroStoryWeight > 90)
+    ) {
+      throw new BadRequestException(
+        'heroStoryWeight must be between 20 and 90.',
+      );
+    }
+
+    const percentageFields = [
+      ['mastheadTopPercent', input.mastheadTopPercent],
+      ['highlightsPanelWidthPercent', input.highlightsPanelWidthPercent],
+      ['highlightsPanelHeightPercent', input.highlightsPanelHeightPercent],
+      ['highlightsPanelTopPercent', input.highlightsPanelTopPercent],
+      ['highlightsPanelOpacityStart', input.highlightsPanelOpacityStart],
+      ['highlightsPanelOpacityMiddle', input.highlightsPanelOpacityMiddle],
+      ['highlightsPanelOpacityEnd', input.highlightsPanelOpacityEnd],
+      ['story02PositionPercent', input.story02PositionPercent],
+      ['story03PositionPercent', input.story03PositionPercent],
+      ['footerHeightPercent', input.footerHeightPercent],
+    ] as const;
+
+    for (const [field, value] of percentageFields) {
+      if (value !== undefined && (value < 0 || value > 1)) {
+        throw new BadRequestException(`${field} must be between 0 and 1.`);
+      }
+    }
+
+    const positiveFields = [
+      ['mastheadScale', input.mastheadScale],
+      ['heroHeadlineScale', input.heroHeadlineScale],
+      ['secondaryHeadlineScale', input.secondaryHeadlineScale],
+    ] as const;
+
+    for (const [field, value] of positiveFields) {
+      if (value !== undefined && (value <= 0 || value > 3)) {
+        throw new BadRequestException(
+          `${field} must be greater than 0 and no more than 3.`,
+        );
+      }
+    }
+
+    const summaryFields = [
+      input.telegramSummaryZhLong,
+      input.telegramSummaryEnLong,
+      input.telegramSummaryZhMedium,
+      input.telegramSummaryEnMedium,
+      input.telegramSummaryZhShort,
+      input.telegramSummaryEnShort,
+      input.telegramSummaryZhCompact,
+      input.telegramSummaryEnCompact,
+    ];
+
+    if (
+      summaryFields.some(
+        (value) => value !== undefined && (value < 0 || value > 300),
+      )
+    ) {
+      throw new BadRequestException(
+        'Telegram summary budgets must be between 0 and 300.',
+      );
     }
 
     if (input.telegramChannelId) {

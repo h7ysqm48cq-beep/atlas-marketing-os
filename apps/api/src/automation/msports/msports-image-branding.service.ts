@@ -25,6 +25,67 @@ export class MSportsImageBrandingService {
       zh: string;
       en: string;
     }>;
+
+    branding?: {
+      mastheadBrandText?: string;
+
+      morningEditionZh?: string;
+      eveningEditionZh?: string;
+
+      morningEditionEn?: string;
+      eveningEditionEn?: string;
+
+      sectionLabel?: string;
+
+      morningAccentColor?: string;
+      eveningAccentColor?: string;
+
+      morningSecondaryColor?: string;
+      eveningSecondaryColor?: string;
+
+      mastheadPrimaryColor?: string;
+      mastheadEnglishColor?: string;
+
+      headlinePrimaryColor?: string;
+      headlineSecondaryColor?: string;
+
+      panelBaseColor?: string;
+
+      watermarkEnabled?: boolean;
+      watermarkScale?: number;
+      watermarkOpacity?: number;
+      watermarkPosition?: string;
+
+      qrSizePercent?: number;
+      qrMarginPercent?: number;
+
+      footerBackgroundColor?: string;
+      footerSeparatorColor?: string;
+    };
+
+    layout?: {
+      enabled?: boolean;
+
+      mastheadScale?: number;
+      mastheadTopPercent?: number;
+
+      panelWidthPercent?: number;
+      panelHeightPercent?: number;
+      panelTopPercent?: number;
+
+      panelOpacityStart?: number;
+      panelOpacityMiddle?: number;
+      panelOpacityEnd?: number;
+      panelRadius?: number;
+
+      heroHeadlineScale?: number;
+      secondaryHeadlineScale?: number;
+
+      story02PositionPercent?: number;
+      story03PositionPercent?: number;
+
+      footerHeightPercent?: number;
+    };
   }) {
     const {
       imageUrl,
@@ -33,7 +94,112 @@ export class MSportsImageBrandingService {
       qrLink = 'https://mgmbetmyr.com',
       edition = 'MORNING',
       highlights = [],
+      branding = {},
+      layout = {},
     } = input;
+
+    const mastheadBrandText = branding.mastheadBrandText ?? '';
+
+    const morningEditionZh = branding.morningEditionZh ?? '';
+
+    const eveningEditionZh = branding.eveningEditionZh ?? '';
+
+    const morningEditionEn = branding.morningEditionEn ?? '';
+
+    const eveningEditionEn = branding.eveningEditionEn ?? '';
+
+    const configuredSectionLabel = branding.sectionLabel ?? '';
+
+    const morningAccentColor = branding.morningAccentColor ?? '';
+
+    const eveningAccentColor = branding.eveningAccentColor ?? '';
+
+    const morningSecondaryColor = branding.morningSecondaryColor ?? '';
+
+    const eveningSecondaryColor = branding.eveningSecondaryColor ?? '';
+
+    const mastheadPrimaryColor = branding.mastheadPrimaryColor ?? '';
+
+    const mastheadEnglishColor = branding.mastheadEnglishColor ?? '';
+
+    const headlinePrimaryColor = branding.headlinePrimaryColor ?? '';
+
+    const headlineSecondaryColor = branding.headlineSecondaryColor ?? '';
+
+    const panelBaseColor = branding.panelBaseColor ?? '';
+
+    const watermarkEnabled = branding.watermarkEnabled ?? false;
+
+    const watermarkScale = branding.watermarkScale ?? 1;
+
+    const watermarkOpacity = branding.watermarkOpacity ?? 1;
+
+    const watermarkPosition = branding.watermarkPosition ?? 'top-right';
+
+    const qrSizePercent = branding.qrSizePercent ?? 0;
+
+    const qrMarginPercent = branding.qrMarginPercent ?? 0;
+
+    const footerBackgroundColor =
+      branding.footerBackgroundColor ?? 'transparent';
+
+    const footerSeparatorColor = branding.footerSeparatorColor ?? 'transparent';
+
+    const layoutEnabled = layout.enabled ?? true;
+
+    const mastheadScale = layout.mastheadScale ?? 1;
+
+    const mastheadTopPercent = layout.mastheadTopPercent ?? 0.018;
+
+    const panelWidthPercent = layout.panelWidthPercent ?? 0.89;
+
+    const panelHeightPercent = layout.panelHeightPercent ?? 0.235;
+
+    const panelTopPercent = layout.panelTopPercent ?? 0.61;
+
+    const panelOpacityStart = layout.panelOpacityStart ?? 0.8;
+
+    const panelOpacityMiddle = layout.panelOpacityMiddle ?? 0.6;
+
+    const panelOpacityEnd = layout.panelOpacityEnd ?? 0.22;
+
+    const panelRadius = layout.panelRadius ?? 10;
+
+    const heroHeadlineScale = layout.heroHeadlineScale ?? 1;
+
+    const secondaryHeadlineScale = layout.secondaryHeadlineScale ?? 1;
+
+    const story02PositionPercent = layout.story02PositionPercent ?? 0.7;
+
+    const story03PositionPercent = layout.story03PositionPercent ?? 0.89;
+
+    const footerHeightPercent = layout.footerHeightPercent ?? 0.085;
+
+    const resolveLogoPlacement = (value: string): LogoPlacement => {
+      switch (value.toLowerCase()) {
+        case 'top-left':
+          return LogoPlacement.TOP_LEFT;
+
+        case 'top-center':
+          return LogoPlacement.TOP_CENTER;
+
+        case 'center':
+          return LogoPlacement.CENTER;
+
+        case 'bottom-left':
+          return LogoPlacement.BOTTOM_LEFT;
+
+        case 'bottom-center':
+          return LogoPlacement.BOTTOM_CENTER;
+
+        case 'bottom-right':
+          return LogoPlacement.BOTTOM_RIGHT;
+
+        case 'top-right':
+        default:
+          return LogoPlacement.TOP_RIGHT;
+      }
+    };
 
     const response = await fetch(imageUrl);
 
@@ -63,7 +229,7 @@ export class MSportsImageBrandingService {
      * Keep the watermark away from the bottom footer,
      * footer logo and QR area.
      */
-    if (logoAssetId) {
+    if (logoAssetId && watermarkEnabled) {
       try {
         const logoAsset = await this.prisma.asset.findUnique({
           where: {
@@ -86,9 +252,9 @@ export class MSportsImageBrandingService {
               width,
               height,
               platform: 'Telegram',
-              placement: LogoPlacement.TOP_RIGHT,
-              scale: 0.72,
-              opacity: 0.72,
+              placement: resolveLogoPlacement(watermarkPosition),
+              scale: watermarkScale,
+              opacity: watermarkOpacity,
             });
 
             /*
@@ -116,7 +282,7 @@ export class MSportsImageBrandingService {
       }
     }
 
-    const footerHeight = Math.max(88, Math.round(height * 0.085));
+    const footerHeight = Math.max(48, Math.round(height * footerHeightPercent));
 
     const footerTop = height - footerHeight;
 
@@ -145,26 +311,28 @@ export class MSportsImageBrandingService {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
-    const accent = edition === 'EVENING' ? '#d7a449' : '#f0c14b';
+    const accent =
+      edition === 'EVENING' ? eveningAccentColor : morningAccentColor;
 
-    const secondaryAccent = edition === 'EVENING' ? '#b9232f' : '#1476d4';
+    const secondaryAccent =
+      edition === 'EVENING' ? eveningSecondaryColor : morningSecondaryColor;
 
     const editionZh =
-      edition === 'EVENING' ? '满贯门体育晚报' : '满贯门体育早报';
+      edition === 'EVENING' ? eveningEditionZh : morningEditionZh;
 
     const editionEn =
-      edition === 'EVENING' ? 'EVENING REPORT' : 'MORNING REPORT';
+      edition === 'EVENING' ? eveningEditionEn : morningEditionEn;
 
-    const sectionLabel =
-      edition === 'EVENING'
-        ? '今日焦点  /  TOP STORIES'
-        : '今日焦点  /  TOP STORIES';
+    const sectionLabel = configuredSectionLabel;
 
     /*
      * Editorial masthead:
      * smaller than v1 so the sports visual remains the hero.
      */
-    const mastheadHeight = Math.max(150, Math.round(height * 0.12));
+    const mastheadHeight = Math.max(
+      100,
+      Math.round(height * 0.12 * mastheadScale),
+    );
 
     const mastheadSvg = Buffer.from(`
       <svg
@@ -195,12 +363,12 @@ export class MSportsImageBrandingService {
           font-family="Arial Black, Arial, Helvetica, sans-serif"
           font-weight="900"
           font-style="italic"
-          fill="#ffffff"
+          fill="${mastheadPrimaryColor}"
           stroke="rgba(0,0,0,0.30)"
           stroke-width="1.4"
           paint-order="stroke"
         >
-          M-SPORTS
+          ${escapeXml(mastheadBrandText)}
         </text>
 
         <text
@@ -221,18 +389,20 @@ export class MSportsImageBrandingService {
           font-family="Arial, Helvetica, sans-serif"
           font-weight="700"
           letter-spacing="4"
-          fill="rgba(255,255,255,0.84)"
+          fill="${mastheadEnglishColor}"
         >
           ${editionEn}
         </text>
       </svg>
     `);
 
-    composites.push({
-      input: mastheadSvg,
-      left: 0,
-      top: Math.max(18, Math.round(height * 0.018)),
-    });
+    if (layoutEnabled) {
+      composites.push({
+        input: mastheadSvg,
+        left: 0,
+        top: Math.max(0, Math.round(height * mastheadTopPercent)),
+      });
+    }
 
     /*
      * Editorial story block:
@@ -241,33 +411,51 @@ export class MSportsImageBrandingService {
      *
      * This deliberately avoids the large black v1 card.
      */
-    if (visibleHighlights.length > 0) {
-      const panelWidth = Math.round(width * 0.89);
-      const panelLeft = Math.round(width * 0.055);
-      const panelHeight = Math.max(300, Math.round(height * 0.235));
+    if (layoutEnabled && visibleHighlights.length > 0) {
+      const panelWidth = Math.round(width * panelWidthPercent);
+
+      const panelLeft = Math.round((width - panelWidth) / 2);
+
+      const panelHeight = Math.max(
+        180,
+        Math.round(height * panelHeightPercent),
+      );
 
       const panelTop = Math.max(
-        Math.round(height * 0.61),
-        footerTop - panelHeight - Math.round(height * 0.024),
+        0,
+        Math.min(footerTop - panelHeight, Math.round(height * panelTopPercent)),
       );
 
       const hero = visibleHighlights[0];
 
       const secondary = visibleHighlights.slice(1, 3);
 
-      const heroZhSize = Math.max(33, Math.round(width * 0.039));
+      const heroZhSize = Math.max(
+        18,
+        Math.round(width * 0.039 * heroHeadlineScale),
+      );
 
-      const heroEnSize = Math.max(18, Math.round(width * 0.019));
+      const heroEnSize = Math.max(
+        12,
+        Math.round(width * 0.019 * heroHeadlineScale),
+      );
 
-      const secondaryZhSize = Math.max(20, Math.round(width * 0.023));
+      const secondaryZhSize = Math.max(
+        14,
+        Math.round(width * 0.023 * secondaryHeadlineScale),
+      );
 
-      const secondaryEnSize = Math.max(14, Math.round(width * 0.0155));
+      const secondaryEnSize = Math.max(
+        10,
+        Math.round(width * 0.0155 * secondaryHeadlineScale),
+      );
 
       const secondarySvg = secondary
         .map((story, index) => {
-          const y =
-            Math.round(panelHeight * 0.7) +
-            index * Math.round(panelHeight * 0.19);
+          const yPercent =
+            index === 0 ? story02PositionPercent : story03PositionPercent;
+
+          const y = Math.round(panelHeight * yPercent);
 
           return `
             <text
@@ -287,7 +475,7 @@ export class MSportsImageBrandingService {
               font-size="${secondaryZhSize}"
               font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
               font-weight="700"
-              fill="#ffffff"
+              fill="${headlinePrimaryColor}"
             >
               ${escapeXml(story.zh)}
             </text>
@@ -298,7 +486,7 @@ export class MSportsImageBrandingService {
               font-size="${secondaryEnSize}"
               font-family="Arial, Helvetica, sans-serif"
               font-weight="500"
-              fill="rgba(255,255,255,0.72)"
+              fill="${headlineSecondaryColor}"
             >
               ${escapeXml(story.en)}
             </text>
@@ -322,15 +510,15 @@ export class MSportsImageBrandingService {
             >
               <stop
                 offset="0%"
-                stop-color="rgba(4,10,18,0.80)"
+                stop-color="rgba(${panelBaseColor},${panelOpacityStart})"
               />
               <stop
                 offset="64%"
-                stop-color="rgba(4,10,18,0.60)"
+                stop-color="rgba(${panelBaseColor},${panelOpacityMiddle})"
               />
               <stop
                 offset="100%"
-                stop-color="rgba(4,10,18,0.22)"
+                stop-color="rgba(${panelBaseColor},${panelOpacityEnd})"
               />
             </linearGradient>
           </defs>
@@ -340,8 +528,8 @@ export class MSportsImageBrandingService {
             y="0"
             width="${panelWidth}"
             height="${panelHeight}"
-            rx="10"
-            ry="10"
+            rx="${panelRadius}"
+            ry="${panelRadius}"
             fill="url(#editorialPanel)"
           />
 
@@ -369,7 +557,7 @@ export class MSportsImageBrandingService {
             font-size="${Math.max(15, Math.round(width * 0.017))}"
             font-family="Arial, Helvetica, sans-serif"
             font-weight="800"
-            fill="#ffffff"
+            fill="${headlinePrimaryColor}"
             letter-spacing="1.8"
           >
             ${escapeXml(sectionLabel)}
@@ -403,7 +591,7 @@ export class MSportsImageBrandingService {
             font-size="${heroEnSize}"
             font-family="Arial, Helvetica, sans-serif"
             font-weight="600"
-            fill="rgba(255,255,255,0.76)"
+            fill="${headlineSecondaryColor}"
           >
             ${escapeXml(hero.en)}
           </text>
@@ -441,12 +629,12 @@ export class MSportsImageBrandingService {
         <rect
           width="${width}"
           height="${footerHeight}"
-          fill="rgba(8,12,20,0.95)"
+          fill="${footerBackgroundColor}"
         />
         <rect
           width="${width}"
           height="1"
-          fill="rgba(255,255,255,0.14)"
+          fill="${footerSeparatorColor}"
         />
       </svg>
     `);
@@ -547,7 +735,7 @@ export class MSportsImageBrandingService {
         throw new Error('QR link must use http:// or https://');
       }
 
-      qrSize = Math.max(46, Math.round(footerHeight * 0.62));
+      qrSize = Math.max(24, Math.round(width * qrSizePercent));
 
       const qr = await QRCode.toBuffer(qrLink, {
         type: 'png',
@@ -568,7 +756,8 @@ export class MSportsImageBrandingService {
 
       composites.push({
         input: preparedQr,
-        left: width - qrSize - 24,
+        left: width - qrSize - Math.round(width * qrMarginPercent),
+
         top: footerTop + Math.max(0, Math.round((footerHeight - qrSize) / 2)),
       });
     }
