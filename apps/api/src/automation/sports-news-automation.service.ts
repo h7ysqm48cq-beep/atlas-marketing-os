@@ -678,7 +678,7 @@ export class SportsNewsAutomationService {
       .join(' | ');
 
     return {
-      content: this.compactTelegramCaption(lines.join('\n')),
+      content: this.compactTelegramCaption(lines.join('\n'), edition),
       imageHighlights,
       visualContext,
     };
@@ -716,7 +716,10 @@ export class SportsNewsAutomationService {
     );
   }
 
-  private compactTelegramCaption(content: string): string {
+  private compactTelegramCaption(
+    content: string,
+    edition: 'MORNING' | 'EVENING',
+  ): string {
     const sourceLine = new RegExp('^来源\\s*/\\s*Source\\s*:', 'i');
     const numberedLine = new RegExp('^[0-9１-９]\\s*[️⃣.)、-]?');
     const numberedEmojiLine = new RegExp('^[0-9]\\ufe0f?\\u20e3');
@@ -762,7 +765,11 @@ export class SportsNewsAutomationService {
       .filter(Boolean);
 
     const finalLines: string[] = [
-      'M-Sports / 满贯门体育新闻｜体育焦点 / Sports Focus',
+      edition === 'MORNING'
+        ? '⚡ 满贯门体育早报 | M-Sports Morning'
+        : '🌙 满贯门体育晚报 | M-Sports Evening',
+      '',
+      '🔥 今日焦点 | Top Stories',
     ];
     let itemCount = 0;
 
@@ -777,6 +784,9 @@ export class SportsNewsAutomationService {
 
       if (
         line.includes('M-Sports / 满贯门体育新闻') ||
+        line.includes('⚡ 满贯门体育早报') ||
+        line.includes('🌙 满贯门体育晚报') ||
+        line === '🔥 今日焦点 | Top Stories' ||
         line.includes('体育焦点') ||
         line.includes('Sports Focus') ||
         line.toLowerCase().includes('malaysia sports focus')
@@ -820,10 +830,26 @@ export class SportsNewsAutomationService {
       .replace(new RegExp('[ \\t]+', 'g'), ' ')
       .trim();
 
-    if (compact.length > 680) {
-      compact = compact.slice(0, 670).trim();
-      compact = compact.replace(new RegExp('[，,;；:：\\-–—\\s]+$'), '');
-      compact += '…';
+    /*
+     * Never cut a sentence in the middle.
+     *
+     * If Telegram copy becomes too long, remove complete
+     * trailing lines while preserving the title/summary
+     * relationship and CTA.
+     */
+    const maxBodyLength = 900;
+
+    if (compact.length > maxBodyLength) {
+      const compactLines = compact.split('\n');
+
+      while (
+        compactLines.length > 5 &&
+        compactLines.join('\n').length > maxBodyLength
+      ) {
+        compactLines.pop();
+      }
+
+      compact = compactLines.join('\n').trim();
     }
 
     return `${compact}\n\n立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门\n${CTA_URL}`;
