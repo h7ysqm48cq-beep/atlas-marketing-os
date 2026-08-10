@@ -1,0 +1,633 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.hero h1 {
+  margin: 6px 0 8px;
+  font-size: 38px;
+  letter-spacing: -0.04em;
+}
+
+.hero p {
+  margin: 0;
+  color: #8d94a7;
+}
+
+.eyebrow {
+  color: #8276ff !important;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.refreshButton,
+.state button {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #7868ff;
+  border-radius: 11px;
+  background: #7868ff;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.kpiGrid article,
+.panel,
+.state {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 17px;
+  background: rgba(18, 21, 31, 0.92);
+}
+
+.kpiGrid article {
+  display: flex;
+  min-height: 126px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+}
+
+.kpiGrid span,
+.kpiGrid small,
+.channelMain span,
+.channelMeta small,
+.settingsList span {
+  color: #858c9f;
+}
+
+.kpiGrid strong {
+  font-size: 28px;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 17px;
+}
+
+.panel {
+  padding: 21px;
+}
+
+.panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.panel h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.channelList,
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channelCard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.channelIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.facebook {
+  background: #2563eb;
+}
+
+.telegram {
+  background: #229ed9;
+}
+
+.channelMain,
+.channelMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.channelMeta {
+  align-items: flex-end;
+}
+
+.statusBadge,
+.platformBadge {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.connected {
+  background: rgba(56, 189, 120, 0.12);
+  color: #73d9a0;
+}
+
+.disconnected {
+  background: rgba(255, 183, 77, 0.1);
+  color: #e6b968;
+}
+
+.platformBadge {
+  background: rgba(130, 118, 255, 0.1);
+  color: #bbb4ff;
+}
+
+.settingsList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.settingsList div:last-child {
+  border-bottom: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.tableWrap th {
+  color: #747c8f;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.tableWrap td {
+  color: #c9cfdb;
+  font-size: 13px;
+}
+
+.contentCell {
+  display: flex;
+  max-width: 420px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contentCell span {
+  overflow: hidden;
+  color: #777f91;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  padding: 28px;
+}
+
+.error {
+  padding: 12px 15px;
+  border: 1px solid rgba(255, 100, 100, 0.25);
+  border-radius: 11px;
+  background: rgba(255, 100, 100, 0.08);
+  color: #ffb0b0;
+}
+
+.empty {
+  padding: 26px;
+  color: #747c8f;
+  text-align: center;
+}
+
+@media (max-width: 1050px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .channelCard {
+    grid-template-columns: auto 1fr;
+  }
+
+  .channelMeta {
+    grid-column: 1 / -1;
+    align-items: flex-start;
+  }
+}
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .kpiGrid article,
+:global(html[data-theme="light"]) .panel,
+:global(html[data-theme="light"]) .channelCard,
+:global(html[data-theme="light"]) .state {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .kpiGrid strong,
+:global(html[data-theme="light"]) .panel h2,
+:global(html[data-theme="light"]) .panel strong,
+:global(html[data-theme="light"]) .channelCard strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .kpiGrid span,
+:global(html[data-theme="light"]) .kpiGrid small,
+:global(html[data-theme="light"]) .panel span,
+:global(html[data-theme="light"]) .panel small {
+  color: var(--muted) !important;
+}
+
+/* ===== Dashboard-style light KPI cards ===== */
+
+:global(html[data-theme="light"]) .kpiGrid article {
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border: 1px solid #d6dde8;
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > span,
+:global(html[data-theme="light"]) .kpiGrid article > small {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > strong {
+  color: var(--text);
+  font-size: clamp(30px, 7vw, 42px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+:global(html[data-theme="light"]) .kpiGrid article > small {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  :global(html[data-theme="light"]) .kpiGrid article {
+    min-height: 142px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 390px) {
+  :global(html[data-theme="light"]) .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Automation compact mobile polish ===== */
+
+.dashboard {
+  gap: 22px;
+}
+
+.hero {
+  gap: 22px;
+}
+
+.hero h1 {
+  max-width: 860px;
+}
+
+.hero > div > p:last-child {
+  max-width: 720px;
+}
+
+.refreshButton {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.kpiGrid {
+  gap: 14px;
+}
+
+.kpiGrid article {
+  min-height: 138px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.contentGrid {
+  gap: 14px;
+}
+
+.panel {
+  border-radius: 18px;
+}
+
+.channelCard {
+  border-radius: 14px;
+}
+
+/* Reliable light theme */
+:global(html[data-theme="light"]) .kpiGrid article,
+:global(html[data-theme="light"]) .panel,
+:global(html[data-theme="light"]) .channelCard,
+:global(html[data-theme="light"]) .state {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 28px rgba(35, 42, 55, 0.08);
+}
+
+:global(html[data-theme="light"]) .channelCard {
+  background: var(--panel-soft) !important;
+  box-shadow: none;
+}
+
+:global(html[data-theme="light"]) .kpiGrid strong,
+:global(html[data-theme="light"]) .panel h2,
+:global(html[data-theme="light"]) .channelMain strong,
+:global(html[data-theme="light"]) .settingsList strong,
+:global(html[data-theme="light"]) .tableWrap strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .kpiGrid span,
+:global(html[data-theme="light"]) .kpiGrid small,
+:global(html[data-theme="light"]) .channelMain span,
+:global(html[data-theme="light"]) .channelMeta small,
+:global(html[data-theme="light"]) .settingsList span,
+:global(html[data-theme="light"]) .contentCell span {
+  color: var(--muted) !important;
+}
+
+:global(html[data-theme="light"]) .tableWrap table,
+:global(html[data-theme="light"]) .tableWrap th,
+:global(html[data-theme="light"]) .tableWrap td {
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .tableWrap thead {
+  background: var(--panel-soft) !important;
+}
+
+:global(html[data-theme="light"]) .tableWrap tbody tr:hover {
+  background: rgba(182, 134, 37, 0.05);
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .dashboard {
+    gap: 20px;
+  }
+
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 8px;
+  }
+
+  .hero h1 {
+    margin-top: 8px;
+    font-size: clamp(35px, 9.5vw, 48px);
+    line-height: 1.06;
+    letter-spacing: -0.045em;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 100%;
+    margin-top: 17px;
+    font-size: 17px;
+    line-height: 1.62;
+  }
+
+  .refreshButton {
+    width: 100%;
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpiGrid article {
+    min-height: 124px;
+    padding: 16px;
+    border-radius: 17px;
+  }
+
+  .kpiGrid span {
+    font-size: 12px;
+  }
+
+  .kpiGrid strong {
+    margin-top: auto;
+    font-size: 31px;
+    line-height: 1;
+  }
+
+  .kpiGrid small {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .panel {
+    padding: 17px;
+    border-radius: 17px;
+  }
+
+  .panel header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .panel h2 {
+    font-size: 18px;
+  }
+
+  .channelList {
+    gap: 10px;
+  }
+
+  .channelCard {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 11px;
+    padding: 13px;
+  }
+
+  .channelMeta {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .settingsList {
+    gap: 0;
+  }
+
+  .settingsList > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 12px 0;
+  }
+
+  .settingsList span {
+    font-size: 11px;
+  }
+
+  .settingsList strong {
+    font-size: 13px;
+  }
+
+  .tableWrap {
+    overflow-x: auto;
+    margin: 0 -17px -17px;
+    padding: 0 17px 17px;
+  }
+
+  .tableWrap table {
+    min-width: 760px;
+  }
+
+  .tableWrap th,
+  .tableWrap td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+
+  .contentCell {
+    max-width: 280px;
+  }
+
+  .contentCell span {
+    display: -webkit-box;
+    overflow: hidden;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .kpiGrid {
+    gap: 8px;
+  }
+
+  .kpiGrid article {
+    min-height: 116px;
+    padding: 14px;
+  }
+
+  .kpiGrid strong {
+    font-size: 28px;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .tableWrap {
+    margin-right: -15px;
+    margin-bottom: -15px;
+    margin-left: -15px;
+    padding-right: 15px;
+    padding-bottom: 15px;
+    padding-left: 15px;
+  }
+}
+
+/* ===== End Automation compact mobile polish ===== */

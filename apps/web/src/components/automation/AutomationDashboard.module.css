@@ -275,3 +275,230 @@
     align-items: flex-start;
   }
 }
+
+/* =========================================================
+   Connected Platforms — Responsive Excel Table
+   ========================================================= */
+
+.channelTableWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 13px;
+}
+
+.channelTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.channelTable th,
+.channelTable td {
+  min-width: 0;
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.channelTable th {
+  color: #747c8f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.channelTable th:nth-child(1) {
+  width: 17%;
+}
+
+.channelTable th:nth-child(2) {
+  width: 27%;
+}
+
+.channelTable th:nth-child(3) {
+  width: 22%;
+}
+
+.channelTable th:nth-child(4) {
+  width: 16%;
+}
+
+.channelTable th:nth-child(5) {
+  width: 10%;
+}
+
+.channelTable th:nth-child(6) {
+  width: 8%;
+}
+
+.channelTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.channelRow {
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.channelRow:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.channelRow:focus-visible {
+  outline: 2px solid rgba(130, 118, 255, 0.65);
+  outline-offset: -2px;
+}
+
+.platformCell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.channelIconSmall {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.accountName,
+.usernameCell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usernameCell {
+  color: #7f8798;
+}
+
+.openCell {
+  color: #7f8798;
+  font-size: 22px;
+  text-align: right !important;
+}
+
+/* Tablet */
+
+@media (max-width: 900px) {
+  .channelTable th:nth-child(3),
+  .channelTable td:nth-child(3) {
+    display: none;
+  }
+
+  .channelTable th:nth-child(1) {
+    width: 23%;
+  }
+
+  .channelTable th:nth-child(2) {
+    width: 33%;
+  }
+
+  .channelTable th:nth-child(4) {
+    width: 22%;
+  }
+
+  .channelTable th:nth-child(5) {
+    width: 13%;
+  }
+
+  .channelTable th:nth-child(6) {
+    width: 9%;
+  }
+}
+
+/* Mobile — no horizontal scrolling */
+
+@media (max-width: 680px) {
+  .channelTableWrap {
+    overflow-x: hidden;
+  }
+
+  .channelTable {
+    table-layout: fixed;
+  }
+
+  .channelTable th,
+  .channelTable td {
+    padding: 11px 7px;
+  }
+
+  .channelTable th {
+    font-size: 9px;
+    letter-spacing: 0.03em;
+  }
+
+  .channelTable th:nth-child(1) {
+    width: 25%;
+  }
+
+  .channelTable th:nth-child(2) {
+    width: 37%;
+  }
+
+  .channelTable th:nth-child(4) {
+    width: 23%;
+  }
+
+  .channelTable th:nth-child(5) {
+    width: 9%;
+  }
+
+  .channelTable th:nth-child(6) {
+    width: 6%;
+  }
+
+  .channelIconSmall {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+    font-size: 11px;
+  }
+
+  .platformCell {
+    gap: 5px;
+  }
+
+  .platformCell strong {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .accountName {
+    font-size: 12px;
+  }
+
+  .channelTable td {
+    font-size: 11px;
+  }
+
+  .statusBadge {
+    max-width: 100%;
+    padding: 4px 5px;
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+  }
+
+  .openCell {
+    padding-left: 0 !important;
+    padding-right: 4px !important;
+    font-size: 18px;
+  }
+}

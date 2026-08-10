@@ -61,3 +61,4 @@ apps/api/storage/
 .supabase-*backup*
 .asset-*backup*
 .assets-*backup*
+apps/browser-worker/.browser-profiles/

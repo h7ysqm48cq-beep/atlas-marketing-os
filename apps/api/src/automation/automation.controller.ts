@@ -20,22 +20,40 @@ import { FacebookConnectorService } from './facebook-connector.service';
 @Controller('automation')
 export class AutomationController {
   constructor(
-    private readonly automationService:
-      AutomationService,
-    private readonly telegramConnector:
-      TelegramConnectorService,
-    private readonly facebookConnector:
-      FacebookConnectorService,
+    private readonly automationService: AutomationService,
+    private readonly telegramConnector: TelegramConnectorService,
+    private readonly facebookConnector: FacebookConnectorService,
   ) {}
 
+  @Get('workspaces')
+  workspaces() {
+    return this.automationService.listWorkspaces();
+  }
+
+  @Get('workspaces/:id')
+  getWorkspace(@Param('id') id: string) {
+    return this.automationService.getWorkspace(id);
+  }
+
   @Get('dashboard')
-  dashboard() {
-    return this.automationService.dashboard();
+  dashboard(@Query('workspaceId') workspaceId?: string) {
+    return this.automationService.dashboard(workspaceId);
   }
 
   @Get('channels')
   channels() {
     return this.automationService.listChannels();
+  }
+
+  @Get('channels/:id')
+  getChannel(
+    @Param('id') id: string,
+    @Query('workspaceId') workspaceId?: string,
+  ) {
+    return this.automationService.getChannel(
+      id,
+      workspaceId?.trim() || undefined,
+    );
   }
 
   @Post('channels')
@@ -49,11 +67,8 @@ export class AutomationController {
       username?: string;
     },
   ) {
-    return this.automationService.createChannel(
-      body,
-    );
+    return this.automationService.createChannel(body);
   }
-
 
   @Patch('channels/:id')
   updateChannel(
@@ -65,10 +80,7 @@ export class AutomationController {
       username?: string | null;
     },
   ) {
-    return this.automationService.updateChannel(
-      id,
-      body,
-    );
+    return this.automationService.updateChannel(id, body);
   }
 
   @Patch('channels/:id/status')
@@ -92,15 +104,11 @@ export class AutomationController {
     @Query('status')
     status?: ScheduledPostStatus,
   ) {
-    return this.automationService.listPosts(
-      status,
-    );
+    return this.automationService.listPosts(status);
   }
 
   @Get('posts/:id')
-  getPost(
-    @Param('id') id: string,
-  ) {
+  getPost(@Param('id') id: string) {
     return this.automationService.getPost(id);
   }
 
@@ -121,11 +129,8 @@ export class AutomationController {
       status?: ScheduledPostStatus;
     },
   ) {
-    return this.automationService.createPost(
-      body,
-    );
+    return this.automationService.createPost(body);
   }
-
 
   @Post('multi-publish')
   multiPublish(
@@ -135,78 +140,50 @@ export class AutomationController {
       campaignId?: string;
       historyId?: string;
       title?: string;
-      contents: Partial<
-        Record<
-          SocialPlatform,
-          string
-        >
-      >;
-      mediaUrls?: Partial<
-        Record<
-          SocialPlatform,
-          string[]
-        >
-      >;
+      contents: Partial<Record<SocialPlatform, string>>;
+      mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
       platforms: SocialPlatform[];
       scheduledAt: string;
       timezone?: string;
       queueImmediately?: boolean;
     },
   ) {
-    return this.automationService
-      .createMultiPlatformPosts(body);
+    return this.automationService.createMultiPlatformPosts(body);
   }
 
   @Patch('posts/:id')
-  updatePost(
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.automationService.updatePost(
-      id,
-      body,
-    );
+  updatePost(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.automationService.updatePost(id, body);
   }
 
   @Delete('posts/:id')
-  removePost(
-    @Param('id') id: string,
-  ) {
+  removePost(@Param('id') id: string) {
     return this.automationService.removePost(id);
   }
 
   @Post('posts/:id/queue')
-  queuePost(
-    @Param('id') id: string,
-  ) {
+  queuePost(@Param('id') id: string) {
     return this.automationService.queuePost(id);
   }
 
   @Post('posts/:id/retry')
-  retryPost(
-    @Param('id') id: string,
-  ) {
+  retryPost(@Param('id') id: string) {
     return this.automationService.retryPost(id);
   }
 
   @Post('posts/:id/cancel')
-  cancelPost(
-    @Param('id') id: string,
-  ) {
+  cancelPost(@Param('id') id: string) {
     return this.automationService.cancelPost(id);
   }
 
-
   @Post('facebook/test')
   testFacebook() {
-    return this.facebookConnector
-      .testConnection();
+    return this.facebookConnector.testConnection();
   }
 
   @Post('facebook/test-post')
   testFacebookPost() {
-    return this.facebookConnector
-      .sendTestPost();
+    return this.facebookConnector.sendTestPost();
   }
 
   @Post('facebook/publish')
@@ -217,11 +194,7 @@ export class AutomationController {
       link?: string;
     },
   ) {
-    return this.facebookConnector
-      .publishPost(
-        body.content,
-        body.link,
-      );
+    return this.facebookConnector.publishPost(body.content, body.link);
   }
 
   @Post('telegram/test')
@@ -241,19 +214,15 @@ export class AutomationController {
       content: string;
     },
   ) {
-    return this.telegramConnector.sendMessage(
-      body.content,
-    );
+    return this.telegramConnector.sendMessage(body.content);
   }
 
-  
-
-  @Post("run")
+  @Post('run')
   runPublisher() {
     return this.automationService.runPublisher();
   }
 
-@Get('settings')
+  @Get('settings')
   settings() {
     return this.automationService.getSettings();
   }
@@ -271,8 +240,6 @@ export class AutomationController {
       defaultTelegramTime?: string;
     },
   ) {
-    return this.automationService.updateSettings(
-      body,
-    );
+    return this.automationService.updateSettings(body);
   }
 }

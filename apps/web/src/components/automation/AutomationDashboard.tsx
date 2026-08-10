@@ -1,23 +1,17 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useRouter } from "next/navigation";
+
+import { useCallback, useEffect, useState } from "react";
 import styles from "./AutomationDashboard.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type Channel = {
   id: string;
   platform: "FACEBOOK" | "TELEGRAM";
   name: string;
   username: string | null;
-  status:
-    | "DISCONNECTED"
-    | "CONNECTED"
-    | "EXPIRED"
-    | "ERROR";
+  status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
   lastConnectedAt: string | null;
   lastError: string | null;
   _count: {
@@ -71,16 +65,14 @@ function formatDate(value: string) {
 }
 
 function platformLabel(platform: string) {
-  return platform === "FACEBOOK"
-    ? "Facebook"
-    : "Telegram";
+  return platform === "FACEBOOK" ? "Facebook" : "Telegram";
 }
 
 export function AutomationDashboard() {
-  const [dashboard, setDashboard] =
-    useState<DashboardResponse | null>(null);
-  const [settings, setSettings] =
-    useState<Settings | null>(null);
+  const router = useRouter();
+
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -89,32 +81,32 @@ export function AutomationDashboard() {
     setError("");
 
     try {
-      const [dashboardResponse, settingsResponse] =
-        await Promise.all([
-          fetch(
-            `${API_URL}/automation/dashboard`,
-            { cache: "no-store" },
-          ),
-          fetch(
-            `${API_URL}/automation/settings`,
-            { cache: "no-store" },
-          ),
-        ]);
+      const workspaceId =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("atlas:workspace-id")
+          : null;
 
-      if (
-        !dashboardResponse.ok ||
-        !settingsResponse.ok
-      ) {
-        throw new Error(
-          "Unable to load automation dashboard.",
-        );
+      const workspaceQuery = workspaceId
+        ? `?workspaceId=${encodeURIComponent(workspaceId)}`
+        : "";
+
+      const [dashboardResponse, settingsResponse] = await Promise.all([
+        fetch(`${API_URL}/automation/dashboard${workspaceQuery}`, {
+          cache: "no-store",
+        }),
+        fetch(`${API_URL}/automation/settings`, {
+          cache: "no-store",
+        }),
+      ]);
+
+      if (!dashboardResponse.ok || !settingsResponse.ok) {
+        throw new Error("Unable to load automation dashboard.");
       }
 
-      const [dashboardData, settingsData] =
-        await Promise.all([
-          dashboardResponse.json() as Promise<DashboardResponse>,
-          settingsResponse.json() as Promise<Settings>,
-        ]);
+      const [dashboardData, settingsData] = await Promise.all([
+        dashboardResponse.json() as Promise<DashboardResponse>,
+        settingsResponse.json() as Promise<Settings>,
+      ]);
 
       setDashboard(dashboardData);
       setSettings(settingsData);
@@ -131,6 +123,19 @@ export function AutomationDashboard() {
 
   useEffect(() => {
     void load();
+
+    const handleWorkspaceChange = () => {
+      void load();
+    };
+
+    window.addEventListener("atlas:workspace-changed", handleWorkspaceChange);
+
+    return () => {
+      window.removeEventListener(
+        "atlas:workspace-changed",
+        handleWorkspaceChange,
+      );
+    };
   }, [load]);
 
   if (loading && !dashboard) {
@@ -146,9 +151,7 @@ export function AutomationDashboard() {
       <section className={styles.state}>
         <p>{error || "No automation data available."}</p>
 
-        <button onClick={() => void load()}>
-          Try again
-        </button>
+        <button onClick={() => void load()}>Try again</button>
       </section>
     );
   }
@@ -159,15 +162,13 @@ export function AutomationDashboard() {
     <div className={styles.dashboard}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>
-            Publishing
-          </p>
+          <p className={styles.eyebrow}>Publishing</p>
 
           <h1>Social Automation</h1>
 
           <p>
-            Manage Facebook and Telegram channels,
-            publishing queue and scheduled posts.
+            Manage Facebook and Telegram channels, publishing queue and
+            scheduled posts.
           </p>
         </div>
 
@@ -180,11 +181,7 @@ export function AutomationDashboard() {
         </button>
       </section>
 
-      {error ? (
-        <div className={styles.error}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.kpiGrid}>
         <article>
@@ -216,70 +213,103 @@ export function AutomationDashboard() {
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Channels
-              </p>
+              <p className={styles.eyebrow}>Channels</p>
               <h2>Connected platforms</h2>
             </div>
 
-            <strong>
-              {dashboard.channels.length}
-            </strong>
+            <strong>{dashboard.channels.length}</strong>
           </header>
 
-          <div className={styles.channelList}>
-            {dashboard.channels.map((channel) => (
-              <div
-                className={styles.channelCard}
-                key={channel.id}
-              >
-                <div
-                  className={`${styles.channelIcon} ${
-                    channel.platform === "FACEBOOK"
-                      ? styles.facebook
-                      : styles.telegram
-                  }`}
-                >
-                  {channel.platform === "FACEBOOK"
-                    ? "f"
-                    : "✈"}
-                </div>
+          <div className={styles.channelTableWrap}>
+            <table className={styles.channelTable}>
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>Account</th>
+                  <th>Username</th>
+                  <th>Status</th>
+                  <th>Posts</th>
+                  <th aria-label="Open account"></th>
+                </tr>
+              </thead>
 
-                <div className={styles.channelMain}>
-                  <strong>{channel.name}</strong>
-                  <span>
-                    {channel.username
-                      ? `@${channel.username}`
-                      : "No username"}
-                  </span>
-                </div>
-
-                <div className={styles.channelMeta}>
-                  <span
-                    className={`${styles.statusBadge} ${
-                      channel.status === "CONNECTED"
-                        ? styles.connected
-                        : styles.disconnected
-                    }`}
+              <tbody>
+                {dashboard.channels.map((channel) => (
+                  <tr
+                    key={channel.id}
+                    className={styles.channelRow}
+                    tabIndex={0}
+                    role="link"
+                    onClick={() =>
+                      router.push(
+                        `/automation/channels/${encodeURIComponent(channel.id)}`,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(
+                          `/automation/channels/${encodeURIComponent(channel.id)}`,
+                        );
+                      }
+                    }}
                   >
-                    {channel.status}
-                  </span>
+                    <td data-label="Platform">
+                      <div className={styles.platformCell}>
+                        <span
+                          className={`${styles.channelIconSmall} ${
+                            channel.platform === "FACEBOOK"
+                              ? styles.facebook
+                              : styles.telegram
+                          }`}
+                        >
+                          {channel.platform === "FACEBOOK" ? "f" : "✈"}
+                        </span>
 
-                  <small>
-                    {channel._count.scheduledPosts} posts
-                  </small>
-                </div>
-              </div>
-            ))}
+                        <strong>{platformLabel(channel.platform)}</strong>
+                      </div>
+                    </td>
+
+                    <td data-label="Account">
+                      <strong className={styles.accountName}>
+                        {channel.name}
+                      </strong>
+                    </td>
+
+                    <td data-label="Username">
+                      <span className={styles.usernameCell}>
+                        {channel.username ? `@${channel.username}` : "—"}
+                      </span>
+                    </td>
+
+                    <td data-label="Status">
+                      <span
+                        className={`${styles.statusBadge} ${
+                          channel.status === "CONNECTED"
+                            ? styles.connected
+                            : styles.disconnected
+                        }`}
+                      >
+                        {channel.status}
+                      </span>
+                    </td>
+
+                    <td data-label="Posts">{channel._count.scheduledPosts}</td>
+
+                    <td className={styles.openCell} aria-hidden="true">
+                      ›
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </article>
 
         <article className={styles.panel}>
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Automation
-              </p>
+              <p className={styles.eyebrow}>Automation</p>
               <h2>Publishing settings</h2>
             </div>
           </header>
@@ -293,42 +323,32 @@ export function AutomationDashboard() {
 
               <div>
                 <span>Approval required</span>
-                <strong>
-                  {settings.approvalRequired
-                    ? "Yes"
-                    : "No"}
-                </strong>
+                <strong>{settings.approvalRequired ? "Yes" : "No"}</strong>
               </div>
 
               <div>
                 <span>Auto publish</span>
                 <strong>
-                  {settings.autoPublishEnabled
-                    ? "Enabled"
-                    : "Disabled"}
+                  {settings.autoPublishEnabled ? "Enabled" : "Disabled"}
                 </strong>
               </div>
 
               <div>
                 <span>Retry policy</span>
                 <strong>
-                  {settings.retryLimit} attempts ·{" "}
-                  {settings.retryDelayMinutes} min
+                  {settings.retryLimit} attempts · {settings.retryDelayMinutes}{" "}
+                  min
                 </strong>
               </div>
 
               <div>
                 <span>Facebook time</span>
-                <strong>
-                  {settings.defaultFacebookTime}
-                </strong>
+                <strong>{settings.defaultFacebookTime}</strong>
               </div>
 
               <div>
                 <span>Telegram time</span>
-                <strong>
-                  {settings.defaultTelegramTime}
-                </strong>
+                <strong>{settings.defaultTelegramTime}</strong>
               </div>
             </div>
           ) : null}
@@ -338,9 +358,7 @@ export function AutomationDashboard() {
       <section className={styles.panel}>
         <header>
           <div>
-            <p className={styles.eyebrow}>
-              Schedule
-            </p>
+            <p className={styles.eyebrow}>Schedule</p>
             <h2>Upcoming posts</h2>
           </div>
 
@@ -370,31 +388,22 @@ export function AutomationDashboard() {
 
                   <td>
                     <div className={styles.contentCell}>
-                      <strong>
-                        {post.title || "Untitled post"}
-                      </strong>
+                      <strong>{post.title || "Untitled post"}</strong>
                       <span>{post.content}</span>
                     </div>
                   </td>
 
-                  <td>
-                    {post.campaign?.name || "—"}
-                  </td>
+                  <td>{post.campaign?.name || "—"}</td>
 
                   <td>{post.status}</td>
 
-                  <td>
-                    {formatDate(post.scheduledAt)}
-                  </td>
+                  <td>{formatDate(post.scheduledAt)}</td>
                 </tr>
               ))}
 
               {!dashboard.upcoming.length ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className={styles.empty}
-                  >
+                  <td colSpan={5} className={styles.empty}>
                     No posts scheduled yet.
                   </td>
                 </tr>
