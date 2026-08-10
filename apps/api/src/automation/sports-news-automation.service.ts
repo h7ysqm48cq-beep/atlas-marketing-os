@@ -289,9 +289,8 @@ export class SportsNewsAutomationService {
           'Do not display any date, year, month, weekday, clock, weather, temperature or calendar information.',
           'All factual date information and branding will be added later by deterministic post-processing.',
           'Keep the lower edge visually clean for real post-processing branding.',
-          edition === 'MORNING'
-            ? 'Use concise visible edition wording: M-Sports / 满贯门体育早报.'
-            : 'Use concise visible edition wording: M-Sports / 满贯门体育晚报.',
+          'Do not render M-Sports, 满贯门体育早报 or 满贯门体育晚报 as visible text.',
+          'The masthead and edition title will be added later by deterministic post-processing.',
           'Vertical 4:5 social-media composition.',
         ].join(' '),
       });
