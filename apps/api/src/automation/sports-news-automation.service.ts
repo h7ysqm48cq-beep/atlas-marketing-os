@@ -267,15 +267,21 @@ export class SportsNewsAutomationService {
           edition === 'MORNING'
             ? 'Fresh energetic morning sports atmosphere.'
             : 'Dramatic evening stadium atmosphere.',
-          'Use the verified daily sports context below only to guide the visual scene and sport selection.',
+          'Follow the deterministic M-Sports Visual Director below as the primary art direction.',
+          `M-Sports Visual Director: ${
+            generatedNews.visualDirection ||
+            'Create one premium current-sports editorial hero composition.'
+          }`,
+          'Use the verified daily sports context below only as factual visual grounding.',
           `Verified visual context: ${
             generatedNews.visualContext ||
             'General current sports editorial atmosphere.'
           }`,
-          'If the verified context includes football, basketball, motorsport, badminton, tennis or another sport, reflect those sports visually where composition allows.',
           'Do not invent unrelated sports merely to fill the composition.',
-          'The visual scene should clearly feel connected to today’s verified sports stories.',
-          'Photorealistic, cinematic, clean editorial layout.',
+          'Do not create a random generic sports collage.',
+          'The scene must visibly prioritise Story 01 while Stories 02 and 03 remain secondary.',
+          'Aim for premium international sports-media cover photography: cinematic, editorial, dramatic and highly polished, while remaining an original M-Sports visual identity.',
+          'Photorealistic, cinematic, premium editorial photography.',
           'Do not imitate real athlete faces.',
           'Do not use league logos or team logos.',
           'Do not render sports headlines, scores, results, fixtures or factual story text.',
@@ -730,17 +736,113 @@ export class SportsNewsAutomationService {
         'Sports Update',
     }));
 
-    const visualContext = acceptedStories
-      .slice(0, 3)
-      .map((story) => {
-        const headline =
-          story.headlineEn?.trim() || story.headlineZh?.trim() || '';
+    const detectSport = (value: string): string => {
+      const textValue = value.toLowerCase();
 
-        const summary =
-          story.summaryEn?.trim() || story.summaryZh?.trim() || '';
+      if (
+        /football|soccer|premier league|champions league|carabao|efl|fa cup|laliga|serie a|bundesliga|superliga|allsvenskan|jdt|chelsea|liverpool|arsenal|manchester|plymouth|exeter/.test(
+          textValue,
+        )
+      ) {
+        return 'football';
+      }
 
-        return [headline, summary].filter(Boolean).join(' — ');
-      })
+      if (/nba|wnba|basketball|cba/.test(textValue)) {
+        return 'basketball';
+      }
+
+      if (
+        /formula 1|formula one|\bf1\b|grand prix|motorsport/.test(textValue)
+      ) {
+        return 'motorsport';
+      }
+
+      if (/motogp|motorcycle|superbike/.test(textValue)) {
+        return 'motorcycle racing';
+      }
+
+      if (/tennis|atp|wta|open|wimbledon/.test(textValue)) {
+        return 'tennis';
+      }
+
+      if (/badminton|bwf|thomas cup|sudirman/.test(textValue)) {
+        return 'badminton';
+      }
+
+      if (
+        /mlb|baseball|dodgers|yankees|red sox|astros|giants|padres|brewers|royals/.test(
+          textValue,
+        )
+      ) {
+        return 'baseball';
+      }
+
+      if (/ufc|mma|boxing/.test(textValue)) {
+        return 'combat sports';
+      }
+
+      return 'sports';
+    };
+
+    const visualStories = acceptedStories.slice(0, 3).map((story, index) => {
+      const headline =
+        story.headlineEn?.trim() || story.headlineZh?.trim() || '';
+
+      const summary = story.summaryEn?.trim() || story.summaryZh?.trim() || '';
+
+      const combined = `${headline} ${summary}`;
+
+      return {
+        priority: index + 1,
+        sport: detectSport(combined),
+        eventStatus: story.eventStatus || 'DEVELOPMENT',
+        headline,
+        summary,
+      };
+    });
+
+    const uniqueSports = Array.from(
+      new Set(visualStories.map((story) => story.sport)),
+    );
+
+    const heroStory = visualStories[0];
+
+    const visualMode =
+      uniqueSports.length === 1
+        ? 'SINGLE_SPORT_EDITORIAL_MONTAGE'
+        : 'MULTI_SPORT_EDITORIAL_MONTAGE';
+
+    const heroEmotion =
+      heroStory?.eventStatus === 'COMPLETED'
+        ? 'post-match result emotion: decisive action, celebration, relief or disappointment appropriate to a completed event'
+        : heroStory?.eventStatus === 'UPCOMING'
+          ? 'pre-match anticipation: confrontation, readiness, stadium tension and a sense that the event is about to begin'
+          : 'breaking sports development: focused, high-stakes editorial tension';
+
+    const visualDirection = [
+      `VISUAL MODE: ${visualMode}.`,
+      `HERO SPORT: ${heroStory?.sport || 'sports'}.`,
+      `HERO EMOTION: ${heroEmotion}.`,
+      'Story 01 must control roughly 65 percent of the visual attention.',
+      'Stories 02 and 03 may appear only as smaller supporting visual vignettes when they improve the composition.',
+      uniqueSports.length === 1
+        ? `All three stories are primarily ${uniqueSports[0]}; create one cohesive premium ${uniqueSports[0]} editorial cover rather than unrelated generic sports imagery.`
+        : `The verified stories span ${uniqueSports.join(', ')}; use a sophisticated editorial montage with one dominant hero sport and smaller secondary sport scenes.`,
+      'Avoid generic stock-sports composition. The image should feel like a commissioned front-page sports feature.',
+      'Use dynamic camera angles, real stadium or arena atmosphere, controlled depth of field, dramatic but believable lighting and strong foreground/background separation.',
+      'Do not imitate a specific real athlete or reproduce identifiable team badges, league logos or exact copyrighted uniforms.',
+      'Use fictional unbranded kits and equipment while keeping the correct sport visually obvious.',
+      edition === 'MORNING'
+        ? 'Morning art direction: brighter premium editorial photography, crisp daylight or early-day stadium light, energetic blue-white atmosphere with restrained warm highlights.'
+        : 'Evening art direction: cinematic floodlights, deep navy shadows, controlled red/gold highlights, premium contrast, but do not make the entire image dark or muddy.',
+      ...visualStories.map(
+        (story) =>
+          `STORY ${story.priority}: sport=${story.sport}; status=${story.eventStatus}; verified context=${story.headline} — ${story.summary}`,
+      ),
+    ].join(' ');
+
+    const visualContext = visualStories
+      .map((story) => `${story.headline} — ${story.summary}`)
       .filter(Boolean)
       .join(' | ');
 
@@ -748,6 +850,7 @@ export class SportsNewsAutomationService {
       content: this.compactTelegramCaption(lines.join('\n'), edition),
       imageHighlights,
       visualContext,
+      visualDirection,
     };
   }
 
@@ -877,29 +980,86 @@ export class SportsNewsAutomationService {
     const cleanCompact = (value: string, maxLength: number) => {
       const compact = value.replace(/[ \t]+/g, ' ').trim();
 
+      if (!compact || maxLength <= 0) {
+        return '';
+      }
+
       if (compact.length <= maxLength) {
         return compact;
       }
 
-      const sliced = compact.slice(0, maxLength);
+      /*
+       * Sentence-safe compression.
+       *
+       * Prefer a complete sentence. Never return a mechanically
+       * sliced English or Chinese sentence such as:
+       * "Malaysia time on"
+       */
+      const sentenceMatches =
+        compact.match(/[^。！？.!?]+[。！？.!?]+|[^。！？.!?]+$/g) || [];
 
-      const punctuationIndex = Math.max(
-        sliced.lastIndexOf('。'),
-        sliced.lastIndexOf('！'),
-        sliced.lastIndexOf('？'),
-        sliced.lastIndexOf('.'),
-        sliced.lastIndexOf('!'),
-        sliced.lastIndexOf('?'),
-        sliced.lastIndexOf(','),
-        sliced.lastIndexOf('，'),
-        sliced.lastIndexOf(' '),
-      );
+      const completeSentences: string[] = [];
+      let currentLength = 0;
 
-      if (punctuationIndex >= Math.round(maxLength * 0.62)) {
-        return sliced.slice(0, punctuationIndex + 1).trim();
+      for (const sentence of sentenceMatches) {
+        const cleanSentence = sentence.trim();
+
+        if (!cleanSentence) {
+          continue;
+        }
+
+        const nextLength =
+          currentLength +
+          cleanSentence.length +
+          (completeSentences.length > 0 ? 1 : 0);
+
+        if (nextLength > maxLength) {
+          break;
+        }
+
+        completeSentences.push(cleanSentence);
+        currentLength = nextLength;
       }
 
-      return sliced.trim();
+      if (completeSentences.length > 0) {
+        return completeSentences.join(' ');
+      }
+
+      /*
+       * If the first sentence itself is too long, reduce it to a
+       * complete clause instead of chopping at an arbitrary index.
+       */
+      const firstSentence = sentenceMatches[0]?.trim() || compact;
+
+      const clauses = firstSentence
+        .split(/(?<=[,，;；:：])/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      const completeClauses: string[] = [];
+      let clauseLength = 0;
+
+      for (const clause of clauses) {
+        const nextLength =
+          clauseLength + clause.length + (completeClauses.length > 0 ? 1 : 0);
+
+        if (nextLength > maxLength) {
+          break;
+        }
+
+        completeClauses.push(clause);
+        clauseLength = nextLength;
+      }
+
+      if (completeClauses.length > 0) {
+        return completeClauses.join(' ');
+      }
+
+      /*
+       * Last resort: omit the summary.
+       * Title + other language + CTA are preferable to broken prose.
+       */
+      return '';
     };
 
     const compactBilingualSummary = (
