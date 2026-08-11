@@ -11,6 +11,8 @@ import { CopilotAttachmentService } from './copilot-attachment.service';
 import { CopilotService } from './copilot.service';
 import { PromptContextBuilder } from './prompt-context.builder';
 import { MarketingPlannerService } from './marketing-planner.service';
+import { CopilotJobController } from './jobs/copilot-job.controller';
+import { CopilotJobService } from './jobs/copilot-job.service';
 
 @Module({
   imports: [
@@ -21,7 +23,10 @@ import { MarketingPlannerService } from './marketing-planner.service';
     KnowledgeModule,
     MemoryModule,
   ],
-  controllers: [CopilotController],
+  controllers: [
+  CopilotController,
+  CopilotJobController,
+],
   providers: [
     CopilotAttachmentService,
     CopilotService,
@@ -29,6 +34,7 @@ import { MarketingPlannerService } from './marketing-planner.service';
     ConversationMemoryService,
 
     PromptContextBuilder,
+  CopilotJobService,
   ],
 })
 export class CopilotModule {}
