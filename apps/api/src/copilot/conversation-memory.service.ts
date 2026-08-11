@@ -221,6 +221,7 @@ export class ConversationMemoryService {
         select: {
           role: true,
           content: true,
+          metadata: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -238,6 +239,7 @@ export class ConversationMemoryService {
           ? ('assistant' as const)
           : ('user' as const),
       content: message.content,
+      metadata: message.metadata,
     }));
   }
 

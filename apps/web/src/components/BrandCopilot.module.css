@@ -1423,3 +1423,12 @@
     flex-direction: column;
   }
 }
+
+
+.generatedImage {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 16px;
+  border-radius: 16px;
+  display: block;
+}

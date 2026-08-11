@@ -11,6 +11,7 @@ import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
+import { BrandImageService } from '../brand-image/brand-image.service';
 
 @Injectable()
 export class AssetImageService {
@@ -21,6 +22,7 @@ export class AssetImageService {
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
+    private readonly brandImageService: BrandImageService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -34,6 +36,9 @@ export class AssetImageService {
     }
 
     const brand = await this.brandsService.getActiveBrand();
+
+    const brandImageContext =
+      this.brandImageService.build(brand);
     await this.validateRelations(brand.id, dto.campaignId, dto.historyId);
 
     const model =
@@ -45,7 +50,26 @@ export class AssetImageService {
     try {
       const response = await this.client.images.generate({
         model,
-        prompt: dto.prompt,
+        prompt: `
+${dto.prompt}
+
+BRAND IMAGE REQUIREMENTS
+
+Logo:
+${brandImageContext.logoInstruction}
+
+Footer:
+${brandImageContext.footerInstruction}
+
+QR:
+${brandImageContext.qrInstruction}
+
+Visual:
+${brandImageContext.visualInstruction}
+
+Rules:
+${brandImageContext.rulesInstruction}
+`, 
         size,
         quality,
         output_format: 'png',

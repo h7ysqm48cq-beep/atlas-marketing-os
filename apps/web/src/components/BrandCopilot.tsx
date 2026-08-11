@@ -12,6 +12,7 @@ type Campaign = {
 type Message = {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 };
 
 type CopilotAttachment = {
@@ -47,6 +48,7 @@ type ConversationDetail = {
     role: "USER" | "ASSISTANT" | "SYSTEM";
     content: string;
     createdAt: string;
+    metadata?: Record<string, unknown> | null;
   }>;
 };
 
@@ -188,6 +190,12 @@ export function BrandCopilot() {
         .map((message) => ({
           role: message.role === "USER" ? "user" : "assistant",
           content: message.content,
+          imageUrl:
+            message.metadata &&
+            typeof message.metadata === "object" &&
+            "imageUrl" in message.metadata
+              ? String(message.metadata.imageUrl)
+              : undefined,
         }));
 
       setConversationId(data.id);
@@ -591,6 +599,93 @@ export function BrandCopilot() {
     }
   }
 
+  const copyMessage = async (content: string) => {
+    await navigator.clipboard.writeText(content);
+  };
+
+
+  
+const generateImageFromMessage = async (
+  content: string,
+  index: number,
+) => {
+  try {
+    setStatus("Generating image...");
+
+    const response = await fetch(
+      `${API_URL}/asset-images/generate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "copilot-generated-image",
+          prompt: content,
+          platform: "Facebook",
+          size: "1024x1536",
+          quality: "medium",
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Image generation failed.",
+      );
+    }
+
+    const imageUrl =
+      data.asset?.url ||
+      data.asset?.thumbnailUrl;
+
+    if (!imageUrl) {
+      throw new Error(
+        "Image generated but no URL returned.",
+      );
+    }
+
+    setMessages((current) =>
+      current.map((message, messageIndex) =>
+        messageIndex === index
+          ? {
+              ...message,
+              imageUrl,
+            }
+          : message,
+      ),
+    );
+
+    if (conversationId) {
+      await fetch(
+        `${API_URL}/copilot/conversations/${conversationId}/image`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageUrl,
+            assetId: data.asset?.id,
+          }),
+        },
+      );
+    }
+
+    setStatus("Image generated.");
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Image generation failed.",
+    );
+  }
+};
+
+
+
   return (
     <div className={styles.page}>
       <button
@@ -803,18 +898,53 @@ export function BrandCopilot() {
                 <div>
                   <strong>{message.role === "user" ? "You" : "Elena"}</strong>
 
-                  {message.role === "assistant" && (
-                    <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(message.content)
-                      }
-                    >
-                      Copy
-                    </button>
-                  )}
+                  
+{message.role === "assistant" && (
+  <div className={styles.messageActions}>
+    <button
+      type="button"
+      aria-label="Copy response"
+      onClick={() =>
+        copyMessage(message.content)
+      }
+    >
+      📋
+    </button>
+
+    <button
+      type="button"
+      aria-label="Generate image"
+      onClick={() =>
+        generateImageFromMessage(
+          message.content,
+          index,
+        )
+      }
+    >
+      🖼
+    </button>
+  </div>
+)}
+
                 </div>
 
                 <p>{message.content}</p>
+
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt="Generated visual"
+                    className={styles.generatedImage}
+                  />
+                )}
+
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt="Generated visual"
+                    className={styles.generatedImage}
+                  />
+                )}
               </article>
             ))}
 
