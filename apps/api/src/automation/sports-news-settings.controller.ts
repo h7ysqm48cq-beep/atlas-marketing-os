@@ -86,6 +86,10 @@ export class SportsNewsSettingsController {
       };
     }
 
+    if (image.ok !== true) {
+      return image;
+    }
+
     return {
       imageGenerated: true,
       watermarkApplied: image.watermarkApplied ?? false,

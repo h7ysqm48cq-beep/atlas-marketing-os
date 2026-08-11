@@ -172,7 +172,10 @@ export class SportsNewsRunnerService {
       const queued = await this.newsPublisher.queue({
         kind,
         content: generated.content,
-        mediaUrls: image?.imageDataUrl ? [image.imageDataUrl] : [],
+        mediaUrls:
+          image?.ok === true && image.imageDataUrl
+            ? [image.imageDataUrl]
+            : [],
         timezone: settings.timezone,
         autoPublishEnabled: settings.autoPublishEnabled,
         approvalRequired: settings.approvalRequired,

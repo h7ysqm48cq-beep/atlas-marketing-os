@@ -100,6 +100,12 @@ export class SportsNewsImageService {
     });
 
     try {
+      if (result.ok !== true) {
+        throw new Error(
+          result.message || 'Image generation failed.',
+        );
+      }
+
       const branding = await this.applyBranding(result.imageDataUrl, settings);
 
       return {
