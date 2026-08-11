@@ -46,7 +46,7 @@ export function Sidebar() {
         setWorkspaceLoading(true);
 
         const response = await fetch(
-          "http://localhost:3001/automation/workspaces",
+          `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}/automation/workspaces`,
           {
             cache: "no-store",
           },
