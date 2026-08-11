@@ -18,6 +18,7 @@ import { CopilotImageService } from './copilot-image/copilot-image.service';
 import { CopilotJobProcessor } from './jobs/copilot-job.processor';
 import { AssetImageModule } from '../asset-image/asset-image.module';
 
+import { ImagePromptEngineModule } from '../image-prompt-engine/image-prompt-engine.module';
 @Module({
   imports: [
     StorageModule,
@@ -27,7 +28,8 @@ import { AssetImageModule } from '../asset-image/asset-image.module';
     KnowledgeModule,
     MemoryModule,
 AssetImageModule,
-  ],
+ImagePromptEngineModule,
+],
   controllers: [
   CopilotController,
   CopilotJobController,
