@@ -36,6 +36,7 @@ model Workspace {
   socialChannels    SocialChannel[]
   SportsNewsRun     SportsNewsRun[]
   sportsNewsSetting SportsNewsSetting?
+  leads             Lead[]
 }
 
 model Brand {
@@ -73,6 +74,8 @@ model Brand {
   promptTemplates      PromptTemplate[]
   scheduledPosts       ScheduledPost[]
   socialChannels       SocialChannel[]
+  audienceSegments     AudienceSegment[]
+  leads                Lead[]
 
   @@index([workspaceId])
 }
@@ -95,6 +98,7 @@ model Campaign {
   copilotConversations   CopilotConversation[]
   generations            GenerationHistory[]
   scheduledPosts         ScheduledPost[]
+  leads                  Lead[]
 
   @@index([brandId])
   @@index([status])
@@ -909,6 +913,132 @@ model SportsNewsRun {
   @@index([startedAt])
   @@index([status])
   @@index([workspaceId])
+}
+
+model AudienceSegment {
+  id          String   @id @default(cuid())
+  brandId     String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  brand Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  leads Lead[]
+
+  @@index([brandId])
+}
+
+model Lead {
+  id String @id @default(cuid())
+
+  workspaceId String
+  brandId     String
+
+  audienceSegmentId String?
+  sourceCampaignId  String?
+
+  name     String?
+  email    String?
+  phone    String?
+  company  String?
+  industry String?
+
+  country  String?
+  region   String?
+  language String?
+
+  source         String?
+  sourcePlatform String?
+  externalId     String?
+
+  status LeadStatus @default(NEW)
+  score  Int        @default(0)
+
+  tags String[] @default([])
+
+  consentStatus LeadConsentStatus?
+  consentSource String?
+  consentAt     DateTime?
+
+  convertedAt       DateTime?
+  lastInteractionAt DateTime?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brand     Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  audienceSegment AudienceSegment? @relation(fields: [audienceSegmentId], references: [id], onDelete: SetNull)
+
+  activities     LeadActivity[]
+  sourceCampaign Campaign?      @relation(fields: [sourceCampaignId], references: [id], onDelete: SetNull)
+
+  @@index([brandId])
+  @@index([workspaceId])
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model LeadActivity {
+  id String @id @default(cuid())
+
+  leadId String
+
+  type LeadActivityType
+
+  channel     String?
+  source      String?
+  title       String?
+  description String?
+
+  scoreDelta Int @default(0)
+
+  metadata Json?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+  ARCHIVED
+}
+
+enum LeadConsentStatus {
+  GRANTED
+  DENIED
+  REVOKED
+  UNKNOWN
+}
+
+enum LeadActivityType {
+  CREATED
+  UPDATED
+  NOTE
+  EMAIL
+  CALL
+  MEETING
+  STATUS_CHANGED
+  FORM_SUBMITTED
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  COMMENTED
+  CLICKED
+  QUALIFIED
+  CONVERTED
 }
 
 enum BrandStatus {
