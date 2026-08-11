@@ -13,7 +13,10 @@ import { PromptContextBuilder } from './prompt-context.builder';
 import { MarketingPlannerService } from './marketing-planner.service';
 import { CopilotJobController } from './jobs/copilot-job.controller';
 import { CopilotJobService } from './jobs/copilot-job.service';
+import { CopilotImageController } from './copilot-image/copilot-image.controller';
+import { CopilotImageService } from './copilot-image/copilot-image.service';
 import { CopilotJobProcessor } from './jobs/copilot-job.processor';
+import { AssetImageModule } from '../asset-image/asset-image.module';
 
 @Module({
   imports: [
@@ -23,10 +26,12 @@ import { CopilotJobProcessor } from './jobs/copilot-job.processor';
     AiModule,
     KnowledgeModule,
     MemoryModule,
+AssetImageModule,
   ],
   controllers: [
   CopilotController,
   CopilotJobController,
+  CopilotImageController,
 ],
   providers: [
     CopilotAttachmentService,
@@ -36,6 +41,7 @@ import { CopilotJobProcessor } from './jobs/copilot-job.processor';
 
     PromptContextBuilder,
   CopilotJobService,
+  CopilotImageService,
 CopilotJobProcessor,
   ],
 })
