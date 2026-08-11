@@ -55,7 +55,6 @@ export const ModelName = {
   Workspace: 'Workspace',
   Brand: 'Brand',
   Campaign: 'Campaign',
-  AudienceSegment: 'AudienceSegment',
   CampaignIdea: 'CampaignIdea',
   GenerationHistory: 'GenerationHistory',
   ContentVersion: 'ContentVersion',
@@ -79,11 +78,12 @@ export const ModelName = {
   CopilotConversation: 'CopilotConversation',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
-  Lead: 'Lead',
-  LeadActivity: 'LeadActivity',
   BrandMemoryFact: 'BrandMemoryFact',
   EngineeringSnapshot: 'EngineeringSnapshot',
-  SportsNewsRun: 'SportsNewsRun'
+  SportsNewsRun: 'SportsNewsRun',
+  AudienceSegment: 'AudienceSegment',
+  Lead: 'Lead',
+  LeadActivity: 'LeadActivity'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -153,8 +153,8 @@ export const BrandScalarFieldEnum = {
   primaryLogoAssetId: 'primaryLogoAssetId',
   brandBannerAssetId: 'brandBannerAssetId',
   mascotAssetId: 'mascotAssetId',
-  brandKit: 'brandKit',
-  referenceAssetIds: 'referenceAssetIds'
+  referenceAssetIds: 'referenceAssetIds',
+  brandKit: 'brandKit'
 } as const
 
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
@@ -175,24 +175,6 @@ export const CampaignScalarFieldEnum = {
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
-
-
-export const AudienceSegmentScalarFieldEnum = {
-  id: 'id',
-  workspaceId: 'workspaceId',
-  brandId: 'brandId',
-  name: 'name',
-  description: 'description',
-  country: 'country',
-  region: 'region',
-  industry: 'industry',
-  language: 'language',
-  criteria: 'criteria',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AudienceSegmentScalarFieldEnum = (typeof AudienceSegmentScalarFieldEnum)[keyof typeof AudienceSegmentScalarFieldEnum]
 
 
 export const CampaignIdeaScalarFieldEnum = {
@@ -852,56 +834,6 @@ export const PromptTemplateScalarFieldEnum = {
 export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
 
 
-export const LeadScalarFieldEnum = {
-  id: 'id',
-  workspaceId: 'workspaceId',
-  brandId: 'brandId',
-  audienceSegmentId: 'audienceSegmentId',
-  sourceCampaignId: 'sourceCampaignId',
-  name: 'name',
-  email: 'email',
-  phone: 'phone',
-  company: 'company',
-  industry: 'industry',
-  country: 'country',
-  region: 'region',
-  language: 'language',
-  source: 'source',
-  sourcePlatform: 'sourcePlatform',
-  externalId: 'externalId',
-  status: 'status',
-  score: 'score',
-  tags: 'tags',
-  consentStatus: 'consentStatus',
-  consentSource: 'consentSource',
-  consentAt: 'consentAt',
-  metadata: 'metadata',
-  convertedAt: 'convertedAt',
-  lastInteractionAt: 'lastInteractionAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
-
-
-export const LeadActivityScalarFieldEnum = {
-  id: 'id',
-  leadId: 'leadId',
-  type: 'type',
-  channel: 'channel',
-  source: 'source',
-  title: 'title',
-  description: 'description',
-  scoreDelta: 'scoreDelta',
-  metadata: 'metadata',
-  occurredAt: 'occurredAt',
-  createdAt: 'createdAt'
-} as const
-
-export type LeadActivityScalarFieldEnum = (typeof LeadActivityScalarFieldEnum)[keyof typeof LeadActivityScalarFieldEnum]
-
-
 export const BrandMemoryFactScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
@@ -953,6 +885,68 @@ export const SportsNewsRunScalarFieldEnum = {
 } as const
 
 export type SportsNewsRunScalarFieldEnum = (typeof SportsNewsRunScalarFieldEnum)[keyof typeof SportsNewsRunScalarFieldEnum]
+
+
+export const AudienceSegmentScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AudienceSegmentScalarFieldEnum = (typeof AudienceSegmentScalarFieldEnum)[keyof typeof AudienceSegmentScalarFieldEnum]
+
+
+export const LeadScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  brandId: 'brandId',
+  audienceSegmentId: 'audienceSegmentId',
+  sourceCampaignId: 'sourceCampaignId',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  company: 'company',
+  industry: 'industry',
+  country: 'country',
+  region: 'region',
+  language: 'language',
+  source: 'source',
+  sourcePlatform: 'sourcePlatform',
+  externalId: 'externalId',
+  status: 'status',
+  score: 'score',
+  tags: 'tags',
+  consentStatus: 'consentStatus',
+  consentSource: 'consentSource',
+  consentAt: 'consentAt',
+  convertedAt: 'convertedAt',
+  lastInteractionAt: 'lastInteractionAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LeadScalarFieldEnum = (typeof LeadScalarFieldEnum)[keyof typeof LeadScalarFieldEnum]
+
+
+export const LeadActivityScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  type: 'type',
+  channel: 'channel',
+  source: 'source',
+  title: 'title',
+  description: 'description',
+  scoreDelta: 'scoreDelta',
+  metadata: 'metadata',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type LeadActivityScalarFieldEnum = (typeof LeadActivityScalarFieldEnum)[keyof typeof LeadActivityScalarFieldEnum]
 
 
 export const SortOrder = {

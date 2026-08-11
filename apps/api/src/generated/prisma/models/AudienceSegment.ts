@@ -26,43 +26,27 @@ export type AggregateAudienceSegment = {
 
 export type AudienceSegmentMinAggregateOutputType = {
   id: string | null
-  workspaceId: string | null
   brandId: string | null
   name: string | null
   description: string | null
-  country: string | null
-  region: string | null
-  industry: string | null
-  language: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type AudienceSegmentMaxAggregateOutputType = {
   id: string | null
-  workspaceId: string | null
   brandId: string | null
   name: string | null
   description: string | null
-  country: string | null
-  region: string | null
-  industry: string | null
-  language: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
 
 export type AudienceSegmentCountAggregateOutputType = {
   id: number
-  workspaceId: number
   brandId: number
   name: number
   description: number
-  country: number
-  region: number
-  industry: number
-  language: number
-  criteria: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -71,43 +55,27 @@ export type AudienceSegmentCountAggregateOutputType = {
 
 export type AudienceSegmentMinAggregateInputType = {
   id?: true
-  workspaceId?: true
   brandId?: true
   name?: true
   description?: true
-  country?: true
-  region?: true
-  industry?: true
-  language?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type AudienceSegmentMaxAggregateInputType = {
   id?: true
-  workspaceId?: true
   brandId?: true
   name?: true
   description?: true
-  country?: true
-  region?: true
-  industry?: true
-  language?: true
   createdAt?: true
   updatedAt?: true
 }
 
 export type AudienceSegmentCountAggregateInputType = {
   id?: true
-  workspaceId?: true
   brandId?: true
   name?: true
   description?: true
-  country?: true
-  region?: true
-  industry?: true
-  language?: true
-  criteria?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -187,15 +155,9 @@ export type AudienceSegmentGroupByArgs<ExtArgs extends runtime.Types.Extensions.
 
 export type AudienceSegmentGroupByOutputType = {
   id: string
-  workspaceId: string
   brandId: string
   name: string
   description: string | null
-  country: string | null
-  region: string | null
-  industry: string | null
-  language: string | null
-  criteria: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: AudienceSegmentCountAggregateOutputType | null
@@ -223,36 +185,22 @@ export type AudienceSegmentWhereInput = {
   OR?: Prisma.AudienceSegmentWhereInput[]
   NOT?: Prisma.AudienceSegmentWhereInput | Prisma.AudienceSegmentWhereInput[]
   id?: Prisma.StringFilter<"AudienceSegment"> | string
-  workspaceId?: Prisma.StringFilter<"AudienceSegment"> | string
   brandId?: Prisma.StringFilter<"AudienceSegment"> | string
   name?: Prisma.StringFilter<"AudienceSegment"> | string
   description?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  country?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  region?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  industry?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  language?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  criteria?: Prisma.JsonNullableFilter<"AudienceSegment">
   createdAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
-  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   leads?: Prisma.LeadListRelationFilter
 }
 
 export type AudienceSegmentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  workspaceId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  country?: Prisma.SortOrderInput | Prisma.SortOrder
-  region?: Prisma.SortOrderInput | Prisma.SortOrder
-  industry?: Prisma.SortOrderInput | Prisma.SortOrder
-  language?: Prisma.SortOrderInput | Prisma.SortOrder
-  criteria?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  workspace?: Prisma.WorkspaceOrderByWithRelationInput
   brand?: Prisma.BrandOrderByWithRelationInput
   leads?: Prisma.LeadOrderByRelationAggregateInput
 }
@@ -262,33 +210,20 @@ export type AudienceSegmentWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AudienceSegmentWhereInput | Prisma.AudienceSegmentWhereInput[]
   OR?: Prisma.AudienceSegmentWhereInput[]
   NOT?: Prisma.AudienceSegmentWhereInput | Prisma.AudienceSegmentWhereInput[]
-  workspaceId?: Prisma.StringFilter<"AudienceSegment"> | string
   brandId?: Prisma.StringFilter<"AudienceSegment"> | string
   name?: Prisma.StringFilter<"AudienceSegment"> | string
   description?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  country?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  region?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  industry?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  language?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  criteria?: Prisma.JsonNullableFilter<"AudienceSegment">
   createdAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
-  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   leads?: Prisma.LeadListRelationFilter
 }, "id">
 
 export type AudienceSegmentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  workspaceId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  country?: Prisma.SortOrderInput | Prisma.SortOrder
-  region?: Prisma.SortOrderInput | Prisma.SortOrder
-  industry?: Prisma.SortOrderInput | Prisma.SortOrder
-  language?: Prisma.SortOrderInput | Prisma.SortOrder
-  criteria?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AudienceSegmentCountOrderByAggregateInput
@@ -301,15 +236,9 @@ export type AudienceSegmentScalarWhereWithAggregatesInput = {
   OR?: Prisma.AudienceSegmentScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AudienceSegmentScalarWhereWithAggregatesInput | Prisma.AudienceSegmentScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"AudienceSegment"> | string
-  workspaceId?: Prisma.StringWithAggregatesFilter<"AudienceSegment"> | string
   brandId?: Prisma.StringWithAggregatesFilter<"AudienceSegment"> | string
   name?: Prisma.StringWithAggregatesFilter<"AudienceSegment"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"AudienceSegment"> | string | null
-  country?: Prisma.StringNullableWithAggregatesFilter<"AudienceSegment"> | string | null
-  region?: Prisma.StringNullableWithAggregatesFilter<"AudienceSegment"> | string | null
-  industry?: Prisma.StringNullableWithAggregatesFilter<"AudienceSegment"> | string | null
-  language?: Prisma.StringNullableWithAggregatesFilter<"AudienceSegment"> | string | null
-  criteria?: Prisma.JsonNullableWithAggregatesFilter<"AudienceSegment">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AudienceSegment"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AudienceSegment"> | Date | string
 }
@@ -318,29 +247,17 @@ export type AudienceSegmentCreateInput = {
   id?: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutAudienceSegmentsInput
   brand: Prisma.BrandCreateNestedOneWithoutAudienceSegmentsInput
   leads?: Prisma.LeadCreateNestedManyWithoutAudienceSegmentInput
 }
 
 export type AudienceSegmentUncheckedCreateInput = {
   id?: string
-  workspaceId: string
   brandId: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutAudienceSegmentInput
@@ -350,29 +267,17 @@ export type AudienceSegmentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutAudienceSegmentsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutAudienceSegmentsNestedInput
   leads?: Prisma.LeadUpdateManyWithoutAudienceSegmentNestedInput
 }
 
 export type AudienceSegmentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   leads?: Prisma.LeadUncheckedUpdateManyWithoutAudienceSegmentNestedInput
@@ -380,15 +285,9 @@ export type AudienceSegmentUncheckedUpdateInput = {
 
 export type AudienceSegmentCreateManyInput = {
   id?: string
-  workspaceId: string
   brandId: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -397,26 +296,15 @@ export type AudienceSegmentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AudienceSegmentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -433,43 +321,27 @@ export type AudienceSegmentOrderByRelationAggregateInput = {
 
 export type AudienceSegmentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  workspaceId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  country?: Prisma.SortOrder
-  region?: Prisma.SortOrder
-  industry?: Prisma.SortOrder
-  language?: Prisma.SortOrder
-  criteria?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type AudienceSegmentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  workspaceId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  country?: Prisma.SortOrder
-  region?: Prisma.SortOrder
-  industry?: Prisma.SortOrder
-  language?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type AudienceSegmentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  workspaceId?: Prisma.SortOrder
   brandId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  country?: Prisma.SortOrder
-  region?: Prisma.SortOrder
-  industry?: Prisma.SortOrder
-  language?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -477,48 +349,6 @@ export type AudienceSegmentMinOrderByAggregateInput = {
 export type AudienceSegmentNullableScalarRelationFilter = {
   is?: Prisma.AudienceSegmentWhereInput | null
   isNot?: Prisma.AudienceSegmentWhereInput | null
-}
-
-export type AudienceSegmentCreateNestedManyWithoutWorkspaceInput = {
-  create?: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput> | Prisma.AudienceSegmentCreateWithoutWorkspaceInput[] | Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput[]
-  connectOrCreate?: Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput | Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput[]
-  createMany?: Prisma.AudienceSegmentCreateManyWorkspaceInputEnvelope
-  connect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-}
-
-export type AudienceSegmentUncheckedCreateNestedManyWithoutWorkspaceInput = {
-  create?: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput> | Prisma.AudienceSegmentCreateWithoutWorkspaceInput[] | Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput[]
-  connectOrCreate?: Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput | Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput[]
-  createMany?: Prisma.AudienceSegmentCreateManyWorkspaceInputEnvelope
-  connect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-}
-
-export type AudienceSegmentUpdateManyWithoutWorkspaceNestedInput = {
-  create?: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput> | Prisma.AudienceSegmentCreateWithoutWorkspaceInput[] | Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput[]
-  connectOrCreate?: Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput | Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput[]
-  upsert?: Prisma.AudienceSegmentUpsertWithWhereUniqueWithoutWorkspaceInput | Prisma.AudienceSegmentUpsertWithWhereUniqueWithoutWorkspaceInput[]
-  createMany?: Prisma.AudienceSegmentCreateManyWorkspaceInputEnvelope
-  set?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  disconnect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  delete?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  connect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  update?: Prisma.AudienceSegmentUpdateWithWhereUniqueWithoutWorkspaceInput | Prisma.AudienceSegmentUpdateWithWhereUniqueWithoutWorkspaceInput[]
-  updateMany?: Prisma.AudienceSegmentUpdateManyWithWhereWithoutWorkspaceInput | Prisma.AudienceSegmentUpdateManyWithWhereWithoutWorkspaceInput[]
-  deleteMany?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
-}
-
-export type AudienceSegmentUncheckedUpdateManyWithoutWorkspaceNestedInput = {
-  create?: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput> | Prisma.AudienceSegmentCreateWithoutWorkspaceInput[] | Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput[]
-  connectOrCreate?: Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput | Prisma.AudienceSegmentCreateOrConnectWithoutWorkspaceInput[]
-  upsert?: Prisma.AudienceSegmentUpsertWithWhereUniqueWithoutWorkspaceInput | Prisma.AudienceSegmentUpsertWithWhereUniqueWithoutWorkspaceInput[]
-  createMany?: Prisma.AudienceSegmentCreateManyWorkspaceInputEnvelope
-  set?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  disconnect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  delete?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  connect?: Prisma.AudienceSegmentWhereUniqueInput | Prisma.AudienceSegmentWhereUniqueInput[]
-  update?: Prisma.AudienceSegmentUpdateWithWhereUniqueWithoutWorkspaceInput | Prisma.AudienceSegmentUpdateWithWhereUniqueWithoutWorkspaceInput[]
-  updateMany?: Prisma.AudienceSegmentUpdateManyWithWhereWithoutWorkspaceInput | Prisma.AudienceSegmentUpdateManyWithWhereWithoutWorkspaceInput[]
-  deleteMany?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
 }
 
 export type AudienceSegmentCreateNestedManyWithoutBrandInput = {
@@ -579,105 +409,19 @@ export type AudienceSegmentUpdateOneWithoutLeadsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AudienceSegmentUpdateToOneWithWhereWithoutLeadsInput, Prisma.AudienceSegmentUpdateWithoutLeadsInput>, Prisma.AudienceSegmentUncheckedUpdateWithoutLeadsInput>
 }
 
-export type AudienceSegmentCreateWithoutWorkspaceInput = {
-  id?: string
-  name: string
-  description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  brand: Prisma.BrandCreateNestedOneWithoutAudienceSegmentsInput
-  leads?: Prisma.LeadCreateNestedManyWithoutAudienceSegmentInput
-}
-
-export type AudienceSegmentUncheckedCreateWithoutWorkspaceInput = {
-  id?: string
-  brandId: string
-  name: string
-  description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutAudienceSegmentInput
-}
-
-export type AudienceSegmentCreateOrConnectWithoutWorkspaceInput = {
-  where: Prisma.AudienceSegmentWhereUniqueInput
-  create: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput>
-}
-
-export type AudienceSegmentCreateManyWorkspaceInputEnvelope = {
-  data: Prisma.AudienceSegmentCreateManyWorkspaceInput | Prisma.AudienceSegmentCreateManyWorkspaceInput[]
-  skipDuplicates?: boolean
-}
-
-export type AudienceSegmentUpsertWithWhereUniqueWithoutWorkspaceInput = {
-  where: Prisma.AudienceSegmentWhereUniqueInput
-  update: Prisma.XOR<Prisma.AudienceSegmentUpdateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedUpdateWithoutWorkspaceInput>
-  create: Prisma.XOR<Prisma.AudienceSegmentCreateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedCreateWithoutWorkspaceInput>
-}
-
-export type AudienceSegmentUpdateWithWhereUniqueWithoutWorkspaceInput = {
-  where: Prisma.AudienceSegmentWhereUniqueInput
-  data: Prisma.XOR<Prisma.AudienceSegmentUpdateWithoutWorkspaceInput, Prisma.AudienceSegmentUncheckedUpdateWithoutWorkspaceInput>
-}
-
-export type AudienceSegmentUpdateManyWithWhereWithoutWorkspaceInput = {
-  where: Prisma.AudienceSegmentScalarWhereInput
-  data: Prisma.XOR<Prisma.AudienceSegmentUpdateManyMutationInput, Prisma.AudienceSegmentUncheckedUpdateManyWithoutWorkspaceInput>
-}
-
-export type AudienceSegmentScalarWhereInput = {
-  AND?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
-  OR?: Prisma.AudienceSegmentScalarWhereInput[]
-  NOT?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
-  id?: Prisma.StringFilter<"AudienceSegment"> | string
-  workspaceId?: Prisma.StringFilter<"AudienceSegment"> | string
-  brandId?: Prisma.StringFilter<"AudienceSegment"> | string
-  name?: Prisma.StringFilter<"AudienceSegment"> | string
-  description?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  country?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  region?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  industry?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  language?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
-  criteria?: Prisma.JsonNullableFilter<"AudienceSegment">
-  createdAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
-}
-
 export type AudienceSegmentCreateWithoutBrandInput = {
   id?: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutAudienceSegmentsInput
   leads?: Prisma.LeadCreateNestedManyWithoutAudienceSegmentInput
 }
 
 export type AudienceSegmentUncheckedCreateWithoutBrandInput = {
   id?: string
-  workspaceId: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   leads?: Prisma.LeadUncheckedCreateNestedManyWithoutAudienceSegmentInput
@@ -709,32 +453,32 @@ export type AudienceSegmentUpdateManyWithWhereWithoutBrandInput = {
   data: Prisma.XOR<Prisma.AudienceSegmentUpdateManyMutationInput, Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandInput>
 }
 
+export type AudienceSegmentScalarWhereInput = {
+  AND?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
+  OR?: Prisma.AudienceSegmentScalarWhereInput[]
+  NOT?: Prisma.AudienceSegmentScalarWhereInput | Prisma.AudienceSegmentScalarWhereInput[]
+  id?: Prisma.StringFilter<"AudienceSegment"> | string
+  brandId?: Prisma.StringFilter<"AudienceSegment"> | string
+  name?: Prisma.StringFilter<"AudienceSegment"> | string
+  description?: Prisma.StringNullableFilter<"AudienceSegment"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"AudienceSegment"> | Date | string
+}
+
 export type AudienceSegmentCreateWithoutLeadsInput = {
   id?: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutAudienceSegmentsInput
   brand: Prisma.BrandCreateNestedOneWithoutAudienceSegmentsInput
 }
 
 export type AudienceSegmentUncheckedCreateWithoutLeadsInput = {
   id?: string
-  workspaceId: string
   brandId: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -759,100 +503,24 @@ export type AudienceSegmentUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutAudienceSegmentsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutAudienceSegmentsNestedInput
 }
 
 export type AudienceSegmentUncheckedUpdateWithoutLeadsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   brandId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type AudienceSegmentCreateManyWorkspaceInput = {
-  id?: string
-  brandId: string
-  name: string
-  description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type AudienceSegmentUpdateWithoutWorkspaceInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brand?: Prisma.BrandUpdateOneRequiredWithoutAudienceSegmentsNestedInput
-  leads?: Prisma.LeadUpdateManyWithoutAudienceSegmentNestedInput
-}
-
-export type AudienceSegmentUncheckedUpdateWithoutWorkspaceInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  leads?: Prisma.LeadUncheckedUpdateManyWithoutAudienceSegmentNestedInput
-}
-
-export type AudienceSegmentUncheckedUpdateManyWithoutWorkspaceInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type AudienceSegmentCreateManyBrandInput = {
   id?: string
-  workspaceId: string
   name: string
   description?: string | null
-  country?: string | null
-  region?: string | null
-  industry?: string | null
-  language?: string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -861,27 +529,15 @@ export type AudienceSegmentUpdateWithoutBrandInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutAudienceSegmentsNestedInput
   leads?: Prisma.LeadUpdateManyWithoutAudienceSegmentNestedInput
 }
 
 export type AudienceSegmentUncheckedUpdateWithoutBrandInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   leads?: Prisma.LeadUncheckedUpdateManyWithoutAudienceSegmentNestedInput
@@ -889,14 +545,8 @@ export type AudienceSegmentUncheckedUpdateWithoutBrandInput = {
 
 export type AudienceSegmentUncheckedUpdateManyWithoutBrandInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  criteria?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -934,18 +584,11 @@ export type AudienceSegmentCountOutputTypeCountLeadsArgs<ExtArgs extends runtime
 
 export type AudienceSegmentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  workspaceId?: boolean
   brandId?: boolean
   name?: boolean
   description?: boolean
-  country?: boolean
-  region?: boolean
-  industry?: boolean
-  language?: boolean
-  criteria?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   leads?: boolean | Prisma.AudienceSegment$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.AudienceSegmentCountOutputTypeDefaultArgs<ExtArgs>
@@ -953,87 +596,57 @@ export type AudienceSegmentSelect<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type AudienceSegmentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  workspaceId?: boolean
   brandId?: boolean
   name?: boolean
   description?: boolean
-  country?: boolean
-  region?: boolean
-  industry?: boolean
-  language?: boolean
-  criteria?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["audienceSegment"]>
 
 export type AudienceSegmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  workspaceId?: boolean
   brandId?: boolean
   name?: boolean
   description?: boolean
-  country?: boolean
-  region?: boolean
-  industry?: boolean
-  language?: boolean
-  criteria?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["audienceSegment"]>
 
 export type AudienceSegmentSelectScalar = {
   id?: boolean
-  workspaceId?: boolean
   brandId?: boolean
   name?: boolean
   description?: boolean
-  country?: boolean
-  region?: boolean
-  industry?: boolean
-  language?: boolean
-  criteria?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AudienceSegmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "name" | "description" | "country" | "region" | "industry" | "language" | "criteria" | "createdAt" | "updatedAt", ExtArgs["result"]["audienceSegment"]>
+export type AudienceSegmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "name" | "description" | "createdAt" | "updatedAt", ExtArgs["result"]["audienceSegment"]>
 export type AudienceSegmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   leads?: boolean | Prisma.AudienceSegment$leadsArgs<ExtArgs>
   _count?: boolean | Prisma.AudienceSegmentCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AudienceSegmentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }
 export type AudienceSegmentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }
 
 export type $AudienceSegmentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AudienceSegment"
   objects: {
-    workspace: Prisma.$WorkspacePayload<ExtArgs>
     brand: Prisma.$BrandPayload<ExtArgs>
     leads: Prisma.$LeadPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    workspaceId: string
     brandId: string
     name: string
     description: string | null
-    country: string | null
-    region: string | null
-    industry: string | null
-    language: string | null
-    criteria: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["audienceSegment"]>
@@ -1430,7 +1043,6 @@ readonly fields: AudienceSegmentFieldRefs;
  */
 export interface Prisma__AudienceSegmentClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   leads<T extends Prisma.AudienceSegment$leadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AudienceSegment$leadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1463,15 +1075,9 @@ export interface Prisma__AudienceSegmentClient<T, Null = never, ExtArgs extends 
  */
 export interface AudienceSegmentFieldRefs {
   readonly id: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly workspaceId: Prisma.FieldRef<"AudienceSegment", 'String'>
   readonly brandId: Prisma.FieldRef<"AudienceSegment", 'String'>
   readonly name: Prisma.FieldRef<"AudienceSegment", 'String'>
   readonly description: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly country: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly region: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly industry: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly language: Prisma.FieldRef<"AudienceSegment", 'String'>
-  readonly criteria: Prisma.FieldRef<"AudienceSegment", 'Json'>
   readonly createdAt: Prisma.FieldRef<"AudienceSegment", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AudienceSegment", 'DateTime'>
 }

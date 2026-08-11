@@ -9,6 +9,48 @@
 * 🟢 You can import this file directly.
 */
 
+export const LeadStatus = {
+  NEW: 'NEW',
+  CONTACTED: 'CONTACTED',
+  QUALIFIED: 'QUALIFIED',
+  CONVERTED: 'CONVERTED',
+  LOST: 'LOST',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus]
+
+
+export const LeadConsentStatus = {
+  GRANTED: 'GRANTED',
+  DENIED: 'DENIED',
+  REVOKED: 'REVOKED',
+  UNKNOWN: 'UNKNOWN'
+} as const
+
+export type LeadConsentStatus = (typeof LeadConsentStatus)[keyof typeof LeadConsentStatus]
+
+
+export const LeadActivityType = {
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  NOTE: 'NOTE',
+  EMAIL: 'EMAIL',
+  CALL: 'CALL',
+  MEETING: 'MEETING',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  FORM_SUBMITTED: 'FORM_SUBMITTED',
+  MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
+  MESSAGE_SENT: 'MESSAGE_SENT',
+  COMMENTED: 'COMMENTED',
+  CLICKED: 'CLICKED',
+  QUALIFIED: 'QUALIFIED',
+  CONVERTED: 'CONVERTED'
+} as const
+
+export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
+
+
 export const BrandStatus = {
   ACTIVE: 'ACTIVE',
   ARCHIVED: 'ARCHIVED'
@@ -36,48 +78,6 @@ export const CampaignIdeaStatus = {
 } as const
 
 export type CampaignIdeaStatus = (typeof CampaignIdeaStatus)[keyof typeof CampaignIdeaStatus]
-
-
-export const LeadStatus = {
-  NEW: 'NEW',
-  CONTACTED: 'CONTACTED',
-  ENGAGED: 'ENGAGED',
-  QUALIFIED: 'QUALIFIED',
-  CONVERTED: 'CONVERTED',
-  LOST: 'LOST',
-  ARCHIVED: 'ARCHIVED'
-} as const
-
-export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus]
-
-
-export const LeadConsentStatus = {
-  UNKNOWN: 'UNKNOWN',
-  NOT_REQUIRED: 'NOT_REQUIRED',
-  PENDING: 'PENDING',
-  GRANTED: 'GRANTED',
-  REVOKED: 'REVOKED'
-} as const
-
-export type LeadConsentStatus = (typeof LeadConsentStatus)[keyof typeof LeadConsentStatus]
-
-
-export const LeadActivityType = {
-  CREATED: 'CREATED',
-  IMPORTED: 'IMPORTED',
-  FORM_SUBMITTED: 'FORM_SUBMITTED',
-  MESSAGE_RECEIVED: 'MESSAGE_RECEIVED',
-  MESSAGE_SENT: 'MESSAGE_SENT',
-  COMMENTED: 'COMMENTED',
-  CLICKED: 'CLICKED',
-  QUALIFIED: 'QUALIFIED',
-  SCORE_CHANGED: 'SCORE_CHANGED',
-  STATUS_CHANGED: 'STATUS_CHANGED',
-  CONVERTED: 'CONVERTED',
-  NOTE: 'NOTE'
-} as const
-
-export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
 
 
 export const ContentStatus = {

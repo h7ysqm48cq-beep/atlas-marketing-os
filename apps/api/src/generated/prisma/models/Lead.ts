@@ -113,9 +113,9 @@ export type LeadCountAggregateOutputType = {
   consentStatus: number
   consentSource: number
   consentAt: number
-  metadata: number
   convertedAt: number
   lastInteractionAt: number
+  metadata: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -209,9 +209,9 @@ export type LeadCountAggregateInputType = {
   consentStatus?: true
   consentSource?: true
   consentAt?: true
-  metadata?: true
   convertedAt?: true
   lastInteractionAt?: true
+  metadata?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -326,9 +326,9 @@ export type LeadGroupByOutputType = {
   consentStatus: $Enums.LeadConsentStatus | null
   consentSource: string | null
   consentAt: Date | null
-  metadata: runtime.JsonValue | null
   convertedAt: Date | null
   lastInteractionAt: Date | null
+  metadata: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: LeadCountAggregateOutputType | null
@@ -379,16 +379,16 @@ export type LeadWhereInput = {
   consentStatus?: Prisma.EnumLeadConsentStatusNullableFilter<"Lead"> | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.StringNullableFilter<"Lead"> | string | null
   consentAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  metadata?: Prisma.JsonNullableFilter<"Lead">
   convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   lastInteractionAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
+  metadata?: Prisma.JsonNullableFilter<"Lead">
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   audienceSegment?: Prisma.XOR<Prisma.AudienceSegmentNullableScalarRelationFilter, Prisma.AudienceSegmentWhereInput> | null
-  sourceCampaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
   activities?: Prisma.LeadActivityListRelationFilter
+  sourceCampaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
 }
 
 export type LeadOrderByWithRelationInput = {
@@ -414,16 +414,16 @@ export type LeadOrderByWithRelationInput = {
   consentStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   consentSource?: Prisma.SortOrderInput | Prisma.SortOrder
   consentAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   convertedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastInteractionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
   brand?: Prisma.BrandOrderByWithRelationInput
   audienceSegment?: Prisma.AudienceSegmentOrderByWithRelationInput
-  sourceCampaign?: Prisma.CampaignOrderByWithRelationInput
   activities?: Prisma.LeadActivityOrderByRelationAggregateInput
+  sourceCampaign?: Prisma.CampaignOrderByWithRelationInput
 }
 
 export type LeadWhereUniqueInput = Prisma.AtLeast<{
@@ -452,16 +452,16 @@ export type LeadWhereUniqueInput = Prisma.AtLeast<{
   consentStatus?: Prisma.EnumLeadConsentStatusNullableFilter<"Lead"> | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.StringNullableFilter<"Lead"> | string | null
   consentAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  metadata?: Prisma.JsonNullableFilter<"Lead">
   convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   lastInteractionAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
+  metadata?: Prisma.JsonNullableFilter<"Lead">
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   audienceSegment?: Prisma.XOR<Prisma.AudienceSegmentNullableScalarRelationFilter, Prisma.AudienceSegmentWhereInput> | null
-  sourceCampaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
   activities?: Prisma.LeadActivityListRelationFilter
+  sourceCampaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
 }, "id">
 
 export type LeadOrderByWithAggregationInput = {
@@ -487,9 +487,9 @@ export type LeadOrderByWithAggregationInput = {
   consentStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   consentSource?: Prisma.SortOrderInput | Prisma.SortOrder
   consentAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   convertedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastInteractionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.LeadCountOrderByAggregateInput
@@ -525,9 +525,9 @@ export type LeadScalarWhereWithAggregatesInput = {
   consentStatus?: Prisma.EnumLeadConsentStatusNullableWithAggregatesFilter<"Lead"> | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.StringNullableWithAggregatesFilter<"Lead"> | string | null
   consentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
-  metadata?: Prisma.JsonNullableWithAggregatesFilter<"Lead">
   convertedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
   lastInteractionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
+  metadata?: Prisma.JsonNullableWithAggregatesFilter<"Lead">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Lead"> | Date | string
 }
@@ -551,16 +551,16 @@ export type LeadCreateInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutLeadsInput
   brand: Prisma.BrandCreateNestedOneWithoutLeadsInput
   audienceSegment?: Prisma.AudienceSegmentCreateNestedOneWithoutLeadsInput
-  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutLeadInput
+  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
 }
 
 export type LeadUncheckedCreateInput = {
@@ -586,9 +586,9 @@ export type LeadUncheckedCreateInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutLeadInput
@@ -613,16 +613,16 @@ export type LeadUpdateInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutLeadsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutLeadsNestedInput
   audienceSegment?: Prisma.AudienceSegmentUpdateOneWithoutLeadsNestedInput
-  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutLeadNestedInput
+  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
 }
 
 export type LeadUncheckedUpdateInput = {
@@ -648,9 +648,9 @@ export type LeadUncheckedUpdateInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutLeadNestedInput
@@ -679,9 +679,9 @@ export type LeadCreateManyInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -705,9 +705,9 @@ export type LeadUpdateManyMutationInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -735,9 +735,9 @@ export type LeadUncheckedUpdateManyInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -775,9 +775,9 @@ export type LeadCountOrderByAggregateInput = {
   consentStatus?: Prisma.SortOrder
   consentSource?: Prisma.SortOrder
   consentAt?: Prisma.SortOrder
-  metadata?: Prisma.SortOrder
   convertedAt?: Prisma.SortOrder
   lastInteractionAt?: Prisma.SortOrder
+  metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -1069,15 +1069,15 @@ export type LeadCreateWithoutWorkspaceInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutLeadsInput
   audienceSegment?: Prisma.AudienceSegmentCreateNestedOneWithoutLeadsInput
-  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutLeadInput
+  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
 }
 
 export type LeadUncheckedCreateWithoutWorkspaceInput = {
@@ -1102,9 +1102,9 @@ export type LeadUncheckedCreateWithoutWorkspaceInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutLeadInput
@@ -1162,9 +1162,9 @@ export type LeadScalarWhereInput = {
   consentStatus?: Prisma.EnumLeadConsentStatusNullableFilter<"Lead"> | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.StringNullableFilter<"Lead"> | string | null
   consentAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
-  metadata?: Prisma.JsonNullableFilter<"Lead">
   convertedAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
   lastInteractionAt?: Prisma.DateTimeNullableFilter<"Lead"> | Date | string | null
+  metadata?: Prisma.JsonNullableFilter<"Lead">
   createdAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lead"> | Date | string
 }
@@ -1188,15 +1188,15 @@ export type LeadCreateWithoutBrandInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutLeadsInput
   audienceSegment?: Prisma.AudienceSegmentCreateNestedOneWithoutLeadsInput
-  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutLeadInput
+  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
 }
 
 export type LeadUncheckedCreateWithoutBrandInput = {
@@ -1221,9 +1221,9 @@ export type LeadUncheckedCreateWithoutBrandInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutLeadInput
@@ -1274,9 +1274,9 @@ export type LeadCreateWithoutSourceCampaignInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutLeadsInput
@@ -1307,9 +1307,9 @@ export type LeadUncheckedCreateWithoutSourceCampaignInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutLeadInput
@@ -1360,15 +1360,15 @@ export type LeadCreateWithoutAudienceSegmentInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutLeadsInput
   brand: Prisma.BrandCreateNestedOneWithoutLeadsInput
-  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
   activities?: Prisma.LeadActivityCreateNestedManyWithoutLeadInput
+  sourceCampaign?: Prisma.CampaignCreateNestedOneWithoutLeadsInput
 }
 
 export type LeadUncheckedCreateWithoutAudienceSegmentInput = {
@@ -1393,9 +1393,9 @@ export type LeadUncheckedCreateWithoutAudienceSegmentInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   activities?: Prisma.LeadActivityUncheckedCreateNestedManyWithoutLeadInput
@@ -1446,9 +1446,9 @@ export type LeadCreateWithoutActivitiesInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.WorkspaceCreateNestedOneWithoutLeadsInput
@@ -1480,9 +1480,9 @@ export type LeadUncheckedCreateWithoutActivitiesInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1522,9 +1522,9 @@ export type LeadUpdateWithoutActivitiesInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutLeadsNestedInput
@@ -1556,9 +1556,9 @@ export type LeadUncheckedUpdateWithoutActivitiesInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1585,9 +1585,9 @@ export type LeadCreateManyWorkspaceInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1611,15 +1611,15 @@ export type LeadUpdateWithoutWorkspaceInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutLeadsNestedInput
   audienceSegment?: Prisma.AudienceSegmentUpdateOneWithoutLeadsNestedInput
-  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutLeadNestedInput
+  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
 }
 
 export type LeadUncheckedUpdateWithoutWorkspaceInput = {
@@ -1644,9 +1644,9 @@ export type LeadUncheckedUpdateWithoutWorkspaceInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutLeadNestedInput
@@ -1674,9 +1674,9 @@ export type LeadUncheckedUpdateManyWithoutWorkspaceInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1703,9 +1703,9 @@ export type LeadCreateManyBrandInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1729,15 +1729,15 @@ export type LeadUpdateWithoutBrandInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutLeadsNestedInput
   audienceSegment?: Prisma.AudienceSegmentUpdateOneWithoutLeadsNestedInput
-  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutLeadNestedInput
+  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
 }
 
 export type LeadUncheckedUpdateWithoutBrandInput = {
@@ -1762,9 +1762,9 @@ export type LeadUncheckedUpdateWithoutBrandInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutLeadNestedInput
@@ -1792,9 +1792,9 @@ export type LeadUncheckedUpdateManyWithoutBrandInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1821,9 +1821,9 @@ export type LeadCreateManySourceCampaignInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1847,9 +1847,9 @@ export type LeadUpdateWithoutSourceCampaignInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutLeadsNestedInput
@@ -1880,9 +1880,9 @@ export type LeadUncheckedUpdateWithoutSourceCampaignInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutLeadNestedInput
@@ -1910,9 +1910,9 @@ export type LeadUncheckedUpdateManyWithoutSourceCampaignInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1939,9 +1939,9 @@ export type LeadCreateManyAudienceSegmentInput = {
   consentStatus?: $Enums.LeadConsentStatus | null
   consentSource?: string | null
   consentAt?: Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Date | string | null
   lastInteractionAt?: Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1965,15 +1965,15 @@ export type LeadUpdateWithoutAudienceSegmentInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutLeadsNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutLeadsNestedInput
-  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
   activities?: Prisma.LeadActivityUpdateManyWithoutLeadNestedInput
+  sourceCampaign?: Prisma.CampaignUpdateOneWithoutLeadsNestedInput
 }
 
 export type LeadUncheckedUpdateWithoutAudienceSegmentInput = {
@@ -1998,9 +1998,9 @@ export type LeadUncheckedUpdateWithoutAudienceSegmentInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   activities?: Prisma.LeadActivityUncheckedUpdateManyWithoutLeadNestedInput
@@ -2028,9 +2028,9 @@ export type LeadUncheckedUpdateManyWithoutAudienceSegmentInput = {
   consentStatus?: Prisma.NullableEnumLeadConsentStatusFieldUpdateOperationsInput | $Enums.LeadConsentStatus | null
   consentSource?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   convertedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInteractionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2089,16 +2089,16 @@ export type LeadSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   consentStatus?: boolean
   consentSource?: boolean
   consentAt?: boolean
-  metadata?: boolean
   convertedAt?: boolean
   lastInteractionAt?: boolean
+  metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   audienceSegment?: boolean | Prisma.Lead$audienceSegmentArgs<ExtArgs>
-  sourceCampaign?: boolean | Prisma.Lead$sourceCampaignArgs<ExtArgs>
   activities?: boolean | Prisma.Lead$activitiesArgs<ExtArgs>
+  sourceCampaign?: boolean | Prisma.Lead$sourceCampaignArgs<ExtArgs>
   _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lead"]>
 
@@ -2125,9 +2125,9 @@ export type LeadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   consentStatus?: boolean
   consentSource?: boolean
   consentAt?: boolean
-  metadata?: boolean
   convertedAt?: boolean
   lastInteractionAt?: boolean
+  metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -2159,9 +2159,9 @@ export type LeadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   consentStatus?: boolean
   consentSource?: boolean
   consentAt?: boolean
-  metadata?: boolean
   convertedAt?: boolean
   lastInteractionAt?: boolean
+  metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -2193,20 +2193,20 @@ export type LeadSelectScalar = {
   consentStatus?: boolean
   consentSource?: boolean
   consentAt?: boolean
-  metadata?: boolean
   convertedAt?: boolean
   lastInteractionAt?: boolean
+  metadata?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "audienceSegmentId" | "sourceCampaignId" | "name" | "email" | "phone" | "company" | "industry" | "country" | "region" | "language" | "source" | "sourcePlatform" | "externalId" | "status" | "score" | "tags" | "consentStatus" | "consentSource" | "consentAt" | "metadata" | "convertedAt" | "lastInteractionAt" | "createdAt" | "updatedAt", ExtArgs["result"]["lead"]>
+export type LeadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "audienceSegmentId" | "sourceCampaignId" | "name" | "email" | "phone" | "company" | "industry" | "country" | "region" | "language" | "source" | "sourcePlatform" | "externalId" | "status" | "score" | "tags" | "consentStatus" | "consentSource" | "consentAt" | "convertedAt" | "lastInteractionAt" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["lead"]>
 export type LeadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   audienceSegment?: boolean | Prisma.Lead$audienceSegmentArgs<ExtArgs>
-  sourceCampaign?: boolean | Prisma.Lead$sourceCampaignArgs<ExtArgs>
   activities?: boolean | Prisma.Lead$activitiesArgs<ExtArgs>
+  sourceCampaign?: boolean | Prisma.Lead$sourceCampaignArgs<ExtArgs>
   _count?: boolean | Prisma.LeadCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LeadIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2228,8 +2228,8 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     workspace: Prisma.$WorkspacePayload<ExtArgs>
     brand: Prisma.$BrandPayload<ExtArgs>
     audienceSegment: Prisma.$AudienceSegmentPayload<ExtArgs> | null
-    sourceCampaign: Prisma.$CampaignPayload<ExtArgs> | null
     activities: Prisma.$LeadActivityPayload<ExtArgs>[]
+    sourceCampaign: Prisma.$CampaignPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2254,9 +2254,9 @@ export type $LeadPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     consentStatus: $Enums.LeadConsentStatus | null
     consentSource: string | null
     consentAt: Date | null
-    metadata: runtime.JsonValue | null
     convertedAt: Date | null
     lastInteractionAt: Date | null
+    metadata: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["lead"]>
@@ -2656,8 +2656,8 @@ export interface Prisma__LeadClient<T, Null = never, ExtArgs extends runtime.Typ
   workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   audienceSegment<T extends Prisma.Lead$audienceSegmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$audienceSegmentArgs<ExtArgs>>): Prisma.Prisma__AudienceSegmentClient<runtime.Types.Result.GetResult<Prisma.$AudienceSegmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  sourceCampaign<T extends Prisma.Lead$sourceCampaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$sourceCampaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   activities<T extends Prisma.Lead$activitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$activitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LeadActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sourceCampaign<T extends Prisma.Lead$sourceCampaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Lead$sourceCampaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2709,9 +2709,9 @@ export interface LeadFieldRefs {
   readonly consentStatus: Prisma.FieldRef<"Lead", 'LeadConsentStatus'>
   readonly consentSource: Prisma.FieldRef<"Lead", 'String'>
   readonly consentAt: Prisma.FieldRef<"Lead", 'DateTime'>
-  readonly metadata: Prisma.FieldRef<"Lead", 'Json'>
   readonly convertedAt: Prisma.FieldRef<"Lead", 'DateTime'>
   readonly lastInteractionAt: Prisma.FieldRef<"Lead", 'DateTime'>
+  readonly metadata: Prisma.FieldRef<"Lead", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Lead", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Lead", 'DateTime'>
 }
@@ -3134,25 +3134,6 @@ export type Lead$audienceSegmentArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
- * Lead.sourceCampaign
- */
-export type Lead$sourceCampaignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Campaign
-   */
-  select?: Prisma.CampaignSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Campaign
-   */
-  omit?: Prisma.CampaignOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.CampaignInclude<ExtArgs> | null
-  where?: Prisma.CampaignWhereInput
-}
-
-/**
  * Lead.activities
  */
 export type Lead$activitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3174,6 +3155,25 @@ export type Lead$activitiesArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.LeadActivityScalarFieldEnum | Prisma.LeadActivityScalarFieldEnum[]
+}
+
+/**
+ * Lead.sourceCampaign
+ */
+export type Lead$sourceCampaignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Campaign
+   */
+  select?: Prisma.CampaignSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Campaign
+   */
+  omit?: Prisma.CampaignOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CampaignInclude<ExtArgs> | null
+  where?: Prisma.CampaignWhereInput
 }
 
 /**

@@ -637,6 +637,40 @@ export type EnumCopilotMessageRoleWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumCopilotMessageRoleFilter<$PrismaModel>
 }
 
+export type EnumBrandMemoryFactTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel> | $Enums.BrandMemoryFactType
+}
+
+export type EnumBrandMemoryFactStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
+}
+
+export type EnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
+}
+
+export type EnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
+}
+
 export type EnumLeadStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.LeadStatus | Prisma.EnumLeadStatusFieldRefInput<$PrismaModel>
   in?: $Enums.LeadStatus[] | Prisma.ListEnumLeadStatusFieldRefInput<$PrismaModel>
@@ -686,40 +720,6 @@ export type EnumLeadActivityTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumLeadActivityTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumLeadActivityTypeFilter<$PrismaModel>
-}
-
-export type EnumBrandMemoryFactTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel> | $Enums.BrandMemoryFactType
-}
-
-export type EnumBrandMemoryFactStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
-}
-
-export type EnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
-}
-
-export type EnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -1293,6 +1293,40 @@ export type NestedEnumCopilotMessageRoleWithAggregatesFilter<$PrismaModel = neve
   _max?: Prisma.NestedEnumCopilotMessageRoleFilter<$PrismaModel>
 }
 
+export type NestedEnumBrandMemoryFactTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel> | $Enums.BrandMemoryFactType
+}
+
+export type NestedEnumBrandMemoryFactStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
+}
+
+export type NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
+}
+
 export type NestedEnumLeadStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.LeadStatus | Prisma.EnumLeadStatusFieldRefInput<$PrismaModel>
   in?: $Enums.LeadStatus[] | Prisma.ListEnumLeadStatusFieldRefInput<$PrismaModel>
@@ -1342,40 +1376,6 @@ export type NestedEnumLeadActivityTypeWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumLeadActivityTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumLeadActivityTypeFilter<$PrismaModel>
-}
-
-export type NestedEnumBrandMemoryFactTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel> | $Enums.BrandMemoryFactType
-}
-
-export type NestedEnumBrandMemoryFactStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
-}
-
-export type NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactType | Prisma.EnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactType[] | Prisma.ListEnumBrandMemoryFactTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactTypeWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumBrandMemoryFactTypeFilter<$PrismaModel>
-}
-
-export type NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.BrandMemoryFactStatus | Prisma.EnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.BrandMemoryFactStatus[] | Prisma.ListEnumBrandMemoryFactStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumBrandMemoryFactStatusWithAggregatesFilter<$PrismaModel> | $Enums.BrandMemoryFactStatus
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumBrandMemoryFactStatusFilter<$PrismaModel>
 }
 
 

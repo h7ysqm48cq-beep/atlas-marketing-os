@@ -38,11 +38,6 @@ export type Brand = Prisma.BrandModel
  */
 export type Campaign = Prisma.CampaignModel
 /**
- * Model AudienceSegment
- * 
- */
-export type AudienceSegment = Prisma.AudienceSegmentModel
-/**
  * Model CampaignIdea
  * 
  */
@@ -158,16 +153,6 @@ export type CopilotConversationMessage = Prisma.CopilotConversationMessageModel
  */
 export type PromptTemplate = Prisma.PromptTemplateModel
 /**
- * Model Lead
- * 
- */
-export type Lead = Prisma.LeadModel
-/**
- * Model LeadActivity
- * 
- */
-export type LeadActivity = Prisma.LeadActivityModel
-/**
  * Model BrandMemoryFact
  * 
  */
@@ -182,3 +167,18 @@ export type EngineeringSnapshot = Prisma.EngineeringSnapshotModel
  * 
  */
 export type SportsNewsRun = Prisma.SportsNewsRunModel
+/**
+ * Model AudienceSegment
+ * 
+ */
+export type AudienceSegment = Prisma.AudienceSegmentModel
+/**
+ * Model Lead
+ * 
+ */
+export type Lead = Prisma.LeadModel
+/**
+ * Model LeadActivity
+ * 
+ */
+export type LeadActivity = Prisma.LeadActivityModel

@@ -87,8 +87,8 @@ export type BrandCountAggregateOutputType = {
   primaryLogoAssetId: number
   brandBannerAssetId: number
   mascotAssetId: number
-  brandKit: number
   referenceAssetIds: number
+  brandKit: number
   _all: number
 }
 
@@ -156,8 +156,8 @@ export type BrandCountAggregateInputType = {
   primaryLogoAssetId?: true
   brandBannerAssetId?: true
   mascotAssetId?: true
-  brandKit?: true
   referenceAssetIds?: true
+  brandKit?: true
   _all?: true
 }
 
@@ -256,8 +256,8 @@ export type BrandGroupByOutputType = {
   primaryLogoAssetId: string | null
   brandBannerAssetId: string | null
   mascotAssetId: string | null
-  brandKit: runtime.JsonValue
   referenceAssetIds: string[]
+  brandKit: runtime.JsonValue
   _count: BrandCountAggregateOutputType | null
   _min: BrandMinAggregateOutputType | null
   _max: BrandMaxAggregateOutputType | null
@@ -304,8 +304,8 @@ export type BrandWhereInput = {
   primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
-  brandKit?: Prisma.JsonFilter<"Brand">
   referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
+  brandKit?: Prisma.JsonFilter<"Brand">
   assets?: Prisma.AssetListRelationFilter
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   memoryFacts?: Prisma.BrandMemoryFactListRelationFilter
@@ -343,8 +343,8 @@ export type BrandOrderByWithRelationInput = {
   primaryLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
   brandBannerAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
   mascotAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
-  brandKit?: Prisma.SortOrder
   referenceAssetIds?: Prisma.SortOrder
+  brandKit?: Prisma.SortOrder
   assets?: Prisma.AssetOrderByRelationAggregateInput
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
   memoryFacts?: Prisma.BrandMemoryFactOrderByRelationAggregateInput
@@ -385,8 +385,8 @@ export type BrandWhereUniqueInput = Prisma.AtLeast<{
   primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
-  brandKit?: Prisma.JsonFilter<"Brand">
   referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
+  brandKit?: Prisma.JsonFilter<"Brand">
   assets?: Prisma.AssetListRelationFilter
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
   memoryFacts?: Prisma.BrandMemoryFactListRelationFilter
@@ -424,8 +424,8 @@ export type BrandOrderByWithAggregationInput = {
   primaryLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
   brandBannerAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
   mascotAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
-  brandKit?: Prisma.SortOrder
   referenceAssetIds?: Prisma.SortOrder
+  brandKit?: Prisma.SortOrder
   _count?: Prisma.BrandCountOrderByAggregateInput
   _max?: Prisma.BrandMaxOrderByAggregateInput
   _min?: Prisma.BrandMinOrderByAggregateInput
@@ -457,8 +457,8 @@ export type BrandScalarWhereWithAggregatesInput = {
   primaryLogoAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
   brandBannerAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
   mascotAssetId?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
-  brandKit?: Prisma.JsonWithAggregatesFilter<"Brand">
   referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
+  brandKit?: Prisma.JsonWithAggregatesFilter<"Brand">
 }
 
 export type BrandCreateInput = {
@@ -483,8 +483,8 @@ export type BrandCreateInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -522,8 +522,8 @@ export type BrandUncheckedCreateInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -559,8 +559,8 @@ export type BrandUpdateInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -598,8 +598,8 @@ export type BrandUncheckedUpdateInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -636,8 +636,8 @@ export type BrandCreateManyInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type BrandUpdateManyMutationInput = {
@@ -662,8 +662,8 @@ export type BrandUpdateManyMutationInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type BrandUncheckedUpdateManyInput = {
@@ -689,8 +689,8 @@ export type BrandUncheckedUpdateManyInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type BrandListRelationFilter = {
@@ -734,8 +734,8 @@ export type BrandCountOrderByAggregateInput = {
   primaryLogoAssetId?: Prisma.SortOrder
   brandBannerAssetId?: Prisma.SortOrder
   mascotAssetId?: Prisma.SortOrder
-  brandKit?: Prisma.SortOrder
   referenceAssetIds?: Prisma.SortOrder
+  brandKit?: Prisma.SortOrder
 }
 
 export type BrandMaxOrderByAggregateInput = {
@@ -897,20 +897,6 @@ export type BrandUpdateOneRequiredWithoutCampaignsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutCampaignsInput, Prisma.BrandUpdateWithoutCampaignsInput>, Prisma.BrandUncheckedUpdateWithoutCampaignsInput>
 }
 
-export type BrandCreateNestedOneWithoutAudienceSegmentsInput = {
-  create?: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
-  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutAudienceSegmentsInput
-  connect?: Prisma.BrandWhereUniqueInput
-}
-
-export type BrandUpdateOneRequiredWithoutAudienceSegmentsNestedInput = {
-  create?: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
-  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutAudienceSegmentsInput
-  upsert?: Prisma.BrandUpsertWithoutAudienceSegmentsInput
-  connect?: Prisma.BrandWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutAudienceSegmentsInput, Prisma.BrandUpdateWithoutAudienceSegmentsInput>, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
-}
-
 export type BrandCreateNestedOneWithoutGenerationsInput = {
   create?: Prisma.XOR<Prisma.BrandCreateWithoutGenerationsInput, Prisma.BrandUncheckedCreateWithoutGenerationsInput>
   connectOrCreate?: Prisma.BrandCreateOrConnectWithoutGenerationsInput
@@ -1009,20 +995,6 @@ export type BrandUpdateOneRequiredWithoutPromptTemplatesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutPromptTemplatesInput, Prisma.BrandUpdateWithoutPromptTemplatesInput>, Prisma.BrandUncheckedUpdateWithoutPromptTemplatesInput>
 }
 
-export type BrandCreateNestedOneWithoutLeadsInput = {
-  create?: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
-  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutLeadsInput
-  connect?: Prisma.BrandWhereUniqueInput
-}
-
-export type BrandUpdateOneRequiredWithoutLeadsNestedInput = {
-  create?: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
-  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutLeadsInput
-  upsert?: Prisma.BrandUpsertWithoutLeadsInput
-  connect?: Prisma.BrandWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutLeadsInput, Prisma.BrandUpdateWithoutLeadsInput>, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
-}
-
 export type BrandCreateNestedOneWithoutMemoryFactsInput = {
   create?: Prisma.XOR<Prisma.BrandCreateWithoutMemoryFactsInput, Prisma.BrandUncheckedCreateWithoutMemoryFactsInput>
   connectOrCreate?: Prisma.BrandCreateOrConnectWithoutMemoryFactsInput
@@ -1035,6 +1007,34 @@ export type BrandUpdateOneRequiredWithoutMemoryFactsNestedInput = {
   upsert?: Prisma.BrandUpsertWithoutMemoryFactsInput
   connect?: Prisma.BrandWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutMemoryFactsInput, Prisma.BrandUpdateWithoutMemoryFactsInput>, Prisma.BrandUncheckedUpdateWithoutMemoryFactsInput>
+}
+
+export type BrandCreateNestedOneWithoutAudienceSegmentsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutAudienceSegmentsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutAudienceSegmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutAudienceSegmentsInput
+  upsert?: Prisma.BrandUpsertWithoutAudienceSegmentsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutAudienceSegmentsInput, Prisma.BrandUpdateWithoutAudienceSegmentsInput>, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
+}
+
+export type BrandCreateNestedOneWithoutLeadsInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutLeadsInput
+  connect?: Prisma.BrandWhereUniqueInput
+}
+
+export type BrandUpdateOneRequiredWithoutLeadsNestedInput = {
+  create?: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
+  connectOrCreate?: Prisma.BrandCreateOrConnectWithoutLeadsInput
+  upsert?: Prisma.BrandUpsertWithoutLeadsInput
+  connect?: Prisma.BrandWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BrandUpdateToOneWithWhereWithoutLeadsInput, Prisma.BrandUpdateWithoutLeadsInput>, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
 }
 
 export type BrandCreateWithoutWorkspaceInput = {
@@ -1059,8 +1059,8 @@ export type BrandCreateWithoutWorkspaceInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
@@ -1096,8 +1096,8 @@ export type BrandUncheckedCreateWithoutWorkspaceInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -1163,8 +1163,8 @@ export type BrandScalarWhereInput = {
   primaryLogoAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   brandBannerAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
   mascotAssetId?: Prisma.StringNullableFilter<"Brand"> | string | null
-  brandKit?: Prisma.JsonFilter<"Brand">
   referenceAssetIds?: Prisma.StringNullableListFilter<"Brand">
+  brandKit?: Prisma.JsonFilter<"Brand">
 }
 
 export type BrandCreateWithoutCampaignsInput = {
@@ -1189,8 +1189,8 @@ export type BrandCreateWithoutCampaignsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -1227,8 +1227,8 @@ export type BrandUncheckedCreateWithoutCampaignsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
@@ -1279,8 +1279,8 @@ export type BrandUpdateWithoutCampaignsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -1317,8 +1317,8 @@ export type BrandUncheckedUpdateWithoutCampaignsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
@@ -1328,170 +1328,6 @@ export type BrandUncheckedUpdateWithoutCampaignsInput = {
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandNestedInput
-  leads?: Prisma.LeadUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type BrandCreateWithoutAudienceSegmentsInput = {
-  id?: string
-  name: string
-  website?: string | null
-  industry?: string | null
-  country?: string
-  primaryLanguage?: string
-  targetAudience: string
-  brandVoice: string
-  visualStyle: string
-  contentGoals: string
-  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
-  keywords?: Prisma.BrandCreatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
-  status?: $Enums.BrandStatus
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  primaryLogoAssetId?: string | null
-  brandBannerAssetId?: string | null
-  mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
-  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
-  copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
-  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
-  promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
-  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
-  leads?: Prisma.LeadCreateNestedManyWithoutBrandInput
-}
-
-export type BrandUncheckedCreateWithoutAudienceSegmentsInput = {
-  id?: string
-  workspaceId: string
-  name: string
-  website?: string | null
-  industry?: string | null
-  country?: string
-  primaryLanguage?: string
-  targetAudience: string
-  brandVoice: string
-  visualStyle: string
-  contentGoals: string
-  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
-  keywords?: Prisma.BrandCreatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
-  status?: $Enums.BrandStatus
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  primaryLogoAssetId?: string | null
-  brandBannerAssetId?: string | null
-  mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
-  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
-  copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
-  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
-  promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
-  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
-  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type BrandCreateOrConnectWithoutAudienceSegmentsInput = {
-  where: Prisma.BrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
-}
-
-export type BrandUpsertWithoutAudienceSegmentsInput = {
-  update: Prisma.XOR<Prisma.BrandUpdateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
-  create: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
-  where?: Prisma.BrandWhereInput
-}
-
-export type BrandUpdateToOneWithWhereWithoutAudienceSegmentsInput = {
-  where?: Prisma.BrandWhereInput
-  data: Prisma.XOR<Prisma.BrandUpdateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
-}
-
-export type BrandUpdateWithoutAudienceSegmentsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.StringFieldUpdateOperationsInput | string
-  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
-  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
-  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
-  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
-  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
-  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
-  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
-  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
-  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
-  copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
-  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
-  promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
-  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
-  leads?: Prisma.LeadUpdateManyWithoutBrandNestedInput
-}
-
-export type BrandUncheckedUpdateWithoutAudienceSegmentsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.StringFieldUpdateOperationsInput | string
-  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
-  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
-  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
-  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
-  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
-  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
-  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
-  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
-  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
-  copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
-  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
-  promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
-  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   leads?: Prisma.LeadUncheckedUpdateManyWithoutBrandNestedInput
 }
 
@@ -1517,8 +1353,8 @@ export type BrandCreateWithoutGenerationsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -1555,8 +1391,8 @@ export type BrandUncheckedCreateWithoutGenerationsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -1607,8 +1443,8 @@ export type BrandUpdateWithoutGenerationsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -1645,8 +1481,8 @@ export type BrandUncheckedUpdateWithoutGenerationsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -1681,8 +1517,8 @@ export type BrandCreateWithoutAssetsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
@@ -1719,8 +1555,8 @@ export type BrandUncheckedCreateWithoutAssetsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
@@ -1771,8 +1607,8 @@ export type BrandUpdateWithoutAssetsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
@@ -1809,8 +1645,8 @@ export type BrandUncheckedUpdateWithoutAssetsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
@@ -1845,8 +1681,8 @@ export type BrandCreateWithoutKnowledgeDocumentsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -1883,8 +1719,8 @@ export type BrandUncheckedCreateWithoutKnowledgeDocumentsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -1935,8 +1771,8 @@ export type BrandUpdateWithoutKnowledgeDocumentsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -1973,8 +1809,8 @@ export type BrandUncheckedUpdateWithoutKnowledgeDocumentsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -2009,8 +1845,8 @@ export type BrandCreateWithoutSocialChannelsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -2047,8 +1883,8 @@ export type BrandUncheckedCreateWithoutSocialChannelsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -2099,8 +1935,8 @@ export type BrandUpdateWithoutSocialChannelsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -2137,8 +1973,8 @@ export type BrandUncheckedUpdateWithoutSocialChannelsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -2173,8 +2009,8 @@ export type BrandCreateWithoutScheduledPostsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -2211,8 +2047,8 @@ export type BrandUncheckedCreateWithoutScheduledPostsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -2263,8 +2099,8 @@ export type BrandUpdateWithoutScheduledPostsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -2301,8 +2137,8 @@ export type BrandUncheckedUpdateWithoutScheduledPostsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -2337,8 +2173,8 @@ export type BrandCreateWithoutCopilotConversationsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -2375,8 +2211,8 @@ export type BrandUncheckedCreateWithoutCopilotConversationsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -2427,8 +2263,8 @@ export type BrandUpdateWithoutCopilotConversationsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -2465,8 +2301,8 @@ export type BrandUncheckedUpdateWithoutCopilotConversationsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -2501,8 +2337,8 @@ export type BrandCreateWithoutPromptTemplatesInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
@@ -2539,8 +2375,8 @@ export type BrandUncheckedCreateWithoutPromptTemplatesInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
@@ -2591,8 +2427,8 @@ export type BrandUpdateWithoutPromptTemplatesInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
@@ -2629,8 +2465,8 @@ export type BrandUncheckedUpdateWithoutPromptTemplatesInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -2641,170 +2477,6 @@ export type BrandUncheckedUpdateWithoutPromptTemplatesInput = {
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandNestedInput
   leads?: Prisma.LeadUncheckedUpdateManyWithoutBrandNestedInput
-}
-
-export type BrandCreateWithoutLeadsInput = {
-  id?: string
-  name: string
-  website?: string | null
-  industry?: string | null
-  country?: string
-  primaryLanguage?: string
-  targetAudience: string
-  brandVoice: string
-  visualStyle: string
-  contentGoals: string
-  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
-  keywords?: Prisma.BrandCreatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
-  status?: $Enums.BrandStatus
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  primaryLogoAssetId?: string | null
-  brandBannerAssetId?: string | null
-  mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
-  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
-  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
-  copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
-  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
-  promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
-  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
-  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutBrandInput
-}
-
-export type BrandUncheckedCreateWithoutLeadsInput = {
-  id?: string
-  workspaceId: string
-  name: string
-  website?: string | null
-  industry?: string | null
-  country?: string
-  primaryLanguage?: string
-  targetAudience: string
-  brandVoice: string
-  visualStyle: string
-  contentGoals: string
-  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
-  keywords?: Prisma.BrandCreatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
-  status?: $Enums.BrandStatus
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  primaryLogoAssetId?: string | null
-  brandBannerAssetId?: string | null
-  mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
-  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
-  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
-  copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
-  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
-  promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
-  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
-  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutBrandInput
-}
-
-export type BrandCreateOrConnectWithoutLeadsInput = {
-  where: Prisma.BrandWhereUniqueInput
-  create: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
-}
-
-export type BrandUpsertWithoutLeadsInput = {
-  update: Prisma.XOR<Prisma.BrandUpdateWithoutLeadsInput, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
-  create: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
-  where?: Prisma.BrandWhereInput
-}
-
-export type BrandUpdateToOneWithWhereWithoutLeadsInput = {
-  where?: Prisma.BrandWhereInput
-  data: Prisma.XOR<Prisma.BrandUpdateWithoutLeadsInput, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
-}
-
-export type BrandUpdateWithoutLeadsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.StringFieldUpdateOperationsInput | string
-  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
-  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
-  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
-  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
-  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
-  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
-  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
-  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
-  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
-  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
-  copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
-  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
-  promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
-  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
-  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutBrandNestedInput
-}
-
-export type BrandUncheckedUpdateWithoutLeadsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  country?: Prisma.StringFieldUpdateOperationsInput | string
-  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
-  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
-  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
-  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
-  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
-  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
-  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
-  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
-  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
-  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
-  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
-  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
-  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
-  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
-  copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
-  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
-  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
-  promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
-  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
-  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateWithoutMemoryFactsInput = {
@@ -2829,8 +2501,8 @@ export type BrandCreateWithoutMemoryFactsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
   campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
@@ -2867,8 +2539,8 @@ export type BrandUncheckedCreateWithoutMemoryFactsInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
   campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
   copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
@@ -2919,8 +2591,8 @@ export type BrandUpdateWithoutMemoryFactsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
@@ -2957,8 +2629,8 @@ export type BrandUncheckedUpdateWithoutMemoryFactsInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
   copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
@@ -2969,6 +2641,334 @@ export type BrandUncheckedUpdateWithoutMemoryFactsInput = {
   socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
   audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandNestedInput
   leads?: Prisma.LeadUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutAudienceSegmentsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  leads?: Prisma.LeadCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutAudienceSegmentsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  leads?: Prisma.LeadUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutAudienceSegmentsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
+}
+
+export type BrandUpsertWithoutAudienceSegmentsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedCreateWithoutAudienceSegmentsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutAudienceSegmentsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutAudienceSegmentsInput, Prisma.BrandUncheckedUpdateWithoutAudienceSegmentsInput>
+}
+
+export type BrandUpdateWithoutAudienceSegmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  leads?: Prisma.LeadUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutAudienceSegmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  leads?: Prisma.LeadUncheckedUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandCreateWithoutLeadsInput = {
+  id?: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetCreateNestedManyWithoutBrandInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutBrandsInput
+  memoryFacts?: Prisma.BrandMemoryFactCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationCreateNestedManyWithoutBrandInput
+  generations?: Prisma.GenerationHistoryCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelCreateNestedManyWithoutBrandInput
+  audienceSegments?: Prisma.AudienceSegmentCreateNestedManyWithoutBrandInput
+}
+
+export type BrandUncheckedCreateWithoutLeadsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  website?: string | null
+  industry?: string | null
+  country?: string
+  primaryLanguage?: string
+  targetAudience: string
+  brandVoice: string
+  visualStyle: string
+  contentGoals: string
+  callsToAction?: Prisma.BrandCreatecallsToActionInput | string[]
+  keywords?: Prisma.BrandCreatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandCreateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandCreatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandCreateexamplePostsInput | string[]
+  status?: $Enums.BrandStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  primaryLogoAssetId?: string | null
+  brandBannerAssetId?: string | null
+  mascotAssetId?: string | null
+  referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutBrandInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedCreateNestedManyWithoutBrandInput
+  campaigns?: Prisma.CampaignUncheckedCreateNestedManyWithoutBrandInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedCreateNestedManyWithoutBrandInput
+  generations?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutBrandInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedCreateNestedManyWithoutBrandInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedCreateNestedManyWithoutBrandInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutBrandInput
+  socialChannels?: Prisma.SocialChannelUncheckedCreateNestedManyWithoutBrandInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedCreateNestedManyWithoutBrandInput
+}
+
+export type BrandCreateOrConnectWithoutLeadsInput = {
+  where: Prisma.BrandWhereUniqueInput
+  create: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
+}
+
+export type BrandUpsertWithoutLeadsInput = {
+  update: Prisma.XOR<Prisma.BrandUpdateWithoutLeadsInput, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
+  create: Prisma.XOR<Prisma.BrandCreateWithoutLeadsInput, Prisma.BrandUncheckedCreateWithoutLeadsInput>
+  where?: Prisma.BrandWhereInput
+}
+
+export type BrandUpdateToOneWithWhereWithoutLeadsInput = {
+  where?: Prisma.BrandWhereInput
+  data: Prisma.XOR<Prisma.BrandUpdateWithoutLeadsInput, Prisma.BrandUncheckedUpdateWithoutLeadsInput>
+}
+
+export type BrandUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutBrandsNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUpdateManyWithoutBrandNestedInput
+  generations?: Prisma.GenerationHistoryUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUpdateManyWithoutBrandNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUpdateManyWithoutBrandNestedInput
+}
+
+export type BrandUncheckedUpdateWithoutLeadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.StringFieldUpdateOperationsInput | string
+  primaryLanguage?: Prisma.StringFieldUpdateOperationsInput | string
+  targetAudience?: Prisma.StringFieldUpdateOperationsInput | string
+  brandVoice?: Prisma.StringFieldUpdateOperationsInput | string
+  visualStyle?: Prisma.StringFieldUpdateOperationsInput | string
+  contentGoals?: Prisma.StringFieldUpdateOperationsInput | string
+  callsToAction?: Prisma.BrandUpdatecallsToActionInput | string[]
+  keywords?: Prisma.BrandUpdatekeywordsInput | string[]
+  forbiddenWords?: Prisma.BrandUpdateforbiddenWordsInput | string[]
+  brandRules?: Prisma.BrandUpdatebrandRulesInput | string[]
+  examplePosts?: Prisma.BrandUpdateexamplePostsInput | string[]
+  status?: Prisma.EnumBrandStatusFieldUpdateOperationsInput | $Enums.BrandStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
+  memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
+  campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
+  copilotConversations?: Prisma.CopilotConversationUncheckedUpdateManyWithoutBrandNestedInput
+  generations?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutBrandNestedInput
+  knowledgeDocuments?: Prisma.KnowledgeDocumentUncheckedUpdateManyWithoutBrandNestedInput
+  promptTemplates?: Prisma.PromptTemplateUncheckedUpdateManyWithoutBrandNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutBrandNestedInput
+  socialChannels?: Prisma.SocialChannelUncheckedUpdateManyWithoutBrandNestedInput
+  audienceSegments?: Prisma.AudienceSegmentUncheckedUpdateManyWithoutBrandNestedInput
 }
 
 export type BrandCreateManyWorkspaceInput = {
@@ -2993,8 +2993,8 @@ export type BrandCreateManyWorkspaceInput = {
   primaryLogoAssetId?: string | null
   brandBannerAssetId?: string | null
   mascotAssetId?: string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandCreatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type BrandUpdateWithoutWorkspaceInput = {
@@ -3019,8 +3019,8 @@ export type BrandUpdateWithoutWorkspaceInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUpdateManyWithoutBrandNestedInput
@@ -3056,8 +3056,8 @@ export type BrandUncheckedUpdateWithoutWorkspaceInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   assets?: Prisma.AssetUncheckedUpdateManyWithoutBrandNestedInput
   memoryFacts?: Prisma.BrandMemoryFactUncheckedUpdateManyWithoutBrandNestedInput
   campaigns?: Prisma.CampaignUncheckedUpdateManyWithoutBrandNestedInput
@@ -3093,8 +3093,8 @@ export type BrandUncheckedUpdateManyWithoutWorkspaceInput = {
   primaryLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brandBannerAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mascotAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   referenceAssetIds?: Prisma.BrandUpdatereferenceAssetIdsInput | string[]
+  brandKit?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 
@@ -3241,8 +3241,8 @@ export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   primaryLogoAssetId?: boolean
   brandBannerAssetId?: boolean
   mascotAssetId?: boolean
-  brandKit?: boolean
   referenceAssetIds?: boolean
+  brandKit?: boolean
   assets?: boolean | Prisma.Brand$assetsArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   memoryFacts?: boolean | Prisma.Brand$memoryFactsArgs<ExtArgs>
@@ -3281,8 +3281,8 @@ export type BrandSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   primaryLogoAssetId?: boolean
   brandBannerAssetId?: boolean
   mascotAssetId?: boolean
-  brandKit?: boolean
   referenceAssetIds?: boolean
+  brandKit?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["brand"]>
 
@@ -3309,8 +3309,8 @@ export type BrandSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   primaryLogoAssetId?: boolean
   brandBannerAssetId?: boolean
   mascotAssetId?: boolean
-  brandKit?: boolean
   referenceAssetIds?: boolean
+  brandKit?: boolean
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["brand"]>
 
@@ -3337,11 +3337,11 @@ export type BrandSelectScalar = {
   primaryLogoAssetId?: boolean
   brandBannerAssetId?: boolean
   mascotAssetId?: boolean
-  brandKit?: boolean
   referenceAssetIds?: boolean
+  brandKit?: boolean
 }
 
-export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "website" | "industry" | "country" | "primaryLanguage" | "targetAudience" | "brandVoice" | "visualStyle" | "contentGoals" | "callsToAction" | "keywords" | "forbiddenWords" | "brandRules" | "examplePosts" | "status" | "createdAt" | "updatedAt" | "primaryLogoAssetId" | "brandBannerAssetId" | "mascotAssetId" | "brandKit" | "referenceAssetIds", ExtArgs["result"]["brand"]>
+export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "name" | "website" | "industry" | "country" | "primaryLanguage" | "targetAudience" | "brandVoice" | "visualStyle" | "contentGoals" | "callsToAction" | "keywords" | "forbiddenWords" | "brandRules" | "examplePosts" | "status" | "createdAt" | "updatedAt" | "primaryLogoAssetId" | "brandBannerAssetId" | "mascotAssetId" | "referenceAssetIds" | "brandKit", ExtArgs["result"]["brand"]>
 export type BrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   assets?: boolean | Prisma.Brand$assetsArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
@@ -3403,8 +3403,8 @@ export type $BrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     primaryLogoAssetId: string | null
     brandBannerAssetId: string | null
     mascotAssetId: string | null
-    brandKit: runtime.JsonValue
     referenceAssetIds: string[]
+    brandKit: runtime.JsonValue
   }, ExtArgs["result"]["brand"]>
   composites: {}
 }
@@ -3862,8 +3862,8 @@ export interface BrandFieldRefs {
   readonly primaryLogoAssetId: Prisma.FieldRef<"Brand", 'String'>
   readonly brandBannerAssetId: Prisma.FieldRef<"Brand", 'String'>
   readonly mascotAssetId: Prisma.FieldRef<"Brand", 'String'>
-  readonly brandKit: Prisma.FieldRef<"Brand", 'Json'>
   readonly referenceAssetIds: Prisma.FieldRef<"Brand", 'String[]'>
+  readonly brandKit: Prisma.FieldRef<"Brand", 'Json'>
 }
     
 
