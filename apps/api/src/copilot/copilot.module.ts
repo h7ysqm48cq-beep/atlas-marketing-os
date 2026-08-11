@@ -13,6 +13,7 @@ import { PromptContextBuilder } from './prompt-context.builder';
 import { MarketingPlannerService } from './marketing-planner.service';
 import { CopilotJobController } from './jobs/copilot-job.controller';
 import { CopilotJobService } from './jobs/copilot-job.service';
+import { CopilotJobProcessor } from './jobs/copilot-job.processor';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CopilotJobService } from './jobs/copilot-job.service';
 
     PromptContextBuilder,
   CopilotJobService,
+CopilotJobProcessor,
   ],
 })
 export class CopilotModule {}
