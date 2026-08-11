@@ -68,3 +68,6 @@ apps/browser-worker/.browser-profiles/
 *.bak*
 
 apps/api/src/generated/prisma/
+
+.chunked-embedding-v2-backup-*/
+apps/api/src/generated/prisma/
