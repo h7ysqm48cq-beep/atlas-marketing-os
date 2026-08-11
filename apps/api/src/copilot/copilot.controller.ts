@@ -119,4 +119,26 @@ export class CopilotController {
   deleteConversation(@Param('id') id: string) {
     return this.conversations.delete(id);
   }
+
+  @Post('conversations/:id/image')
+  async saveGeneratedImage(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      imageUrl: string;
+      assetId?: string;
+    },
+  ) {
+    return this.conversations.appendAssistantMessage(
+      id,
+      'Generated image',
+      {
+        type: 'generated-image',
+        imageUrl: body.imageUrl,
+        assetId: body.assetId,
+      },
+    );
+  }
+
+
 }
