@@ -5,7 +5,7 @@ import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import { AiTopicSuggestions } from "./AiTopicSuggestions";
 import styles from "./AiStudio.module.css";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 const platformOptions = [
   "Facebook",
   "Telegram",
@@ -13,17 +13,22 @@ const platformOptions = [
   "Image Prompt",
 ] as const;
 
-type StudioPlatform =
-  (typeof platformOptions)[number];
+type StudioPlatform = (typeof platformOptions)[number];
+
+type BrandContext = {
+  name?: string;
+  brandVoice?: string;
+  visualStyle?: string;
+  brandRules?: string[];
+};
 
 export function AiStudio() {
   const [topic, setTopic] = useState("");
   const [style, setStyle] = useState("Nostalgia");
   const [language, setLanguage] = useState("Chinese");
-  const [platforms, setPlatforms] =
-    useState<StudioPlatform[]>([
-      ...platformOptions,
-    ]);
+  const [platforms, setPlatforms] = useState<StudioPlatform[]>([
+    ...platformOptions,
+  ]);
   const [campaignId, setCampaignId] = useState("");
   const [ideaId, setIdeaId] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -33,6 +38,33 @@ export function AiStudio() {
   const [message, setMessage] = useState(
     "Enter a topic and click Generate content.",
   );
+
+  const [brandContext, setBrandContext] = useState<BrandContext | null>(null);
+
+  useEffect(() => {
+    async function loadBrandContext() {
+      try {
+        const response = await fetch(`${API_URL}/brands/active`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        setBrandContext({
+          name: data.name,
+          brandVoice: data.brandVoice,
+          visualStyle: data.visualStyle,
+          brandRules: data.brandRules,
+        });
+      } catch {
+        // optional
+      }
+    }
+
+    void loadBrandContext();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,9 +91,7 @@ export function AiStudio() {
 
       if (!historyParam) {
         if (campaignParam || ideaParam) {
-          setMessage(
-            "Campaign context loaded. Ready to generate.",
-          );
+          setMessage("Campaign context loaded. Ready to generate.");
         }
 
         return;
@@ -70,12 +100,9 @@ export function AiStudio() {
       setMessage("Restoring saved AI workspace...");
 
       try {
-        const response = await fetch(
-          `${API_URL}/history/${historyParam}`,
-          {
-            cache: "no-store",
-          },
-        );
+        const response = await fetch(`${API_URL}/history/${historyParam}`, {
+          cache: "no-store",
+        });
 
         const record = (await response.json()) as {
           id: string;
@@ -99,9 +126,7 @@ export function AiStudio() {
         };
 
         if (!response.ok || !record.id) {
-          throw new Error(
-            record.message || "Unable to restore workspace.",
-          );
+          throw new Error(record.message || "Unable to restore workspace.");
         }
 
         if (cancelled) return;
@@ -169,22 +194,16 @@ export function AiStudio() {
     };
   }, []);
 
-  function togglePlatform(
-    platform: StudioPlatform,
-  ) {
+  function togglePlatform(platform: StudioPlatform) {
     setPlatforms((current) => {
       if (current.includes(platform)) {
         if (current.length === 1) {
-          setMessage(
-            "Select at least one platform.",
-          );
+          setMessage("Select at least one platform.");
 
           return current;
         }
 
-        return current.filter(
-          (item) => item !== platform,
-        );
+        return current.filter((item) => item !== platform);
       }
 
       return [...current, platform];
@@ -198,9 +217,7 @@ export function AiStudio() {
     }
 
     if (!platforms.length) {
-      setMessage(
-        "Select at least one platform.",
-      );
+      setMessage("Select at least one platform.");
       return;
     }
 
@@ -226,8 +243,7 @@ export function AiStudio() {
       setMessage("Building platform-specific outputs...");
 
       const data = (await response.json()) as
-        | WorkspaceResult
-        | { message?: string };
+        WorkspaceResult | { message?: string };
 
       if (!response.ok || !("facebook" in data)) {
         throw new Error(
@@ -257,6 +273,36 @@ export function AiStudio() {
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>AI Studio</p>
+
+          <div className={styles.contextCard}>
+            <div className={styles.contextHeading}>
+              <span>Brand Context</span>
+              <strong>{brandContext?.name || "Global Brand Kit Active"}</strong>
+              <small>
+                Voice:{" "}
+                {brandContext?.brandVoice ||
+                  "Brand voice loaded from Brand Brain."}
+                <br />
+                Visual:{" "}
+                {brandContext?.visualStyle ||
+                  "Visual style loaded from Brand Brain."}
+              </small>
+            </div>
+
+            <div className={styles.contextActions}>
+              <span>
+                {brandContext
+                  ? "Brand Brain Connected"
+                  : "Loading Brand Brain..."}
+              </span>
+              <span>
+                {brandContext
+                  ? "Image Branding Enabled"
+                  : "Waiting for Brand Context"}
+              </span>
+            </div>
+          </div>
+
           <h1>Build a complete marketing workspace.</h1>
           <p>
             Generate, compare and manage every platform output without leaving
@@ -278,9 +324,7 @@ export function AiStudio() {
               </a>
 
               <a
-                href={`/campaigns/${encodeURIComponent(
-                  campaignId,
-                )}?tab=assets`}
+                href={`/campaigns/${encodeURIComponent(campaignId)}?tab=assets`}
               >
                 Campaign assets
               </a>
@@ -322,33 +366,24 @@ export function AiStudio() {
           <div className={styles.platforms}>
             <span>Platforms</span>
             <div>
-              {platformOptions.map(
-                (platform) => {
-                  const selected =
-                    platforms.includes(platform);
+              {platformOptions.map((platform) => {
+                const selected = platforms.includes(platform);
 
-                  return (
-                    <button
-                      type="button"
-                      key={platform}
-                      aria-pressed={selected}
-                      className={
-                        selected
-                          ? styles.activePlatform
-                          : styles.inactivePlatform
-                      }
-                      onClick={() =>
-                        togglePlatform(platform)
-                      }
-                    >
-                      <span>
-                        {selected ? "✓" : "+"}
-                      </span>
-                      {platform}
-                    </button>
-                  );
-                },
-              )}
+                return (
+                  <button
+                    type="button"
+                    key={platform}
+                    aria-pressed={selected}
+                    className={
+                      selected ? styles.activePlatform : styles.inactivePlatform
+                    }
+                    onClick={() => togglePlatform(platform)}
+                  >
+                    <span>{selected ? "✓" : "+"}</span>
+                    {platform}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -383,7 +418,9 @@ export function AiStudio() {
             <div className={styles.linkedContext}>
               <span>Linked workflow</span>
               <strong>{campaignName || campaignId}</strong>
-              <small>{ideaTitle || ideaId || "Campaign-level generation"}</small>
+              <small>
+                {ideaTitle || ideaId || "Campaign-level generation"}
+              </small>
 
               <div className={styles.linkedMeta}>
                 <span>
@@ -399,9 +436,7 @@ export function AiStudio() {
                 <span>
                   History
                   <strong>
-                    {result?.historyId
-                      ? "Saved"
-                      : "Created after generation"}
+                    {result?.historyId ? "Saved" : "Created after generation"}
                   </strong>
                 </span>
               </div>
@@ -417,7 +452,6 @@ export function AiStudio() {
           </button>
 
           <p className={styles.message}>{message}</p>
-
         </aside>
 
         <AiWorkspace

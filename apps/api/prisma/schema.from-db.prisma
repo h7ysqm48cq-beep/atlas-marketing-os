@@ -1,0 +1,1056 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BackgroundJob {
+  id          String              @id @default(cuid())
+  type        BackgroundJobType
+  status      BackgroundJobStatus @default(QUEUED)
+  payload     Json
+  result      Json?
+  error       String?
+  attempts    Int                 @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([type, status, createdAt])
+  @@index([createdAt])
+}
+
+model Workspace {
+  id                String             @id @default(cuid())
+  name              String
+  slug              String             @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  automationSetting AutomationSetting?
+  brands            Brand[]
+  socialChannels    SocialChannel[]
+  SportsNewsRun     SportsNewsRun[]
+  sportsNewsSetting SportsNewsSetting?
+}
+
+model Brand {
+  id                   String                @id @default(cuid())
+  workspaceId          String
+  name                 String
+  website              String?
+  industry             String?
+  country              String                @default("Malaysia")
+  primaryLanguage      String                @default("Chinese")
+  targetAudience       String
+  brandVoice           String
+  visualStyle          String
+  contentGoals         String
+  callsToAction        String[]
+  keywords             String[]
+  forbiddenWords       String[]
+  brandRules           String[]
+  examplePosts         String[]
+  status               BrandStatus           @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  primaryLogoAssetId   String?
+  brandBannerAssetId   String?
+  mascotAssetId        String?
+  referenceAssetIds    String[]              @default([])
+  assets               Asset[]
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  memoryFacts          BrandMemoryFact[]
+  campaigns            Campaign[]
+  copilotConversations CopilotConversation[]
+  generations          GenerationHistory[]
+  knowledgeDocuments   KnowledgeDocument[]
+  promptTemplates      PromptTemplate[]
+  scheduledPosts       ScheduledPost[]
+  socialChannels       SocialChannel[]
+
+  @@index([workspaceId])
+}
+
+model Campaign {
+  id                     String                @id @default(cuid())
+  brandId                String
+  name                   String
+  description            String?
+  objective              String?
+  status                 CampaignStatus        @default(DRAFT)
+  startDate              DateTime?
+  endDate                DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  brandRenderingSettings Json                  @default("{}")
+  assets                 Asset[]
+  brand                  Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  ideas                  CampaignIdea[]
+  copilotConversations   CopilotConversation[]
+  generations            GenerationHistory[]
+  scheduledPosts         ScheduledPost[]
+
+  @@index([brandId])
+  @@index([status])
+}
+
+model CampaignIdea {
+  id          String              @id @default(cuid())
+  campaignId  String
+  title       String
+  angle       String
+  hook        String
+  platform    String
+  style       String
+  language    String
+  status      CampaignIdeaStatus  @default(PLANNED)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  campaign    Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  generations GenerationHistory[]
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([sortOrder])
+}
+
+model GenerationHistory {
+  id                            String                       @id @default(cuid())
+  brandId                       String
+  topic                         String
+  platforms                     String[]
+  style                         String
+  language                      String
+  facebook                      String
+  telegram                      String
+  reels                         String
+  imagePrompt                   String
+  analysis                      Json
+  isFavorite                    Boolean                      @default(false)
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  campaignId                    String?
+  ideaId                        String?
+  approvedAt                    DateTime?
+  publishedAt                   DateTime?
+  reviewNote                    String?
+  reviewedAt                    DateTime?
+  reviewedBy                    String?
+  status                        ContentStatus                @default(DRAFT)
+  socialChannelRuntimeProfileId String?
+  usageLogs                     AiUsage[]
+  assets                        Asset[]
+  versions                      ContentVersion[]
+  brand                         Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign                      Campaign?                    @relation(fields: [campaignId], references: [id])
+  idea                          CampaignIdea?                @relation(fields: [ideaId], references: [id])
+  runtimeProfile                SocialChannelRuntimeProfile? @relation(fields: [socialChannelRuntimeProfileId], references: [id])
+  scheduledPosts                ScheduledPost[]
+
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([ideaId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model ContentVersion {
+  id            String            @id @default(cuid())
+  historyId     String
+  platform      String
+  content       String
+  sourceAction  String
+  versionNumber Int
+  createdAt     DateTime          @default(now())
+  history       GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+
+  @@unique([historyId, platform, versionNumber])
+  @@index([historyId])
+  @@index([platform])
+  @@index([createdAt])
+}
+
+model Asset {
+  id                   String             @id @default(cuid())
+  brandId              String
+  campaignId           String?
+  historyId            String?
+  name                 String
+  type                 AssetType          @default(IMAGE)
+  provider             String?
+  platform             String?
+  prompt               String?
+  url                  String
+  thumbnailUrl         String?
+  mimeType             String?
+  width                Int?
+  height               Int?
+  isFavorite           Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  collection           String?
+  downloadCount        Int                @default(0)
+  fileSize             Int?
+  generationDurationMs Int?
+  generationModel      String?
+  generationQuality    String?
+  generationSize       String?
+  lastUsedAt           DateTime?
+  negativePrompt       String?
+  revisedPrompt        String?
+  storagePath          String?
+  storageProvider      String?
+  tags                 String[]           @default([])
+  usedCount            Int                @default(0)
+  remark               String?
+  aiEnabled            Boolean            @default(true)
+  brand                Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign             Campaign?          @relation(fields: [campaignId], references: [id])
+  history              GenerationHistory? @relation(fields: [historyId], references: [id])
+
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([historyId])
+  @@index([type])
+  @@index([collection])
+  @@index([isFavorite])
+  @@index([createdAt])
+}
+
+model KnowledgeDocument {
+  id              String               @id @default(cuid())
+  brandId         String
+  title           String
+  category        String
+  content         String
+  tags            String[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  lastUsedAt      DateTime?
+  usageCount      Int                  @default(0)
+  sourceFileName  String?
+  sourceFileSize  Int?
+  sourceMimeType  String?
+  sourceUrl       String?
+  storagePath     String?
+  storageProvider String?
+  brand           Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  embeddings      KnowledgeEmbedding[]
+
+  @@index([brandId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model KnowledgeEmbedding {
+  id          String            @id @default(cuid())
+  documentId  String
+  brandId     String
+  vector      Json
+  model       String
+  dimensions  Int
+  contentHash String
+  embeddedAt  DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  chunkIndex  Int
+  chunkText   String
+  endOffset   Int?
+  startOffset Int?
+  document    KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@index([brandId])
+  @@index([embeddedAt])
+}
+
+model AiUsage {
+  id                String             @id @default(cuid())
+  historyId         String?
+  model             String
+  promptTokens      Int
+  completionTokens  Int
+  totalTokens       Int
+  estimatedCostUsd  Float
+  estimatedCostMyr  Float
+  durationMs        Int
+  createdAt         DateTime           @default(now())
+  cachedInputTokens Int                @default(0)
+  conversationId    String?
+  feature           AiUsageFeature     @default(OTHER)
+  reasoningTokens   Int                @default(0)
+  history           GenerationHistory? @relation(fields: [historyId], references: [id])
+
+  @@index([historyId])
+  @@index([conversationId])
+  @@index([feature])
+  @@index([model])
+  @@index([createdAt])
+}
+
+model SocialChannel {
+  id                          String                       @id @default(cuid())
+  workspaceId                 String
+  brandId                     String
+  platform                    SocialPlatform
+  name                        String
+  externalId                  String?
+  username                    String?
+  status                      SocialChannelStatus          @default(DISCONNECTED)
+  accessTokenEncrypted        String?
+  tokenExpiresAt              DateTime?
+  lastConnectedAt             DateTime?
+  lastError                   String?
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  browserAccountLinks         BrowserAccountChannel[]
+  browserActionHistory        BrowserActionHistory[]
+  scheduledPosts              ScheduledPost[]
+  brand                       Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  workspace                   Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  socialChannelRuntimeProfile SocialChannelRuntimeProfile?
+  sportsNewsFacebookSettings  SportsNewsSetting[]          @relation("SportsNewsFacebookChannel")
+  sportsNewsTelegramSettings  SportsNewsSetting[]          @relation("SportsNewsTelegramChannel")
+
+  @@unique([brandId, platform, externalId])
+  @@index([workspaceId])
+  @@index([brandId])
+  @@index([platform])
+  @@index([status])
+}
+
+model SocialChannelRuntimeProfile {
+  id                     String              @id @default(cuid())
+  channelId              String              @unique
+  browserProfileKey      String              @unique
+  browserProfileName     String
+  locale                 String              @default("en-MY")
+  timezone               String              @default("Asia/Kuala_Lumpur")
+  proxyType              SocialProxyType     @default(DIRECT)
+  proxyHost              String?
+  proxyPort              Int?
+  proxyUsernameEncrypted String?
+  proxyPasswordEncrypted String?
+  proxyCountry           String?
+  lastKnownIp            String?
+  lastConnectionStatus   String?
+  lastConnectionError    String?
+  lastConnectionTestAt   DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  browserEngine          String              @default("CHROMIUM")
+  deviceScaleFactor      Float               @default(1)
+  identityLocked         Boolean             @default(true)
+  operatingSystem        String              @default("MACOS")
+  screenHeight           Int                 @default(768)
+  screenWidth            Int                 @default(1365)
+  userAgent              String?
+  generationHistories    GenerationHistory[]
+  channel                SocialChannel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([proxyType])
+  @@index([proxyCountry])
+}
+
+model BrowserAccount {
+  id                        String                   @id @default(cuid())
+  workspaceId               String?
+  brandId                   String?
+  platform                  SocialPlatform           @default(FACEBOOK)
+  displayName               String
+  browserProfileKey         String                   @unique
+  browserProfileName        String
+  locale                    String                   @default("en-MY")
+  timezone                  String                   @default("Asia/Kuala_Lumpur")
+  proxyType                 SocialProxyType          @default(DIRECT)
+  proxyHost                 String?
+  proxyPort                 Int?
+  proxyUsernameEncrypted    String?
+  proxyPasswordEncrypted    String?
+  proxyCountry              String?
+  facebookUserId            String?
+  facebookUserName          String?
+  loginStatus               String                   @default("PENDING")
+  cookieStatus              String                   @default("NOT_CREATED")
+  lastKnownIp               String?
+  lastLoginAt               DateTime?
+  lastVerifiedAt            DateTime?
+  lastHeartbeatAt           DateTime?
+  lastLoginError            String?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+  browserEngine             String                   @default("chromium")
+  colorScheme               String                   @default("light")
+  deviceMemory              Int?
+  deviceScaleFactor         Float                    @default(2)
+  expectedIp                String?
+  facebookEmailEncrypted    String?
+  facebookPasswordEncrypted String?
+  fingerprintStatus         String                   @default("LOCKED")
+  hardwareConcurrency       Int?
+  identityError             String?
+  identityLocked            Boolean                  @default(true)
+  identityVersion           Int                      @default(1)
+  ipStatus                  String                   @default("NOT_CHECKED")
+  lastIpCheckedAt           DateTime?
+  operatingSystem           String                   @default("macOS")
+  screenHeight              Int                      @default(900)
+  screenWidth               Int                      @default(1440)
+  userAgent                 String?
+  webglRenderer             String?
+  webglVendor               String?
+  facebookEmailHash         String?                  @unique
+  channels                  BrowserAccountChannel[]
+  timelineEvents            BrowserAccountEvent[]
+  runtimeLease              BrowserAccountLease?
+  automationPolicy          BrowserAutomationPolicy?
+
+  @@index([workspaceId])
+  @@index([brandId])
+  @@index([platform])
+  @@index([loginStatus])
+  @@index([cookieStatus])
+  @@index([proxyType])
+  @@index([proxyCountry])
+  @@index([facebookUserId])
+  @@index([ipStatus])
+  @@index([fingerprintStatus])
+}
+
+model BrowserAutomationPolicy {
+  id                        String         @id @default(cuid())
+  browserAccountId          String         @unique
+  autoVerifyLogin           Boolean        @default(true)
+  autoDiscoverPages         Boolean        @default(true)
+  autoSyncPages             Boolean        @default(true)
+  autoHealthCheck           Boolean        @default(true)
+  autoCloseBrowser          Boolean        @default(false)
+  autoNotifications         Boolean        @default(true)
+  keepBrowserOpenAfterLogin Boolean        @default(true)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  browserAccount            BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+}
+
+model BrowserAccountEvent {
+  id               String                    @id @default(cuid())
+  browserAccountId String
+  eventType        String
+  status           BrowserAccountEventStatus @default(INFO)
+  title            String
+  message          String?
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+  browserAccount   BrowserAccount            @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  @@index([browserAccountId])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BrowserAccountLease {
+  id               String         @id @default(cuid())
+  browserAccountId String         @unique
+  leaseToken       String         @unique
+  ownerKey         String
+  channelId        String?
+  acquiredAt       DateTime       @default(now())
+  expiresAt        DateTime
+  releasedAt       DateTime?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+
+  @@index([ownerKey])
+  @@index([channelId])
+  @@index([expiresAt])
+  @@index([releasedAt])
+}
+
+model BrowserAccountChannel {
+  id               String         @id @default(cuid())
+  browserAccountId String
+  channelId        String
+  isPrimary        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  browserAccount   BrowserAccount @relation(fields: [browserAccountId], references: [id], onDelete: Cascade)
+  channel          SocialChannel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([browserAccountId, channelId])
+  @@index([browserAccountId])
+  @@index([channelId])
+}
+
+model ScheduledPost {
+  id                     String              @id @default(cuid())
+  brandId                String
+  channelId              String
+  campaignId             String?
+  historyId              String?
+  platform               SocialPlatform
+  title                  String?
+  content                String
+  mediaUrls              String[]
+  scheduledAt            DateTime
+  timezone               String              @default("Asia/Kuala_Lumpur")
+  status                 ScheduledPostStatus @default(DRAFT)
+  publishedAt            DateTime?
+  externalPostId         String?
+  externalPostUrl        String?
+  lastError              String?
+  retryCount             Int                 @default(0)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  brandRenderingSettings Json                @default("{}")
+  attempts               PublishAttempt[]
+  brand                  Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign               Campaign?           @relation(fields: [campaignId], references: [id])
+  channel                SocialChannel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  history                GenerationHistory?  @relation(fields: [historyId], references: [id])
+
+  @@index([brandId])
+  @@index([channelId])
+  @@index([campaignId])
+  @@index([historyId])
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model PublishAttempt {
+  id              String               @id @default(cuid())
+  scheduledPostId String
+  attemptNumber   Int
+  status          PublishAttemptStatus @default(PENDING)
+  requestPayload  Json?
+  responsePayload Json?
+  errorMessage    String?
+  startedAt       DateTime             @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime             @default(now())
+  scheduledPost   ScheduledPost        @relation(fields: [scheduledPostId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledPostId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BrowserActionHistory {
+  id                String               @id @default(cuid())
+  channelId         String
+  action            BrowserActionType
+  status            BrowserActionStatus  @default(PENDING)
+  browserProfileKey String?
+  caption           String?
+  imagePath         String?
+  screenshotPath    String?
+  requestPayload    Json?
+  responsePayload   Json?
+  errorMessage      String?
+  startedAt         DateTime             @default(now())
+  completedAt       DateTime?
+  durationMs        Int?
+  createdAt         DateTime             @default(now())
+  flowId            String?
+  channel           SocialChannel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  traces            BrowserActionTrace[]
+
+  @@index([channelId])
+  @@index([flowId])
+  @@index([action])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BrowserActionTrace {
+  id              String               @id @default(cuid())
+  browserActionId String
+  stepKey         String
+  stepName        String
+  stepOrder       Int
+  status          BrowserTraceStatus   @default(PENDING)
+  metadata        Json?
+  errorMessage    String?
+  screenshotPath  String?
+  startedAt       DateTime             @default(now())
+  completedAt     DateTime?
+  durationMs      Int?
+  createdAt       DateTime             @default(now())
+  browserAction   BrowserActionHistory @relation(fields: [browserActionId], references: [id], onDelete: Cascade)
+
+  @@unique([browserActionId, stepOrder])
+  @@index([browserActionId])
+  @@index([status])
+  @@index([stepKey])
+  @@index([createdAt])
+}
+
+model SportsNewsSetting {
+  id                            String         @id @default(cuid())
+  workspaceId                   String         @unique
+  enabled                       Boolean        @default(true)
+  timezone                      String         @default("Asia/Kuala_Lumpur")
+  morningEnabled                Boolean        @default(true)
+  morningTime                   String         @default("09:00")
+  eveningEnabled                Boolean        @default(true)
+  eveningTime                   String         @default("20:00")
+  telegramEnabled               Boolean        @default(true)
+  telegramChannelId             String?
+  facebookEnabled               Boolean        @default(false)
+  facebookChannelId             String?
+  autoPublishEnabled            Boolean        @default(true)
+  approvalRequired              Boolean        @default(false)
+  language                      String         @default("zh-en")
+  sportsKnowledgeEnabled        Boolean        @default(true)
+  discussionQuestionEnabled     Boolean        @default(true)
+  referenceLinksEnabled         Boolean        @default(true)
+  customPromptEnabled           Boolean        @default(false)
+  systemPrompt                  String?
+  morningPrompt                 String?
+  eveningPrompt                 String?
+  knowledgePrompt               String?
+  customInstructions            String?
+  imageEnabled                  Boolean        @default(true)
+  imagePrompt                   String?
+  morningImagePrompt            String?
+  eveningImagePrompt            String?
+  imageAspectRatio              String         @default("4:5")
+  imageTextMode                 String         @default("minimal")
+  imageVisualStyle              String?
+  logoEnabled                   Boolean        @default(true)
+  logoPosition                  String         @default("bottom-right")
+  brandFooterEnabled            Boolean        @default(true)
+  brandFooterText               String         @default("满贯门 mgmbetmyr.com")
+  lastMorningRunAt              DateTime?
+  lastEveningRunAt              DateTime?
+  lastRunStatus                 String?
+  lastError                     String?
+  createdAt                     DateTime       @default(now())
+  updatedAt                     DateTime       @updatedAt
+  morningTelegramEnabled        Boolean        @default(true)
+  morningFacebookEnabled        Boolean        @default(false)
+  eveningTelegramEnabled        Boolean        @default(true)
+  eveningFacebookEnabled        Boolean        @default(false)
+  sameDaySourcesOnly            Boolean        @default(true)
+  maxSourceAgeHours             Int            @default(24)
+  requirePublishedAt            Boolean        @default(true)
+  requireSourceUrl              Boolean        @default(true)
+  minimumSources                Int            @default(2)
+  freshnessFallbackEnabled      Boolean        @default(false)
+  logoAssetId                   String?
+  logoSize                      String         @default("small")
+  logoOpacity                   Int            @default(90)
+  logoMargin                    Int            @default(32)
+  footerLogoEnabled             Boolean        @default(true)
+  footerLogoAssetId             String?
+  footerQrEnabled               Boolean        @default(false)
+  footerQrAssetId               String?
+  footerQrLink                  String?
+  footerPlacement               String         @default("auto")
+  storyMinimum                  Int            @default(3)
+  storyMaximum                  Int            @default(5)
+  sportsPriority                String         @default("football,basketball,formula1,badminton,tennis,baseball,motorsport")
+  verificationInstructions      String?
+  imageHeadlineInstructions     String?
+  visibleCopyInstructions       String?
+  telegramMorningHeader         String         @default("⚡ 满贯门体育早报 | M-Sports Morning")
+  telegramEveningHeader         String         @default("🌙 满贯门体育晚报 | M-Sports Evening")
+  telegramSectionLabel          String         @default("🔥 今日焦点 | Top Stories")
+  telegramCtaEnabled            Boolean        @default(true)
+  telegramCtaText               String         @default("立即查看今日体育焦点，加入满贯门 / Follow today’s sports focus with 满贯门")
+  telegramCtaUrl                String         @default("https://rebrand.ly/mgmbetae0dcf")
+  telegramShowSummaries         Boolean        @default(true)
+  telegramCaptionTarget         Int            @default(940)
+  telegramSummaryZhLong         Int            @default(72)
+  telegramSummaryEnLong         Int            @default(112)
+  telegramSummaryZhMedium       Int            @default(58)
+  telegramSummaryEnMedium       Int            @default(88)
+  telegramSummaryZhShort        Int            @default(46)
+  telegramSummaryEnShort        Int            @default(68)
+  telegramSummaryZhCompact      Int            @default(34)
+  telegramSummaryEnCompact      Int            @default(52)
+  visualDirectorEnabled         Boolean        @default(true)
+  visualDirectorPrompt          String?
+  heroStoryWeight               Int            @default(65)
+  singleSportVisualPrompt       String?
+  multiSportVisualPrompt        String?
+  completedEventVisualPrompt    String?
+  upcomingEventVisualPrompt     String?
+  developmentVisualPrompt       String?
+  morningVisualDirection        String?
+  eveningVisualDirection        String?
+  imagePhotographyPrompt        String?
+  imageNegativePrompt           String?
+  imageUpperSafeAreaPrompt      String?
+  imageLowerSafeAreaPrompt      String?
+  imageLayoutEnabled            Boolean        @default(true)
+  mastheadScale                 Float          @default(1.0)
+  mastheadTopPercent            Float          @default(0.018)
+  highlightsPanelWidthPercent   Float          @default(0.89)
+  highlightsPanelHeightPercent  Float          @default(0.235)
+  highlightsPanelTopPercent     Float          @default(0.61)
+  highlightsPanelOpacityStart   Float          @default(0.80)
+  highlightsPanelOpacityMiddle  Float          @default(0.60)
+  highlightsPanelOpacityEnd     Float          @default(0.22)
+  highlightsPanelRadius         Int            @default(10)
+  heroHeadlineScale             Float          @default(1.0)
+  secondaryHeadlineScale        Float          @default(1.0)
+  story02PositionPercent        Float          @default(0.70)
+  story03PositionPercent        Float          @default(0.89)
+  footerHeightPercent           Float          @default(0.085)
+  qrEnabled                     Boolean        @default(true)
+  qrLink                        String         @default("https://mgmbetmyr.com")
+  mastheadBrandText             String         @default("M-SPORTS")
+  morningEditionZh              String         @default("满贯门体育早报")
+  eveningEditionZh              String         @default("满贯门体育晚报")
+  morningEditionEn              String         @default("MORNING REPORT")
+  eveningEditionEn              String         @default("EVENING REPORT")
+  imageSectionLabel             String         @default("今日焦点  /  TOP STORIES")
+  morningAccentColor            String         @default("#f0c14b")
+  eveningAccentColor            String         @default("#d7a449")
+  morningSecondaryColor         String         @default("#1476d4")
+  eveningSecondaryColor         String         @default("#b9232f")
+  mastheadPrimaryColor          String         @default("#ffffff")
+  mastheadEnglishColor          String         @default("rgba(255,255,255,0.84)")
+  headlinePrimaryColor          String         @default("#ffffff")
+  headlineSecondaryColor        String         @default("rgba(255,255,255,0.72)")
+  panelBaseColor                String         @default("4,10,18")
+  watermarkEnabled              Boolean        @default(true)
+  watermarkScale                Float          @default(0.72)
+  watermarkOpacity              Float          @default(0.72)
+  watermarkPosition             String         @default("top-right")
+  qrSizePercent                 Float          @default(0.105)
+  qrMarginPercent               Float          @default(0.025)
+  footerDateEnabled             Boolean        @default(true)
+  footerDateSeparator           String         @default("  •  ")
+  footerBackgroundColor         String         @default("rgba(8,12,20,0.95)")
+  footerSeparatorColor          String         @default("rgba(255,255,255,0.14)")
+  imageGenerationSize           String         @default("1024x1536")
+  imageGenerationQuality        String         @default("medium")
+  footballKeywords              String         @default("football,soccer,premier league,champions league,carabao,efl,fa cup,laliga,serie a,bundesliga,superliga,allsvenskan,jdt,chelsea,liverpool,arsenal,manchester")
+  basketballKeywords            String         @default("nba,wnba,basketball,cba")
+  motorsportKeywords            String         @default("formula 1,formula one,f1,grand prix,motorsport")
+  motorcycleKeywords            String         @default("motogp,motorcycle,superbike")
+  tennisKeywords                String         @default("tennis,atp,wta,wimbledon")
+  badmintonKeywords             String         @default("badminton,bwf,thomas cup,sudirman")
+  baseballKeywords              String         @default("mlb,baseball,dodgers,yankees,red sox,astros,giants,padres,brewers,royals")
+  combatKeywords                String         @default("ufc,mma,boxing")
+  completedScoreRequired        Boolean        @default(true)
+  invalidStoryPolicy            String         @default("SKIP")
+  morningSameDaySourcesOnly     Boolean        @default(false)
+  newsAiModel                   String         @default("gpt-5.5")
+  newsWebSearchEnabled          Boolean        @default(true)
+  imageAiModel                  String?
+  imageGenerationEnabled        Boolean        @default(true)
+  duplicateEditionPolicy        String         @default("SKIP")
+  forceRunExistingPolicy        String         @default("MARK_OLD")
+  queueStatusOnCreate           String         @default("QUEUED")
+  publishRetryEnabled           Boolean        @default(true)
+  publishRetryLimit             Int            @default(3)
+  publishRetryDelayMinutes      Int            @default(10)
+  generationFailurePolicy       String         @default("BLOCK")
+  imageFailurePolicy            String         @default("BLOCK")
+  brandingFailurePolicy         String         @default("USE_GENERATED_IMAGE")
+  minimumSourcesPerStory        Int            @default(1)
+  minimumStoriesPerEdition      Int            @default(3)
+  completedEventPolicy          String         @default("REQUIRE_FINAL_SCORE")
+  upcomingEventPolicy           String         @default("ALLOW")
+  developmentStoryPolicy        String         @default("ALLOW")
+  sourceDeduplicationEnabled    Boolean        @default(true)
+  imageRulesEnabled             Boolean        @default(true)
+  imageRulesPrompt              String?
+  imageBrandRulesEnabled        Boolean        @default(true)
+  imageBrandRulesPrompt         String?
+  forceRunEnabled               Boolean        @default(true)
+  forceMorningEnabled           Boolean        @default(true)
+  forceEveningEnabled           Boolean        @default(true)
+  morningPostTitleTemplate      String         @default("满贯门体育早报 | M-Sports Morning {date}")
+  eveningPostTitleTemplate      String         @default("满贯门体育晚报 | M-Sports Evening {date}")
+  imageModelOverrideEnabled     Boolean        @default(false)
+  previewNewsPromptEnabled      Boolean        @default(true)
+  previewImagePromptEnabled     Boolean        @default(true)
+  previewTelegramCaptionEnabled Boolean        @default(true)
+  recommendedDefaultsVersion    String         @default("v2")
+  facebookChannel               SocialChannel? @relation("SportsNewsFacebookChannel", fields: [facebookChannelId], references: [id])
+  telegramChannel               SocialChannel? @relation("SportsNewsTelegramChannel", fields: [telegramChannelId], references: [id])
+  workspace                     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model AutomationSetting {
+  id                  String    @id @default(cuid())
+  workspaceId         String    @unique
+  timezone            String    @default("Asia/Kuala_Lumpur")
+  approvalRequired    Boolean   @default(true)
+  autoPublishEnabled  Boolean   @default(false)
+  retryLimit          Int       @default(3)
+  retryDelayMinutes   Int       @default(10)
+  defaultFacebookTime String    @default("20:00")
+  defaultTelegramTime String    @default("20:05")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model CopilotConversation {
+  id         String                       @id @default(cuid())
+  brandId    String
+  campaignId String?
+  title      String
+  mode       String                       @default("chat")
+  isArchived Boolean                      @default(false)
+  createdAt  DateTime                     @default(now())
+  updatedAt  DateTime                     @updatedAt
+  brand      Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign   Campaign?                    @relation(fields: [campaignId], references: [id])
+  messages   CopilotConversationMessage[]
+
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([updatedAt])
+  @@index([isArchived])
+}
+
+model CopilotConversationMessage {
+  id             String              @id @default(cuid())
+  conversationId String
+  role           CopilotMessageRole
+  content        String
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  conversation   CopilotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  brandId     String
+  title       String
+  category    String
+  content     String
+  description String?
+  isFavorite  Boolean  @default(false)
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([brandId, category])
+  @@index([brandId, isFavorite])
+  @@index([updatedAt])
+}
+
+model BrandMemoryFact {
+  id          String                @id @default(cuid())
+  brandId     String
+  type        BrandMemoryFactType   @default(PREFERENCE)
+  key         String
+  value       String
+  description String?
+  confidence  Int                   @default(80)
+  status      BrandMemoryFactStatus @default(CANDIDATE)
+  sourceType  String                @default("manual")
+  sourceId    String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  confirmedAt DateTime?
+  rejectedAt  DateTime?
+  brand       Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([brandId, status])
+  @@index([brandId, type])
+  @@index([updatedAt])
+}
+
+model EngineeringSnapshot {
+  id          String   @id @default(cuid())
+  files       Json
+  description String
+  backupPath  String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model SportsNewsRun {
+  id                  String    @id
+  workspaceId         String
+  runKey              String    @unique
+  kind                String
+  trigger             String
+  status              String    @default("RUNNING")
+  sourceCount         Int       @default(0)
+  rejectedSourceCount Int       @default(0)
+  scheduledPostIds    String[]  @default([])
+  error               String?
+  startedAt           DateTime  @default(now())
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime
+  Workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([kind])
+  @@index([startedAt])
+  @@index([status])
+  @@index([workspaceId])
+}
+
+enum BrandStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum CampaignIdeaStatus {
+  PLANNED
+  GENERATED
+  APPROVED
+  ARCHIVED
+}
+
+enum ContentStatus {
+  DRAFT
+  AI_IMPROVED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  TEMPLATE
+}
+
+enum BackgroundJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum BackgroundJobType {
+  AI_STUDIO
+  COPILOT_CHAT
+  COPILOT_MARKETING_PLAN
+  ASSET_IMAGE
+}
+
+enum AiUsageFeature {
+  CONTENT_GENERATION
+  COPILOT_CHAT
+  COPILOT_MARKETING_PLAN
+  OTHER
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  TELEGRAM
+}
+
+enum SocialChannelStatus {
+  DISCONNECTED
+  CONNECTED
+  EXPIRED
+  ERROR
+}
+
+enum ScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum PublishAttemptStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum SocialProxyType {
+  DIRECT
+  HTTP
+  HTTPS
+  SOCKS5
+}
+
+enum BrowserAccountEventStatus {
+  INFO
+  SUCCESS
+  WARNING
+  FAILED
+}
+
+enum BrowserActionType {
+  PREPARE
+  PUBLISH
+  DISCARD
+}
+
+enum BrowserActionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum BrowserTraceStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum CopilotMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum BrandMemoryFactType {
+  PREFERENCE
+  AVOIDANCE
+  AUDIENCE
+  VOICE
+  VISUAL
+  CONTENT
+  PLATFORM
+  WORKFLOW
+  OTHER
+}
+
+enum BrandMemoryFactStatus {
+  CANDIDATE
+  CONFIRMED
+  REJECTED
+}
+
+

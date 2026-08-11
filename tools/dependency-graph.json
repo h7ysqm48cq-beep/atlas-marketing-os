@@ -1,0 +1,1703 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T02:57:34.097713+00:00",
+  "repository": {
+    "root": "/Users/ysloh/Downloads/atlas-marketing-os"
+  },
+  "classes": {
+    "AgentWorkflowController": {
+      "file": "apps/api/src/agent-workflow/agent-workflow.controller.ts",
+      "dependsOn": [
+        "AgentWorkflowService"
+      ]
+    },
+    "AgentWorkflowModule": {
+      "file": "apps/api/src/agent-workflow/agent-workflow.module.ts",
+      "dependsOn": []
+    },
+    "AgentWorkflowService": {
+      "file": "apps/api/src/agent-workflow/agent-workflow.service.ts",
+      "dependsOn": []
+    },
+    "AiController": {
+      "file": "apps/api/src/ai/ai.controller.ts",
+      "dependsOn": [
+        "AiService"
+      ]
+    },
+    "AiModule": {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "dependsOn": []
+    },
+    "AiService": {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "BrandsService",
+        "PromptBuilderService",
+        "ContentQualityService",
+        "PromptChainService",
+        "HistoryService",
+        "KnowledgeService",
+        "MemoryFactsService",
+        "PrismaService"
+      ]
+    },
+    "ContentGuardService": {
+      "file": "apps/api/src/ai/content-guard.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "ContentQualityService": {
+      "file": "apps/api/src/ai/content-quality.service.ts",
+      "dependsOn": []
+    },
+    "ContentReviewService": {
+      "file": "apps/api/src/ai/content-review.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "GenerateContentDto": {
+      "file": "apps/api/src/ai/dto/generate-content.dto.ts",
+      "dependsOn": []
+    },
+    "TopicSuggestionsDto": {
+      "file": "apps/api/src/ai/dto/topic-suggestions.dto.ts",
+      "dependsOn": []
+    },
+    "PromptBuilderService": {
+      "file": "apps/api/src/prompt-builder/prompt-builder.service.ts",
+      "dependsOn": []
+    },
+    "AiProviderController": {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "dependsOn": [
+        "ContextService",
+        "PromptBuilderService",
+        "AiProviderService",
+        "HistoryService"
+      ]
+    },
+    "AiProviderModule": {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "dependsOn": []
+    },
+    "AiProviderService": {
+      "file": "apps/api/src/ai-provider/ai-provider.service.ts",
+      "dependsOn": [
+        "OpenAiProvider"
+      ]
+    },
+    "OpenAiProvider": {
+      "file": "apps/api/src/ai-provider/openai.provider.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "AiUsageController": {
+      "file": "apps/api/src/ai-usage/ai-usage.controller.ts",
+      "dependsOn": [
+        "AiUsageService"
+      ]
+    },
+    "AiUsageModule": {
+      "file": "apps/api/src/ai-usage/ai-usage.module.ts",
+      "dependsOn": []
+    },
+    "AiUsageService": {
+      "file": "apps/api/src/ai-usage/ai-usage.service.ts",
+      "dependsOn": [
+        "PrismaService"
+      ]
+    },
+    "AppController": {
+      "file": "apps/api/src/app.controller.ts",
+      "dependsOn": [
+        "AppService"
+      ]
+    },
+    "AppModule": {
+      "file": "apps/api/src/app.module.ts",
+      "dependsOn": []
+    },
+    "AppService": {
+      "file": "apps/api/src/app.service.ts",
+      "dependsOn": []
+    },
+    "AssetImageController": {
+      "file": "apps/api/src/asset-image/asset-image.controller.ts",
+      "dependsOn": [
+        "AssetImageService"
+      ]
+    },
+    "AssetImageModule": {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "dependsOn": []
+    },
+    "AssetImageService": {
+      "file": "apps/api/src/asset-image/asset-image.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "PrismaService",
+        "BrandsService",
+        "SupabaseStorageService"
+      ]
+    },
+    "GenerateAssetImageDto": {
+      "file": "apps/api/src/asset-image/dto/generate-asset-image.dto.ts",
+      "dependsOn": []
+    },
+    "AssetsController": {
+      "file": "apps/api/src/assets/assets.controller.ts",
+      "dependsOn": [
+        "AssetsService"
+      ]
+    },
+    "AssetsModule": {
+      "file": "apps/api/src/assets/assets.module.ts",
+      "dependsOn": []
+    },
+    "AssetsService": {
+      "file": "apps/api/src/assets/assets.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "CreateAssetDto": {
+      "file": "apps/api/src/assets/dto/create-asset.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateAssetDto": {
+      "file": "apps/api/src/assets/dto/update-asset.dto.ts",
+      "dependsOn": []
+    },
+    "AutomationSchedulerService": {
+      "file": "apps/api/src/automation/automation-scheduler.service.ts",
+      "dependsOn": [
+        "PublisherService"
+      ]
+    },
+    "AutomationController": {
+      "file": "apps/api/src/automation/automation.controller.ts",
+      "dependsOn": [
+        "AutomationService",
+        "TelegramConnectorService",
+        "FacebookConnectorService"
+      ]
+    },
+    "AutomationModule": {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "dependsOn": []
+    },
+    "AutomationService": {
+      "file": "apps/api/src/automation/automation.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "PublisherService"
+      ]
+    },
+    "FacebookConnectorService": {
+      "file": "apps/api/src/automation/facebook-connector.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "PublisherService": {
+      "file": "apps/api/src/automation/publisher.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "FacebookConnectorService",
+        "TelegramConnectorService"
+      ]
+    },
+    "TelegramConnectorService": {
+      "file": "apps/api/src/automation/telegram-connector.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "AtlasBrainService": {
+      "file": "apps/api/src/brain/atlas-brain.service.ts",
+      "dependsOn": [
+        "IntentService",
+        "BrainContextService",
+        "PlannerService"
+      ]
+    },
+    "BrainModule": {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "dependsOn": []
+    },
+    "BrainContextService": {
+      "file": "apps/api/src/brain/context.service.ts",
+      "dependsOn": []
+    },
+    "IntentService": {
+      "file": "apps/api/src/brain/intent.service.ts",
+      "dependsOn": []
+    },
+    "PlannerService": {
+      "file": "apps/api/src/planner/planner.service.ts",
+      "dependsOn": [
+        "ContextService"
+      ]
+    },
+    "BrandsController": {
+      "file": "apps/api/src/brands/brands.controller.ts",
+      "dependsOn": [
+        "BrandsService"
+      ]
+    },
+    "BrandsModule": {
+      "file": "apps/api/src/brands/brands.module.ts",
+      "dependsOn": []
+    },
+    "BrandsService": {
+      "file": "apps/api/src/brands/brands.service.ts",
+      "dependsOn": [
+        "PrismaService"
+      ]
+    },
+    "CreateBrandDto": {
+      "file": "apps/api/src/brands/dto/create-brand.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateBrandDto": {
+      "file": "apps/api/src/brands/dto/update-brand.dto.ts",
+      "dependsOn": []
+    },
+    "CampaignPlannerController": {
+      "file": "apps/api/src/campaign-planner/campaign-planner.controller.ts",
+      "dependsOn": [
+        "CampaignPlannerService"
+      ]
+    },
+    "CampaignPlannerModule": {
+      "file": "apps/api/src/campaign-planner/campaign-planner.module.ts",
+      "dependsOn": []
+    },
+    "CampaignPlannerService": {
+      "file": "apps/api/src/campaign-planner/campaign-planner.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "ConfigService"
+      ]
+    },
+    "GenerateCampaignPlanDto": {
+      "file": "apps/api/src/campaign-planner/dto/generate-campaign-plan.dto.ts",
+      "dependsOn": []
+    },
+    "CampaignStrategyController": {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.controller.ts",
+      "dependsOn": [
+        "CampaignStrategyService"
+      ]
+    },
+    "CampaignStrategyModule": {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "dependsOn": []
+    },
+    "CampaignStrategyService": {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "BrandsService",
+        "PrismaService",
+        "MemoryService"
+      ]
+    },
+    "GenerateCampaignStrategyDto": {
+      "file": "apps/api/src/campaign-strategy/dto/generate-campaign-strategy.dto.ts",
+      "dependsOn": []
+    },
+    "CampaignsController": {
+      "file": "apps/api/src/campaigns/campaigns.controller.ts",
+      "dependsOn": [
+        "CampaignsService"
+      ]
+    },
+    "CampaignsModule": {
+      "file": "apps/api/src/campaigns/campaigns.module.ts",
+      "dependsOn": []
+    },
+    "CampaignsService": {
+      "file": "apps/api/src/campaigns/campaigns.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "CreateCampaignDto": {
+      "file": "apps/api/src/campaigns/dto/create-campaign.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateCampaignDto": {
+      "file": "apps/api/src/campaigns/dto/update-campaign.dto.ts",
+      "dependsOn": []
+    },
+    "Campaign": {
+      "file": "apps/api/src/campaigns/entities/campaign.entity.ts",
+      "dependsOn": []
+    },
+    "CommonModule": {
+      "file": "apps/api/src/common/common.module.ts",
+      "dependsOn": []
+    },
+    "DateTimeService": {
+      "file": "apps/api/src/common/datetime.service.ts",
+      "dependsOn": []
+    },
+    "ContentEngineController": {
+      "file": "apps/api/src/content-engine/content-engine.controller.ts",
+      "dependsOn": [
+        "ContentEngineService"
+      ]
+    },
+    "ContentEngineModule": {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "dependsOn": []
+    },
+    "ContentEngineService": {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "dependsOn": [
+        "ContextService",
+        "PromptBuilderService",
+        "AiProviderService",
+        "HistoryService",
+        "ContentValidatorService",
+        "ImagePromptEngineService"
+      ]
+    },
+    "ContentValidatorController": {
+      "file": "apps/api/src/content-validator/content-validator.controller.ts",
+      "dependsOn": [
+        "ContentValidatorService"
+      ]
+    },
+    "ContentValidatorModule": {
+      "file": "apps/api/src/content-validator/content-validator.module.ts",
+      "dependsOn": []
+    },
+    "ContentValidatorService": {
+      "file": "apps/api/src/content-validator/content-validator.service.ts",
+      "dependsOn": []
+    },
+    "ContextController": {
+      "file": "apps/api/src/context/context.controller.ts",
+      "dependsOn": []
+    },
+    "ContextModule": {
+      "file": "apps/api/src/context/context.module.ts",
+      "dependsOn": []
+    },
+    "ContextService": {
+      "file": "apps/api/src/context/context.service.ts",
+      "dependsOn": [
+        "BrandsService",
+        "MemoryFactsService",
+        "KnowledgeService"
+      ]
+    },
+    "ConversationMemoryService": {
+      "file": "apps/api/src/copilot/conversation-memory.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService",
+        "MemoryFactExtractorService"
+      ]
+    },
+    "CopilotAttachmentService": {
+      "file": "apps/api/src/copilot/copilot-attachment.service.ts",
+      "dependsOn": [
+        "BrandsService",
+        "SupabaseStorageService"
+      ]
+    },
+    "CopilotController": {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "dependsOn": [
+        "CopilotService",
+        "MarketingPlannerService",
+        "ConversationMemoryService",
+        "CopilotAttachmentService"
+      ]
+    },
+    "CopilotModule": {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "dependsOn": []
+    },
+    "CopilotService": {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "BrandsService",
+        "PrismaService",
+        "ConversationMemoryService",
+        "MemoryFactsService",
+        "KnowledgeRetrievalService",
+        "PromptContextBuilder",
+        "PromptContextPipelineService"
+      ]
+    },
+    "ChatCopilotDto": {
+      "file": "apps/api/src/copilot/dto/chat-copilot.dto.ts",
+      "dependsOn": []
+    },
+    "CreateMarketingPlanDto": {
+      "file": "apps/api/src/copilot/dto/create-marketing-plan.dto.ts",
+      "dependsOn": []
+    },
+    "MarketingPlannerService": {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "BrandsService",
+        "PrismaService",
+        "StrategyService",
+        "PromptBuilderService",
+        "KnowledgeService"
+      ]
+    },
+    "PromptContextPipelineService": {
+      "file": "apps/api/src/copilot/prompt/prompt-context-pipeline.service.ts",
+      "dependsOn": []
+    },
+    "PromptContextBuilder": {
+      "file": "apps/api/src/copilot/prompt-context.builder.ts",
+      "dependsOn": []
+    },
+    "DashboardController": {
+      "file": "apps/api/src/dashboard/dashboard.controller.ts",
+      "dependsOn": [
+        "DashboardService"
+      ]
+    },
+    "DashboardModule": {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "dependsOn": []
+    },
+    "DashboardService": {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "dependsOn": [
+        "BrandsService",
+        "MemoryFactsService",
+        "KnowledgeService",
+        "HistoryService",
+        "AiUsageService"
+      ]
+    },
+    "DatabaseModule": {
+      "file": "apps/api/src/database/database.module.ts",
+      "dependsOn": []
+    },
+    "PrismaService": {
+      "file": "apps/api/src/database/prisma.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "UpdateFavoriteDto": {
+      "file": "apps/api/src/history/dto/update-favorite.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateHistoryStatusDto": {
+      "file": "apps/api/src/history/dto/update-history-status.dto.ts",
+      "dependsOn": []
+    },
+    "HistoryController": {
+      "file": "apps/api/src/history/history.controller.ts",
+      "dependsOn": [
+        "HistoryService"
+      ]
+    },
+    "HistoryModule": {
+      "file": "apps/api/src/history/history.module.ts",
+      "dependsOn": []
+    },
+    "HistoryService": {
+      "file": "apps/api/src/history/history.service.ts",
+      "dependsOn": [
+        "PrismaService"
+      ]
+    },
+    "GenerateImageDto": {
+      "file": "apps/api/src/image/dto/generate-image.dto.ts",
+      "dependsOn": []
+    },
+    "ImageController": {
+      "file": "apps/api/src/image/image.controller.ts",
+      "dependsOn": [
+        "ImageService"
+      ]
+    },
+    "ImageModule": {
+      "file": "apps/api/src/image/image.module.ts",
+      "dependsOn": []
+    },
+    "ImageService": {
+      "file": "apps/api/src/image/image.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "ImagePromptEngineController": {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.controller.ts",
+      "dependsOn": [
+        "ImagePromptEngineService"
+      ]
+    },
+    "ImagePromptEngineModule": {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.module.ts",
+      "dependsOn": []
+    },
+    "ImagePromptEngineService": {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.service.ts",
+      "dependsOn": []
+    },
+    "CreateKnowledgeDocumentDto": {
+      "file": "apps/api/src/knowledge/dto/create-knowledge-document.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateKnowledgeDocumentDto": {
+      "file": "apps/api/src/knowledge/dto/update-knowledge-document.dto.ts",
+      "dependsOn": []
+    },
+    "UploadKnowledgeDocumentDto": {
+      "file": "apps/api/src/knowledge/dto/upload-knowledge-document.dto.ts",
+      "dependsOn": []
+    },
+    "KnowledgeEmbeddingService": {
+      "file": "apps/api/src/knowledge/knowledge-embedding.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "KnowledgeFileService": {
+      "file": "apps/api/src/knowledge/knowledge-file.service.ts",
+      "dependsOn": [
+        "KnowledgeService",
+        "BrandsService",
+        "SupabaseStorageService"
+      ]
+    },
+    "KnowledgeRetrievalService": {
+      "file": "apps/api/src/knowledge/knowledge-retrieval.service.ts",
+      "dependsOn": [
+        "KnowledgeEmbeddingService"
+      ]
+    },
+    "KnowledgeController": {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "dependsOn": [
+        "KnowledgeService",
+        "KnowledgeFileService",
+        "KnowledgeEmbeddingService"
+      ]
+    },
+    "KnowledgeModule": {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "dependsOn": []
+    },
+    "KnowledgeService": {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService",
+        "KnowledgeEmbeddingService"
+      ]
+    },
+    "CreateMemoryFactDto": {
+      "file": "apps/api/src/memory/dto/create-memory-fact.dto.ts",
+      "dependsOn": []
+    },
+    "UpdateMemoryFactDto": {
+      "file": "apps/api/src/memory/dto/update-memory-fact.dto.ts",
+      "dependsOn": []
+    },
+    "MemoryFactExtractorService": {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "MemoryFactsService": {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "MemoryController": {
+      "file": "apps/api/src/memory/memory.controller.ts",
+      "dependsOn": [
+        "MemoryService",
+        "MemoryFactsService"
+      ]
+    },
+    "MemoryModule": {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "dependsOn": []
+    },
+    "MemoryService": {
+      "file": "apps/api/src/memory/memory.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "CreatePlanDto": {
+      "file": "apps/api/src/planner/dto/create-plan.dto.ts",
+      "dependsOn": []
+    },
+    "PlannerController": {
+      "file": "apps/api/src/planner/planner.controller.ts",
+      "dependsOn": [
+        "PlannerService"
+      ]
+    },
+    "PlannerModule": {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "dependsOn": []
+    },
+    "PromptBuilderController": {
+      "file": "apps/api/src/prompt-builder/prompt-builder.controller.ts",
+      "dependsOn": []
+    },
+    "PromptBuilderModule": {
+      "file": "apps/api/src/prompt-builder/prompt-builder.module.ts",
+      "dependsOn": []
+    },
+    "PreviewPromptChainDto": {
+      "file": "apps/api/src/prompt-chain/dto/preview-prompt-chain.dto.ts",
+      "dependsOn": []
+    },
+    "PromptChainController": {
+      "file": "apps/api/src/prompt-chain/prompt-chain.controller.ts",
+      "dependsOn": [
+        "PromptChainService"
+      ]
+    },
+    "PromptChainModule": {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "dependsOn": []
+    },
+    "PromptChainService": {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "dependsOn": [
+        "BrandsService",
+        "PrismaService",
+        "MemoryService",
+        "KnowledgeService",
+        "KnowledgeEmbeddingService",
+        "QueryUnderstandingService"
+      ]
+    },
+    "QueryUnderstandingService": {
+      "file": "apps/api/src/prompt-chain/query-understanding.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "CreatePromptDto": {
+      "file": "apps/api/src/prompts/dto/create-prompt.dto.ts",
+      "dependsOn": []
+    },
+    "UpdatePromptDto": {
+      "file": "apps/api/src/prompts/dto/update-prompt.dto.ts",
+      "dependsOn": []
+    },
+    "PromptsController": {
+      "file": "apps/api/src/prompts/prompts.controller.ts",
+      "dependsOn": [
+        "PromptsService"
+      ]
+    },
+    "PromptsModule": {
+      "file": "apps/api/src/prompts/prompts.module.ts",
+      "dependsOn": []
+    },
+    "PromptsService": {
+      "file": "apps/api/src/prompts/prompts.service.ts",
+      "dependsOn": [
+        "PrismaService",
+        "BrandsService"
+      ]
+    },
+    "RewriteContentDto": {
+      "file": "apps/api/src/rewrite/dto/rewrite-content.dto.ts",
+      "dependsOn": []
+    },
+    "RewriteController": {
+      "file": "apps/api/src/rewrite/rewrite.controller.ts",
+      "dependsOn": [
+        "RewriteService"
+      ]
+    },
+    "RewriteModule": {
+      "file": "apps/api/src/rewrite/rewrite.module.ts",
+      "dependsOn": []
+    },
+    "RewriteService": {
+      "file": "apps/api/src/rewrite/rewrite.service.ts",
+      "dependsOn": [
+        "ConfigService",
+        "BrandsService",
+        "PrismaService"
+      ]
+    },
+    "StorageModule": {
+      "file": "apps/api/src/storage/storage.module.ts",
+      "dependsOn": []
+    },
+    "SupabaseStorageService": {
+      "file": "apps/api/src/storage/supabase-storage.service.ts",
+      "dependsOn": [
+        "ConfigService"
+      ]
+    },
+    "GenerateStrategyDto": {
+      "file": "apps/api/src/strategy/dto/generate-strategy.dto.ts",
+      "dependsOn": []
+    },
+    "AudienceEngine": {
+      "file": "apps/api/src/strategy/engine/audience.engine.ts",
+      "dependsOn": []
+    },
+    "GoalEngine": {
+      "file": "apps/api/src/strategy/engine/goal.engine.ts",
+      "dependsOn": []
+    },
+    "IntentEngine": {
+      "file": "apps/api/src/strategy/engine/intent.engine.ts",
+      "dependsOn": []
+    },
+    "KpiEngine": {
+      "file": "apps/api/src/strategy/engine/kpi.engine.ts",
+      "dependsOn": []
+    },
+    "PillarEngine": {
+      "file": "apps/api/src/strategy/engine/pillar.engine.ts",
+      "dependsOn": []
+    },
+    "StrategyEngine": {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "dependsOn": [
+        "IntentEngine",
+        "GoalEngine",
+        "AudienceEngine",
+        "PillarEngine",
+        "KpiEngine"
+      ]
+    },
+    "StrategyController": {
+      "file": "apps/api/src/strategy/strategy.controller.ts",
+      "dependsOn": [
+        "StrategyService"
+      ]
+    },
+    "StrategyModule": {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "dependsOn": []
+    },
+    "StrategyService": {
+      "file": "apps/api/src/strategy/strategy.service.ts",
+      "dependsOn": [
+        "StrategyEngine"
+      ]
+    },
+    "CreateVersionDto": {
+      "file": "apps/api/src/versions/dto/create-version.dto.ts",
+      "dependsOn": []
+    },
+    "VersionsController": {
+      "file": "apps/api/src/versions/versions.controller.ts",
+      "dependsOn": [
+        "VersionsService"
+      ]
+    },
+    "VersionsModule": {
+      "file": "apps/api/src/versions/versions.module.ts",
+      "dependsOn": []
+    },
+    "VersionsService": {
+      "file": "apps/api/src/versions/versions.service.ts",
+      "dependsOn": [
+        "PrismaService"
+      ]
+    },
+    "QueuePlannerService": {
+      "file": "apps/api/src/workflow/queue-planner.service.ts",
+      "dependsOn": []
+    },
+    "WorkflowController": {
+      "file": "apps/api/src/workflow/workflow.controller.ts",
+      "dependsOn": [
+        "WorkflowService"
+      ]
+    },
+    "WorkflowModule": {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "dependsOn": []
+    },
+    "WorkflowService": {
+      "file": "apps/api/src/workflow/workflow.service.ts",
+      "dependsOn": [
+        "AutomationService",
+        "QueuePlannerService"
+      ]
+    }
+  },
+  "modules": {
+    "AgentWorkflowModule": {
+      "file": "apps/api/src/agent-workflow/agent-workflow.module.ts",
+      "imports": [],
+      "controllers": [
+        "AgentWorkflowController"
+      ],
+      "providers": [
+        "AgentWorkflowService"
+      ],
+      "exports": [
+        "AgentWorkflowService"
+      ]
+    },
+    "AiModule": {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": [
+        "BrandsModule",
+        "HistoryModule",
+        "KnowledgeModule",
+        "MemoryModule",
+        "PromptChainModule"
+      ],
+      "controllers": [
+        "AiController"
+      ],
+      "providers": [
+        "AiService",
+        "PromptBuilderService",
+        "ContentQualityService"
+      ],
+      "exports": [
+        "PromptBuilderService"
+      ]
+    },
+    "AiProviderModule": {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": [
+        "ContextModule",
+        "PromptBuilderModule",
+        "HistoryModule"
+      ],
+      "controllers": [
+        "AiProviderController"
+      ],
+      "providers": [
+        "AiProviderService",
+        "OpenAiProvider"
+      ],
+      "exports": [
+        "AiProviderService",
+        "OpenAiProvider"
+      ]
+    },
+    "AiUsageModule": {
+      "file": "apps/api/src/ai-usage/ai-usage.module.ts",
+      "imports": [],
+      "controllers": [
+        "AiUsageController"
+      ],
+      "providers": [
+        "AiUsageService"
+      ],
+      "exports": [
+        "AiUsageService"
+      ]
+    },
+    "AppModule": {
+      "file": "apps/api/src/app.module.ts",
+      "imports": [
+        "PlannerModule",
+        "PromptBuilderModule",
+        "AiProviderModule",
+        "ContentEngineModule",
+        "ContentValidatorModule",
+        "ImagePromptEngineModule",
+        "AgentWorkflowModule",
+        "DashboardModule",
+        "StrategyModule",
+        "PromptsModule",
+        "ScheduleModule",
+        "forRoot",
+        "AutomationModule",
+        "WorkflowModule",
+        "AiUsageModule",
+        "PromptChainModule",
+        "ConfigModule",
+        "isGlobal",
+        "DatabaseModule",
+        "CommonModule",
+        "BrandsModule",
+        "CampaignsModule",
+        "CampaignPlannerModule",
+        "CampaignStrategyModule",
+        "HistoryModule",
+        "MemoryModule",
+        "KnowledgeModule",
+        "AssetsModule",
+        "AssetImageModule",
+        "CopilotModule",
+        "RewriteModule",
+        "VersionsModule",
+        "AiModule",
+        "ImageModule"
+      ],
+      "controllers": [
+        "AppController"
+      ],
+      "providers": [
+        "AppService"
+      ],
+      "exports": []
+    },
+    "AssetImageModule": {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "imports": [
+        "BrandsModule",
+        "StorageModule"
+      ],
+      "controllers": [
+        "AssetImageController"
+      ],
+      "providers": [
+        "AssetImageService"
+      ],
+      "exports": [
+        "AssetImageService"
+      ]
+    },
+    "AssetsModule": {
+      "file": "apps/api/src/assets/assets.module.ts",
+      "imports": [
+        "BrandsModule"
+      ],
+      "controllers": [
+        "AssetsController"
+      ],
+      "providers": [
+        "AssetsService"
+      ],
+      "exports": [
+        "AssetsService"
+      ]
+    },
+    "AutomationModule": {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": [],
+      "controllers": [
+        "AutomationController"
+      ],
+      "providers": [
+        "AutomationSchedulerService",
+        "AutomationService",
+        "TelegramConnectorService",
+        "FacebookConnectorService",
+        "PublisherService"
+      ],
+      "exports": [
+        "AutomationService",
+        "TelegramConnectorService",
+        "FacebookConnectorService",
+        "PublisherService"
+      ]
+    },
+    "BrainModule": {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "imports": [],
+      "controllers": [],
+      "providers": [
+        "AtlasBrainService",
+        "IntentService",
+        "BrainContextService",
+        "PlannerService"
+      ],
+      "exports": [
+        "AtlasBrainService",
+        "IntentService",
+        "BrainContextService",
+        "PlannerService"
+      ]
+    },
+    "BrandsModule": {
+      "file": "apps/api/src/brands/brands.module.ts",
+      "imports": [],
+      "controllers": [
+        "BrandsController"
+      ],
+      "providers": [
+        "BrandsService"
+      ],
+      "exports": [
+        "BrandsService"
+      ]
+    },
+    "CampaignPlannerModule": {
+      "file": "apps/api/src/campaign-planner/campaign-planner.module.ts",
+      "imports": [],
+      "controllers": [
+        "CampaignPlannerController"
+      ],
+      "providers": [
+        "CampaignPlannerService"
+      ],
+      "exports": [
+        "CampaignPlannerService"
+      ]
+    },
+    "CampaignStrategyModule": {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "imports": [
+        "BrandsModule",
+        "MemoryModule"
+      ],
+      "controllers": [
+        "CampaignStrategyController"
+      ],
+      "providers": [
+        "CampaignStrategyService"
+      ],
+      "exports": [
+        "CampaignStrategyService"
+      ]
+    },
+    "CampaignsModule": {
+      "file": "apps/api/src/campaigns/campaigns.module.ts",
+      "imports": [
+        "BrandsModule"
+      ],
+      "controllers": [
+        "CampaignsController"
+      ],
+      "providers": [
+        "CampaignsService"
+      ],
+      "exports": [
+        "CampaignsService"
+      ]
+    },
+    "CommonModule": {
+      "file": "apps/api/src/common/common.module.ts",
+      "imports": [],
+      "controllers": [],
+      "providers": [
+        "DateTimeService"
+      ],
+      "exports": [
+        "DateTimeService"
+      ]
+    },
+    "ContentEngineModule": {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": [
+        "ContextModule",
+        "PromptBuilderModule",
+        "AiProviderModule",
+        "HistoryModule",
+        "ContentValidatorModule",
+        "ImagePromptEngineModule"
+      ],
+      "controllers": [
+        "ContentEngineController"
+      ],
+      "providers": [
+        "ContentEngineService"
+      ],
+      "exports": [
+        "ContentEngineService"
+      ]
+    },
+    "ContentValidatorModule": {
+      "file": "apps/api/src/content-validator/content-validator.module.ts",
+      "imports": [],
+      "controllers": [
+        "ContentValidatorController"
+      ],
+      "providers": [
+        "ContentValidatorService"
+      ],
+      "exports": [
+        "ContentValidatorService"
+      ]
+    },
+    "ContextModule": {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": [
+        "BrandsModule",
+        "MemoryModule",
+        "KnowledgeModule"
+      ],
+      "controllers": [
+        "ContextController"
+      ],
+      "providers": [
+        "ContextService"
+      ],
+      "exports": [
+        "ContextService"
+      ]
+    },
+    "CopilotModule": {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": [
+        "StorageModule",
+        "BrandsModule",
+        "StrategyModule",
+        "AiModule",
+        "KnowledgeModule",
+        "MemoryModule"
+      ],
+      "controllers": [
+        "CopilotController"
+      ],
+      "providers": [
+        "CopilotAttachmentService",
+        "CopilotService",
+        "MarketingPlannerService",
+        "ConversationMemoryService",
+        "PromptContextBuilder",
+        "PromptContextPipelineService"
+      ],
+      "exports": []
+    },
+    "DashboardModule": {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": [
+        "BrandsModule",
+        "MemoryModule",
+        "KnowledgeModule",
+        "HistoryModule",
+        "AiUsageModule"
+      ],
+      "controllers": [
+        "DashboardController"
+      ],
+      "providers": [
+        "DashboardService"
+      ],
+      "exports": []
+    },
+    "DatabaseModule": {
+      "file": "apps/api/src/database/database.module.ts",
+      "imports": [],
+      "controllers": [],
+      "providers": [
+        "PrismaService"
+      ],
+      "exports": [
+        "PrismaService"
+      ]
+    },
+    "HistoryModule": {
+      "file": "apps/api/src/history/history.module.ts",
+      "imports": [],
+      "controllers": [
+        "HistoryController"
+      ],
+      "providers": [
+        "HistoryService"
+      ],
+      "exports": [
+        "HistoryService"
+      ]
+    },
+    "ImageModule": {
+      "file": "apps/api/src/image/image.module.ts",
+      "imports": [],
+      "controllers": [
+        "ImageController"
+      ],
+      "providers": [
+        "ImageService"
+      ],
+      "exports": []
+    },
+    "ImagePromptEngineModule": {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.module.ts",
+      "imports": [],
+      "controllers": [
+        "ImagePromptEngineController"
+      ],
+      "providers": [
+        "ImagePromptEngineService"
+      ],
+      "exports": [
+        "ImagePromptEngineService"
+      ]
+    },
+    "KnowledgeModule": {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": [
+        "BrandsModule",
+        "StorageModule"
+      ],
+      "controllers": [
+        "KnowledgeController"
+      ],
+      "providers": [
+        "KnowledgeService",
+        "KnowledgeFileService",
+        "KnowledgeEmbeddingService",
+        "KnowledgeRetrievalService"
+      ],
+      "exports": [
+        "KnowledgeService",
+        "KnowledgeEmbeddingService",
+        "KnowledgeRetrievalService"
+      ]
+    },
+    "MemoryModule": {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": [
+        "BrandsModule"
+      ],
+      "controllers": [
+        "MemoryController"
+      ],
+      "providers": [
+        "MemoryService",
+        "MemoryFactsService",
+        "MemoryFactExtractorService"
+      ],
+      "exports": [
+        "MemoryService",
+        "MemoryFactsService",
+        "MemoryFactExtractorService"
+      ]
+    },
+    "PlannerModule": {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": [
+        "ContextModule",
+        "BrandsModule",
+        "MemoryModule",
+        "KnowledgeModule"
+      ],
+      "controllers": [
+        "PlannerController"
+      ],
+      "providers": [
+        "PlannerService"
+      ],
+      "exports": [
+        "PlannerService"
+      ]
+    },
+    "PromptBuilderModule": {
+      "file": "apps/api/src/prompt-builder/prompt-builder.module.ts",
+      "imports": [],
+      "controllers": [
+        "PromptBuilderController"
+      ],
+      "providers": [
+        "PromptBuilderService"
+      ],
+      "exports": [
+        "PromptBuilderService"
+      ]
+    },
+    "PromptChainModule": {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": [
+        "BrandsModule",
+        "MemoryModule",
+        "KnowledgeModule"
+      ],
+      "controllers": [
+        "PromptChainController"
+      ],
+      "providers": [
+        "PromptChainService",
+        "QueryUnderstandingService"
+      ],
+      "exports": [
+        "PromptChainService"
+      ]
+    },
+    "PromptsModule": {
+      "file": "apps/api/src/prompts/prompts.module.ts",
+      "imports": [
+        "BrandsModule"
+      ],
+      "controllers": [
+        "PromptsController"
+      ],
+      "providers": [
+        "PromptsService"
+      ],
+      "exports": [
+        "PromptsService"
+      ]
+    },
+    "RewriteModule": {
+      "file": "apps/api/src/rewrite/rewrite.module.ts",
+      "imports": [
+        "BrandsModule"
+      ],
+      "controllers": [
+        "RewriteController"
+      ],
+      "providers": [
+        "RewriteService"
+      ],
+      "exports": []
+    },
+    "StorageModule": {
+      "file": "apps/api/src/storage/storage.module.ts",
+      "imports": [],
+      "controllers": [],
+      "providers": [
+        "SupabaseStorageService"
+      ],
+      "exports": [
+        "SupabaseStorageService"
+      ]
+    },
+    "StrategyModule": {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": [],
+      "controllers": [
+        "StrategyController"
+      ],
+      "providers": [
+        "IntentEngine",
+        "GoalEngine",
+        "AudienceEngine",
+        "PillarEngine",
+        "KpiEngine",
+        "StrategyEngine",
+        "StrategyService"
+      ],
+      "exports": [
+        "StrategyEngine",
+        "StrategyService"
+      ]
+    },
+    "VersionsModule": {
+      "file": "apps/api/src/versions/versions.module.ts",
+      "imports": [],
+      "controllers": [
+        "VersionsController"
+      ],
+      "providers": [
+        "VersionsService"
+      ],
+      "exports": []
+    },
+    "WorkflowModule": {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "imports": [
+        "AutomationModule"
+      ],
+      "controllers": [
+        "WorkflowController"
+      ],
+      "providers": [
+        "WorkflowService",
+        "QueuePlannerService"
+      ],
+      "exports": [
+        "WorkflowService"
+      ]
+    }
+  },
+  "reverseDependencies": {
+    "AgentWorkflowService": [
+      "AgentWorkflowController"
+    ],
+    "AiProviderService": [
+      "AiProviderController",
+      "ContentEngineService"
+    ],
+    "AiService": [
+      "AiController"
+    ],
+    "AiUsageService": [
+      "AiUsageController",
+      "DashboardService"
+    ],
+    "AppService": [
+      "AppController"
+    ],
+    "AssetImageService": [
+      "AssetImageController"
+    ],
+    "AssetsService": [
+      "AssetsController"
+    ],
+    "AudienceEngine": [
+      "StrategyEngine"
+    ],
+    "AutomationService": [
+      "AutomationController",
+      "WorkflowService"
+    ],
+    "BrainContextService": [
+      "AtlasBrainService"
+    ],
+    "BrandsService": [
+      "AiService",
+      "AssetImageService",
+      "AssetsService",
+      "BrandsController",
+      "CampaignStrategyService",
+      "CampaignsService",
+      "ContextService",
+      "ConversationMemoryService",
+      "CopilotAttachmentService",
+      "CopilotService",
+      "DashboardService",
+      "KnowledgeEmbeddingService",
+      "KnowledgeFileService",
+      "KnowledgeService",
+      "MarketingPlannerService",
+      "MemoryFactExtractorService",
+      "MemoryFactsService",
+      "MemoryService",
+      "PromptChainService",
+      "PromptsService",
+      "RewriteService"
+    ],
+    "CampaignPlannerService": [
+      "CampaignPlannerController"
+    ],
+    "CampaignStrategyService": [
+      "CampaignStrategyController"
+    ],
+    "CampaignsService": [
+      "CampaignsController"
+    ],
+    "ConfigService": [
+      "AiService",
+      "AssetImageService",
+      "CampaignPlannerService",
+      "CampaignStrategyService",
+      "ContentGuardService",
+      "ContentReviewService",
+      "CopilotService",
+      "FacebookConnectorService",
+      "ImageService",
+      "KnowledgeEmbeddingService",
+      "MarketingPlannerService",
+      "OpenAiProvider",
+      "PrismaService",
+      "QueryUnderstandingService",
+      "RewriteService",
+      "SupabaseStorageService",
+      "TelegramConnectorService"
+    ],
+    "ContentEngineService": [
+      "ContentEngineController"
+    ],
+    "ContentQualityService": [
+      "AiService"
+    ],
+    "ContentValidatorService": [
+      "ContentEngineService",
+      "ContentValidatorController"
+    ],
+    "ContextService": [
+      "AiProviderController",
+      "ContentEngineService",
+      "PlannerService"
+    ],
+    "ConversationMemoryService": [
+      "CopilotController",
+      "CopilotService"
+    ],
+    "CopilotAttachmentService": [
+      "CopilotController"
+    ],
+    "CopilotService": [
+      "CopilotController"
+    ],
+    "DashboardService": [
+      "DashboardController"
+    ],
+    "FacebookConnectorService": [
+      "AutomationController",
+      "PublisherService"
+    ],
+    "GoalEngine": [
+      "StrategyEngine"
+    ],
+    "HistoryService": [
+      "AiProviderController",
+      "AiService",
+      "ContentEngineService",
+      "DashboardService",
+      "HistoryController"
+    ],
+    "ImagePromptEngineService": [
+      "ContentEngineService",
+      "ImagePromptEngineController"
+    ],
+    "ImageService": [
+      "ImageController"
+    ],
+    "IntentEngine": [
+      "StrategyEngine"
+    ],
+    "IntentService": [
+      "AtlasBrainService"
+    ],
+    "KnowledgeEmbeddingService": [
+      "KnowledgeController",
+      "KnowledgeRetrievalService",
+      "KnowledgeService",
+      "PromptChainService"
+    ],
+    "KnowledgeFileService": [
+      "KnowledgeController"
+    ],
+    "KnowledgeRetrievalService": [
+      "CopilotService"
+    ],
+    "KnowledgeService": [
+      "AiService",
+      "ContextService",
+      "DashboardService",
+      "KnowledgeController",
+      "KnowledgeFileService",
+      "MarketingPlannerService",
+      "PromptChainService"
+    ],
+    "KpiEngine": [
+      "StrategyEngine"
+    ],
+    "MarketingPlannerService": [
+      "CopilotController"
+    ],
+    "MemoryFactExtractorService": [
+      "ConversationMemoryService"
+    ],
+    "MemoryFactsService": [
+      "AiService",
+      "ContextService",
+      "CopilotService",
+      "DashboardService",
+      "MemoryController",
+      "PromptBuilderService"
+    ],
+    "MemoryService": [
+      "CampaignStrategyService",
+      "MemoryController",
+      "PromptChainService"
+    ],
+    "OpenAiProvider": [
+      "AiProviderService"
+    ],
+    "PillarEngine": [
+      "StrategyEngine"
+    ],
+    "PlannerService": [
+      "AtlasBrainService",
+      "PlannerController"
+    ],
+    "PrismaService": [
+      "AiService",
+      "AiUsageService",
+      "AssetImageService",
+      "AssetsService",
+      "AutomationService",
+      "BrandsService",
+      "CampaignPlannerService",
+      "CampaignStrategyService",
+      "CampaignsService",
+      "ConversationMemoryService",
+      "CopilotService",
+      "HistoryService",
+      "KnowledgeEmbeddingService",
+      "KnowledgeService",
+      "MarketingPlannerService",
+      "MemoryFactExtractorService",
+      "MemoryFactsService",
+      "MemoryService",
+      "PromptChainService",
+      "PromptsService",
+      "PublisherService",
+      "RewriteService",
+      "VersionsService"
+    ],
+    "PromptBuilderService": [
+      "AiProviderController",
+      "AiService",
+      "ContentEngineService",
+      "MarketingPlannerService"
+    ],
+    "PromptChainService": [
+      "AiService",
+      "PromptChainController"
+    ],
+    "PromptContextBuilder": [
+      "CopilotService"
+    ],
+    "PromptContextPipelineService": [
+      "CopilotService"
+    ],
+    "PromptsService": [
+      "PromptsController"
+    ],
+    "PublisherService": [
+      "AutomationSchedulerService",
+      "AutomationService"
+    ],
+    "QueryUnderstandingService": [
+      "PromptChainService"
+    ],
+    "QueuePlannerService": [
+      "WorkflowService"
+    ],
+    "RewriteService": [
+      "RewriteController"
+    ],
+    "StrategyEngine": [
+      "StrategyService"
+    ],
+    "StrategyService": [
+      "MarketingPlannerService",
+      "StrategyController"
+    ],
+    "SupabaseStorageService": [
+      "AssetImageService",
+      "CopilotAttachmentService",
+      "KnowledgeFileService"
+    ],
+    "TelegramConnectorService": [
+      "AutomationController",
+      "PublisherService"
+    ],
+    "VersionsService": [
+      "VersionsController"
+    ],
+    "WorkflowService": [
+      "WorkflowController"
+    ]
+  },
+  "unresolvedDependencies": [
+    "ConfigService"
+  ],
+  "statistics": {
+    "scannedFileCount": 157,
+    "classCount": 155,
+    "moduleCount": 34,
+    "constructorDependencyCount": 154,
+    "moduleReferenceCount": 213,
+    "unresolvedDependencyCount": 1
+  }
+}

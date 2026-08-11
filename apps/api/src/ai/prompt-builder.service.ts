@@ -56,14 +56,9 @@ type BuildMarketingPlanPromptInput = {
 
 @Injectable()
 export class PromptBuilderService {
-  constructor(
-    private readonly memoryFacts: MemoryFactsService,
-  ) {}
+  constructor(private readonly memoryFacts: MemoryFactsService) {}
 
-  build(
-    dto: GenerateContentDto,
-    brand: BrandWithWorkspace,
-  ): string {
+  build(dto: GenerateContentDto, brand: BrandWithWorkspace): string {
     return [
       'You are Atlas, an AI marketing strategist and content producer.',
       '',
@@ -112,10 +107,14 @@ export class PromptBuilderService {
       '1. Facebook: polished platform-ready post with a strong hook, natural body, one clear CTA and one discussion question.',
       '2. Telegram: shorter, conversational and easy to scan.',
       '3. Reels: an 18–25 second scene-by-scene script with hook, visual direction and ending question.',
-      '4. Image: a detailed English image-generation prompt following the brand visual system. No text or logos unless explicitly requested.',
-      '5. Analysis: concise strategy, four scores from 0–100, and a recommended Malaysia posting time.',
-      '6. Do not invent current trends, performance statistics or factual claims.',
-      '7. Keep all content lawful, responsible and suitable for adults.',
+      '4. Image: a detailed English image-generation prompt following the brand visual system.',
+      '5. Image generation rules:',
+      '- Focus on creative direction, storytelling, composition, lighting, mood and visual quality.',
+      '- Do not generate logos, QR codes, watermarks or footer text inside the image.',
+      '- Brand assets will be automatically applied by Atlas rendering system after image generation.',
+      '6. Analysis: concise strategy, four scores from 0–100, and a recommended Malaysia posting time.',
+      '7. Do not invent current trends, performance statistics or factual claims.',
+      '8. Keep all content lawful, responsible and suitable for adults.',
       '',
       'Return only valid JSON matching the supplied schema.',
     ].join('\n');
@@ -124,22 +123,16 @@ export class PromptBuilderService {
   async buildMarketingPlanPrompt(
     input: BuildMarketingPlanPromptInput,
   ): Promise<string> {
-    const {
-      brand,
-      campaign,
-      strategy,
-      knowledge,
-    } = input;
+    const { brand, campaign, strategy, knowledge } = input;
 
-    const confirmedMemory =
-      await this.memoryFacts
-        .confirmedPromptContext()
-        .catch(() =>
-          [
-            'ELENA CONFIRMED MEMORY',
-            '- Confirmed memory could not be loaded.',
-          ].join('\n'),
-        );
+    const confirmedMemory = await this.memoryFacts
+      .confirmedPromptContext()
+      .catch(() =>
+        [
+          'ELENA CONFIRMED MEMORY',
+          '- Confirmed memory could not be loaded.',
+        ].join('\n'),
+      );
 
     return [
       'You are Elena, the senior AI marketing strategist inside Atlas Marketing OS.',
@@ -148,19 +141,11 @@ export class PromptBuilderService {
       '================ BRAND BRAIN ================',
       `Brand name: ${this.text(brand.name)}`,
       `Country: ${this.text(brand.country)}`,
-      `Primary language: ${this.text(
-        brand.primaryLanguage,
-      )}`,
-      `Target audience: ${this.text(
-        brand.targetAudience,
-      )}`,
+      `Primary language: ${this.text(brand.primaryLanguage)}`,
+      `Target audience: ${this.text(brand.targetAudience)}`,
       `Brand voice: ${this.text(brand.brandVoice)}`,
-      `Visual style: ${this.text(
-        brand.visualStyle,
-      )}`,
-      `Content goals: ${this.text(
-        brand.contentGoals,
-      )}`,
+      `Visual style: ${this.text(brand.visualStyle)}`,
+      `Content goals: ${this.text(brand.contentGoals)}`,
       '',
       'Keywords:',
       this.unknownList(brand.keywords),
@@ -181,12 +166,8 @@ export class PromptBuilderService {
       campaign
         ? [
             `Campaign: ${campaign.name}`,
-            `Objective: ${
-              campaign.objective || 'Not set'
-            }`,
-            `Description: ${
-              campaign.description || 'Not set'
-            }`,
+            `Objective: ${campaign.objective || 'Not set'}`,
+            `Description: ${campaign.description || 'Not set'}`,
           ].join('\n')
         : 'No existing campaign was selected.',
       '',
@@ -194,15 +175,9 @@ export class PromptBuilderService {
       `Detected intent: ${strategy.intent}`,
       `Confidence: ${strategy.confidence}`,
       `Primary goal: ${strategy.goal}`,
-      `Recommended audiences: ${strategy.audience.join(
-        ', ',
-      )}`,
-      `Recommended pillars: ${strategy.pillars.join(
-        ', ',
-      )}`,
-      `Recommended KPIs: ${strategy.kpis.join(
-        ', ',
-      )}`,
+      `Recommended audiences: ${strategy.audience.join(', ')}`,
+      `Recommended pillars: ${strategy.pillars.join(', ')}`,
+      `Recommended KPIs: ${strategy.kpis.join(', ')}`,
       '',
       'Decision notes:',
       this.list(strategy.reasoning),
@@ -249,10 +224,7 @@ export class PromptBuilderService {
     ].join('\n');
   }
 
-  preview(
-    dto: GenerateContentDto,
-    brand: BrandWithWorkspace,
-  ) {
+  preview(dto: GenerateContentDto, brand: BrandWithWorkspace) {
     return {
       brandId: brand.id,
       brandName: brand.name,
@@ -272,9 +244,7 @@ export class PromptBuilderService {
     };
   }
 
-  private knowledgeContext(
-    knowledge: RelevantKnowledge[],
-  ) {
+  private knowledgeContext(knowledge: RelevantKnowledge[]) {
     if (!knowledge.length) {
       return 'No directly relevant Knowledge Library documents were found.';
     }
@@ -291,10 +261,7 @@ export class PromptBuilderService {
           `Knowledge ${index + 1}`,
           `Title: ${item.document.title}`,
           `Category: ${item.document.category}`,
-          `Tags: ${
-            item.document.tags.join(', ') ||
-            'None'
-          }`,
+          `Tags: ${item.document.tags.join(', ') || 'None'}`,
           `Content: ${content}`,
         ].join('\n');
       })
@@ -302,11 +269,7 @@ export class PromptBuilderService {
   }
 
   private text(value: unknown) {
-    if (
-      value === null ||
-      value === undefined ||
-      value === ''
-    ) {
+    if (value === null || value === undefined || value === '') {
       return 'Not configured';
     }
 
@@ -318,11 +281,7 @@ export class PromptBuilderService {
       return '- None configured';
     }
 
-    return this.list(
-      value
-        .map((item) => String(item).trim())
-        .filter(Boolean),
-    );
+    return this.list(value.map((item) => String(item).trim()).filter(Boolean));
   }
 
   private list(items: string[]) {

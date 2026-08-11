@@ -62,3 +62,7 @@ apps/api/storage/
 .asset-*backup*
 .assets-*backup*
 apps/browser-worker/.browser-profiles/
+
+.chunked-*
+*.backup*
+*.bak*

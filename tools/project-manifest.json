@@ -1,0 +1,2747 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T02:44:23.142591+00:00",
+  "repository": {
+    "name": "atlas-marketing-os",
+    "root": "/Users/ysloh/Downloads/atlas-marketing-os",
+    "packageManager": "npm"
+  },
+  "frameworks": {
+    "api": "NestJS",
+    "web": "Next.js"
+  },
+  "commands": {
+    "buildApi": [
+      "npm",
+      "--prefix",
+      "apps/api",
+      "run",
+      "build"
+    ],
+    "rootScripts": {
+      "dev:web": "npm run dev --workspace apps/web",
+      "dev:api": "npm run start:dev --workspace apps/api",
+      "build": "npm run build --workspaces --if-present"
+    }
+  },
+  "workspaces": [
+    {
+      "name": "api",
+      "path": "apps/api",
+      "scripts": {
+        "build": "nest build",
+        "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+        "start": "nest start",
+        "start:dev": "nest start --watch",
+        "start:debug": "nest start --debug --watch",
+        "start:prod": "node dist/src/main.js",
+        "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:cov": "jest --coverage",
+        "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+        "test:e2e": "jest --config ./test/jest-e2e.json"
+      }
+    },
+    {
+      "name": "web",
+      "path": "apps/web",
+      "scripts": {
+        "dev": "next dev --webpack",
+        "build": "next build --webpack",
+        "start": "next start",
+        "lint": "eslint"
+      }
+    }
+  ],
+  "architecture": {
+    "modules": [
+      {
+        "name": "AgentWorkflowModule",
+        "type": "module",
+        "file": "apps/api/src/agent-workflow/agent-workflow.module.ts"
+      },
+      {
+        "name": "AiModule",
+        "type": "module",
+        "file": "apps/api/src/ai/ai.module.ts"
+      },
+      {
+        "name": "AiProviderModule",
+        "type": "module",
+        "file": "apps/api/src/ai-provider/ai-provider.module.ts"
+      },
+      {
+        "name": "AiUsageModule",
+        "type": "module",
+        "file": "apps/api/src/ai-usage/ai-usage.module.ts"
+      },
+      {
+        "name": "AppModule",
+        "type": "module",
+        "file": "apps/api/src/app.module.ts"
+      },
+      {
+        "name": "AssetImageModule",
+        "type": "module",
+        "file": "apps/api/src/asset-image/asset-image.module.ts"
+      },
+      {
+        "name": "AssetsModule",
+        "type": "module",
+        "file": "apps/api/src/assets/assets.module.ts"
+      },
+      {
+        "name": "AutomationModule",
+        "type": "module",
+        "file": "apps/api/src/automation/automation.module.ts"
+      },
+      {
+        "name": "BrainModule",
+        "type": "module",
+        "file": "apps/api/src/brain/brain.module.ts"
+      },
+      {
+        "name": "BrandsModule",
+        "type": "module",
+        "file": "apps/api/src/brands/brands.module.ts"
+      },
+      {
+        "name": "CampaignPlannerModule",
+        "type": "module",
+        "file": "apps/api/src/campaign-planner/campaign-planner.module.ts"
+      },
+      {
+        "name": "CampaignStrategyModule",
+        "type": "module",
+        "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts"
+      },
+      {
+        "name": "CampaignsModule",
+        "type": "module",
+        "file": "apps/api/src/campaigns/campaigns.module.ts"
+      },
+      {
+        "name": "CommonModule",
+        "type": "module",
+        "file": "apps/api/src/common/common.module.ts"
+      },
+      {
+        "name": "ContentEngineModule",
+        "type": "module",
+        "file": "apps/api/src/content-engine/content-engine.module.ts"
+      },
+      {
+        "name": "ContentValidatorModule",
+        "type": "module",
+        "file": "apps/api/src/content-validator/content-validator.module.ts"
+      },
+      {
+        "name": "ContextModule",
+        "type": "module",
+        "file": "apps/api/src/context/context.module.ts"
+      },
+      {
+        "name": "CopilotModule",
+        "type": "module",
+        "file": "apps/api/src/copilot/copilot.module.ts"
+      },
+      {
+        "name": "DashboardModule",
+        "type": "module",
+        "file": "apps/api/src/dashboard/dashboard.module.ts"
+      },
+      {
+        "name": "DatabaseModule",
+        "type": "module",
+        "file": "apps/api/src/database/database.module.ts"
+      },
+      {
+        "name": "HistoryModule",
+        "type": "module",
+        "file": "apps/api/src/history/history.module.ts"
+      },
+      {
+        "name": "ImageModule",
+        "type": "module",
+        "file": "apps/api/src/image/image.module.ts"
+      },
+      {
+        "name": "ImagePromptEngineModule",
+        "type": "module",
+        "file": "apps/api/src/image-prompt-engine/image-prompt-engine.module.ts"
+      },
+      {
+        "name": "KnowledgeModule",
+        "type": "module",
+        "file": "apps/api/src/knowledge/knowledge.module.ts"
+      },
+      {
+        "name": "MemoryModule",
+        "type": "module",
+        "file": "apps/api/src/memory/memory.module.ts"
+      },
+      {
+        "name": "PlannerModule",
+        "type": "module",
+        "file": "apps/api/src/planner/planner.module.ts"
+      },
+      {
+        "name": "PromptBuilderModule",
+        "type": "module",
+        "file": "apps/api/src/prompt-builder/prompt-builder.module.ts"
+      },
+      {
+        "name": "PromptChainModule",
+        "type": "module",
+        "file": "apps/api/src/prompt-chain/prompt-chain.module.ts"
+      },
+      {
+        "name": "PromptsModule",
+        "type": "module",
+        "file": "apps/api/src/prompts/prompts.module.ts"
+      },
+      {
+        "name": "RewriteModule",
+        "type": "module",
+        "file": "apps/api/src/rewrite/rewrite.module.ts"
+      },
+      {
+        "name": "StorageModule",
+        "type": "module",
+        "file": "apps/api/src/storage/storage.module.ts"
+      },
+      {
+        "name": "StrategyModule",
+        "type": "module",
+        "file": "apps/api/src/strategy/strategy.module.ts"
+      },
+      {
+        "name": "VersionsModule",
+        "type": "module",
+        "file": "apps/api/src/versions/versions.module.ts"
+      },
+      {
+        "name": "WorkflowModule",
+        "type": "module",
+        "file": "apps/api/src/workflow/workflow.module.ts"
+      }
+    ],
+    "controllers": [
+      {
+        "name": "AgentWorkflowController",
+        "type": "controller",
+        "file": "apps/api/src/agent-workflow/agent-workflow.controller.ts"
+      },
+      {
+        "name": "AiController",
+        "type": "controller",
+        "file": "apps/api/src/ai/ai.controller.ts"
+      },
+      {
+        "name": "AiProviderController",
+        "type": "controller",
+        "file": "apps/api/src/ai-provider/ai-provider.controller.ts"
+      },
+      {
+        "name": "AiUsageController",
+        "type": "controller",
+        "file": "apps/api/src/ai-usage/ai-usage.controller.ts"
+      },
+      {
+        "name": "AppController",
+        "type": "controller",
+        "file": "apps/api/src/app.controller.ts"
+      },
+      {
+        "name": "AssetImageController",
+        "type": "controller",
+        "file": "apps/api/src/asset-image/asset-image.controller.ts"
+      },
+      {
+        "name": "AssetsController",
+        "type": "controller",
+        "file": "apps/api/src/assets/assets.controller.ts"
+      },
+      {
+        "name": "AutomationController",
+        "type": "controller",
+        "file": "apps/api/src/automation/automation.controller.ts"
+      },
+      {
+        "name": "BrandsController",
+        "type": "controller",
+        "file": "apps/api/src/brands/brands.controller.ts"
+      },
+      {
+        "name": "CampaignPlannerController",
+        "type": "controller",
+        "file": "apps/api/src/campaign-planner/campaign-planner.controller.ts"
+      },
+      {
+        "name": "CampaignStrategyController",
+        "type": "controller",
+        "file": "apps/api/src/campaign-strategy/campaign-strategy.controller.ts"
+      },
+      {
+        "name": "CampaignsController",
+        "type": "controller",
+        "file": "apps/api/src/campaigns/campaigns.controller.ts"
+      },
+      {
+        "name": "ContentEngineController",
+        "type": "controller",
+        "file": "apps/api/src/content-engine/content-engine.controller.ts"
+      },
+      {
+        "name": "ContentValidatorController",
+        "type": "controller",
+        "file": "apps/api/src/content-validator/content-validator.controller.ts"
+      },
+      {
+        "name": "ContextController",
+        "type": "controller",
+        "file": "apps/api/src/context/context.controller.ts"
+      },
+      {
+        "name": "CopilotController",
+        "type": "controller",
+        "file": "apps/api/src/copilot/copilot.controller.ts"
+      },
+      {
+        "name": "DashboardController",
+        "type": "controller",
+        "file": "apps/api/src/dashboard/dashboard.controller.ts"
+      },
+      {
+        "name": "HistoryController",
+        "type": "controller",
+        "file": "apps/api/src/history/history.controller.ts"
+      },
+      {
+        "name": "ImageController",
+        "type": "controller",
+        "file": "apps/api/src/image/image.controller.ts"
+      },
+      {
+        "name": "ImagePromptEngineController",
+        "type": "controller",
+        "file": "apps/api/src/image-prompt-engine/image-prompt-engine.controller.ts"
+      },
+      {
+        "name": "KnowledgeController",
+        "type": "controller",
+        "file": "apps/api/src/knowledge/knowledge.controller.ts"
+      },
+      {
+        "name": "MemoryController",
+        "type": "controller",
+        "file": "apps/api/src/memory/memory.controller.ts"
+      },
+      {
+        "name": "PlannerController",
+        "type": "controller",
+        "file": "apps/api/src/planner/planner.controller.ts"
+      },
+      {
+        "name": "PromptBuilderController",
+        "type": "controller",
+        "file": "apps/api/src/prompt-builder/prompt-builder.controller.ts"
+      },
+      {
+        "name": "PromptChainController",
+        "type": "controller",
+        "file": "apps/api/src/prompt-chain/prompt-chain.controller.ts"
+      },
+      {
+        "name": "PromptsController",
+        "type": "controller",
+        "file": "apps/api/src/prompts/prompts.controller.ts"
+      },
+      {
+        "name": "RewriteController",
+        "type": "controller",
+        "file": "apps/api/src/rewrite/rewrite.controller.ts"
+      },
+      {
+        "name": "StrategyController",
+        "type": "controller",
+        "file": "apps/api/src/strategy/strategy.controller.ts"
+      },
+      {
+        "name": "VersionsController",
+        "type": "controller",
+        "file": "apps/api/src/versions/versions.controller.ts"
+      },
+      {
+        "name": "WorkflowController",
+        "type": "controller",
+        "file": "apps/api/src/workflow/workflow.controller.ts"
+      }
+    ],
+    "services": [
+      {
+        "name": "AgentWorkflowService",
+        "type": "service",
+        "file": "apps/api/src/agent-workflow/agent-workflow.service.ts"
+      },
+      {
+        "name": "AiService",
+        "type": "service",
+        "file": "apps/api/src/ai/ai.service.ts"
+      },
+      {
+        "name": "ContentGuardService",
+        "type": "service",
+        "file": "apps/api/src/ai/content-guard.service.ts"
+      },
+      {
+        "name": "ContentQualityService",
+        "type": "service",
+        "file": "apps/api/src/ai/content-quality.service.ts"
+      },
+      {
+        "name": "ContentReviewService",
+        "type": "service",
+        "file": "apps/api/src/ai/content-review.service.ts"
+      },
+      {
+        "name": "PromptBuilderService",
+        "type": "service",
+        "file": "apps/api/src/ai/prompt-builder.service.ts"
+      },
+      {
+        "name": "AiProviderService",
+        "type": "service",
+        "file": "apps/api/src/ai-provider/ai-provider.service.ts"
+      },
+      {
+        "name": "AiUsageService",
+        "type": "service",
+        "file": "apps/api/src/ai-usage/ai-usage.service.ts"
+      },
+      {
+        "name": "AppService",
+        "type": "service",
+        "file": "apps/api/src/app.service.ts"
+      },
+      {
+        "name": "AssetImageService",
+        "type": "service",
+        "file": "apps/api/src/asset-image/asset-image.service.ts"
+      },
+      {
+        "name": "AssetsService",
+        "type": "service",
+        "file": "apps/api/src/assets/assets.service.ts"
+      },
+      {
+        "name": "AutomationSchedulerService",
+        "type": "service",
+        "file": "apps/api/src/automation/automation-scheduler.service.ts"
+      },
+      {
+        "name": "AutomationService",
+        "type": "service",
+        "file": "apps/api/src/automation/automation.service.ts"
+      },
+      {
+        "name": "FacebookConnectorService",
+        "type": "service",
+        "file": "apps/api/src/automation/facebook-connector.service.ts"
+      },
+      {
+        "name": "PublisherService",
+        "type": "service",
+        "file": "apps/api/src/automation/publisher.service.ts"
+      },
+      {
+        "name": "TelegramConnectorService",
+        "type": "service",
+        "file": "apps/api/src/automation/telegram-connector.service.ts"
+      },
+      {
+        "name": "AtlasBrainService",
+        "type": "service",
+        "file": "apps/api/src/brain/atlas-brain.service.ts"
+      },
+      {
+        "name": "BrainContextService",
+        "type": "service",
+        "file": "apps/api/src/brain/context.service.ts"
+      },
+      {
+        "name": "IntentService",
+        "type": "service",
+        "file": "apps/api/src/brain/intent.service.ts"
+      },
+      {
+        "name": "PlannerService",
+        "type": "service",
+        "file": "apps/api/src/brain/planner.service.ts"
+      },
+      {
+        "name": "BrandsService",
+        "type": "service",
+        "file": "apps/api/src/brands/brands.service.ts"
+      },
+      {
+        "name": "CampaignPlannerService",
+        "type": "service",
+        "file": "apps/api/src/campaign-planner/campaign-planner.service.ts"
+      },
+      {
+        "name": "CampaignStrategyService",
+        "type": "service",
+        "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts"
+      },
+      {
+        "name": "CampaignsService",
+        "type": "service",
+        "file": "apps/api/src/campaigns/campaigns.service.ts"
+      },
+      {
+        "name": "DateTimeService",
+        "type": "service",
+        "file": "apps/api/src/common/datetime.service.ts"
+      },
+      {
+        "name": "ContentEngineService",
+        "type": "service",
+        "file": "apps/api/src/content-engine/content-engine.service.ts"
+      },
+      {
+        "name": "ContentValidatorService",
+        "type": "service",
+        "file": "apps/api/src/content-validator/content-validator.service.ts"
+      },
+      {
+        "name": "ContextService",
+        "type": "service",
+        "file": "apps/api/src/context/context.service.ts"
+      },
+      {
+        "name": "ConversationMemoryService",
+        "type": "service",
+        "file": "apps/api/src/copilot/conversation-memory.service.ts"
+      },
+      {
+        "name": "CopilotAttachmentService",
+        "type": "service",
+        "file": "apps/api/src/copilot/copilot-attachment.service.ts"
+      },
+      {
+        "name": "CopilotService",
+        "type": "service",
+        "file": "apps/api/src/copilot/copilot.service.ts"
+      },
+      {
+        "name": "MarketingPlannerService",
+        "type": "service",
+        "file": "apps/api/src/copilot/marketing-planner.service.ts"
+      },
+      {
+        "name": "PromptContextPipelineService",
+        "type": "service",
+        "file": "apps/api/src/copilot/prompt/prompt-context-pipeline.service.ts"
+      },
+      {
+        "name": "DashboardService",
+        "type": "service",
+        "file": "apps/api/src/dashboard/dashboard.service.ts"
+      },
+      {
+        "name": "PrismaService",
+        "type": "service",
+        "file": "apps/api/src/database/prisma.service.ts"
+      },
+      {
+        "name": "HistoryService",
+        "type": "service",
+        "file": "apps/api/src/history/history.service.ts"
+      },
+      {
+        "name": "ImageService",
+        "type": "service",
+        "file": "apps/api/src/image/image.service.ts"
+      },
+      {
+        "name": "ImagePromptEngineService",
+        "type": "service",
+        "file": "apps/api/src/image-prompt-engine/image-prompt-engine.service.ts"
+      },
+      {
+        "name": "KnowledgeEmbeddingService",
+        "type": "service",
+        "file": "apps/api/src/knowledge/knowledge-embedding.service.ts"
+      },
+      {
+        "name": "KnowledgeFileService",
+        "type": "service",
+        "file": "apps/api/src/knowledge/knowledge-file.service.ts"
+      },
+      {
+        "name": "KnowledgeRetrievalService",
+        "type": "service",
+        "file": "apps/api/src/knowledge/knowledge-retrieval.service.ts"
+      },
+      {
+        "name": "KnowledgeService",
+        "type": "service",
+        "file": "apps/api/src/knowledge/knowledge.service.ts"
+      },
+      {
+        "name": "MemoryFactExtractorService",
+        "type": "service",
+        "file": "apps/api/src/memory/memory-fact-extractor.service.ts"
+      },
+      {
+        "name": "MemoryFactsService",
+        "type": "service",
+        "file": "apps/api/src/memory/memory-facts.service.ts"
+      },
+      {
+        "name": "MemoryService",
+        "type": "service",
+        "file": "apps/api/src/memory/memory.service.ts"
+      },
+      {
+        "name": "PlannerService",
+        "type": "service",
+        "file": "apps/api/src/planner/planner.service.ts"
+      },
+      {
+        "name": "PromptBuilderService",
+        "type": "service",
+        "file": "apps/api/src/prompt-builder/prompt-builder.service.ts"
+      },
+      {
+        "name": "PromptChainService",
+        "type": "service",
+        "file": "apps/api/src/prompt-chain/prompt-chain.service.ts"
+      },
+      {
+        "name": "QueryUnderstandingService",
+        "type": "service",
+        "file": "apps/api/src/prompt-chain/query-understanding.service.ts"
+      },
+      {
+        "name": "PromptsService",
+        "type": "service",
+        "file": "apps/api/src/prompts/prompts.service.ts"
+      },
+      {
+        "name": "RewriteService",
+        "type": "service",
+        "file": "apps/api/src/rewrite/rewrite.service.ts"
+      },
+      {
+        "name": "SupabaseStorageService",
+        "type": "service",
+        "file": "apps/api/src/storage/supabase-storage.service.ts"
+      },
+      {
+        "name": "StrategyService",
+        "type": "service",
+        "file": "apps/api/src/strategy/strategy.service.ts"
+      },
+      {
+        "name": "VersionsService",
+        "type": "service",
+        "file": "apps/api/src/versions/versions.service.ts"
+      },
+      {
+        "name": "QueuePlannerService",
+        "type": "service",
+        "file": "apps/api/src/workflow/queue-planner.service.ts"
+      },
+      {
+        "name": "WorkflowService",
+        "type": "service",
+        "file": "apps/api/src/workflow/workflow.service.ts"
+      }
+    ],
+    "guards": [],
+    "gateways": []
+  },
+  "capabilities": {
+    "brain": true,
+    "copilot": true,
+    "promptPipeline": true,
+    "knowledge": true,
+    "memory": true,
+    "automation": true,
+    "publishing": true
+  },
+  "dependencyHints": [
+    {
+      "file": "apps/api/src/agent-workflow/agent-workflow.controller.ts",
+      "imports": "./agent-workflow.service"
+    },
+    {
+      "file": "apps/api/src/agent-workflow/agent-workflow.module.ts",
+      "imports": "./agent-workflow.controller"
+    },
+    {
+      "file": "apps/api/src/agent-workflow/agent-workflow.module.ts",
+      "imports": "./agent-workflow.service"
+    },
+    {
+      "file": "apps/api/src/agent-workflow/agent-workflow.service.ts",
+      "imports": "./agent-workflow.types"
+    },
+    {
+      "file": "apps/api/src/ai/ai.controller.ts",
+      "imports": "./ai.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.controller.ts",
+      "imports": "./dto/generate-content.dto"
+    },
+    {
+      "file": "apps/api/src/ai/ai.controller.ts",
+      "imports": "./dto/topic-suggestions.dto"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "../history/history.module"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "../prompt-chain/prompt-chain.module"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "./ai.controller"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "./ai.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "./prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.module.ts",
+      "imports": "./content-quality.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../history/history.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../knowledge/knowledge.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../memory/memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "../prompt-chain/prompt-chain.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "./dto/generate-content.dto"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "./dto/topic-suggestions.dto"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "./prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/ai/ai.service.ts",
+      "imports": "./content-quality.service"
+    },
+    {
+      "file": "apps/api/src/ai/content-guard.service.ts",
+      "imports": "./content-review.service"
+    },
+    {
+      "file": "apps/api/src/ai/prompt-builder.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/ai/prompt-builder.service.ts",
+      "imports": "../strategy/types/strategy"
+    },
+    {
+      "file": "apps/api/src/ai/prompt-builder.service.ts",
+      "imports": "../memory/memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/ai/prompt-builder.service.ts",
+      "imports": "./dto/generate-content.dto"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "imports": "../context/context.service"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "imports": "../history/history.service"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "imports": "../prompt-builder/prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "imports": "../prompt-builder/prompt-builder.types"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.controller.ts",
+      "imports": "./ai-provider.service"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "../context/context.module"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "../prompt-builder/prompt-builder.module"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "../history/history.module"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "./ai-provider.service"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "./ai-provider.controller"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.module.ts",
+      "imports": "./openai.provider"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.service.ts",
+      "imports": "./openai.provider"
+    },
+    {
+      "file": "apps/api/src/ai-provider/ai-provider.service.ts",
+      "imports": "./ai-provider.types"
+    },
+    {
+      "file": "apps/api/src/ai-provider/openai.provider.ts",
+      "imports": "./ai-provider.types"
+    },
+    {
+      "file": "apps/api/src/ai-usage/ai-usage.controller.ts",
+      "imports": "./ai-usage.service"
+    },
+    {
+      "file": "apps/api/src/ai-usage/ai-usage.module.ts",
+      "imports": "./ai-usage.controller"
+    },
+    {
+      "file": "apps/api/src/ai-usage/ai-usage.module.ts",
+      "imports": "./ai-usage.service"
+    },
+    {
+      "file": "apps/api/src/ai-usage/ai-usage.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/app.controller.spec.ts",
+      "imports": "./app.controller"
+    },
+    {
+      "file": "apps/api/src/app.controller.spec.ts",
+      "imports": "./app.service"
+    },
+    {
+      "file": "apps/api/src/app.controller.ts",
+      "imports": "./app.service"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./ai/ai.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./dashboard/dashboard.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./app.controller"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./app.service"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./asset-image/asset-image.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./assets/assets.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./campaign-planner/campaign-planner.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./campaigns/campaigns.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./campaign-strategy/campaign-strategy.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./copilot/copilot.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./database/database.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./common/common.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./history/history.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./image/image.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./rewrite/rewrite.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./versions/versions.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./ai-usage/ai-usage.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./automation/automation.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./workflow/workflow.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./prompt-chain/prompt-chain.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./strategy/strategy.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./prompts/prompts.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./planner/planner.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./prompt-builder/prompt-builder.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./ai-provider/ai-provider.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./content-engine/content-engine.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./content-validator/content-validator.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./image-prompt-engine/image-prompt-engine.module"
+    },
+    {
+      "file": "apps/api/src/app.module.ts",
+      "imports": "./agent-workflow/agent-workflow.module"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.controller.ts",
+      "imports": "./asset-image.service"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.controller.ts",
+      "imports": "./dto/generate-asset-image.dto"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "imports": "../storage/storage.module"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "imports": "./asset-image.controller"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.module.ts",
+      "imports": "./asset-image.service"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.service.ts",
+      "imports": "../storage/supabase-storage.service"
+    },
+    {
+      "file": "apps/api/src/asset-image/asset-image.service.ts",
+      "imports": "./dto/generate-asset-image.dto"
+    },
+    {
+      "file": "apps/api/src/assets/assets.controller.ts",
+      "imports": "./assets.service"
+    },
+    {
+      "file": "apps/api/src/assets/assets.controller.ts",
+      "imports": "./dto/create-asset.dto"
+    },
+    {
+      "file": "apps/api/src/assets/assets.controller.ts",
+      "imports": "./dto/update-asset.dto"
+    },
+    {
+      "file": "apps/api/src/assets/assets.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/assets/assets.module.ts",
+      "imports": "./assets.controller"
+    },
+    {
+      "file": "apps/api/src/assets/assets.module.ts",
+      "imports": "./assets.service"
+    },
+    {
+      "file": "apps/api/src/assets/assets.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/assets/assets.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/assets/assets.service.ts",
+      "imports": "./dto/create-asset.dto"
+    },
+    {
+      "file": "apps/api/src/assets/assets.service.ts",
+      "imports": "./dto/update-asset.dto"
+    },
+    {
+      "file": "apps/api/src/assets/dto/create-asset.dto.ts",
+      "imports": "../../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/assets/dto/update-asset.dto.ts",
+      "imports": "./create-asset.dto"
+    },
+    {
+      "file": "apps/api/src/automation/automation-scheduler.service.ts",
+      "imports": "./publisher.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.controller.ts",
+      "imports": "../generated/prisma/enums"
+    },
+    {
+      "file": "apps/api/src/automation/automation.controller.ts",
+      "imports": "./automation.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.controller.ts",
+      "imports": "./telegram-connector.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.controller.ts",
+      "imports": "./facebook-connector.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./automation.controller"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./automation.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./telegram-connector.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./facebook-connector.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./publisher.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.module.ts",
+      "imports": "./automation-scheduler.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.service.ts",
+      "imports": "../generated/prisma/enums"
+    },
+    {
+      "file": "apps/api/src/automation/automation.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/automation/automation.service.ts",
+      "imports": "./publisher.service"
+    },
+    {
+      "file": "apps/api/src/automation/publisher.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/automation/publisher.service.ts",
+      "imports": "../generated/prisma/enums"
+    },
+    {
+      "file": "apps/api/src/automation/publisher.service.ts",
+      "imports": "./facebook-connector.service"
+    },
+    {
+      "file": "apps/api/src/automation/publisher.service.ts",
+      "imports": "./telegram-connector.service"
+    },
+    {
+      "file": "apps/api/src/brain/atlas-brain.service.ts",
+      "imports": "./context.service"
+    },
+    {
+      "file": "apps/api/src/brain/atlas-brain.service.ts",
+      "imports": "./intent.service"
+    },
+    {
+      "file": "apps/api/src/brain/atlas-brain.service.ts",
+      "imports": "./planner.service"
+    },
+    {
+      "file": "apps/api/src/brain/atlas-brain.service.ts",
+      "imports": "./brain.types"
+    },
+    {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "imports": "./atlas-brain.service"
+    },
+    {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "imports": "./context.service"
+    },
+    {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "imports": "./intent.service"
+    },
+    {
+      "file": "apps/api/src/brain/brain.module.ts",
+      "imports": "./planner.service"
+    },
+    {
+      "file": "apps/api/src/brain/context.service.ts",
+      "imports": "./brain.types"
+    },
+    {
+      "file": "apps/api/src/brain/intent.service.ts",
+      "imports": "./brain.types"
+    },
+    {
+      "file": "apps/api/src/brain/planner.service.ts",
+      "imports": "./brain.types"
+    },
+    {
+      "file": "apps/api/src/brands/brands.controller.ts",
+      "imports": "./brands.service"
+    },
+    {
+      "file": "apps/api/src/brands/brands.controller.ts",
+      "imports": "./dto/create-brand.dto"
+    },
+    {
+      "file": "apps/api/src/brands/brands.controller.ts",
+      "imports": "./dto/update-brand.dto"
+    },
+    {
+      "file": "apps/api/src/brands/brands.module.ts",
+      "imports": "./brands.controller"
+    },
+    {
+      "file": "apps/api/src/brands/brands.module.ts",
+      "imports": "./brands.service"
+    },
+    {
+      "file": "apps/api/src/brands/brands.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/brands/brands.service.ts",
+      "imports": "./dto/create-brand.dto"
+    },
+    {
+      "file": "apps/api/src/brands/brands.service.ts",
+      "imports": "./dto/update-brand.dto"
+    },
+    {
+      "file": "apps/api/src/brands/dto/update-brand.dto.ts",
+      "imports": "./create-brand.dto"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.controller.ts",
+      "imports": "./campaign-planner.service"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.controller.ts",
+      "imports": "./dto/generate-campaign-plan.dto"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.module.ts",
+      "imports": "./campaign-planner.controller"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.module.ts",
+      "imports": "./campaign-planner.service"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/campaign-planner/campaign-planner.service.ts",
+      "imports": "./dto/generate-campaign-plan.dto"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.controller.ts",
+      "imports": "./campaign-strategy.service"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.controller.ts",
+      "imports": "./dto/generate-campaign-strategy.dto"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "imports": "./campaign-strategy.controller"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.module.ts",
+      "imports": "./campaign-strategy.service"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts",
+      "imports": "../memory/memory.service"
+    },
+    {
+      "file": "apps/api/src/campaign-strategy/campaign-strategy.service.ts",
+      "imports": "./dto/generate-campaign-strategy.dto"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.controller.spec.ts",
+      "imports": "./campaigns.controller"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.controller.spec.ts",
+      "imports": "./campaigns.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.controller.ts",
+      "imports": "./campaigns.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.controller.ts",
+      "imports": "./dto/create-campaign.dto"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.controller.ts",
+      "imports": "./dto/update-campaign.dto"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.module.ts",
+      "imports": "./campaigns.controller"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.module.ts",
+      "imports": "./campaigns.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.service.spec.ts",
+      "imports": "./campaigns.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.service.ts",
+      "imports": "./dto/create-campaign.dto"
+    },
+    {
+      "file": "apps/api/src/campaigns/campaigns.service.ts",
+      "imports": "./dto/update-campaign.dto"
+    },
+    {
+      "file": "apps/api/src/campaigns/dto/create-campaign.dto.ts",
+      "imports": "../../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/campaigns/dto/update-campaign.dto.ts",
+      "imports": "./create-campaign.dto"
+    },
+    {
+      "file": "apps/api/src/common/common.module.ts",
+      "imports": "./datetime.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.controller.ts",
+      "imports": "./content-engine.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.controller.ts",
+      "imports": "./content-engine.types"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../context/context.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../prompt-builder/prompt-builder.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../ai-provider/ai-provider.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../history/history.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../content-validator/content-validator.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "../image-prompt-engine/image-prompt-engine.module"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "./content-engine.controller"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.module.ts",
+      "imports": "./content-engine.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../ai-provider/ai-provider.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../context/context.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../content-validator/content-validator.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../history/history.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../image-prompt-engine/image-prompt-engine.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../prompt-builder/prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "../prompt-builder/prompt-builder.types"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.service.ts",
+      "imports": "./content-engine.types"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.types.ts",
+      "imports": "../prompt-builder/prompt-builder.types"
+    },
+    {
+      "file": "apps/api/src/content-engine/content-engine.types.ts",
+      "imports": "../content-validator/content-validator.types"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.controller.ts",
+      "imports": "./content-validator.service"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.module.ts",
+      "imports": "./content-validator.controller"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.module.ts",
+      "imports": "./content-validator.service"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.service.ts",
+      "imports": "../context/context.types"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.service.ts",
+      "imports": "../prompt-builder/prompt-builder.types"
+    },
+    {
+      "file": "apps/api/src/content-validator/content-validator.service.ts",
+      "imports": "./content-validator.types"
+    },
+    {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": "./context.controller"
+    },
+    {
+      "file": "apps/api/src/context/context.module.ts",
+      "imports": "./context.service"
+    },
+    {
+      "file": "apps/api/src/context/context.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/context/context.service.ts",
+      "imports": "../knowledge/knowledge.service"
+    },
+    {
+      "file": "apps/api/src/context/context.service.ts",
+      "imports": "../memory/memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/context/context.service.ts",
+      "imports": "./context.types"
+    },
+    {
+      "file": "apps/api/src/copilot/conversation-memory.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/copilot/conversation-memory.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/copilot/conversation-memory.service.ts",
+      "imports": "../memory/memory-fact-extractor.service"
+    },
+    {
+      "file": "apps/api/src/copilot/conversation-memory.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot-attachment.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot-attachment.service.ts",
+      "imports": "../storage/supabase-storage.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./conversation-memory.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./copilot.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./copilot-attachment.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./dto/chat-copilot.dto"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./dto/create-marketing-plan.dto"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.controller.ts",
+      "imports": "./marketing-planner.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../storage/storage.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../ai/ai.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../strategy/strategy.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./conversation-memory.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./copilot.controller"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./copilot-attachment.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./copilot.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./prompt-context.builder"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./prompt/prompt-context-pipeline.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.module.ts",
+      "imports": "./marketing-planner.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "../memory/memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "../knowledge/knowledge-retrieval.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "./conversation-memory.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "./prompt-context.builder"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "./prompt/prompt-context-pipeline.service"
+    },
+    {
+      "file": "apps/api/src/copilot/copilot.service.ts",
+      "imports": "./dto/chat-copilot.dto"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../ai/prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../knowledge/knowledge.service"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../strategy/strategy.service"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "../strategy/types/strategy"
+    },
+    {
+      "file": "apps/api/src/copilot/marketing-planner.service.ts",
+      "imports": "./dto/create-marketing-plan.dto"
+    },
+    {
+      "file": "apps/api/src/copilot/prompt/prompt-context-pipeline.service.ts",
+      "imports": "./prompt-context.types"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.controller.ts",
+      "imports": "./dashboard.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "../history/history.module"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "../ai-usage/ai-usage.module"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "./dashboard.controller"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.module.ts",
+      "imports": "./dashboard.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "imports": "../memory/memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "imports": "../knowledge/knowledge.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "imports": "../history/history.service"
+    },
+    {
+      "file": "apps/api/src/dashboard/dashboard.service.ts",
+      "imports": "../ai-usage/ai-usage.service"
+    },
+    {
+      "file": "apps/api/src/database/database.module.ts",
+      "imports": "./prisma.service"
+    },
+    {
+      "file": "apps/api/src/database/prisma.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/browser.ts",
+      "imports": "./internal/prismaNamespaceBrowser.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/browser.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/browser.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/client.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/client.ts",
+      "imports": "./internal/class.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/client.ts",
+      "imports": "./internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/client.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/client.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/commonInputTypes.ts",
+      "imports": "./enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/commonInputTypes.ts",
+      "imports": "./internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/class.ts",
+      "imports": "./prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts",
+      "imports": "../models.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts",
+      "imports": "./class.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts",
+      "imports": "../models.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespace.ts",
+      "imports": "./generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts",
+      "imports": "../models.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/internal/prismaNamespaceBrowser.ts",
+      "imports": "./prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/AiUsage.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/AiUsage.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Asset.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Asset.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/AutomationSetting.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/AutomationSetting.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Brand.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Brand.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/BrandMemoryFact.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/BrandMemoryFact.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Campaign.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Campaign.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CampaignIdea.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CampaignIdea.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/ContentVersion.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/ContentVersion.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CopilotConversation.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CopilotConversation.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CopilotConversationMessage.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/CopilotConversationMessage.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/GenerationHistory.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/GenerationHistory.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/KnowledgeDocument.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/KnowledgeDocument.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/KnowledgeEmbedding.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/KnowledgeEmbedding.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/PromptTemplate.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/PromptTemplate.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/PublishAttempt.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/PublishAttempt.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/ScheduledPost.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/ScheduledPost.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/SocialChannel.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/SocialChannel.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Workspace.ts",
+      "imports": "../enums.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models/Workspace.ts",
+      "imports": "../internal/prismaNamespace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/Workspace.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/Brand.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/Campaign.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/CampaignIdea.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/GenerationHistory.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/ContentVersion.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/Asset.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/KnowledgeDocument.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/KnowledgeEmbedding.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/AiUsage.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/SocialChannel.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/ScheduledPost.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/PublishAttempt.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/AutomationSetting.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/CopilotConversation.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/CopilotConversationMessage.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/PromptTemplate.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./models/BrandMemoryFact.js"
+    },
+    {
+      "file": "apps/api/src/generated/prisma/models.ts",
+      "imports": "./commonInputTypes.js"
+    },
+    {
+      "file": "apps/api/src/history/dto/update-history-status.dto.ts",
+      "imports": "../../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/history/history.controller.ts",
+      "imports": "./dto/update-favorite.dto"
+    },
+    {
+      "file": "apps/api/src/history/history.controller.ts",
+      "imports": "./dto/update-history-status.dto"
+    },
+    {
+      "file": "apps/api/src/history/history.controller.ts",
+      "imports": "./history.service"
+    },
+    {
+      "file": "apps/api/src/history/history.module.ts",
+      "imports": "./history.controller"
+    },
+    {
+      "file": "apps/api/src/history/history.module.ts",
+      "imports": "./history.service"
+    },
+    {
+      "file": "apps/api/src/history/history.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/history/history.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/history/history.service.ts",
+      "imports": "./dto/update-favorite.dto"
+    },
+    {
+      "file": "apps/api/src/history/history.service.ts",
+      "imports": "./dto/update-history-status.dto"
+    },
+    {
+      "file": "apps/api/src/image/image.controller.ts",
+      "imports": "./dto/generate-image.dto"
+    },
+    {
+      "file": "apps/api/src/image/image.controller.ts",
+      "imports": "./image.service"
+    },
+    {
+      "file": "apps/api/src/image/image.module.ts",
+      "imports": "./image.controller"
+    },
+    {
+      "file": "apps/api/src/image/image.module.ts",
+      "imports": "./image.service"
+    },
+    {
+      "file": "apps/api/src/image/image.service.ts",
+      "imports": "./dto/generate-image.dto"
+    },
+    {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.controller.ts",
+      "imports": "./image-prompt-engine.service"
+    },
+    {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.controller.ts",
+      "imports": "./image-prompt-engine.types"
+    },
+    {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.module.ts",
+      "imports": "./image-prompt-engine.controller"
+    },
+    {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.module.ts",
+      "imports": "./image-prompt-engine.service"
+    },
+    {
+      "file": "apps/api/src/image-prompt-engine/image-prompt-engine.service.ts",
+      "imports": "./image-prompt-engine.types"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-embedding.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-embedding.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-file.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-file.service.ts",
+      "imports": "../storage/supabase-storage.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-file.service.ts",
+      "imports": "./dto/upload-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-file.service.ts",
+      "imports": "./knowledge.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge-retrieval.service.ts",
+      "imports": "./knowledge-embedding.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./dto/create-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./dto/update-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./dto/upload-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./knowledge-file.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./knowledge-embedding.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.controller.ts",
+      "imports": "./knowledge.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "../storage/storage.module"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "./knowledge.controller"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "./knowledge-embedding.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "./knowledge-file.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "./knowledge-retrieval.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.module.ts",
+      "imports": "./knowledge.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "imports": "./dto/create-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "imports": "./dto/update-knowledge-document.dto"
+    },
+    {
+      "file": "apps/api/src/knowledge/knowledge.service.ts",
+      "imports": "./knowledge-embedding.service"
+    },
+    {
+      "file": "apps/api/src/main.ts",
+      "imports": "./app.module"
+    },
+    {
+      "file": "apps/api/src/memory/dto/create-memory-fact.dto.ts",
+      "imports": "../../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/memory/dto/update-memory-fact.dto.ts",
+      "imports": "../../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.spec.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.spec.ts",
+      "imports": "./memory-fact-extractor.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory-fact-extractor.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "imports": "./dto/create-memory-fact.dto"
+    },
+    {
+      "file": "apps/api/src/memory/memory-facts.service.ts",
+      "imports": "./dto/update-memory-fact.dto"
+    },
+    {
+      "file": "apps/api/src/memory/memory.controller.ts",
+      "imports": "./dto/create-memory-fact.dto"
+    },
+    {
+      "file": "apps/api/src/memory/memory.controller.ts",
+      "imports": "./dto/update-memory-fact.dto"
+    },
+    {
+      "file": "apps/api/src/memory/memory.controller.ts",
+      "imports": "./memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.controller.ts",
+      "imports": "./memory.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": "./memory.controller"
+    },
+    {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": "./memory-facts.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": "./memory-fact-extractor.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.module.ts",
+      "imports": "./memory.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/memory/memory.service.ts",
+      "imports": "../generated/prisma/client"
+    },
+    {
+      "file": "apps/api/src/planner/planner.controller.ts",
+      "imports": "./dto/create-plan.dto"
+    },
+    {
+      "file": "apps/api/src/planner/planner.controller.ts",
+      "imports": "./planner.service"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "../context/context.module"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "./planner.controller"
+    },
+    {
+      "file": "apps/api/src/planner/planner.module.ts",
+      "imports": "./planner.service"
+    },
+    {
+      "file": "apps/api/src/planner/planner.service.ts",
+      "imports": "../context/context.service"
+    },
+    {
+      "file": "apps/api/src/planner/planner.service.ts",
+      "imports": "./dto/create-plan.dto"
+    },
+    {
+      "file": "apps/api/src/prompt-builder/prompt-builder.module.ts",
+      "imports": "./prompt-builder.controller"
+    },
+    {
+      "file": "apps/api/src/prompt-builder/prompt-builder.module.ts",
+      "imports": "./prompt-builder.service"
+    },
+    {
+      "file": "apps/api/src/prompt-builder/prompt-builder.service.ts",
+      "imports": "../context/context.types"
+    },
+    {
+      "file": "apps/api/src/prompt-builder/prompt-builder.service.ts",
+      "imports": "./prompt-builder.types"
+    },
+    {
+      "file": "apps/api/src/prompt-builder/prompt-builder.types.ts",
+      "imports": "../context/context.types"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.controller.ts",
+      "imports": "./dto/preview-prompt-chain.dto"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.controller.ts",
+      "imports": "./prompt-chain.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "../memory/memory.module"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "../knowledge/knowledge.module"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "./prompt-chain.controller"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "./prompt-chain.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.module.ts",
+      "imports": "./query-understanding.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "../memory/memory.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "../knowledge/knowledge.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "../knowledge/knowledge-embedding.service"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "./dto/preview-prompt-chain.dto"
+    },
+    {
+      "file": "apps/api/src/prompt-chain/prompt-chain.service.ts",
+      "imports": "./query-understanding.service"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.controller.ts",
+      "imports": "./dto/create-prompt.dto"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.controller.ts",
+      "imports": "./dto/update-prompt.dto"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.controller.ts",
+      "imports": "./prompts.service"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.module.ts",
+      "imports": "./prompts.controller"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.module.ts",
+      "imports": "./prompts.service"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.service.ts",
+      "imports": "./dto/create-prompt.dto"
+    },
+    {
+      "file": "apps/api/src/prompts/prompts.service.ts",
+      "imports": "./dto/update-prompt.dto"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.controller.ts",
+      "imports": "./dto/rewrite-content.dto"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.controller.ts",
+      "imports": "./rewrite.service"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.module.ts",
+      "imports": "../brands/brands.module"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.module.ts",
+      "imports": "./rewrite.controller"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.module.ts",
+      "imports": "./rewrite.service"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.service.ts",
+      "imports": "../brands/brands.service"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/rewrite/rewrite.service.ts",
+      "imports": "./dto/rewrite-content.dto"
+    },
+    {
+      "file": "apps/api/src/storage/storage.module.ts",
+      "imports": "./supabase-storage.service"
+    },
+    {
+      "file": "apps/api/src/storage/supabase-storage.service.ts",
+      "imports": "./storage.types"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/audience.engine.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/goal.engine.ts",
+      "imports": "../types/goal"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/goal.engine.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/intent.engine.spec.ts",
+      "imports": "./intent.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/intent.engine.spec.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/intent.engine.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/kpi.engine.ts",
+      "imports": "../types/goal"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/pillar.engine.ts",
+      "imports": "../types/goal"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/pillar.engine.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./audience.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./goal.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./intent.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./kpi.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./pillar.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "./strategy.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "../types/goal"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.spec.ts",
+      "imports": "../types/intent"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "./audience.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "./goal.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "./intent.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "./kpi.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "./pillar.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/engine/strategy.engine.ts",
+      "imports": "../types/strategy"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.controller.ts",
+      "imports": "./dto/generate-strategy.dto"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.controller.ts",
+      "imports": "./strategy.service"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/audience.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/goal.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/intent.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/kpi.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/pillar.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./engine/strategy.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./strategy.controller"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.module.ts",
+      "imports": "./strategy.service"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.service.ts",
+      "imports": "./dto/generate-strategy.dto"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.service.ts",
+      "imports": "./engine/strategy.engine"
+    },
+    {
+      "file": "apps/api/src/strategy/strategy.service.ts",
+      "imports": "./types/strategy"
+    },
+    {
+      "file": "apps/api/src/strategy/types/strategy.ts",
+      "imports": "./goal"
+    },
+    {
+      "file": "apps/api/src/strategy/types/strategy.ts",
+      "imports": "./intent"
+    },
+    {
+      "file": "apps/api/src/versions/versions.controller.ts",
+      "imports": "./dto/create-version.dto"
+    },
+    {
+      "file": "apps/api/src/versions/versions.controller.ts",
+      "imports": "./versions.service"
+    },
+    {
+      "file": "apps/api/src/versions/versions.module.ts",
+      "imports": "./versions.controller"
+    },
+    {
+      "file": "apps/api/src/versions/versions.module.ts",
+      "imports": "./versions.service"
+    },
+    {
+      "file": "apps/api/src/versions/versions.service.ts",
+      "imports": "../database/prisma.service"
+    },
+    {
+      "file": "apps/api/src/versions/versions.service.ts",
+      "imports": "./dto/create-version.dto"
+    },
+    {
+      "file": "apps/api/src/workflow/queue-planner.service.ts",
+      "imports": "../common/datetime.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.controller.ts",
+      "imports": "./workflow.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.controller.ts",
+      "imports": "./workflow.types"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "imports": "../automation/automation.module"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "imports": "./workflow.controller"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "imports": "./workflow.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.module.ts",
+      "imports": "./queue-planner.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.service.ts",
+      "imports": "../automation/automation.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.service.ts",
+      "imports": "./workflow.types"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.service.ts",
+      "imports": "./queue-planner.service"
+    },
+    {
+      "file": "apps/api/src/workflow/workflow.types.ts",
+      "imports": "../generated/prisma/enums"
+    },
+    {
+      "file": "apps/web/src/components/campaign-dashboard/campaign-dashboard.utils.ts",
+      "imports": "./campaign-dashboard.types"
+    }
+  ],
+  "statistics": {
+    "workspaceCount": 2,
+    "moduleCount": 34,
+    "controllerCount": 30,
+    "serviceCount": 56,
+    "guardCount": 0,
+    "gatewayCount": 0,
+    "relativeImportCount": 515
+  }
+}
