@@ -1,5 +1,12 @@
 import { Module } from '@nestjs/common';
 import { StorageModule } from '../storage/storage.module';
+import { AssetImageModule } from '../asset-image/asset-image.module';
+import { ImagePromptEngineModule } from '../image-prompt-engine/image-prompt-engine.module';
+import { CopilotImageController } from './copilot-image/copilot-image.controller';
+import { CopilotImageService } from './copilot-image/copilot-image.service';
+import { CopilotJobController } from './jobs/copilot-job.controller';
+import { CopilotJobProcessor } from './jobs/copilot-job.processor';
+import { CopilotJobService } from './jobs/copilot-job.service';
 import { BrandsModule } from '../brands/brands.module';
 import { AiModule } from '../ai/ai.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
@@ -23,7 +30,11 @@ import { CopilotBackgroundJobService } from './copilot-background-job.service';
     KnowledgeModule,
     MemoryModule,
   ],
-  controllers: [CopilotController],
+  controllers: [
+CopilotController,
+CopilotImageController,
+CopilotJobController,
+],
   providers: [
     CopilotAttachmentService,
     CopilotService,
