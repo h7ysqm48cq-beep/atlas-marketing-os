@@ -29,6 +29,8 @@ import { CopilotBackgroundJobService } from './copilot-background-job.service';
     AiModule,
     KnowledgeModule,
     MemoryModule,
+AssetImageModule,
+ImagePromptEngineModule,
   ],
   controllers: [
 CopilotController,
@@ -41,6 +43,10 @@ CopilotJobController,
     MarketingPlannerService,
     ConversationMemoryService,
     CopilotBackgroundJobService,
+
+CopilotImageService,
+CopilotJobService,
+CopilotJobProcessor,
 
     PromptContextBuilder,
     PromptContextPipelineService,
