@@ -3,9 +3,6 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
 import { API_URL } from "@/lib/api";
-import { waitForBackgroundJob } from "@/lib/background-job";
-
-const COPILOT_JOB_KEY = "atlas-copilot-background-job";
 
 type Campaign = {
   id: string;
@@ -15,6 +12,7 @@ type Campaign = {
 type Message = {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 };
 
 type CopilotAttachment = {
@@ -50,6 +48,7 @@ type ConversationDetail = {
     role: "USER" | "ASSISTANT" | "SYSTEM";
     content: string;
     createdAt: string;
+    metadata?: Record<string, unknown> | null;
   }>;
 };
 
@@ -121,15 +120,6 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
-    const pendingJobId = window.localStorage.getItem(COPILOT_JOB_KEY);
-    if (!pendingJobId) return;
-
-    setBusy(true);
-    setStatus("Restoring Copilot task running in the background...");
-    void completeCopilotJob(pendingJobId);
-  }, []);
-
-  useEffect(() => {
     endRef.current?.scrollIntoView({
       behavior: "smooth",
     });
@@ -161,64 +151,6 @@ export function BrandCopilot() {
       setStatus("Unable to load conversation history.");
     } finally {
       setLoadingConversations(false);
-    }
-  }
-
-  async function completeCopilotJob(jobId: string) {
-    try {
-      const data = await waitForBackgroundJob<
-        (MarketingPlan & { conversation?: { id: string } }) | {
-          reply: string;
-          campaign?: { name: string } | null;
-          conversation?: { id: string };
-        }
-      >(`${API_URL}/copilot/jobs/${jobId}`);
-
-      window.localStorage.removeItem(COPILOT_JOB_KEY);
-      const nextConversationId = data.conversation?.id;
-      if (nextConversationId) {
-        setConversationId(nextConversationId);
-        const response = await fetch(
-          `${API_URL}/copilot/conversations/${nextConversationId}`,
-          { cache: "no-store" },
-        );
-        const conversation = (await response.json()) as ConversationDetail;
-        if (response.ok) {
-          setMessages(
-            conversation.messages
-              .filter((message) => message.role !== "SYSTEM")
-              .map((message) => ({
-                role: message.role === "USER" ? "user" : "assistant",
-                content: message.content,
-              })),
-          );
-        }
-      }
-
-      if ("reply" in data) {
-        setMarketingPlan(null);
-        setStatus(
-          data.campaign
-            ? `Using ${data.campaign.name} · Chat`
-            : "Using Brand Brain · Chat",
-        );
-      } else {
-        setMarketingPlan(data);
-        setStatus("Marketing Plan generated.");
-      }
-      await refreshConversations();
-    } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Background task failed.",
-      );
-      if (
-        !(error instanceof Error) ||
-        !error.message.includes("still running")
-      ) {
-        window.localStorage.removeItem(COPILOT_JOB_KEY);
-      }
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -258,6 +190,12 @@ export function BrandCopilot() {
         .map((message) => ({
           role: message.role === "USER" ? "user" : "assistant",
           content: message.content,
+          imageUrl:
+            message.metadata &&
+            typeof message.metadata === "object" &&
+            "imageUrl" in message.metadata
+              ? String(message.metadata.imageUrl)
+              : undefined,
         }));
 
       setConversationId(data.id);
@@ -565,7 +503,7 @@ export function BrandCopilot() {
 
     try {
       if (mode === "marketing-plan") {
-        const response = await fetch(`${API_URL}/copilot/marketing-plan/jobs`, {
+        const response = await fetch(`${API_URL}/copilot/marketing-plan`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -577,16 +515,31 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = (await response.json()) as { id?: string; message?: string };
+        const data = await response.json();
 
-        if (!response.ok || !data.id) {
+        if (!response.ok) {
           throw new Error(data.message || "Unable to generate marketing plan.");
         }
-        window.localStorage.setItem(COPILOT_JOB_KEY, data.id);
-        setStatus("Marketing Plan is running safely in the background...");
-        await completeCopilotJob(data.id);
+
+        setMarketingPlan(data);
+
+        if (data.conversation?.id) {
+          setConversationId(data.conversation.id);
+        }
+
+        await refreshConversations();
+
+        setStatus("Marketing Plan generated.");
+
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: "Marketing Plan 已生成，请查看下方结构化方案。",
+          },
+        ]);
       } else {
-        const response = await fetch(`${API_URL}/copilot/chat/jobs`, {
+        const response = await fetch(`${API_URL}/copilot/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -601,14 +554,33 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = (await response.json()) as { id?: string; message?: string };
+        const data = await response.json();
 
-        if (!response.ok || !data.id) {
+        if (!response.ok || !data.reply) {
           throw new Error(data.message || "Unable to get response.");
         }
-        window.localStorage.setItem(COPILOT_JOB_KEY, data.id);
-        setStatus("Elena is working safely in the background...");
-        await completeCopilotJob(data.id);
+
+        setMarketingPlan(null);
+
+        if (data.conversation?.id) {
+          setConversationId(data.conversation.id);
+        }
+
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: data.reply,
+          },
+        ]);
+
+        await refreshConversations();
+
+        setStatus(
+          data.campaign
+            ? `Using ${data.campaign.name} · Chat`
+            : "Using Brand Brain · Chat",
+        );
       }
     } catch (error) {
       setMessages((current) => [
@@ -626,6 +598,93 @@ export function BrandCopilot() {
       setBusy(false);
     }
   }
+
+  const copyMessage = async (content: string) => {
+    await navigator.clipboard.writeText(content);
+  };
+
+
+  
+const generateImageFromMessage = async (
+  content: string,
+  index: number,
+) => {
+  try {
+    setStatus("Generating image...");
+
+    const response = await fetch(
+      `${API_URL}/asset-images/generate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "copilot-generated-image",
+          prompt: content,
+          platform: "Facebook",
+          size: "1024x1536",
+          quality: "medium",
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Image generation failed.",
+      );
+    }
+
+    const imageUrl =
+      data.asset?.url ||
+      data.asset?.thumbnailUrl;
+
+    if (!imageUrl) {
+      throw new Error(
+        "Image generated but no URL returned.",
+      );
+    }
+
+    setMessages((current) =>
+      current.map((message, messageIndex) =>
+        messageIndex === index
+          ? {
+              ...message,
+              imageUrl,
+            }
+          : message,
+      ),
+    );
+
+    if (conversationId) {
+      await fetch(
+        `${API_URL}/copilot/conversations/${conversationId}/image`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageUrl,
+            assetId: data.asset?.id,
+          }),
+        },
+      );
+    }
+
+    setStatus("Image generated.");
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Image generation failed.",
+    );
+  }
+};
+
+
 
   return (
     <div className={styles.page}>
@@ -839,18 +898,53 @@ export function BrandCopilot() {
                 <div>
                   <strong>{message.role === "user" ? "You" : "Elena"}</strong>
 
-                  {message.role === "assistant" && (
-                    <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(message.content)
-                      }
-                    >
-                      Copy
-                    </button>
-                  )}
+                  
+{message.role === "assistant" && (
+  <div className={styles.messageActions}>
+    <button
+      type="button"
+      aria-label="Copy response"
+      onClick={() =>
+        copyMessage(message.content)
+      }
+    >
+      📋
+    </button>
+
+    <button
+      type="button"
+      aria-label="Generate image"
+      onClick={() =>
+        generateImageFromMessage(
+          message.content,
+          index,
+        )
+      }
+    >
+      🖼
+    </button>
+  </div>
+)}
+
                 </div>
 
                 <p>{message.content}</p>
+
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt="Generated visual"
+                    className={styles.generatedImage}
+                  />
+                )}
+
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt="Generated visual"
+                    className={styles.generatedImage}
+                  />
+                )}
               </article>
             ))}
 
