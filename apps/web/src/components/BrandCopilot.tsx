@@ -565,19 +565,24 @@ export function BrandCopilot() {
 
         setMarketingPlan(data);
 
-        if (data.conversation?.id) {
-          setConversationId(data.conversation.id);
+        if (data.conversation?.id || data.conversationId) {
+          setConversationId(data.conversation?.id || data.conversationId);
         }
+
+        // Keep the conversation alive after generating a plan.
+        // User can continue refining the plan naturally.
+        setMode("chat");
 
         await refreshConversations();
 
-        setStatus("Marketing Plan generated.");
+        setStatus("Marketing Plan generated. Continue refining with Elena.");
 
         setMessages((current) => [
           ...current,
           {
             role: "assistant",
-            content: "Marketing Plan 已生成，请查看下方结构化方案。",
+            content:
+              "Marketing Plan 已生成。你可以继续告诉我需要修改的方向，例如调整受众、内容风格、平台策略，我会继续优化。",
           },
         ]);
       } else {
@@ -590,7 +595,21 @@ export function BrandCopilot() {
             conversationId: conversationId || undefined,
             campaignId: campaignId || undefined,
             mode,
-            messages: next.slice(-12),
+            messages: [
+              ...next.slice(-12),
+              ...(marketingPlan
+                ? [
+                    {
+                      role: "system",
+                      content: `Current Marketing Plan Context:\n${JSON.stringify(
+                        marketingPlan,
+                        null,
+                        2,
+                      )}`,
+                    },
+                  ]
+                : []),
+            ],
             attachments:
               currentAttachments.length > 0 ? currentAttachments : undefined,
           }),
