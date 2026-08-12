@@ -5,6 +5,8 @@ import { AssetImageService } from './asset-image.service';
 import { BrandExistingAssetDto } from './dto/brand-existing-asset.dto';
 import { CompositeExistingAssetDto } from './dto/composite-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
+import { EraseExistingAssetDto } from './dto/erase-existing-asset.dto';
+import { AiEditExistingAssetDto } from './dto/ai-edit-existing-asset.dto';
 
 @Controller('asset-images')
 export class AssetImageController {
@@ -32,6 +34,16 @@ export class AssetImageController {
   @Post('editor/composite')
   compositeExisting(@Body() dto: CompositeExistingAssetDto) {
     return this.imageEditor.compositeExistingAsset(dto);
+  }
+
+  @Post('editor/erase')
+  eraseExisting(@Body() dto: EraseExistingAssetDto) {
+    return this.imageEditor.eraseExistingAsset(dto);
+  }
+
+  @Post('editor/ai-edit')
+  aiEditExisting(@Body() dto: AiEditExistingAssetDto) {
+    return this.imageEditor.aiEditExistingAsset(dto);
   }
 
   @Post('jobs')

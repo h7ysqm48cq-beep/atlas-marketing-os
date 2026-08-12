@@ -60,9 +60,19 @@ export type UpdateSportsNewsSettingsInput = {
 
   logoEnabled?: boolean;
   logoPosition?: string;
+  logoAssetId?: string | null;
 
   brandFooterEnabled?: boolean;
   brandFooterText?: string;
+
+  footerLogoEnabled?: boolean;
+  footerLogoAssetId?: string | null;
+
+  footerQrEnabled?: boolean;
+  footerQrAssetId?: string | null;
+  footerQrLink?: string | null;
+
+  footerPlacement?: string;
 
   storyMinimum?: number;
   storyMaximum?: number;

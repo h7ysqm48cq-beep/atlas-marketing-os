@@ -170,7 +170,20 @@ export class SportsNewsAutomationService {
     this.running = true;
 
     try {
-      const settings = await this.sportsNewsSettings.get();
+      const settingsRaw = await this.sportsNewsSettings.get();
+
+      const settings = settingsRaw as typeof settingsRaw & {
+        logoAssetId?: string | null;
+
+        footerLogoEnabled?: boolean;
+        footerLogoAssetId?: string | null;
+
+        footerQrEnabled?: boolean;
+        footerQrAssetId?: string | null;
+        footerQrLink?: string | null;
+
+        footerPlacement?: string;
+      };
 
       if (!settings.enabled) {
         return {

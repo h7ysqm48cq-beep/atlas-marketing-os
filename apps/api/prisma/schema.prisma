@@ -982,6 +982,30 @@ model SportsNewsSetting {
   watermarkOpacity  Float   @default(0.72)
   watermarkPosition String  @default("top-right")
 
+
+  logoAssetId String?
+
+  logoSize String @default("medium")
+
+  logoOpacity Float @default(100)
+
+  logoMargin Float @default(10)
+
+
+  footerLogoEnabled Boolean @default(false)
+
+  footerLogoAssetId String?
+
+
+  footerQrEnabled Boolean @default(false)
+
+  footerQrAssetId String?
+
+  footerQrLink String?
+
+
+  footerPlacement String @default("bottom")
+
   qrSizePercent   Float @default(0.105)
   qrMarginPercent Float @default(0.025)
 

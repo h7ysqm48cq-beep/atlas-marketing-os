@@ -13,6 +13,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
+  assetId?: string;
 };
 
 type CopilotAttachment = {
@@ -100,6 +101,9 @@ export function BrandCopilot() {
     null,
   );
   const [status, setStatus] = useState("Brand Brain is active.");
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(
+    null,
+  );
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -183,20 +187,58 @@ export function BrandCopilot() {
         throw new Error("Unable to load conversation.");
       }
 
-      const loadedMessages: Message[] = data.messages
-        .filter(
-          (message) => message.role === "USER" || message.role === "ASSISTANT",
-        )
-        .map((message) => ({
+      const loadedMessages: Message[] = [];
+
+      for (const message of data.messages) {
+        if (message.role !== "USER" && message.role !== "ASSISTANT") {
+          continue;
+        }
+
+        const metadata =
+          message.metadata && typeof message.metadata === "object"
+            ? message.metadata
+            : null;
+
+        const imageUrl =
+          metadata && "imageUrl" in metadata && metadata.imageUrl
+            ? String(metadata.imageUrl)
+            : undefined;
+
+        const assetId =
+          metadata && "assetId" in metadata && metadata.assetId
+            ? String(metadata.assetId)
+            : undefined;
+
+        const isGeneratedImage =
+          message.role === "ASSISTANT" &&
+          metadata &&
+          "type" in metadata &&
+          metadata.type === "generated-image" &&
+          Boolean(imageUrl);
+
+        if (isGeneratedImage) {
+          for (let index = loadedMessages.length - 1; index >= 0; index -= 1) {
+            if (loadedMessages[index]?.role === "assistant") {
+              loadedMessages[index] = {
+                ...loadedMessages[index],
+                imageUrl,
+                assetId,
+              };
+
+              break;
+            }
+          }
+
+          continue;
+        }
+
+        loadedMessages.push({
           role: message.role === "USER" ? "user" : "assistant",
           content: message.content,
-          imageUrl:
-            message.metadata &&
-            typeof message.metadata === "object" &&
-            "imageUrl" in message.metadata
-              ? String(message.metadata.imageUrl)
-              : undefined,
-        }));
+          imageUrl,
+          assetId,
+        });
+      }
 
       setConversationId(data.id);
       setMessages(
@@ -599,22 +641,59 @@ export function BrandCopilot() {
     }
   }
 
-  const copyMessage = async (content: string) => {
-    await navigator.clipboard.writeText(content);
+  const copyMessage = async (content: string, index: number) => {
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        const textarea = document.createElement("textarea");
+
+        textarea.value = content;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+
+        const copied = document.execCommand("copy");
+
+        document.body.removeChild(textarea);
+
+        if (!copied) {
+          throw new Error("Copy command was rejected.");
+        }
+      }
+
+      setCopiedMessageIndex(index);
+      setStatus("Copied to clipboard.");
+
+      window.setTimeout(() => {
+        setCopiedMessageIndex((current) =>
+          current === index ? null : current,
+        );
+      }, 1600);
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? `Unable to copy: ${error.message}`
+          : "Unable to copy response.",
+      );
+    }
   };
 
+  const generateImageFromMessage = async (content: string, index: number) => {
+    try {
+      setStatus("Generating image...");
 
-  
-const generateImageFromMessage = async (
-  content: string,
-  index: number,
-) => {
-  try {
-    setStatus("Generating image...");
-
-    const response = await fetch(
-      `${API_URL}/copilot/image`,
-      {
+      const response = await fetch(`${API_URL}/copilot/image`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -623,40 +702,40 @@ const generateImageFromMessage = async (
           content,
           platform: "Facebook post",
         }),
-      },
-    );
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Image generation failed.",
+      if (!response.ok) {
+        throw new Error(data.message || "Image generation failed.");
+      }
+
+      const imageUrl = data.asset?.url || data.asset?.thumbnailUrl;
+
+      if (!imageUrl) {
+        throw new Error("Image generated but no URL returned.");
+      }
+
+      setMessages((current) =>
+        current.map((message, messageIndex) =>
+          messageIndex === index
+            ? {
+                ...message,
+                imageUrl,
+                assetId: data.asset?.id,
+              }
+            : message,
+        ),
       );
-    }
 
-    const imageUrl =
-      data.asset?.url ||
-      data.asset?.thumbnailUrl;
+      if (!conversationId) {
+        setStatus(
+          "Image generated. Start a conversation first to save it in history.",
+        );
+        return;
+      }
 
-    if (!imageUrl) {
-      throw new Error(
-        "Image generated but no URL returned.",
-      );
-    }
-
-    setMessages((current) =>
-      current.map((message, messageIndex) =>
-        messageIndex === index
-          ? {
-              ...message,
-              imageUrl,
-            }
-          : message,
-      ),
-    );
-
-    if (conversationId) {
-      await fetch(
+      const saveResponse = await fetch(
         `${API_URL}/copilot/conversations/${conversationId}/image`,
         {
           method: "POST",
@@ -669,19 +748,25 @@ const generateImageFromMessage = async (
           }),
         },
       );
+
+      const saveData = await saveResponse.json();
+
+      if (!saveResponse.ok) {
+        throw new Error(
+          saveData.message ||
+            "Image generated, but conversation history save failed.",
+        );
+      }
+
+      await refreshConversations();
+
+      setStatus("Image generated and saved to conversation history.");
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "Image generation failed.",
+      );
     }
-
-    setStatus("Image generated.");
-  } catch (error) {
-    setStatus(
-      error instanceof Error
-        ? error.message
-        : "Image generation failed.",
-    );
-  }
-};
-
-
+  };
 
   return (
     <div className={styles.page}>
@@ -895,52 +980,174 @@ const generateImageFromMessage = async (
                 <div>
                   <strong>{message.role === "user" ? "You" : "Elena"}</strong>
 
-                  
-{message.role === "assistant" && (
-  <div className={styles.messageActions}>
-    <button
-      type="button"
-      aria-label="Copy response"
-      onClick={() =>
-        copyMessage(message.content)
-      }
-    >
-      📋
-    </button>
+                  {message.role === "assistant" && (
+                    <div className={styles.messageActions}>
+                      <button
+                        type="button"
+                        className={styles.messageActionButton}
+                        aria-label="Copy response"
+                        title={
+                          copiedMessageIndex === index
+                            ? "Copied"
+                            : "Copy response"
+                        }
+                        onClick={() => void copyMessage(message.content, index)}
+                      >
+                        {copiedMessageIndex === index ? (
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12.5 9.2 17 19 7" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="9" y="9" width="10" height="10" rx="2" />
+                            <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                          </svg>
+                        )}
 
-    <button
-      type="button"
-      aria-label="Generate image"
-      onClick={() =>
-        generateImageFromMessage(
-          message.content,
-          index,
-        )
-      }
-    >
-      🖼
-    </button>
-  </div>
-)}
+                        <span>
+                          {copiedMessageIndex === index ? "Copied" : "Copy"}
+                        </span>
+                      </button>
 
+                      <button
+                        type="button"
+                        className={styles.messageActionButton}
+                        aria-label="Generate image"
+                        title="Generate image"
+                        onClick={() =>
+                          void generateImageFromMessage(message.content, index)
+                        }
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                          <circle cx="8.5" cy="9" r="1.5" />
+                          <path d="m4 17 5-5 4 4 2-2 5 5" />
+                        </svg>
+
+                        <span>Image</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <p>{message.content}</p>
 
                 {message.imageUrl && (
-                  <img
-                    src={message.imageUrl}
-                    alt="Generated visual"
-                    className={styles.generatedImage}
-                  />
-                )}
+                  <section className={styles.generatedImageCard}>
+                    <button
+                      type="button"
+                      className={styles.generatedImagePreview}
+                      aria-label="Open generated image in editor"
+                      onClick={() => {
+                        if (!message.assetId) {
+                          setStatus(
+                            "This image has no linked Asset Library ID yet.",
+                          );
+                          return;
+                        }
 
-                {message.imageUrl && (
-                  <img
-                    src={message.imageUrl}
-                    alt="Generated visual"
-                    className={styles.generatedImage}
-                  />
+                        const params = new URLSearchParams({
+                          assetId: message.assetId,
+                          source: "copilot",
+                        });
+
+                        if (conversationId) {
+                          params.set("conversationId", conversationId);
+                        }
+
+                        window.location.assign(
+                          `/image-editor?${params.toString()}`,
+                        );
+                      }}
+                    >
+                      <img
+                        src={message.imageUrl}
+                        alt="Generated visual"
+                        className={styles.generatedImage}
+                      />
+
+                      <span className={styles.generatedImageHint}>
+                        Open editor
+                      </span>
+                    </button>
+
+                    <div className={styles.generatedImageToolbar}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!message.assetId) {
+                            setStatus(
+                              "This image has no linked Asset Library ID yet.",
+                            );
+                            return;
+                          }
+
+                          const params = new URLSearchParams({
+                            assetId: message.assetId,
+                            source: "copilot",
+                          });
+
+                          if (conversationId) {
+                            params.set("conversationId", conversationId);
+                          }
+
+                          window.location.assign(
+                            `/image-editor?${params.toString()}`,
+                          );
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                        </svg>
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void generateImageFromMessage(message.content, index)
+                        }
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M20 6v5h-5" />
+                          <path d="M4 18v-5h5" />
+                          <path d="M18.5 9A7 7 0 0 0 6 6.5L4 9" />
+                          <path d="M5.5 15A7 7 0 0 0 18 17.5l2-2.5" />
+                        </svg>
+                        <span>Regenerate</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams();
+
+                          if (message.assetId) {
+                            params.set("assetId", message.assetId);
+                          }
+
+                          params.set("source", "copilot");
+
+                          if (conversationId) {
+                            params.set("conversationId", conversationId);
+                          }
+
+                          window.location.assign(
+                            `/assets?${params.toString()}`,
+                          );
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <rect x="3" y="3" width="7" height="7" rx="1" />
+                          <rect x="14" y="3" width="7" height="7" rx="1" />
+                          <rect x="3" y="14" width="7" height="7" rx="1" />
+                          <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                        <span>Assets</span>
+                      </button>
+                    </div>
+                  </section>
                 )}
               </article>
             ))}

@@ -57,6 +57,8 @@ export type SportsNewsSettingAvgAggregateOutputType = {
   footerHeightPercent: number | null
   watermarkScale: number | null
   watermarkOpacity: number | null
+  logoOpacity: number | null
+  logoMargin: number | null
   qrSizePercent: number | null
   qrMarginPercent: number | null
   publishRetryLimit: number | null
@@ -96,6 +98,8 @@ export type SportsNewsSettingSumAggregateOutputType = {
   footerHeightPercent: number | null
   watermarkScale: number | null
   watermarkOpacity: number | null
+  logoOpacity: number | null
+  logoMargin: number | null
   qrSizePercent: number | null
   qrMarginPercent: number | null
   publishRetryLimit: number | null
@@ -222,6 +226,16 @@ export type SportsNewsSettingMinAggregateOutputType = {
   watermarkScale: number | null
   watermarkOpacity: number | null
   watermarkPosition: string | null
+  logoAssetId: string | null
+  logoSize: string | null
+  logoOpacity: number | null
+  logoMargin: number | null
+  footerLogoEnabled: boolean | null
+  footerLogoAssetId: string | null
+  footerQrEnabled: boolean | null
+  footerQrAssetId: string | null
+  footerQrLink: string | null
+  footerPlacement: string | null
   qrSizePercent: number | null
   qrMarginPercent: number | null
   footerDateEnabled: boolean | null
@@ -400,6 +414,16 @@ export type SportsNewsSettingMaxAggregateOutputType = {
   watermarkScale: number | null
   watermarkOpacity: number | null
   watermarkPosition: string | null
+  logoAssetId: string | null
+  logoSize: string | null
+  logoOpacity: number | null
+  logoMargin: number | null
+  footerLogoEnabled: boolean | null
+  footerLogoAssetId: string | null
+  footerQrEnabled: boolean | null
+  footerQrAssetId: string | null
+  footerQrLink: string | null
+  footerPlacement: string | null
   qrSizePercent: number | null
   qrMarginPercent: number | null
   footerDateEnabled: boolean | null
@@ -578,6 +602,16 @@ export type SportsNewsSettingCountAggregateOutputType = {
   watermarkScale: number
   watermarkOpacity: number
   watermarkPosition: number
+  logoAssetId: number
+  logoSize: number
+  logoOpacity: number
+  logoMargin: number
+  footerLogoEnabled: number
+  footerLogoAssetId: number
+  footerQrEnabled: number
+  footerQrAssetId: number
+  footerQrLink: number
+  footerPlacement: number
   qrSizePercent: number
   qrMarginPercent: number
   footerDateEnabled: number
@@ -671,6 +705,8 @@ export type SportsNewsSettingAvgAggregateInputType = {
   footerHeightPercent?: true
   watermarkScale?: true
   watermarkOpacity?: true
+  logoOpacity?: true
+  logoMargin?: true
   qrSizePercent?: true
   qrMarginPercent?: true
   publishRetryLimit?: true
@@ -710,6 +746,8 @@ export type SportsNewsSettingSumAggregateInputType = {
   footerHeightPercent?: true
   watermarkScale?: true
   watermarkOpacity?: true
+  logoOpacity?: true
+  logoMargin?: true
   qrSizePercent?: true
   qrMarginPercent?: true
   publishRetryLimit?: true
@@ -836,6 +874,16 @@ export type SportsNewsSettingMinAggregateInputType = {
   watermarkScale?: true
   watermarkOpacity?: true
   watermarkPosition?: true
+  logoAssetId?: true
+  logoSize?: true
+  logoOpacity?: true
+  logoMargin?: true
+  footerLogoEnabled?: true
+  footerLogoAssetId?: true
+  footerQrEnabled?: true
+  footerQrAssetId?: true
+  footerQrLink?: true
+  footerPlacement?: true
   qrSizePercent?: true
   qrMarginPercent?: true
   footerDateEnabled?: true
@@ -1014,6 +1062,16 @@ export type SportsNewsSettingMaxAggregateInputType = {
   watermarkScale?: true
   watermarkOpacity?: true
   watermarkPosition?: true
+  logoAssetId?: true
+  logoSize?: true
+  logoOpacity?: true
+  logoMargin?: true
+  footerLogoEnabled?: true
+  footerLogoAssetId?: true
+  footerQrEnabled?: true
+  footerQrAssetId?: true
+  footerQrLink?: true
+  footerPlacement?: true
   qrSizePercent?: true
   qrMarginPercent?: true
   footerDateEnabled?: true
@@ -1192,6 +1250,16 @@ export type SportsNewsSettingCountAggregateInputType = {
   watermarkScale?: true
   watermarkOpacity?: true
   watermarkPosition?: true
+  logoAssetId?: true
+  logoSize?: true
+  logoOpacity?: true
+  logoMargin?: true
+  footerLogoEnabled?: true
+  footerLogoAssetId?: true
+  footerQrEnabled?: true
+  footerQrAssetId?: true
+  footerQrLink?: true
+  footerPlacement?: true
   qrSizePercent?: true
   qrMarginPercent?: true
   footerDateEnabled?: true
@@ -1457,6 +1525,16 @@ export type SportsNewsSettingGroupByOutputType = {
   watermarkScale: number
   watermarkOpacity: number
   watermarkPosition: string
+  logoAssetId: string | null
+  logoSize: string
+  logoOpacity: number
+  logoMargin: number
+  footerLogoEnabled: boolean
+  footerLogoAssetId: string | null
+  footerQrEnabled: boolean
+  footerQrAssetId: string | null
+  footerQrLink: string | null
+  footerPlacement: string
   qrSizePercent: number
   qrMarginPercent: number
   footerDateEnabled: boolean
@@ -1658,6 +1736,16 @@ export type SportsNewsSettingWhereInput = {
   watermarkScale?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  logoSize?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  logoMargin?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  footerLogoEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerLogoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerQrAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrLink?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerPlacement?: Prisma.StringFilter<"SportsNewsSetting"> | string
   qrSizePercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   qrMarginPercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   footerDateEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
@@ -1839,6 +1927,16 @@ export type SportsNewsSettingOrderByWithRelationInput = {
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
   watermarkPosition?: Prisma.SortOrder
+  logoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  logoSize?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
+  footerLogoEnabled?: Prisma.SortOrder
+  footerLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerQrEnabled?: Prisma.SortOrder
+  footerQrAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerQrLink?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerPlacement?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   footerDateEnabled?: Prisma.SortOrder
@@ -2023,6 +2121,16 @@ export type SportsNewsSettingWhereUniqueInput = Prisma.AtLeast<{
   watermarkScale?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  logoSize?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  logoMargin?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  footerLogoEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerLogoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerQrAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrLink?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerPlacement?: Prisma.StringFilter<"SportsNewsSetting"> | string
   qrSizePercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   qrMarginPercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   footerDateEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
@@ -2204,6 +2312,16 @@ export type SportsNewsSettingOrderByWithAggregationInput = {
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
   watermarkPosition?: Prisma.SortOrder
+  logoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  logoSize?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
+  footerLogoEnabled?: Prisma.SortOrder
+  footerLogoAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerQrEnabled?: Prisma.SortOrder
+  footerQrAssetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerQrLink?: Prisma.SortOrderInput | Prisma.SortOrder
+  footerPlacement?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   footerDateEnabled?: Prisma.SortOrder
@@ -2390,6 +2508,16 @@ export type SportsNewsSettingScalarWhereWithAggregatesInput = {
   watermarkScale?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
   watermarkOpacity?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
   watermarkPosition?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
+  logoAssetId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  logoSize?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
+  logoOpacity?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
+  logoMargin?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
+  footerLogoEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
+  footerLogoAssetId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  footerQrEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
+  footerQrAssetId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  footerQrLink?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  footerPlacement?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
   qrSizePercent?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
   qrMarginPercent?: Prisma.FloatWithAggregatesFilter<"SportsNewsSetting"> | number
   footerDateEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
@@ -2565,6 +2693,16 @@ export type SportsNewsSettingCreateInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -2746,6 +2884,16 @@ export type SportsNewsSettingUncheckedCreateInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -2921,6 +3069,16 @@ export type SportsNewsSettingUpdateInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3102,6 +3260,16 @@ export type SportsNewsSettingUncheckedUpdateInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3280,6 +3448,16 @@ export type SportsNewsSettingCreateManyInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -3455,6 +3633,16 @@ export type SportsNewsSettingUpdateManyMutationInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3633,6 +3821,16 @@ export type SportsNewsSettingUncheckedUpdateManyInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3826,6 +4024,16 @@ export type SportsNewsSettingCountOrderByAggregateInput = {
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
   watermarkPosition?: Prisma.SortOrder
+  logoAssetId?: Prisma.SortOrder
+  logoSize?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
+  footerLogoEnabled?: Prisma.SortOrder
+  footerLogoAssetId?: Prisma.SortOrder
+  footerQrEnabled?: Prisma.SortOrder
+  footerQrAssetId?: Prisma.SortOrder
+  footerQrLink?: Prisma.SortOrder
+  footerPlacement?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   footerDateEnabled?: Prisma.SortOrder
@@ -3917,6 +4125,8 @@ export type SportsNewsSettingAvgOrderByAggregateInput = {
   footerHeightPercent?: Prisma.SortOrder
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   publishRetryLimit?: Prisma.SortOrder
@@ -4043,6 +4253,16 @@ export type SportsNewsSettingMaxOrderByAggregateInput = {
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
   watermarkPosition?: Prisma.SortOrder
+  logoAssetId?: Prisma.SortOrder
+  logoSize?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
+  footerLogoEnabled?: Prisma.SortOrder
+  footerLogoAssetId?: Prisma.SortOrder
+  footerQrEnabled?: Prisma.SortOrder
+  footerQrAssetId?: Prisma.SortOrder
+  footerQrLink?: Prisma.SortOrder
+  footerPlacement?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   footerDateEnabled?: Prisma.SortOrder
@@ -4221,6 +4441,16 @@ export type SportsNewsSettingMinOrderByAggregateInput = {
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
   watermarkPosition?: Prisma.SortOrder
+  logoAssetId?: Prisma.SortOrder
+  logoSize?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
+  footerLogoEnabled?: Prisma.SortOrder
+  footerLogoAssetId?: Prisma.SortOrder
+  footerQrEnabled?: Prisma.SortOrder
+  footerQrAssetId?: Prisma.SortOrder
+  footerQrLink?: Prisma.SortOrder
+  footerPlacement?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   footerDateEnabled?: Prisma.SortOrder
@@ -4312,6 +4542,8 @@ export type SportsNewsSettingSumOrderByAggregateInput = {
   footerHeightPercent?: Prisma.SortOrder
   watermarkScale?: Prisma.SortOrder
   watermarkOpacity?: Prisma.SortOrder
+  logoOpacity?: Prisma.SortOrder
+  logoMargin?: Prisma.SortOrder
   qrSizePercent?: Prisma.SortOrder
   qrMarginPercent?: Prisma.SortOrder
   publishRetryLimit?: Prisma.SortOrder
@@ -4551,6 +4783,16 @@ export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -4730,6 +4972,16 @@ export type SportsNewsSettingUncheckedCreateWithoutWorkspaceInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -4921,6 +5173,16 @@ export type SportsNewsSettingUpdateWithoutWorkspaceInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -5100,6 +5362,16 @@ export type SportsNewsSettingUncheckedUpdateWithoutWorkspaceInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -5275,6 +5547,16 @@ export type SportsNewsSettingCreateWithoutTelegramChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -5454,6 +5736,16 @@ export type SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -5639,6 +5931,16 @@ export type SportsNewsSettingCreateWithoutFacebookChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -5818,6 +6120,16 @@ export type SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -6025,6 +6337,16 @@ export type SportsNewsSettingScalarWhereInput = {
   watermarkScale?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   watermarkPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  logoSize?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  logoOpacity?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  logoMargin?: Prisma.FloatFilter<"SportsNewsSetting"> | number
+  footerLogoEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerLogoAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  footerQrAssetId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerQrLink?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  footerPlacement?: Prisma.StringFilter<"SportsNewsSetting"> | string
   qrSizePercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   qrMarginPercent?: Prisma.FloatFilter<"SportsNewsSetting"> | number
   footerDateEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
@@ -6218,6 +6540,16 @@ export type SportsNewsSettingCreateManyTelegramChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -6395,6 +6727,16 @@ export type SportsNewsSettingCreateManyFacebookChannelInput = {
   watermarkScale?: number
   watermarkOpacity?: number
   watermarkPosition?: string
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
   qrSizePercent?: number
   qrMarginPercent?: number
   footerDateEnabled?: boolean
@@ -6570,6 +6912,16 @@ export type SportsNewsSettingUpdateWithoutTelegramChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -6749,6 +7101,16 @@ export type SportsNewsSettingUncheckedUpdateWithoutTelegramChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -6926,6 +7288,16 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -7101,6 +7473,16 @@ export type SportsNewsSettingUpdateWithoutFacebookChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -7280,6 +7662,16 @@ export type SportsNewsSettingUncheckedUpdateWithoutFacebookChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -7457,6 +7849,16 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelInput = {
   watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
   watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
   qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
   qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
   footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -7637,6 +8039,16 @@ export type SportsNewsSettingSelect<ExtArgs extends runtime.Types.Extensions.Int
   watermarkScale?: boolean
   watermarkOpacity?: boolean
   watermarkPosition?: boolean
+  logoAssetId?: boolean
+  logoSize?: boolean
+  logoOpacity?: boolean
+  logoMargin?: boolean
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: boolean
+  footerQrEnabled?: boolean
+  footerQrAssetId?: boolean
+  footerQrLink?: boolean
+  footerPlacement?: boolean
   qrSizePercent?: boolean
   qrMarginPercent?: boolean
   footerDateEnabled?: boolean
@@ -7818,6 +8230,16 @@ export type SportsNewsSettingSelectCreateManyAndReturn<ExtArgs extends runtime.T
   watermarkScale?: boolean
   watermarkOpacity?: boolean
   watermarkPosition?: boolean
+  logoAssetId?: boolean
+  logoSize?: boolean
+  logoOpacity?: boolean
+  logoMargin?: boolean
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: boolean
+  footerQrEnabled?: boolean
+  footerQrAssetId?: boolean
+  footerQrLink?: boolean
+  footerPlacement?: boolean
   qrSizePercent?: boolean
   qrMarginPercent?: boolean
   footerDateEnabled?: boolean
@@ -7999,6 +8421,16 @@ export type SportsNewsSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   watermarkScale?: boolean
   watermarkOpacity?: boolean
   watermarkPosition?: boolean
+  logoAssetId?: boolean
+  logoSize?: boolean
+  logoOpacity?: boolean
+  logoMargin?: boolean
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: boolean
+  footerQrEnabled?: boolean
+  footerQrAssetId?: boolean
+  footerQrLink?: boolean
+  footerPlacement?: boolean
   qrSizePercent?: boolean
   qrMarginPercent?: boolean
   footerDateEnabled?: boolean
@@ -8180,6 +8612,16 @@ export type SportsNewsSettingSelectScalar = {
   watermarkScale?: boolean
   watermarkOpacity?: boolean
   watermarkPosition?: boolean
+  logoAssetId?: boolean
+  logoSize?: boolean
+  logoOpacity?: boolean
+  logoMargin?: boolean
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: boolean
+  footerQrEnabled?: boolean
+  footerQrAssetId?: boolean
+  footerQrLink?: boolean
+  footerPlacement?: boolean
   qrSizePercent?: boolean
   qrMarginPercent?: boolean
   footerDateEnabled?: boolean
@@ -8240,7 +8682,7 @@ export type SportsNewsSettingSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
+export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "logoAssetId" | "logoSize" | "logoOpacity" | "logoMargin" | "footerLogoEnabled" | "footerLogoAssetId" | "footerQrEnabled" | "footerQrAssetId" | "footerQrLink" | "footerPlacement" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
 export type SportsNewsSettingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
@@ -8382,6 +8824,16 @@ export type $SportsNewsSettingPayload<ExtArgs extends runtime.Types.Extensions.I
     watermarkScale: number
     watermarkOpacity: number
     watermarkPosition: string
+    logoAssetId: string | null
+    logoSize: string
+    logoOpacity: number
+    logoMargin: number
+    footerLogoEnabled: boolean
+    footerLogoAssetId: string | null
+    footerQrEnabled: boolean
+    footerQrAssetId: string | null
+    footerQrLink: string | null
+    footerPlacement: string
     qrSizePercent: number
     qrMarginPercent: number
     footerDateEnabled: boolean
@@ -8983,6 +9435,16 @@ export interface SportsNewsSettingFieldRefs {
   readonly watermarkScale: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
   readonly watermarkOpacity: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
   readonly watermarkPosition: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly logoAssetId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly logoSize: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly logoOpacity: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
+  readonly logoMargin: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
+  readonly footerLogoEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
+  readonly footerLogoAssetId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly footerQrEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
+  readonly footerQrAssetId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly footerQrLink: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly footerPlacement: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly qrSizePercent: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
   readonly qrMarginPercent: Prisma.FieldRef<"SportsNewsSetting", 'Float'>
   readonly footerDateEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>

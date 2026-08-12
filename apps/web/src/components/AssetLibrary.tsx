@@ -368,22 +368,17 @@ export function AssetLibrary() {
     setMessage("Asset deleted.");
   }
 
-  function buildStudioHref(asset: Asset) {
+  function buildEditorHref(asset: Asset) {
     const params = new URLSearchParams({
       assetId: asset.id,
-      topic: asset.history?.topic || asset.prompt || asset.name,
+      source: "asset-library",
     });
 
-    if (asset.campaign) {
-      params.set("campaignId", asset.campaign.id);
-      params.set("campaignName", asset.campaign.name);
-    }
-
-    return `/ai-studio?${params.toString()}`;
+    return `/image-editor?${params.toString()}`;
   }
 
-  function openInStudio(asset: Asset) {
-    window.location.assign(buildStudioHref(asset));
+  function openInEditor(asset: Asset) {
+    window.location.assign(buildEditorHref(asset));
   }
 
   return (
@@ -503,12 +498,12 @@ export function AssetLibrary() {
                 className={styles.preview}
                 role="link"
                 tabIndex={0}
-                aria-label={`Use ${asset.name} in AI Studio`}
-                onClick={() => openInStudio(asset)}
+                aria-label={`Edit ${asset.name}`}
+                onClick={() => openInEditor(asset)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    openInStudio(asset);
+                    openInEditor(asset);
                   }
                 }}
               >
@@ -537,12 +532,12 @@ export function AssetLibrary() {
                   className={styles.studioContent}
                   role="link"
                   tabIndex={0}
-                  aria-label={`Use ${asset.name} in AI Studio`}
-                  onClick={() => openInStudio(asset)}
+                  aria-label={`Edit ${asset.name}`}
+                  onClick={() => openInEditor(asset)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      openInStudio(asset);
+                      openInEditor(asset);
                     }
                   }}
                 >
@@ -572,7 +567,9 @@ export function AssetLibrary() {
 
                   <div className={styles.aiNotePreview}>
                     <strong>AI Remark</strong>
-                    <p>{asset.remark || "No AI usage instruction saved yet."}</p>
+                    <p>
+                      {asset.remark || "No AI usage instruction saved yet."}
+                    </p>
                   </div>
                 </div>
 

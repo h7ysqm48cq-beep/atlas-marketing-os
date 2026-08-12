@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
+import OpenAI, { toFile } from 'openai';
 import sharp, { OverlayOptions } from 'sharp';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
@@ -12,14 +14,29 @@ import {
   CompositeExistingAssetDto,
   ImageEditorLayerDto,
 } from './dto/composite-existing-asset.dto';
+import { EraseExistingAssetDto } from './dto/erase-existing-asset.dto';
+import { AiEditExistingAssetDto } from './dto/ai-edit-existing-asset.dto';
 
 @Injectable()
 export class AssetImageEditorService {
+  private readonly client: OpenAI | null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+
+    this.client = apiKey
+      ? new OpenAI({
+          apiKey,
+          timeout: 180_000,
+          maxRetries: 2,
+        })
+      : null;
+  }
 
   async latestImage() {
     const brand = await this.brandsService.getActiveBrand();
@@ -40,11 +57,15 @@ export class AssetImageEditorService {
     });
 
     if (!sourceAsset) {
-      throw new NotFoundException('Image asset was not found for the active brand.');
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
     }
 
     if (!sourceAsset.url?.startsWith('https://')) {
-      throw new BadRequestException('The selected image does not have a usable URL.');
+      throw new BadRequestException(
+        'The selected image does not have a usable URL.',
+      );
     }
 
     const sourceResponse = await fetch(sourceAsset.url);
@@ -60,7 +81,9 @@ export class AssetImageEditorService {
     const height = metadata.height ?? sourceAsset.height;
 
     if (!width || !height) {
-      throw new BadRequestException('Unable to determine the selected image size.');
+      throw new BadRequestException(
+        'Unable to determine the selected image size.',
+      );
     }
 
     const visibleLayers = [...dto.layers]
@@ -163,6 +186,458 @@ export class AssetImageEditorService {
     });
   }
 
+  async aiEditExistingAsset(dto: AiEditExistingAssetDto) {
+    if (!this.client) {
+      throw new BadRequestException('OPENAI_API_KEY is not configured.');
+    }
+
+    const instruction = dto.prompt.trim();
+
+    if (!instruction) {
+      throw new BadRequestException('An AI edit instruction is required.');
+    }
+
+    const brand = await this.brandsService.getActiveBrand();
+
+    const sourceAsset = await this.prisma.asset.findFirst({
+      where: {
+        id: dto.assetId,
+        brandId: brand.id,
+        type: 'IMAGE',
+      },
+    });
+
+    if (!sourceAsset) {
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
+    }
+
+    if (!sourceAsset.url?.startsWith('https://')) {
+      throw new BadRequestException(
+        'The selected image does not have a usable URL.',
+      );
+    }
+
+    const sourceResponse = await fetch(sourceAsset.url);
+
+    if (!sourceResponse.ok) {
+      throw new BadRequestException(
+        `Unable to download the selected image (HTTP ${sourceResponse.status}).`,
+      );
+    }
+
+    const originalBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+
+    const originalMetadata = await sharp(originalBuffer).metadata();
+
+    const originalWidth = originalMetadata.width ?? sourceAsset.width;
+
+    const originalHeight = originalMetadata.height ?? sourceAsset.height;
+
+    if (!originalWidth || !originalHeight) {
+      throw new BadRequestException(
+        'Unable to determine the selected image size.',
+      );
+    }
+
+    /*
+     * Normalise source to PNG before sending to
+     * the image editing endpoint.
+     */
+    const sourcePng = await sharp(originalBuffer).png().toBuffer();
+
+    const imageFile = await toFile(sourcePng, 'source.png', {
+      type: 'image/png',
+    });
+
+    const preserveComposition = dto.preserveComposition ?? true;
+
+    const preservePeople = dto.preservePeople ?? true;
+
+    const preserveBranding = dto.preserveBranding ?? true;
+
+    const constraints: string[] = [];
+
+    if (preserveComposition) {
+      constraints.push(
+        [
+          'Preserve the original framing,',
+          'camera angle, composition,',
+          'major object positions,',
+          'and overall layout unless',
+          'the requested edit requires otherwise.',
+        ].join(' '),
+      );
+    }
+
+    if (preservePeople) {
+      constraints.push(
+        [
+          'Preserve the identity, facial features,',
+          'body proportions, pose, age appearance,',
+          'and recognisable characteristics',
+          'of existing people unless explicitly',
+          'asked to modify them.',
+        ].join(' '),
+      );
+    }
+
+    if (preserveBranding) {
+      constraints.push(
+        [
+          'Preserve existing legitimate brand marks,',
+          'logos, typography and brand placement',
+          'unless the edit instruction explicitly',
+          'asks to change or remove them.',
+        ].join(' '),
+      );
+    }
+
+    const prompt = [
+      'Edit the supplied image.',
+      '',
+      `Requested edit: ${instruction}`,
+      '',
+      ...constraints,
+      '',
+      [
+        'Keep all unrelated areas as close as possible',
+        'to the original image.',
+      ].join(' '),
+      [
+        'Do not invent extra text, logos,',
+        'watermarks, QR codes or decorative marks',
+        'unless specifically requested.',
+      ].join(' '),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const model =
+      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-2';
+
+    const generationStartedAt = Date.now();
+
+    const response = await this.client.images.edit({
+      model,
+      image: imageFile,
+      prompt,
+      size: 'auto',
+      quality: 'high',
+      output_format: 'png',
+    });
+
+    const imageData = response.data?.[0];
+
+    const imageBase64 = imageData?.b64_json;
+
+    if (!imageBase64) {
+      throw new BadRequestException(
+        'AI image edit completed without image data.',
+      );
+    }
+
+    const editedBuffer = Buffer.from(imageBase64, 'base64');
+
+    const finalMetadata = await sharp(editedBuffer).metadata();
+
+    const outputName = dto.name?.trim() || `${sourceAsset.name} · AI Edited`;
+
+    const filename =
+      `${Date.now()}-` +
+      `${this.slugify(outputName).slice(0, 40)}-` +
+      `${randomUUID().replace(/-/g, '').slice(0, 8)}.png`;
+
+    const now = new Date();
+
+    const storagePath = [
+      'brands',
+      brand.id,
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      filename,
+    ].join('/');
+
+    const uploaded = await this.storageService.uploadImage({
+      buffer: editedBuffer,
+      path: storagePath,
+      contentType: 'image/png',
+    });
+
+    const width = finalMetadata.width ?? originalWidth;
+
+    const height = finalMetadata.height ?? originalHeight;
+
+    return this.prisma.asset.create({
+      data: {
+        brandId: brand.id,
+        campaignId: sourceAsset.campaignId,
+        historyId: sourceAsset.historyId,
+
+        name: outputName,
+        type: 'IMAGE',
+
+        provider: 'atlas-image-editor-ai',
+
+        platform: sourceAsset.platform || 'Multi-platform',
+
+        prompt: sourceAsset.prompt,
+
+        revisedPrompt: prompt,
+
+        generationModel: model,
+
+        generationSize: `${width}x${height}`,
+
+        generationQuality: 'high',
+
+        generationDurationMs: Date.now() - generationStartedAt,
+
+        storageProvider: uploaded.provider,
+
+        storagePath: uploaded.path,
+
+        fileSize: uploaded.size,
+
+        remark: `AI edit from asset ${sourceAsset.id}`,
+
+        aiEnabled: false,
+
+        tags: [
+          ...sourceAsset.tags,
+          'image-edited',
+          'ai-image-edit',
+          'image-editor-ai',
+          `source-asset-${sourceAsset.id}`,
+          preserveComposition ? 'preserve-composition' : 'composition-flexible',
+          preservePeople ? 'preserve-people' : 'people-flexible',
+          preserveBranding ? 'preserve-branding' : 'branding-flexible',
+        ],
+
+        url: uploaded.publicUrl,
+
+        thumbnailUrl: uploaded.publicUrl,
+
+        mimeType: 'image/png',
+
+        width,
+        height,
+      },
+
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        history: {
+          select: {
+            id: true,
+            topic: true,
+          },
+        },
+      },
+    });
+  }
+
+  async eraseExistingAsset(dto: EraseExistingAssetDto) {
+    if (!this.client) {
+      throw new BadRequestException('OPENAI_API_KEY is not configured.');
+    }
+
+    const brand = await this.brandsService.getActiveBrand();
+
+    const sourceAsset = await this.prisma.asset.findFirst({
+      where: {
+        id: dto.assetId,
+        brandId: brand.id,
+        type: 'IMAGE',
+      },
+    });
+
+    if (!sourceAsset) {
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
+    }
+
+    if (!sourceAsset.url?.startsWith('https://')) {
+      throw new BadRequestException(
+        'The selected image does not have a usable URL.',
+      );
+    }
+
+    const maskMatch = dto.maskDataUrl.match(/^data:image\/png;base64,(.+)$/s);
+
+    if (!maskMatch?.[1]) {
+      throw new BadRequestException('maskDataUrl must be a PNG data URL.');
+    }
+
+    const sourceResponse = await fetch(sourceAsset.url);
+
+    if (!sourceResponse.ok) {
+      throw new BadRequestException(
+        `Unable to download the selected image (HTTP ${sourceResponse.status}).`,
+      );
+    }
+
+    const originalBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+
+    const metadata = await sharp(originalBuffer).metadata();
+
+    const width = metadata.width ?? sourceAsset.width;
+
+    const height = metadata.height ?? sourceAsset.height;
+
+    if (!width || !height) {
+      throw new BadRequestException(
+        'Unable to determine the selected image size.',
+      );
+    }
+
+    /*
+     * The browser mask is sent as:
+     * - opaque white = keep
+     * - transparent = area to remove / repaint
+     *
+     * Normalize it to the exact source dimensions.
+     */
+    const rawMask = Buffer.from(maskMatch[1], 'base64');
+
+    const maskBuffer = await sharp(rawMask)
+      .resize(width, height, {
+        fit: 'fill',
+      })
+      .png()
+      .toBuffer();
+
+    const imageFile = await toFile(originalBuffer, 'source.png', {
+      type: 'image/png',
+    });
+
+    const maskFile = await toFile(maskBuffer, 'mask.png', {
+      type: 'image/png',
+    });
+
+    const model =
+      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-1';
+
+    const prompt =
+      dto.prompt?.trim() ||
+      [
+        'Remove only the objects covered by the transparent mask.',
+        'Reconstruct the missing area naturally using the surrounding image.',
+        'Preserve the original composition, people, lighting, colors, typography, and all unmasked content.',
+        'Do not add any new logo, watermark, text, QR code, branding, or decorative element.',
+      ].join(' ');
+
+    const response = await this.client.images.edit({
+      model,
+      image: imageFile,
+      mask: maskFile,
+      prompt,
+      size: 'auto',
+      quality: 'high',
+      output_format: 'png',
+    });
+
+    const imageBase64 = response.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+      throw new BadRequestException('Image edit completed without image data.');
+    }
+
+    const editedBuffer = Buffer.from(imageBase64, 'base64');
+
+    const outputName = dto.name?.trim() || `${sourceAsset.name} · Cleaned`;
+
+    const filename =
+      `${Date.now()}-${this.slugify(outputName).slice(0, 40)}-` +
+      `${randomUUID().replace(/-/g, '').slice(0, 8)}.png`;
+
+    const now = new Date();
+
+    const storagePath = [
+      'brands',
+      brand.id,
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      filename,
+    ].join('/');
+
+    const uploaded = await this.storageService.uploadImage({
+      buffer: editedBuffer,
+      path: storagePath,
+      contentType: 'image/png',
+    });
+
+    const finalMetadata = await sharp(editedBuffer).metadata();
+
+    return this.prisma.asset.create({
+      data: {
+        brandId: brand.id,
+        campaignId: sourceAsset.campaignId,
+        historyId: sourceAsset.historyId,
+        name: outputName,
+        type: 'IMAGE',
+        provider: 'atlas-image-editor-inpaint',
+        platform: sourceAsset.platform || 'Multi-platform',
+        prompt: sourceAsset.prompt,
+        revisedPrompt: prompt,
+        generationModel: model,
+        generationSize: `${finalMetadata.width ?? width}x${finalMetadata.height ?? height}`,
+        generationQuality: 'high',
+        storageProvider: uploaded.provider,
+        storagePath: uploaded.path,
+        fileSize: uploaded.size,
+        remark: `AI cleanup from asset ${sourceAsset.id}`,
+        aiEnabled: false,
+        tags: [
+          ...sourceAsset.tags,
+          'image-edited',
+          'ai-inpaint',
+          'eraser-cleanup',
+          `source-asset-${sourceAsset.id}`,
+        ],
+        url: uploaded.publicUrl,
+        thumbnailUrl: uploaded.publicUrl,
+        mimeType: 'image/png',
+        width: finalMetadata.width ?? width,
+        height: finalMetadata.height ?? height,
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        history: {
+          select: {
+            id: true,
+            topic: true,
+          },
+        },
+      },
+    });
+  }
+
   private createTextOverlay(
     layer: ImageEditorLayerDto,
     width: number,
@@ -240,7 +715,10 @@ export class AssetImageEditorService {
       Math.max(0, Math.min(width - logoWidth, layer.x * width - logoWidth / 2)),
     );
     const top = Math.round(
-      Math.max(0, Math.min(height - logoHeight, layer.y * height - logoHeight / 2)),
+      Math.max(
+        0,
+        Math.min(height - logoHeight, layer.y * height - logoHeight / 2),
+      ),
     );
 
     if (layer.opacity >= 0.999) {
@@ -284,10 +762,16 @@ export class AssetImageEditorService {
       .png()
       .toBuffer();
     const left = Math.round(
-      Math.max(0, Math.min(width - targetSize, layer.x * width - targetSize / 2)),
+      Math.max(
+        0,
+        Math.min(width - targetSize, layer.x * width - targetSize / 2),
+      ),
     );
     const top = Math.round(
-      Math.max(0, Math.min(height - targetSize, layer.y * height - targetSize / 2)),
+      Math.max(
+        0,
+        Math.min(height - targetSize, layer.y * height - targetSize / 2),
+      ),
     );
 
     if (layer.opacity >= 0.999) {
@@ -316,10 +800,12 @@ export class AssetImageEditorService {
   }
 
   private slugify(value: string) {
-    return value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'edited-image';
+    return (
+      value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'edited-image'
+    );
   }
 }
