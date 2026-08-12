@@ -21,6 +21,7 @@ import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.s
 import { MarketingPlannerService } from './marketing-planner.service';
 import { CopilotBackgroundJobService } from './copilot-background-job.service';
 import { ConversationRecallService } from './conversation-recall.service';
+import { ConversationEmbeddingService } from './conversation-embedding.service';
 import { ConversationRecallContextBuilder } from './conversation-recall-context.builder';
 
 @Module({
@@ -41,6 +42,7 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
   ],
   providers: [
     ConversationRecallService,
+    ConversationEmbeddingService,
     ConversationRecallContextBuilder,
     CopilotAttachmentService,
     CopilotService,

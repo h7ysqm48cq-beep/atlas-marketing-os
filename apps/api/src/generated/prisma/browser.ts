@@ -143,6 +143,11 @@ export type AutomationSetting = Prisma.AutomationSettingModel
  */
 export type CopilotConversation = Prisma.CopilotConversationModel
 /**
+ * Model CopilotConversationEmbedding
+ * 
+ */
+export type CopilotConversationEmbedding = Prisma.CopilotConversationEmbeddingModel
+/**
  * Model CopilotConversationMessage
  * 
  */

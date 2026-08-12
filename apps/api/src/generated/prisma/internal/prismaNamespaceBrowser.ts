@@ -76,6 +76,7 @@ export const ModelName = {
   SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
+  CopilotConversationEmbedding: 'CopilotConversationEmbedding',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
   BrandMemoryFact: 'BrandMemoryFact',
@@ -800,6 +801,21 @@ export const CopilotConversationScalarFieldEnum = {
 } as const
 
 export type CopilotConversationScalarFieldEnum = (typeof CopilotConversationScalarFieldEnum)[keyof typeof CopilotConversationScalarFieldEnum]
+
+
+export const CopilotConversationEmbeddingScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  conversationId: 'conversationId',
+  content: 'content',
+  vector: 'vector',
+  model: 'model',
+  dimensions: 'dimensions',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CopilotConversationEmbeddingScalarFieldEnum = (typeof CopilotConversationEmbeddingScalarFieldEnum)[keyof typeof CopilotConversationEmbeddingScalarFieldEnum]
 
 
 export const CopilotConversationMessageScalarFieldEnum = {

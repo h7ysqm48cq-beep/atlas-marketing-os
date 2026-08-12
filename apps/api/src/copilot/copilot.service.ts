@@ -14,6 +14,7 @@ import { MemoryFactsService } from '../memory/memory-facts.service';
 import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { ConversationRecallService } from './conversation-recall.service';
+import { ConversationEmbeddingService } from './conversation-embedding.service';
 import { ConversationRecallContextBuilder } from './conversation-recall-context.builder';
 import { PromptContextBuilder } from './prompt-context.builder';
 import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
@@ -30,6 +31,7 @@ export class CopilotService {
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
     private readonly conversationRecall: ConversationRecallService,
+    private readonly conversationEmbedding: ConversationEmbeddingService,
     private readonly conversationRecallBuilder: ConversationRecallContextBuilder,
     private readonly memoryFacts: MemoryFactsService,
     private readonly knowledgeRetrieval: KnowledgeRetrievalService,
@@ -109,6 +111,7 @@ export class CopilotService {
       previousConversationContext,
       attachmentKnowledgeMatches,
       conversationRecallResults,
+      semanticConversationContext,
     ] = await Promise.all([
       this.conversations.recentMessages(conversation.id, 10),
       this.memoryFacts.confirmedPromptContext(),
@@ -125,11 +128,36 @@ export class CopilotService {
         query: latestUserMessage.content,
         excludeConversationId: conversation.id,
       }),
+
+      this.conversationEmbedding.search(latestUserMessage.content, {
+        excludeConversationId: conversation.id,
+        limit: 5,
+      }),
     ]);
 
     const conversationRecallContext = this.conversationRecallBuilder.build(
       conversationRecallResults,
     );
+
+    /*
+     * Keep semantic recall useful without allowing historical
+     * conversations to dominate the Copilot prompt.
+     *
+     * Retrieval can return up to five matches, but each match
+     * and the combined memory block have explicit budgets.
+     */
+    const semanticConversationMemory = semanticConversationContext.length
+      ? [
+          'SEMANTIC PREVIOUS CONVERSATION MEMORY',
+          'Use these only when relevant to the current request.',
+          ...semanticConversationContext.map(
+            (item) =>
+              `[${item.title} | similarity ${(item.score * 100).toFixed(1)}%]\n${item.content.slice(0, 1500)}`,
+          ),
+        ]
+          .join('\n\n')
+          .slice(0, 6000)
+      : 'SEMANTIC PREVIOUS CONVERSATION MEMORY: none';
 
     const attachmentDocumentContext =
       this.knowledgeRetrieval.buildPromptContext(attachmentKnowledgeMatches);
@@ -153,6 +181,7 @@ Description: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
       confirmedMemoryContext,
       conversationRecallContext,
+      semanticConversationMemory,
       attachmentDocumentContext,
       attachmentKnowledgeMatches.length
         ? 'Use the supplied KNOWLEDGE CONTEXT as the primary evidence for attached-document questions.'
@@ -333,6 +362,27 @@ Description: ${campaign.description || 'Not set'}`
           })),
         },
       );
+
+      /*
+       * Refresh semantic memory only after the completed
+       * assistant response has been persisted.
+       *
+       * Embedding failure must never fail the Copilot reply.
+       */
+      try {
+        await this.conversationEmbedding.embedConversation(conversation.id);
+      } catch (embeddingError) {
+        this.logger.warn(
+          JSON.stringify({
+            event: 'copilot_conversation_embedding_failed',
+            conversationId: conversation.id,
+            message:
+              embeddingError instanceof Error
+                ? embeddingError.message
+                : 'Unknown embedding error',
+          }),
+        );
+      }
 
       return {
         reply: response.output_text,

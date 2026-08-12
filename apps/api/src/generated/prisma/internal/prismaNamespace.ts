@@ -422,6 +422,7 @@ export const ModelName = {
   SportsNewsSetting: 'SportsNewsSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
+  CopilotConversationEmbedding: 'CopilotConversationEmbedding',
   CopilotConversationMessage: 'CopilotConversationMessage',
   PromptTemplate: 'PromptTemplate',
   BrandMemoryFact: 'BrandMemoryFact',
@@ -442,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsSetting" | "automationSetting" | "copilotConversation" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsSetting" | "automationSetting" | "copilotConversation" | "copilotConversationEmbedding" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2296,6 +2297,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CopilotConversationEmbedding: {
+      payload: Prisma.$CopilotConversationEmbeddingPayload<ExtArgs>
+      fields: Prisma.CopilotConversationEmbeddingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CopilotConversationEmbeddingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CopilotConversationEmbeddingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        findFirst: {
+          args: Prisma.CopilotConversationEmbeddingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CopilotConversationEmbeddingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        findMany: {
+          args: Prisma.CopilotConversationEmbeddingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>[]
+        }
+        create: {
+          args: Prisma.CopilotConversationEmbeddingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        createMany: {
+          args: Prisma.CopilotConversationEmbeddingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CopilotConversationEmbeddingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>[]
+        }
+        delete: {
+          args: Prisma.CopilotConversationEmbeddingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        update: {
+          args: Prisma.CopilotConversationEmbeddingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        deleteMany: {
+          args: Prisma.CopilotConversationEmbeddingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CopilotConversationEmbeddingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CopilotConversationEmbeddingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>[]
+        }
+        upsert: {
+          args: Prisma.CopilotConversationEmbeddingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CopilotConversationEmbeddingPayload>
+        }
+        aggregate: {
+          args: Prisma.CopilotConversationEmbeddingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCopilotConversationEmbedding>
+        }
+        groupBy: {
+          args: Prisma.CopilotConversationEmbeddingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationEmbeddingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CopilotConversationEmbeddingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CopilotConversationEmbeddingCountAggregateOutputType> | number
+        }
+      }
+    }
     CopilotConversationMessage: {
       payload: Prisma.$CopilotConversationMessagePayload<ExtArgs>
       fields: Prisma.CopilotConversationMessageFieldRefs
@@ -3408,6 +3483,21 @@ export const CopilotConversationScalarFieldEnum = {
 export type CopilotConversationScalarFieldEnum = (typeof CopilotConversationScalarFieldEnum)[keyof typeof CopilotConversationScalarFieldEnum]
 
 
+export const CopilotConversationEmbeddingScalarFieldEnum = {
+  id: 'id',
+  brandId: 'brandId',
+  conversationId: 'conversationId',
+  content: 'content',
+  vector: 'vector',
+  model: 'model',
+  dimensions: 'dimensions',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CopilotConversationEmbeddingScalarFieldEnum = (typeof CopilotConversationEmbeddingScalarFieldEnum)[keyof typeof CopilotConversationEmbeddingScalarFieldEnum]
+
+
 export const CopilotConversationMessageScalarFieldEnum = {
   id: 'id',
   conversationId: 'conversationId',
@@ -4069,6 +4159,7 @@ export type GlobalOmitConfig = {
   sportsNewsSetting?: Prisma.SportsNewsSettingOmit
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
+  copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingOmit
   copilotConversationMessage?: Prisma.CopilotConversationMessageOmit
   promptTemplate?: Prisma.PromptTemplateOmit
   brandMemoryFact?: Prisma.BrandMemoryFactOmit

@@ -112,18 +112,19 @@ model Brand {
   mascotAssetId      String?
   referenceAssetIds  String[] @default([])
 
-  status               BrandStatus           @default(ACTIVE)
-  generations          GenerationHistory[]
-  campaigns            Campaign[]
-  assets               Asset[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  knowledgeDocuments   KnowledgeDocument[]
-  socialChannels       SocialChannel[]
-  scheduledPosts       ScheduledPost[]
-  copilotConversations CopilotConversation[]
-  promptTemplates      PromptTemplate[]
-  memoryFacts          BrandMemoryFact[]
+  status                        BrandStatus                    @default(ACTIVE)
+  generations                   GenerationHistory[]
+  campaigns                     Campaign[]
+  assets                        Asset[]
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  knowledgeDocuments            KnowledgeDocument[]
+  socialChannels                SocialChannel[]
+  scheduledPosts                ScheduledPost[]
+  copilotConversations          CopilotConversation[]
+  promptTemplates               PromptTemplate[]
+  memoryFacts                   BrandMemoryFact[]
+  copilotConversationEmbeddings CopilotConversationEmbedding[]
 
   @@index([workspaceId])
 }
@@ -982,7 +983,6 @@ model SportsNewsSetting {
   watermarkOpacity  Float   @default(0.72)
   watermarkPosition String  @default("top-right")
 
-
   logoAssetId String?
 
   logoSize String @default("medium")
@@ -991,18 +991,15 @@ model SportsNewsSetting {
 
   logoMargin Float @default(10)
 
-
   footerLogoEnabled Boolean @default(false)
 
   footerLogoAssetId String?
-
 
   footerQrEnabled Boolean @default(false)
 
   footerQrAssetId String?
 
   footerQrLink String?
-
 
   footerPlacement String @default("bottom")
 
@@ -1168,13 +1165,36 @@ model CopilotConversation {
 
   messages CopilotConversationMessage[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  copilotConversationEmbedding CopilotConversationEmbedding?
 
   @@index([brandId])
   @@index([campaignId])
   @@index([updatedAt])
   @@index([isArchived])
+}
+
+model CopilotConversationEmbedding {
+  id String @id @default(cuid())
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  conversationId String              @unique
+  conversation   CopilotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  content String
+  vector  Json
+
+  model      String
+  dimensions Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([createdAt])
 }
 
 model CopilotConversationMessage {
