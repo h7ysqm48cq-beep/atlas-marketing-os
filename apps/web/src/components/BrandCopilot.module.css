@@ -1660,7 +1660,7 @@
   gap: 3px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .modeButton,
@@ -1680,20 +1680,47 @@
 }
 
 .modeActive {
-  background: rgba(209,163,63,0.18);
+  background: rgba(209, 163, 63, 0.18);
   color: var(--gold-light);
 }
 
-@media (max-width:720px) {
-
+@media (max-width: 720px) {
   .modeSwitch {
-    width:100%;
+    width: 100%;
   }
 
   .modeButton,
   .modeActive {
-    flex:1;
+    flex: 1;
   }
-
 }
 
+/* Mobile Marketing Plan scrolling fix */
+@media (max-width: 720px) {
+  .chat {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 150px;
+  }
+
+  .marketingPlan {
+    max-height: none;
+    overflow: visible;
+    width: calc(100% - 20px);
+    margin: 10px auto;
+  }
+
+  .composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+  }
+
+  .planSummaryCard p,
+  .ideaList p,
+  .platformPlanCard p,
+  .imagePromptList p,
+  .scheduleTimeline p {
+    overflow-wrap: anywhere;
+  }
+}
