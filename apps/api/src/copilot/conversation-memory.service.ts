@@ -17,9 +17,7 @@ type CreateConversationInput = {
 
 @Injectable()
 export class ConversationMemoryService {
-  private readonly logger = new Logger(
-    ConversationMemoryService.name,
-  );
+  private readonly logger = new Logger(ConversationMemoryService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -31,21 +29,18 @@ export class ConversationMemoryService {
     const brand = await this.brands.getActiveBrand();
 
     if (input.campaignId) {
-      const campaign =
-        await this.prisma.campaign.findFirst({
-          where: {
-            id: input.campaignId,
-            brandId: brand.id,
-          },
-          select: {
-            id: true,
-          },
-        });
+      const campaign = await this.prisma.campaign.findFirst({
+        where: {
+          id: input.campaignId,
+          brandId: brand.id,
+        },
+        select: {
+          id: true,
+        },
+      });
 
       if (!campaign) {
-        throw new NotFoundException(
-          'Campaign not found.',
-        );
+        throw new NotFoundException('Campaign not found.');
       }
     }
 
@@ -54,9 +49,7 @@ export class ConversationMemoryService {
         brandId: brand.id,
         campaignId: input.campaignId,
         mode: input.mode || 'chat',
-        title: this.createTitle(
-          input.firstMessage,
-        ),
+        title: this.createTitle(input.firstMessage),
       },
       select: this.conversationSummarySelect(),
     });
@@ -88,34 +81,31 @@ export class ConversationMemoryService {
   async get(conversationId: string) {
     const brand = await this.brands.getActiveBrand();
 
-    const conversation =
-      await this.prisma.copilotConversation.findFirst({
-        where: {
-          id: conversationId,
-          brandId: brand.id,
-          isArchived: false,
-        },
-        select: {
-          ...this.conversationSummarySelect(),
-          messages: {
-            select: {
-              id: true,
-              role: true,
-              content: true,
-              metadata: true,
-              createdAt: true,
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
+    const conversation = await this.prisma.copilotConversation.findFirst({
+      where: {
+        id: conversationId,
+        brandId: brand.id,
+        isArchived: false,
+      },
+      select: {
+        ...this.conversationSummarySelect(),
+        messages: {
+          select: {
+            id: true,
+            role: true,
+            content: true,
+            metadata: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
           },
         },
-      });
+      },
+    });
 
     if (!conversation) {
-      throw new NotFoundException(
-        'Conversation not found.',
-      );
+      throw new NotFoundException('Conversation not found.');
     }
 
     return conversation;
@@ -137,26 +127,20 @@ export class ConversationMemoryService {
 
     const brand = await this.brands.getActiveBrand();
 
-    const conversation =
-      await this.prisma.copilotConversation.findFirst({
-        where: {
-          id: input.conversationId,
-          brandId: brand.id,
-          isArchived: false,
-        },
-        select: this.conversationSummarySelect(),
-      });
+    const conversation = await this.prisma.copilotConversation.findFirst({
+      where: {
+        id: input.conversationId,
+        brandId: brand.id,
+        isArchived: false,
+      },
+      select: this.conversationSummarySelect(),
+    });
 
     if (!conversation) {
-      throw new NotFoundException(
-        'Conversation not found.',
-      );
+      throw new NotFoundException('Conversation not found.');
     }
 
-    if (
-      input.campaignId &&
-      conversation.campaignId !== input.campaignId
-    ) {
+    if (input.campaignId && conversation.campaignId !== input.campaignId) {
       throw new NotFoundException(
         'Conversation does not belong to the selected campaign.',
       );
@@ -186,9 +170,7 @@ export class ConversationMemoryService {
     } catch (error) {
       this.logger.warn(
         `Memory extraction skipped: ${
-          error instanceof Error
-            ? error.message
-            : 'Unknown error'
+          error instanceof Error ? error.message : 'Unknown error'
         }`,
       );
     }
@@ -209,52 +191,49 @@ export class ConversationMemoryService {
     );
   }
 
-  async recentMessages(
-    conversationId: string,
-    limit = 20,
-  ) {
-    const messages =
-      await this.prisma.copilotConversationMessage.findMany({
-        where: {
-          conversationId,
-        },
-        select: {
-          role: true,
-          content: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: Math.min(
-          Math.max(limit, 1),
-          50,
-        ),
-      });
+  async recentMessages(conversationId: string, limit = 20) {
+    const messages = await this.prisma.copilotConversationMessage.findMany({
+      where: {
+        conversationId,
+      },
+      select: {
+        role: true,
+        content: true,
+        metadata: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: Math.min(Math.max(limit, 1), 50),
+    });
 
     return messages.reverse().map((message) => ({
       role:
-        message.role ===
-        CopilotMessageRole.ASSISTANT
+        message.role === CopilotMessageRole.ASSISTANT
           ? ('assistant' as const)
           : ('user' as const),
-      content: message.content,
+
+      content:
+        message.metadata &&
+        typeof message.metadata === 'object' &&
+        'type' in message.metadata &&
+        message.metadata.type === 'marketing-plan' &&
+        'plan' in message.metadata
+          ? `${message.content}
+
+Current Marketing Plan Context:
+${JSON.stringify(message.metadata.plan, null, 2)}`
+          : message.content,
     }));
   }
 
-  async rename(
-    conversationId: string,
-    title: string,
-  ) {
+  async rename(conversationId: string, title: string) {
     const brand = await this.brands.getActiveBrand();
 
-    const cleanTitle = title
-      .replace(/\s+/g, ' ')
-      .trim();
+    const cleanTitle = title.replace(/\s+/g, ' ').trim();
 
     if (!cleanTitle) {
-      throw new BadRequestException(
-        'Conversation title cannot be empty.',
-      );
+      throw new BadRequestException('Conversation title cannot be empty.');
     }
 
     if (cleanTitle.length > 80) {
@@ -263,22 +242,19 @@ export class ConversationMemoryService {
       );
     }
 
-    const conversation =
-      await this.prisma.copilotConversation.findFirst({
-        where: {
-          id: conversationId,
-          brandId: brand.id,
-          isArchived: false,
-        },
-        select: {
-          id: true,
-        },
-      });
+    const conversation = await this.prisma.copilotConversation.findFirst({
+      where: {
+        id: conversationId,
+        brandId: brand.id,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     if (!conversation) {
-      throw new NotFoundException(
-        'Conversation not found.',
-      );
+      throw new NotFoundException('Conversation not found.');
     }
 
     return this.prisma.copilotConversation.update({
@@ -295,21 +271,18 @@ export class ConversationMemoryService {
   async delete(conversationId: string) {
     const brand = await this.brands.getActiveBrand();
 
-    const conversation =
-      await this.prisma.copilotConversation.findFirst({
-        where: {
-          id: conversationId,
-          brandId: brand.id,
-        },
-        select: {
-          id: true,
-        },
-      });
+    const conversation = await this.prisma.copilotConversation.findFirst({
+      where: {
+        id: conversationId,
+        brandId: brand.id,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     if (!conversation) {
-      throw new NotFoundException(
-        'Conversation not found.',
-      );
+      throw new NotFoundException('Conversation not found.');
     }
 
     await this.prisma.copilotConversation.delete({
@@ -333,27 +306,24 @@ export class ConversationMemoryService {
     const cleanContent = content.trim();
 
     if (!cleanContent) {
-      throw new Error(
-        'Conversation message cannot be empty.',
-      );
+      throw new Error('Conversation message cannot be empty.');
     }
 
-    const message =
-      await this.prisma.copilotConversationMessage.create({
-        data: {
-          conversationId,
-          role,
-          content: cleanContent,
-          metadata: metadata as any,
-        },
-        select: {
-          id: true,
-          role: true,
-          content: true,
-          metadata: true,
-          createdAt: true,
-        },
-      });
+    const message = await this.prisma.copilotConversationMessage.create({
+      data: {
+        conversationId,
+        role,
+        content: cleanContent,
+        metadata: metadata as any,
+      },
+      select: {
+        id: true,
+        role: true,
+        content: true,
+        metadata: true,
+        createdAt: true,
+      },
+    });
 
     await this.prisma.copilotConversation.update({
       where: {
@@ -367,13 +337,9 @@ export class ConversationMemoryService {
     return message;
   }
 
-  private createTitle(
-    firstMessage?: string,
-  ): string {
+  private createTitle(firstMessage?: string): string {
     const text =
-      firstMessage
-        ?.replace(/\s+/g, ' ')
-        .trim() || 'New conversation';
+      firstMessage?.replace(/\s+/g, ' ').trim() || 'New conversation';
 
     if (text.length <= 48) {
       return text;
