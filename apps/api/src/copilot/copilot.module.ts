@@ -20,6 +20,8 @@ import { PromptContextBuilder } from './prompt-context.builder';
 import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { MarketingPlannerService } from './marketing-planner.service';
 import { CopilotBackgroundJobService } from './copilot-background-job.service';
+import { ConversationRecallService } from './conversation-recall.service';
+import { ConversationRecallContextBuilder } from './conversation-recall-context.builder';
 
 @Module({
   imports: [
@@ -29,24 +31,26 @@ import { CopilotBackgroundJobService } from './copilot-background-job.service';
     AiModule,
     KnowledgeModule,
     MemoryModule,
-AssetImageModule,
-ImagePromptEngineModule,
+    AssetImageModule,
+    ImagePromptEngineModule,
   ],
   controllers: [
-CopilotController,
-CopilotImageController,
-CopilotJobController,
-],
+    CopilotController,
+    CopilotImageController,
+    CopilotJobController,
+  ],
   providers: [
+    ConversationRecallService,
+    ConversationRecallContextBuilder,
     CopilotAttachmentService,
     CopilotService,
     MarketingPlannerService,
     ConversationMemoryService,
     CopilotBackgroundJobService,
 
-CopilotImageService,
-CopilotJobService,
-CopilotJobProcessor,
+    CopilotImageService,
+    CopilotJobService,
+    CopilotJobProcessor,
 
     PromptContextBuilder,
     PromptContextPipelineService,

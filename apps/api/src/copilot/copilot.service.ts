@@ -14,6 +14,7 @@ import { MemoryFactsService } from '../memory/memory-facts.service';
 import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { ConversationRecallService } from './conversation-recall.service';
+import { ConversationRecallContextBuilder } from './conversation-recall-context.builder';
 import { PromptContextBuilder } from './prompt-context.builder';
 import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
@@ -29,6 +30,7 @@ export class CopilotService {
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
     private readonly conversationRecall: ConversationRecallService,
+    private readonly conversationRecallBuilder: ConversationRecallContextBuilder,
     private readonly memoryFacts: MemoryFactsService,
     private readonly knowledgeRetrieval: KnowledgeRetrievalService,
     private readonly promptContextBuilder: PromptContextBuilder,
@@ -106,7 +108,7 @@ export class CopilotService {
       confirmedMemoryContext,
       previousConversationContext,
       attachmentKnowledgeMatches,
-      conversationRecallContext,
+      conversationRecallResults,
     ] = await Promise.all([
       this.conversations.recentMessages(conversation.id, 10),
       this.memoryFacts.confirmedPromptContext(),
@@ -124,6 +126,10 @@ export class CopilotService {
         excludeConversationId: conversation.id,
       }),
     ]);
+
+    const conversationRecallContext = this.conversationRecallBuilder.build(
+      conversationRecallResults,
+    );
 
     const attachmentDocumentContext =
       this.knowledgeRetrieval.buildPromptContext(attachmentKnowledgeMatches);
