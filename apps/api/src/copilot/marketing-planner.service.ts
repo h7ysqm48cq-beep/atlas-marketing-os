@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
@@ -11,6 +8,7 @@ import { PrismaService } from '../database/prisma.service';
 import { StrategyService } from '../strategy/strategy.service';
 import { StrategyResult } from '../strategy/types/strategy';
 import { CreateMarketingPlanDto } from './dto/create-marketing-plan.dto';
+import { ConversationMemoryService } from './conversation-memory.service';
 
 export type MarketingPlanScheduleItem = {
   day: number;
@@ -111,12 +109,7 @@ const MARKETING_PLAN_SCHEMA = {
             type: 'string',
           },
         },
-        required: [
-          'day',
-          'platform',
-          'contentType',
-          'topic',
-        ],
+        required: ['day', 'platform', 'contentType', 'topic'],
       },
     },
   },
@@ -147,9 +140,9 @@ export class MarketingPlannerService {
     private readonly strategyService: StrategyService,
     private readonly promptBuilder: PromptBuilderService,
     private readonly knowledgeService: KnowledgeService,
+    private readonly conversations: ConversationMemoryService,
   ) {
-    const apiKey =
-      this.config.get<string>('OPENAI_API_KEY');
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
 
     this.client = apiKey
       ? new OpenAI({
@@ -160,10 +153,17 @@ export class MarketingPlannerService {
       : null;
   }
 
-  async generate(
-    dto: CreateMarketingPlanDto,
-  ): Promise<MarketingPlan> {
+  async generate(dto: CreateMarketingPlanDto): Promise<MarketingPlan> {
     const prompt = dto.prompt.trim();
+
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode: 'marketing-plan',
+      firstMessage: prompt,
+    });
+
+    await this.conversations.appendUserMessage(conversation.id, prompt);
 
     const strategy = this.strategyService.generate({
       prompt,
@@ -188,9 +188,7 @@ export class MarketingPlannerService {
       : null;
 
     if (dto.campaignId && !campaign) {
-      throw new NotFoundException(
-        'Campaign not found.',
-      );
+      throw new NotFoundException('Campaign not found.');
     }
 
     const fallback = this.createFallbackPlan(
@@ -198,113 +196,111 @@ export class MarketingPlannerService {
       this.toText(brand.targetAudience),
     );
 
-    const relevantKnowledge =
-      await this.knowledgeService
-        .findRelevant({
-          topic: prompt,
-          platform: 'Facebook Telegram Reels',
-          style: this.toText(brand.brandVoice),
-          language: this.toText(
-            brand.primaryLanguage,
-          ),
-          limit: 3,
-        })
-        .catch(() => []);
+    const relevantKnowledge = await this.knowledgeService
+      .findRelevant({
+        topic: prompt,
+        platform: 'Facebook Telegram Reels',
+        style: this.toText(brand.brandVoice),
+        language: this.toText(brand.primaryLanguage),
+        limit: 3,
+      })
+      .catch(() => []);
 
     this.knowledgeService.recordUsage(
-      relevantKnowledge.map(
-        (item) => item.document.id,
-      ),
+      relevantKnowledge.map((item) => item.document.id),
     );
 
     if (!this.client) {
-      return {
+      const result = {
         ...fallback,
         strategy,
-        generatedBy: 'fallback',
+        generatedBy: 'fallback' as const,
         warning:
           'OPENAI_API_KEY is not configured. Returned the safe fallback plan.',
       };
+
+      await this.conversations.appendAssistantMessage(
+        conversation.id,
+        JSON.stringify(result),
+        {
+          type: 'marketing-plan',
+          plan: result,
+        },
+      );
+
+      return result;
     }
 
-    const developerContext =
-      await this.promptBuilder.buildMarketingPlanPrompt({
-        brand,
-        campaign,
-        strategy,
-        knowledge: relevantKnowledge,
-      });
+    const developerContext = await this.promptBuilder.buildMarketingPlanPrompt({
+      brand,
+      campaign,
+      strategy,
+      knowledge: relevantKnowledge,
+    });
 
     try {
-      const response =
-        await this.client.responses.create({
-          model:
-            this.config.get<string>(
-              'OPENAI_MODEL',
-            ) || 'gpt-5.6-luna',
-          input: [
-            {
-              role: 'developer',
-              content: developerContext,
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'atlas_marketing_plan',
-              description:
-                'A structured multi-platform marketing plan.',
-              strict: true,
-              schema: MARKETING_PLAN_SCHEMA,
-            },
+      const response = await this.client.responses.create({
+        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+        input: [
+          {
+            role: 'developer',
+            content: developerContext,
           },
-        });
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'atlas_marketing_plan',
+            description: 'A structured multi-platform marketing plan.',
+            strict: true,
+            schema: MARKETING_PLAN_SCHEMA,
+          },
+        },
+      });
 
-      const parsed = JSON.parse(
-        response.output_text,
-      ) as unknown;
+      const parsed = JSON.parse(response.output_text) as unknown;
 
-      const normalized = this.normalizePlan(
-        parsed,
-        fallback,
-      );
+      const normalized = this.normalizePlan(parsed, fallback);
 
       const guarded = this.applyGuardrails(
         normalized,
         prompt,
         Array.isArray(brand.forbiddenWords)
-          ? brand.forbiddenWords.map((item) =>
-              String(item),
-            )
+          ? brand.forbiddenWords.map((item) => String(item))
           : [],
       );
 
-      return {
+      const result = {
         ...guarded,
         strategy,
-        generatedBy: 'ai',
+        generatedBy: 'ai' as const,
       };
+
+      await this.conversations.appendAssistantMessage(
+        conversation.id,
+        JSON.stringify(result),
+        {
+          type: 'marketing-plan',
+          plan: result,
+        },
+      );
+
+      return result;
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown OpenAI error';
+        error instanceof Error ? error.message : 'Unknown OpenAI error';
 
-      console.error(
-        'Marketing Planner AI generation failed:',
-        message,
-      );
+      console.error('Marketing Planner AI generation failed:', message);
 
       return {
         ...fallback,
         strategy,
         generatedBy: 'fallback',
-        warning:
-          `AI generation failed. Returned the safe fallback plan. ${message}`,
+        warning: `AI generation failed. Returned the safe fallback plan. ${message}`,
       };
     }
   }
@@ -313,40 +309,21 @@ export class MarketingPlannerService {
     value: unknown,
     fallback: MarketingPlan,
   ): MarketingPlan {
-    if (
-      !value ||
-      typeof value !== 'object' ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return fallback;
     }
 
-    const source = value as Record<
-      string,
-      unknown
-    >;
+    const source = value as Record<string, unknown>;
 
     return {
       campaignName: this.stringValue(
         source.campaignName,
         fallback.campaignName,
       ),
-      objective: this.stringValue(
-        source.objective,
-        fallback.objective,
-      ),
-      audience: this.stringValue(
-        source.audience,
-        fallback.audience,
-      ),
-      hook: this.stringValue(
-        source.hook,
-        fallback.hook,
-      ),
-      keyMessage: this.stringValue(
-        source.keyMessage,
-        fallback.keyMessage,
-      ),
+      objective: this.stringValue(source.objective, fallback.objective),
+      audience: this.stringValue(source.audience, fallback.audience),
+      hook: this.stringValue(source.hook, fallback.hook),
+      keyMessage: this.stringValue(source.keyMessage, fallback.keyMessage),
       contentPillars: this.stringArray(
         source.contentPillars,
         fallback.contentPillars,
@@ -355,54 +332,27 @@ export class MarketingPlannerService {
         source.contentIdeas,
         fallback.contentIdeas,
       ),
-      facebook: this.stringArray(
-        source.facebook,
-        fallback.facebook,
-      ),
-      telegram: this.stringArray(
-        source.telegram,
-        fallback.telegram,
-      ),
-      reels: this.stringArray(
-        source.reels,
-        fallback.reels,
-      ),
+      facebook: this.stringArray(source.facebook, fallback.facebook),
+      telegram: this.stringArray(source.telegram, fallback.telegram),
+      reels: this.stringArray(source.reels, fallback.reels),
       imagePrompts: this.stringArray(
         source.imagePrompts,
         fallback.imagePrompts,
       ),
-      schedule: this.scheduleArray(
-        source.schedule,
-        fallback.schedule,
-      ),
+      schedule: this.scheduleArray(source.schedule, fallback.schedule),
     };
   }
 
-  private createFallbackPlan(
-    prompt: string,
-    audience: string,
-  ): MarketingPlan {
-    const topic =
-      prompt ||
-      'Untitled Marketing Campaign';
+  private createFallbackPlan(prompt: string, audience: string): MarketingPlan {
+    const topic = prompt || 'Untitled Marketing Campaign';
 
     return {
       campaignName: topic,
-      objective:
-        '提升品牌互动、内容分享与跨平台触达。',
-      audience:
-        audience ||
-        '品牌主要目标受众',
-      hook:
-        `用一个有共鸣的问题开启「${topic}」，让受众主动分享自己的经历。`,
-      keyMessage:
-        '同一个核心主题，根据不同平台的使用习惯调整表达方式。',
-      contentPillars: [
-        '情感共鸣',
-        '互动讨论',
-        '品牌相关性',
-        '短视频故事',
-      ],
+      objective: '提升品牌互动、内容分享与跨平台触达。',
+      audience: audience || '品牌主要目标受众',
+      hook: `用一个有共鸣的问题开启「${topic}」，让受众主动分享自己的经历。`,
+      keyMessage: '同一个核心主题，根据不同平台的使用习惯调整表达方式。',
+      contentPillars: ['情感共鸣', '互动讨论', '品牌相关性', '短视频故事'],
       contentIdeas: [
         `${topic}：你最先想到的画面是什么？`,
         '以投票形式让受众选择最有共鸣的选项。',
@@ -482,35 +432,21 @@ export class MarketingPlannerService {
     };
   }
 
-  private stringValue(
-    value: unknown,
-    fallback: string,
-  ): string {
-    return typeof value === 'string' &&
-      value.trim()
-      ? value.trim()
-      : fallback;
+  private stringValue(value: unknown, fallback: string): string {
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
   }
 
-  private stringArray(
-    value: unknown,
-    fallback: string[],
-  ): string[] {
+  private stringArray(value: unknown, fallback: string[]): string[] {
     if (!Array.isArray(value)) {
       return fallback;
     }
 
     const items = value
-      .filter(
-        (item): item is string =>
-          typeof item === 'string',
-      )
+      .filter((item): item is string => typeof item === 'string')
       .map((item) => item.trim())
       .filter(Boolean);
 
-    return items.length
-      ? items
-      : fallback;
+    return items.length ? items : fallback;
   }
 
   private scheduleArray(
@@ -521,69 +457,37 @@ export class MarketingPlannerService {
       return fallback;
     }
 
-    const items = value.flatMap(
-      (
-        item,
-        index,
-      ): MarketingPlanScheduleItem[] => {
-        if (
-          !item ||
-          typeof item !== 'object' ||
-          Array.isArray(item)
-        ) {
-          return [];
-        }
+    const items = value.flatMap((item, index): MarketingPlanScheduleItem[] => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return [];
+      }
 
-        const source = item as Record<
-          string,
-          unknown
-        >;
+      const source = item as Record<string, unknown>;
 
-        const platform = this.stringValue(
-          source.platform,
-          '',
-        );
-        const contentType =
-          this.stringValue(
-            source.contentType,
-            '',
-          );
-        const topic = this.stringValue(
-          source.topic,
-          '',
-        );
+      const platform = this.stringValue(source.platform, '');
+      const contentType = this.stringValue(source.contentType, '');
+      const topic = this.stringValue(source.topic, '');
 
-        if (
-          !platform ||
-          !contentType ||
-          !topic
-        ) {
-          return [];
-        }
+      if (!platform || !contentType || !topic) {
+        return [];
+      }
 
-        const day =
-          typeof source.day === 'number' &&
-          Number.isFinite(source.day)
-            ? Math.max(
-                1,
-                Math.round(source.day),
-              )
-            : index + 1;
+      const day =
+        typeof source.day === 'number' && Number.isFinite(source.day)
+          ? Math.max(1, Math.round(source.day))
+          : index + 1;
 
-        return [
-          {
-            day,
-            platform,
-            contentType,
-            topic,
-          },
-        ];
-      },
-    );
+      return [
+        {
+          day,
+          platform,
+          contentType,
+          topic,
+        },
+      ];
+    });
 
-    return items.length
-      ? items
-      : fallback;
+    return items.length ? items : fallback;
   }
 
   private applyGuardrails(
@@ -591,62 +495,49 @@ export class MarketingPlannerService {
     userPrompt: string,
     forbiddenWords: string[],
   ): MarketingPlan {
-    const userRequestedPromotion =
-      this.containsAny(userPrompt, [
-        'promotion',
-        'promo',
-        'contest',
-        'giveaway',
-        'lucky draw',
-        'reward',
-        'bonus',
-        'discount',
-        'offer',
-        'free credit',
-        '抽奖',
-        '赠品',
-        '促销',
-        '优惠',
-        '奖励',
-        '奖金',
-        '红利',
-        '免费送',
-        '送出',
-        '奖品',
-      ]);
+    const userRequestedPromotion = this.containsAny(userPrompt, [
+      'promotion',
+      'promo',
+      'contest',
+      'giveaway',
+      'lucky draw',
+      'reward',
+      'bonus',
+      'discount',
+      'offer',
+      'free credit',
+      '抽奖',
+      '赠品',
+      '促销',
+      '优惠',
+      '奖励',
+      '奖金',
+      '红利',
+      '免费送',
+      '送出',
+      '奖品',
+    ]);
 
-    const userRequestedLogo =
-      this.containsAny(userPrompt, [
-        'logo',
-        'brand logo',
-        '品牌标志',
-        '品牌 logo',
-        '放品牌',
-        '加入品牌',
-      ]);
+    const userRequestedLogo = this.containsAny(userPrompt, [
+      'logo',
+      'brand logo',
+      '品牌标志',
+      '品牌 logo',
+      '放品牌',
+      '加入品牌',
+    ]);
 
-    const sanitizeText = (
-      value: string,
-      imagePrompt = false,
-    ): string => {
+    const sanitizeText = (value: string, imagePrompt = false): string => {
       let result = value;
 
       if (!userRequestedPromotion) {
-        result = this.removeUnsupportedPromotion(
-          result,
-        );
+        result = this.removeUnsupportedPromotion(result);
       }
 
-      result = this.removeForbiddenWords(
-        result,
-        forbiddenWords,
-      );
+      result = this.removeForbiddenWords(result, forbiddenWords);
 
       if (imagePrompt) {
-        result = this.sanitizeImagePrompt(
-          result,
-          userRequestedLogo,
-        );
+        result = this.sanitizeImagePrompt(result, userRequestedLogo);
       }
 
       return result
@@ -655,63 +546,34 @@ export class MarketingPlannerService {
         .trim();
     };
 
-    const cleanArray = (
-      values: string[],
-      imagePrompt = false,
-    ): string[] =>
-      values
-        .map((value) =>
-          sanitizeText(value, imagePrompt),
-        )
-        .filter(Boolean);
+    const cleanArray = (values: string[], imagePrompt = false): string[] =>
+      values.map((value) => sanitizeText(value, imagePrompt)).filter(Boolean);
 
     return {
       ...plan,
-      campaignName: sanitizeText(
-        plan.campaignName,
-      ),
+      campaignName: sanitizeText(plan.campaignName),
       objective: sanitizeText(plan.objective),
       audience: sanitizeText(plan.audience),
       hook: sanitizeText(plan.hook),
-      keyMessage: sanitizeText(
-        plan.keyMessage,
-      ),
-      contentPillars: cleanArray(
-        plan.contentPillars,
-      ),
-      contentIdeas: cleanArray(
-        plan.contentIdeas,
-      ),
+      keyMessage: sanitizeText(plan.keyMessage),
+      contentPillars: cleanArray(plan.contentPillars),
+      contentIdeas: cleanArray(plan.contentIdeas),
       facebook: cleanArray(plan.facebook),
       telegram: cleanArray(plan.telegram),
       reels: cleanArray(plan.reels),
-      imagePrompts: cleanArray(
-        plan.imagePrompts,
-        true,
-      ),
+      imagePrompts: cleanArray(plan.imagePrompts, true),
       schedule: plan.schedule
         .map((item) => ({
           ...item,
-          platform: sanitizeText(
-            item.platform,
-          ),
-          contentType: sanitizeText(
-            item.contentType,
-          ),
+          platform: sanitizeText(item.platform),
+          contentType: sanitizeText(item.contentType),
           topic: sanitizeText(item.topic),
         }))
-        .filter(
-          (item) =>
-            item.platform &&
-            item.contentType &&
-            item.topic,
-        ),
+        .filter((item) => item.platform && item.contentType && item.topic),
     };
   }
 
-  private removeUnsupportedPromotion(
-    value: string,
-  ): string {
+  private removeUnsupportedPromotion(value: string): string {
     const unsupportedPatterns: RegExp[] = [
       /互动抽奖活动等你参加[！!。.，,]?/gi,
       /参与抽奖[！!。.，,]?/gi,
@@ -734,8 +596,7 @@ export class MarketingPlannerService {
     ];
 
     return unsupportedPatterns.reduce(
-      (result, pattern) =>
-        result.replace(pattern, ''),
+      (result, pattern) => result.replace(pattern, ''),
       value,
     );
   }
@@ -744,30 +605,18 @@ export class MarketingPlannerService {
     value: string,
     forbiddenWords: string[],
   ): string {
-    return forbiddenWords.reduce(
-      (result, word) => {
-        const cleanWord = word.trim();
+    return forbiddenWords.reduce((result, word) => {
+      const cleanWord = word.trim();
 
-        if (!cleanWord) {
-          return result;
-        }
+      if (!cleanWord) {
+        return result;
+      }
 
-        return result.replace(
-          new RegExp(
-            this.escapeRegExp(cleanWord),
-            'gi',
-          ),
-          '',
-        );
-      },
-      value,
-    );
+      return result.replace(new RegExp(this.escapeRegExp(cleanWord), 'gi'), '');
+    }, value);
   }
 
-  private sanitizeImagePrompt(
-    value: string,
-    allowLogo: boolean,
-  ): string {
+  private sanitizeImagePrompt(value: string, allowLogo: boolean): string {
     let result = value
       .replace(
         /\b(?:real|famous|celebrity)\s+(?:actor|actress|person|star)\b/gi,
@@ -796,14 +645,8 @@ export class MarketingPlannerService {
           /\b(?:subtle|small|visible|prominent)?\s*(?:brand\s+)?logo\s+(?:placement|in the corner|in background|on a poster)?\b/gi,
           '',
         )
-        .replace(
-          /\bwith\s+(?:subtle\s+)?[A-Za-z0-9_-]+\s+branding\b/gi,
-          '',
-        )
-        .replace(
-          /\bbranded\s+(?:poster|sign|logo|background)\b/gi,
-          '',
-        );
+        .replace(/\bwith\s+(?:subtle\s+)?[A-Za-z0-9_-]+\s+branding\b/gi, '')
+        .replace(/\bbranded\s+(?:poster|sign|logo|background)\b/gi, '');
     }
 
     const safetySuffix =
@@ -821,26 +664,14 @@ export class MarketingPlannerService {
     return result;
   }
 
-  private containsAny(
-    value: string,
-    terms: string[],
-  ): boolean {
+  private containsAny(value: string, terms: string[]): boolean {
     const normalized = value.toLowerCase();
 
-    return terms.some((term) =>
-      normalized.includes(
-        term.toLowerCase(),
-      ),
-    );
+    return terms.some((term) => normalized.includes(term.toLowerCase()));
   }
 
-  private escapeRegExp(
-    value: string,
-  ): string {
-    return value.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      '\\$&',
-    );
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private toText(value: unknown): string {
@@ -849,15 +680,10 @@ export class MarketingPlannerService {
     }
 
     if (Array.isArray(value)) {
-      return value
-        .map((item) => String(item))
-        .join(', ');
+      return value.map((item) => String(item)).join(', ');
     }
 
-    if (
-      value === null ||
-      value === undefined
-    ) {
+    if (value === null || value === undefined) {
       return 'Not set';
     }
 
@@ -870,9 +696,7 @@ export class MarketingPlannerService {
     }
 
     return value.length
-      ? value
-          .map((item) => String(item))
-          .join(' | ')
+      ? value.map((item) => String(item)).join(' | ')
       : 'None';
   }
 }

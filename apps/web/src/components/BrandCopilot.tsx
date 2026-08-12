@@ -675,10 +675,6 @@ You can continue refining this plan with Elena.
           throw new Error(data.message || "Unable to get response.");
         }
 
-        if (mode !== "chat") {
-          setMarketingPlan(null);
-        }
-
         if (data.conversation?.id) {
           setConversationId(data.conversation.id);
         }
@@ -1243,158 +1239,159 @@ You can continue refining this plan with Elena.
               </article>
             ))}
 
+            {marketingPlan && (
+              <section className={styles.marketingPlan}>
+                <header className={styles.planHeader}>
+                  <div>
+                    <p className={styles.eyebrow}>Marketing Plan</p>
+                    <h2>{marketingPlan.campaignName}</h2>
+                  </div>
+
+                  <span className={styles.planBadge}>AI generated</span>
+                </header>
+
+                <div className={styles.planSummaryGrid}>
+                  {[
+                    ["Objective", marketingPlan.objective],
+                    ["Audience", marketingPlan.audience],
+                    ["Hook", marketingPlan.hook],
+                    ["Key Message", marketingPlan.keyMessage],
+                  ].map(([label, value]) => (
+                    <article className={styles.planSummaryCard} key={label}>
+                      <span>{label}</span>
+                      <p>{value}</p>
+                    </article>
+                  ))}
+                </div>
+
+                <section className={styles.planSection}>
+                  <div className={styles.planSectionHeader}>
+                    <div>
+                      <span>Strategy</span>
+                      <h3>Content Pillars</h3>
+                    </div>
+                  </div>
+
+                  <div className={styles.pillarList}>
+                    {marketingPlan.contentPillars.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                </section>
+
+                <section className={styles.planSection}>
+                  <div className={styles.planSectionHeader}>
+                    <div>
+                      <span>Ideas</span>
+                      <h3>Content Directions</h3>
+                    </div>
+                  </div>
+
+                  <ol className={styles.ideaList}>
+                    {marketingPlan.contentIdeas.map((item, index) => (
+                      <li key={item}>
+                        <span>{index + 1}</span>
+                        <p>{item}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+
+                <section className={styles.planSection}>
+                  <div className={styles.planSectionHeader}>
+                    <div>
+                      <span>Channels</span>
+                      <h3>Platform Content</h3>
+                    </div>
+                  </div>
+
+                  <div className={styles.platformPlanGrid}>
+                    {[
+                      ["Facebook", marketingPlan.facebook],
+                      ["Telegram", marketingPlan.telegram],
+                      ["Reels", marketingPlan.reels],
+                    ].map(([platform, items]) => (
+                      <article
+                        className={styles.platformPlanCard}
+                        key={platform as string}
+                      >
+                        <header>
+                          <strong>{platform as string}</strong>
+                          <span>{(items as string[]).length} drafts</span>
+                        </header>
+
+                        <div>
+                          {(items as string[]).map((item, index) => (
+                            <section key={item}>
+                              <span>
+                                {(platform as string).slice(0, 2)}
+                                {index + 1}
+                              </span>
+                              <p>{item}</p>
+                            </section>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className={styles.planSection}>
+                  <div className={styles.planSectionHeader}>
+                    <div>
+                      <span>Creative</span>
+                      <h3>Image Prompts</h3>
+                    </div>
+                  </div>
+
+                  <div className={styles.imagePromptList}>
+                    {marketingPlan.imagePrompts.map((item, index) => (
+                      <article key={item}>
+                        <div>
+                          <span>Prompt {index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(item)}
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <p>{item}</p>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section className={styles.planSection}>
+                  <div className={styles.planSectionHeader}>
+                    <div>
+                      <span>Execution</span>
+                      <h3>Publishing Schedule</h3>
+                    </div>
+                  </div>
+
+                  <div className={styles.scheduleTimeline}>
+                    {marketingPlan.schedule.map((item) => (
+                      <article key={`${item.day}-${item.platform}`}>
+                        <span className={styles.scheduleDay}>
+                          Day {item.day}
+                        </span>
+
+                        <div>
+                          <div>
+                            <strong>{item.platform}</strong>
+                            <span>{item.contentType}</span>
+                          </div>
+                          <p>{item.topic}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </section>
+            )}
             <div ref={endRef} />
           </div>
-
-          {marketingPlan && (
-            <section className={styles.marketingPlan}>
-              <header className={styles.planHeader}>
-                <div>
-                  <p className={styles.eyebrow}>Marketing Plan</p>
-                  <h2>{marketingPlan.campaignName}</h2>
-                </div>
-
-                <span className={styles.planBadge}>AI generated</span>
-              </header>
-
-              <div className={styles.planSummaryGrid}>
-                {[
-                  ["Objective", marketingPlan.objective],
-                  ["Audience", marketingPlan.audience],
-                  ["Hook", marketingPlan.hook],
-                  ["Key Message", marketingPlan.keyMessage],
-                ].map(([label, value]) => (
-                  <article className={styles.planSummaryCard} key={label}>
-                    <span>{label}</span>
-                    <p>{value}</p>
-                  </article>
-                ))}
-              </div>
-
-              <section className={styles.planSection}>
-                <div className={styles.planSectionHeader}>
-                  <div>
-                    <span>Strategy</span>
-                    <h3>Content Pillars</h3>
-                  </div>
-                </div>
-
-                <div className={styles.pillarList}>
-                  {marketingPlan.contentPillars.map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-              </section>
-
-              <section className={styles.planSection}>
-                <div className={styles.planSectionHeader}>
-                  <div>
-                    <span>Ideas</span>
-                    <h3>Content Directions</h3>
-                  </div>
-                </div>
-
-                <ol className={styles.ideaList}>
-                  {marketingPlan.contentIdeas.map((item, index) => (
-                    <li key={item}>
-                      <span>{index + 1}</span>
-                      <p>{item}</p>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-
-              <section className={styles.planSection}>
-                <div className={styles.planSectionHeader}>
-                  <div>
-                    <span>Channels</span>
-                    <h3>Platform Content</h3>
-                  </div>
-                </div>
-
-                <div className={styles.platformPlanGrid}>
-                  {[
-                    ["Facebook", marketingPlan.facebook],
-                    ["Telegram", marketingPlan.telegram],
-                    ["Reels", marketingPlan.reels],
-                  ].map(([platform, items]) => (
-                    <article
-                      className={styles.platformPlanCard}
-                      key={platform as string}
-                    >
-                      <header>
-                        <strong>{platform as string}</strong>
-                        <span>{(items as string[]).length} drafts</span>
-                      </header>
-
-                      <div>
-                        {(items as string[]).map((item, index) => (
-                          <section key={item}>
-                            <span>
-                              {(platform as string).slice(0, 2)}
-                              {index + 1}
-                            </span>
-                            <p>{item}</p>
-                          </section>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <section className={styles.planSection}>
-                <div className={styles.planSectionHeader}>
-                  <div>
-                    <span>Creative</span>
-                    <h3>Image Prompts</h3>
-                  </div>
-                </div>
-
-                <div className={styles.imagePromptList}>
-                  {marketingPlan.imagePrompts.map((item, index) => (
-                    <article key={item}>
-                      <div>
-                        <span>Prompt {index + 1}</span>
-                        <button
-                          type="button"
-                          onClick={() => navigator.clipboard.writeText(item)}
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <p>{item}</p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <section className={styles.planSection}>
-                <div className={styles.planSectionHeader}>
-                  <div>
-                    <span>Execution</span>
-                    <h3>Publishing Schedule</h3>
-                  </div>
-                </div>
-
-                <div className={styles.scheduleTimeline}>
-                  {marketingPlan.schedule.map((item) => (
-                    <article key={`${item.day}-${item.platform}`}>
-                      <span className={styles.scheduleDay}>Day {item.day}</span>
-
-                      <div>
-                        <div>
-                          <strong>{item.platform}</strong>
-                          <span>{item.contentType}</span>
-                        </div>
-                        <p>{item.topic}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            </section>
-          )}
 
           <form className={styles.composer} onSubmit={send}>
             <input
