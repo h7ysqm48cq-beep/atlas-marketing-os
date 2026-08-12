@@ -246,7 +246,30 @@ export function BrandCopilot() {
       );
       setCampaignId(data.campaignId || "");
       setMode(data.mode === "marketing-plan" ? "marketing-plan" : "chat");
-      setMarketingPlan(null);
+
+      const restoredPlanMessage = data.messages
+        .slice()
+        .reverse()
+        .find(
+          (message) =>
+            message.role === "ASSISTANT" &&
+            message.metadata &&
+            typeof message.metadata === "object" &&
+            "type" in message.metadata &&
+            message.metadata.type === "marketing-plan",
+        );
+
+      if (
+        restoredPlanMessage &&
+        restoredPlanMessage.metadata &&
+        typeof restoredPlanMessage.metadata === "object" &&
+        "plan" in restoredPlanMessage.metadata
+      ) {
+        setMarketingPlan(restoredPlanMessage.metadata.plan as MarketingPlan);
+      } else {
+        setMarketingPlan(null);
+      }
+
       setStatus(`Loaded: ${data.title}`);
       setMobileSidebarOpen(false);
     } catch (error) {
@@ -565,13 +588,44 @@ export function BrandCopilot() {
 
         setMarketingPlan(data);
 
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: `
+Marketing Plan 已生成
+
+Campaign:
+${data.campaignName || "-"}
+
+Objective:
+${data.objective || "-"}
+
+Audience:
+${data.audience || "-"}
+
+Hook:
+${data.hook || "-"}
+
+Key Message:
+${data.keyMessage || "-"}
+
+Content Pillars:
+${Array.isArray(data.contentPillars) ? data.contentPillars.join(", ") : "-"}
+
+你可以继续告诉我需要调整的方向，例如视觉风格、平台策略或文案版本。
+
+You can continue refining this plan with Elena.
+`,
+          },
+        ]);
+
         if (data.conversation?.id || data.conversationId) {
           setConversationId(data.conversation?.id || data.conversationId);
         }
 
-        // Keep the conversation alive after generating a plan.
-        // User can continue refining the plan naturally.
-        setMode("chat");
+        // Keep Marketing Plan mode active.
+        // User can continue refining the generated plan naturally.
 
         await refreshConversations();
 
@@ -621,7 +675,9 @@ export function BrandCopilot() {
           throw new Error(data.message || "Unable to get response.");
         }
 
-        setMarketingPlan(null);
+        if (mode !== "chat") {
+          setMarketingPlan(null);
+        }
 
         if (data.conversation?.id) {
           setConversationId(data.conversation.id);
