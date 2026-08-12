@@ -231,17 +231,12 @@ export function BrandCopilot() {
           Boolean(imageUrl);
 
         if (isGeneratedImage) {
-          for (let index = loadedMessages.length - 1; index >= 0; index -= 1) {
-            if (loadedMessages[index]?.role === "assistant") {
-              loadedMessages[index] = {
-                ...loadedMessages[index],
-                imageUrl,
-                assetId,
-              };
-
-              break;
-            }
-          }
+          loadedMessages.push({
+            role: "assistant",
+            content: "Generated image",
+            imageUrl,
+            assetId,
+          });
 
           continue;
         }

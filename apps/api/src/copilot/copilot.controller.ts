@@ -91,8 +91,10 @@ export class CopilotController {
     ].join('\n');
 
     await this.conversations.appendAssistantMessage(conversation.id, summary, {
+      type: 'marketing-plan',
       mode: 'marketing-plan',
       campaignName: plan.campaignName,
+      plan,
       marketingPlan: plan,
     });
 
