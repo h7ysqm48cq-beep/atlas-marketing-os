@@ -334,7 +334,9 @@ export class SportsNewsAutomationService {
               imageUrl: image.asset.url,
 
               logoAssetId: settings.logoEnabled
-                ? (activeBrand?.primaryLogoAssetId ?? null)
+                ? (settings.logoAssetId ??
+                  activeBrand?.primaryLogoAssetId ??
+                  null)
                 : null,
 
               footerText: settings.brandFooterEnabled
@@ -347,6 +349,20 @@ export class SportsNewsAutomationService {
                 : '',
 
               qrLink: settings.qrEnabled ? settings.qrLink : null,
+
+          footerLogoAssetId: settings.footerLogoEnabled
+            ? settings.footerLogoAssetId
+            : null,
+
+          footerQrAssetId: settings.footerQrEnabled
+            ? settings.footerQrAssetId
+            : null,
+
+          footerQrLink: settings.footerQrEnabled
+            ? settings.footerQrLink
+            : null,
+
+          footerPlacement: settings.footerPlacement,
 
               edition,
 

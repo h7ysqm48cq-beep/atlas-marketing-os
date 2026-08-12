@@ -18,6 +18,12 @@ export class MSportsImageBrandingService {
   async apply(input: {
     imageUrl: string;
     logoAssetId?: string | null;
+
+    footerLogoAssetId?: string | null;
+    footerQrAssetId?: string | null;
+    footerQrLink?: string | null;
+    footerPlacement?: string;
+
     footerText?: string;
     qrLink?: string | null;
     edition?: 'MORNING' | 'EVENING';
@@ -90,6 +96,10 @@ export class MSportsImageBrandingService {
     const {
       imageUrl,
       logoAssetId,
+      footerLogoAssetId,
+      footerQrAssetId,
+      footerQrLink,
+      footerPlacement = 'bottom',
       footerText = '满贯门 mgmbetmyr.com',
       qrLink = 'https://mgmbetmyr.com',
       edition = 'MORNING',
@@ -648,9 +658,12 @@ export class MSportsImageBrandingService {
     let logoWidth = 0;
     let logoHeight = 0;
 
-    if (logoAssetId) {
+    const selectedLogoAssetId =
+      footerLogoAssetId ?? logoAssetId;
+
+    if (selectedLogoAssetId) {
       const asset = await this.prisma.asset.findUnique({
-        where: { id: logoAssetId },
+        where: { id: selectedLogoAssetId },
         select: { url: true },
       });
 
@@ -728,8 +741,63 @@ export class MSportsImageBrandingService {
 
     let qrSize = 0;
 
-    if (qrLink) {
-      const parsed = new URL(qrLink);
+    const selectedQrLink =
+      footerQrLink ?? qrLink;
+
+    if (footerQrAssetId) {
+      const qrAsset = await this.prisma.asset.findUnique({
+        where: { id: footerQrAssetId },
+        select: { url: true },
+      });
+
+      if (qrAsset?.url) {
+        try {
+          const qrResponse = await fetch(qrAsset.url);
+
+          if (qrResponse.ok) {
+            const qrBuffer = Buffer.from(
+              await qrResponse.arrayBuffer(),
+            );
+
+            qrSize = Math.max(
+              24,
+              Math.round(width * qrSizePercent),
+            );
+
+            const preparedQr = await sharp(qrBuffer)
+              .resize({
+                width: qrSize,
+                height: qrSize,
+                fit: 'contain',
+              })
+              .png()
+              .toBuffer();
+
+            composites.push({
+              input: preparedQr,
+              left:
+                width -
+                qrSize -
+                Math.round(width * qrMarginPercent),
+              top:
+                footerTop +
+                Math.round(
+                  (footerHeight - qrSize) / 2,
+                ),
+            });
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Footer QR asset skipped: ${
+              error instanceof Error
+                ? error.message
+                : 'Unknown QR error'
+            }`,
+          );
+        }
+      }
+    } else if (selectedQrLink) {
+      const parsed = new URL(selectedQrLink);
 
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         throw new Error('QR link must use http:// or https://');
@@ -737,7 +805,7 @@ export class MSportsImageBrandingService {
 
       qrSize = Math.max(24, Math.round(width * qrSizePercent));
 
-      const qr = await QRCode.toBuffer(qrLink, {
+      const qr = await QRCode.toBuffer(selectedQrLink, {
         type: 'png',
         errorCorrectionLevel: 'M',
         margin: 2,
