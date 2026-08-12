@@ -1724,3 +1724,41 @@
     overflow-wrap: anywhere;
   }
 }
+
+.modeSwitch {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modeButton,
+.modeActive {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+
+.modeButton {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.modeButton:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modeActive {
+  border: 1px solid rgba(209, 163, 63, 0.35);
+  background: rgba(209, 163, 63, 0.16);
+  color: var(--gold-light);
+}
