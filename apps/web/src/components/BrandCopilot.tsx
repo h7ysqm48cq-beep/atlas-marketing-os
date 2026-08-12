@@ -814,13 +814,29 @@ export function BrandCopilot() {
       <section className={styles.mobileControls}>
         <label>
           <span>Mode</span>
-          <select
-            value={mode}
-            onChange={(event) => setMode(event.target.value as CopilotMode)}
-          >
-            <option value="chat">Chat mode</option>
-            <option value="marketing-plan">Marketing Plan</option>
-          </select>
+          <div className={styles.modeSwitch}>
+            <button
+              type="button"
+              className={
+                mode === "chat" ? styles.modeActive : styles.modeButton
+              }
+              onClick={() => setMode("chat")}
+            >
+              Chat
+            </button>
+
+            <button
+              type="button"
+              className={
+                mode === "marketing-plan"
+                  ? styles.modeActive
+                  : styles.modeButton
+              }
+              onClick={() => setMode("marketing-plan")}
+            >
+              Marketing Plan
+            </button>
+          </div>
         </label>
 
         <label>

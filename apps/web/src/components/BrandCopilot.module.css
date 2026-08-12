@@ -1544,3 +1544,156 @@
     white-space: nowrap;
   }
 }
+
+/* =====================================================
+   Copilot Mode Switch v4
+===================================================== */
+
+.modeSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modeButton,
+.modeActive {
+  min-height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.modeButton {
+  background: transparent;
+  color: var(--muted);
+}
+
+.modeActive {
+  background: rgba(209, 163, 63, 0.18);
+  color: var(--gold-light);
+}
+
+/* =====================================================
+   Marketing Plan Mobile v4
+===================================================== */
+
+.marketingPlan {
+  width: calc(100% - 20px);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.marketingPlan * {
+  max-width: 100%;
+}
+
+.planHeader {
+  flex-wrap: wrap;
+}
+
+.platformPlanGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.imagePromptList p,
+.planSummaryCard p,
+.platformPlanCard p,
+.ideaList p,
+.scheduleTimeline p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .modeSwitch {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modeButton,
+  .modeActive {
+    flex: 1;
+    min-height: 36px;
+  }
+
+  .marketingPlan {
+    width: calc(100% - 20px);
+    margin: 10px;
+    padding: 12px;
+  }
+
+  .planHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .planHeader h2 {
+    font-size: 18px;
+  }
+
+  .platformPlanGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .imagePromptList article,
+  .platformPlanCard,
+  .planSummaryCard {
+    overflow: hidden;
+  }
+
+  .scheduleTimeline article {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modeSwitch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.modeButton,
+.modeActive {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modeButton {
+  background: transparent;
+  color: var(--muted);
+}
+
+.modeActive {
+  background: rgba(209,163,63,0.18);
+  color: var(--gold-light);
+}
+
+@media (max-width:720px) {
+
+  .modeSwitch {
+    width:100%;
+  }
+
+  .modeButton,
+  .modeActive {
+    flex:1;
+  }
+
+}
+
