@@ -13,6 +13,7 @@ import { PrismaService } from '../database/prisma.service';
 import { MemoryFactsService } from '../memory/memory-facts.service';
 import { KnowledgeRetrievalService } from '../knowledge/knowledge-retrieval.service';
 import { ConversationMemoryService } from './conversation-memory.service';
+import { ConversationRecallService } from './conversation-recall.service';
 import { PromptContextBuilder } from './prompt-context.builder';
 import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
@@ -27,6 +28,7 @@ export class CopilotService {
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
+    private readonly conversationRecall: ConversationRecallService,
     private readonly memoryFacts: MemoryFactsService,
     private readonly knowledgeRetrieval: KnowledgeRetrievalService,
     private readonly promptContextBuilder: PromptContextBuilder,
@@ -102,14 +104,24 @@ export class CopilotService {
     const [
       conversationMessages,
       confirmedMemoryContext,
+      previousConversationContext,
       attachmentKnowledgeMatches,
+      conversationRecallContext,
     ] = await Promise.all([
       this.conversations.recentMessages(conversation.id, 10),
       this.memoryFacts.confirmedPromptContext(),
+
+      this.conversations.searchPreviousContext(latestUserMessage.content),
+
       this.knowledgeRetrieval.searchAttachments({
         query: latestUserMessage.content,
         documentIds: attachmentDocumentIds,
         limitPerDocument: 4,
+      }),
+
+      this.conversationRecall.search({
+        query: latestUserMessage.content,
+        excludeConversationId: conversation.id,
       }),
     ]);
 
@@ -134,6 +146,7 @@ Objective: ${campaign.objective || 'Not set'}
 Description: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
       confirmedMemoryContext,
+      conversationRecallContext,
       attachmentDocumentContext,
       attachmentKnowledgeMatches.length
         ? 'Use the supplied KNOWLEDGE CONTEXT as the primary evidence for attached-document questions.'

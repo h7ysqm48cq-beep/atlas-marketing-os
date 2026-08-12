@@ -360,4 +360,65 @@ ${JSON.stringify(message.metadata.plan, null, 2)}`
       updatedAt: true,
     } as const;
   }
+
+  async searchPreviousContext(query: string, limit = 3) {
+    const brand = await this.brands.getActiveBrand();
+
+    const keyword = query.replace(/\s+/g, ' ').trim();
+
+    if (!keyword) {
+      return '';
+    }
+
+    const conversations = await this.prisma.copilotConversation.findMany({
+      where: {
+        brandId: brand.id,
+        isArchived: false,
+        messages: {
+          some: {
+            content: {
+              contains: keyword.slice(0, 20),
+              mode: 'insensitive',
+            },
+          },
+        },
+      },
+      select: {
+        title: true,
+        messages: {
+          select: {
+            role: true,
+            content: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 6,
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: limit,
+    });
+
+    if (!conversations.length) {
+      return '';
+    }
+
+    return [
+      'ELENA PREVIOUS CHAT MEMORY',
+      '',
+      ...conversations.flatMap((conversation) => [
+        `Conversation: ${conversation.title}`,
+        ...conversation.messages
+          .reverse()
+          .map(
+            (message) => `- ${message.role}: ${message.content.slice(0, 300)}`,
+          ),
+        '',
+      ]),
+      'Use previous chats only when relevant.',
+    ].join('\n');
+  }
 }

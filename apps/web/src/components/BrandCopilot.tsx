@@ -124,6 +124,18 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
+    const savedConversationId = localStorage.getItem(
+      "atlas-copilot-last-conversation",
+    );
+
+    if (!savedConversationId) {
+      return;
+    }
+
+    void openConversation(savedConversationId);
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({
       behavior: "smooth",
     });
@@ -160,6 +172,8 @@ export function BrandCopilot() {
 
   function newChat() {
     setConversationId("");
+
+    localStorage.removeItem("atlas-copilot-last-conversation");
     setMessages(INITIAL_MESSAGES);
     setMarketingPlan(null);
     setInput("");
@@ -241,6 +255,8 @@ export function BrandCopilot() {
       }
 
       setConversationId(data.id);
+
+      localStorage.setItem("atlas-copilot-last-conversation", data.id);
       setMessages(
         loadedMessages.length > 0 ? loadedMessages : INITIAL_MESSAGES,
       );
@@ -259,16 +275,58 @@ export function BrandCopilot() {
             message.metadata.type === "marketing-plan",
         );
 
+      let restoredMarketingPlan: MarketingPlan | null = null;
+
       if (
         restoredPlanMessage &&
         restoredPlanMessage.metadata &&
         typeof restoredPlanMessage.metadata === "object" &&
         "plan" in restoredPlanMessage.metadata
       ) {
-        setMarketingPlan(restoredPlanMessage.metadata.plan as MarketingPlan);
-      } else {
-        setMarketingPlan(null);
+        const candidate = restoredPlanMessage.metadata.plan;
+
+        if (
+          candidate &&
+          typeof candidate === "object" &&
+          "campaignName" in candidate &&
+          "contentIdeas" in candidate
+        ) {
+          restoredMarketingPlan = candidate as MarketingPlan;
+        }
       }
+
+      // Backward compatibility:
+      // older Marketing Plan messages may only contain JSON in content.
+      if (!restoredMarketingPlan) {
+        const legacyPlanMessage = data.messages
+          .slice()
+          .reverse()
+          .find(
+            (message) =>
+              message.role === "ASSISTANT" &&
+              typeof message.content === "string" &&
+              message.content.includes('"campaignName"'),
+          );
+
+        if (legacyPlanMessage) {
+          try {
+            const candidate = JSON.parse(legacyPlanMessage.content) as unknown;
+
+            if (
+              candidate &&
+              typeof candidate === "object" &&
+              "campaignName" in candidate &&
+              "contentIdeas" in candidate
+            ) {
+              restoredMarketingPlan = candidate as MarketingPlan;
+            }
+          } catch {
+            // Ignore malformed legacy Marketing Plan content.
+          }
+        }
+      }
+
+      setMarketingPlan(restoredMarketingPlan);
 
       setStatus(`Loaded: ${data.title}`);
       setMobileSidebarOpen(false);

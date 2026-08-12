@@ -28,45 +28,38 @@ export class MemoryFactExtractorService {
     private readonly brands: BrandsService,
   ) {}
 
-  async extractFromMessage(
-    input: ExtractMemoryInput,
-  ) {
-    const candidates =
-      this.detectCandidates(input.message);
+  async extractFromMessage(input: ExtractMemoryInput) {
+    const candidates = this.detectCandidates(input.message);
 
     if (!candidates.length) {
       return [];
     }
 
-    const brand =
-      await this.brands.getActiveBrand();
+    const brand = await this.brands.getActiveBrand();
 
     const saved: Awaited<
-      ReturnType<
-        PrismaService['brandMemoryFact']['findFirst']
-      >
+      ReturnType<PrismaService['brandMemoryFact']['findFirst']>
     >[] = [];
 
     for (const candidate of candidates) {
-      const existingFacts =
-        await this.prisma.brandMemoryFact.findMany({
-          where: {
-            brandId: brand.id,
-            key: {
-              equals: candidate.key,
-              mode: 'insensitive',
-            },
-            status: {
-              in: [
-                BrandMemoryFactStatus.CANDIDATE,
-                BrandMemoryFactStatus.CONFIRMED,
-              ],
-            },
+      const existingFacts = await this.prisma.brandMemoryFact.findMany({
+        where: {
+          brandId: brand.id,
+          key: {
+            equals: candidate.key,
+            mode: 'insensitive',
           },
-          orderBy: {
-            updatedAt: 'desc',
+          status: {
+            in: [
+              BrandMemoryFactStatus.CANDIDATE,
+              BrandMemoryFactStatus.CONFIRMED,
+            ],
           },
-        });
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
 
       const sameValue = existingFacts.find(
         (fact) =>
@@ -79,60 +72,55 @@ export class MemoryFactExtractorService {
         continue;
       }
 
-      const existingCandidate =
-        existingFacts.find(
-          (fact) =>
-            fact.status ===
-            BrandMemoryFactStatus.CANDIDATE,
-        );
+      const existingCandidate = existingFacts.find(
+        (fact) => fact.status === BrandMemoryFactStatus.CANDIDATE,
+      );
 
       if (existingCandidate) {
-        const updated =
-          await this.prisma.brandMemoryFact.update({
-            where: {
-              id: existingCandidate.id,
-            },
-            data: {
-              type: candidate.type,
-              value: candidate.value,
-              description:
-                candidate.description,
-              confidence: Math.max(
-                existingCandidate.confidence,
-                candidate.confidence,
-              ),
-              sourceType: 'conversation-rule',
-              sourceId:
-                input.sourceId ||
-                input.conversationId ||
-                existingCandidate.sourceId,
-            },
-          });
+        const nextConfidence = Math.min(existingCandidate.confidence + 5, 100);
+
+        const updated = await this.prisma.brandMemoryFact.update({
+          where: {
+            id: existingCandidate.id,
+          },
+          data: {
+            type: candidate.type,
+            value: candidate.value,
+            description: candidate.description,
+
+            confidence: Math.max(nextConfidence, candidate.confidence),
+
+            status:
+              nextConfidence >= 100
+                ? BrandMemoryFactStatus.CONFIRMED
+                : BrandMemoryFactStatus.CANDIDATE,
+
+            sourceType: 'conversation-rule',
+
+            sourceId:
+              input.sourceId ||
+              input.conversationId ||
+              existingCandidate.sourceId,
+          },
+        });
 
         saved.push(updated);
         continue;
       }
 
-      const created =
-        await this.prisma.brandMemoryFact.create({
-          data: {
-            brandId: brand.id,
-            type: candidate.type,
-            key: candidate.key,
-            value: candidate.value,
-            description:
-              candidate.description,
-            confidence:
-              candidate.confidence,
-            status:
-              BrandMemoryFactStatus.CANDIDATE,
-            sourceType: 'conversation-rule',
-            sourceId:
-              input.sourceId ||
-              input.conversationId ||
-              null,
-          },
-        });
+      const created = await this.prisma.brandMemoryFact.create({
+        data: {
+          brandId: brand.id,
+          type: candidate.type,
+          key: candidate.key,
+          value: candidate.value,
+          description: candidate.description,
+          confidence: candidate.confidence,
+          status: BrandMemoryFactStatus.CANDIDATE,
+          sourceType: 'conversation-rule',
+          sourceId: input.sourceId || input.conversationId || null,
+        },
+      });
 
       saved.push(created);
     }
@@ -140,12 +128,8 @@ export class MemoryFactExtractorService {
     return saved;
   }
 
-  detectCandidates(
-    rawMessage: string,
-  ): DetectedMemoryFact[] {
-    const message = rawMessage
-      .replace(/\s+/g, ' ')
-      .trim();
+  detectCandidates(rawMessage: string): DetectedMemoryFact[] {
+    const message = rawMessage.replace(/\s+/g, ' ').trim();
 
     if (!message || !this.hasLongTermIntent(message)) {
       return [];
@@ -153,14 +137,11 @@ export class MemoryFactExtractorService {
 
     const facts: DetectedMemoryFact[] = [];
 
-    const add = (
-      fact: DetectedMemoryFact,
-    ) => {
+    const add = (fact: DetectedMemoryFact) => {
       const duplicate = facts.some(
         (item) =>
           item.key === fact.key &&
-          this.normalizeValue(item.value) ===
-            this.normalizeValue(fact.value),
+          this.normalizeValue(item.value) === this.normalizeValue(fact.value),
       );
 
       if (!duplicate) {
@@ -170,37 +151,27 @@ export class MemoryFactExtractorService {
 
     // Language preferences
     if (
-      /简体(?:中文|字)?|simplified chinese/i.test(
-        message,
-      ) ||
-      /不要再?(?:用|写)?繁体|不用繁体/.test(
-        message,
-      )
+      /简体(?:中文|字)?|simplified chinese/i.test(message) ||
+      /不要再?(?:用|写)?繁体|不用繁体/.test(message)
     ) {
       add({
-        type:
-          BrandMemoryFactType.PREFERENCE,
+        type: BrandMemoryFactType.PREFERENCE,
         key: 'default_language',
         value: 'Simplified Chinese',
-        description:
-          'Use Simplified Chinese as the default written language.',
+        description: 'Use Simplified Chinese as the default written language.',
         confidence: 96,
       });
     }
 
     if (
-      /繁体(?:中文|字)?|traditional chinese/i.test(
-        message,
-      ) &&
+      /繁体(?:中文|字)?|traditional chinese/i.test(message) &&
       !/不要|不用|避免/.test(message)
     ) {
       add({
-        type:
-          BrandMemoryFactType.PREFERENCE,
+        type: BrandMemoryFactType.PREFERENCE,
         key: 'default_language',
         value: 'Traditional Chinese',
-        description:
-          'Use Traditional Chinese as the default written language.',
+        description: 'Use Traditional Chinese as the default written language.',
         confidence: 94,
       });
     }
@@ -211,29 +182,83 @@ export class MemoryFactExtractorService {
       )
     ) {
       add({
-        type:
-          BrandMemoryFactType.PREFERENCE,
+        type: BrandMemoryFactType.PREFERENCE,
         key: 'default_language',
         value: 'English',
-        description:
-          'Use English as the default written language.',
+        description: 'Use English as the default written language.',
         confidence: 95,
       });
     }
 
+    if (/马来文|马来语|bahasa malaysia|bahasa melayu/i.test(message)) {
+      add({
+        type: BrandMemoryFactType.PREFERENCE,
+        key: 'default_language',
+        value: 'Bahasa Malaysia',
+        description: 'Use Bahasa Malaysia as the default written language.',
+        confidence: 92,
+      });
+    }
+
+    // Long-term visual preferences
+
     if (
-      /马来文|马来语|bahasa malaysia|bahasa melayu/i.test(
+      /logo.{0,20}(小|小一点|不要太大|低调|subtle|small)|品牌标识.{0,20}(小|低调)/i.test(
         message,
       )
     ) {
       add({
-        type:
-          BrandMemoryFactType.PREFERENCE,
-        key: 'default_language',
-        value: 'Bahasa Malaysia',
+        type: BrandMemoryFactType.VISUAL,
+        key: 'logo_placement',
+        value: 'Keep logo subtle and small',
+        description: 'Use a small and unobtrusive logo placement in visuals.',
+        confidence: 96,
+      });
+    }
+
+    if (
+      /不要太广告|avoid hard sell|不要硬广|自然一点|像生活内容/i.test(message)
+    ) {
+      add({
+        type: BrandMemoryFactType.CONTENT,
+        key: 'content_style',
+        value: 'Natural soft-sell content style',
         description:
-          'Use Bahasa Malaysia as the default written language.',
-        confidence: 92,
+          'Prefer relatable content instead of aggressive advertising.',
+        confidence: 94,
+      });
+    }
+
+    if (
+      /马来西亚华人|malaysian chinese|本地文化|local context/i.test(message)
+    ) {
+      add({
+        type: BrandMemoryFactType.AUDIENCE,
+        key: 'market_context',
+        value: 'Malaysian Chinese cultural context',
+        description:
+          'Consider Malaysian Chinese cultural context in content creation.',
+        confidence: 94,
+      });
+    }
+
+    if (/文字不要太多|少文字|简化重点|重点内容|short text/i.test(message)) {
+      add({
+        type: BrandMemoryFactType.CONTENT,
+        key: 'visual_copy_length',
+        value: 'Keep visual text concise',
+        description: 'Prefer short, clear visual copy with strong hierarchy.',
+        confidence: 95,
+      });
+    }
+
+    if (/明亮|bright|鲜艳|颜色好看|暖色/i.test(message)) {
+      add({
+        type: BrandMemoryFactType.VISUAL,
+        key: 'color_direction',
+        value: 'Prefer bright premium visual tone',
+        description: 'Prefer brighter and visually appealing color direction.',
+        confidence: 90,
       });
     }
 
@@ -243,23 +268,17 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VISUAL,
         key: 'default_image_style',
         value: 'Cinematic',
-        description:
-          'Use a cinematic visual style by default.',
+        description: 'Use a cinematic visual style by default.',
         confidence: 94,
       });
     }
 
-    if (
-      /写实|真实摄影|photorealistic|photo realistic/i.test(
-        message,
-      )
-    ) {
+    if (/写实|真实摄影|photorealistic|photo realistic/i.test(message)) {
       add({
         type: BrandMemoryFactType.VISUAL,
         key: 'default_image_style',
         value: 'Photorealistic',
-        description:
-          'Use realistic photographic visuals by default.',
+        description: 'Use realistic photographic visuals by default.',
         confidence: 93,
       });
     }
@@ -269,8 +288,7 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VISUAL,
         key: 'default_image_style',
         value: 'Minimal',
-        description:
-          'Prefer a clean and minimal visual style.',
+        description: 'Prefer a clean and minimal visual style.',
         confidence: 90,
       });
     }
@@ -280,8 +298,7 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VISUAL,
         key: 'default_image_style',
         value: '3D',
-        description:
-          'Use a 3D visual style by default.',
+        description: 'Use a 3D visual style by default.',
         confidence: 88,
       });
     }
@@ -311,20 +328,14 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VISUAL,
         key: 'logo_position',
         value: 'Bottom center',
-        description:
-          'Place the brand logo at the bottom center by default.',
+        description: 'Place the brand logo at the bottom center by default.',
         confidence: 96,
       });
     }
 
-    if (
-      /(?:不要|不放|移除|隐藏).{0,8}(?:logo|品牌标志)/i.test(
-        message,
-      )
-    ) {
+    if (/(?:不要|不放|移除|隐藏).{0,8}(?:logo|品牌标志)/i.test(message)) {
       add({
-        type:
-          BrandMemoryFactType.AVOIDANCE,
+        type: BrandMemoryFactType.AVOIDANCE,
         key: 'logo_visibility',
         value: 'Hidden',
         description:
@@ -340,28 +351,20 @@ export class MemoryFactExtractorService {
       )
     ) {
       add({
-        type:
-          BrandMemoryFactType.AUDIENCE,
+        type: BrandMemoryFactType.AUDIENCE,
         key: 'target_market',
         value: 'Malaysia',
-        description:
-          'Prioritise the Malaysia market.',
+        description: 'Prioritise the Malaysia market.',
         confidence: 96,
       });
     }
 
-    if (
-      /singapore only|只做新加坡|仅限新加坡/i.test(
-        message,
-      )
-    ) {
+    if (/singapore only|只做新加坡|仅限新加坡/i.test(message)) {
       add({
-        type:
-          BrandMemoryFactType.AUDIENCE,
+        type: BrandMemoryFactType.AUDIENCE,
         key: 'target_market',
         value: 'Singapore',
-        description:
-          'Prioritise the Singapore market.',
+        description: 'Prioritise the Singapore market.',
         confidence: 95,
       });
     }
@@ -387,8 +390,7 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VOICE,
         key: 'preferred_tone',
         value: 'Humorous',
-        description:
-          'Prefer a humorous and conversational tone when suitable.',
+        description: 'Prefer a humorous and conversational tone when suitable.',
         confidence: 88,
       });
     }
@@ -398,8 +400,7 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VOICE,
         key: 'preferred_tone',
         value: 'Professional',
-        description:
-          'Prefer a professional tone when suitable.',
+        description: 'Prefer a professional tone when suitable.',
         confidence: 87,
       });
     }
@@ -409,8 +410,7 @@ export class MemoryFactExtractorService {
         type: BrandMemoryFactType.VOICE,
         key: 'preferred_tone',
         value: 'Warm',
-        description:
-          'Prefer a warm and emotionally relatable tone.',
+        description: 'Prefer a warm and emotionally relatable tone.',
         confidence: 88,
       });
     }
@@ -422,8 +422,7 @@ export class MemoryFactExtractorService {
       )
     ) {
       add({
-        type:
-          BrandMemoryFactType.AVOIDANCE,
+        type: BrandMemoryFactType.AVOIDANCE,
         key: 'avoid_gambling_wording',
         value: 'Avoid gambling-related wording',
         description:
@@ -432,14 +431,9 @@ export class MemoryFactExtractorService {
       });
     }
 
-    if (
-      /不要.{0,10}(?:bonus|free|免费|红利|奖金)(?:字眼|词)?/i.test(
-        message,
-      )
-    ) {
+    if (/不要.{0,10}(?:bonus|free|免费|红利|奖金)(?:字眼|词)?/i.test(message)) {
       add({
-        type:
-          BrandMemoryFactType.AVOIDANCE,
+        type: BrandMemoryFactType.AVOIDANCE,
         key: 'avoid_bonus_wording',
         value: 'Avoid bonus and free-offer wording',
         description:
@@ -451,9 +445,7 @@ export class MemoryFactExtractorService {
     return facts;
   }
 
-  private hasLongTermIntent(
-    message: string,
-  ) {
+  private hasLongTermIntent(message: string) {
     return [
       /以后/,
       /今后/,
@@ -477,17 +469,10 @@ export class MemoryFactExtractorService {
       /every time/i,
       /only$/i,
       /only\b/i,
-    ].some((pattern) =>
-      pattern.test(message),
-    );
+    ].some((pattern) => pattern.test(message));
   }
 
-  private normalizeValue(
-    value: string,
-  ) {
-    return value
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
+  private normalizeValue(value: string) {
+    return value.replace(/\s+/g, ' ').trim().toLowerCase();
   }
 }

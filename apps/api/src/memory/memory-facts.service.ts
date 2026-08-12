@@ -23,59 +23,37 @@ export class MemoryFactsService {
     const brand = await this.brands.getActiveBrand();
 
     const key = this.required(dto.key, 'Memory key');
-    const value = this.required(
-      dto.value,
-      'Memory value',
-    );
+    const value = this.required(dto.value, 'Memory value');
 
-    const status =
-      dto.status || BrandMemoryFactStatus.CANDIDATE;
+    const status = dto.status || BrandMemoryFactStatus.CANDIDATE;
 
     return this.prisma.brandMemoryFact.create({
       data: {
         brandId: brand.id,
-        type:
-          dto.type ||
-          BrandMemoryFactType.PREFERENCE,
+        type: dto.type || BrandMemoryFactType.PREFERENCE,
         key,
         value,
-        description:
-          dto.description?.trim() || null,
+        description: dto.description?.trim() || null,
         confidence: dto.confidence ?? 80,
         status,
-        sourceType:
-          dto.sourceType?.trim() || 'manual',
+        sourceType: dto.sourceType?.trim() || 'manual',
         sourceId: dto.sourceId?.trim() || null,
         confirmedAt:
-          status === BrandMemoryFactStatus.CONFIRMED
-            ? new Date()
-            : null,
+          status === BrandMemoryFactStatus.CONFIRMED ? new Date() : null,
         rejectedAt:
-          status === BrandMemoryFactStatus.REJECTED
-            ? new Date()
-            : null,
+          status === BrandMemoryFactStatus.REJECTED ? new Date() : null,
       },
     });
   }
 
-  async findAll(query?: {
-    search?: string;
-    status?: string;
-    type?: string;
-  }) {
+  async findAll(query?: { search?: string; status?: string; type?: string }) {
     const brand = await this.brands.getActiveBrand();
 
     const search = query?.search?.trim();
 
-    const status = this.enumValue(
-      BrandMemoryFactStatus,
-      query?.status,
-    );
+    const status = this.enumValue(BrandMemoryFactStatus, query?.status);
 
-    const type = this.enumValue(
-      BrandMemoryFactType,
-      query?.type,
-    );
+    const type = this.enumValue(BrandMemoryFactType, query?.type);
 
     return this.prisma.brandMemoryFact.findMany({
       where: {
@@ -119,27 +97,21 @@ export class MemoryFactsService {
   async findOne(id: string) {
     const brand = await this.brands.getActiveBrand();
 
-    const fact =
-      await this.prisma.brandMemoryFact.findFirst({
-        where: {
-          id,
-          brandId: brand.id,
-        },
-      });
+    const fact = await this.prisma.brandMemoryFact.findFirst({
+      where: {
+        id,
+        brandId: brand.id,
+      },
+    });
 
     if (!fact) {
-      throw new NotFoundException(
-        'Memory fact not found.',
-      );
+      throw new NotFoundException('Memory fact not found.');
     }
 
     return fact;
   }
 
-  async update(
-    id: string,
-    dto: UpdateMemoryFactDto,
-  ) {
+  async update(id: string, dto: UpdateMemoryFactDto) {
     const fact = await this.findOne(id);
 
     const status = dto.status;
@@ -153,17 +125,11 @@ export class MemoryFactsService {
         key:
           dto.key === undefined
             ? undefined
-            : this.required(
-                dto.key,
-                'Memory key',
-              ),
+            : this.required(dto.key, 'Memory key'),
         value:
           dto.value === undefined
             ? undefined
-            : this.required(
-                dto.value,
-                'Memory value',
-              ),
+            : this.required(dto.value, 'Memory value'),
         description:
           dto.description === undefined
             ? undefined
@@ -171,15 +137,13 @@ export class MemoryFactsService {
         confidence: dto.confidence,
         status,
         confirmedAt:
-          status ===
-          BrandMemoryFactStatus.CONFIRMED
+          status === BrandMemoryFactStatus.CONFIRMED
             ? new Date()
             : status
               ? null
               : undefined,
         rejectedAt:
-          status ===
-          BrandMemoryFactStatus.REJECTED
+          status === BrandMemoryFactStatus.REJECTED
             ? new Date()
             : status
               ? null
@@ -196,8 +160,7 @@ export class MemoryFactsService {
         id: fact.id,
       },
       data: {
-        status:
-          BrandMemoryFactStatus.CONFIRMED,
+        status: BrandMemoryFactStatus.CONFIRMED,
         confirmedAt: new Date(),
         rejectedAt: null,
       },
@@ -212,8 +175,7 @@ export class MemoryFactsService {
         id: fact.id,
       },
       data: {
-        status:
-          BrandMemoryFactStatus.REJECTED,
+        status: BrandMemoryFactStatus.REJECTED,
         rejectedAt: new Date(),
         confirmedAt: null,
       },
@@ -238,23 +200,21 @@ export class MemoryFactsService {
   async confirmedPromptContext() {
     const brand = await this.brands.getActiveBrand();
 
-    const facts =
-      await this.prisma.brandMemoryFact.findMany({
-        where: {
-          brandId: brand.id,
-          status:
-            BrandMemoryFactStatus.CONFIRMED,
+    const facts = await this.prisma.brandMemoryFact.findMany({
+      where: {
+        brandId: brand.id,
+        status: BrandMemoryFactStatus.CONFIRMED,
+      },
+      orderBy: [
+        {
+          confidence: 'desc',
         },
-        orderBy: [
-          {
-            confidence: 'desc',
-          },
-          {
-            updatedAt: 'desc',
-          },
-        ],
-        take: 30,
-      });
+        {
+          updatedAt: 'desc',
+        },
+      ],
+      take: 30,
+    });
 
     if (!facts.length) {
       return [
@@ -264,37 +224,30 @@ export class MemoryFactsService {
     }
 
     return [
-      'ELENA CONFIRMED MEMORY',
-      ...facts.map(
-        (fact) =>
-          `- [${fact.type}] ${fact.key}: ${fact.value}`,
-      ),
+      'ELENA LONG TERM BRAND MEMORY',
       '',
-      'Treat confirmed memory as supporting preference guidance.',
-      'The current user request and explicit Brand Brain rules take priority.',
+      'Use these confirmed preferences as persistent guidance.',
+      '',
+      ...facts.map((fact) => `[${fact.type}]\n- ${fact.key}: ${fact.value}`),
+      '',
+      'Memory priority:',
+      '- Follow confirmed memory when relevant.',
+      '- Current user instructions always override memory.',
+      '- Brand Brain rules override memory when conflicts exist.',
     ].join('\n');
   }
 
-  private required(
-    value: string,
-    field: string,
-  ) {
-    const clean = value
-      .replace(/\s+/g, ' ')
-      .trim();
+  private required(value: string, field: string) {
+    const clean = value.replace(/\s+/g, ' ').trim();
 
     if (!clean) {
-      throw new BadRequestException(
-        `${field} is required.`,
-      );
+      throw new BadRequestException(`${field} is required.`);
     }
 
     return clean;
   }
 
-  private enumValue<
-    T extends Record<string, string>,
-  >(
+  private enumValue<T extends Record<string, string>>(
     values: T,
     value?: string,
   ): T[keyof T] | undefined {
@@ -304,14 +257,10 @@ export class MemoryFactsService {
 
     const normalized = value.toUpperCase();
 
-    const match = Object.values(values).find(
-      (item) => item === normalized,
-    );
+    const match = Object.values(values).find((item) => item === normalized);
 
     if (!match) {
-      throw new BadRequestException(
-        `Unsupported filter value: ${value}`,
-      );
+      throw new BadRequestException(`Unsupported filter value: ${value}`);
     }
 
     return match as T[keyof T];
