@@ -613,18 +613,15 @@ const generateImageFromMessage = async (
     setStatus("Generating image...");
 
     const response = await fetch(
-      `${API_URL}/asset-images/generate`,
+      `${API_URL}/copilot/image`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: "copilot-generated-image",
-          prompt: content,
-          platform: "Facebook",
-          size: "1024x1536",
-          quality: "medium",
+          content,
+          platform: "Facebook post",
         }),
       },
     );

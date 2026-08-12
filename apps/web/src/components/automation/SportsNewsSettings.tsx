@@ -10,7 +10,6 @@ type Channel = {
   status: string;
 };
 
-
 type Asset = {
   id: string;
   name: string;
@@ -429,7 +428,6 @@ const recommendedDefaults = (current: Settings): Settings => ({
 
   footerPlacement: "bottom",
 
-
   footerDateEnabled: true,
 
   footerDateSeparator: "  •  ",
@@ -475,9 +473,7 @@ export function SportsNewsSettings() {
 
       setAssets(
         Array.isArray(assetData)
-          ? assetData.filter(
-              (asset: Asset) => asset.type === "IMAGE",
-            )
+          ? assetData.filter((asset: Asset) => asset.type === "IMAGE")
           : [],
       );
     }
@@ -981,12 +977,7 @@ export function SportsNewsSettings() {
             Logo Asset
             <select
               value={s.logoAssetId ?? ""}
-              onChange={(e) =>
-                patch(
-                  "logoAssetId",
-                  e.target.value || null
-                )
-              }
+              onChange={(e) => patch("logoAssetId", e.target.value || null)}
             >
               <option value="">Generated / Default</option>
               {assets.map((asset) => (
@@ -1001,9 +992,7 @@ export function SportsNewsSettings() {
             Logo Position
             <select
               value={s.logoPosition}
-              onChange={(e) =>
-                patch("logoPosition", e.target.value)
-              }
+              onChange={(e) => patch("logoPosition", e.target.value)}
             >
               <option value="top-right">Top right</option>
               <option value="top-left">Top left</option>
@@ -1016,9 +1005,7 @@ export function SportsNewsSettings() {
             Logo Size
             <select
               value={s.logoSize}
-              onChange={(e) =>
-                patch("logoSize", e.target.value)
-              }
+              onChange={(e) => patch("logoSize", e.target.value)}
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -1033,12 +1020,7 @@ export function SportsNewsSettings() {
               min={0}
               max={100}
               value={s.logoOpacity}
-              onChange={(e) =>
-                patch(
-                  "logoOpacity",
-                  Number(e.target.value)
-                )
-              }
+              onChange={(e) => patch("logoOpacity", Number(e.target.value))}
             />
           </label>
 
@@ -1048,47 +1030,28 @@ export function SportsNewsSettings() {
               type="number"
               min={0}
               value={s.logoMargin}
-              onChange={(e) =>
-                patch(
-                  "logoMargin",
-                  Number(e.target.value)
-                )
-              }
+              onChange={(e) => patch("logoMargin", Number(e.target.value))}
             />
           </label>
-
 
           <Toggle
             label="Brand Footer"
             checked={s.brandFooterEnabled}
-            onChange={(v) =>
-              patch("brandFooterEnabled", v)
-            }
+            onChange={(v) => patch("brandFooterEnabled", v)}
           />
 
           <label>
             Footer Text
             <input
               value={s.brandFooterText}
-              onChange={(e) =>
-                patch(
-                  "brandFooterText",
-                  e.target.value
-                )
-              }
+              onChange={(e) => patch("brandFooterText", e.target.value)}
             />
           </label>
-
 
           <Toggle
             label="Footer Logo"
             checked={s.footerLogoEnabled}
-            onChange={(v) =>
-              patch(
-                "footerLogoEnabled",
-                v
-              )
-            }
+            onChange={(v) => patch("footerLogoEnabled", v)}
           />
 
           {s.footerLogoEnabled && (
@@ -1097,15 +1060,10 @@ export function SportsNewsSettings() {
               <select
                 value={s.footerLogoAssetId ?? ""}
                 onChange={(e) =>
-                  patch(
-                    "footerLogoAssetId",
-                    e.target.value || null
-                  )
+                  patch("footerLogoAssetId", e.target.value || null)
                 }
               >
-                <option value="">
-                  Select logo
-                </option>
+                <option value="">Select logo</option>
                 {assets.map((asset) => (
                   <option key={asset.id} value={asset.id}>
                     {asset.name}
@@ -1115,16 +1073,10 @@ export function SportsNewsSettings() {
             </label>
           )}
 
-
           <Toggle
             label="Footer QR"
             checked={s.footerQrEnabled}
-            onChange={(v) =>
-              patch(
-                "footerQrEnabled",
-                v
-              )
-            }
+            onChange={(v) => patch("footerQrEnabled", v)}
           />
 
           {s.footerQrEnabled && (
@@ -1134,15 +1086,10 @@ export function SportsNewsSettings() {
                 <select
                   value={s.footerQrAssetId ?? ""}
                   onChange={(e) =>
-                    patch(
-                      "footerQrAssetId",
-                      e.target.value || null
-                    )
+                    patch("footerQrAssetId", e.target.value || null)
                   }
                 >
-                  <option value="">
-                    Select QR
-                  </option>
+                  <option value="">Select QR</option>
                   {assets.map((asset) => (
                     <option key={asset.id} value={asset.id}>
                       {asset.name}
@@ -1155,37 +1102,78 @@ export function SportsNewsSettings() {
                 Footer QR Link
                 <input
                   value={s.footerQrLink ?? ""}
-                  onChange={(e) =>
-                    patch(
-                      "footerQrLink",
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => patch("footerQrLink", e.target.value)}
                 />
               </label>
             </>
           )}
 
-
           <label>
             Footer Placement
             <select
               value={s.footerPlacement}
-              onChange={(e) =>
-                patch(
-                  "footerPlacement",
-                  e.target.value
-                )
-              }
+              onChange={(e) => patch("footerPlacement", e.target.value)}
             >
-              <option value="bottom">
-                Bottom
-              </option>
-              <option value="top">
-                Top
-              </option>
+              <option value="bottom">Bottom</option>
+              <option value="top">Top</option>
             </select>
           </label>
+
+          <div className={styles.footerPreviewBlock}>
+            <div className={styles.footerPreviewHeader}>
+              <strong>Footer Preview</strong>
+              <span>
+                {s.footerPlacement === "auto"
+                  ? "Responsive auto placement"
+                  : `${s.footerPlacement} placement`}
+              </span>
+            </div>
+
+            <div
+              className={`${styles.footerPreview} ${
+                s.footerPlacement === "left"
+                  ? styles.footerPreviewLeft
+                  : s.footerPlacement === "center"
+                    ? styles.footerPreviewCenter
+                    : s.footerPlacement === "right"
+                      ? styles.footerPreviewRight
+                      : styles.footerPreviewAuto
+              }`}
+            >
+              <div className={styles.footerPreviewBrand}>
+                {s.footerLogoEnabled &&
+                  (() => {
+                    const logoId = s.footerLogoAssetId || s.logoAssetId;
+
+                    const selected = assets.find(
+                      (asset) => asset.id === logoId,
+                    );
+
+                    return selected ? (
+                      <img
+                        className={styles.footerPreviewLogo}
+                        src={selected.thumbnailUrl || selected.url}
+                        alt=""
+                      />
+                    ) : (
+                      <div className={styles.footerPreviewLogoPlaceholder}>
+                        LOGO
+                      </div>
+                    );
+                  })()}
+
+                {s.brandFooterText.trim() && (
+                  <span className={styles.footerPreviewText}>
+                    {s.brandFooterText}
+                  </span>
+                )}
+              </div>
+
+              {s.footerQrEnabled && (
+                <div className={styles.footerPreviewQr}>QR</div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className={styles.panel}>
