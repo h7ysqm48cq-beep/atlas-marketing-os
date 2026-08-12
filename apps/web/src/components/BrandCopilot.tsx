@@ -34,6 +34,7 @@ type ConversationSummary = {
   title: string;
   mode: string;
   updatedAt: string;
+  hasMarketingPlan?: boolean;
   _count?: {
     messages: number;
   };
@@ -100,6 +101,8 @@ export function BrandCopilot() {
   const [marketingPlan, setMarketingPlan] = useState<MarketingPlan | null>(
     null,
   );
+
+  const marketingPlanRef = useRef<HTMLElement | null>(null);
   const [status, setStatus] = useState("Brand Brain is active.");
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(
     null,
@@ -275,10 +278,13 @@ export function BrandCopilot() {
       if (
         restoredPlanMessage &&
         restoredPlanMessage.metadata &&
-        typeof restoredPlanMessage.metadata === "object" &&
-        "plan" in restoredPlanMessage.metadata
+        typeof restoredPlanMessage.metadata === "object"
       ) {
-        const candidate = restoredPlanMessage.metadata.plan;
+        const metadata = restoredPlanMessage.metadata;
+
+        const candidate =
+          ("marketingPlan" in metadata && metadata.marketingPlan) ||
+          ("plan" in metadata && metadata.plan);
 
         if (
           candidate &&
@@ -728,6 +734,10 @@ You can continue refining this plan with Elena.
           throw new Error(data.message || "Unable to get response.");
         }
 
+        if (data.marketingPlan) {
+          setMarketingPlan(data.marketingPlan);
+        }
+
         if (data.conversation?.id) {
           setConversationId(data.conversation.id);
         }
@@ -1065,8 +1075,31 @@ You can continue refining this plan with Elena.
                   >
                     <strong>{conversation.title}</strong>
 
-                    <small>{conversation._count?.messages || 0} messages</small>
+                    <small>
+                      {conversation._count?.messages || 0} messages
+                      {conversation.hasMarketingPlan && " · Plan"}
+                    </small>
                   </button>
+
+                  {conversation.hasMarketingPlan && (
+                    <button
+                      className={styles.planShortcut}
+                      type="button"
+                      title="View Marketing Plan"
+                      onClick={() => {
+                        void openConversation(conversation.id);
+
+                        setTimeout(() => {
+                          marketingPlanRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        }, 500);
+                      }}
+                    >
+                      ▤
+                    </button>
+                  )}
 
                   <div className={styles.conversationActions}>
                     <button
@@ -1293,7 +1326,10 @@ You can continue refining this plan with Elena.
             ))}
 
             {marketingPlan && (
-              <section className={styles.marketingPlan}>
+              <section
+              ref={marketingPlanRef}
+              className={styles.marketingPlan}
+            >
                 <header className={styles.planHeader}>
                   <div>
                     <p className={styles.eyebrow}>Marketing Plan</p>
