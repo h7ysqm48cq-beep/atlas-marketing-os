@@ -9,6 +9,15 @@ type Channel = {
   username: string | null;
   status: string;
 };
+
+
+type Asset = {
+  id: string;
+  name: string;
+  type: "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
+  url: string;
+  thumbnailUrl: string | null;
+};
 type Settings = {
   enabled: boolean;
   timezone: string;
@@ -53,6 +62,20 @@ type Settings = {
   logoPosition: string;
   brandFooterEnabled: boolean;
   brandFooterText: string;
+
+  logoAssetId: string | null;
+  logoSize: string;
+  logoOpacity: number;
+  logoMargin: number;
+
+  footerLogoEnabled: boolean;
+  footerLogoAssetId: string | null;
+
+  footerQrEnabled: boolean;
+  footerQrAssetId: string | null;
+  footerQrLink: string | null;
+
+  footerPlacement: string;
 
   storyMinimum: number;
   storyMaximum: number;
@@ -392,6 +415,21 @@ const recommendedDefaults = (current: Settings): Settings => ({
 
   brandFooterText: "满贯门 mgmbetmyr.com",
 
+  logoAssetId: null,
+  logoSize: "medium",
+  logoOpacity: 100,
+  logoMargin: 10,
+
+  footerLogoEnabled: false,
+  footerLogoAssetId: null,
+
+  footerQrEnabled: false,
+  footerQrAssetId: null,
+  footerQrLink: "https://mgmbetmyr.com",
+
+  footerPlacement: "bottom",
+
+
   footerDateEnabled: true,
 
   footerDateSeparator: "  •  ",
@@ -414,13 +452,15 @@ const recommendedDefaults = (current: Settings): Settings => ({
 export function SportsNewsSettings() {
   const [s, setS] = useState<Settings | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState<"morning" | "evening" | null>(null);
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
-    const [a, b] = await Promise.all([
+    const [a, b, c] = await Promise.all([
       fetch(`${API_URL}/sports-news/settings`, { cache: "no-store" }),
       fetch(`${API_URL}/sports-news/channels`, { cache: "no-store" }),
+      fetch(`${API_URL}/assets?type=IMAGE`, { cache: "no-store" }),
     ]);
 
     if (!a.ok || !b.ok) {
@@ -429,6 +469,18 @@ export function SportsNewsSettings() {
 
     setS(await a.json());
     setChannels(await b.json());
+
+    if (c.ok) {
+      const assetData = await c.json();
+
+      setAssets(
+        Array.isArray(assetData)
+          ? assetData.filter(
+              (asset: Asset) => asset.type === "IMAGE",
+            )
+          : [],
+      );
+    }
   }, []);
   useEffect(() => {
     void load().catch((e) =>
@@ -924,28 +976,215 @@ export function SportsNewsSettings() {
             checked={s.logoEnabled}
             onChange={(v) => patch("logoEnabled", v)}
           />
+
+          <label>
+            Logo Asset
+            <select
+              value={s.logoAssetId ?? ""}
+              onChange={(e) =>
+                patch(
+                  "logoAssetId",
+                  e.target.value || null
+                )
+              }
+            >
+              <option value="">Generated / Default</option>
+              {assets.map((asset) => (
+                <option key={asset.id} value={asset.id}>
+                  {asset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label>
             Logo Position
             <select
               value={s.logoPosition}
-              onChange={(e) => patch("logoPosition", e.target.value)}
+              onChange={(e) =>
+                patch("logoPosition", e.target.value)
+              }
             >
+              <option value="top-right">Top right</option>
+              <option value="top-left">Top left</option>
               <option value="bottom-right">Bottom right</option>
-              <option value="bottom-center">Bottom center</option>
               <option value="bottom-left">Bottom left</option>
             </select>
           </label>
+
+          <label>
+            Logo Size
+            <select
+              value={s.logoSize}
+              onChange={(e) =>
+                patch("logoSize", e.target.value)
+              }
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+
+          <label>
+            Logo Opacity
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={s.logoOpacity}
+              onChange={(e) =>
+                patch(
+                  "logoOpacity",
+                  Number(e.target.value)
+                )
+              }
+            />
+          </label>
+
+          <label>
+            Logo Margin
+            <input
+              type="number"
+              min={0}
+              value={s.logoMargin}
+              onChange={(e) =>
+                patch(
+                  "logoMargin",
+                  Number(e.target.value)
+                )
+              }
+            />
+          </label>
+
+
           <Toggle
             label="Brand Footer"
             checked={s.brandFooterEnabled}
-            onChange={(v) => patch("brandFooterEnabled", v)}
+            onChange={(v) =>
+              patch("brandFooterEnabled", v)
+            }
           />
+
           <label>
             Footer Text
             <input
               value={s.brandFooterText}
-              onChange={(e) => patch("brandFooterText", e.target.value)}
+              onChange={(e) =>
+                patch(
+                  "brandFooterText",
+                  e.target.value
+                )
+              }
             />
+          </label>
+
+
+          <Toggle
+            label="Footer Logo"
+            checked={s.footerLogoEnabled}
+            onChange={(v) =>
+              patch(
+                "footerLogoEnabled",
+                v
+              )
+            }
+          />
+
+          {s.footerLogoEnabled && (
+            <label>
+              Footer Logo Asset
+              <select
+                value={s.footerLogoAssetId ?? ""}
+                onChange={(e) =>
+                  patch(
+                    "footerLogoAssetId",
+                    e.target.value || null
+                  )
+                }
+              >
+                <option value="">
+                  Select logo
+                </option>
+                {assets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+
+          <Toggle
+            label="Footer QR"
+            checked={s.footerQrEnabled}
+            onChange={(v) =>
+              patch(
+                "footerQrEnabled",
+                v
+              )
+            }
+          />
+
+          {s.footerQrEnabled && (
+            <>
+              <label>
+                Footer QR Asset
+                <select
+                  value={s.footerQrAssetId ?? ""}
+                  onChange={(e) =>
+                    patch(
+                      "footerQrAssetId",
+                      e.target.value || null
+                    )
+                  }
+                >
+                  <option value="">
+                    Select QR
+                  </option>
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Footer QR Link
+                <input
+                  value={s.footerQrLink ?? ""}
+                  onChange={(e) =>
+                    patch(
+                      "footerQrLink",
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+            </>
+          )}
+
+
+          <label>
+            Footer Placement
+            <select
+              value={s.footerPlacement}
+              onChange={(e) =>
+                patch(
+                  "footerPlacement",
+                  e.target.value
+                )
+              }
+            >
+              <option value="bottom">
+                Bottom
+              </option>
+              <option value="top">
+                Top
+              </option>
+            </select>
           </label>
         </div>
 
