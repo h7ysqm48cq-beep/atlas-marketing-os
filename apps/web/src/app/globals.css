@@ -3282,3 +3282,183 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     width: 70% !important;
   }
 }
+
+/* =========================================================
+   Atlas Interaction Layer System
+   ========================================================= */
+
+:root {
+  /*
+   * Global interaction layer hierarchy.
+   *
+   * 10   normal sticky content
+   * 80   app header / local docks
+   * 90   PWA bottom navigation
+   * 300  navigation backdrop
+   * 310  navigation drawer
+   * 900  normal application modal/backdrop
+   * 950  modal panel / drawer
+   * 9900 system notices
+   * 10020 transient loading indicator
+   */
+  --atlas-z-content: 10;
+  --atlas-z-header: 80;
+  --atlas-z-dock: 90;
+  --atlas-z-nav-backdrop: 300;
+  --atlas-z-nav-drawer: 310;
+  --atlas-z-modal-backdrop: 900;
+  --atlas-z-modal: 950;
+  --atlas-z-system: 9900;
+  --atlas-z-progress: 10020;
+}
+
+/*
+ * Header remains interactive, but should never compete with open
+ * drawers/modals.
+ */
+.header {
+  isolation: isolate;
+}
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] .header {
+    z-index: var(--atlas-z-header);
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav {
+    z-index: var(--atlas-z-dock);
+  }
+
+  html[data-pwa="standalone"] .mobile-nav-overlay {
+    z-index: var(--atlas-z-nav-backdrop);
+  }
+
+  html[data-pwa="standalone"] .sidebar.mobile-open {
+    z-index: var(--atlas-z-nav-drawer);
+  }
+}
+
+/*
+ * Hidden mobile navigation overlay must never intercept touches.
+ */
+.mobile-nav-overlay:not(.visible) {
+  pointer-events: none !important;
+  visibility: hidden;
+}
+
+.mobile-nav-overlay.visible {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/*
+ * Closed mobile sidebar is visually outside the viewport and must not
+ * accidentally receive touch events on Safari.
+ */
+@media (max-width: 780px) {
+  .sidebar:not(.mobile-open) {
+    pointer-events: none;
+  }
+
+  .sidebar.mobile-open {
+    pointer-events: auto;
+  }
+}
+
+/*
+ * The PWA route progress bar is purely visual.
+ */
+.atlas-pwa-route-progress,
+.atlas-pwa-route-progress * {
+  pointer-events: none !important;
+}
+
+/*
+ * Network status should not block controls beneath it. It contains no
+ * interactive element.
+ */
+.atlas-network-status {
+  pointer-events: none;
+}
+
+/*
+ * PWA update notice DOES contain controls, so it must remain interactive.
+ */
+.atlas-pwa-update {
+  z-index: var(--atlas-z-system);
+  pointer-events: auto;
+}
+
+.atlas-pwa-update__button,
+.atlas-pwa-update__dismiss {
+  pointer-events: auto;
+}
+
+/*
+ * Touch targets in fixed app navigation should always accept touch.
+ */
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item {
+    position: relative;
+    z-index: 1;
+
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item::before {
+    pointer-events: none;
+  }
+}
+
+/*
+ * Prevent decorative pseudo-elements from unexpectedly intercepting input.
+ */
+.mobile-menu-button::before,
+.mobile-menu-button::after,
+.mobile-header-mark::before,
+.mobile-header-mark::after {
+  pointer-events: none;
+}
+
+/*
+ * When the main sidebar is open, disable interaction with page content.
+ * The overlay/sidebar remain the only active navigation layers.
+ */
+@media (max-width: 780px) {
+  body.mobile-nav-open .main-panel {
+    pointer-events: none;
+  }
+
+  body.mobile-nav-open .sidebar,
+  body.mobile-nav-open .mobile-nav-overlay {
+    pointer-events: auto;
+  }
+}
+
+/*
+ * Do not allow the global PWA bottom dock to sit above true dialogs.
+ * Known component modals use z-index values >= 100 in their own
+ * stacking contexts, so force the global dock beneath open dialog roots.
+ */
+[role="dialog"],
+[aria-modal="true"] {
+  position: relative;
+}
+
+/*
+ * Generic interaction defaults for touch devices.
+ */
+@media (hover: none), (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  a,
+  [role="button"]:not([aria-disabled="true"]) {
+    touch-action: manipulation;
+  }
+}
