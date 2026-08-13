@@ -547,7 +547,7 @@ export function ImageBrandEditor() {
           assetId: selected.id,
           maskDataUrl,
           prompt: cleanupPrompt.trim() || undefined,
-          name: name.trim() || `${selected.name} · Cleaned`,
+          name: (name.trim() || `${selected.name} · Cleaned`).slice(0, 160),
         }),
       });
 
@@ -630,7 +630,7 @@ export function ImageBrandEditor() {
         body: JSON.stringify({
           assetId: selected.id,
           prompt: instruction,
-          name: name.trim() || `${selected.name} · AI Edited`,
+          name: (name.trim() || `${selected.name} · AI Edited`).slice(0, 160),
         }),
       });
 
