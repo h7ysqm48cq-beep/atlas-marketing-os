@@ -1172,6 +1172,27 @@ You can continue refining this plan with Elena.
         </aside>
 
         <section className={styles.chat}>
+
+          {marketingPlan && (
+            <div className={styles.planNavigator}>
+              <span>
+                Marketing Plan Available
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  marketingPlanRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }}
+              >
+                View Plan
+              </button>
+            </div>
+          )}
+
           <div className={styles.messages}>
             {messages.map((message, index) => (
               <article
