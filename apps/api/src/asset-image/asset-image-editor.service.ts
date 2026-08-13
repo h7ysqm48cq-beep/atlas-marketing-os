@@ -472,27 +472,59 @@ export class AssetImageEditorService {
       );
     }
 
-    if (!sourceAsset.url?.startsWith('https://')) {
-      throw new BadRequestException(
-        'The selected image does not have a usable URL.',
-      );
-    }
-
     const maskMatch = dto.maskDataUrl.match(/^data:image\/png;base64,(.+)$/s);
 
     if (!maskMatch?.[1]) {
       throw new BadRequestException('maskDataUrl must be a PNG data URL.');
     }
 
-    const sourceResponse = await fetch(sourceAsset.url);
+    let originalBuffer: Buffer | null = null;
+    let sourceFailure: string | null = null;
 
-    if (!sourceResponse.ok) {
-      throw new BadRequestException(
-        `Unable to download the selected image (HTTP ${sourceResponse.status}).`,
-      );
+    /*
+     * Preferred source:
+     * Assets already migrated to Supabase should be loaded by storagePath.
+     * This avoids depending on stale public /storage/assets URLs.
+     */
+    if (sourceAsset.storageProvider === 'supabase' && sourceAsset.storagePath) {
+      try {
+        originalBuffer = await this.storageService.download(
+          sourceAsset.storagePath,
+        );
+      } catch (error) {
+        sourceFailure = error instanceof Error ? error.message : String(error);
+      }
     }
 
-    const originalBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+    /*
+     * Fallback:
+     * Keep support for existing external HTTPS assets.
+     */
+    if (!originalBuffer && sourceAsset.url?.startsWith('https://')) {
+      try {
+        const sourceResponse = await fetch(sourceAsset.url);
+
+        if (sourceResponse.ok) {
+          originalBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+        } else {
+          sourceFailure = `HTTP ${sourceResponse.status} while downloading ${sourceAsset.url}`;
+        }
+      } catch (error) {
+        sourceFailure = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    if (!originalBuffer) {
+      throw new BadRequestException(
+        [
+          'Unable to load the selected image.',
+          sourceAsset.storagePath
+            ? `storagePath=${sourceAsset.storagePath}`
+            : 'storagePath unavailable',
+          sourceFailure || 'No usable source was available.',
+        ].join(' '),
+      );
+    }
 
     const metadata = await sharp(originalBuffer).metadata();
 

@@ -85,6 +85,30 @@ export class SupabaseStorageService {
     };
   }
 
+  async download(path: string): Promise<Buffer> {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'Supabase Storage is not configured.',
+      );
+    }
+
+    const normalizedPath = path.replace(/^\/+/, '');
+
+    const { data, error } = await this.client.storage
+      .from(this.bucket)
+      .download(normalizedPath);
+
+    if (error || !data) {
+      throw new InternalServerErrorException(
+        `Supabase download failed: ${
+          error?.message || 'File data was not returned.'
+        }`,
+      );
+    }
+
+    return Buffer.from(await data.arrayBuffer());
+  }
+
   async remove(path: string) {
     if (!this.client) {
       throw new ServiceUnavailableException(
