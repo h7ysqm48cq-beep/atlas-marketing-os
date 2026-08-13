@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { startPwaNavigationProgress } from "@/components/PwaNavigationProgress";
 
 type NavItem = {
   label: string;
@@ -66,6 +67,22 @@ export function PwaMobileNav() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={(event) => {
+              if (active) {
+                return;
+              }
+
+              if (
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              ) {
+                return;
+              }
+
+              startPwaNavigationProgress();
+            }}
             className={`atlas-pwa-mobile-nav__item${
               active ? " is-active" : ""
             }`}

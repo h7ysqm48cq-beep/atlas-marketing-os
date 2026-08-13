@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { PwaMobileNav } from "@/components/PwaMobileNav";
+import { PwaNavigationProgress } from "@/components/PwaNavigationProgress";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="page-content">{children}</div>
       </main>
 
+      <PwaNavigationProgress />
       <PwaMobileNav />
     </div>
   );

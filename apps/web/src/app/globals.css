@@ -3026,3 +3026,259 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     color: #a56f16;
   }
 }
+
+/* Atlas PWA Native Header */
+
+@media (max-width: 780px) {
+  /*
+   * Installed PWA already has a bottom "More" navigation item,
+   * so the old hamburger becomes redundant.
+   */
+  html[data-pwa="standalone"] .mobile-menu-button {
+    display: none;
+  }
+
+  /*
+   * Mobile PWA gets a compact native-style top bar.
+   */
+  html[data-pwa="standalone"] .header {
+    position: sticky;
+    top: 0;
+    z-index: 85;
+
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+    height: calc(56px + env(safe-area-inset-top, 0px));
+
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+
+    gap: 10px;
+
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+
+    background: rgba(7, 11, 20, 0.97);
+
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  /*
+   * The desktop search field takes too much room on an app-sized
+   * screen. Search remains available elsewhere in Atlas.
+   */
+  html[data-pwa="standalone"] .search-box {
+    display: none;
+  }
+
+  /*
+   * Atlas becomes the leading element instead of hamburger + logo.
+   */
+  html[data-pwa="standalone"] .mobile-header-brand {
+    position: static;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    min-width: 0;
+    margin-right: auto;
+
+    transform: none;
+  }
+
+  html[data-pwa="standalone"] .mobile-header-mark {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid rgba(240, 201, 106, 0.34);
+
+    border-radius: 11px;
+
+    background: linear-gradient(
+      145deg,
+      rgba(240, 201, 106, 0.16),
+      rgba(17, 24, 39, 0.78)
+    );
+
+    color: #f0c96a;
+
+    font-size: 16px;
+    font-weight: 800;
+
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  }
+
+  html[data-pwa="standalone"] .mobile-header-brand > span {
+    overflow: hidden;
+
+    color: #f3f4f6;
+
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-pwa="standalone"] .header-actions {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  html[data-pwa="standalone"] .header-actions .icon-button {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 12px;
+
+    box-shadow: none;
+  }
+
+  html[data-pwa="standalone"] .header-actions .user-chip {
+    min-width: 38px;
+    min-height: 38px;
+
+    padding: 3px;
+
+    border-radius: 12px;
+
+    box-shadow: none;
+  }
+
+  html[data-pwa="standalone"] .header-actions .avatar {
+    width: 30px;
+    height: 30px;
+
+    border-radius: 9px;
+  }
+
+  /*
+   * Existing preferences can stay accessible, but keep each control
+   * compact so the top bar does not overflow on iPhone.
+   */
+  html[data-pwa="standalone"] .header-actions button {
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Avoid the fixed update/offline notices hiding behind the app bar.
+   */
+  html[data-pwa="standalone"] .atlas-network-status {
+    top: calc(64px + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Light mode */
+
+@media (max-width: 780px) {
+  :root[data-theme="light"][data-pwa="standalone"] .header {
+    border-bottom-color: rgba(15, 23, 42, 0.1);
+
+    background: rgba(248, 250, 252, 0.97);
+
+    box-shadow: 0 5px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  :root[data-theme="light"][data-pwa="standalone"] .mobile-header-mark {
+    border-color: rgba(165, 111, 22, 0.22);
+
+    background: rgba(180, 132, 34, 0.08);
+
+    color: #a56f16;
+
+    box-shadow: none;
+  }
+
+  :root[data-theme="light"][data-pwa="standalone"] .mobile-header-brand > span {
+    color: #172033;
+  }
+}
+
+/* Atlas PWA Navigation Progress */
+
+.atlas-pwa-route-progress {
+  display: none;
+}
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] .atlas-pwa-route-progress {
+    position: fixed;
+
+    top: env(safe-area-inset-top, 0px);
+    right: 0;
+    left: 0;
+
+    z-index: 10020;
+
+    display: block;
+
+    height: 3px;
+
+    overflow: hidden;
+
+    pointer-events: none;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-route-progress span {
+    display: block;
+
+    width: 72%;
+    height: 100%;
+
+    border-radius: 0 999px 999px 0;
+
+    background: #f0c96a;
+
+    box-shadow: 0 0 12px rgba(240, 201, 106, 0.55);
+
+    transform-origin: left center;
+
+    animation: atlas-pwa-route-loading 1.25s cubic-bezier(0.2, 0.75, 0.25, 1)
+      forwards;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-route-progress.is-finishing span {
+    width: 100%;
+
+    animation: none;
+
+    transition:
+      width 180ms ease,
+      opacity 200ms ease;
+
+    opacity: 0;
+  }
+}
+
+@keyframes atlas-pwa-route-loading {
+  0% {
+    width: 8%;
+  }
+
+  35% {
+    width: 42%;
+  }
+
+  70% {
+    width: 68%;
+  }
+
+  100% {
+    width: 84%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-pwa-route-progress span {
+    animation: none !important;
+    width: 70% !important;
+  }
+}
