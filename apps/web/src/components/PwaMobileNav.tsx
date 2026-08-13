@@ -2,45 +2,54 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
 import { startPwaNavigationProgress } from "@/components/PwaNavigationProgress";
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: string;
-};
-
-const items: NavItem[] = [
-  {
-    label: "Home",
-    href: "/",
-    icon: "⌂",
-  },
-  {
-    label: "AI Studio",
-    href: "/ai-studio",
-    icon: "✦",
-  },
-  {
-    label: "Assets",
-    href: "/assets",
-    icon: "◇",
-  },
-  {
-    label: "Automation",
-    href: "/automation",
-    icon: "↻",
-  },
-];
+import {
+  DEFAULT_PWA_NAVIGATION,
+  PWA_NAV_CHANGE_EVENT,
+  PWA_NAV_ROUTES,
+  readPwaNavigationSettings,
+  type PwaNavigationSettings,
+} from "@/components/pwaNavigationSettings";
 
 export function PwaMobileNav() {
   const pathname = usePathname();
 
-  /*
-   * Image Editor already has its own dedicated mobile tool dock.
-   * Avoid stacking two fixed navigation bars.
-   */
-  if (pathname.startsWith("/image-editor")) {
+  const [settings, setSettings] = useState<PwaNavigationSettings>(
+    DEFAULT_PWA_NAVIGATION,
+  );
+
+  useEffect(() => {
+    const update = () => {
+      setSettings(readPwaNavigationSettings());
+    };
+
+    update();
+
+    window.addEventListener(PWA_NAV_CHANGE_EVENT, update);
+
+    window.addEventListener("storage", update);
+
+    return () => {
+      window.removeEventListener(PWA_NAV_CHANGE_EVENT, update);
+
+      window.removeEventListener("storage", update);
+    };
+  }, []);
+
+  const items = useMemo(
+    () =>
+      settings.quickLinks
+        .map((id) => PWA_NAV_ROUTES.find((route) => route.id === id))
+        .filter((route): route is (typeof PWA_NAV_ROUTES)[number] =>
+          Boolean(route),
+        ),
+    [settings.quickLinks],
+  );
+
+  if (!settings.enabled || pathname.startsWith("/image-editor")) {
     return null;
   }
 
@@ -65,7 +74,7 @@ export function PwaMobileNav() {
 
         return (
           <Link
-            key={item.href}
+            key={item.id}
             href={item.href}
             onClick={(event) => {
               if (active) {

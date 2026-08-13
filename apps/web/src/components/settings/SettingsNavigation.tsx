@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { AiRuntimeSettings } from "./AiRuntimeSettings";
 import { PwaDiagnostics } from "@/components/PwaDiagnostics";
+import { PwaAppSettings } from "@/components/PwaAppSettings";
 import styles from "./SettingsNavigation.module.css";
 
 type SettingsTab = "general" | "ai-runtime" | "app-status";
@@ -64,7 +65,10 @@ export function SettingsNavigation() {
         ) : activeTab === "ai-runtime" ? (
           <AiRuntimeSettings />
         ) : (
-          <PwaDiagnostics />
+          <div className="atlas-pwa-settings-stack">
+            <PwaAppSettings />
+            <PwaDiagnostics />
+          </div>
         )}
       </div>
     </div>
