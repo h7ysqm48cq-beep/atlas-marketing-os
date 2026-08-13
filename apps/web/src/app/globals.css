@@ -599,13 +599,27 @@ h1 {
 }
 
 /* Light mode secondary controls: remove legacy dark button surfaces. */
-:root[data-theme="light"] [class*="AssetLibrary_"] button:not([class*="primary"]):not([class*="Primary"]),
+:root[data-theme="light"]
+  [class*="AssetLibrary_"]
+  button:not([class*="primary"]):not([class*="Primary"]),
 :root[data-theme="light"] [class*="CampaignDashboard_"] button,
-:root[data-theme="light"] [class*="AutomationDashboard_"] button:not([class*="confirm"]):not([class*="Confirm"]),
-:root[data-theme="light"] [class*="ContentCalendar_"] button:not([class*="primary"]):not([class*="Primary"]):not([class*="active"]):not([class*="Active"]),
-:root[data-theme="light"] [class*="PlatformCard_"] button:not([class*="featured"]):not([class*="Featured"]),
+:root[data-theme="light"]
+  [class*="AutomationDashboard_"]
+  button:not([class*="confirm"]):not([class*="Confirm"]),
+:root[data-theme="light"]
+  [class*="ContentCalendar_"]
+  button:not([class*="primary"]):not([class*="Primary"]):not(
+    [class*="active"]
+  ):not([class*="Active"]),
+:root[data-theme="light"]
+  [class*="PlatformCard_"]
+  button:not([class*="featured"]):not([class*="Featured"]),
 :root[data-theme="light"] [class*="AssetDetailsDrawer_"] button,
-:root[data-theme="light"] [class*="AiStudio_"] button:not([class*="generate"]):not([class*="Generate"]):not([class*="active"]):not([class*="Active"]) {
+:root[data-theme="light"]
+  [class*="AiStudio_"]
+  button:not([class*="generate"]):not([class*="Generate"]):not(
+    [class*="active"]
+  ):not([class*="Active"]) {
   border-color: var(--atlas-border) !important;
   background: var(--atlas-input-bg) !important;
   color: var(--atlas-text) !important;
@@ -615,8 +629,8 @@ h1 {
 :root[data-theme="light"] [class*="ContentCalendar_activeToggle"],
 :root[data-theme="light"] [class*="AssetLibrary_activeFilter"],
 :root[data-theme="light"] [class*="AiStudio_activePlatform"] {
-  border-color: rgba(182, 134, 37, .38) !important;
-  background: rgba(209, 163, 63, .12) !important;
+  border-color: rgba(182, 134, 37, 0.38) !important;
+  background: rgba(209, 163, 63, 0.12) !important;
   color: #936b16 !important;
 }
 @media (max-width: 520px) {
@@ -1768,7 +1782,7 @@ button {
 :root[data-theme="light"] [class*="AutomationDashboard_historyModalHeader"],
 :root[data-theme="light"] [class*="AutomationDashboard_historyModalFooter"] {
   border-color: var(--atlas-border) !important;
-  background: rgba(255, 255, 255, .96) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
   color: var(--atlas-text) !important;
 }
 
@@ -2483,4 +2497,36 @@ button {
   padding-left: 0;
   padding-right: 0;
   opacity: 0;
+}
+
+/* Atlas PWA */
+html,
+body {
+  min-height: 100%;
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+  }
 }
