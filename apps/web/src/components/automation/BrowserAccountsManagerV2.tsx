@@ -5,6 +5,10 @@ import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
 
 import {
+  createBrowserViewerSession,
+} from "./browser-accounts/api/viewer.api";
+
+import {
   createBrowserAccount,
   getBrowserAccounts,
   getBrands,
@@ -167,23 +171,7 @@ export function BrowserAccountsManagerV2({
   const viewerRef = useRef<HTMLElement | null>(null);
 
   async function connectSecureBrowserViewer() {
-    const response = await fetch("/api/browser-viewer/session", {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    const body = await readJson(response);
-
-    const token = typeof body.token === "string" ? body.token : "";
-
-    if (!response.ok || !token) {
-      throw new Error(
-        getErrorMessage(body, "Unable to authorize Live Browser."),
-      );
-    }
+    const token = await createBrowserViewerSession();
 
     const nextUrl = buildNoVncUrl(token);
 
