@@ -20,6 +20,7 @@ import {
 
 import { AccountActions } from "./browser-accounts/components/AccountActions";
 import { AccountOverview } from "./browser-accounts/components/AccountOverview";
+import { LiveBrowserViewer } from "./browser-accounts/components/LiveBrowserViewer";
 
 import {
   buildNoVncUrl,
@@ -1704,100 +1705,39 @@ export function BrowserAccountsManagerV2({
             />
 
             {viewerOpen && selectedAccount ? (
-              <section ref={viewerRef} className={styles.viewerPanel}>
-                <div className={styles.viewerHeader}>
-                  <div>
-                    <p className={styles.eyebrow}>Live Browser</p>
+              <LiveBrowserViewer
+                account={selectedAccount}
+                runtime={selectedRuntime}
+                viewerUrl={viewerUrl}
+                viewerKey={viewerKey}
+                viewerRef={viewerRef}
+                onReload={async () => {
+                  await connectSecureBrowserViewer();
+                  setViewerKey((current) => current + 1);
+                }}
+                onOpenNewTab={async () => {
+                  const popup = window.open("", "_blank");
 
-                    <h2>{selectedAccount.displayName}</h2>
+                  try {
+                    const nextUrl = await connectSecureBrowserViewer();
 
-                    <p>
-                      {selectedRuntime.session?.currentUrl ||
-                        "Remote Chromium session"}
-                    </p>
-                  </div>
+                    if (!popup) {
+                      throw new Error("Browser blocked the new tab.");
+                    }
 
-                  <div className={styles.viewerActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => {
-                        void connectSecureBrowserViewer()
-                          .then(() => {
-                            setViewerKey((current) => current + 1);
-                          })
-                          .catch((error) => {
-                            setGlobalError(
-                              error instanceof Error
-                                ? error.message
-                                : "Unable to reload Live Browser.",
-                            );
-                          });
-                      }}
-                    >
-                      Reload Viewer
-                    </button>
-
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => {
-                        const popup = window.open("", "_blank");
-
-                        void connectSecureBrowserViewer()
-                          .then((nextUrl) => {
-                            if (!popup) {
-                              throw new Error("Browser blocked the new tab.");
-                            }
-
-                            popup.opener = null;
-
-                            popup.location.href = nextUrl;
-                          })
-                          .catch((error) => {
-                            popup?.close();
-
-                            setGlobalError(
-                              error instanceof Error
-                                ? error.message
-                                : "Unable to open Live Browser.",
-                            );
-                          });
-                      }}
-                    >
-                      Open in New Tab
-                    </button>
-
-                    <button
-                      className={styles.dangerButton}
-                      type="button"
-                      onClick={() => {
-                        setViewerOpen(false);
-
-                        setViewerUrl(null);
-                      }}
-                    >
-                      Hide Viewer
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.viewerFrameWrap}>
-                  {viewerUrl ? (
-                    <iframe
-                      className={styles.viewerFrame}
-                      key={viewerKey}
-                      src={viewerUrl}
-                      title={`${selectedAccount.displayName} browser viewer`}
-                      allow="clipboard-read; clipboard-write; fullscreen"
-                    />
-                  ) : (
-                    <div className={styles.previewEmpty}>
-                      Authorizing secure Live Browser…
-                    </div>
-                  )}
-                </div>
-              </section>
+                    popup.opener = null;
+                    popup.location.href = nextUrl;
+                  } catch (error) {
+                    popup?.close();
+                    throw error;
+                  }
+                }}
+                onHide={() => {
+                  setViewerOpen(false);
+                  setViewerUrl(null);
+                }}
+                onError={setGlobalError}
+              />
             ) : null}
 
             <section
