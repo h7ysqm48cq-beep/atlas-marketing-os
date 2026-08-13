@@ -5,6 +5,15 @@ import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
 
 import {
+  getAutomationPolicy,
+  updateAutomationPolicy as updateAutomationPolicyApi,
+} from "./browser-accounts/api/policy.api";
+
+import {
+  getTimeline,
+} from "./browser-accounts/api/timeline.api";
+
+import {
   createBrowserViewerSession,
 } from "./browser-accounts/api/viewer.api";
 
@@ -452,20 +461,10 @@ export function BrowserAccountsManagerV2({
     setPolicyLoading(true);
 
     try {
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/automation-policy`,
-        {
-          cache: "no-store",
-        },
-      );
-
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(body, "Unable to load automation policy."),
+      const body =
+        await getAutomationPolicy(
+          accountId,
         );
-      }
 
       setAutomationPolicy(body as unknown as AutomationPolicy);
     } catch (error) {
@@ -483,18 +482,10 @@ export function BrowserAccountsManagerV2({
     setTimelineLoading(true);
 
     try {
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/timeline`,
-        {
-          cache: "no-store",
-        },
-      );
-
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(getErrorMessage(body, "Unable to load timeline."));
-      }
+      const body =
+        await getTimeline(
+          accountId,
+        );
 
       setTimeline(
         Array.isArray(body) ? (body as unknown as TimelineEvent[]) : [],
@@ -525,24 +516,11 @@ export function BrowserAccountsManagerV2({
     setGlobalError("");
 
     try {
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(patch),
-        },
-      );
-
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(body, "Unable to update automation policy."),
+      const body =
+        await updateAutomationPolicyApi(
+          selectedAccount.id,
+          patch,
         );
-      }
 
       setAutomationPolicy(body as unknown as AutomationPolicy);
 
