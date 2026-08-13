@@ -1843,3 +1843,88 @@
   font-weight: 800;
 }
 
+
+
+/* ===== Brand Copilot layout overflow fix ===== */
+
+.panel,
+.workspace,
+.copilotPanel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.copilotPanel {
+  height: calc(100vh - 110px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conversations,
+.conversationList,
+.chatList {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.message,
+.messageText,
+.chatMessage {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.historyCard,
+.historyItem,
+.workItem {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.historyCard strong,
+.historyItem strong,
+.workItem strong,
+.historyTitle {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer,
+.chatComposer,
+.inputArea {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .copilotPanel {
+    height: auto;
+    max-height: none;
+  }
+
+  .historyCard strong,
+  .historyItem strong,
+  .workItem strong,
+  .historyTitle {
+    white-space: normal;
+  }
+}
+
+/* prevent right panel pushing workspace */
+.workspaceGrid,
+.copilotLayout {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workspaceGrid > *,
+.copilotLayout > * {
+  min-width: 0;
+}
+
