@@ -1182,7 +1182,17 @@ export function ImageBrandEditor() {
                     type="button"
                     className={styles.eraseAction}
                     disabled={!selected || eraserBusy}
-                    onClick={() => void eraseSelectedArea()}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onTouchStart={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      void eraseSelectedArea();
+                    }}
                   >
                     {eraserBusy ? "Cleaning..." : "Remove selected area"}
                   </button>
