@@ -300,17 +300,10 @@ export function BrowserAccountsManagerV2({
 
   const loadBrands = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/brands`, {
-        cache: "no-store",
-      });
+      const candidates =
+            await getBrands() as BrandOption[];
 
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(getErrorMessage(body, "Unable to load Brands."));
-      }
-
-      const candidates = Array.isArray(body)
+          const candidates = Array.isArray(body)
         ? body
         : Array.isArray(body.brands)
           ? body.brands
@@ -329,24 +322,8 @@ export function BrowserAccountsManagerV2({
     setGlobalError("");
 
     try {
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
-        {
-          cache: "no-store",
-        },
-      );
-
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(body, "Unable to load browser accounts."),
-        );
-      }
-
-      const nextAccounts = (
-        Array.isArray(body) ? body : []
-      ) as BrowserAccount[];
+      const nextAccounts =
+        await getBrowserAccounts() as BrowserAccount[];
 
       setAccounts(nextAccounts);
 
@@ -963,8 +940,6 @@ export function BrowserAccountsManagerV2({
     }
 
     await Promise.all([loadRuntime(accountId), loadAccounts()]);
-
-    await connectSecureBrowserViewer();
 
     await connectSecureBrowserViewer();
 
