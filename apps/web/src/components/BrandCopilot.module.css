@@ -1928,3 +1928,49 @@
   min-width: 0;
 }
 
+
+
+/* ===== Copilot three column responsive fix ===== */
+
+.copilotLayout,
+.workspaceLayout,
+.brandCopilotLayout,
+.mainWorkspace {
+  display: grid;
+  grid-template-columns:
+    minmax(360px, 1fr)
+    minmax(220px, 260px)
+    minmax(360px, 420px);
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.copilotLayout > *,
+.workspaceLayout > *,
+.brandCopilotLayout > *,
+.mainWorkspace > * {
+  min-width: 0;
+}
+
+@media (max-width: 1300px) {
+  .copilotLayout,
+  .workspaceLayout,
+  .brandCopilotLayout,
+  .mainWorkspace {
+    grid-template-columns:
+      minmax(320px, 1fr)
+      minmax(200px, 230px)
+      minmax(320px, 360px);
+  }
+}
+
+@media (max-width: 1050px) {
+  .copilotLayout,
+  .workspaceLayout,
+  .brandCopilotLayout,
+  .mainWorkspace {
+    grid-template-columns: 1fr;
+  }
+}
+
