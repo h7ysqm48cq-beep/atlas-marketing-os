@@ -551,14 +551,34 @@ export function ImageBrandEditor() {
         }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+
+      console.log("[ERASER] API response", {
+        status: response.status,
+        ok: response.ok,
+        body: responseText,
+      });
+
+      let data: any = null;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        throw new Error(
+          `Eraser API returned HTTP ${response.status}: ${responseText || "empty response"}`,
+        );
+      }
 
       if (!response.ok || !data?.id) {
         const responseMessage = Array.isArray(data?.message)
           ? data.message.join(" ")
           : data?.message;
 
-        throw new Error(responseMessage || "Unable to clean selected area.");
+        throw new Error(
+          `Eraser API HTTP ${response.status}: ${
+            responseMessage || data?.error || "Unable to clean selected area."
+          }`,
+        );
       }
 
       const cleanedAsset = data as Asset;
