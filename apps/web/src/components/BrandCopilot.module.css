@@ -1,4 +1,6 @@
 .page {
+  width: 100%;
+  min-width: 0;
   display: grid;
   gap: 22px;
 }
@@ -60,12 +62,13 @@
 .layout {
   min-height: 680px;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(420px, 1fr);
   gap: 16px;
 }
 
 .sidebar,
 .chat {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: linear-gradient(
@@ -184,7 +187,6 @@
   font-size: 10px;
 }
 
-
 .planShortcut svg {
   position: relative;
   z-index: 30;
@@ -218,7 +220,6 @@
   stroke: currentColor;
   stroke-width: 2;
 }
-
 
 .planShortcut:hover {
   background: rgba(209, 163, 63, 0.18);
@@ -300,6 +301,8 @@
 }
 
 .messages {
+  min-width: 0;
+  overflow-x: hidden;
   max-height: 610px;
   overflow-y: auto;
   display: flex;
@@ -356,6 +359,7 @@
 }
 
 .composer {
+  min-width: 0;
   display: grid;
   gap: 10px;
   padding: 15px;
@@ -1803,7 +1807,6 @@
   color: var(--gold-light);
 }
 
-
 .planShortcut {
   display: inline-flex;
   align-items: center;
@@ -1824,10 +1827,6 @@
   stroke-linejoin: round;
 }
 
-
-
-
-
 .planNavigator span {
   font-size: 13px;
   font-weight: 700;
@@ -1842,8 +1841,6 @@
   color: var(--gold-light);
   font-weight: 800;
 }
-
-
 
 /* ===== Brand Copilot layout overflow fix ===== */
 
@@ -1928,8 +1925,6 @@
   min-width: 0;
 }
 
-
-
 /* ===== Copilot three column responsive fix ===== */
 
 .copilotLayout,
@@ -1973,4 +1968,3 @@
     grid-template-columns: 1fr;
   }
 }
-
