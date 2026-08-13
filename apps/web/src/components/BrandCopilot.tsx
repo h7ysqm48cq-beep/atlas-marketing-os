@@ -1088,15 +1088,15 @@ You can continue refining this plan with Elena.
                       className={styles.planShortcut}
                       type="button"
                       title="View Marketing Plan"
-                      onClick={() => {
-                        void openConversation(conversation.id);
+                      onClick={async () => {
+                        await openConversation(conversation.id);
 
                         setTimeout(() => {
                           marketingPlanRef.current?.scrollIntoView({
                             behavior: "smooth",
                             block: "start",
                           });
-                        }, 500);
+                        }, 800);
                       }}
                     >
                       <svg
