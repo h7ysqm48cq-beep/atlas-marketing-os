@@ -4,6 +4,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
 
+import {
+  buildNoVncUrl,
+  getBrowserRuntimeApiUrl,
+} from "./browser-accounts/utils/browser-url";
+
+import { formatDate } from "./browser-accounts/utils/format";
+
+import {
+  facebookIdentityMessage,
+  healthStatusFromLogin,
+  loginStatusClass,
+  normalizeStatus,
+  readableStatus,
+} from "./browser-accounts/utils/status";
+
 import type {
   ProxyType,
   LoginStatus,
@@ -27,61 +42,6 @@ const EMPTY_RUNTIME: AccountRuntime = {
   error: "",
 };
 
-const DEFAULT_BROWSER_RUNTIME_API_URL =
-  "https://api-production-7f7d.up.railway.app";
-
-function getBrowserRuntimeApiUrl() {
-  const configured = process.env.NEXT_PUBLIC_BROWSER_RUNTIME_API_URL?.trim();
-
-  if (configured) {
-    return configured.replace(/\/+$/, "");
-  }
-
-  if (
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1")
-  ) {
-    return DEFAULT_BROWSER_RUNTIME_API_URL;
-  }
-
-  return API_URL.replace(/\/+$/, "");
-}
-
-function buildNoVncUrl(viewerToken: string) {
-  const configured =
-    process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
-    "https://browser-worker-production-536a.up.railway.app/vnc.html";
-
-  try {
-    const url = new URL(configured);
-
-    /*
-     * Railway already routes this domain directly to
-     * websockify/noVNC on port 6080.
-     *
-     * Use same-origin websocket transport and connect
-     * automatically when the viewer opens.
-     */
-    url.searchParams.set("autoconnect", "1");
-
-    url.searchParams.set("resize", "scale");
-
-    url.searchParams.set(
-      "path",
-      `websockify?token=${encodeURIComponent(viewerToken)}`,
-    );
-
-    url.searchParams.set("reconnect", "1");
-
-    url.searchParams.set("reconnect_delay", "1000");
-
-    return url.toString();
-  } catch {
-    return configured;
-  }
-}
-
 async function readJson(response: Response): Promise<Record<string, unknown>> {
   const text = await response.text();
 
@@ -102,103 +62,6 @@ function getErrorMessage(body: Record<string, unknown>, fallback: string) {
   return typeof body.message === "string" && body.message.trim()
     ? body.message
     : fallback;
-}
-
-function formatDate(value?: string | null) {
-  if (!value) {
-    return "—";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-MY", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function normalizeStatus(value?: string | null) {
-  return value?.trim().toUpperCase() || "UNKNOWN";
-}
-
-function loginStatusClass(status?: string | null) {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "LOGGED_IN") {
-    return styles.good;
-  }
-
-  if (
-    normalized === "TWO_FACTOR_REQUIRED" ||
-    normalized === "CHECKPOINT_REQUIRED"
-  ) {
-    return styles.warning;
-  }
-
-  if (normalized === "LOGIN_REQUIRED" || normalized === "FAILED") {
-    return styles.bad;
-  }
-
-  return styles.neutral;
-}
-
-function readableStatus(value?: string | null) {
-  return normalizeStatus(value).replaceAll("_", " ");
-}
-
-function healthStatusFromLogin(
-  value?: string | null,
-): AccountHealthResult["status"] {
-  const status = normalizeStatus(value);
-
-  if (status === "LOGGED_IN") {
-    return "READY";
-  }
-
-  if (status === "LOGIN_REQUIRED") {
-    return "LOGIN_REQUIRED";
-  }
-
-  if (status === "TWO_FACTOR_REQUIRED" || status === "CHECKPOINT_REQUIRED") {
-    return "ATTENTION";
-  }
-
-  return "UNKNOWN";
-}
-
-function facebookIdentityMessage(value?: string | null) {
-  const status = normalizeStatus(value);
-
-  if (status === "LOGGED_IN") {
-    return "Facebook is logged in for this browser profile.";
-  }
-
-  if (status === "LOGIN_REQUIRED") {
-    return "Facebook login is required once for this browser profile.";
-  }
-
-  if (status === "TWO_FACTOR_REQUIRED") {
-    return "Facebook 2FA verification is required.";
-  }
-
-  if (status === "CHECKPOINT_REQUIRED") {
-    return "Facebook security checkpoint requires attention.";
-  }
-
-  if (
-    status === "BROWSER_OPEN" ||
-    status === "BROWSER_CLOSED" ||
-    status === "PENDING" ||
-    status === "UNKNOWN"
-  ) {
-    return "Facebook identity has not been verified yet.";
-  }
-
-  return `Facebook identity: ${readableStatus(value)}.`;
 }
 
 export function BrowserAccountsManagerV2({
