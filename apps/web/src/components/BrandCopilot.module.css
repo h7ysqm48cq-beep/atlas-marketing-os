@@ -1669,3 +1669,131 @@
   stroke-linejoin: round;
 }
 
+/* === COPILOT INLINE STUDIO RESULT === */
+
+.copilotStudioResult {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+.copilotStudioResultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.copilotStudioResultHeader > div {
+  display: grid;
+  gap: 2px;
+}
+
+.copilotStudioResultHeader span {
+  font-size: 11px;
+  opacity: 0.55;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.copilotStudioResultHeader strong {
+  font-size: 14px;
+}
+
+.copilotStudioResultHeader button,
+.copilotStudioOutput button {
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.copilotStudioOutput {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.copilotStudioOutput > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.copilotStudioOutput strong {
+  font-size: 12px;
+}
+
+.copilotStudioOutput p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .copilotStudioResult {
+    margin-inline: 0;
+    border-radius: 14px;
+  }
+
+  .copilotStudioResultHeader {
+    align-items: flex-start;
+  }
+}
+
+/* === END COPILOT INLINE STUDIO RESULT === */
+
+/* === COPILOT STUDIO RESULT ACTIONS === */
+
+.copilotStudioResultActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.copilotStudioResultActions button {
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.copilotStudioEditor {
+  width: 100%;
+  min-height: 125px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  color: inherit;
+  font: inherit;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .copilotStudioResultActions {
+    align-items: stretch;
+  }
+
+  .copilotStudioResultActions button {
+    flex: 1 1 auto;
+  }
+}
+
+/* === END COPILOT STUDIO RESULT ACTIONS === */

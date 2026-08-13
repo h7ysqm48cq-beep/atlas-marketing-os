@@ -486,12 +486,18 @@ Description: ${campaign.description || 'Not set'}`
         );
       }
 
+      const studioResultMetadata = this.extractStudioResultMetadata(
+        response.output_text,
+        dto.workspaceContext,
+      );
+
       await this.conversations.appendAssistantMessage(
         conversation.id,
         response.output_text,
         {
           model,
           mode,
+          studioResult: studioResultMetadata,
           knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
             source: index + 1,
             documentId: match.documentId,
@@ -551,6 +557,90 @@ Description: ${campaign.description || 'Not set'}`
       throw new InternalServerErrorException(
         `Elena Copilot failed: ${message}`,
       );
+    }
+  }
+
+  private extractStudioResultMetadata(
+    outputText: string,
+    workspaceContext?: ChatCopilotDto['workspaceContext'],
+  ) {
+    const draft =
+      workspaceContext &&
+      typeof workspaceContext === 'object' &&
+      workspaceContext.draft &&
+      typeof workspaceContext.draft === 'object'
+        ? workspaceContext.draft
+        : undefined;
+
+    const draftRecord = draft as Record<string, unknown> | undefined;
+
+    const result = {
+      facebook:
+        typeof draftRecord?.facebook === 'string' ? draftRecord.facebook : '',
+      telegram:
+        typeof draftRecord?.telegram === 'string' ? draftRecord.telegram : '',
+      reels: typeof draftRecord?.reels === 'string' ? draftRecord.reels : '',
+      imagePrompt:
+        typeof draftRecord?.imagePrompt === 'string'
+          ? draftRecord.imagePrompt
+          : '',
+    };
+
+    const match = outputText.match(
+      /<ATLAS_WORKSPACE_ACTION>\s*([\s\S]*?)\s*<\/ATLAS_WORKSPACE_ACTION>/i,
+    );
+
+    if (!match?.[1]) {
+      return undefined;
+    }
+
+    try {
+      const action = JSON.parse(match[1].trim()) as unknown;
+
+      const actions =
+        action &&
+        typeof action === 'object' &&
+        'type' in action &&
+        action.type === 'batch' &&
+        'actions' in action &&
+        Array.isArray(action.actions)
+          ? action.actions
+          : [action];
+
+      let changed = false;
+
+      for (const item of actions) {
+        if (
+          !item ||
+          typeof item !== 'object' ||
+          !('type' in item) ||
+          item.type !== 'replace' ||
+          !('target' in item) ||
+          !('content' in item) ||
+          typeof item.content !== 'string'
+        ) {
+          continue;
+        }
+
+        if (
+          item.target === 'facebook' ||
+          item.target === 'telegram' ||
+          item.target === 'reels' ||
+          item.target === 'imagePrompt'
+        ) {
+          result[item.target] = item.content;
+
+          changed = true;
+        }
+      }
+
+      if (!changed) {
+        return undefined;
+      }
+
+      return result;
+    } catch {
+      return undefined;
     }
   }
 

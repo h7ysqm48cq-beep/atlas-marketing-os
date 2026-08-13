@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
+import { CopilotStudioResultCard } from "./CopilotStudioResultCard";
 import { API_URL } from "@/lib/api";
 
 type Campaign = {
@@ -9,11 +10,19 @@ type Campaign = {
   name: string;
 };
 
+type CopilotStudioResult = {
+  facebook: string;
+  telegram: string;
+  reels: string;
+  imagePrompt: string;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
   assetId?: string;
+  studioResult?: CopilotStudioResult;
 };
 
 type CopilotAttachment = {
@@ -174,6 +183,31 @@ function isAtomicWorkspaceAction(
   return false;
 }
 
+function studioResultFromWorkspaceAction(
+  action: WorkspaceAction,
+  base: CopilotStudioResult,
+): CopilotStudioResult | null {
+  const actions = action.type === "batch" ? action.actions : [action];
+
+  let changed = false;
+
+  const result: CopilotStudioResult = {
+    ...base,
+  };
+
+  for (const item of actions) {
+    if (item.type !== "replace") {
+      continue;
+    }
+
+    result[item.target] = item.content;
+
+    changed = true;
+  }
+
+  return changed ? result : null;
+}
+
 function parseWorkspaceAction(rawReply: string): {
   visibleReply: string;
   action: WorkspaceAction | null;
@@ -258,6 +292,10 @@ export function BrandCopilot() {
 
   const [studioLanguage, setStudioLanguage] = useState("zh");
 
+  const [editingStudioResultIndex, setEditingStudioResultIndex] = useState<
+    number | null
+  >(null);
+
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
@@ -301,25 +339,27 @@ export function BrandCopilot() {
 
   async function scheduleWorkspaceAction(
     action: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
+    draftOverride?: CopilotStudioResult,
   ) {
+    const draftForSchedule = draftOverride ?? studioDraft;
     const brandId = await getActiveBrandId();
 
     const contents: Partial<Record<SchedulePlatform, string>> = {};
 
     if (action.platforms.includes("FACEBOOK")) {
-      if (!studioDraft.facebook?.trim()) {
+      if (!draftForSchedule.facebook?.trim()) {
         throw new Error("Facebook draft is empty.");
       }
 
-      contents.FACEBOOK = studioDraft.facebook;
+      contents.FACEBOOK = draftForSchedule.facebook;
     }
 
     if (action.platforms.includes("TELEGRAM")) {
-      if (!studioDraft.telegram?.trim()) {
+      if (!draftForSchedule.telegram?.trim()) {
         throw new Error("Telegram draft is empty.");
       }
 
-      contents.TELEGRAM = studioDraft.telegram;
+      contents.TELEGRAM = draftForSchedule.telegram;
     }
 
     const response = await fetch(`${API_URL}/workflow/auto-queue`, {
@@ -616,6 +656,43 @@ export function BrandCopilot() {
             ? String(metadata.assetId)
             : undefined;
 
+        const sourceMessageIndex =
+          metadata &&
+          "sourceMessageIndex" in metadata &&
+          typeof metadata.sourceMessageIndex === "number"
+            ? metadata.sourceMessageIndex
+            : undefined;
+
+        const studioResultCandidate =
+          metadata &&
+          "studioResult" in metadata &&
+          metadata.studioResult &&
+          typeof metadata.studioResult === "object"
+            ? (metadata.studioResult as Record<string, unknown>)
+            : null;
+
+        const restoredStudioResult: CopilotStudioResult | undefined =
+          studioResultCandidate
+            ? {
+                facebook:
+                  typeof studioResultCandidate.facebook === "string"
+                    ? studioResultCandidate.facebook
+                    : "",
+                telegram:
+                  typeof studioResultCandidate.telegram === "string"
+                    ? studioResultCandidate.telegram
+                    : "",
+                reels:
+                  typeof studioResultCandidate.reels === "string"
+                    ? studioResultCandidate.reels
+                    : "",
+                imagePrompt:
+                  typeof studioResultCandidate.imagePrompt === "string"
+                    ? studioResultCandidate.imagePrompt
+                    : "",
+              }
+            : undefined;
+
         const isGeneratedImage =
           message.role === "ASSISTANT" &&
           metadata &&
@@ -624,21 +701,61 @@ export function BrandCopilot() {
           Boolean(imageUrl);
 
         if (isGeneratedImage) {
-          loadedMessages.push({
-            role: "assistant",
-            content: "Generated image",
-            imageUrl,
-            assetId,
-          });
+          let targetIndex = -1;
+
+          if (
+            typeof sourceMessageIndex === "number" &&
+            sourceMessageIndex >= 0 &&
+            sourceMessageIndex < loadedMessages.length &&
+            loadedMessages[sourceMessageIndex]?.role === "assistant"
+          ) {
+            targetIndex = sourceMessageIndex;
+          }
+
+          if (targetIndex < 0) {
+            for (
+              let index = loadedMessages.length - 1;
+              index >= 0;
+              index -= 1
+            ) {
+              if (loadedMessages[index]?.role === "assistant") {
+                targetIndex = index;
+                break;
+              }
+            }
+          }
+
+          if (targetIndex >= 0) {
+            loadedMessages[targetIndex] = {
+              ...loadedMessages[targetIndex],
+              imageUrl,
+              assetId,
+            };
+          } else {
+            loadedMessages.push({
+              role: "assistant",
+              content: "Generated image",
+              imageUrl,
+              assetId,
+            });
+          }
 
           continue;
         }
 
+        const restoredContent =
+          message.role === "ASSISTANT"
+            ? parseWorkspaceAction(message.content).visibleReply ||
+              message.content
+            : message.content;
+
         loadedMessages.push({
           role: message.role === "USER" ? "user" : "assistant",
-          content: message.content,
+          content: restoredContent,
           imageUrl,
           assetId,
+          studioResult:
+            message.role === "ASSISTANT" ? restoredStudioResult : undefined,
         });
       }
 
@@ -729,6 +846,10 @@ export function BrandCopilot() {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    setEditingStudioResultIndex(null);
+  }, [conversationId]);
 
   const pendingPlanScrollRef = useRef(false);
 
@@ -1174,6 +1295,10 @@ You can continue refining this plan with Elena.
 
         const parsedReply = parseWorkspaceAction(data.reply);
 
+        const assistantStudioResult = parsedReply.action
+          ? studioResultFromWorkspaceAction(parsedReply.action, studioDraft)
+          : null;
+
         if (parsedReply.action) {
           await applyWorkspaceAction(parsedReply.action);
 
@@ -1185,6 +1310,7 @@ You can continue refining this plan with Elena.
           {
             role: "assistant",
             content: parsedReply.visibleReply || data.reply,
+            studioResult: assistantStudioResult || undefined,
           },
         ]);
 
@@ -1317,6 +1443,8 @@ You can continue refining this plan with Elena.
           body: JSON.stringify({
             imageUrl,
             assetId: data.asset?.id,
+            sourceMessageIndex: index,
+            prompt: content,
           }),
         },
       );
@@ -1339,6 +1467,149 @@ You can continue refining this plan with Elena.
       );
     }
   };
+
+  function requestStudioRegeneration(
+    source: CopilotStudioResult = studioDraft,
+  ) {
+    const sections = [
+      source.facebook.trim() ? `Facebook:\n${source.facebook.trim()}` : "",
+      source.telegram.trim() ? `Telegram:\n${source.telegram.trim()}` : "",
+      source.reels.trim() ? `Reels:\n${source.reels.trim()}` : "",
+      source.imagePrompt.trim()
+        ? `Image Prompt:\n${source.imagePrompt.trim()}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    setMode("chat");
+
+    setInput(
+      [
+        "请重新生成并优化当前内容。",
+        studioTopic.trim() ? `主题：${studioTopic.trim()}` : "",
+        studioStyle.trim() ? `风格：${studioStyle.trim()}` : "",
+        studioLanguage.trim() ? `语言：${studioLanguage.trim()}` : "",
+        "",
+        sections,
+        "",
+        "请直接更新 Facebook、Telegram、Reels 和 Image Prompt。",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
+
+    setStatus("Regeneration request ready. Press Send when ready.");
+  }
+
+  async function scheduleCurrentStudioResult(
+    source: CopilotStudioResult = studioDraft,
+  ) {
+    const platforms: SchedulePlatform[] = [];
+
+    if (source.facebook.trim()) {
+      platforms.push("FACEBOOK");
+    }
+
+    if (source.telegram.trim()) {
+      platforms.push("TELEGRAM");
+    }
+
+    if (!platforms.length) {
+      setStatus("Facebook or Telegram content is required before scheduling.");
+      return;
+    }
+
+    const defaultDate = new Date().toISOString().slice(0, 10);
+
+    const date = window.prompt("Schedule date (YYYY-MM-DD)", defaultDate);
+
+    if (!date) {
+      return;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setStatus("Invalid date. Use YYYY-MM-DD.");
+      return;
+    }
+
+    const time = window.prompt("Schedule time (HH:MM, MYT)", "20:00");
+
+    if (!time) {
+      return;
+    }
+
+    if (!/^\d{2}:\d{2}$/.test(time)) {
+      setStatus("Invalid time. Use HH:MM.");
+      return;
+    }
+
+    setStatus("Scheduling content...");
+
+    try {
+      await scheduleWorkspaceAction(
+        {
+          type: "schedule",
+          platforms,
+          date,
+          time,
+          timezone: "Asia/Kuala_Lumpur",
+        },
+        source,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to schedule content.";
+
+      setStatus(message);
+      throw error;
+    }
+  }
+
+  function updateMessageStudioResult(
+    messageIndex: number,
+    target: WorkspaceDraftTarget,
+    value: string,
+  ) {
+    setMessages((current) =>
+      current.map((message, index) => {
+        if (index !== messageIndex || !message.studioResult) {
+          return message;
+        }
+
+        return {
+          ...message,
+          studioResult: {
+            ...message.studioResult,
+            [target]: value,
+          },
+        };
+      }),
+    );
+
+    setStudioDraft((current) => ({
+      ...current,
+      [target]: value,
+    }));
+  }
+
+  async function generateImageFromMessageStudioResult(
+    result: CopilotStudioResult,
+    messageIndex: number,
+  ) {
+    const prompt =
+      result.imagePrompt.trim() ||
+      result.facebook.trim() ||
+      result.telegram.trim() ||
+      result.reels.trim();
+
+    if (!prompt) {
+      setStatus("This Studio Result has no content for image generation.");
+      return;
+    }
+
+    await generateImageFromMessage(prompt, messageIndex);
+  }
 
   return (
     <div className={styles.page}>
@@ -1640,6 +1911,34 @@ You can continue refining this plan with Elena.
                 </div>
 
                 <p>{message.content}</p>
+
+                {/* MESSAGE_STUDIO_RESULT_CARD */}
+                {message.role === "assistant" && message.studioResult && (
+                  <CopilotStudioResultCard
+                    draft={message.studioResult}
+                    editing={editingStudioResultIndex === index}
+                    onToggleEdit={() => {
+                      setEditingStudioResultIndex((current) =>
+                        current === index ? null : index,
+                      );
+                    }}
+                    onChange={(target, value) =>
+                      updateMessageStudioResult(index, target, value)
+                    }
+                    onRegenerate={() =>
+                      requestStudioRegeneration(message.studioResult!)
+                    }
+                    onGenerateImage={() =>
+                      void generateImageFromMessageStudioResult(
+                        message.studioResult!,
+                        index,
+                      )
+                    }
+                    onSchedule={() =>
+                      void scheduleCurrentStudioResult(message.studioResult!)
+                    }
+                  />
+                )}
 
                 {message.imageUrl && (
                   <section className={styles.generatedImageCard}>

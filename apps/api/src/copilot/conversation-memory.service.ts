@@ -159,23 +159,22 @@ export class ConversationMemoryService {
     if (!input.conversationId) {
       const title = this.createTitle(input.firstMessage);
 
-      const existing =
-        await this.prisma.copilotConversation.findFirst({
-          where: {
-            brandId: brand.id,
-            campaignId: input.campaignId,
-            mode: input.mode || 'chat',
-            title,
-            isArchived: false,
-            updatedAt: {
-              gte: new Date(Date.now() - 15000),
-            },
+      const existing = await this.prisma.copilotConversation.findFirst({
+        where: {
+          brandId: brand.id,
+          campaignId: input.campaignId,
+          mode: input.mode || 'chat',
+          title,
+          isArchived: false,
+          updatedAt: {
+            gte: new Date(Date.now() - 15000),
           },
-          select: this.conversationSummarySelect(),
-          orderBy: {
-            updatedAt: 'desc',
-          },
-        });
+        },
+        select: this.conversationSummarySelect(),
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
 
       if (existing) {
         return existing;
@@ -249,6 +248,42 @@ export class ConversationMemoryService {
       CopilotMessageRole.ASSISTANT,
       content,
       metadata,
+    );
+  }
+
+  async appendGeneratedImage(
+    conversationId: string,
+    input: {
+      imageUrl: string;
+      assetId?: string;
+      prompt?: string;
+      sourceMessageIndex?: number;
+    },
+  ) {
+    const imageUrl = input.imageUrl?.trim();
+
+    if (!imageUrl) {
+      throw new BadRequestException('Generated image URL is required.');
+    }
+
+    await this.ensureConversation({
+      conversationId,
+      firstMessage: input.prompt?.trim() || 'Generated image',
+    });
+
+    return this.appendAssistantMessage(
+      conversationId,
+      input.prompt?.trim() || 'Generated image',
+      {
+        type: 'generated-image',
+        imageUrl,
+        assetId: input.assetId?.trim() || undefined,
+        prompt: input.prompt?.trim() || undefined,
+        sourceMessageIndex:
+          typeof input.sourceMessageIndex === 'number'
+            ? input.sourceMessageIndex
+            : undefined,
+      },
     );
   }
 
@@ -425,22 +460,21 @@ ${JSON.stringify(message.metadata.plan, null, 2)}`
   async cleanupDuplicateConversations() {
     const brand = await this.brands.getActiveBrand();
 
-    const conversations =
-      await this.prisma.copilotConversation.findMany({
-        where: {
-          brandId: brand.id,
-          isArchived: false,
-        },
-        select: {
-          id: true,
-          title: true,
-          mode: true,
-          updatedAt: true,
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      });
+    const conversations = await this.prisma.copilotConversation.findMany({
+      where: {
+        brandId: brand.id,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        title: true,
+        mode: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
     const groups = new Map<string, typeof conversations>();
 
@@ -481,7 +515,6 @@ ${JSON.stringify(message.metadata.plan, null, 2)}`
       archived,
     };
   }
-
 
   async searchPreviousContext(query: string, limit = 3) {
     const brand = await this.brands.getActiveBrand();

@@ -124,7 +124,6 @@ export class CopilotController {
     return this.conversations.cleanupDuplicateConversations();
   }
 
-
   @Get('conversations')
   listConversations() {
     return this.conversations.list();
@@ -133,6 +132,25 @@ export class CopilotController {
   @Get('conversations/:id')
   getConversation(@Param('id') id: string) {
     return this.conversations.get(id);
+  }
+
+  @Post('conversations/:id/image')
+  saveGeneratedImage(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      imageUrl?: string;
+      assetId?: string;
+      prompt?: string;
+      sourceMessageIndex?: number;
+    },
+  ) {
+    return this.conversations.appendGeneratedImage(id, {
+      imageUrl: body.imageUrl || '',
+      assetId: body.assetId,
+      prompt: body.prompt,
+      sourceMessageIndex: body.sourceMessageIndex,
+    });
   }
 
   @Patch('conversations/:id')
