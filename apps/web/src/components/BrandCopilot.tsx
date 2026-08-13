@@ -340,6 +340,26 @@ export function BrandCopilot() {
     }
   }
 
+  const pendingPlanScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      pendingPlanScrollRef.current &&
+      marketingPlan &&
+      marketingPlanRef.current
+    ) {
+      pendingPlanScrollRef.current = false;
+
+      setTimeout(() => {
+        marketingPlanRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
+  }, [marketingPlan]);
+
+
   async function renameConversation(conversation: ConversationSummary) {
     const title = window.prompt("Rename conversation", conversation.title);
 
@@ -1090,14 +1110,8 @@ You can continue refining this plan with Elena.
                       title="View Marketing Plan"
                       aria-label="View Marketing Plan"
                       onClick={async () => {
+                        pendingPlanScrollRef.current = true;
                         await openConversation(conversation.id);
-
-                        setTimeout(() => {
-                          marketingPlanRef.current?.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                          });
-                        }, 800);
                       }}
                     >
                       <svg
