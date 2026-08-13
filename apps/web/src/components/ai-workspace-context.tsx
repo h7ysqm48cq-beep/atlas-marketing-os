@@ -196,6 +196,9 @@ export function AtlasWorkspaceProvider({ children }: { children: ReactNode }) {
       command,
       activities,
 
+      preferredMobileTab,
+      setPreferredMobileTab,
+
       setConversationId,
       setHistoryId,
       setCampaignId,
