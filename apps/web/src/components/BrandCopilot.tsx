@@ -359,7 +359,6 @@ export function BrandCopilot() {
     }
   }, [marketingPlan]);
 
-
   async function renameConversation(conversation: ConversationSummary) {
     const title = window.prompt("Rename conversation", conversation.title);
 
@@ -1095,12 +1094,8 @@ You can continue refining this plan with Elena.
                   >
                     <strong>{conversation.title}</strong>
 
-                    <small>
-                      {conversation._count?.messages || 0} messages
-                    </small>
-                    <small>
-                      {conversation._count?.messages || 0} messages
-                    </small>
+                    <small>{conversation._count?.messages || 0} messages</small>
+                    <small>{conversation._count?.messages || 0} messages</small>
                   </button>
 
                   {conversation.hasMarketingPlan && (
@@ -1114,10 +1109,7 @@ You can continue refining this plan with Elena.
                         await openConversation(conversation.id);
                       }}
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M6 3h9l3 3v15H6z" />
                         <path d="M15 3v4h4" />
                         <path d="M9 12h6" />
@@ -1167,7 +1159,6 @@ You can continue refining this plan with Elena.
         </aside>
 
         <section className={styles.chat}>
-
           <div className={styles.messages}>
             {messages.map((message, index) => (
               <article
@@ -1352,10 +1343,7 @@ You can continue refining this plan with Elena.
             ))}
 
             {marketingPlan && (
-              <section
-              ref={marketingPlanRef}
-              className={styles.marketingPlan}
-            >
+              <section ref={marketingPlanRef} className={styles.marketingPlan}>
                 <header className={styles.planHeader}>
                   <div>
                     <p className={styles.eyebrow}>Marketing Plan</p>

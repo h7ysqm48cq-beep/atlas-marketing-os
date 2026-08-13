@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PromptBuilderService } from '../ai/prompt-builder.service';
@@ -135,6 +136,7 @@ export class MarketingPlannerService {
 
   constructor(
     private readonly config: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly strategyService: StrategyService,
@@ -231,7 +233,7 @@ export class MarketingPlannerService {
 
     try {
       const response = await this.client.responses.create({
-        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna',
+        model: await this.aiRuntime.getTextModel(),
         input: [
           {
             role: 'developer',

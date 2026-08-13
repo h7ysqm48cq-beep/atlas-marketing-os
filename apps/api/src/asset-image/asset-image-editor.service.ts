@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI, { toFile } from 'openai';
 import sharp, { OverlayOptions } from 'sharp';
 import { BrandsService } from '../brands/brands.service';
@@ -26,6 +27,7 @@ export class AssetImageEditorService {
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
     private readonly configService: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -314,8 +316,7 @@ export class AssetImageEditorService {
       .filter(Boolean)
       .join('\n');
 
-    const model =
-      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-2';
+    const model = await this.aiRuntime.getImageModel();
 
     const generationStartedAt = Date.now();
 
@@ -529,8 +530,7 @@ export class AssetImageEditorService {
       type: 'image/png',
     });
 
-    const model =
-      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-1';
+    const model = await this.aiRuntime.getImageModel();
 
     const prompt =
       dto.prompt?.trim() ||

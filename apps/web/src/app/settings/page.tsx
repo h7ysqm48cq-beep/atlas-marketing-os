@@ -1,10 +1,5 @@
-import { WorkspaceSettings } from "@/components/settings/WorkspaceSettings";
-import { AppLayout } from "@/components/AppLayout";
+import { SettingsNavigation } from "@/components/settings/SettingsNavigation";
 
 export default function SettingsPage() {
-  return (
-    <AppLayout>
-      <WorkspaceSettings />
-    </AppLayout>
-  );
+  return <SettingsNavigation />;
 }

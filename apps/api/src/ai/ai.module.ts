@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { BrandsModule } from '../brands/brands.module';
 import { HistoryModule } from '../history/history.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
@@ -14,6 +15,7 @@ import { AiBackgroundJobService } from './ai-background-job.service';
 
 @Module({
   imports: [
+    AiRuntimeModule,
     BrandsModule,
     HistoryModule,
     KnowledgeModule,

@@ -419,7 +419,9 @@ export const ModelName = {
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
   BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsRun: 'SportsNewsRun',
   SportsNewsSetting: 'SportsNewsSetting',
+  AiRuntimeSetting: 'AiRuntimeSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationEmbedding: 'CopilotConversationEmbedding',
@@ -443,7 +445,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsSetting" | "automationSetting" | "copilotConversation" | "copilotConversationEmbedding" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsRun" | "sportsNewsSetting" | "aiRuntimeSetting" | "automationSetting" | "copilotConversation" | "copilotConversationEmbedding" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2075,6 +2077,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SportsNewsRun: {
+      payload: Prisma.$SportsNewsRunPayload<ExtArgs>
+      fields: Prisma.SportsNewsRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SportsNewsRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SportsNewsRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        findFirst: {
+          args: Prisma.SportsNewsRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SportsNewsRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        findMany: {
+          args: Prisma.SportsNewsRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        create: {
+          args: Prisma.SportsNewsRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        createMany: {
+          args: Prisma.SportsNewsRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SportsNewsRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        delete: {
+          args: Prisma.SportsNewsRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        update: {
+          args: Prisma.SportsNewsRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.SportsNewsRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SportsNewsRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SportsNewsRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.SportsNewsRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SportsNewsRunPayload>
+        }
+        aggregate: {
+          args: Prisma.SportsNewsRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSportsNewsRun>
+        }
+        groupBy: {
+          args: Prisma.SportsNewsRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SportsNewsRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SportsNewsRunCountAggregateOutputType> | number
+        }
+      }
+    }
     SportsNewsSetting: {
       payload: Prisma.$SportsNewsSettingPayload<ExtArgs>
       fields: Prisma.SportsNewsSettingFieldRefs
@@ -2146,6 +2222,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SportsNewsSettingCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SportsNewsSettingCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiRuntimeSetting: {
+      payload: Prisma.$AiRuntimeSettingPayload<ExtArgs>
+      fields: Prisma.AiRuntimeSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiRuntimeSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiRuntimeSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.AiRuntimeSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiRuntimeSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        findMany: {
+          args: Prisma.AiRuntimeSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>[]
+        }
+        create: {
+          args: Prisma.AiRuntimeSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        createMany: {
+          args: Prisma.AiRuntimeSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiRuntimeSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.AiRuntimeSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        update: {
+          args: Prisma.AiRuntimeSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiRuntimeSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiRuntimeSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiRuntimeSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiRuntimeSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiRuntimeSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.AiRuntimeSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiRuntimeSetting>
+        }
+        groupBy: {
+          args: Prisma.AiRuntimeSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRuntimeSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiRuntimeSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiRuntimeSettingCountAggregateOutputType> | number
         }
       }
     }
@@ -2829,6 +2979,7 @@ export const BrandScalarFieldEnum = {
   brandBannerAssetId: 'brandBannerAssetId',
   mascotAssetId: 'mascotAssetId',
   referenceAssetIds: 'referenceAssetIds',
+  brandKit: 'brandKit',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -3261,6 +3412,26 @@ export const BrowserActionTraceScalarFieldEnum = {
 export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
 
 
+export const SportsNewsRunScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  runKey: 'runKey',
+  kind: 'kind',
+  trigger: 'trigger',
+  status: 'status',
+  sourceCount: 'sourceCount',
+  rejectedSourceCount: 'rejectedSourceCount',
+  scheduledPostIds: 'scheduledPostIds',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsRunScalarFieldEnum = (typeof SportsNewsRunScalarFieldEnum)[keyof typeof SportsNewsRunScalarFieldEnum]
+
+
 export const SportsNewsSettingScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -3450,6 +3621,19 @@ export const SportsNewsSettingScalarFieldEnum = {
 } as const
 
 export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
+
+
+export const AiRuntimeSettingScalarFieldEnum = {
+  id: 'id',
+  textModel: 'textModel',
+  imageModel: 'imageModel',
+  embeddingModel: 'embeddingModel',
+  sportsNewsModel: 'sportsNewsModel',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiRuntimeSettingScalarFieldEnum = (typeof AiRuntimeSettingScalarFieldEnum)[keyof typeof AiRuntimeSettingScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {
@@ -4156,7 +4340,9 @@ export type GlobalOmitConfig = {
   publishAttempt?: Prisma.PublishAttemptOmit
   browserActionHistory?: Prisma.BrowserActionHistoryOmit
   browserActionTrace?: Prisma.BrowserActionTraceOmit
+  sportsNewsRun?: Prisma.SportsNewsRunOmit
   sportsNewsSetting?: Prisma.SportsNewsSettingOmit
+  aiRuntimeSetting?: Prisma.AiRuntimeSettingOmit
   automationSetting?: Prisma.AutomationSettingOmit
   copilotConversation?: Prisma.CopilotConversationOmit
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingOmit

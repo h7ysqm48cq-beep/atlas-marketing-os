@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import { createHash } from 'node:crypto';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
@@ -21,23 +22,25 @@ type KnowledgeDocumentInput = {
 
 @Injectable()
 export class KnowledgeEmbeddingService {
+  private model!: string;
   private readonly queryEmbeddingCache = new Map<string, Promise<number[]>>();
 
   private readonly client: OpenAI | null;
-  private readonly model: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
+  }
 
-    this.model =
-      this.configService.get<string>('OPENAI_EMBEDDING_MODEL') ||
-      'text-embedding-3-small';
+  private async refreshRuntimeModel(): Promise<string> {
+    this.model = await this.aiRuntime.getEmbeddingModel();
+    return this.model;
   }
 
   async safeEmbedDocument(documentId: string) {
@@ -139,6 +142,7 @@ export class KnowledgeEmbeddingService {
     limit?: number;
     threshold?: number;
   }) {
+    await this.refreshRuntimeModel();
     const query = input.query?.trim();
 
     if (!query) {
@@ -346,6 +350,8 @@ export class KnowledgeEmbeddingService {
   }
 
   private async embed(document: KnowledgeDocumentInput) {
+    await this.refreshRuntimeModel();
+
     const chunks = this.buildDocumentChunks(document);
 
     if (!chunks.length) {

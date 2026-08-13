@@ -6,16 +6,11 @@ import { AiProviderService } from './ai-provider.service';
 import { AiProviderController } from './ai-provider.controller';
 import { OpenAiProvider } from './openai.provider';
 
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 @Module({
   controllers: [AiProviderController],
-  imports: [ContextModule, PromptBuilderModule, HistoryModule],
-  providers: [
-    AiProviderService,
-    OpenAiProvider,
-  ],
-  exports: [
-    AiProviderService,
-    OpenAiProvider,
-  ],
+  imports: [AiRuntimeModule, ContextModule, PromptBuilderModule, HistoryModule],
+  providers: [AiProviderService, OpenAiProvider],
+  exports: [AiProviderService, OpenAiProvider],
 })
 export class AiProviderModule {}

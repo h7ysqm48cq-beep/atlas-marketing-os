@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
@@ -20,7 +21,7 @@ import { SportsNewsSettingsController } from './sports-news-settings.controller'
 import { SportsNewsSourceValidatorService } from './sports-news-source-validator.service';
 
 @Module({
-  imports: [AssetImageModule, StorageModule],
+  imports: [AiRuntimeModule, AssetImageModule, StorageModule],
   controllers: [AutomationController, SportsNewsSettingsController],
   providers: [
     AutomationSchedulerService,

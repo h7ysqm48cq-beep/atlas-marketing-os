@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import { Cron } from '@nestjs/schedule';
 import OpenAI from 'openai';
 import { AssetImageService } from '../asset-image/asset-image.service';
@@ -69,6 +70,7 @@ export class SportsNewsAutomationService {
     private readonly msportsBranding: MSportsImageBrandingService,
     private readonly sportsNewsSettings: SportsNewsSettingsService,
     private readonly sportsNewsSourceValidator: SportsNewsSourceValidatorService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -363,19 +365,19 @@ export class SportsNewsAutomationService {
 
               qrLink: settings.qrEnabled ? settings.qrLink : null,
 
-          footerLogoAssetId: settings.footerLogoEnabled
-            ? settings.footerLogoAssetId
-            : null,
+              footerLogoAssetId: settings.footerLogoEnabled
+                ? settings.footerLogoAssetId
+                : null,
 
-          footerQrAssetId: settings.footerQrEnabled
-            ? settings.footerQrAssetId
-            : null,
+              footerQrAssetId: settings.footerQrEnabled
+                ? settings.footerQrAssetId
+                : null,
 
-          footerQrLink: settings.footerQrEnabled
-            ? settings.footerQrLink
-            : null,
+              footerQrLink: settings.footerQrEnabled
+                ? settings.footerQrLink
+                : null,
 
-          footerPlacement: settings.footerPlacement,
+              footerPlacement: settings.footerPlacement,
 
               edition,
 
@@ -630,7 +632,7 @@ export class SportsNewsAutomationService {
         : settings.eveningPrompt?.trim() || '';
 
     const response = await this.client!.responses.create({
-      model: settings.newsAiModel.trim(),
+      model: await this.aiRuntime.getSportsNewsModel(),
       tools: settings.newsWebSearchEnabled
         ? [{ type: 'web_search' as const }]
         : [],

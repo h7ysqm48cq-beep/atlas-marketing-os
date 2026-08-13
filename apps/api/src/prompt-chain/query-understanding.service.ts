@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 
 export type QueryUnderstanding = {
@@ -19,10 +20,10 @@ export type QueryUnderstanding = {
 @Injectable()
 export class QueryUnderstandingService {
   private readonly client: OpenAI | null;
-  private readonly model: string;
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey =
       this.configService.get<string>('OPENAI_API_KEY');
@@ -31,9 +32,6 @@ export class QueryUnderstandingService {
       ? new OpenAI({ apiKey })
       : null;
 
-    this.model =
-      this.configService.get<string>('OPENAI_MODEL') ||
-      'gpt-5.6-luna';
   }
 
   async understand(input: {

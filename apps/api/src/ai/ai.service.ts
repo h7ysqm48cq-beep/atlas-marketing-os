@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
@@ -141,6 +142,7 @@ export class AiService {
     private readonly assetContextService: AssetContextService,
     private readonly marketingThinkingService: MarketingThinkingService,
     private readonly prisma: PrismaService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -212,7 +214,7 @@ export class AiService {
         ].join('\\n'),
       );
 
-    const model = this.selectModel(dto);
+    const model = await this.selectModel(dto);
 
     console.log(`[AI] model: ${model}`);
 
@@ -667,8 +669,7 @@ export class AiService {
       'Return only JSON matching the required schema.',
     ].join('\n');
 
-    const model =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
+    const model = await this.aiRuntime.getTextModel();
 
     try {
       const response = await this.client.responses.create({
@@ -774,8 +775,8 @@ export class AiService {
     };
   }
 
-  private selectModel(_dto: GenerateContentDto): string {
-    return this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-5.6-luna';
+  private async selectModel(_dto: GenerateContentDto): Promise<string> {
+    return this.aiRuntime.getTextModel();
   }
 
   private compressPromptChainPrompt(prompt: string): string {

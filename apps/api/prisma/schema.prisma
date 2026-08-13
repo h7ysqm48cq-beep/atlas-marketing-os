@@ -86,6 +86,7 @@ model Workspace {
   socialChannels    SocialChannel[]
   automationSetting AutomationSetting?
   sportsNewsSetting SportsNewsSetting?
+  sportsNewsRuns    SportsNewsRun[]
 }
 
 model Brand {
@@ -111,6 +112,7 @@ model Brand {
   brandBannerAssetId String?
   mascotAssetId      String?
   referenceAssetIds  String[] @default([])
+  brandKit           Json     @default("{}")
 
   status                        BrandStatus                    @default(ACTIVE)
   generations                   GenerationHistory[]
@@ -793,6 +795,29 @@ model BrowserActionTrace {
   @@index([createdAt])
 }
 
+model SportsNewsRun {
+  id                  String    @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runKey              String    @unique
+  kind                String
+  trigger             String
+  status              String    @default("RUNNING")
+  sourceCount         Int       @default(0)
+  rejectedSourceCount Int       @default(0)
+  scheduledPostIds    String[]  @default([])
+  error               String?
+  startedAt           DateTime  @default(now())
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([kind])
+  @@index([status])
+  @@index([startedAt])
+}
+
 model SportsNewsSetting {
   id          String    @id @default(cuid())
   workspaceId String    @unique
@@ -1126,6 +1151,22 @@ model SportsNewsSetting {
 
   @@index([telegramChannelId])
   @@index([facebookChannelId])
+}
+
+model AiRuntimeSetting {
+  id String @id @default(cuid())
+
+  textModel String @default("gpt-5.6-luna")
+
+  imageModel String @default("gpt-image-2")
+
+  embeddingModel String @default("text-embedding-3-large")
+
+  sportsNewsModel String @default("gpt-5.6-luna")
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
 }
 
 model AutomationSetting {

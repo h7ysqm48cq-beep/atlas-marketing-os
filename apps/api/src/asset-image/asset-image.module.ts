@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { BrandsModule } from '../brands/brands.module';
 import {
   LogoLayoutService,
@@ -12,7 +13,7 @@ import { AssetImageEditorService } from './asset-image-editor.service';
 import { AssetImageService } from './asset-image.service';
 
 @Module({
-  imports: [BrandsModule, StorageModule],
+  imports: [AiRuntimeModule, BrandsModule, StorageModule],
   controllers: [AssetImageController],
   providers: [
     AssetImageService,

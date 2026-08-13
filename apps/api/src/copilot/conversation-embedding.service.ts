@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import { PrismaService } from '../database/prisma.service';
 import { BrandsService } from '../brands/brands.service';
 
 @Injectable()
 export class ConversationEmbeddingService {
   private readonly client: OpenAI | null;
-
-  private readonly model = 'text-embedding-3-small';
 
   /*
    * Conservative default.
@@ -22,6 +21,7 @@ export class ConversationEmbeddingService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly brands: BrandsService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
 
@@ -87,7 +87,7 @@ export class ConversationEmbeddingService {
       .slice(0, 6000);
 
     const result = await this.client.embeddings.create({
-      model: this.model,
+      model: await this.aiRuntime.getEmbeddingModel(),
       input: content,
     });
 
@@ -104,7 +104,7 @@ export class ConversationEmbeddingService {
       update: {
         content,
         vector,
-        model: this.model,
+        model: await this.aiRuntime.getEmbeddingModel(),
         dimensions: vector.length,
       },
       create: {
@@ -112,7 +112,7 @@ export class ConversationEmbeddingService {
         conversationId,
         content,
         vector,
-        model: this.model,
+        model: await this.aiRuntime.getEmbeddingModel(),
         dimensions: vector.length,
       },
     });
@@ -145,7 +145,7 @@ export class ConversationEmbeddingService {
     const brand = await this.brands.getActiveBrand();
 
     const result = await this.client.embeddings.create({
-      model: this.model,
+      model: await this.aiRuntime.getEmbeddingModel(),
       input: cleanQuery.slice(0, 6000),
     });
 

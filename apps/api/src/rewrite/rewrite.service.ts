@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
@@ -16,6 +17,7 @@ export class RewriteService {
 
   constructor(
     private readonly config: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
   ) {
@@ -51,16 +53,12 @@ export class RewriteService {
       throw new NotFoundException('Campaign not found.');
     }
 
-    const actionInstructions: Record<
-      RewriteContentDto['action'],
-      string
-    > = {
+    const actionInstructions: Record<RewriteContentDto['action'], string> = {
       improve:
         'Improve clarity, hook strength, emotional relevance, discussion potential and brand fit while preserving the original meaning.',
       rewrite:
         'Create a substantially fresher version with a stronger structure and less repetitive wording.',
-      translate:
-        `Translate naturally into ${dto.targetLanguage || 'English'} while preserving tone, formatting and marketing intent.`,
+      translate: `Translate naturally into ${dto.targetLanguage || 'English'} while preserving tone, formatting and marketing intent.`,
       shorter:
         'Reduce the length while retaining the core hook, message and CTA.',
       longer:
@@ -84,8 +82,7 @@ export class RewriteService {
     };
 
     const goalInstructions: Record<string, string> = {
-      Balanced:
-        'Balance clarity, brand fit, engagement and natural flow.',
+      Balanced: 'Balance clarity, brand fit, engagement and natural flow.',
       'More Viral':
         'Strengthen curiosity, emotional contrast, memorability and share potential.',
       'Better Hook':
@@ -104,8 +101,7 @@ export class RewriteService {
         'Keep the final version concise and approximately 60–120 words where appropriate.',
       Medium:
         'Use a balanced medium length with enough context and one clear CTA.',
-      Long:
-        'Create a fuller version with richer storytelling while avoiding repetition.',
+      Long: 'Create a fuller version with richer storytelling while avoiding repetition.',
     };
 
     const tone = dto.tone || 'Default';
@@ -158,9 +154,7 @@ export class RewriteService {
 
     try {
       const response = await this.client.responses.create({
-        model:
-          this.config.get<string>('OPENAI_MODEL') ||
-          'gpt-5.6-luna',
+        model: await this.aiRuntime.getTextModel(),
         input: prompt,
       });
 
@@ -175,12 +169,9 @@ export class RewriteService {
         },
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
 
-      throw new InternalServerErrorException(
-        `Rewrite failed: ${message}`,
-      );
+      throw new InternalServerErrorException(`Rewrite failed: ${message}`);
     }
   }
 }

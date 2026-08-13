@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
@@ -29,6 +30,7 @@ export class AssetImageService {
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
     private readonly logoOverlayService: LogoOverlayService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -44,10 +46,7 @@ export class AssetImageService {
     const brand = await this.brandsService.getActiveBrand();
     await this.validateRelations(brand.id, dto.campaignId, dto.historyId);
 
-    const model =
-      dto.model?.trim() ||
-      this.configService.get<string>('OPENAI_IMAGE_MODEL') ||
-      'gpt-image-2';
+    const model = dto.model?.trim() || (await this.aiRuntime.getImageModel());
     const size = dto.size || '1024x1536';
     const quality = dto.quality || 'medium';
     const generationStartedAt = Date.now();

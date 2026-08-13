@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { StorageModule } from '../storage/storage.module';
 import { AssetImageModule } from '../asset-image/asset-image.module';
 import { ImagePromptEngineModule } from '../image-prompt-engine/image-prompt-engine.module';
@@ -27,6 +28,7 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
 
 @Module({
   imports: [
+    AiRuntimeModule,
     StorageModule,
     BrandsModule,
     StrategyModule,

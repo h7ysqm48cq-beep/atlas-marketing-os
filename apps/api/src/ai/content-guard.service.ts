@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import type { ReviewableContent } from './content-review.service';
 
@@ -20,10 +21,10 @@ export type ContentGuardResult = {
 @Injectable()
 export class ContentGuardService {
   private readonly client: OpenAI | null;
-  private readonly model: string;
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey =
       this.configService.get<string>('OPENAI_API_KEY');
@@ -32,9 +33,6 @@ export class ContentGuardService {
       ? new OpenAI({ apiKey })
       : null;
 
-    this.model =
-      this.configService.get<string>('OPENAI_MODEL') ||
-      'gpt-5.6-luna';
   }
 
   async guard(input: {
@@ -69,7 +67,7 @@ export class ContentGuardService {
     try {
       const response =
         await this.client.responses.create({
-          model: this.model,
+          model: await this.aiRuntime.getTextModel(),
           input: [
             'You are Atlas Factual and Entity Guard.',
             '',

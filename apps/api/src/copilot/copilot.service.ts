@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { calculateAiCost } from '../ai-cost/ai-cost';
 import { BrandsService } from '../brands/brands.service';
@@ -28,6 +29,7 @@ export class CopilotService {
 
   constructor(
     private readonly config: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
@@ -232,7 +234,7 @@ Description: ${campaign.description || 'Not set'}`
     try {
       const requestStartedAt = Date.now();
 
-      const model = this.config.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
+      const model = await this.aiRuntime.getTextModel();
 
       const response = await this.client.responses.create({
         model,

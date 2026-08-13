@@ -73,7 +73,9 @@ export const ModelName = {
   PublishAttempt: 'PublishAttempt',
   BrowserActionHistory: 'BrowserActionHistory',
   BrowserActionTrace: 'BrowserActionTrace',
+  SportsNewsRun: 'SportsNewsRun',
   SportsNewsSetting: 'SportsNewsSetting',
+  AiRuntimeSetting: 'AiRuntimeSetting',
   AutomationSetting: 'AutomationSetting',
   CopilotConversation: 'CopilotConversation',
   CopilotConversationEmbedding: 'CopilotConversationEmbedding',
@@ -149,6 +151,7 @@ export const BrandScalarFieldEnum = {
   brandBannerAssetId: 'brandBannerAssetId',
   mascotAssetId: 'mascotAssetId',
   referenceAssetIds: 'referenceAssetIds',
+  brandKit: 'brandKit',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -581,6 +584,26 @@ export const BrowserActionTraceScalarFieldEnum = {
 export type BrowserActionTraceScalarFieldEnum = (typeof BrowserActionTraceScalarFieldEnum)[keyof typeof BrowserActionTraceScalarFieldEnum]
 
 
+export const SportsNewsRunScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  runKey: 'runKey',
+  kind: 'kind',
+  trigger: 'trigger',
+  status: 'status',
+  sourceCount: 'sourceCount',
+  rejectedSourceCount: 'rejectedSourceCount',
+  scheduledPostIds: 'scheduledPostIds',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SportsNewsRunScalarFieldEnum = (typeof SportsNewsRunScalarFieldEnum)[keyof typeof SportsNewsRunScalarFieldEnum]
+
+
 export const SportsNewsSettingScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -770,6 +793,19 @@ export const SportsNewsSettingScalarFieldEnum = {
 } as const
 
 export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
+
+
+export const AiRuntimeSettingScalarFieldEnum = {
+  id: 'id',
+  textModel: 'textModel',
+  imageModel: 'imageModel',
+  embeddingModel: 'embeddingModel',
+  sportsNewsModel: 'sportsNewsModel',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiRuntimeSettingScalarFieldEnum = (typeof AiRuntimeSettingScalarFieldEnum)[keyof typeof AiRuntimeSettingScalarFieldEnum]
 
 
 export const AutomationSettingScalarFieldEnum = {

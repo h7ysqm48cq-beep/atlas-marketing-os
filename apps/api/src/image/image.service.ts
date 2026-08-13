@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { GenerateImageDto } from './dto/generate-image.dto';
 
@@ -11,7 +12,10 @@ import { GenerateImageDto } from './dto/generate-image.dto';
 export class ImageService {
   private readonly client: OpenAI | null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
+  ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
   }
@@ -23,8 +27,7 @@ export class ImageService {
       );
     }
 
-    const model =
-      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-2';
+    const model = await this.aiRuntime.getImageModel();
 
     try {
       const result = await this.client.images.generate({

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiRuntimeModule } from './ai-runtime/ai-runtime.module';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -39,6 +40,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { EngineeringModule } from './engineering/engineering.module';
 @Module({
   imports: [
+    AiRuntimeModule,
     EngineeringModule,
     JobsModule,
     BrowserRuntimeModule,

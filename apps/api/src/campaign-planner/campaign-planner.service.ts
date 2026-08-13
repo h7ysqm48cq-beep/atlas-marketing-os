@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { PrismaService } from '../database/prisma.service';
 import { GenerateCampaignPlanDto } from './dto/generate-campaign-plan.dto';
@@ -25,6 +26,7 @@ export class CampaignPlannerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -47,8 +49,7 @@ export class CampaignPlannerService {
     }
 
     const campaign = await this.getCampaign(campaignId);
-    const model =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
+    const model = await this.aiRuntime.getTextModel();
 
     const prompt = [
       'You are Atlas, an AI campaign strategist.',
@@ -162,7 +163,9 @@ export class CampaignPlannerService {
       };
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Unknown campaign planner error';
+        error instanceof Error
+          ? error.message
+          : 'Unknown campaign planner error';
 
       throw new InternalServerErrorException(
         `Campaign planning failed: ${message}`,

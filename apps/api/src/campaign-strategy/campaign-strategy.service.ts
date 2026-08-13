@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import OpenAI from 'openai';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
@@ -66,6 +67,7 @@ export class CampaignStrategyService {
     private readonly brandsService: BrandsService,
     private readonly prisma: PrismaService,
     private readonly memoryService: MemoryService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -165,7 +167,7 @@ export class CampaignStrategyService {
     ].join('\n');
 
     const model =
-      this.configService.get<string>('OPENAI_MODEL') || 'gpt-5.6-luna';
+      await this.aiRuntime.getTextModel();
 
     try {
       const response = await this.client.responses.create({
