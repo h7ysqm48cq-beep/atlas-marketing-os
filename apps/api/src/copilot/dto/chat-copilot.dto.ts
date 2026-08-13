@@ -3,6 +3,7 @@ import {
   IsArray,
   IsIn,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -18,7 +19,6 @@ class CopilotMessageDto {
   @IsNotEmpty()
   content!: string;
 }
-
 
 class CopilotAttachmentDto {
   @IsString()
@@ -78,4 +78,15 @@ export class ChatCopilotDto {
   @IsOptional()
   @IsIn(['chat', 'marketing-plan'])
   mode?: 'chat' | 'marketing-plan';
+
+  /**
+   * Shared Atlas AI Workspace context.
+   *
+   * This connects Studio state with Elena
+   * without duplicating Studio history or
+   * Copilot conversation data.
+   */
+  @IsObject()
+  @IsOptional()
+  workspaceContext?: Record<string, unknown>;
 }

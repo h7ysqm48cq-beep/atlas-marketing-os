@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
 import { API_URL } from "@/lib/api";
+import { useAtlasWorkspace } from "./ai-workspace-context";
 
 type Campaign = {
   id: string;
@@ -76,6 +77,166 @@ type MarketingPlan = {
 
 type CopilotMode = "chat" | "marketing-plan";
 
+type WorkspaceDraftTarget = "facebook" | "telegram" | "reels" | "imagePrompt";
+
+type WorkspaceSettingTarget = "topic" | "style" | "language";
+
+type SchedulePlatform = "FACEBOOK" | "TELEGRAM";
+
+type WorkspaceAtomicAction =
+  | {
+      type: "replace";
+      target: WorkspaceDraftTarget;
+      content: string;
+    }
+  | {
+      type: "set";
+      target: WorkspaceSettingTarget;
+      value: string;
+    }
+  | {
+      type: "generate";
+      target: "content" | "image";
+    }
+  | {
+      type: "schedule";
+      platforms: SchedulePlatform[];
+      date: string;
+      time: string;
+      timezone?: string;
+    }
+  | {
+      type: "restore";
+      historyId: string;
+    };
+
+type WorkspaceAction =
+  | WorkspaceAtomicAction
+  | {
+      type: "batch";
+      actions: WorkspaceAtomicAction[];
+    };
+
+function isAtomicWorkspaceAction(
+  input: unknown,
+): input is WorkspaceAtomicAction {
+  if (!input || typeof input !== "object") {
+    return false;
+  }
+
+  const value = input as Record<string, unknown>;
+
+  if (value.type === "replace") {
+    return (
+      ["facebook", "telegram", "reels", "imagePrompt"].includes(
+        String(value.target),
+      ) &&
+      typeof value.content === "string" &&
+      Boolean(value.content.trim())
+    );
+  }
+
+  if (value.type === "set") {
+    return (
+      ["topic", "style", "language"].includes(String(value.target)) &&
+      typeof value.value === "string" &&
+      Boolean(value.value.trim())
+    );
+  }
+
+  if (value.type === "generate") {
+    return ["content", "image"].includes(String(value.target));
+  }
+
+  if (value.type === "schedule") {
+    if (!Array.isArray(value.platforms) || !value.platforms.length) {
+      return false;
+    }
+
+    const validPlatforms = value.platforms.every(
+      (platform) => platform === "FACEBOOK" || platform === "TELEGRAM",
+    );
+
+    return (
+      validPlatforms &&
+      typeof value.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
+      typeof value.time === "string" &&
+      /^\d{2}:\d{2}$/.test(value.time)
+    );
+  }
+
+  if (value.type === "restore") {
+    return (
+      typeof value.historyId === "string" && Boolean(value.historyId.trim())
+    );
+  }
+
+  return false;
+}
+
+function parseWorkspaceAction(rawReply: string): {
+  visibleReply: string;
+  action: WorkspaceAction | null;
+} {
+  const pattern =
+    /<ATLAS_WORKSPACE_ACTION>\s*([\s\S]*?)\s*<\/ATLAS_WORKSPACE_ACTION>/i;
+
+  const match = rawReply.match(pattern);
+
+  if (!match) {
+    return {
+      visibleReply: rawReply.trim(),
+
+      action: null,
+    };
+  }
+
+  const visibleReply = rawReply.replace(pattern, "").trim();
+
+  try {
+    const parsed = JSON.parse(match[1].trim()) as unknown;
+
+    if (isAtomicWorkspaceAction(parsed)) {
+      return {
+        visibleReply,
+        action: parsed,
+      };
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const value = parsed as {
+        type?: unknown;
+        actions?: unknown;
+      };
+
+      if (value.type === "batch" && Array.isArray(value.actions)) {
+        const actions = value.actions.filter(isAtomicWorkspaceAction);
+
+        if (actions.length === value.actions.length && actions.length > 0) {
+          return {
+            visibleReply,
+            action: {
+              type: "batch",
+              actions,
+            },
+          };
+        }
+      }
+    }
+
+    return {
+      visibleReply,
+      action: null,
+    };
+  } catch {
+    return {
+      visibleReply,
+      action: null,
+    };
+  }
+}
+
 const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
@@ -85,11 +246,248 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 export function BrandCopilot() {
+  const workspace = useAtlasWorkspace();
+
+  async function getActiveBrandId() {
+    const response = await fetch(`${API_URL}/brands`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Unable to load active brand.");
+    }
+
+    const brands = (await response.json()) as Array<{
+      id: string;
+      status?: string;
+    }>;
+
+    const brand = brands.find((item) => item.status === "ACTIVE") ?? brands[0];
+
+    if (!brand?.id) {
+      throw new Error("No active brand found.");
+    }
+
+    return brand.id;
+  }
+
+  function postingDayFromDate(
+    date: string,
+  ): "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" {
+    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+
+    const value = new Date(`${date}T00:00:00Z`);
+
+    return days[value.getUTCDay()];
+  }
+
+  async function scheduleWorkspaceAction(
+    action: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
+  ) {
+    const brandId = await getActiveBrandId();
+
+    const contents: Partial<Record<SchedulePlatform, string>> = {};
+
+    if (action.platforms.includes("FACEBOOK")) {
+      if (!workspace.draft.facebook?.trim()) {
+        throw new Error("Facebook draft is empty.");
+      }
+
+      contents.FACEBOOK = workspace.draft.facebook;
+    }
+
+    if (action.platforms.includes("TELEGRAM")) {
+      if (!workspace.draft.telegram?.trim()) {
+        throw new Error("Telegram draft is empty.");
+      }
+
+      contents.TELEGRAM = workspace.draft.telegram;
+    }
+
+    const response = await fetch(`${API_URL}/workflow/auto-queue`, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        brandId,
+
+        platforms: action.platforms,
+
+        items: [
+          {
+            title: workspace.topic.trim() || "AI Workspace Content",
+
+            campaignId: workspace.campaignId || undefined,
+
+            historyId: workspace.historyId || undefined,
+
+            contents,
+          },
+        ],
+
+        startDate: action.date,
+
+        postingDays: [postingDayFromDate(action.date)],
+
+        postingTime: action.time,
+
+        timezone: action.timezone || "Asia/Kuala_Lumpur",
+
+        queueImmediately: false,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || "Unable to schedule content.");
+    }
+
+    return data;
+  }
+
+  async function applyWorkspaceAction(action: WorkspaceAction) {
+    const actions = action.type === "batch" ? action.actions : [action];
+
+    for (const item of actions) {
+      if (item.type === "replace") {
+        workspace.setDraft((current) => ({
+          ...current,
+          [item.target]: item.content,
+        }));
+
+        continue;
+      }
+
+      if (item.type === "set") {
+        if (item.target === "topic") {
+          workspace.setTopic(item.value);
+        }
+
+        if (item.target === "style") {
+          workspace.setStyle(item.value);
+        }
+
+        if (item.target === "language") {
+          workspace.setLanguage(item.value);
+        }
+
+        continue;
+      }
+      workspace.addActivity({
+        type: "edit",
+        label: `Changed ${item.target}`,
+        detail: item.type === "set" ? item.value : undefined,
+      });
+
+      if (item.type === "generate") {
+        workspace.issueCommand({
+          type: item.target === "image" ? "generate-image" : "generate-content",
+        });
+
+        continue;
+      }
+
+      if (item.type === "restore") {
+        workspace.setHistoryId(item.historyId);
+
+        workspace.issueCommand({
+          type: "restore-history",
+          historyId: item.historyId,
+        });
+
+        workspace.addActivity({
+          type: "restore",
+          label: "Restoring previous Studio work",
+          detail: item.historyId,
+        });
+
+        continue;
+      }
+
+      if (item.type === "schedule") {
+        try {
+          const scheduleResult = await scheduleWorkspaceAction(item);
+
+          const scheduledItems = Array.isArray(scheduleResult?.scheduledItems)
+            ? scheduleResult.scheduledItems
+            : [];
+
+          const posts = scheduledItems.flatMap(
+            (entry: {
+              posts?: Array<{
+                id?: string;
+                platform?: string;
+                scheduledAt?: string;
+                channel?: {
+                  name?: string;
+                };
+              }>;
+            }) => (Array.isArray(entry.posts) ? entry.posts : []),
+          );
+
+          const postCount =
+            typeof scheduleResult?.postCount === "number"
+              ? scheduleResult.postCount
+              : posts.length;
+
+          const details = posts.length
+            ? posts
+                .map((post) => {
+                  const platform = post.platform || "UNKNOWN";
+
+                  const when = post.scheduledAt || `${item.date} ${item.time}`;
+
+                  const channel = post.channel?.name
+                    ? ` · ${post.channel.name}`
+                    : "";
+
+                  return `${platform} · ${when}${channel}`;
+                })
+                .join("\n")
+            : `${item.platforms.join(" + ")} · ${item.date} · ${item.time} · ${
+                item.timezone || "Asia/Kuala_Lumpur"
+              }`;
+
+          workspace.addActivity({
+            type: "schedule",
+            label:
+              postCount === 1
+                ? "1 ScheduledPost created"
+                : `${postCount} ScheduledPosts created`,
+            detail: details,
+            status: "success",
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to schedule content.";
+
+          workspace.addActivity({
+            type: "schedule",
+            label: "Schedule failed",
+            detail: message,
+            status: "error",
+          });
+
+          throw error;
+        }
+
+        continue;
+      }
+    }
+  }
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [campaignId, setCampaignId] = useState("");
+  const campaignId = workspace.campaignId;
+  const setCampaignId = workspace.setCampaignId;
   const [mode, setMode] = useState<CopilotMode>("chat");
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [conversationId, setConversationId] = useState("");
+  const conversationId = workspace.conversationId;
+  const setConversationId = workspace.setConversationId;
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [input, setInput] = useState("");
@@ -744,6 +1142,28 @@ You can continue refining this plan with Elena.
             ],
             attachments:
               currentAttachments.length > 0 ? currentAttachments : undefined,
+
+            workspaceContext: {
+              activeView: workspace.preferredMobileTab,
+
+              historyId: workspace.historyId || undefined,
+              campaignId: workspace.campaignId || undefined,
+              ideaId: workspace.ideaId || undefined,
+
+              topic: workspace.topic || undefined,
+              style: workspace.style || undefined,
+              language: workspace.language || undefined,
+
+              assetIds:
+                workspace.assetIds.length > 0 ? workspace.assetIds : undefined,
+
+              draft: {
+                facebook: workspace.draft.facebook || undefined,
+                telegram: workspace.draft.telegram || undefined,
+                reels: workspace.draft.reels || undefined,
+                imagePrompt: workspace.draft.imagePrompt || undefined,
+              },
+            },
           }),
         });
 
@@ -761,11 +1181,19 @@ You can continue refining this plan with Elena.
           setConversationId(data.conversation.id);
         }
 
+        const parsedReply = parseWorkspaceAction(data.reply);
+
+        if (parsedReply.action) {
+          await applyWorkspaceAction(parsedReply.action);
+
+          setStatus("Elena updated AI Workspace.");
+        }
+
         setMessages((current) => [
           ...current,
           {
             role: "assistant",
-            content: data.reply,
+            content: parsedReply.visibleReply || data.reply,
           },
         ]);
 

@@ -8,6 +8,7 @@ import {
   type ExternalGenerationRequest,
 } from "./AiStudio";
 import styles from "./AiStudioMobileShell.module.css";
+import { useAtlasWorkspace } from "./ai-workspace-context";
 
 type OutputMode = "prompt" | "image" | null;
 
@@ -27,36 +28,29 @@ const EMPTY_OUTPUTS: OutputPlatforms = {
   imagePrompt: false,
 };
 
-
 export function AiStudioMobileShell() {
+  const workspace = useAtlasWorkspace();
+
+  const lastWorkspaceCommandRef = useRef<number | null>(null);
+
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [formCard, setFormCard] = useState<HTMLElement | null>(null);
   const [outputMode, setOutputMode] = useState<OutputMode>(null);
-  const [generateMode, setGenerateMode] =
-    useState<GenerateMode>(null);
+  const [generateMode, setGenerateMode] = useState<GenerateMode>(null);
   const [outputPlatforms, setOutputPlatforms] =
     useState<OutputPlatforms>(EMPTY_OUTPUTS);
   const [hasResult, setHasResult] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
 
-  const [
-    generationRequest,
-    setGenerationRequest,
-  ] =
-    useState<ExternalGenerationRequest | null>(
-      null,
-    );
+  const [generationRequest, setGenerationRequest] =
+    useState<ExternalGenerationRequest | null>(null);
 
-  const shellRef =
-    useRef<HTMLElement>(
-      null,
-    );
+  const shellRef = useRef<HTMLElement>(null);
 
   function platformButtons() {
     const shell = shellRef.current;
     if (!shell) return [];
-
 
     return Array.from(
       shell.querySelectorAll<HTMLButtonElement>(
@@ -86,208 +80,100 @@ export function AiStudioMobileShell() {
   function findImageGenerateButton(
     shell: HTMLElement,
   ): HTMLButtonElement | null {
-
-    const panel =
-      shell.querySelector<HTMLElement>(
-        '[class*="ImageAssetPanel_panel"]',
-      );
-
+    const panel = shell.querySelector<HTMLElement>(
+      '[class*="ImageAssetPanel_panel"]',
+    );
 
     if (!panel) {
       return null;
     }
 
-
     return (
-      Array.from(
-        panel.querySelectorAll<HTMLButtonElement>(
-          "button",
-        ),
-      ).find(
+      Array.from(panel.querySelectorAll<HTMLButtonElement>("button")).find(
         (button) => {
-
-          const label =
-            button.textContent
-              ?.trim()
-              .toLowerCase()
-              ||
-              "";
-
+          const label = button.textContent?.trim().toLowerCase() || "";
 
           return (
-            label.includes(
-              "generate and save",
-            )
-            ||
-            label.includes(
-              "generate another concept",
-            )
-            ||
-            label.includes(
-              "generating image",
-            )
+            label.includes("generate and save") ||
+            label.includes("generate another concept") ||
+            label.includes("generating image")
           );
-
         },
-      )
-      ||
-      null
+      ) || null
     );
-
   }
-
-
 
   function runPromptGeneration() {
-
-    if (
-      isRunning
-    ) {
+    if (isRunning) {
       return;
     }
 
+    const selected = outputsFromLabels(selectedPlatformLabels());
 
-    const selected =
-      outputsFromLabels(
-        selectedPlatformLabels(),
-      );
+    const request: ExternalGenerationRequest = {
+      requestId: Date.now(),
 
+      mode: "prompt",
+    };
 
-    const request:
-      ExternalGenerationRequest = {
+    setOutputPlatforms(selected);
 
-        requestId:
-          Date.now(),
+    setOutputMode("prompt");
 
-        mode:
-          "prompt",
-      };
+    setGenerateMode("prompt");
 
+    setHasResult(false);
 
-    setOutputPlatforms(
-      selected,
-    );
+    setIsRunning(true);
 
-    setOutputMode(
-      "prompt",
-    );
-
-    setGenerateMode(
-      "prompt",
-    );
-
-    setHasResult(
-      false,
-    );
-
-    setIsRunning(
-      true,
-    );
-
-    setGenerationRequest(
-      request,
-    );
-
+    setGenerationRequest(request);
   }
-
 
   function runImageGeneration() {
-
-    if (
-      isRunning
-    ) {
+    if (isRunning) {
       return;
     }
 
+    const request: ExternalGenerationRequest = {
+      requestId: Date.now(),
 
-    const request:
-      ExternalGenerationRequest = {
-
-        requestId:
-          Date.now(),
-
-        mode:
-          "image",
-      };
-
+      mode: "image",
+    };
 
     setOutputPlatforms({
-      facebook:
-        false,
+      facebook: false,
 
-      telegram:
-        false,
+      telegram: false,
 
-      reels:
-        false,
+      reels: false,
 
-      imagePrompt:
-        true,
+      imagePrompt: true,
     });
 
-    setOutputMode(
-      "image",
-    );
+    setOutputMode("image");
 
-    setGenerateMode(
-      "image",
-    );
+    setGenerateMode("image");
 
-    setHasResult(
-      false,
-    );
+    setHasResult(false);
 
-    setIsRunning(
-      true,
-    );
+    setIsRunning(true);
 
-    setGenerationRequest(
-      request,
-    );
-
+    setGenerationRequest(request);
   }
 
-
-  function handleExternalGenerationEvent(
-    event:
-      ExternalGenerationEvent,
-  ) {
-
-    if (
-      !generationRequest
-      ||
-      event.requestId
-      !==
-      generationRequest.requestId
-    ) {
-
+  function handleExternalGenerationEvent(event: ExternalGenerationEvent) {
+    if (!generationRequest || event.requestId !== generationRequest.requestId) {
       return;
-
     }
 
+    if (event.phase === "done") {
+      setHasResult(true);
 
-    if (
-      event.phase
-      ===
-      "done"
-    ) {
+      setIsRunning(false);
 
-      setHasResult(
-        true,
-      );
+      setGenerateMode(null);
 
-      setIsRunning(
-        false,
-      );
-
-      setGenerateMode(
-        null,
-      );
-
-      setGenerationRequest(
-        null,
-      );
-
+      setGenerationRequest(null);
 
       /*
        * After a real image has finished generating,
@@ -298,175 +184,84 @@ export function AiStudioMobileShell() {
        * 2. reveal AiWorkspace / ImageAssetPanel
        * before scrolling.
        */
-      if (
-        event.mode
-        ===
-        "image"
-      ) {
+      if (event.mode === "image") {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            const shell = shellRef.current;
 
-        window.requestAnimationFrame(
-          () => {
-
-            window.requestAnimationFrame(
-              () => {
-
-                const shell =
-                  shellRef.current;
-
-
-                const imageResult =
-                  shell?.querySelector<HTMLElement>(
-                    '[class*="ImageAssetPanel_result"]',
-                  );
-
-
-                const imagePanel =
-                  shell?.querySelector<HTMLElement>(
-                    '[class*="ImageAssetPanel_panel"]',
-                  );
-
-
-                const target =
-                  imageResult
-                  ||
-                  imagePanel;
-
-
-                target?.scrollIntoView({
-                  behavior:
-                    "smooth",
-
-                  block:
-                    "start",
-                });
-
-              },
+            const imageResult = shell?.querySelector<HTMLElement>(
+              '[class*="ImageAssetPanel_result"]',
             );
 
-          },
-        );
+            const imagePanel = shell?.querySelector<HTMLElement>(
+              '[class*="ImageAssetPanel_panel"]',
+            );
 
+            const target = imageResult || imagePanel;
+
+            target?.scrollIntoView({
+              behavior: "smooth",
+
+              block: "start",
+            });
+          });
+        });
       }
 
-
       return;
-
     }
 
+    if (event.phase === "error") {
+      setIsRunning(false);
 
-    if (
-      event.phase
-      ===
-      "error"
-    ) {
+      setGenerateMode(null);
 
-      setIsRunning(
-        false,
-      );
-
-      setGenerateMode(
-        null,
-      );
-
-      setGenerationRequest(
-        null,
-      );
-
+      setGenerationRequest(null);
     }
-
   }
 
   useEffect(() => {
-
-    if (
-      !window.matchMedia(
-        "(max-width: 760px)",
-      ).matches
-    ) {
+    if (!window.matchMedia("(max-width: 760px)").matches) {
       return;
     }
 
+    const shell = shellRef.current;
 
-    const shell =
-      shellRef.current;
-
-
-    if (
-      !shell
-    ) {
+    if (!shell) {
       return;
     }
 
-
-    const configureMobileStudio =
-      () => {
-
-        const nextFormCard =
-          shell.querySelector<HTMLElement>(
-            '[class*="AiStudio_formCard"]',
-          );
-
-
-        setFormCard(
-          current =>
-            current === nextFormCard
-              ? current
-              : nextFormCard,
-        );
-
-
-        const collapseButton =
-          Array.from(
-            shell.querySelectorAll<HTMLButtonElement>(
-              "button",
-            ),
-          ).find(
-            button =>
-              button.textContent?.trim()
-              ===
-              "Collapse",
-          );
-
-
-        collapseButton?.click();
-
-      };
-
-
-    const frame =
-      window.requestAnimationFrame(
-        configureMobileStudio,
+    const configureMobileStudio = () => {
+      const nextFormCard = shell.querySelector<HTMLElement>(
+        '[class*="AiStudio_formCard"]',
       );
 
-
-    const observer =
-      new MutationObserver(
-        configureMobileStudio,
+      setFormCard((current) =>
+        current === nextFormCard ? current : nextFormCard,
       );
 
+      const collapseButton = Array.from(
+        shell.querySelectorAll<HTMLButtonElement>("button"),
+      ).find((button) => button.textContent?.trim() === "Collapse");
 
-    observer.observe(
-      shell,
-      {
-        childList:
-          true,
-
-        subtree:
-          true,
-      },
-    );
-
-
-    return () => {
-
-      window.cancelAnimationFrame(
-        frame,
-      );
-
-      observer.disconnect();
-
+      collapseButton?.click();
     };
 
+    const frame = window.requestAnimationFrame(configureMobileStudio);
+
+    const observer = new MutationObserver(configureMobileStudio);
+
+    observer.observe(shell, {
+      childList: true,
+
+      subtree: true,
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+
+      observer.disconnect();
+    };
   }, []);
 
   /*
@@ -476,145 +271,123 @@ export function AiStudioMobileShell() {
    * committed the generated image element to the DOM.
    * Wait for the actual result before scrolling.
    */
-  useEffect(
-    () => {
+  /*
+   * ELENA_WORKSPACE_COMMAND_ROUTER
+   *
+   * Elena triggers the same Studio generation
+   * functions used by the visible buttons.
+   *
+   * Phase 7B:
+   * only report success after the real generation
+   * function has completed.
+   */
+  useEffect(() => {
+    const command = workspace.command;
 
-      if (
-        outputMode !== "image"
-        ||
-        !hasResult
-        ||
-        isRunning
-      ) {
-        return;
-      }
+    if (!command) {
+      return;
+    }
 
+    if (lastWorkspaceCommandRef.current === command.id) {
+      return;
+    }
 
-      let cancelled =
-        false;
+    if (
+      command.type !== "generate-content" &&
+      command.type !== "generate-image"
+    ) {
+      return;
+    }
 
-      let attempts =
-        0;
+    lastWorkspaceCommandRef.current = command.id;
 
-      let timer:
-        number | undefined;
+    let cancelled = false;
 
+    const generationCommand = command;
 
-      const reveal =
-        () => {
+    async function executeGeneration() {
+      const isImage = generationCommand.type === "generate-image";
 
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-
-          const currentShell =
-            shellRef.current;
-
-
-          const imageResult =
-            currentShell?.querySelector<HTMLElement>(
-              '[class*="ImageAssetPanel_result"]',
-            );
-
-
-          if (
-            imageResult
-          ) {
-
-            imageResult.scrollIntoView({
-              behavior:
-                "smooth",
-
-              block:
-                "start",
-            });
-
-
-            return;
-          }
-
-
-          attempts +=
-            1;
-
-
-          /*
-           * Give React / image state up to ~3 seconds.
-           */
-          if (
-            attempts < 30
-          ) {
-
-            timer =
-              window.setTimeout(
-                reveal,
-                100,
-              );
-
-            return;
-          }
-
-
-          /*
-           * Last fallback:
-           * at least bring the AI Image panel into view.
-           */
-          const imagePanel =
-            currentShell?.querySelector<HTMLElement>(
-              '[class*="ImageAssetPanel_panel"]',
-            );
-
-
-          imagePanel?.scrollIntoView({
-            behavior:
-              "smooth",
-
-            block:
-              "start",
-          });
-
-        };
-
-
-      timer =
-        window.setTimeout(
-          reveal,
-          100,
-        );
-
-
-      return () => {
-
-        cancelled =
-          true;
-
-
-        if (
-          timer !== undefined
-        ) {
-
-          window.clearTimeout(
-            timer,
-          );
-
+      try {
+        if (isImage) {
+          await Promise.resolve(runImageGeneration());
+        } else {
+          await Promise.resolve(runPromptGeneration());
         }
 
-      };
+        if (cancelled) {
+          return;
+        }
 
-    },
-    [
-      outputMode,
-      hasResult,
-      isRunning,
-    ],
-  );
+        workspace.addActivity({
+          type: "generate",
+          label: isImage
+            ? "Image generated successfully"
+            : "Content generated successfully",
+          status: "success",
+        });
 
+        workspace.setPreferredMobileTab("results");
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
 
-  const isGenerating =
-    isRunning;
+        const message =
+          error instanceof Error
+            ? error.message
+            : isImage
+              ? "Image generation failed."
+              : "Content generation failed.";
+
+        workspace.addActivity({
+          type: "generate",
+          label: isImage
+            ? "Image generation failed"
+            : "Content generation failed",
+          detail: message,
+          status: "error",
+        });
+      }
+    }
+
+    void executeGeneration();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace.command]);
+
+  /*
+   * ELENA_WORKSPACE_COMMAND_ROUTER
+   *
+   * Elena triggers the same Studio generation
+   * functions used by the visible buttons.
+   */
+  useEffect(() => {
+    const command = workspace.command;
+
+    if (!command) {
+      return;
+    }
+
+    if (lastWorkspaceCommandRef.current === command.id) {
+      return;
+    }
+
+    lastWorkspaceCommandRef.current = command.id;
+
+    if (command.type === "generate-content") {
+      runPromptGeneration();
+      return;
+    }
+
+    if (command.type === "generate-image") {
+      runImageGeneration();
+    }
+  }, [workspace.command]);
+
+  const isGenerating = isRunning;
 
   return (
     <section
@@ -648,12 +421,8 @@ export function AiStudioMobileShell() {
       </header>
 
       <AiStudio
-        externalGenerateRequest={
-          generationRequest
-        }
-        onExternalGenerationEvent={
-          handleExternalGenerationEvent
-        }
+        externalGenerateRequest={generationRequest}
+        onExternalGenerationEvent={handleExternalGenerationEvent}
       />
 
       {formCard
@@ -668,7 +437,6 @@ export function AiStudioMobileShell() {
                 >
                   {isRunning && outputMode === "prompt"
                     ? "Generating prompt..."
-
                     : "✦ Generate Prompt"}
                 </button>
 
@@ -680,7 +448,6 @@ export function AiStudioMobileShell() {
                 >
                   {isRunning && outputMode === "image"
                     ? "Generating image..."
-
                     : "◇ Generate Image"}
                 </button>
               </div>
@@ -695,7 +462,6 @@ export function AiStudioMobileShell() {
                   {advancedOpen ? "Hide advanced options" : "Advanced options"}
                 </span>
                 <span aria-hidden="true">{advancedOpen ? "⌃" : "⌄"}</span>
-
               </button>
             </>,
             formCard,

@@ -21,6 +21,7 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
 import { PromptContextBuilder } from './prompt-context.builder';
 import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
+import { GenerationHistoryRecallService } from './generation-history-recall.service';
 
 @Injectable()
 export class CopilotService {
@@ -41,6 +42,8 @@ export class CopilotService {
     private readonly knowledgeRetrieval: KnowledgeRetrievalService,
     private readonly promptContextBuilder: PromptContextBuilder,
     private readonly promptContextPipeline: PromptContextPipelineService,
+
+    private readonly generationHistoryRecall: GenerationHistoryRecallService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -154,8 +157,53 @@ export class CopilotService {
     const attachmentDocumentContext =
       this.knowledgeRetrieval.buildPromptContext(attachmentKnowledgeMatches);
 
+    /*
+     * STUDIO_HISTORY_UNIFIED_RECALL
+     *
+     * Conversation recall answers:
+     * "What did I ask before?"
+     *
+     * Generation history recall answers:
+     * "What did I create in Studio before?"
+     */
+    const studioHistoryRecallItems = await this.generationHistoryRecall.search({
+      query: latestUserMessage.content,
+      brandId: brand.id,
+      limit: 5,
+    });
+
+    const studioHistoryRecallContext =
+      this.generationHistoryRecall.buildContext(studioHistoryRecallItems, {
+        maxCharsPerItem: 1200,
+        maxTotalChars: 4500,
+      });
+
+    /*
+     * Current Studio context.
+     *
+     * Conversation memory tells Elena what the user
+     * discussed before.
+     *
+     * Workspace context tells Elena what the user is
+     * actively creating in AI Studio now.
+     */
+    const workspaceContext =
+      dto.workspaceContext && typeof dto.workspaceContext === 'object'
+        ? [
+            'CURRENT ATLAS AI STUDIO WORKSPACE:',
+            JSON.stringify(dto.workspaceContext, null, 2),
+            '',
+            "Treat this as the user's current working state.",
+            'When the user refers to "this", "the current draft", "the image prompt", "what we are doing", or similar references, use this workspace context when relevant.',
+            'Do not claim that a field exists when it is absent from the workspace context.',
+          ].join('\n')
+        : '';
+
     const baseContext = [
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
+      `Current server UTC time: ${new Date().toISOString()}`,
+      'Default operational timezone: Asia/Kuala_Lumpur.',
+
       'You are practical, commercially aware, creative and direct.',
       `Brand: ${brand.name}`,
       `Country: ${brand.country}`,
@@ -173,6 +221,13 @@ Description: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
       confirmedMemoryContext,
       previousConversationMemory,
+
+      // Historical work created in AI Studio.
+      studioHistoryRecallContext,
+
+      // Current active AI Studio state.
+      workspaceContext,
+
       attachmentDocumentContext,
       attachmentKnowledgeMatches.length
         ? 'Use the supplied KNOWLEDGE CONTEXT as the primary evidence for attached-document questions.'
@@ -188,6 +243,103 @@ Description: ${campaign.description || 'Not set'}`
       'Preserve Malaysian Chinese context when relevant.',
       'Avoid unsupported claims, fake urgency and unverified current facts.',
       'When rewriting, provide the improved version before the explanation.',
+
+      /*
+       * Atlas Workspace Action Protocol
+       *
+       * Elena may update the current AI Studio workspace when
+       * the user explicitly asks to change an existing Studio draft.
+       */
+      'ATLAS ACTIVE VIEW RULES:',
+      'CURRENT ATLAS AI STUDIO WORKSPACE may contain activeView.',
+      'activeView=create means the user is currently working with Studio inputs such as topic, style, language, campaign and assets.',
+      'activeView=results means the user is currently viewing the generated Facebook, Telegram, Reels, Image Prompt or generated visual.',
+      'activeView=elena means the user is currently focused on this conversation, but the current Studio drafts still remain available as context.',
+      'When activeView=results and the user says "this", "this post", "this draft", "the current one", "刚才那篇", "这篇", "这个文案", or similar references, prefer the current Studio result unless the conversation clearly indicates another item.',
+      'When activeView=create and the user asks to change the topic, style, language or direction, treat it as a current Studio input change.',
+      'Do not use activeView to override an explicit historical reference such as "the previous Grab article" or an exact named older item.',
+      '',
+
+      'ATLAS UNIFIED RECALL RULES:',
+      'You may receive both PREVIOUS CONVERSATION context and PREVIOUS AI STUDIO WORK.',
+      'Use PREVIOUS CONVERSATION to understand what the user previously asked, discussed, preferred, or decided.',
+      'Use PREVIOUS AI STUDIO WORK to understand what the user previously generated or created in AI Studio.',
+      'Use CURRENT ATLAS AI STUDIO WORKSPACE for what the user is actively working on now.',
+      'When the user says "previous", "last time", "before", "continue that", "the one we made", or similar references, compare conversation recall, Studio history, and the current workspace before deciding what they mean.',
+      'Prefer the current workspace when the user clearly refers to the content currently open.',
+      'Prefer historical Studio work when the user asks what was previously created or asks to continue an older generated item.',
+      'Prefer conversation recall when the user asks what they previously asked, discussed, requested, or decided.',
+      'If several historical items could match, do not pretend certainty. Briefly identify the most likely matches.',
+      'Never claim to remember an item that is not present in the supplied recall context.',
+      '',
+      'ATLAS WORKSPACE ACTION RULES:',
+
+      'RESTORE HISTORY RULES:',
+      'When the user asks to open, restore, continue, return to, or resume a previous AI Studio item, use PREVIOUS AI STUDIO WORK to identify the matching GenerationHistory.',
+      'A restore action must use the exact History ID present in PREVIOUS AI STUDIO WORK.',
+      'Never invent, guess, shorten, or modify a History ID.',
+      'If exactly one historical Studio item clearly matches, you may restore it directly.',
+      'If multiple historical Studio items plausibly match, ask the user which one instead of restoring the wrong item.',
+      'Restore action format:',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"restore","historyId":"EXACT_GENERATION_HISTORY_ID"}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
+      'You can directly operate the current Atlas AI Workspace when the user clearly requests an action.',
+      'Supported executable actions are: replace, set, generate, restore, schedule, and batch.',
+      '',
+      'REPLACE: modify an existing Studio draft.',
+      'Targets: facebook, telegram, reels, imagePrompt.',
+      '',
+      'SET: change Studio settings.',
+      'Targets: topic, style, language.',
+      '',
+      'GENERATE: trigger Studio generation.',
+      'Targets: content, image.',
+      '',
+      'SCHEDULE: add the current Facebook and/or Telegram draft into the existing Atlas Auto Queue.',
+      'Schedule platforms must use FACEBOOK and/or TELEGRAM.',
+      'Schedule date must use YYYY-MM-DD.',
+      'Schedule time must use HH:MM in 24-hour format.',
+      'Default timezone is Asia/Kuala_Lumpur.',
+      '',
+      'BATCH: perform several supported actions in logical order.',
+      '',
+      'Use exactly one <ATLAS_WORKSPACE_ACTION> block at the END of the response.',
+      '',
+      'Examples:',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"replace","target":"facebook","content":"FULL FINAL FACEBOOK COPY"}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"generate","target":"content"}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"schedule","platforms":["FACEBOOK"],"date":"2026-08-14","time":"20:00","timezone":"Asia/Kuala_Lumpur"}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"batch","actions":[{"type":"set","target":"topic","value":"Grab Consumer Marketing"},{"type":"set","target":"style","value":"Educational"},{"type":"generate","target":"content"}]}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
+      'Important execution rules:',
+      '- Only emit actions when the user clearly asks you to perform the change.',
+      '- Never emit an executable action merely for advice, brainstorming, explanation, or research.',
+      '- Do not schedule empty platform drafts.',
+      '- A schedule request creates an Auto Queue/ScheduledPost entry; it does not publish immediately.',
+      '- PUBLISH, SEND NOW, DELETE, ARCHIVE and destructive actions are NOT available.',
+      '- If the user asks to publish or send immediately, explain that Publish is currently locked and do not emit a publish action.',
+      '- Do not invent a publish action.',
+      '- Do not mention the hidden machine-readable action block to the user.',
+      '',
+
+      'PUBLISH IS LOCKED:',
+      'You may schedule content into Atlas Auto Queue, but you must never publish or send content immediately.',
+      'Do not emit publish, send-now, direct-post, or immediate-publish actions.',
+      'If the user asks to publish now, explain that Publish is currently locked while Schedule remains available.',
+      '',
       'Keep outputs ready to copy and use.',
     ];
 

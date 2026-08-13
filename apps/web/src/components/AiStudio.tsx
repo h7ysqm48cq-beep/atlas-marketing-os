@@ -8,6 +8,7 @@ import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
 import { waitForBackgroundJob } from "@/lib/background-job";
+import { useAtlasWorkspace } from "./ai-workspace-context";
 const AI_STUDIO_JOB_KEY = "atlas-ai-studio-background-job";
 const platformOptions = [
   "Facebook",
@@ -46,30 +47,25 @@ export type ExternalGenerationRequest = {
   mode: "prompt" | "image";
 };
 
-
 export type ExternalGenerationEvent = {
   requestId: number;
   mode: "prompt" | "image";
-  phase:
-    | "workspace"
-    | "image"
-    | "done"
-    | "error";
+  phase: "workspace" | "image" | "done" | "error";
   message?: string;
 };
-
 
 export function AiStudio({
   externalGenerateRequest,
   onExternalGenerationEvent,
 }: {
-  externalGenerateRequest?:
-    ExternalGenerationRequest | null;
+  externalGenerateRequest?: ExternalGenerationRequest | null;
 
-  onExternalGenerationEvent?: (
-    event: ExternalGenerationEvent,
-  ) => void;
+  onExternalGenerationEvent?: (event: ExternalGenerationEvent) => void;
 }) {
+  const workspace = useAtlasWorkspace();
+
+  const lastRestoreCommandRef = useRef<number | null>(null);
+
   const { language: interfaceLanguage } = usePreferences();
 
   function ui(en: string, zh: string) {
@@ -109,35 +105,279 @@ export function AiStudio({
     return value;
   }
 
-  const [topic, setTopic] = useState("");
+  const topic = workspace.topic;
+  const setTopic = workspace.setTopic;
   const [style, setStyle] = useState("Nostalgia");
   const [language, setLanguage] = useState("Chinese");
-  const [platforms, setPlatforms] = useState<StudioPlatform[]>([
-    "Facebook",
-  ]);
-  const [campaignId, setCampaignId] = useState("");
-  const [ideaId, setIdeaId] = useState("");
+  const [platforms, setPlatforms] = useState<StudioPlatform[]>(["Facebook"]);
+  const campaignId = workspace.campaignId;
+  const setCampaignId = workspace.setCampaignId;
+  const ideaId = workspace.ideaId;
+  const setIdeaId = workspace.setIdeaId;
   const [campaignName, setCampaignName] = useState("");
   const [ideaTitle, setIdeaTitle] = useState("");
   const [result, setResult] = useState<WorkspaceResult | null>(null);
+
+  /*
+   * ELENA_TO_STUDIO_REVERSE_SYNC
+   *
+   * Elena updates AtlasWorkspace draft.
+   * This effect applies those changes to
+   * the real AI Studio result.
+   */
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    const nextFacebook = workspace.draft.facebook ?? result.facebook;
+
+    const nextTelegram = workspace.draft.telegram ?? result.telegram;
+
+    const nextReels = workspace.draft.reels ?? result.reels;
+
+    const nextImage = workspace.draft.imagePrompt ?? result.image;
+
+    const changed =
+      nextFacebook !== result.facebook ||
+      nextTelegram !== result.telegram ||
+      nextReels !== result.reels ||
+      nextImage !== result.image;
+
+    if (!changed) {
+      return;
+    }
+
+    setResult((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+
+        facebook: workspace.draft.facebook ?? current.facebook,
+
+        telegram: workspace.draft.telegram ?? current.telegram,
+
+        reels: workspace.draft.reels ?? current.reels,
+
+        image: workspace.draft.imagePrompt ?? current.image,
+      };
+    });
+  }, [
+    workspace.draft.facebook,
+    workspace.draft.telegram,
+    workspace.draft.reels,
+    workspace.draft.imagePrompt,
+  ]);
+
+  /*
+   * Keep Atlas Workspace synchronized with the
+   * current Studio state.
+   *
+   * Elena reads this shared context directly.
+   */
+  useEffect(() => {
+    workspace.setStyle(style);
+  }, [style]);
+
+  useEffect(() => {
+    workspace.setLanguage(language);
+  }, [language]);
+
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    workspace.setHistoryId(result.historyId || "");
+
+    workspace.setDraft({
+      facebook: result.facebook || undefined,
+
+      telegram: result.telegram || undefined,
+
+      reels: result.reels || undefined,
+
+      imagePrompt: result.image || undefined,
+    });
+  }, [result]);
+
   const [availableAssets, setAvailableAssets] = useState<StudioAsset[]>([]);
   const [selectedAssets, setSelectedAssets] = useState<StudioAsset[]>([]);
+
+  /*
+   * ELENA_RESTORE_HISTORY_COMMAND
+   *
+   * Restore a previous GenerationHistory item
+   * directly into the current AI Studio.
+   */
+  useEffect(() => {
+    const command = workspace.command;
+
+    if (!command || command.type !== "restore-history") {
+      return;
+    }
+
+    if (lastRestoreCommandRef.current === command.id) {
+      return;
+    }
+
+    lastRestoreCommandRef.current = command.id;
+
+    let cancelled = false;
+
+    const restoreCommand = command;
+
+    async function restoreHistory() {
+      try {
+        setMessage(
+          ui(
+            "Restoring previous AI Studio work...",
+            "正在恢复之前的 AI Studio 内容……",
+          ),
+        );
+
+        const response = await fetch(
+          `${API_URL}/history/${restoreCommand.historyId}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        const record = await response.json();
+
+        if (!response.ok || !record?.id) {
+          throw new Error(
+            record?.message || "Unable to restore Studio history.",
+          );
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setTopic(record.topic || "");
+
+        setStyle(record.style || "Nostalgia");
+
+        setLanguage(record.language || "Chinese");
+
+        setCampaignId(record.campaign?.id || "");
+
+        setCampaignName(record.campaign?.name || "");
+
+        setIdeaId(record.idea?.id || "");
+
+        setIdeaTitle(record.idea?.title || "");
+
+        setResult({
+          facebook: record.facebook || "",
+
+          telegram: record.telegram || "",
+
+          reels: record.reels || "",
+
+          image: record.imagePrompt || "",
+
+          analysis: record.analysis,
+
+          historyId: record.id,
+
+          campaignUsed: record.campaign
+            ? {
+                id: record.campaign.id,
+                name: record.campaign.name,
+              }
+            : undefined,
+
+          ideaUsed: record.idea
+            ? {
+                id: record.idea.id,
+                title: record.idea.title,
+              }
+            : undefined,
+        });
+
+        workspace.setHistoryId(record.id);
+
+        workspace.setTopic(record.topic || "");
+
+        workspace.setStyle(record.style || "");
+
+        workspace.setLanguage(record.language || "");
+
+        workspace.setCampaignId(record.campaign?.id || "");
+
+        workspace.setIdeaId(record.idea?.id || "");
+
+        workspace.setDraft({
+          facebook: record.facebook || undefined,
+
+          telegram: record.telegram || undefined,
+
+          reels: record.reels || undefined,
+
+          imagePrompt: record.imagePrompt || undefined,
+        });
+
+        workspace.addActivity({
+          type: "restore",
+          label: "Restore completed",
+          detail: `${record.topic || "Previous Studio work"} · ${record.id}`,
+          status: "success",
+        });
+
+        setMessage(ui(`Restored: ${record.topic}`, `已恢复：${record.topic}`));
+      } catch (error) {
+        const restoreActivityError =
+          error instanceof Error
+            ? error.message
+            : "Unable to restore Studio history.";
+
+        workspace.addActivity({
+          type: "restore",
+          label: "Restore failed",
+          detail: restoreActivityError,
+          status: "error",
+        });
+        if (cancelled) {
+          return;
+        }
+
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : ui(
+                "Unable to restore Studio history.",
+                "无法恢复 AI Studio 历史内容。",
+              ),
+        );
+      }
+    }
+
+    void restoreHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace.command]);
+
+  useEffect(() => {
+    workspace.setAssetIds(selectedAssets.map((asset) => asset.id));
+  }, [selectedAssets]);
+
   const [assetSearch, setAssetSearch] = useState("");
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [
-    imageGenerateRequestId,
-    setImageGenerateRequestId,
-  ] = useState<number | null>(
-    null,
-  );
+  const [imageGenerateRequestId, setImageGenerateRequestId] = useState<
+    number | null
+  >(null);
 
-  const lastExternalRequestRef =
-    useRef<number | null>(
-      null,
-    );
+  const lastExternalRequestRef = useRef<number | null>(null);
   const [recentHistory, setRecentHistory] = useState<RecentHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [message, setMessage] = useState(
@@ -330,7 +570,8 @@ export function AiStudio({
         const response = await fetch(`${API_URL}/history`, {
           cache: "no-store",
         });
-        const data = (await response.json()) as RecentHistory[] | { message?: string };
+        const data = (await response.json()) as
+          RecentHistory[] | { message?: string };
 
         if (!response.ok || !Array.isArray(data)) {
           throw new Error("Unable to load history.");
@@ -356,34 +597,18 @@ export function AiStudio({
 
     setIsGenerating(true);
     setMessage("Restoring AI task running in the background...");
-    void completeJob(
-      pendingJobId,
-    ).catch(
-      () => undefined,
-    );
+    void completeJob(pendingJobId).catch(() => undefined);
   }, []);
 
-  async function completeJob(
-    jobId: string,
-  ): Promise<WorkspaceResult> {
-
+  async function completeJob(jobId: string): Promise<WorkspaceResult> {
     try {
-
-      const data =
-        await waitForBackgroundJob<WorkspaceResult>(
-          `${API_URL}/ai/jobs/${jobId}`,
-        );
-
-
-      window.localStorage.removeItem(
-        AI_STUDIO_JOB_KEY,
+      const data = await waitForBackgroundJob<WorkspaceResult>(
+        `${API_URL}/ai/jobs/${jobId}`,
       );
 
+      window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
 
-      setResult(
-        data,
-      );
-
+      setResult(data);
 
       setMessage(
         data.campaignUsed
@@ -391,49 +616,24 @@ export function AiStudio({
           : "Workspace complete · Saved to Content History",
       );
 
-
       return data;
-
     } catch (error) {
-
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Unable to generate content.";
+        error instanceof Error ? error.message : "Unable to generate content.";
 
-
-      setMessage(
-        errorMessage,
-      );
-
+      setMessage(errorMessage);
 
       if (
-        !(
-          error instanceof Error
-        )
-        ||
-        !error.message.includes(
-          "still running",
-        )
+        !(error instanceof Error) ||
+        !error.message.includes("still running")
       ) {
-
-        window.localStorage.removeItem(
-          AI_STUDIO_JOB_KEY,
-        );
-
+        window.localStorage.removeItem(AI_STUDIO_JOB_KEY);
       }
 
-
       throw error;
-
     } finally {
-
-      setIsGenerating(
-        false,
-      );
-
+      setIsGenerating(false);
     }
-
   }
 
   function togglePlatform(platform: StudioPlatform) {
@@ -523,101 +723,54 @@ export function AiStudio({
     platformOverride?: StudioPlatform[],
     externalRequest?: ExternalGenerationRequest,
   ) {
+    const requestedPlatforms = platformOverride?.length
+      ? platformOverride
+      : platforms;
 
-    const requestedPlatforms =
-      platformOverride?.length
-        ? platformOverride
-        : platforms;
+    if (!topic.trim()) {
+      const errorMessage = ui("Topic is required.", "请填写主题。");
 
+      setMessage(errorMessage);
 
-    if (
-      !topic.trim()
-    ) {
-
-      const errorMessage =
-        ui(
-          "Topic is required.",
-          "请填写主题。",
-        );
-
-
-      setMessage(
-        errorMessage,
-      );
-
-
-      if (
-        externalRequest
-      ) {
-
+      if (externalRequest) {
         onExternalGenerationEvent?.({
-          requestId:
-            externalRequest.requestId,
+          requestId: externalRequest.requestId,
 
-          mode:
-            externalRequest.mode,
+          mode: externalRequest.mode,
 
-          phase:
-            "error",
+          phase: "error",
 
-          message:
-            errorMessage,
+          message: errorMessage,
         });
-
       }
 
-
       return;
-
     }
 
-
-    if (
-      !requestedPlatforms.length
-    ) {
-
-      const errorMessage =
-        ui(
-          "Select at least one platform.",
-          "请至少选择一个平台。",
-        );
-
-
-      setMessage(
-        errorMessage,
+    if (!requestedPlatforms.length) {
+      const errorMessage = ui(
+        "Select at least one platform.",
+        "请至少选择一个平台。",
       );
 
+      setMessage(errorMessage);
 
-      if (
-        externalRequest
-      ) {
-
+      if (externalRequest) {
         onExternalGenerationEvent?.({
-          requestId:
-            externalRequest.requestId,
+          requestId: externalRequest.requestId,
 
-          mode:
-            externalRequest.mode,
+          mode: externalRequest.mode,
 
-          phase:
-            "error",
+          phase: "error",
 
-          message:
-            errorMessage,
+          message: errorMessage,
         });
-
       }
 
-
       return;
-
     }
 
-
-    setIsGenerating(
-      true,
-    );
-
+    setIsGenerating(true);
 
     setMessage(
       ui(
@@ -626,102 +779,55 @@ export function AiStudio({
       ),
     );
 
-
-    if (
-      externalRequest
-    ) {
-
+    if (externalRequest) {
       onExternalGenerationEvent?.({
-        requestId:
-          externalRequest.requestId,
+        requestId: externalRequest.requestId,
 
-        mode:
-          externalRequest.mode,
+        mode: externalRequest.mode,
 
-        phase:
-          "workspace",
+        phase: "workspace",
       });
-
     }
 
-
     try {
+      const response = await fetch(`${API_URL}/ai/jobs`, {
+        method: "POST",
 
-      const response =
-        await fetch(
-          `${API_URL}/ai/jobs`,
-          {
-            method:
-              "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        body: JSON.stringify({
+          topic: topic.trim(),
 
-            body:
-              JSON.stringify({
-                topic:
-                  topic.trim(),
+          platforms: requestedPlatforms,
 
-                platforms:
-                  requestedPlatforms,
+          style,
 
-                style,
+          language,
 
-                language,
+          campaignId: campaignId || undefined,
 
-                campaignId:
-                  campaignId
-                  ||
-                  undefined,
+          ideaId: ideaId || undefined,
 
-                ideaId:
-                  ideaId
-                  ||
-                  undefined,
+          assetIds: selectedAssets.map((asset) => asset.id),
+        }),
+      });
 
-                assetIds:
-                  selectedAssets.map(
-                    asset =>
-                      asset.id,
-                  ),
-              }),
-          },
-        );
+      const job = (await response.json()) as {
+        id?: string;
+        status?: string;
+        message?: string;
+        error?: string;
+      };
 
-
-      const job =
-        await response.json() as {
-          id?: string;
-          status?: string;
-          message?: string;
-          error?: string;
-        };
-
-
-      if (
-        !response.ok
-        ||
-        !job.id
-      ) {
-
+      if (!response.ok || !job.id) {
         throw new Error(
-          job.message
-          ||
-          job.error
-          ||
-          "Unable to create AI background job.",
+          job.message || job.error || "Unable to create AI background job.",
         );
-
       }
 
-
-      window.localStorage.setItem(
-        AI_STUDIO_JOB_KEY,
-        job.id,
-      );
-
+      window.localStorage.setItem(AI_STUDIO_JOB_KEY, job.id);
 
       setMessage(
         ui(
@@ -730,18 +836,9 @@ export function AiStudio({
         ),
       );
 
+      await completeJob(job.id);
 
-      await completeJob(
-        job.id,
-      );
-
-
-      if (
-        externalRequest?.mode
-        ===
-        "image"
-      ) {
-
+      if (externalRequest?.mode === "image") {
         /*
          * Content job has completed.
          * result.image + result.historyId now exist.
@@ -749,85 +846,47 @@ export function AiStudio({
          * AiWorkspace will mount ImageAssetPanel and
          * ImageAssetPanel will invoke the real image job.
          */
-        setImageGenerateRequestId(
-          externalRequest.requestId,
-        );
-
+        setImageGenerateRequestId(externalRequest.requestId);
 
         onExternalGenerationEvent?.({
-          requestId:
-            externalRequest.requestId,
+          requestId: externalRequest.requestId,
 
-          mode:
-            "image",
+          mode: "image",
 
-          phase:
-            "image",
+          phase: "image",
         });
-
-      } else if (
-        externalRequest
-      ) {
-
+      } else if (externalRequest) {
         onExternalGenerationEvent?.({
-          requestId:
-            externalRequest.requestId,
+          requestId: externalRequest.requestId,
 
-          mode:
-            externalRequest.mode,
+          mode: externalRequest.mode,
 
-          phase:
-            "done",
+          phase: "done",
         });
-
       }
-
     } catch (error) {
-
       const errorMessage =
         error instanceof Error
           ? error.message
-          : ui(
-              "Unable to generate content.",
-              "无法生成内容。",
-            );
+          : ui("Unable to generate content.", "无法生成内容。");
 
+      setMessage(errorMessage);
 
-      setMessage(
-        errorMessage,
-      );
-
-
-      if (
-        externalRequest
-      ) {
-
+      if (externalRequest) {
         onExternalGenerationEvent?.({
-          requestId:
-            externalRequest.requestId,
+          requestId: externalRequest.requestId,
 
-          mode:
-            externalRequest.mode,
+          mode: externalRequest.mode,
 
-          phase:
-            "error",
+          phase: "error",
 
-          message:
-            errorMessage,
+          message: errorMessage,
         });
-
       }
-
     } finally {
-
-      setIsGenerating(
-        false,
-      );
-
+      setIsGenerating(false);
     }
-
   }
-
 
   /*
    * External MobileShell generation request.
@@ -838,58 +897,23 @@ export function AiStudio({
    * Image:
    * generate Image Prompt first, then real image.
    */
-  useEffect(
-    () => {
+  useEffect(() => {
+    const request = externalGenerateRequest;
 
-      const request =
-        externalGenerateRequest;
+    if (!request || lastExternalRequestRef.current === request.requestId) {
+      return;
+    }
 
+    lastExternalRequestRef.current = request.requestId;
 
-      if (
-        !request
-        ||
-        lastExternalRequestRef.current
-          ===
-          request.requestId
-      ) {
+    if (request.mode === "image") {
+      void generateContent(["Image Prompt"], request);
 
-        return;
+      return;
+    }
 
-      }
-
-
-      lastExternalRequestRef.current =
-        request.requestId;
-
-
-      if (
-        request.mode
-        ===
-        "image"
-      ) {
-
-        void generateContent(
-          [
-            "Image Prompt",
-          ],
-          request,
-        );
-
-        return;
-
-      }
-
-
-      void generateContent(
-        undefined,
-        request,
-      );
-
-    },
-    [
-      externalGenerateRequest?.requestId,
-    ],
-  );
+    void generateContent(undefined, request);
+  }, [externalGenerateRequest?.requestId]);
 
   return (
     <div className={styles.page}>
@@ -955,11 +979,15 @@ export function AiStudio({
             <p className={styles.eyebrow}>{ui("Recent work", "最近生成")}</p>
             <h2>{ui("Continue from history", "继续之前的内容")}</h2>
           </div>
-          <a href="/content-history">{ui("View all history", "查看全部历史")} →</a>
+          <a href="/content-history">
+            {ui("View all history", "查看全部历史")} →
+          </a>
         </div>
 
         {isLoadingHistory ? (
-          <p className={styles.recentMessage}>{ui("Loading history...", "正在加载历史记录……")}</p>
+          <p className={styles.recentMessage}>
+            {ui("Loading history...", "正在加载历史记录……")}
+          </p>
         ) : recentHistory.length ? (
           <div className={styles.recentList}>
             {recentHistory.map((record) => (
@@ -974,15 +1002,19 @@ export function AiStudio({
                 </div>
                 <strong>{record.topic}</strong>
                 <p>
-                  {styleLabel(record.style)} · {contentLanguageLabel(record.language)}
+                  {styleLabel(record.style)} ·{" "}
+                  {contentLanguageLabel(record.language)}
                 </p>
                 <time dateTime={record.createdAt}>
-                  {new Intl.DateTimeFormat(interfaceLanguage === "zh" ? "zh-CN" : "en-MY", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(record.createdAt))}
+                  {new Intl.DateTimeFormat(
+                    interfaceLanguage === "zh" ? "zh-CN" : "en-MY",
+                    {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  ).format(new Date(record.createdAt))}
                 </time>
               </a>
             ))}
@@ -1177,51 +1209,29 @@ export function AiStudio({
           onMessage={setMessage}
           onResultChange={setResult}
 
-          imageGenerateRequestId={
-            imageGenerateRequestId
-            ??
-            undefined
-          }
+          imageGenerateRequestId={imageGenerateRequestId ?? undefined}
 
-          onImageGenerateSettled={
-            ({
-              requestId,
-              success,
-              message:
-                imageMessage,
-            }) => {
-
-              if (
-                requestId
-                !==
-                imageGenerateRequestId
-              ) {
-                return;
-              }
-
-
-              setImageGenerateRequestId(
-                null,
-              );
-
-
-              onExternalGenerationEvent?.({
-                requestId,
-
-                mode:
-                  "image",
-
-                phase:
-                  success
-                    ? "done"
-                    : "error",
-
-                message:
-                  imageMessage,
-              });
-
+          onImageGenerateSettled={({
+            requestId,
+            success,
+            message: imageMessage,
+          }) => {
+            if (requestId !== imageGenerateRequestId) {
+              return;
             }
-          }
+
+            setImageGenerateRequestId(null);
+
+            onExternalGenerationEvent?.({
+              requestId,
+
+              mode: "image",
+
+              phase: success ? "done" : "error",
+
+              message: imageMessage,
+            });
+          }}
         />
       </section>
       {isAssetPickerOpen ? (

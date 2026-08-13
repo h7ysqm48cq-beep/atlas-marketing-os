@@ -1,0 +1,163 @@
+.workspace {
+  width: 100%;
+  min-width: 0;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.header h1 {
+  margin: 4px 0 6px;
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.header p {
+  margin: 0;
+  opacity: 0.68;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.58;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.55fr)
+    minmax(360px, 0.78fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.studioPanel,
+.elenaPanel {
+  min-width: 0;
+}
+
+.elenaPanel {
+  position: sticky;
+  top: 18px;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+}
+
+.mobileNav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .header {
+    display: none;
+  }
+
+  .layout {
+    display: block;
+    padding-bottom: 78px;
+  }
+
+  .studioPanel,
+  .elenaPanel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .studioPanel[data-mobile-visible="false"],
+  .elenaPanel[data-mobile-visible="false"] {
+    display: none;
+  }
+
+  /*
+   * CREATE
+   * Keep Studio input/form visible,
+   * hide generated workspace results.
+   */
+  .studioPanel[data-mobile-mode="create"]
+    :global([class*="AiWorkspace_workspace"]) {
+    display: none !important;
+  }
+
+  /*
+   * RESULTS
+   * Hide the creation form.
+   * Keep generated content/image/publish UI.
+   */
+  .studioPanel[data-mobile-mode="results"]
+    :global([class*="AiStudio_formCard"]) {
+    display: none !important;
+  }
+
+  .studioPanel[data-mobile-mode="results"]
+    :global([class*="AiTopicSuggestions"]) {
+    display: none !important;
+  }
+
+  .mobileNav {
+    position: fixed;
+    z-index: 90;
+
+    left: 50%;
+    bottom: 12px;
+
+    transform: translateX(-50%);
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    width: min(calc(100% - 24px), 520px);
+
+    padding: 6px;
+
+    border: 1px solid rgba(127, 127, 127, 0.22);
+
+    border-radius: 18px;
+
+    background: color-mix(in srgb, Canvas 92%, transparent);
+
+    backdrop-filter: blur(18px);
+
+    box-shadow: 0 12px 38px rgba(0, 0, 0, 0.16);
+  }
+
+  .mobileNav button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+
+    min-height: 50px;
+
+    border-radius: 13px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+
+    cursor: pointer;
+    opacity: 0.62;
+  }
+
+  .mobileNav button span:first-child {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .mobileNav button.activeTab {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+
+    opacity: 1;
+  }
+}

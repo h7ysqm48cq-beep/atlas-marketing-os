@@ -22,6 +22,7 @@ import { PromptContextPipelineService } from './prompt/prompt-context-pipeline.s
 import { MarketingPlannerService } from './marketing-planner.service';
 import { CopilotBackgroundJobService } from './copilot-background-job.service';
 import { ConversationRecallService } from './conversation-recall.service';
+import { GenerationHistoryRecallService } from './generation-history-recall.service';
 import { ConversationEmbeddingService } from './conversation-embedding.service';
 import { ConversationRecallFusionService } from './conversation-recall-fusion.service';
 import { ConversationRecallContextBuilder } from './conversation-recall-context.builder';
@@ -45,6 +46,7 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
   ],
   providers: [
     ConversationRecallService,
+    GenerationHistoryRecallService,
     ConversationEmbeddingService,
     ConversationRecallFusionService,
     ConversationRecallContextBuilder,
