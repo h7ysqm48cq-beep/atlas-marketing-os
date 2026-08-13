@@ -11,7 +11,6 @@ import {
   updateBrowserAccount,
 } from "./browser-accounts/api/accounts.api";
 
-
 import {
   getBrowserStatus,
   openBrowser as openBrowserApi,
@@ -19,7 +18,7 @@ import {
   inspectBrowser,
 } from "./browser-accounts/api/browserRuntime.api";
 
-
+import { AccountActions } from "./browser-accounts/components/AccountActions";
 import { AccountOverview } from "./browser-accounts/components/AccountOverview";
 
 import {
@@ -269,10 +268,7 @@ export function BrowserAccountsManagerV2({
       });
 
       try {
-        const body =
-          await getBrowserStatus(
-            accountId,
-          );
+        const body = await getBrowserStatus(accountId);
 
         const session =
           body.session && typeof body.session === "object"
@@ -300,14 +296,7 @@ export function BrowserAccountsManagerV2({
 
   const loadBrands = useCallback(async () => {
     try {
-      const candidates =
-            await getBrands() as BrandOption[];
-
-          const candidates = Array.isArray(body)
-        ? body
-        : Array.isArray(body.brands)
-          ? body.brands
-          : [];
+      const candidates = (await getBrands()) as BrandOption[];
 
       setBrands(candidates as BrandOption[]);
     } catch (error) {
@@ -322,8 +311,7 @@ export function BrowserAccountsManagerV2({
     setGlobalError("");
 
     try {
-      const nextAccounts =
-        await getBrowserAccounts() as BrowserAccount[];
+      const nextAccounts = (await getBrowserAccounts()) as BrowserAccount[];
 
       setAccounts(nextAccounts);
 
@@ -427,39 +415,32 @@ export function BrowserAccountsManagerV2({
       const proxyPort =
         editForm.proxyType === "DIRECT" ? null : Number(editForm.proxyPort);
 
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}`,
+      await updateBrowserAccount(
+        selectedAccount.id,
         {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            displayName: editForm.displayName,
-            browserProfileName: editForm.browserProfileName,
-            brandId: editForm.brandId || null,
-            locale: editForm.locale,
-            timezone: editForm.timezone,
-            proxyType: editForm.proxyType,
-            proxyHost:
-              editForm.proxyType === "DIRECT" ? null : editForm.proxyHost,
-            proxyPort,
-            proxyUsername: editForm.proxyUsername || undefined,
-            proxyPassword: editForm.proxyPassword || undefined,
-            proxyCountry:
-              editForm.proxyType === "DIRECT" ? null : editForm.proxyCountry,
-            clearProxyCredentials: editForm.clearProxyCredentials,
-          }),
+          displayName: editForm.displayName,
+          browserProfileName: editForm.browserProfileName,
+          brandId: editForm.brandId || null,
+          locale: editForm.locale,
+          timezone: editForm.timezone,
+          proxyType: editForm.proxyType,
+          proxyHost:
+            editForm.proxyType === "DIRECT"
+              ? null
+              : editForm.proxyHost,
+          proxyPort,
+          proxyUsername:
+            editForm.proxyUsername || undefined,
+          proxyPassword:
+            editForm.proxyPassword || undefined,
+          proxyCountry:
+            editForm.proxyType === "DIRECT"
+              ? null
+              : editForm.proxyCountry,
+          clearProxyCredentials:
+            editForm.clearProxyCredentials,
         },
       );
-
-      const body = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(body, "Unable to update browser account."),
-        );
-      }
 
       setEditOpen(false);
       setEditForm(null);
@@ -1712,70 +1693,15 @@ export function BrowserAccountsManagerV2({
               <div className={styles.error}>{selectedRuntime.error}</div>
             ) : null}
 
-            <div
-              className={styles.actions}
-              id={`browser-account-${selectedAccount.id}-actions`}
-            >
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                disabled={selectedRuntime.loading}
-                onClick={() => openEdit(selectedAccount)}
-              >
-                Edit Account
-              </button>
-
-              <button
-                className={styles.primaryButton}
-                type="button"
-                disabled={selectedRuntime.loading}
-                onClick={() =>
-                  void openBrowser(selectedAccount.id).catch((error) =>
-                    setGlobalError(
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to open browser.",
-                    ),
-                  )
-                }
-              >
-                Open Browser
-              </button>
-
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                disabled={selectedRuntime.loading}
-                onClick={() =>
-                  void verifyLogin(selectedAccount.id).catch((error) =>
-                    setGlobalError(
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to verify login.",
-                    ),
-                  )
-                }
-              >
-                Verify Login
-              </button>
-
-              <button
-                className={styles.dangerButton}
-                type="button"
-                disabled={selectedRuntime.loading || !selectedRuntime.running}
-                onClick={() =>
-                  void closeBrowser(selectedAccount.id).catch((error) =>
-                    setGlobalError(
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to close browser.",
-                    ),
-                  )
-                }
-              >
-                Close Browser
-              </button>
-            </div>
+            <AccountActions
+              account={selectedAccount}
+              runtime={selectedRuntime}
+              onEdit={openEdit}
+              onOpenBrowser={openBrowser}
+              onVerifyLogin={verifyLogin}
+              onCloseBrowser={closeBrowser}
+              onError={setGlobalError}
+            />
 
             {viewerOpen && selectedAccount ? (
               <section ref={viewerRef} className={styles.viewerPanel}>
