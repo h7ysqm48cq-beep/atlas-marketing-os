@@ -3852,3 +3852,606 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     width: 100%;
   }
 }
+
+/* Atlas PWA Label/Icon Customization */
+
+.atlas-pwa-settings__customize {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.atlas-pwa-settings__customize input,
+.atlas-pwa-settings__customize select {
+  width: 100%;
+  min-height: 40px;
+
+  padding: 0 10px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--panel);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 12px;
+}
+
+.atlas-pwa-settings__customize input::placeholder {
+  color: var(--muted);
+}
+
+@media (max-width: 420px) {
+  .atlas-pwa-settings__customize {
+    grid-template-columns: 1fr;
+  }
+}
+
+:root[data-theme="light"] .atlas-pwa-settings__customize input,
+:root[data-theme="light"] .atlas-pwa-settings__customize select {
+  background: #f8fafc;
+}
+
+/* Atlas PWA Navigation Presets */
+
+.atlas-pwa-presets {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.atlas-pwa-presets__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.atlas-pwa-presets__heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-presets__heading strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.atlas-pwa-presets__heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.atlas-pwa-presets__current {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(209, 163, 63, 0.24);
+  border-radius: 999px;
+  color: var(--gold-light) !important;
+  background: rgba(209, 163, 63, 0.08);
+  font-weight: 700;
+}
+
+.atlas-pwa-presets__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.atlas-pwa-presets__item {
+  min-width: 0;
+  min-height: 108px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+
+  padding: 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  text-align: left;
+  font: inherit;
+
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.atlas-pwa-presets__item strong {
+  font-size: 13px;
+}
+
+.atlas-pwa-presets__item span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.atlas-pwa-presets__item small {
+  margin-top: auto;
+
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.atlas-pwa-presets__item.is-active {
+  border-color: rgba(209, 163, 63, 0.38);
+
+  background: rgba(209, 163, 63, 0.1);
+
+  box-shadow: inset 0 0 0 1px rgba(209, 163, 63, 0.08);
+}
+
+.atlas-pwa-presets__item.is-active strong {
+  color: var(--gold-light);
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-presets {
+    padding: 14px;
+  }
+
+  .atlas-pwa-presets__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+:root[data-theme="light"] .atlas-pwa-presets {
+  background: #ffffff;
+}
+
+:root[data-theme="light"] .atlas-pwa-presets__item {
+  background: #f8fafc;
+}
+
+/* =========================================================
+   Atlas PWA Appearance Customization
+   ========================================================= */
+
+.atlas-pwa-appearance {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.atlas-pwa-appearance__heading {
+  margin-bottom: 16px;
+}
+
+.atlas-pwa-appearance__heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-appearance__heading strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.atlas-pwa-appearance__heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.atlas-pwa-appearance__options {
+  display: grid;
+  gap: 10px;
+}
+
+.atlas-pwa-appearance__row,
+.atlas-pwa-appearance__field {
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+  padding: 11px 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--panel-soft);
+}
+
+.atlas-pwa-appearance__row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-appearance__row strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.atlas-pwa-appearance__row span,
+.atlas-pwa-appearance__field > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.atlas-pwa-appearance__row input {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.atlas-pwa-appearance__field select {
+  min-width: 145px;
+  min-height: 40px;
+
+  padding: 0 10px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--panel);
+  color: var(--text);
+}
+
+.atlas-pwa-appearance__demo {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+
+  max-width: 360px;
+
+  margin: 16px auto 0;
+  padding: 9px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  background: var(--panel-soft);
+
+  text-align: center;
+  color: var(--gold-light);
+}
+
+.atlas-pwa-appearance__demo--edge {
+  max-width: 100%;
+  border-radius: 16px 16px 3px 3px;
+}
+
+.atlas-pwa-appearance__demo--compact {
+  max-width: 300px;
+  padding: 5px;
+}
+
+.atlas-pwa-appearance__reset {
+  min-height: 40px;
+
+  margin-top: 14px;
+  padding: 0 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* Hide the PWA top header */
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] [data-pwa-header="hidden"] .header,
+  html[data-pwa="standalone"][data-pwa-header="hidden"] .header {
+    display: none;
+  }
+
+  html[data-pwa="standalone"][data-pwa-header="hidden"] .atlas-network-status {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* Edge-to-edge dock */
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"][data-pwa-dock-style="edge"]
+    .atlas-pwa-mobile-nav {
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+/* Compact dock */
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"][data-pwa-dock-style="compact"]
+    .atlas-pwa-mobile-nav {
+    right: 20px;
+    left: 20px;
+
+    min-height: 54px;
+
+    padding: 4px 5px max(4px, env(safe-area-inset-bottom, 0px));
+
+    border-radius: 17px;
+  }
+
+  html[data-pwa="standalone"][data-pwa-dock-style="compact"]
+    .atlas-pwa-mobile-nav__item {
+    min-height: 43px;
+  }
+
+  html[data-pwa="standalone"][data-pwa-dock-style="compact"]
+    .atlas-pwa-mobile-nav__icon {
+    min-height: 20px;
+    font-size: 17px;
+  }
+
+  html[data-pwa="standalone"][data-pwa-dock-style="compact"]
+    .atlas-pwa-mobile-nav__label {
+    font-size: 8px;
+  }
+}
+
+/* Hide dock labels */
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"][data-pwa-dock-labels="hidden"]
+    .atlas-pwa-mobile-nav__label {
+    display: none;
+  }
+
+  html[data-pwa="standalone"][data-pwa-dock-labels="hidden"]
+    .atlas-pwa-mobile-nav__item {
+    justify-content: center;
+  }
+
+  html[data-pwa="standalone"][data-pwa-dock-labels="hidden"]
+    .atlas-pwa-mobile-nav__icon {
+    min-height: 30px;
+    font-size: 21px;
+  }
+}
+
+/* Light */
+
+:root[data-theme="light"] .atlas-pwa-appearance {
+  background: #ffffff;
+}
+
+:root[data-theme="light"] .atlas-pwa-appearance__row,
+:root[data-theme="light"] .atlas-pwa-appearance__field,
+:root[data-theme="light"] .atlas-pwa-appearance__demo,
+:root[data-theme="light"] .atlas-pwa-appearance__reset {
+  background: #f8fafc;
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-appearance {
+    padding: 14px;
+  }
+
+  .atlas-pwa-appearance__field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .atlas-pwa-appearance__field select {
+    width: 100%;
+  }
+}
+
+/* Atlas PWA Startup Page */
+
+.atlas-pwa-startup {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.atlas-pwa-startup__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.atlas-pwa-startup__heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-startup__heading strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.atlas-pwa-startup__heading span,
+.atlas-pwa-startup__note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.atlas-pwa-startup__toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.atlas-pwa-startup__toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.atlas-pwa-startup__field {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.atlas-pwa-startup__field > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.atlas-pwa-startup__field select,
+.atlas-pwa-startup__field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 13px;
+}
+
+.atlas-pwa-startup__note {
+  margin: 12px 0 0;
+}
+
+.atlas-pwa-startup__reset {
+  min-height: 40px;
+  margin-top: 14px;
+  padding: 0 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+:root[data-theme="light"] .atlas-pwa-startup {
+  background: #ffffff;
+}
+
+:root[data-theme="light"] .atlas-pwa-startup__field select,
+:root[data-theme="light"] .atlas-pwa-startup__field input,
+:root[data-theme="light"] .atlas-pwa-startup__reset {
+  background: #f8fafc;
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-startup {
+    padding: 14px;
+  }
+
+  .atlas-pwa-startup__heading {
+    flex-direction: column;
+  }
+}
+
+/* Atlas PWA App Behaviour */
+
+.atlas-pwa-startup__modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.atlas-pwa-startup__modes button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  min-height: 76px;
+  padding: 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.atlas-pwa-startup__modes button strong {
+  font-size: 12px;
+}
+
+.atlas-pwa-startup__modes button span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.atlas-pwa-startup__modes button.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.atlas-pwa-startup__modes button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.atlas-pwa-startup__last {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-top: 12px;
+  padding: 10px 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--panel-soft);
+}
+
+.atlas-pwa-startup__last span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.atlas-pwa-startup__last strong {
+  color: var(--text);
+  font-size: 11px;
+  text-align: right;
+  word-break: break-all;
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-startup__modes {
+    grid-template-columns: 1fr;
+  }
+}

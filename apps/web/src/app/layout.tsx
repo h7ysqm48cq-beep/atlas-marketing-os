@@ -7,6 +7,10 @@ import { PreferencesProvider } from "@/components/preferences";
 import { PwaRegister } from "@/components/PwaRegister";
 import { PwaStandalone } from "@/components/PwaStandalone";
 import { PwaNetworkStatus } from "@/components/PwaNetworkStatus";
+import { PwaAppearanceSync } from "@/components/PwaAppearanceSync";
+import { PwaStartupRedirect } from "@/components/PwaStartupRedirect";
+import { PwaRouteMemory } from "@/components/PwaRouteMemory";
+import { PwaSessionRestore } from "@/components/PwaSessionRestore";
 
 export const metadata: Metadata = {
   title: {
@@ -131,6 +135,10 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         <PwaStandalone />
+        <PwaAppearanceSync />
+        <PwaStartupRedirect />
+        <PwaRouteMemory />
+        <PwaSessionRestore />
         <PwaNetworkStatus />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>

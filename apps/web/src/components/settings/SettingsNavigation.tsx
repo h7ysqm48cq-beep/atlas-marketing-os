@@ -5,6 +5,9 @@ import { WorkspaceSettings } from "./WorkspaceSettings";
 import { AiRuntimeSettings } from "./AiRuntimeSettings";
 import { PwaDiagnostics } from "@/components/PwaDiagnostics";
 import { PwaAppSettings } from "@/components/PwaAppSettings";
+import { PwaAppearanceSettings } from "@/components/PwaAppearanceSettings";
+import { PwaStartupSettings } from "@/components/PwaStartupSettings";
+import { PwaNavigationPresets } from "@/components/PwaNavigationPresets";
 import styles from "./SettingsNavigation.module.css";
 
 type SettingsTab = "general" | "ai-runtime" | "app-status";
@@ -66,7 +69,10 @@ export function SettingsNavigation() {
           <AiRuntimeSettings />
         ) : (
           <div className="atlas-pwa-settings-stack">
+            <PwaNavigationPresets />
             <PwaAppSettings />
+            <PwaAppearanceSettings />
+            <PwaStartupSettings />
             <PwaDiagnostics />
           </div>
         )}

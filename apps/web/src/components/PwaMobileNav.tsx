@@ -17,9 +17,11 @@ import {
 export function PwaMobileNav() {
   const pathname = usePathname();
 
-  const [settings, setSettings] = useState<PwaNavigationSettings>(
-    DEFAULT_PWA_NAVIGATION,
-  );
+  const [settings, setSettings] = useState<PwaNavigationSettings>({
+    ...DEFAULT_PWA_NAVIGATION,
+    quickLinks: [...DEFAULT_PWA_NAVIGATION.quickLinks],
+    customizations: {},
+  });
 
   useEffect(() => {
     const update = () => {
@@ -72,6 +74,12 @@ export function PwaMobileNav() {
       {items.map((item) => {
         const active = isActive(item.href);
 
+        const customization = settings.customizations[item.id];
+
+        const icon = customization?.icon || item.icon;
+
+        const label = customization?.label || item.label;
+
         return (
           <Link
             key={item.id}
@@ -98,10 +106,10 @@ export function PwaMobileNav() {
             aria-current={active ? "page" : undefined}
           >
             <span className="atlas-pwa-mobile-nav__icon" aria-hidden="true">
-              {item.icon}
+              {icon}
             </span>
 
-            <span className="atlas-pwa-mobile-nav__label">{item.label}</span>
+            <span className="atlas-pwa-mobile-nav__label">{label}</span>
           </Link>
         );
       })}
