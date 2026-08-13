@@ -425,17 +425,18 @@ export function BrandCopilot() {
             ? scheduleResult.scheduledItems
             : [];
 
-          const posts = scheduledItems.flatMap(
-            (entry: {
-              posts?: Array<{
-                id?: string;
-                platform?: string;
-                scheduledAt?: string;
-                channel?: {
-                  name?: string;
-                };
-              }>;
-            }) => (Array.isArray(entry.posts) ? entry.posts : []),
+          type ScheduledPostResult = {
+            id?: string;
+            platform?: string;
+            scheduledAt?: string;
+            channel?: {
+              name?: string;
+            };
+          };
+
+          const posts: ScheduledPostResult[] = scheduledItems.flatMap(
+            (entry: { posts?: ScheduledPostResult[] }) =>
+              Array.isArray(entry.posts) ? entry.posts : [],
           );
 
           const postCount =
