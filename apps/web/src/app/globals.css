@@ -3462,3 +3462,110 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     touch-action: manipulation;
   }
 }
+
+/* =========================================================
+   Atlas Interaction Layer System
+   ========================================================= */
+
+:root {
+  --atlas-z-content: 1;
+  --atlas-z-header: 80;
+  --atlas-z-dock: 90;
+  --atlas-z-overlay: 300;
+  --atlas-z-drawer: 310;
+  --atlas-z-toast: 10000;
+  --atlas-z-system: 10020;
+}
+
+/*
+ * Mobile sidebar must not intercept touches while translated
+ * outside the viewport.
+ */
+@media (max-width: 780px) {
+  .sidebar {
+    pointer-events: none;
+  }
+
+  .sidebar.mobile-open {
+    pointer-events: auto;
+    z-index: var(--atlas-z-drawer);
+  }
+
+  /*
+   * visibility provides another safeguard in addition to
+   * pointer-events:none. This avoids invisible Safari layers
+   * remaining hit-testable during/after transitions.
+   */
+  .mobile-nav-overlay {
+    visibility: hidden;
+    z-index: var(--atlas-z-overlay);
+    pointer-events: none;
+  }
+
+  .mobile-nav-overlay.visible {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /*
+   * Normal app UI layers.
+   */
+  .header {
+    z-index: var(--atlas-z-header);
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav {
+    z-index: var(--atlas-z-dock);
+  }
+
+  /*
+   * Drawer must always sit above the PWA dock.
+   */
+  html[data-pwa="standalone"] .sidebar.mobile-open {
+    z-index: var(--atlas-z-drawer);
+  }
+
+  html[data-pwa="standalone"] .mobile-nav-overlay.visible {
+    z-index: var(--atlas-z-overlay);
+  }
+
+  /*
+   * Fixed navigation controls themselves must remain tappable.
+   */
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav,
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item,
+  html[data-pwa="standalone"] .header-actions button,
+  html[data-pwa="standalone"] .user-chip {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+}
+
+/*
+ * System feedback lives above navigation/drawers but remains
+ * non-blocking unless it contains an actual control.
+ */
+.atlas-network-status {
+  z-index: var(--atlas-z-toast);
+  pointer-events: none;
+}
+
+.atlas-pwa-route-progress {
+  z-index: var(--atlas-z-system);
+  pointer-events: none;
+}
+
+.atlas-pwa-update {
+  z-index: var(--atlas-z-toast);
+  pointer-events: auto;
+}
+
+/*
+ * Prevent pseudo-elements used for decorative states from
+ * stealing clicks.
+ */
+.atlas-pwa-mobile-nav__item::before,
+.mobile-menu-line,
+.mobile-close-line {
+  pointer-events: none;
+}
