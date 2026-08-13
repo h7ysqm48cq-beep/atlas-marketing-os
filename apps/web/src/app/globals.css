@@ -2769,3 +2769,82 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     max-width: calc(100vw - 20px);
   }
 }
+
+/* Atlas PWA Diagnostics */
+
+.atlas-pwa-diagnostics {
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(17, 24, 39, 0.72),
+    rgba(7, 11, 20, 0.82)
+  );
+}
+
+.atlas-pwa-diagnostics__header {
+  margin-bottom: 16px;
+}
+
+.atlas-pwa-diagnostics__header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-diagnostics__header strong {
+  color: #f3f4f6;
+  font-size: 14px;
+}
+
+.atlas-pwa-diagnostics__header span {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.atlas-pwa-diagnostics__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.atlas-pwa-diagnostics__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  min-width: 0;
+  padding: 12px;
+
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.atlas-pwa-diagnostics__item span {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.atlas-pwa-diagnostics__item strong {
+  overflow: hidden;
+
+  color: #f3f4f6;
+  font-size: 13px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .atlas-pwa-diagnostics {
+    padding: 14px;
+  }
+
+  .atlas-pwa-diagnostics__grid {
+    grid-template-columns: 1fr;
+  }
+}

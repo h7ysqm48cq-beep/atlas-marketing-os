@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { AiRuntimeSettings } from "./AiRuntimeSettings";
+import { PwaDiagnostics } from "@/components/PwaDiagnostics";
 import styles from "./SettingsNavigation.module.css";
 
-type SettingsTab = "general" | "ai-runtime";
+type SettingsTab = "general" | "ai-runtime" | "app-status";
 
 const tabs: Array<{
   id: SettingsTab;
@@ -21,6 +22,11 @@ const tabs: Array<{
     id: "ai-runtime",
     label: "AI Runtime",
     description: "Models used across Atlas AI services",
+  },
+  {
+    id: "app-status",
+    label: "App Status",
+    description: "PWA mode, network and device diagnostics",
   },
 ];
 
@@ -55,8 +61,10 @@ export function SettingsNavigation() {
       <div className={styles.content} role="tabpanel">
         {activeTab === "general" ? (
           <WorkspaceSettings />
-        ) : (
+        ) : activeTab === "ai-runtime" ? (
           <AiRuntimeSettings />
+        ) : (
+          <PwaDiagnostics />
         )}
       </div>
     </div>

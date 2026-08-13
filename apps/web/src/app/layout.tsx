@@ -82,6 +82,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta
+          name="atlas-build"
+          content={process.env.NEXT_PUBLIC_ATLAS_BUILD || "dev"}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
