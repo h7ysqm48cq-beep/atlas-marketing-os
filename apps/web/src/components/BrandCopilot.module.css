@@ -184,6 +184,36 @@
   font-size: 10px;
 }
 
+
+.planShortcut svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.planShortcut {
+  min-width: 34px;
+  height: 28px;
+  margin-right: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(209, 163, 63, 0.08);
+  color: var(--gold-light);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.planShortcut:hover {
+  background: rgba(209, 163, 63, 0.18);
+}
+
 .conversationActions {
   display: flex;
   align-items: center;
@@ -1588,7 +1618,7 @@
 .marketingPlan {
   width: calc(100% - 20px);
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .marketingPlan * {
@@ -1762,3 +1792,25 @@
   background: rgba(209, 163, 63, 0.16);
   color: var(--gold-light);
 }
+
+
+.planShortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: var(--gold-light);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.planShortcut svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+

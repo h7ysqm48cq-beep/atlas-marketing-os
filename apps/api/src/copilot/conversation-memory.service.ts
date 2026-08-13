@@ -58,13 +58,18 @@ export class ConversationMemoryService {
   async list() {
     const brand = await this.brands.getActiveBrand();
 
-    return this.prisma.copilotConversation.findMany({
+    const conversations = await this.prisma.copilotConversation.findMany({
       where: {
         brandId: brand.id,
         isArchived: false,
       },
       select: {
         ...this.conversationSummarySelect(),
+        messages: {
+          select: {
+            metadata: true,
+          },
+        },
         _count: {
           select: {
             messages: true,
@@ -76,6 +81,18 @@ export class ConversationMemoryService {
       },
       take: 100,
     });
+
+    return conversations.map((conversation) => ({
+      ...conversation,
+      hasMarketingPlan: conversation.messages.some(
+        (message) =>
+          message.metadata &&
+          typeof message.metadata === 'object' &&
+          'type' in message.metadata &&
+          message.metadata.type === 'marketing-plan',
+      ),
+      messages: undefined,
+    }));
   }
 
   async get(conversationId: string) {
@@ -117,15 +134,39 @@ export class ConversationMemoryService {
     mode?: string;
     firstMessage: string;
   }) {
+    const brand = await this.brands.getActiveBrand();
+
     if (!input.conversationId) {
+      const title = this.createTitle(input.firstMessage);
+
+      const existing =
+        await this.prisma.copilotConversation.findFirst({
+          where: {
+            brandId: brand.id,
+            campaignId: input.campaignId,
+            mode: input.mode || 'chat',
+            title,
+            isArchived: false,
+            updatedAt: {
+              gte: new Date(Date.now() - 15000),
+            },
+          },
+          select: this.conversationSummarySelect(),
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        });
+
+      if (existing) {
+        return existing;
+      }
+
       return this.create({
         campaignId: input.campaignId,
         mode: input.mode,
         firstMessage: input.firstMessage,
       });
     }
-
-    const brand = await this.brands.getActiveBrand();
 
     const conversation = await this.prisma.copilotConversation.findFirst({
       where: {

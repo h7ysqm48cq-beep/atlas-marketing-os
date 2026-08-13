@@ -219,15 +219,6 @@ export class MarketingPlannerService {
           'OPENAI_API_KEY is not configured. Returned the safe fallback plan.',
       };
 
-      await this.conversations.appendAssistantMessage(
-        conversation.id,
-        JSON.stringify(result),
-        {
-          type: 'marketing-plan',
-          plan: result,
-        },
-      );
-
       return result;
     }
 
@@ -279,15 +270,6 @@ export class MarketingPlannerService {
         strategy,
         generatedBy: 'ai' as const,
       };
-
-      await this.conversations.appendAssistantMessage(
-        conversation.id,
-        JSON.stringify(result),
-        {
-          type: 'marketing-plan',
-          plan: result,
-        },
-      );
 
       return result;
     } catch (error) {

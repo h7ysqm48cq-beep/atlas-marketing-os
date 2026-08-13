@@ -1077,7 +1077,28 @@ You can continue refining this plan with Elena.
 
                     <small>
                       {conversation._count?.messages || 0} messages
-                      {conversation.hasMarketingPlan && " · Plan"}
+                    </small>
+
+                    {conversation.hasMarketingPlan && (
+                      <span
+                        className={styles.planShortcut}
+                        title="Open Marketing Plan"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path d="M6 3h9l3 3v15H6z" />
+                          <path d="M15 3v4h4" />
+                          <path d="M9 12h6" />
+                          <path d="M9 16h6" />
+                        </svg>
+                        Plan
+                      </span>
+                    )}
+
+                    <small>
+                      {conversation._count?.messages || 0} messages
                     </small>
                   </button>
 
@@ -1097,7 +1118,16 @@ You can continue refining this plan with Elena.
                         }, 500);
                       }}
                     >
-                      ▤
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path d="M6 3h9l3 3v15H6z" />
+                        <path d="M15 3v4h4" />
+                        <path d="M9 12h6" />
+                        <path d="M9 16h6" />
+                      </svg>
+                      <span>Plan</span>
                     </button>
                   )}
 

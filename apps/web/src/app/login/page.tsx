@@ -79,6 +79,8 @@ export default function LoginPage() {
         );
       }
 
+      await supabase.auth.refreshSession();
+
       setStatus(
         "Login successful. Redirecting...",
       );
@@ -92,9 +94,8 @@ export default function LoginPage() {
         params.get("next") ||
         "/engineering";
 
-      window.location.assign(
-        destination,
-      );
+      window.location.href =
+        destination;
     } catch (loginError) {
       console.error(
         "Atlas login failed:",
@@ -191,9 +192,11 @@ export default function LoginPage() {
           <button
             type="button"
             disabled={loading}
-            onClick={() =>
-              void performLogin()
-            }
+            onClick={() => {
+              console.log("LOGIN BUTTON CLICKED");
+              setStatus("Button clicked");
+              void performLogin();
+            }}
           >
             {loading
               ? "Signing in..."
