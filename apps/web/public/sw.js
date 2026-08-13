@@ -1,6 +1,13 @@
-const CACHE_NAME = "atlas-pwa-v4";
+const CACHE_NAME = "atlas-pwa-v5";
 
-const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
+const STATIC_ASSETS = [
+  "/",
+  "/offline.html",
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/apple-touch-icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
