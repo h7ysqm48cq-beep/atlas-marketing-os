@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { readPwaControlSettings } from "@/components/pwaControlConfig";
+
 import {
   readLastPwaRoute,
   readPwaStartupSettings,
@@ -36,6 +38,12 @@ export function PwaStartupRedirect() {
     }
 
     window.sessionStorage.setItem(SESSION_KEY, "true");
+
+    const control = readPwaControlSettings();
+
+    if (!control.customizationsEnabled) {
+      return;
+    }
 
     const settings = readPwaStartupSettings();
 

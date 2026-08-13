@@ -4455,3 +4455,121 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Atlas PWA Settings Accordion
+   ========================================================= */
+
+.atlas-pwa-settings-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.atlas-pwa-accordion {
+  overflow: hidden;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--panel);
+}
+
+.atlas-pwa-accordion__trigger {
+  width: 100%;
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+  padding: 14px 16px;
+
+  border: 0;
+  background: transparent;
+  color: var(--text);
+
+  text-align: left;
+  font: inherit;
+
+  cursor: pointer;
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.atlas-pwa-accordion__trigger > div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.atlas-pwa-accordion__trigger strong {
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.atlas-pwa-accordion__trigger span {
+  color: var(--muted);
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.atlas-pwa-accordion__chevron {
+  flex: 0 0 auto;
+
+  color: var(--muted) !important;
+
+  font-size: 25px !important;
+  line-height: 1;
+
+  transform: rotate(90deg);
+
+  transition: transform 160ms ease;
+}
+
+.atlas-pwa-accordion.is-open .atlas-pwa-accordion__chevron {
+  transform: rotate(-90deg);
+}
+
+.atlas-pwa-accordion__content {
+  padding: 0 10px 10px;
+}
+
+.atlas-pwa-accordion__content[hidden] {
+  display: none;
+}
+
+/*
+ * Inner cards already have their own visual hierarchy.
+ * Remove excessive outer spacing inside accordion.
+ */
+
+.atlas-pwa-accordion__content > section {
+  margin: 0;
+}
+
+:root[data-theme="light"] .atlas-pwa-accordion {
+  background: #ffffff;
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-accordion {
+    border-radius: 14px;
+  }
+
+  .atlas-pwa-accordion__trigger {
+    min-height: 64px;
+
+    padding: 12px 13px;
+  }
+
+  .atlas-pwa-accordion__content {
+    padding: 0 7px 7px;
+  }
+}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { AiRuntimeSettings } from "./AiRuntimeSettings";
 import { PwaDiagnostics } from "@/components/PwaDiagnostics";
+import { PwaControlCenter } from "@/components/PwaControlCenter";
+import { PwaSettingsSection } from "@/components/PwaSettingsAccordion";
 import { PwaAppSettings } from "@/components/PwaAppSettings";
 import { PwaAppearanceSettings } from "@/components/PwaAppearanceSettings";
 import { PwaStartupSettings } from "@/components/PwaStartupSettings";
@@ -69,11 +71,54 @@ export function SettingsNavigation() {
           <AiRuntimeSettings />
         ) : (
           <div className="atlas-pwa-settings-stack">
-            <PwaNavigationPresets />
-            <PwaAppSettings />
-            <PwaAppearanceSettings />
-            <PwaStartupSettings />
-            <PwaDiagnostics />
+            <PwaSettingsSection
+              id="control"
+              title="PWA Control Center"
+              description="Global controls and reset options"
+              defaultOpen
+            >
+              <PwaControlCenter />
+            </PwaSettingsSection>
+
+            <PwaSettingsSection
+              id="presets"
+              title="Navigation Presets"
+              description="Switch Atlas dock layouts quickly"
+            >
+              <PwaNavigationPresets />
+            </PwaSettingsSection>
+
+            <PwaSettingsSection
+              id="navigation"
+              title="Navigation Customize"
+              description="Choose shortcuts, order, labels and icons"
+            >
+              <PwaAppSettings />
+            </PwaSettingsSection>
+
+            <PwaSettingsSection
+              id="appearance"
+              title="App Appearance"
+              description="Header, dock style and labels"
+            >
+              <PwaAppearanceSettings />
+            </PwaSettingsSection>
+
+            <PwaSettingsSection
+              id="behaviour"
+              title="App Behaviour"
+              description="Startup page and last-page restore"
+            >
+              <PwaStartupSettings />
+            </PwaSettingsSection>
+
+            <PwaSettingsSection
+              id="diagnostics"
+              title="App Diagnostics"
+              description="PWA mode, network and service-worker status"
+            >
+              <PwaDiagnostics />
+            </PwaSettingsSection>
           </div>
         )}
       </div>

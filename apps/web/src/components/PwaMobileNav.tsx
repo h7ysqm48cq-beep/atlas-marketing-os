@@ -7,6 +7,11 @@ import { useEffect, useMemo, useState } from "react";
 import { startPwaNavigationProgress } from "@/components/PwaNavigationProgress";
 
 import {
+  PWA_CONTROL_CHANGE_EVENT,
+  readPwaControlSettings,
+} from "@/components/pwaControlConfig";
+
+import {
   DEFAULT_PWA_NAVIGATION,
   PWA_NAV_CHANGE_EVENT,
   PWA_NAV_ROUTES,
@@ -25,6 +30,17 @@ export function PwaMobileNav() {
 
   useEffect(() => {
     const update = () => {
+      const control = readPwaControlSettings();
+
+      if (!control.customizationsEnabled) {
+        setSettings({
+          ...DEFAULT_PWA_NAVIGATION,
+          quickLinks: [...DEFAULT_PWA_NAVIGATION.quickLinks],
+          customizations: {},
+        });
+        return;
+      }
+
       setSettings(readPwaNavigationSettings());
     };
 
@@ -32,10 +48,14 @@ export function PwaMobileNav() {
 
     window.addEventListener(PWA_NAV_CHANGE_EVENT, update);
 
+    window.addEventListener(PWA_CONTROL_CHANGE_EVENT, update);
+
     window.addEventListener("storage", update);
 
     return () => {
       window.removeEventListener(PWA_NAV_CHANGE_EVENT, update);
+
+      window.removeEventListener(PWA_CONTROL_CHANGE_EVENT, update);
 
       window.removeEventListener("storage", update);
     };

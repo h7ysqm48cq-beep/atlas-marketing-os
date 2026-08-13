@@ -3,6 +3,12 @@
 import { useEffect } from "react";
 
 import {
+  PWA_CONTROL_CHANGE_EVENT,
+  readPwaControlSettings,
+} from "@/components/pwaControlConfig";
+
+import {
+  DEFAULT_PWA_APPEARANCE,
   PWA_APPEARANCE_CHANGE_EVENT,
   readPwaAppearanceSettings,
 } from "@/components/pwaAppearanceConfig";
@@ -10,7 +16,11 @@ import {
 export function PwaAppearanceSync() {
   useEffect(() => {
     function apply() {
-      const settings = readPwaAppearanceSettings();
+      const control = readPwaControlSettings();
+
+      const settings = control.customizationsEnabled
+        ? readPwaAppearanceSettings()
+        : DEFAULT_PWA_APPEARANCE;
 
       const root = document.documentElement;
 
@@ -25,10 +35,14 @@ export function PwaAppearanceSync() {
 
     window.addEventListener(PWA_APPEARANCE_CHANGE_EVENT, apply);
 
+    window.addEventListener(PWA_CONTROL_CHANGE_EVENT, apply);
+
     window.addEventListener("storage", apply);
 
     return () => {
       window.removeEventListener(PWA_APPEARANCE_CHANGE_EVENT, apply);
+
+      window.removeEventListener(PWA_CONTROL_CHANGE_EVENT, apply);
 
       window.removeEventListener("storage", apply);
     };
