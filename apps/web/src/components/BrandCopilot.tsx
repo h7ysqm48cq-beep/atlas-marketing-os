@@ -1177,10 +1177,16 @@ You can continue refining this plan with Elena.
               <button
                 type="button"
                 onClick={() => {
-                  marketingPlanRef.current?.scrollIntoView({
+                  if (!marketingPlanRef.current) {
+                    return;
+                  }
+
+                  marketingPlanRef.current.scrollIntoView({
                     behavior: "smooth",
                     block: "start",
                   });
+
+                  marketingPlanRef.current.focus?.();
                 }}
               >
                 View
