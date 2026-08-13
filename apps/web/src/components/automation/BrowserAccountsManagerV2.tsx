@@ -5,6 +5,24 @@ import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
 
 import {
+  createBrowserAccount,
+  getBrowserAccounts,
+  getBrands,
+  updateBrowserAccount,
+} from "./browser-accounts/api/accounts.api";
+
+
+import {
+  getBrowserStatus,
+  openBrowser as openBrowserApi,
+  closeBrowser as closeBrowserApi,
+  inspectBrowser,
+} from "./browser-accounts/api/browserRuntime.api";
+
+
+import { AccountOverview } from "./browser-accounts/components/AccountOverview";
+
+import {
   buildNoVncUrl,
   getBrowserRuntimeApiUrl,
 } from "./browser-accounts/utils/browser-url";
@@ -251,20 +269,10 @@ export function BrowserAccountsManagerV2({
       });
 
       try {
-        const response = await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/status`,
-          {
-            cache: "no-store",
-          },
-        );
-
-        const body = await readJson(response);
-
-        if (!response.ok) {
-          throw new Error(
-            getErrorMessage(body, "Unable to load browser status."),
+        const body =
+          await getBrowserStatus(
+            accountId,
           );
-        }
 
         const session =
           body.session && typeof body.session === "object"
@@ -1719,93 +1727,15 @@ export function BrowserAccountsManagerV2({
               ))}
             </nav>
 
-            <div
-              className={styles.detailsHeader}
-              id={`browser-account-${selectedAccount.id}-overview`}
-            >
-              <div>
-                <p className={styles.eyebrow}>Account Details</p>
-
-                <h2>{selectedAccount.displayName}</h2>
-
-                <p>{selectedAccount.browserProfileKey}</p>
-              </div>
-
-              <span
-                className={[
-                  styles.largeStatus,
-                  loginStatusClass(selectedAccount.loginStatus),
-                ].join(" ")}
-              >
-                {readableStatus(selectedAccount.loginStatus)}
-              </span>
-            </div>
+            <AccountOverview
+              account={selectedAccount}
+              runtime={selectedRuntime}
+              brands={brands}
+            />
 
             {selectedRuntime.error ? (
               <div className={styles.error}>{selectedRuntime.error}</div>
             ) : null}
-
-            <div className={styles.metrics}>
-              <article>
-                <span>Browser</span>
-                <strong>
-                  {selectedRuntime.running ? "RUNNING" : "STOPPED"}
-                </strong>
-              </article>
-
-              <article>
-                <span>Cookie</span>
-                <strong>{readableStatus(selectedAccount.cookieStatus)}</strong>
-              </article>
-
-              <article>
-                <span>Proxy</span>
-                <strong>{selectedAccount.proxyType}</strong>
-              </article>
-
-              <article>
-                <span>Pages</span>
-                <strong>{selectedAccount.channels.length}</strong>
-              </article>
-            </div>
-
-            <div className={styles.identityStatusGrid}>
-              <article>
-                <span>BROWSER</span>
-
-                <strong
-                  className={
-                    selectedRuntime.running ? styles.good : styles.neutral
-                  }
-                >
-                  {selectedRuntime.loading
-                    ? "CHECKING"
-                    : selectedRuntime.running
-                      ? "RUNNING"
-                      : "STOPPED"}
-                </strong>
-
-                <small>
-                  {selectedRuntime.running
-                    ? "Remote Chromium session is active."
-                    : "Browser session is currently closed."}
-                </small>
-              </article>
-
-              <article>
-                <span>FACEBOOK IDENTITY</span>
-
-                <strong
-                  className={loginStatusClass(selectedAccount.loginStatus)}
-                >
-                  {readableStatus(selectedAccount.loginStatus)}
-                </strong>
-
-                <small>
-                  {facebookIdentityMessage(selectedAccount.loginStatus)}
-                </small>
-              </article>
-            </div>
 
             <div
               className={styles.actions}
@@ -1968,61 +1898,6 @@ export function BrowserAccountsManagerV2({
                 </div>
               </section>
             ) : null}
-
-            <dl className={styles.definitionList}>
-              <div>
-                <dt>Brand</dt>
-                <dd>
-                  {brands.find((brand) => brand.id === selectedAccount.brandId)
-                    ?.name || "Not selected"}
-                </dd>
-              </div>
-
-              <div>
-                <dt>Profile name</dt>
-                <dd>{selectedAccount.browserProfileName}</dd>
-              </div>
-
-              <div>
-                <dt>Current URL</dt>
-                <dd>{selectedRuntime.session?.currentUrl || "—"}</dd>
-              </div>
-
-              <div>
-                <dt>Profile directory</dt>
-                <dd>
-                  {selectedRuntime.session?.profileDirectory ||
-                    "Created when opened"}
-                </dd>
-              </div>
-
-              <div>
-                <dt>Locale / Timezone</dt>
-                <dd>
-                  {selectedAccount.locale} / {selectedAccount.timezone}
-                </dd>
-              </div>
-
-              <div>
-                <dt>Last login</dt>
-                <dd>{formatDate(selectedAccount.lastLoginAt)}</dd>
-              </div>
-
-              <div>
-                <dt>Last verified</dt>
-                <dd>{formatDate(selectedAccount.lastVerifiedAt)}</dd>
-              </div>
-
-              <div>
-                <dt>Last heartbeat</dt>
-                <dd>{formatDate(selectedAccount.lastHeartbeatAt)}</dd>
-              </div>
-
-              <div>
-                <dt>Last error</dt>
-                <dd>{selectedAccount.lastLoginError || "—"}</dd>
-              </div>
-            </dl>
 
             <section
               className={styles.accountSection}
