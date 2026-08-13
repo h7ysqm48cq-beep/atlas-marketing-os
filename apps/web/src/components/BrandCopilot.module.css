@@ -1826,17 +1826,7 @@
 
 
 
-.planNavigator {
-  margin: 12px 16px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(209, 163, 63, 0.08);
-}
+
 
 .planNavigator span {
   font-size: 13px;
