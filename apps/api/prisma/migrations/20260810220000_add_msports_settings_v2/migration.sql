@@ -121,7 +121,7 @@ ADD COLUMN "invalidStoryPolicy" TEXT NOT NULL DEFAULT 'SKIP',
 ADD COLUMN "morningSameDaySourcesOnly" BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE "SportsNewsSetting"
-ADD COLUMN "newsAiModel" TEXT NOT NULL DEFAULT 'gpt-5.5',
+ADD COLUMN "newsAiModel" TEXT NOT NULL DEFAULT 'gpt-5.6-luna',
 ADD COLUMN "newsWebSearchEnabled" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN "imageAiModel" TEXT,
 ADD COLUMN "imageGenerationEnabled" BOOLEAN NOT NULL DEFAULT true,

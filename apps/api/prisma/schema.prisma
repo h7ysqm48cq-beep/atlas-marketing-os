@@ -1043,7 +1043,7 @@ model SportsNewsSetting {
   // M-Sports Settings v2 — AI Runtime
   // =========================================================
 
-  newsAiModel          String  @default("gpt-5.5")
+  newsAiModel          String  @default("gpt-5.6-luna")
   newsWebSearchEnabled Boolean @default(true)
 
   imageAiModel           String?
