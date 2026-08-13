@@ -2699,3 +2699,73 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     width: 100%;
   }
 }
+
+/* Atlas PWA Network Status */
+
+.atlas-network-status {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 10001;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+
+  background: rgba(7, 11, 20, 0.94);
+
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  transform: translateX(-50%);
+}
+
+.atlas-network-status__indicator {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.atlas-network-status--offline .atlas-network-status__indicator {
+  background: #f59e0b;
+}
+
+.atlas-network-status--restored .atlas-network-status__indicator {
+  background: #22c55e;
+}
+
+.atlas-network-status__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.atlas-network-status__copy strong {
+  color: #f3f4f6;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.atlas-network-status__copy span {
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+@media (max-width: 520px) {
+  .atlas-network-status {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+
+    max-width: calc(100vw - 20px);
+  }
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  />
+
+  <meta
+    name="theme-color"
+    content="#070b14"
+  />
+
+  <title>Atlas Offline</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #070b14;
+      color: #f3f4f6;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+
+      padding:
+        env(safe-area-inset-top, 24px)
+        24px
+        env(safe-area-inset-bottom, 24px);
+    }
+
+    main {
+      width: min(420px, 100%);
+      text-align: center;
+    }
+
+    .mark {
+      width: 74px;
+      height: 74px;
+      display: grid;
+      place-items: center;
+
+      margin: 0 auto 24px;
+
+      border: 1px solid rgba(240, 201, 106, .4);
+      border-radius: 22px;
+
+      color: #f0c96a;
+      font-size: 34px;
+      font-weight: 700;
+
+      background: #111827;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0 auto 24px;
+      color: #9ca3af;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    button {
+      min-height: 46px;
+      padding: 0 22px;
+
+      border: 1px solid rgba(240, 201, 106, .45);
+      border-radius: 12px;
+
+      background: rgba(240, 201, 106, .12);
+      color: #f0c96a;
+
+      font: inherit;
+      font-weight: 700;
+
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <div class="mark">A</div>
+
+    <h1>Atlas is offline</h1>
+
+    <p>
+      Your connection appears to be unavailable.
+      Reconnect to the internet and try again.
+    </p>
+
+    <button onclick="location.reload()">
+      Try again
+    </button>
+  </main>
+</body>
+</html>

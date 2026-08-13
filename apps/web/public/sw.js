@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-pwa-v3";
+const CACHE_NAME = "atlas-pwa-v4";
 
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
@@ -67,7 +67,8 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => response)
         .catch(async () => {
-          const cached = await caches.match("/");
+          const cached = await caches.match("/offline.html");
+
           return cached || Response.error();
         }),
     );

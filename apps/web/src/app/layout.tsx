@@ -6,6 +6,7 @@ import "./asset-library-mobile-v3.css";
 import { PreferencesProvider } from "@/components/preferences";
 import { PwaRegister } from "@/components/PwaRegister";
 import { PwaStandalone } from "@/components/PwaStandalone";
+import { PwaNetworkStatus } from "@/components/PwaNetworkStatus";
 
 export const metadata: Metadata = {
   title: {
@@ -126,6 +127,7 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         <PwaStandalone />
+        <PwaNetworkStatus />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>
