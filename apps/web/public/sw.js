@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-pwa-v2";
+const CACHE_NAME = "atlas-pwa-v3";
 
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
@@ -9,8 +9,12 @@ self.addEventListener("install", (event) => {
       .then((cache) => cache.addAll(STATIC_ASSETS))
       .catch(() => undefined),
   );
+});
 
-  self.skipWaiting();
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
