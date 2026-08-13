@@ -553,12 +553,6 @@ export function ImageBrandEditor() {
 
       const responseText = await response.text();
 
-      console.log("[ERASER] API response", {
-        status: response.status,
-        ok: response.ok,
-        body: responseText,
-      });
-
       let data: any = null;
 
       try {
