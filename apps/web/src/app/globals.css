@@ -2848,3 +2848,181 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     grid-template-columns: 1fr;
   }
 }
+
+/* Atlas PWA Native Navigation */
+
+/*
+ * Hidden by default.
+ * It only becomes visible in an installed PWA on phones.
+ */
+.atlas-pwa-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav {
+    position: fixed;
+
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    left: 8px;
+
+    z-index: 90;
+
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    min-height: 64px;
+
+    padding: 6px 6px max(6px, env(safe-area-inset-bottom, 0px));
+
+    border: 1px solid rgba(148, 163, 184, 0.18);
+
+    border-radius: 20px;
+
+    background: linear-gradient(
+      180deg,
+      rgba(17, 24, 39, 0.96),
+      rgba(7, 11, 20, 0.985)
+    );
+
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42);
+
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+
+    min-width: 0;
+    min-height: 50px;
+
+    padding: 4px 2px;
+
+    border: 0;
+    border-radius: 14px;
+
+    background: transparent;
+
+    color: #8e99ab;
+
+    font: inherit;
+    text-decoration: none;
+
+    cursor: pointer;
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item::before {
+    content: "";
+
+    position: absolute;
+
+    top: 1px;
+    left: 50%;
+
+    width: 22px;
+    height: 2px;
+
+    border-radius: 999px;
+
+    background: transparent;
+
+    transform: translateX(-50%);
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item.is-active {
+    background: rgba(240, 201, 106, 0.08);
+
+    color: #f0c96a;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__item.is-active::before {
+    background: #f0c96a;
+
+    box-shadow: 0 0 12px rgba(240, 201, 106, 0.38);
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__icon {
+    display: grid;
+    place-items: center;
+
+    min-height: 25px;
+
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  html[data-pwa="standalone"]
+    .atlas-pwa-mobile-nav__more
+    .atlas-pwa-mobile-nav__icon {
+    font-size: 17px;
+    letter-spacing: 1px;
+  }
+
+  html[data-pwa="standalone"] .atlas-pwa-mobile-nav__label {
+    overflow: hidden;
+
+    width: 100%;
+
+    margin-top: 3px;
+
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.15;
+
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /*
+   * Reserve room for the fixed navigation bar.
+   */
+  html[data-pwa="standalone"] .page-content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /*
+   * Existing full sidebar remains the More menu.
+   * Keep it above the PWA dock while open.
+   */
+  html[data-pwa="standalone"] .sidebar.mobile-open {
+    z-index: 310;
+  }
+
+  html[data-pwa="standalone"] .mobile-nav-overlay.visible {
+    z-index: 300;
+  }
+}
+
+/* Light theme */
+
+@media (max-width: 780px) {
+  html[data-pwa="standalone"] [data-theme="light"] .atlas-pwa-mobile-nav,
+  :root[data-theme="light"] .atlas-pwa-mobile-nav {
+    border-color: rgba(15, 23, 42, 0.12);
+
+    background: rgba(255, 255, 255, 0.96);
+
+    box-shadow: 0 16px 44px rgba(15, 23, 42, 0.14);
+  }
+
+  :root[data-theme="light"] .atlas-pwa-mobile-nav__item {
+    color: #64748b;
+  }
+
+  :root[data-theme="light"] .atlas-pwa-mobile-nav__item.is-active {
+    background: rgba(180, 132, 34, 0.09);
+
+    color: #a56f16;
+  }
+}
