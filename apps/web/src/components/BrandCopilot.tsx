@@ -359,6 +359,13 @@ export function BrandCopilot() {
           [item.target]: item.content,
         }));
 
+        workspace.addActivity({
+          type: "edit",
+          label: `Changed ${item.target}`,
+          detail: item.content,
+          status: "success",
+        });
+
         continue;
       }
 
@@ -375,13 +382,15 @@ export function BrandCopilot() {
           workspace.setLanguage(item.value);
         }
 
+        workspace.addActivity({
+          type: "edit",
+          label: `Changed ${item.target}`,
+          detail: item.value,
+          status: "success",
+        });
+
         continue;
       }
-      workspace.addActivity({
-        type: "edit",
-        label: `Changed ${item.target}`,
-        detail: item.type === "set" ? item.value : undefined,
-      });
 
       if (item.type === "generate") {
         workspace.issueCommand({
