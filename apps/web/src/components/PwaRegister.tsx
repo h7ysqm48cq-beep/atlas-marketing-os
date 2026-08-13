@@ -8,6 +8,19 @@ export function PwaRegister() {
   );
 
   useEffect(() => {
+    /*
+     * Service workers must not control the Next.js development server.
+     *
+     * A previously registered Atlas worker can cache or serve stale
+     * development assets, interfere with Fast Refresh, and trigger
+     * controllerchange reload loops.
+     *
+     * PWA registration remains enabled in production.
+     */
+    if (process.env.NODE_ENV !== "production") {
+      return;
+    }
+
     if (!("serviceWorker" in navigator)) {
       return;
     }
