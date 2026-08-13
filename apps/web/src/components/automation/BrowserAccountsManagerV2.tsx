@@ -1140,57 +1140,47 @@ export function BrowserAccountsManagerV2({
     setCreateError(null);
 
     try {
-      const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            facebookEmail,
-            facebookPassword,
+      await createBrowserAccount({
+        facebookEmail,
+        facebookPassword,
 
-            proxyType: hasProxy ? "HTTP" : "DIRECT",
+        proxyType: hasProxy ? "HTTP" : "DIRECT",
 
-            proxyHost: hasProxy ? proxyHost : null,
+        proxyHost: hasProxy ? proxyHost : null,
 
-            proxyPort: hasProxy ? Number(proxyPort) : null,
+        proxyPort: hasProxy ? Number(proxyPort) : null,
 
-            proxyUsername: hasProxy ? proxyUsername || null : null,
+        proxyUsername:
+          hasProxy
+            ? proxyUsername || null
+            : null,
 
-            proxyPassword: hasProxy ? proxyPassword || null : null,
+        proxyPassword:
+          hasProxy
+            ? proxyPassword || null
+            : null,
 
-            proxyCountry: hasProxy ? "MY" : null,
+        proxyCountry:
+          hasProxy
+            ? "MY"
+            : null,
 
-            browserEngine: "chromium",
+        browserEngine: "chromium",
 
-            operatingSystem: "macOS",
+        operatingSystem: "macOS",
 
-            screenWidth: 1440,
+        screenWidth: 1440,
 
-            screenHeight: 900,
+        screenHeight: 900,
 
-            deviceScaleFactor: 2,
+        deviceScaleFactor: 2,
 
-            locale: "en-MY",
+        locale: "en-MY",
 
-            timezone: "Asia/Kuala_Lumpur",
+        timezone: "Asia/Kuala_Lumpur",
 
-            identityLocked: true,
-          }),
-        },
-      );
-
-      const body = (await response.json().catch(() => ({}))) as {
-        message?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(
-          body.message || `Request failed with status ${response.status}.`,
-        );
-      }
+        identityLocked: true,
+      });
 
       setManualCreateOpen(false);
 
