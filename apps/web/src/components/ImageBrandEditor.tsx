@@ -1191,6 +1191,17 @@ export function ImageBrandEditor() {
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
+
+                      console.log("[ERASER] Remove selected area clicked", {
+                        selectedId,
+                        eraserBusy,
+                        maskHistoryLength: maskHistory.length,
+                      });
+
+                      setMessage(
+                        "Eraser button clicked — starting clean up...",
+                      );
+
                       void eraseSelectedArea();
                     }}
                   >
