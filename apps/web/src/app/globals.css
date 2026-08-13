@@ -2530,3 +2530,60 @@ body {
     -webkit-user-select: text;
   }
 }
+
+/* Atlas PWA Phase 2 */
+
+:root {
+  --atlas-safe-top: env(safe-area-inset-top, 0px);
+  --atlas-safe-right: env(safe-area-inset-right, 0px);
+  --atlas-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --atlas-safe-left: env(safe-area-inset-left, 0px);
+  --atlas-app-height: 100dvh;
+}
+
+html[data-pwa="standalone"] {
+  width: 100%;
+  min-height: 100%;
+  background: var(--background, #070b14);
+}
+
+html[data-pwa="standalone"] body {
+  width: 100%;
+  min-height: var(--atlas-app-height);
+  overscroll-behavior: none;
+}
+
+/*
+ * Prevent the iOS home indicator from covering bottom controls.
+ * Existing components can additionally use --atlas-safe-bottom.
+ */
+html[data-pwa="standalone"] body {
+  padding-bottom: var(--atlas-safe-bottom);
+}
+
+/*
+ * Avoid iOS Safari zooming the PWA when focusing normal form fields.
+ */
+@supports (-webkit-touch-callout: none) {
+  html[data-pwa="standalone"] input,
+  html[data-pwa="standalone"] textarea,
+  html[data-pwa="standalone"] select {
+    font-size: max(16px, 1em);
+  }
+}
+
+/*
+ * Native-app style touch behaviour without disabling selection
+ * inside fields/editors.
+ */
+html[data-pwa="standalone"] button,
+html[data-pwa="standalone"] a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-pwa="standalone"] input,
+html[data-pwa="standalone"] textarea,
+html[data-pwa="standalone"] [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}

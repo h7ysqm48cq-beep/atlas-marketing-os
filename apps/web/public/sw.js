@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-pwa-v1";
+const CACHE_NAME = "atlas-pwa-v2";
 
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 

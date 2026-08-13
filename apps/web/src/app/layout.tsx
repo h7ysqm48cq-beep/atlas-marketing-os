@@ -5,6 +5,7 @@ import "./workspace-compact.css";
 import "./asset-library-mobile-v3.css";
 import { PreferencesProvider } from "@/components/preferences";
 import { PwaRegister } from "@/components/PwaRegister";
+import { PwaStandalone } from "@/components/PwaStandalone";
 
 export const metadata: Metadata = {
   title: {
@@ -97,6 +98,7 @@ export default function RootLayout({
 
       <body>
         <PwaRegister />
+        <PwaStandalone />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>
