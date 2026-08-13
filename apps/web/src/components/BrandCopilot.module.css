@@ -963,9 +963,12 @@
 /* Marketing plan card system v4 */
 .marketingPlan {
   display: grid;
+  width: calc(100% - 20px);
+  max-width: 100%;
   gap: 16px;
   margin: 16px;
   padding: 20px;
+  overflow: visible;
   border: 1px solid var(--border);
   border-radius: 17px;
   background: linear-gradient(
@@ -973,6 +976,14 @@
     rgba(21, 25, 34, 0.98),
     rgba(13, 16, 22, 0.98)
   );
+}
+
+.marketingPlan * {
+  max-width: 100%;
+}
+
+.planHeader {
+  flex-wrap: wrap;
 }
 
 .planHeader,
@@ -1037,6 +1048,8 @@
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .planSection {
@@ -1215,25 +1228,33 @@
 @media (max-width: 720px) {
   .marketingPlan {
     gap: 13px;
-    margin: 10px;
-    padding: 13px;
+    margin: 10px auto;
+    padding: 12px;
     border-radius: 14px;
   }
 
   .planHeader {
+    flex-direction: column;
     align-items: flex-start;
   }
 
   .planHeader h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
-  .planSummaryGrid {
+  .planSummaryGrid,
+  .platformPlanGrid {
     grid-template-columns: 1fr;
   }
 
   .planSummaryCard {
     padding: 12px;
+  }
+
+  .imagePromptList article,
+  .platformPlanCard,
+  .planSummaryCard {
+    overflow: hidden;
   }
 
   .planSummaryCard p,
@@ -1269,7 +1290,7 @@
   }
 
   .scheduleTimeline article {
-    grid-template-columns: 55px minmax(0, 1fr);
+    grid-template-columns: 1fr;
     gap: 9px;
     padding: 10px;
   }
@@ -1586,97 +1607,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-}
-
-/* =====================================================
-   Marketing Plan Mobile v4
-===================================================== */
-
-.marketingPlan {
-  width: calc(100% - 20px);
-  max-width: 100%;
-  overflow: visible;
-}
-
-.marketingPlan * {
-  max-width: 100%;
-}
-
-.planHeader {
-  flex-wrap: wrap;
-}
-
-.platformPlanGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.imagePromptList p,
-.planSummaryCard p,
-.platformPlanCard p,
-.ideaList p,
-.scheduleTimeline p {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-@media (max-width: 720px) {
-  .modeSwitch {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .modeButton,
-  .modeActive {
-    flex: 1;
-    min-height: 36px;
-  }
-
-  .marketingPlan {
-    width: calc(100% - 20px);
-    margin: 10px;
-    padding: 12px;
-  }
-
-  .planHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .planHeader h2 {
-    font-size: 18px;
-  }
-
-  .platformPlanGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .imagePromptList article,
-  .platformPlanCard,
-  .planSummaryCard {
-    overflow: hidden;
-  }
-
-  .scheduleTimeline article {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Mobile Marketing Plan scrolling */
-@media (max-width: 720px) {
-  .marketingPlan {
-    max-height: none;
-    overflow: visible;
-    width: calc(100% - 20px);
-    margin: 10px auto;
-  }
-
-  .planSummaryCard p,
-  .ideaList p,
-  .platformPlanCard p,
-  .imagePromptList p,
-  .scheduleTimeline p {
-    overflow-wrap: anywhere;
   }
 }
 
