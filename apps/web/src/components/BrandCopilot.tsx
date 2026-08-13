@@ -1171,7 +1171,7 @@ You can continue refining this plan with Elena.
           {marketingPlan && (
             <div className={styles.planNavigator}>
               <span>
-                Marketing Plan Available
+                📄 Marketing Plan
               </span>
 
               <button
@@ -1183,7 +1183,7 @@ You can continue refining this plan with Elena.
                   });
                 }}
               >
-                View Plan
+                View
               </button>
             </div>
           )}
