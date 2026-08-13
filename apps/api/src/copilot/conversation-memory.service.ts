@@ -28,6 +28,26 @@ export class ConversationMemoryService {
   async create(input: CreateConversationInput = {}) {
     const brand = await this.brands.getActiveBrand();
 
+    const title = this.createTitle(input.firstMessage);
+
+    const existing = await this.prisma.copilotConversation.findFirst({
+      where: {
+        brandId: brand.id,
+        campaignId: input.campaignId,
+        mode: input.mode || 'chat',
+        isArchived: false,
+        title,
+        updatedAt: {
+          gte: new Date(Date.now() - 10 * 60 * 1000),
+        },
+      },
+      select: this.conversationSummarySelect(),
+    });
+
+    if (existing) {
+      return existing;
+    }
+
     if (input.campaignId) {
       const campaign = await this.prisma.campaign.findFirst({
         where: {
@@ -49,7 +69,7 @@ export class ConversationMemoryService {
         brandId: brand.id,
         campaignId: input.campaignId,
         mode: input.mode || 'chat',
-        title: this.createTitle(input.firstMessage),
+        title,
       },
       select: this.conversationSummarySelect(),
     });
@@ -401,6 +421,67 @@ ${JSON.stringify(message.metadata.plan, null, 2)}`
       updatedAt: true,
     } as const;
   }
+
+  async cleanupDuplicateConversations() {
+    const brand = await this.brands.getActiveBrand();
+
+    const conversations =
+      await this.prisma.copilotConversation.findMany({
+        where: {
+          brandId: brand.id,
+          isArchived: false,
+        },
+        select: {
+          id: true,
+          title: true,
+          mode: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+
+    const groups = new Map<string, typeof conversations>();
+
+    for (const conversation of conversations) {
+      const key = `${conversation.title}::${conversation.mode}`;
+
+      const list = groups.get(key) || [];
+
+      list.push(conversation);
+
+      groups.set(key, list);
+    }
+
+    let archived = 0;
+
+    for (const group of groups.values()) {
+      if (group.length <= 1) {
+        continue;
+      }
+
+      const [, ...duplicates] = group;
+
+      await this.prisma.copilotConversation.updateMany({
+        where: {
+          id: {
+            in: duplicates.map((item) => item.id),
+          },
+        },
+        data: {
+          isArchived: true,
+        },
+      });
+
+      archived += duplicates.length;
+    }
+
+    return {
+      archived,
+    };
+  }
+
 
   async searchPreviousContext(query: string, limit = 3) {
     const brand = await this.brands.getActiveBrand();

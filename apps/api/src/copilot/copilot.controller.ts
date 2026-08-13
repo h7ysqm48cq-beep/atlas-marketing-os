@@ -119,6 +119,12 @@ export class CopilotController {
     return this.conversations.create(body);
   }
 
+  @Post('conversations/cleanup-duplicates')
+  cleanupDuplicates() {
+    return this.conversations.cleanupDuplicateConversations();
+  }
+
+
   @Get('conversations')
   listConversations() {
     return this.conversations.list();

@@ -1088,6 +1088,7 @@ You can continue refining this plan with Elena.
                       className={styles.planShortcut}
                       type="button"
                       title="View Marketing Plan"
+                      aria-label="View Marketing Plan"
                       onClick={async () => {
                         await openConversation(conversation.id);
 
@@ -1108,7 +1109,6 @@ You can continue refining this plan with Elena.
                         <path d="M9 12h6" />
                         <path d="M9 16h6" />
                       </svg>
-                      <span>Plan</span>
                     </button>
                   )}
 

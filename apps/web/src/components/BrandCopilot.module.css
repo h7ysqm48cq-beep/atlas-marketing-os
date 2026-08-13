@@ -195,20 +195,27 @@
 }
 
 .planShortcut {
-  min-width: 34px;
-  height: 28px;
-  margin-right: 6px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(209, 163, 63, 0.08);
-  color: var(--gold-light);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(209, 163, 63, 0.08);
+  color: var(--gold-light);
+  cursor: pointer;
+  flex-shrink: 0;
 }
+
+.planShortcut svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
 
 .planShortcut:hover {
   background: rgba(209, 163, 63, 0.18);
