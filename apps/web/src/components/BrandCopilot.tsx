@@ -3,7 +3,6 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
 import { API_URL } from "@/lib/api";
-import { useAtlasWorkspace } from "./ai-workspace-context";
 
 type Campaign = {
   id: string;
@@ -246,7 +245,26 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 export function BrandCopilot() {
-  const workspace = useAtlasWorkspace();
+  const [studioDraft, setStudioDraft] = useState({
+    facebook: "",
+    telegram: "",
+    reels: "",
+    imagePrompt: "",
+  });
+
+  const [studioTopic, setStudioTopic] = useState("");
+
+  const [studioStyle, setStudioStyle] = useState("");
+
+  const [studioLanguage, setStudioLanguage] = useState("zh");
+
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+
+  const [historyId, setHistoryId] = useState<string | null>(null);
+
+  const [ideaId, setIdeaId] = useState<string | null>(null);
 
   async function getActiveBrandId() {
     const response = await fetch(`${API_URL}/brands`, {
@@ -289,19 +307,19 @@ export function BrandCopilot() {
     const contents: Partial<Record<SchedulePlatform, string>> = {};
 
     if (action.platforms.includes("FACEBOOK")) {
-      if (!workspace.draft.facebook?.trim()) {
+      if (!studioDraft.facebook?.trim()) {
         throw new Error("Facebook draft is empty.");
       }
 
-      contents.FACEBOOK = workspace.draft.facebook;
+      contents.FACEBOOK = studioDraft.facebook;
     }
 
     if (action.platforms.includes("TELEGRAM")) {
-      if (!workspace.draft.telegram?.trim()) {
+      if (!studioDraft.telegram?.trim()) {
         throw new Error("Telegram draft is empty.");
       }
 
-      contents.TELEGRAM = workspace.draft.telegram;
+      contents.TELEGRAM = studioDraft.telegram;
     }
 
     const response = await fetch(`${API_URL}/workflow/auto-queue`, {
@@ -318,11 +336,11 @@ export function BrandCopilot() {
 
         items: [
           {
-            title: workspace.topic.trim() || "AI Workspace Content",
+            title: studioTopic.trim() || "AI Workspace Content",
 
-            campaignId: workspace.campaignId || undefined,
+            campaignId: campaignId || undefined,
 
-            historyId: workspace.historyId || undefined,
+            historyId: historyId || undefined,
 
             contents,
           },
@@ -354,66 +372,45 @@ export function BrandCopilot() {
 
     for (const item of actions) {
       if (item.type === "replace") {
-        workspace.setDraft((current) => ({
+        setStudioDraft((current) => ({
           ...current,
           [item.target]: item.content,
         }));
 
-        workspace.addActivity({
-          type: "edit",
-          label: `Changed ${item.target}`,
-          detail: item.content,
-          status: "success",
-        });
-
+        setStatus(`Updated ${item.target}.`);
         continue;
       }
 
       if (item.type === "set") {
         if (item.target === "topic") {
-          workspace.setTopic(item.value);
+          setStudioTopic(item.value);
         }
 
         if (item.target === "style") {
-          workspace.setStyle(item.value);
+          setStudioStyle(item.value);
         }
 
         if (item.target === "language") {
-          workspace.setLanguage(item.value);
+          setStudioLanguage(item.value);
         }
 
-        workspace.addActivity({
-          type: "edit",
-          label: `Changed ${item.target}`,
-          detail: item.value,
-          status: "success",
-        });
-
+        setStatus(`Updated ${item.target}.`);
         continue;
       }
 
       if (item.type === "generate") {
-        workspace.issueCommand({
-          type: item.target === "image" ? "generate-image" : "generate-content",
-        });
+        setStatus(
+          item.target === "image"
+            ? "Generating image..."
+            : "Generating content...",
+        );
 
         continue;
       }
 
       if (item.type === "restore") {
-        workspace.setHistoryId(item.historyId);
-
-        workspace.issueCommand({
-          type: "restore-history",
-          historyId: item.historyId,
-        });
-
-        workspace.addActivity({
-          type: "restore",
-          label: "Restoring previous Studio work",
-          detail: item.historyId,
-        });
-
+        setHistoryId(item.historyId);
+        setStatus("Restoring previous work...");
         continue;
       }
 
@@ -448,9 +445,7 @@ export function BrandCopilot() {
             ? posts
                 .map((post) => {
                   const platform = post.platform || "UNKNOWN";
-
                   const when = post.scheduledAt || `${item.date} ${item.time}`;
-
                   const channel = post.channel?.name
                     ? ` · ${post.channel.name}`
                     : "";
@@ -462,28 +457,18 @@ export function BrandCopilot() {
                 item.timezone || "Asia/Kuala_Lumpur"
               }`;
 
-          workspace.addActivity({
-            type: "schedule",
-            label:
-              postCount === 1
-                ? "1 ScheduledPost created"
-                : `${postCount} ScheduledPosts created`,
-            detail: details,
-            status: "success",
-          });
+          setStatus(
+            postCount === 1
+              ? `Scheduled successfully: ${details}`
+              : `${postCount} ScheduledPosts created: ${details}`,
+          );
         } catch (error) {
           const message =
             error instanceof Error
               ? error.message
               : "Unable to schedule content.";
 
-          workspace.addActivity({
-            type: "schedule",
-            label: "Schedule failed",
-            detail: message,
-            status: "error",
-          });
-
+          setStatus(message);
           throw error;
         }
 
@@ -491,13 +476,10 @@ export function BrandCopilot() {
       }
     }
   }
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const campaignId = workspace.campaignId;
-  const setCampaignId = workspace.setCampaignId;
   const [mode, setMode] = useState<CopilotMode>("chat");
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const conversationId = workspace.conversationId;
-  const setConversationId = workspace.setConversationId;
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [input, setInput] = useState("");
@@ -1154,24 +1136,23 @@ You can continue refining this plan with Elena.
               currentAttachments.length > 0 ? currentAttachments : undefined,
 
             workspaceContext: {
-              activeView: workspace.preferredMobileTab,
+              activeView: "copilot",
 
-              historyId: workspace.historyId || undefined,
-              campaignId: workspace.campaignId || undefined,
-              ideaId: workspace.ideaId || undefined,
+              historyId: historyId || undefined,
+              campaignId: campaignId || undefined,
+              ideaId: ideaId || undefined,
 
-              topic: workspace.topic || undefined,
-              style: workspace.style || undefined,
-              language: workspace.language || undefined,
+              topic: studioTopic || undefined,
+              style: studioStyle || undefined,
+              language: studioLanguage || undefined,
 
-              assetIds:
-                workspace.assetIds.length > 0 ? workspace.assetIds : undefined,
+              assetIds: undefined,
 
               draft: {
-                facebook: workspace.draft.facebook || undefined,
-                telegram: workspace.draft.telegram || undefined,
-                reels: workspace.draft.reels || undefined,
-                imagePrompt: workspace.draft.imagePrompt || undefined,
+                facebook: studioDraft.facebook || undefined,
+                telegram: studioDraft.telegram || undefined,
+                reels: studioDraft.reels || undefined,
+                imagePrompt: studioDraft.imagePrompt || undefined,
               },
             },
           }),
@@ -1414,8 +1395,8 @@ You can continue refining this plan with Elena.
         <label>
           <span>Context</span>
           <select
-            value={campaignId}
-            onChange={(event) => setCampaignId(event.target.value)}
+            value={campaignId ?? ""}
+            onChange={(event) => setCampaignId(event.target.value || null)}
           >
             <option value="">Brand Brain only</option>
 
@@ -1451,8 +1432,8 @@ You can continue refining this plan with Elena.
           <span>Campaign context</span>
 
           <select
-            value={campaignId}
-            onChange={(event) => setCampaignId(event.target.value)}
+            value={campaignId ?? ""}
+            onChange={(event) => setCampaignId(event.target.value || null)}
           >
             <option value="">Brand Brain only</option>
 
