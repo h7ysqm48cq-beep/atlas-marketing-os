@@ -22,6 +22,8 @@ type Asset = {
   collection: string | null;
   url: string;
   thumbnailUrl: string | null;
+  storageProvider: string | null;
+  storagePath: string | null;
   mimeType: string | null;
   width: number | null;
   height: number | null;
@@ -57,6 +59,25 @@ const emptyForm: AssetForm = {
   url: "",
   thumbnailUrl: "",
 };
+
+function isMissingLegacyAsset(asset: Asset) {
+  if (asset.type !== "IMAGE") {
+    return false;
+  }
+
+  if (asset.storageProvider === "railway-local") {
+    return true;
+  }
+
+  if (asset.storageProvider) {
+    return false;
+  }
+
+  return (
+    /^https?:\/\/localhost(?::\d+)?\/storage\/assets\//i.test(asset.url) ||
+    /api-production-7f7d\.up\.railway\.app\/storage\/assets\//i.test(asset.url)
+  );
+}
 
 export function AssetLibrary() {
   const { t } = usePreferences();
@@ -378,6 +399,13 @@ export function AssetLibrary() {
   }
 
   function openInEditor(asset: Asset) {
+    if (isMissingLegacyAsset(asset)) {
+      setMessage(
+        `"${asset.name}" is a legacy image whose original file is no longer available.`,
+      );
+      return;
+    }
+
     window.location.assign(buildEditorHref(asset));
   }
 
@@ -508,7 +536,17 @@ export function AssetLibrary() {
                 }}
               >
                 {asset.type === "IMAGE" ? (
-                  <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
+                  isMissingLegacyAsset(asset) ? (
+                    <div className={styles.missingPreview}>
+                      <span>Image unavailable</span>
+                      <small>Legacy file is no longer available</small>
+                    </div>
+                  ) : (
+                    <img
+                      src={asset.thumbnailUrl || asset.url}
+                      alt={asset.name}
+                    />
+                  )
                 ) : (
                   <div className={styles.filePreview}>
                     <span>{asset.type}</span>
