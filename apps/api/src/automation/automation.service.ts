@@ -48,230 +48,231 @@ export class AutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly publisher: PublisherService,
-    private readonly socialTokenCrypto:
-      SocialTokenCryptoService,
-    private readonly facebookConnector:
-      FacebookConnectorService,
-    private readonly telegramConnector:
-      TelegramConnectorService,
-    private readonly runtimeProfiles:
-      RuntimeProfileService,
+    private readonly socialTokenCrypto: SocialTokenCryptoService,
+    private readonly facebookConnector: FacebookConnectorService,
+    private readonly telegramConnector: TelegramConnectorService,
+    private readonly runtimeProfiles: RuntimeProfileService,
   ) {}
 
   async dashboard() {
-    const [
-      channels,
-      postsByStatus,
-      upcoming,
-      recentAttempts,
-    ] = await Promise.all([
-      this.prisma.socialChannel.findMany({
-        orderBy: [
-          { platform: 'asc' },
-          { createdAt: 'asc' },
-        ],
-        include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
+    const [channels, postsByStatus, upcoming, recentAttempts] =
+      await Promise.all([
+        this.prisma.socialChannel.findMany({
+          orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            brand: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          browserAccountLinks: {
-            orderBy: [
-              {
-                isPrimary: 'desc',
-              },
-              {
-                createdAt: 'asc',
-              },
-            ],
-            include: {
-              browserAccount: {
-                select: {
-                  id: true,
-                  displayName: true,
-                  browserProfileKey: true,
-                  browserProfileName: true,
-                  loginStatus: true,
-                  cookieStatus: true,
-                  proxyType: true,
-                  proxyCountry: true,
-                  lastKnownIp: true,
-                  lastLoginAt: true,
-                  lastVerifiedAt: true,
-                  lastHeartbeatAt: true,
-                  lastLoginError: true,
+            browserAccountLinks: {
+              orderBy: [
+                {
+                  isPrimary: 'desc',
+                },
+                {
+                  createdAt: 'asc',
+                },
+              ],
+              include: {
+                browserAccount: {
+                  select: {
+                    id: true,
+                    displayName: true,
+                    browserProfileKey: true,
+                    browserProfileName: true,
+                    loginStatus: true,
+                    cookieStatus: true,
+                    proxyType: true,
+                    proxyCountry: true,
+                    lastKnownIp: true,
+                    lastLoginAt: true,
+                    lastVerifiedAt: true,
+                    lastHeartbeatAt: true,
+                    lastLoginError: true,
+                  },
                 },
               },
             },
+            _count: {
+              select: {
+                scheduledPosts: true,
+              },
+            },
           },
+        }),
+
+        this.prisma.scheduledPost.groupBy({
+          by: ['status'],
           _count: {
-            select: {
-              scheduledPosts: true,
+            _all: true,
+          },
+        }),
+
+        this.prisma.scheduledPost.findMany({
+          where: {
+            status: {
+              in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
+            },
+            scheduledAt: {
+              gte: new Date(),
             },
           },
-        },
-      }),
-
-      this.prisma.scheduledPost.groupBy({
-        by: ['status'],
-        _count: {
-          _all: true,
-        },
-      }),
-
-      this.prisma.scheduledPost.findMany({
-        where: {
-          status: {
-            in: [
-              ScheduledPostStatus.SCHEDULED,
-              ScheduledPostStatus.QUEUED,
-            ],
+          take: 10,
+          orderBy: {
+            scheduledAt: 'asc',
           },
-          scheduledAt: {
-            gte: new Date(),
-          },
-        },
-        take: 10,
-        orderBy: {
-          scheduledAt: 'asc',
-        },
-        include: {
-          channel: true,
-          brand: {
-            select: {
-              id: true,
-              name: true,
+          select: {
+            id: true,
+            brandId: true,
+            channelId: true,
+            campaignId: true,
+            historyId: true,
+            platform: true,
+            title: true,
+            content: true,
+            scheduledAt: true,
+            timezone: true,
+            status: true,
+            externalPostId: true,
+            externalPostUrl: true,
+            publishedAt: true,
+            lastError: true,
+            createdAt: true,
+            updatedAt: true,
+
+            channel: true,
+
+            brand: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+
+            campaign: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-          campaign: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      }),
+        }),
 
-      this.prisma.publishAttempt.findMany({
-        take: 10,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          scheduledPost: {
-            include: {
-              channel: true,
-              brand: {
-                select: {
-                  id: true,
-                  name: true,
+        this.prisma.publishAttempt.findMany({
+          take: 10,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            scheduledPost: {
+              select: {
+                id: true,
+                brandId: true,
+                channelId: true,
+                campaignId: true,
+                historyId: true,
+                platform: true,
+                title: true,
+                content: true,
+                scheduledAt: true,
+                timezone: true,
+                status: true,
+                externalPostId: true,
+                externalPostUrl: true,
+                publishedAt: true,
+                lastError: true,
+                createdAt: true,
+                updatedAt: true,
+
+                channel: true,
+
+                brand: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     const statusCounts = Object.fromEntries(
-      Object.values(ScheduledPostStatus).map(
-        (status) => [status, 0],
-      ),
+      Object.values(ScheduledPostStatus).map((status) => [status, 0]),
     ) as Record<ScheduledPostStatus, number>;
 
     for (const item of postsByStatus) {
-      statusCounts[item.status] =
-        item._count._all;
+      statusCounts[item.status] = item._count._all;
     }
 
     return {
-      channels: channels.map(
-        (channel) =>
-          this.sanitizeChannel(channel),
-      ),
+      channels: channels.map((channel) => this.sanitizeChannel(channel)),
       statusCounts,
-      upcoming: upcoming.map(
-        (post) => ({
-          ...post,
-          channel:
-            this.sanitizeChannel(
-              post.channel,
-            ),
-        }),
-      ),
-      recentAttempts:
-        recentAttempts.map(
-          (attempt) => ({
-            ...attempt,
-            scheduledPost: {
-              ...attempt.scheduledPost,
-              channel:
-                this.sanitizeChannel(
-                  attempt.scheduledPost.channel,
-                ),
-            },
-          }),
-        ),
+      upcoming: upcoming.map((post) => ({
+        ...post,
+        channel: this.sanitizeChannel(post.channel),
+      })),
+      recentAttempts: recentAttempts.map((attempt) => ({
+        ...attempt,
+        scheduledPost: {
+          ...attempt.scheduledPost,
+          channel: this.sanitizeChannel(attempt.scheduledPost.channel),
+        },
+      })),
     };
   }
 
   async listChannels() {
-    const channels =
-      await this.prisma.socialChannel.findMany({
-        orderBy: [
-          { platform: 'asc' },
-          { createdAt: 'asc' },
-        ],
-        include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
-            },
+    const channels = await this.prisma.socialChannel.findMany({
+      orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
           },
-          browserAccountLinks: {
-            orderBy: [
-              {
-                isPrimary: 'desc',
-              },
-              {
-                createdAt: 'asc',
-              },
-            ],
-            include: {
-              browserAccount: {
-                select: {
-                  id: true,
-                  displayName: true,
-                  browserProfileKey: true,
-                  browserProfileName: true,
-                  loginStatus: true,
-                  cookieStatus: true,
-                  proxyType: true,
-                  proxyCountry: true,
-                  lastKnownIp: true,
-                  lastLoginAt: true,
-                  lastVerifiedAt: true,
-                  lastHeartbeatAt: true,
-                  lastLoginError: true,
-                },
-              },
+        },
+        browserAccountLinks: {
+          orderBy: [
+            {
+              isPrimary: 'desc',
             },
-          },
-          _count: {
-            select: {
-              scheduledPosts: true,
+            {
+              createdAt: 'asc',
+            },
+          ],
+          include: {
+            browserAccount: {
+              select: {
+                id: true,
+                displayName: true,
+                browserProfileKey: true,
+                browserProfileName: true,
+                loginStatus: true,
+                cookieStatus: true,
+                proxyType: true,
+                proxyCountry: true,
+                lastKnownIp: true,
+                lastLoginAt: true,
+                lastVerifiedAt: true,
+                lastHeartbeatAt: true,
+                lastLoginError: true,
+              },
             },
           },
         },
-      });
+        _count: {
+          select: {
+            scheduledPosts: true,
+          },
+        },
+      },
+    });
 
-    return channels.map(
-      (channel) =>
-        this.sanitizeChannel(channel),
-    );
+    return channels.map((channel) => this.sanitizeChannel(channel));
   }
 
   async inspectTelegramBot(botToken: string) {
@@ -285,21 +286,18 @@ export class AutomationService {
   async createChannel(input: CreateChannelInput) {
     await this.ensureBrand(input.brandId);
 
-    const brand =
-      await this.prisma.brand.findUniqueOrThrow({
-        where: {
-          id: input.brandId,
-        },
-        select: {
-          workspaceId: true,
-        },
-      });
+    const brand = await this.prisma.brand.findUniqueOrThrow({
+      where: {
+        id: input.brandId,
+      },
+      select: {
+        workspaceId: true,
+      },
+    });
 
-    const accessToken =
-      input.accessToken?.trim();
+    const accessToken = input.accessToken?.trim();
 
-    const externalId =
-      input.externalId?.trim() || null;
+    const externalId = input.externalId?.trim() || null;
 
     const existingChannel = externalId
       ? await this.prisma.socialChannel.findFirst({
@@ -336,89 +334,67 @@ export class AutomationService {
       return this.sanitizeChannel(updated);
     }
 
-    const channel =
-      await this.prisma.socialChannel.create({
-        data: {
-          workspaceId: brand.workspaceId,
-          brandId: input.brandId,
-          platform: input.platform,
-          name: input.name.trim(),
-          externalId:
-            externalId,
-          username:
-            input.username?.trim() || null,
-          accessTokenEncrypted:
-            accessToken
-              ? this.socialTokenCrypto.encrypt(
-                  accessToken,
-                )
-              : null,
-          tokenExpiresAt:
-            this.parseOptionalDate(
-              input.tokenExpiresAt,
-            ),
-          status:
-            accessToken &&
-            input.externalId?.trim()
-              ? SocialChannelStatus.CONNECTED
-              : SocialChannelStatus.DISCONNECTED,
-          lastConnectedAt:
-            accessToken &&
-            input.externalId?.trim()
-              ? new Date()
-              : null,
-          lastError: null,
-        },
-      });
+    const channel = await this.prisma.socialChannel.create({
+      data: {
+        workspaceId: brand.workspaceId,
+        brandId: input.brandId,
+        platform: input.platform,
+        name: input.name.trim(),
+        externalId: externalId,
+        username: input.username?.trim() || null,
+        accessTokenEncrypted: accessToken
+          ? this.socialTokenCrypto.encrypt(accessToken)
+          : null,
+        tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+        status:
+          accessToken && input.externalId?.trim()
+            ? SocialChannelStatus.CONNECTED
+            : SocialChannelStatus.DISCONNECTED,
+        lastConnectedAt:
+          accessToken && input.externalId?.trim() ? new Date() : null,
+        lastError: null,
+      },
+    });
 
     return this.sanitizeChannel(channel);
   }
 
-
   async getChannel(id: string) {
-    const channel =
-      await this.prisma.socialChannel.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          brand: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              scheduledPosts: true,
-            },
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
           },
         },
-      });
+        _count: {
+          select: {
+            scheduledPosts: true,
+          },
+        },
+      },
+    });
 
     if (!channel) {
-      throw new NotFoundException(
-        'Social channel not found.',
-      );
+      throw new NotFoundException('Social channel not found.');
     }
 
-    return this.sanitizeChannel(
-      channel,
-    );
+    return this.sanitizeChannel(channel);
   }
 
   async testChannel(id: string) {
-    const channel =
-      await this.prisma.socialChannel.findUnique({
-        where: {
-          id,
-        },
-      });
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: {
+        id,
+      },
+    });
 
     if (!channel) {
-      throw new NotFoundException(
-        'Social channel not found.',
-      );
+      throw new NotFoundException('Social channel not found.');
     }
 
     if (channel.platform === SocialPlatform.TELEGRAM) {
@@ -475,38 +451,26 @@ export class AutomationService {
       throw new BadRequestException('Unsupported social channel platform.');
     }
 
-    const pageId =
-      channel.externalId?.trim();
+    const pageId = channel.externalId?.trim();
 
-    const encryptedToken =
-      channel.accessTokenEncrypted?.trim();
+    const encryptedToken = channel.accessTokenEncrypted?.trim();
 
     if (!pageId) {
-      throw new BadRequestException(
-        'Facebook Page ID is not configured.',
-      );
+      throw new BadRequestException('Facebook Page ID is not configured.');
     }
 
     if (!encryptedToken) {
-      throw new BadRequestException(
-        'Facebook access token is not configured.',
-      );
+      throw new BadRequestException('Facebook access token is not configured.');
     }
 
-    if (
-      channel.tokenExpiresAt &&
-      channel.tokenExpiresAt <=
-        new Date()
-    ) {
+    if (channel.tokenExpiresAt && channel.tokenExpiresAt <= new Date()) {
       await this.prisma.socialChannel.update({
         where: {
           id,
         },
         data: {
-          status:
-            SocialChannelStatus.EXPIRED,
-          lastError:
-            'Facebook access token has expired.',
+          status: SocialChannelStatus.EXPIRED,
+          lastError: 'Facebook access token has expired.',
         },
       });
 
@@ -516,19 +480,11 @@ export class AutomationService {
     }
 
     try {
-      const accessToken =
-        this.socialTokenCrypto.decrypt(
-          encryptedToken,
-        );
+      const accessToken = this.socialTokenCrypto.decrypt(encryptedToken);
 
-      const publishNetwork =
-        await this.runtimeProfiles
-          .getPublishNetwork(id);
+      const publishNetwork = await this.runtimeProfiles.getPublishNetwork(id);
 
-      if (
-        publishNetwork.proxyType ===
-        'SOCKS5'
-      ) {
+      if (publishNetwork.proxyType === 'SOCKS5') {
         throw new BadRequestException(
           [
             'SOCKS5 is not supported by',
@@ -539,52 +495,34 @@ export class AutomationService {
         );
       }
 
-      const result =
-        await this.facebookConnector
-          .testConnection({
-            pageId,
-            accessToken,
-            proxyUrl:
-              publishNetwork.proxyUrl,
-          });
+      const result = await this.facebookConnector.testConnection({
+        pageId,
+        accessToken,
+        proxyUrl: publishNetwork.proxyUrl,
+      });
 
-      const updated =
-        await this.prisma.socialChannel.update({
-          where: {
-            id,
-          },
-          data: {
-            name:
-              result.page.name ||
-              channel.name,
-            username:
-              result.page.username ??
-              channel.username,
-            status:
-              SocialChannelStatus.CONNECTED,
-            lastConnectedAt:
-              new Date(),
-            lastError:
-              null,
-          },
-        });
+      const updated = await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          name: result.page.name || channel.name,
+          username: result.page.username ?? channel.username,
+          status: SocialChannelStatus.CONNECTED,
+          lastConnectedAt: new Date(),
+          lastError: null,
+        },
+      });
 
       return {
-        channel:
-          this.sanitizeChannel(
-            updated,
-          ),
+        channel: this.sanitizeChannel(updated),
         connection: {
           ...result,
           runtime: {
-            proxyType:
-              publishNetwork.proxyType,
-            browserProfileKey:
-              publishNetwork.browserProfileKey,
-            locale:
-              publishNetwork.locale,
-            timezone:
-              publishNetwork.timezone,
+            proxyType: publishNetwork.proxyType,
+            browserProfileKey: publishNetwork.browserProfileKey,
+            locale: publishNetwork.locale,
+            timezone: publishNetwork.timezone,
           },
         },
       };
@@ -599,10 +537,8 @@ export class AutomationService {
           id,
         },
         data: {
-          status:
-            SocialChannelStatus.ERROR,
-          lastError:
-            message.slice(0, 500),
+          status: SocialChannelStatus.ERROR,
+          lastError: message.slice(0, 500),
         },
       });
 
@@ -610,60 +546,43 @@ export class AutomationService {
     }
   }
 
-  async disconnectChannel(
-    id: string,
-  ) {
+  async disconnectChannel(id: string) {
     await this.ensureChannel(id);
 
-    const channel =
-      await this.prisma.socialChannel.update({
-        where: {
-          id,
-        },
-        data: {
-          accessTokenEncrypted:
-            null,
-          tokenExpiresAt:
-            null,
-          status:
-            SocialChannelStatus.DISCONNECTED,
-          lastError:
-            null,
-        },
-      });
+    const channel = await this.prisma.socialChannel.update({
+      where: {
+        id,
+      },
+      data: {
+        accessTokenEncrypted: null,
+        tokenExpiresAt: null,
+        status: SocialChannelStatus.DISCONNECTED,
+        lastError: null,
+      },
+    });
 
-    return this.sanitizeChannel(
-      channel,
-    );
+    return this.sanitizeChannel(channel);
   }
 
-  async removeChannel(
-    id: string,
-  ) {
-    const channel =
-      await this.prisma.socialChannel.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          _count: {
-            select: {
-              scheduledPosts: true,
-            },
+  async removeChannel(id: string) {
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        _count: {
+          select: {
+            scheduledPosts: true,
           },
         },
-      });
+      },
+    });
 
     if (!channel) {
-      throw new NotFoundException(
-        'Social channel not found.',
-      );
+      throw new NotFoundException('Social channel not found.');
     }
 
-    if (
-      channel._count.scheduledPosts >
-      0
-    ) {
+    if (channel._count.scheduledPosts > 0) {
       throw new BadRequestException(
         [
           'This channel cannot be deleted because',
@@ -687,7 +606,6 @@ export class AutomationService {
     };
   }
 
-
   async updateChannel(
     id: string,
     input: {
@@ -705,75 +623,52 @@ export class AutomationService {
         ? undefined
         : input.accessToken?.trim() || null;
 
-    const channel =
-      await this.prisma.socialChannel.update({
-        where: {
-          id,
-        },
-        data: {
-          name:
-            input.name !== undefined
-              ? input.name.trim()
-              : undefined,
-          externalId:
-            input.externalId !== undefined
-              ? input.externalId.trim() || null
-              : undefined,
-          username:
-            input.username !== undefined
-              ? input.username?.trim() || null
-              : undefined,
-          accessTokenEncrypted:
-            accessToken === undefined
-              ? undefined
-              : accessToken
-                ? this.socialTokenCrypto.encrypt(
-                    accessToken,
-                  )
-                : null,
-          tokenExpiresAt:
-            input.tokenExpiresAt === undefined
-              ? undefined
-              : this.parseOptionalDate(
-                  input.tokenExpiresAt,
-                ),
-          status:
-            accessToken
-              ? SocialChannelStatus.CONNECTED
-              : accessToken === null
-                ? SocialChannelStatus.DISCONNECTED
-                : undefined,
-          lastConnectedAt:
-            accessToken
-              ? new Date()
-              : undefined,
-          lastError:
-            accessToken
-              ? null
-              : undefined,
-        },
-      });
+    const channel = await this.prisma.socialChannel.update({
+      where: {
+        id,
+      },
+      data: {
+        name: input.name !== undefined ? input.name.trim() : undefined,
+        externalId:
+          input.externalId !== undefined
+            ? input.externalId.trim() || null
+            : undefined,
+        username:
+          input.username !== undefined
+            ? input.username?.trim() || null
+            : undefined,
+        accessTokenEncrypted:
+          accessToken === undefined
+            ? undefined
+            : accessToken
+              ? this.socialTokenCrypto.encrypt(accessToken)
+              : null,
+        tokenExpiresAt:
+          input.tokenExpiresAt === undefined
+            ? undefined
+            : this.parseOptionalDate(input.tokenExpiresAt),
+        status: accessToken
+          ? SocialChannelStatus.CONNECTED
+          : accessToken === null
+            ? SocialChannelStatus.DISCONNECTED
+            : undefined,
+        lastConnectedAt: accessToken ? new Date() : undefined,
+        lastError: accessToken ? null : undefined,
+      },
+    });
 
     return this.sanitizeChannel(channel);
   }
 
-  private parseOptionalDate(
-    value?: string | null,
-  ) {
+  private parseOptionalDate(value?: string | null) {
     if (!value?.trim()) {
       return null;
     }
 
     const parsed = new Date(value);
 
-    if (
-      Number.isNaN(
-        parsed.getTime(),
-      )
-    ) {
-      throw new BadRequestException(
-        'Invalid tokenExpiresAt value.',
-      );
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException('Invalid tokenExpiresAt value.');
     }
 
     return parsed;
@@ -781,8 +676,7 @@ export class AutomationService {
 
   private sanitizeChannel<
     T extends {
-      accessTokenEncrypted:
-        string | null;
+      accessTokenEncrypted: string | null;
       browserAccountLinks?: Array<{
         isPrimary: boolean;
         browserAccount: {
@@ -803,140 +697,81 @@ export class AutomationService {
       }>;
     },
   >(channel: T) {
-    const {
-      accessTokenEncrypted,
-      browserAccountLinks,
-      ...safeChannel
-    } = channel;
+    const { accessTokenEncrypted, browserAccountLinks, ...safeChannel } =
+      channel;
 
-    const browserAccounts =
-      (
-        browserAccountLinks ||
-        []
-      ).map(
-        (link) => ({
-          ...link.browserAccount,
-          isPrimary:
-            link.isPrimary,
-          health:
-            this.calculateBrowserAccountHealth(
-              link.browserAccount,
-            ),
-        }),
-      );
+    const browserAccounts = (browserAccountLinks || []).map((link) => ({
+      ...link.browserAccount,
+      isPrimary: link.isPrimary,
+      health: this.calculateBrowserAccountHealth(link.browserAccount),
+    }));
 
     const primaryBrowserAccount =
-      browserAccounts.find(
-        (account) =>
-          account.isPrimary,
-      ) ||
+      browserAccounts.find((account) => account.isPrimary) ||
       browserAccounts[0] ||
       null;
 
     return {
       ...safeChannel,
-      hasAccessToken:
-        Boolean(
-          accessTokenEncrypted,
-        ),
+      hasAccessToken: Boolean(accessTokenEncrypted),
       browserAccounts,
       primaryBrowserAccount,
-      publishingMode:
-        primaryBrowserAccount
-          ? 'BROWSER_RUNTIME'
-          : accessTokenEncrypted
-            ? 'NATIVE_API'
-            : 'UNCONFIGURED',
-      managedBy:
-        primaryBrowserAccount
-          ? {
-              id:
-                primaryBrowserAccount.id,
-              displayName:
-                primaryBrowserAccount.displayName,
-              browserProfileName:
-                primaryBrowserAccount.browserProfileName,
-            }
-          : null,
+      publishingMode: primaryBrowserAccount
+        ? 'BROWSER_RUNTIME'
+        : accessTokenEncrypted
+          ? 'NATIVE_API'
+          : 'UNCONFIGURED',
+      managedBy: primaryBrowserAccount
+        ? {
+            id: primaryBrowserAccount.id,
+            displayName: primaryBrowserAccount.displayName,
+            browserProfileName: primaryBrowserAccount.browserProfileName,
+          }
+        : null,
     };
   }
 
-  private calculateBrowserAccountHealth(
-    account: {
-      loginStatus: string;
-      cookieStatus: string;
-      proxyType: string;
-      proxyCountry: string | null;
-      lastHeartbeatAt: Date | null;
-      lastLoginError: string | null;
-    },
-  ) {
+  private calculateBrowserAccountHealth(account: {
+    loginStatus: string;
+    cookieStatus: string;
+    proxyType: string;
+    proxyCountry: string | null;
+    lastHeartbeatAt: Date | null;
+    lastLoginError: string | null;
+  }) {
     let score = 100;
 
-    const loginStatus =
-      account.loginStatus
-        .trim()
-        .toUpperCase();
+    const loginStatus = account.loginStatus.trim().toUpperCase();
 
-    const cookieStatus =
-      account.cookieStatus
-        .trim()
-        .toUpperCase();
+    const cookieStatus = account.cookieStatus.trim().toUpperCase();
 
-    if (
-      loginStatus !==
-      'LOGGED_IN'
-    ) {
+    if (loginStatus !== 'LOGGED_IN') {
       score -= 45;
     }
 
-    if (
-      cookieStatus !==
-      'ACTIVE'
-    ) {
+    if (cookieStatus !== 'ACTIVE') {
       score -= 25;
     }
 
-    if (
-      account.proxyType !==
-        'DIRECT' &&
-      !account.proxyCountry
-    ) {
+    if (account.proxyType !== 'DIRECT' && !account.proxyCountry) {
       score -= 10;
     }
 
-    if (
-      !account.lastHeartbeatAt
-    ) {
+    if (!account.lastHeartbeatAt) {
       score -= 10;
     } else {
-      const ageMs =
-        Date.now() -
-        account.lastHeartbeatAt
-          .getTime();
+      const ageMs = Date.now() - account.lastHeartbeatAt.getTime();
 
-      if (
-        ageMs >
-        24 * 60 * 60 * 1000
-      ) {
+      if (ageMs > 24 * 60 * 60 * 1000) {
         score -= 10;
       }
     }
 
-    if (
-      account.lastLoginError
-    ) {
+    if (account.lastLoginError) {
       score -= 10;
     }
 
-    const normalizedScore =
-      Math.max(
-        0,
-        Math.min(
-          100,
-          score,
-        ),
-      );
+    const normalizedScore = Math.max(0, Math.min(100, score));
 
     const status =
       normalizedScore >= 80
@@ -946,8 +781,7 @@ export class AutomationService {
           : 'CRITICAL';
 
     return {
-      score:
-        normalizedScore,
+      score: normalizedScore,
       status,
     };
   }
@@ -959,91 +793,237 @@ export class AutomationService {
   ) {
     await this.ensureChannel(id);
 
-    const channel =
-      await this.prisma.socialChannel.update({
-        where: {
-          id,
-        },
-        data: {
-          status,
-          lastError:
-            lastError?.trim() || null,
-          lastConnectedAt:
-            status === SocialChannelStatus.CONNECTED
-              ? new Date()
-              : undefined,
-        },
-      });
+    const channel = await this.prisma.socialChannel.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+        lastError: lastError?.trim() || null,
+        lastConnectedAt:
+          status === SocialChannelStatus.CONNECTED ? new Date() : undefined,
+      },
+    });
 
-    return this.sanitizeChannel(
-      channel,
-    );
+    return this.sanitizeChannel(channel);
   }
 
-  listPosts(status?: ScheduledPostStatus) {
-    return this.prisma.scheduledPost.findMany({
-      where: status
-        ? {
-            status,
-          }
-        : undefined,
+  async listCalendarPosts(
+    status?: ScheduledPostStatus,
+    from?: string,
+    to?: string,
+    limit?: number,
+  ) {
+    const scheduledAt: {
+      gte?: Date;
+      lt?: Date;
+    } = {};
+
+    if (from) {
+      const parsedFrom = new Date(from);
+
+      if (!Number.isNaN(parsedFrom.getTime())) {
+        scheduledAt.gte = parsedFrom;
+      }
+    }
+
+    if (to) {
+      const parsedTo = new Date(to);
+
+      if (!Number.isNaN(parsedTo.getTime())) {
+        scheduledAt.lt = parsedTo;
+      }
+    }
+
+    const requestedLimit =
+      Number.isFinite(limit) && Number(limit) > 0
+        ? Math.floor(Number(limit))
+        : 300;
+
+    const safeLimit = Math.min(requestedLimit, 500);
+
+    const posts = await this.prisma.scheduledPost.findMany({
+      where: {
+        ...(status
+          ? {
+              status,
+            }
+          : {}),
+        ...(Object.keys(scheduledAt).length
+          ? {
+              scheduledAt,
+            }
+          : {}),
+      },
       orderBy: {
         scheduledAt: 'asc',
       },
-      include: {
-        channel: true,
-        brand: {
+      take: safeLimit,
+      select: {
+        id: true,
+        brandId: true,
+        channelId: true,
+        campaignId: true,
+        platform: true,
+        title: true,
+        content: true,
+        scheduledAt: true,
+        timezone: true,
+        status: true,
+        externalPostId: true,
+        externalPostUrl: true,
+
+        channel: {
           select: {
             id: true,
             name: true,
           },
         },
+
         campaign: {
           select: {
             id: true,
             name: true,
           },
         },
-        history: {
+      },
+    });
+
+    return posts.map((post) => ({
+      ...post,
+
+      // Calendar list must never pull legacy
+      // base64 image payloads into memory.
+      mediaUrls: [] as string[],
+    }));
+  }
+
+  async listPosts(
+    status?: ScheduledPostStatus,
+    from?: string,
+    to?: string,
+    limit?: number,
+  ) {
+    const scheduledAt: {
+      gte?: Date;
+      lt?: Date;
+    } = {};
+
+    if (from) {
+      const parsedFrom = new Date(from);
+
+      if (!Number.isNaN(parsedFrom.getTime())) {
+        scheduledAt.gte = parsedFrom;
+      }
+    }
+
+    if (to) {
+      const parsedTo = new Date(to);
+
+      if (!Number.isNaN(parsedTo.getTime())) {
+        scheduledAt.lt = parsedTo;
+      }
+    }
+
+    const requestedLimit =
+      Number.isFinite(limit) && Number(limit) > 0
+        ? Math.floor(Number(limit))
+        : 300;
+
+    const safeLimit = Math.min(requestedLimit, 500);
+
+    const posts = await this.prisma.scheduledPost.findMany({
+      where: {
+        ...(status
+          ? {
+              status,
+            }
+          : {}),
+        ...(Object.keys(scheduledAt).length
+          ? {
+              scheduledAt,
+            }
+          : {}),
+      },
+      orderBy: {
+        scheduledAt: 'asc',
+      },
+      take: safeLimit,
+      select: {
+        id: true,
+        brandId: true,
+        channelId: true,
+        campaignId: true,
+        historyId: true,
+
+        platform: true,
+        title: true,
+        content: true,
+
+        scheduledAt: true,
+        timezone: true,
+        status: true,
+
+        externalPostId: true,
+        externalPostUrl: true,
+        publishedAt: true,
+
+        lastError: true,
+
+        createdAt: true,
+        updatedAt: true,
+
+        channel: {
           select: {
             id: true,
-            topic: true,
-            status: true,
+            name: true,
+            platform: true,
+            brandId: true,
           },
         },
+
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return posts.map((post) => ({
+      ...post,
+      mediaUrls: [] as string[],
+    }));
+  }
+
+  async getPost(id: string) {
+    const post = await this.prisma.scheduledPost.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        channel: true,
+        brand: true,
+        campaign: true,
+        history: true,
         attempts: {
           orderBy: {
             attemptNumber: 'desc',
           },
-          take: 1,
         },
       },
     });
-  }
-
-  async getPost(id: string) {
-    const post =
-      await this.prisma.scheduledPost.findUnique({
-        where: {
-          id,
-        },
-        include: {
-          channel: true,
-          brand: true,
-          campaign: true,
-          history: true,
-          attempts: {
-            orderBy: {
-              attemptNumber: 'desc',
-            },
-          },
-        },
-      });
 
     if (!post) {
-      throw new NotFoundException(
-        'Scheduled post not found.',
-      );
+      throw new NotFoundException('Scheduled post not found.');
     }
 
     return post;
@@ -1051,48 +1031,30 @@ export class AutomationService {
 
   async createPost(input: CreatePostInput) {
     if (!input.content?.trim()) {
-      throw new BadRequestException(
-        'Content is required.',
-      );
+      throw new BadRequestException('Content is required.');
     }
 
-    const scheduledAt =
-      new Date(input.scheduledAt);
+    const scheduledAt = new Date(input.scheduledAt);
 
-    if (
-      Number.isNaN(
-        scheduledAt.getTime(),
-      )
-    ) {
-      throw new BadRequestException(
-        'Invalid scheduledAt value.',
-      );
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt value.');
     }
 
-    const channel =
-      await this.prisma.socialChannel.findUnique({
-        where: {
-          id: input.channelId,
-        },
-      });
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: {
+        id: input.channelId,
+      },
+    });
 
     if (!channel) {
-      throw new NotFoundException(
-        'Social channel not found.',
-      );
+      throw new NotFoundException('Social channel not found.');
     }
 
-    if (
-      channel.brandId !== input.brandId
-    ) {
-      throw new BadRequestException(
-        'Channel does not belong to this brand.',
-      );
+    if (channel.brandId !== input.brandId) {
+      throw new BadRequestException('Channel does not belong to this brand.');
     }
 
-    if (
-      channel.platform !== input.platform
-    ) {
+    if (channel.platform !== input.platform) {
       throw new BadRequestException(
         'Channel platform does not match post platform.',
       );
@@ -1102,23 +1064,15 @@ export class AutomationService {
       data: {
         brandId: input.brandId,
         channelId: input.channelId,
-        campaignId:
-          input.campaignId || null,
-        historyId:
-          input.historyId || null,
+        campaignId: input.campaignId || null,
+        historyId: input.historyId || null,
         platform: input.platform,
-        title:
-          input.title?.trim() || null,
+        title: input.title?.trim() || null,
         content: input.content.trim(),
-        mediaUrls:
-          input.mediaUrls ?? [],
+        mediaUrls: input.mediaUrls ?? [],
         scheduledAt,
-        timezone:
-          input.timezone ||
-          'Asia/Kuala_Lumpur',
-        status:
-          input.status ??
-          ScheduledPostStatus.DRAFT,
+        timezone: input.timezone || 'Asia/Kuala_Lumpur',
+        status: input.status ?? ScheduledPostStatus.DRAFT,
       },
       include: {
         channel: true,
@@ -1138,71 +1092,76 @@ export class AutomationService {
     });
   }
 
-
   async createMultiPlatformPosts(input: {
     brandId: string;
     campaignId?: string;
     historyId?: string;
     title?: string;
-    contents: Partial<
-      Record<
-        SocialPlatform,
-        string
-      >
-    >;
-    mediaUrls?: Partial<
-      Record<
-        SocialPlatform,
-        string[]
-      >
-    >;
+    contents: Partial<Record<SocialPlatform, string>>;
+    mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
+    channelIds?: Partial<Record<SocialPlatform, string>>;
     platforms: SocialPlatform[];
     scheduledAt: string;
     timezone?: string;
     queueImmediately?: boolean;
   }) {
-    if (
-      !input.platforms?.length
-    ) {
-      throw new BadRequestException(
-        'At least one platform is required.',
-      );
+    if (!input.platforms?.length) {
+      throw new BadRequestException('At least one platform is required.');
     }
 
-    const uniquePlatforms = [
-      ...new Set(input.platforms),
-    ];
+    const uniquePlatforms = [...new Set(input.platforms)];
 
-    const channels =
-      await this.prisma.socialChannel.findMany({
-        where: {
-          brandId: input.brandId,
-          platform: {
-            in: uniquePlatforms,
-          },
-          status:
-            SocialChannelStatus.CONNECTED,
+    const channels = await this.prisma.socialChannel.findMany({
+      where: {
+        brandId: input.brandId,
+        platform: {
+          in: uniquePlatforms,
         },
-      });
+        status: SocialChannelStatus.CONNECTED,
+      },
+    });
 
-    const channelByPlatform =
-      new Map(
-        channels.map((channel) => [
-          channel.platform,
-          channel,
-        ]),
+    const channelByPlatform = new Map<
+      SocialPlatform,
+      (typeof channels)[number]
+    >();
+
+    for (const platform of uniquePlatforms) {
+      const requestedChannelId = input.channelIds?.[platform]?.trim();
+
+      const platformChannels = channels.filter(
+        (channel) => channel.platform === platform,
       );
 
-    const missingPlatforms =
-      uniquePlatforms.filter(
-        (platform) =>
-          !channelByPlatform.has(platform),
-      );
+      if (requestedChannelId) {
+        const requestedChannel = platformChannels.find(
+          (channel) => channel.id === requestedChannelId,
+        );
 
-    if (missingPlatforms.length) {
-      throw new BadRequestException(
-        `Connected channel missing for: ${missingPlatforms.join(', ')}`,
-      );
+        if (!requestedChannel) {
+          throw new BadRequestException(
+            `Requested connected channel not found for ${platform}.`,
+          );
+        }
+
+        channelByPlatform.set(platform, requestedChannel);
+
+        continue;
+      }
+
+      if (platformChannels.length === 0) {
+        throw new BadRequestException(
+          `Connected channel missing for: ${platform}`,
+        );
+      }
+
+      if (platformChannels.length > 1) {
+        throw new BadRequestException(
+          `Multiple connected channels found for ${platform}; channelId is required.`,
+        );
+      }
+
+      channelByPlatform.set(platform, platformChannels[0]);
     }
 
     const createdPosts: Array<{
@@ -1216,52 +1175,34 @@ export class AutomationService {
       };
     }> = [];
 
-    for (
-      const platform of uniquePlatforms
-    ) {
-      const content =
-        input.contents?.[platform]?.trim();
+    for (const platform of uniquePlatforms) {
+      const content = input.contents?.[platform]?.trim();
 
       if (!content) {
-        throw new BadRequestException(
-          `Content is required for ${platform}.`,
-        );
+        throw new BadRequestException(`Content is required for ${platform}.`);
       }
 
-      const channel =
-        channelByPlatform.get(platform);
+      const channel = channelByPlatform.get(platform);
 
       if (!channel) {
-        throw new BadRequestException(
-          `Channel not found for ${platform}.`,
-        );
+        throw new BadRequestException(`Channel not found for ${platform}.`);
       }
 
-      const post =
-        await this.createPost({
-          brandId: input.brandId,
-          channelId: channel.id,
-          campaignId:
-            input.campaignId,
-          historyId:
-            input.historyId,
-          platform,
-          title:
-            input.title,
-          content,
-          mediaUrls:
-            input.mediaUrls?.[
-              platform
-            ] ?? [],
-          scheduledAt:
-            input.scheduledAt,
-          timezone:
-            input.timezone,
-          status:
-            input.queueImmediately
-              ? ScheduledPostStatus.QUEUED
-              : ScheduledPostStatus.DRAFT,
-        });
+      const post = await this.createPost({
+        brandId: input.brandId,
+        channelId: channel.id,
+        campaignId: input.campaignId,
+        historyId: input.historyId,
+        platform,
+        title: input.title,
+        content,
+        mediaUrls: input.mediaUrls?.[platform] ?? [],
+        scheduledAt: input.scheduledAt,
+        timezone: input.timezone,
+        status: input.queueImmediately
+          ? ScheduledPostStatus.QUEUED
+          : ScheduledPostStatus.DRAFT,
+      });
 
       createdPosts.push({
         id: post.id,
@@ -1282,36 +1223,19 @@ export class AutomationService {
     };
   }
 
-  async updatePost(
-    id: string,
-    input: UpdatePostInput,
-  ) {
-    const current =
-      await this.getPost(id);
+  async updatePost(id: string, input: UpdatePostInput) {
+    const current = await this.getPost(id);
 
-    if (
-      current.status ===
-      ScheduledPostStatus.PUBLISHED
-    ) {
-      throw new BadRequestException(
-        'Published posts cannot be edited.',
-      );
+    if (current.status === ScheduledPostStatus.PUBLISHED) {
+      throw new BadRequestException('Published posts cannot be edited.');
     }
 
-    const scheduledAt =
-      input.scheduledAt
-        ? new Date(input.scheduledAt)
-        : undefined;
+    const scheduledAt = input.scheduledAt
+      ? new Date(input.scheduledAt)
+      : undefined;
 
-    if (
-      scheduledAt &&
-      Number.isNaN(
-        scheduledAt.getTime(),
-      )
-    ) {
-      throw new BadRequestException(
-        'Invalid scheduledAt value.',
-      );
+    if (scheduledAt && Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt value.');
     }
 
     return this.prisma.scheduledPost.update({
@@ -1320,32 +1244,17 @@ export class AutomationService {
       },
       data: {
         title:
-          input.title === undefined
-            ? undefined
-            : input.title.trim() || null,
-        content:
-          input.content === undefined
-            ? undefined
-            : input.content.trim(),
-        mediaUrls:
-          input.mediaUrls,
+          input.title === undefined ? undefined : input.title.trim() || null,
+        content: input.content === undefined ? undefined : input.content.trim(),
+        mediaUrls: input.mediaUrls,
         scheduledAt,
-        timezone:
-          input.timezone,
-        status:
-          input.status,
+        timezone: input.timezone,
+        status: input.status,
         campaignId:
-          input.campaignId === undefined
-            ? undefined
-            : input.campaignId || null,
+          input.campaignId === undefined ? undefined : input.campaignId || null,
         historyId:
-          input.historyId === undefined
-            ? undefined
-            : input.historyId || null,
-        lastError:
-          input.lastError === undefined
-            ? undefined
-            : input.lastError,
+          input.historyId === undefined ? undefined : input.historyId || null,
+        lastError: input.lastError === undefined ? undefined : input.lastError,
       },
       include: {
         channel: true,
@@ -1366,16 +1275,10 @@ export class AutomationService {
   }
 
   async removePost(id: string) {
-    const current =
-      await this.getPost(id);
+    const current = await this.getPost(id);
 
-    if (
-      current.status ===
-      ScheduledPostStatus.PUBLISHED
-    ) {
-      throw new BadRequestException(
-        'Published posts cannot be deleted.',
-      );
+    if (current.status === ScheduledPostStatus.PUBLISHED) {
+      throw new BadRequestException('Published posts cannot be deleted.');
     }
 
     await this.prisma.scheduledPost.delete({
@@ -1391,16 +1294,12 @@ export class AutomationService {
   }
 
   async queuePost(id: string) {
-    const current =
-      await this.getPost(id);
+    const current = await this.getPost(id);
 
     if (
-      current.status !==
-        ScheduledPostStatus.DRAFT &&
-      current.status !==
-        ScheduledPostStatus.SCHEDULED &&
-      current.status !==
-        ScheduledPostStatus.FAILED
+      current.status !== ScheduledPostStatus.DRAFT &&
+      current.status !== ScheduledPostStatus.SCHEDULED &&
+      current.status !== ScheduledPostStatus.FAILED
     ) {
       throw new BadRequestException(
         'Only draft, scheduled or failed posts can be queued.',
@@ -1412,24 +1311,17 @@ export class AutomationService {
         id,
       },
       data: {
-        status:
-          ScheduledPostStatus.QUEUED,
+        status: ScheduledPostStatus.QUEUED,
         lastError: null,
       },
     });
   }
 
   async cancelPost(id: string) {
-    const current =
-      await this.getPost(id);
+    const current = await this.getPost(id);
 
-    if (
-      current.status ===
-      ScheduledPostStatus.PUBLISHED
-    ) {
-      throw new BadRequestException(
-        'Published posts cannot be cancelled.',
-      );
+    if (current.status === ScheduledPostStatus.PUBLISHED) {
+      throw new BadRequestException('Published posts cannot be cancelled.');
     }
 
     return this.prisma.scheduledPost.update({
@@ -1437,24 +1329,20 @@ export class AutomationService {
         id,
       },
       data: {
-        status:
-          ScheduledPostStatus.CANCELLED,
+        status: ScheduledPostStatus.CANCELLED,
       },
     });
   }
 
   async getSettings() {
-    const workspace =
-      await this.prisma.workspace.findFirst({
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+    const workspace = await this.prisma.workspace.findFirst({
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
 
     if (!workspace) {
-      throw new NotFoundException(
-        'Workspace not found.',
-      );
+      throw new NotFoundException('Workspace not found.');
     }
 
     return this.prisma.automationSetting.upsert({
@@ -1468,19 +1356,16 @@ export class AutomationService {
     });
   }
 
-  async updateSettings(
-    input: {
-      timezone?: string;
-      approvalRequired?: boolean;
-      autoPublishEnabled?: boolean;
-      retryLimit?: number;
-      retryDelayMinutes?: number;
-      defaultFacebookTime?: string;
-      defaultTelegramTime?: string;
-    },
-  ) {
-    const settings =
-      await this.getSettings();
+  async updateSettings(input: {
+    timezone?: string;
+    approvalRequired?: boolean;
+    autoPublishEnabled?: boolean;
+    retryLimit?: number;
+    retryDelayMinutes?: number;
+    defaultFacebookTime?: string;
+    defaultTelegramTime?: string;
+  }) {
+    const settings = await this.getSettings();
 
     return this.prisma.automationSetting.update({
       where: {
@@ -1491,57 +1376,44 @@ export class AutomationService {
   }
 
   private async ensureBrand(id: string) {
-    const brand =
-      await this.prisma.brand.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-        },
-      });
+    const brand = await this.prisma.brand.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     if (!brand) {
-      throw new NotFoundException(
-        'Brand not found.',
-      );
+      throw new NotFoundException('Brand not found.');
     }
   }
 
   private async ensureChannel(id: string) {
-    const channel =
-      await this.prisma.socialChannel.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-        },
-      });
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
 
     if (!channel) {
-      throw new NotFoundException(
-        'Social channel not found.',
-      );
+      throw new NotFoundException('Social channel not found.');
     }
   }
-
 
   async runPublisher() {
     return this.publisher.run();
   }
 
-
   async retryPost(id: string) {
     const post = await this.getPost(id);
 
-    if (
-      post.status !==
-      ScheduledPostStatus.FAILED
-    ) {
-      throw new BadRequestException(
-        'Only failed posts can be retried.',
-      );
+    if (post.status !== ScheduledPostStatus.FAILED) {
+      throw new BadRequestException('Only failed posts can be retried.');
     }
 
     return this.prisma.scheduledPost.update({
@@ -1549,8 +1421,7 @@ export class AutomationService {
         id,
       },
       data: {
-        status:
-          ScheduledPostStatus.QUEUED,
+        status: ScheduledPostStatus.QUEUED,
         lastError: null,
         scheduledAt: new Date(),
       },
@@ -1583,5 +1454,4 @@ export class AutomationService {
       },
     });
   }
-
 }

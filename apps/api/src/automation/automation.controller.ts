@@ -13,16 +13,9 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import {
-  randomUUID,
-} from 'node:crypto';
-import {
-  readFile,
-  realpath,
-} from 'node:fs/promises';
-import {
-  homedir,
-} from 'node:os';
+import { randomUUID } from 'node:crypto';
+import { readFile, realpath } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import {
   BrowserActionType,
@@ -41,59 +34,25 @@ import { SportsNewsAutomationService } from './sports-news-automation.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
 
-function sanitizeBrowserActionResponse(
-  value: unknown,
-): unknown {
-  if (
-    !value ||
-    typeof value !== 'object'
-  ) {
+function sanitizeBrowserActionResponse(value: unknown): unknown {
+  if (!value || typeof value !== 'object') {
     return value;
   }
 
-  const cloned =
-    JSON.parse(
-      JSON.stringify(value),
-    ) as Record<string, unknown>;
+  const cloned = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 
-  const screenshot =
-    cloned.screenshot;
+  const screenshot = cloned.screenshot;
 
-  if (
-    screenshot &&
-    typeof screenshot === 'object'
-  ) {
-    delete (
-      screenshot as Record<
-        string,
-        unknown
-      >
-    ).base64;
+  if (screenshot && typeof screenshot === 'object') {
+    delete (screenshot as Record<string, unknown>).base64;
   }
 
-  const screenshots =
-    cloned.screenshots;
+  const screenshots = cloned.screenshots;
 
-  if (
-    screenshots &&
-    typeof screenshots === 'object'
-  ) {
-    for (
-      const item
-      of Object.values(
-        screenshots,
-      )
-    ) {
-      if (
-        item &&
-        typeof item === 'object'
-      ) {
-        delete (
-          item as Record<
-            string,
-            unknown
-          >
-        ).base64;
+  if (screenshots && typeof screenshots === 'object') {
+    for (const item of Object.values(screenshots)) {
+      if (item && typeof item === 'object') {
+        delete (item as Record<string, unknown>).base64;
       }
     }
   }
@@ -101,78 +60,40 @@ function sanitizeBrowserActionResponse(
   return cloned;
 }
 
-
 type ScreenshotPayload = {
   absolutePath?: unknown;
 };
 
-function readScreenshotPath(
-  value: unknown,
-): string | null {
-  if (
-    !value ||
-    typeof value !== 'object'
-  ) {
+function readScreenshotPath(value: unknown): string | null {
+  if (!value || typeof value !== 'object') {
     return null;
   }
 
-  const absolutePath =
-    (
-      value as
-        ScreenshotPayload
-    ).absolutePath;
+  const absolutePath = (value as ScreenshotPayload).absolutePath;
 
-  return typeof absolutePath ===
-    'string'
-    ? absolutePath
-    : null;
+  return typeof absolutePath === 'string' ? absolutePath : null;
 }
 
 function screenshotPathFromAction(
   responsePayload: unknown,
-  variant:
-    | 'primary'
-    | 'before'
-    | 'after',
+  variant: 'primary' | 'before' | 'after',
 ): string | null {
-  if (
-    !responsePayload ||
-    typeof responsePayload !==
-      'object'
-  ) {
+  if (!responsePayload || typeof responsePayload !== 'object') {
     return null;
   }
 
-  const payload =
-    responsePayload as Record<
-      string,
-      unknown
-    >;
+  const payload = responsePayload as Record<string, unknown>;
 
-  const screenshot =
-    readScreenshotPath(
-      payload.screenshot,
-    );
+  const screenshot = readScreenshotPath(payload.screenshot);
 
   const screenshots =
-    payload.screenshots &&
-    typeof payload.screenshots ===
-      'object'
-      ? (
-          payload.screenshots as
-            Record<string, unknown>
-        )
+    payload.screenshots && typeof payload.screenshots === 'object'
+      ? (payload.screenshots as Record<string, unknown>)
       : null;
 
-  const before =
-    readScreenshotPath(
-      screenshots?.before,
-    );
+  const before = readScreenshotPath(screenshots?.before);
 
-  const after =
-    readScreenshotPath(
-      screenshots?.after,
-    );
+  const after = readScreenshotPath(screenshots?.after);
 
   if (variant === 'before') {
     return before;
@@ -182,39 +103,27 @@ function screenshotPathFromAction(
     return after;
   }
 
-  return (
-    screenshot ||
-    after ||
-    before
-  );
+  return screenshot || after || before;
 }
-
 
 @Controller('automation')
 export class AutomationController {
-  private readonly postPublishOptions = new Map<string, { addLogoBeforePublish: boolean; watermarkMode: 'none' | 'logo' }>();
-
+  private readonly postPublishOptions = new Map<
+    string,
+    { addLogoBeforePublish: boolean; watermarkMode: 'none' | 'logo' }
+  >();
 
   constructor(
-    private readonly automationService:
-      AutomationService,
-    private readonly telegramConnector:
-      TelegramConnectorService,
-    private readonly facebookConnector:
-      FacebookConnectorService,
-    private readonly facebookOAuth:
-      FacebookOAuthService,
-    private readonly runtimeProfiles:
-      RuntimeProfileService,
+    private readonly automationService: AutomationService,
+    private readonly telegramConnector: TelegramConnectorService,
+    private readonly facebookConnector: FacebookConnectorService,
+    private readonly facebookOAuth: FacebookOAuthService,
+    private readonly runtimeProfiles: RuntimeProfileService,
     private readonly browserAccounts: BrowserAccountService,
-    private readonly browserRuntime:
-      BrowserRuntimeBridgeService,
-    private readonly browserActionHistory:
-      BrowserActionHistoryService,
-    private readonly browserActionTrace:
-      BrowserActionTraceService,
-    private readonly sportsNews:
-      SportsNewsAutomationService,
+    private readonly browserRuntime: BrowserRuntimeBridgeService,
+    private readonly browserActionHistory: BrowserActionHistoryService,
+    private readonly browserActionTrace: BrowserActionTraceService,
+    private readonly sportsNews: SportsNewsAutomationService,
   ) {}
 
   @Get('dashboard')
@@ -234,21 +143,13 @@ export class AutomationController {
    * Does NOT queue or publish anything.
    */
   @Get('channels/:id/publishing-readiness')
-  publishingReadiness(
-    @Param('id') id: string,
-  ) {
-    return this.runtimeProfiles
-      .getBrowserPublishingSafety(
-        id,
-      );
+  publishingReadiness(@Param('id') id: string) {
+    return this.runtimeProfiles.getBrowserPublishingSafety(id);
   }
 
   @Get('channels/:id')
-  getChannel(
-    @Param('id') id: string,
-  ) {
-    return this.automationService
-      .getChannel(id);
+  getChannel(@Param('id') id: string) {
+    return this.automationService.getChannel(id);
   }
 
   @Get('browser-actions')
@@ -258,58 +159,32 @@ export class AutomationController {
     @Query('limit')
     limit?: string,
   ) {
-    const parsedLimit =
-      limit
-        ? Number.parseInt(
-            limit,
-            10,
-          )
-        : undefined;
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
 
-    return this.browserActionHistory
-      .listRecent({
-        channelId:
-          channelId?.trim() ||
-          undefined,
-        limit:
-          Number.isFinite(
-            parsedLimit,
-          )
-            ? parsedLimit
-            : undefined,
-      });
+    return this.browserActionHistory.listRecent({
+      channelId: channelId?.trim() || undefined,
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+    });
   }
 
-
-  @Get(
-    'browser-actions/:id/screenshot',
-  )
+  @Get('browser-actions/:id/screenshot')
   async browserActionScreenshot(
     @Param('id') id: string,
     @Query('variant')
     requestedVariant?: string,
     @Res() response?: Response,
   ) {
-    const variant:
-      | 'primary'
-      | 'before'
-      | 'after' =
-      requestedVariant ===
-        'before' ||
-      requestedVariant ===
-        'after'
+    const variant: 'primary' | 'before' | 'after' =
+      requestedVariant === 'before' || requestedVariant === 'after'
         ? requestedVariant
         : 'primary';
 
-    const action =
-      await this.browserActionHistory
-        .getRequired(id);
+    const action = await this.browserActionHistory.getRequired(id);
 
-    const screenshotPath =
-      screenshotPathFromAction(
-        action.responsePayload,
-        variant,
-      );
+    const screenshotPath = screenshotPathFromAction(
+      action.responsePayload,
+      variant,
+    );
 
     if (!screenshotPath) {
       throw new NotFoundException(
@@ -317,34 +192,19 @@ export class AutomationController {
       );
     }
 
-    const screenshotRoot =
-      path.resolve(
-        process.env
-          .BROWSER_SCREENSHOT_ROOT ||
-          path.join(
-            homedir(),
-            '.atlas',
-            'browser-screenshots',
-          ),
-      );
+    const screenshotRoot = path.resolve(
+      process.env.BROWSER_SCREENSHOT_ROOT ||
+        path.join(homedir(), '.atlas', 'browser-screenshots'),
+    );
 
-    let canonicalRoot:
-      string;
+    let canonicalRoot: string;
 
-    let canonicalScreenshot:
-      string;
+    let canonicalScreenshot: string;
 
     try {
-      [
-        canonicalRoot,
-        canonicalScreenshot,
-      ] = await Promise.all([
-        realpath(
-          screenshotRoot,
-        ),
-        realpath(
-          screenshotPath,
-        ),
+      [canonicalRoot, canonicalScreenshot] = await Promise.all([
+        realpath(screenshotRoot),
+        realpath(screenshotPath),
       ]);
     } catch {
       throw new NotFoundException(
@@ -353,11 +213,8 @@ export class AutomationController {
     }
 
     const insideRoot =
-      canonicalScreenshot ===
-        canonicalRoot ||
-      canonicalScreenshot.startsWith(
-        `${canonicalRoot}${path.sep}`,
-      );
+      canonicalScreenshot === canonicalRoot ||
+      canonicalScreenshot.startsWith(`${canonicalRoot}${path.sep}`);
 
     if (!insideRoot) {
       throw new BadRequestException(
@@ -365,14 +222,10 @@ export class AutomationController {
       );
     }
 
-    let image:
-      Buffer;
+    let image: Buffer;
 
     try {
-      image =
-        await readFile(
-          canonicalScreenshot,
-        );
+      image = await readFile(canonicalScreenshot);
     } catch {
       throw new NotFoundException(
         'The archived screenshot file could not be read.',
@@ -381,50 +234,30 @@ export class AutomationController {
 
     response
       ?.set({
-        'Content-Type':
-          'image/jpeg',
-        'Cache-Control':
-          'private, no-store',
-        'Content-Length':
-          String(
-            image.byteLength,
-          ),
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'private, no-store',
+        'Content-Length': String(image.byteLength),
       })
       .send(image);
   }
 
+  @Post('browser-actions/:id/retry')
+  async retryBrowserAction(@Param('id') id: string) {
+    const previous = await this.browserActionHistory.getRequired(id);
 
-  @Post(
-    'browser-actions/:id/retry',
-  )
-  async retryBrowserAction(
-    @Param('id') id: string,
-  ) {
-    const previous =
-      await this.browserActionHistory
-        .getRequired(id);
-
-    if (
-      previous.status !==
-      'FAILED'
-    ) {
+    if (previous.status !== 'FAILED') {
       throw new BadRequestException(
         'Only failed Browser Agent actions can be retried.',
       );
     }
 
-    if (
-      previous.action !==
-      BrowserActionType.PREPARE
-    ) {
+    if (previous.action !== BrowserActionType.PREPARE) {
       throw new BadRequestException(
         'Only failed PREPARE actions currently support retry.',
       );
     }
 
-    const caption =
-      previous.caption?.trim() ||
-      '';
+    const caption = previous.caption?.trim() || '';
 
     if (!caption) {
       throw new BadRequestException(
@@ -432,83 +265,54 @@ export class AutomationController {
       );
     }
 
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          previous.channelId,
-        );
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(
+      previous.channelId,
+    );
 
-    const retryAction =
-      await this.browserActionHistory
-        .start({
-          channelId:
-            previous.channelId,
-          flowId:
-            randomUUID(),
-          action:
-            BrowserActionType.PREPARE,
-          browserProfileKey:
-            profile.browserProfileKey,
-          caption,
-          imagePath:
-            previous.imagePath,
-          requestPayload: {
-            retryOfActionId:
-              previous.id,
-            caption,
-            imagePath:
-              previous.imagePath,
-          },
-        });
+    const retryAction = await this.browserActionHistory.start({
+      channelId: previous.channelId,
+      flowId: randomUUID(),
+      action: BrowserActionType.PREPARE,
+      browserProfileKey: profile.browserProfileKey,
+      caption,
+      imagePath: previous.imagePath,
+      requestPayload: {
+        retryOfActionId: previous.id,
+        caption,
+        imagePath: previous.imagePath,
+      },
+    });
 
     try {
-      const result =
-        await this.browserRuntime
-          .prepareFacebookPost(
-            profile.browserProfileKey,
-            {
-              caption,
-              imagePath:
-                previous.imagePath,
-            },
-          );
+      const result = await this.browserRuntime.prepareFacebookPost(
+        profile.browserProfileKey,
+        {
+          caption,
+          imagePath: previous.imagePath,
+        },
+      );
 
-      await this.browserActionHistory
-        .succeed(
-          retryAction.id,
-          {
-            responsePayload:
-              sanitizeBrowserActionResponse(
-                result,
-              ),
-          },
-        );
+      await this.browserActionHistory.succeed(retryAction.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
 
       return {
         success: true,
         retried: true,
-        retryOfActionId:
-          previous.id,
-        actionId:
-          retryAction.id,
+        retryOfActionId: previous.id,
+        actionId: retryAction.id,
         result,
       };
     } catch (error) {
-      await this.browserActionHistory
-        .fail(
-          retryAction.id,
-          error,
-        );
+      await this.browserActionHistory.fail(retryAction.id, error);
 
       throw error;
     }
   }
 
-
   @Get('browser-worker/health')
   browserWorkerHealth() {
-    return this.browserRuntime
-      .health();
+    return this.browserRuntime.health();
   }
 
   @Post('channels/:id/browser/open')
@@ -520,11 +324,7 @@ export class AutomationController {
       startUrl?: string;
     },
   ) {
-    return this.browserRuntime
-      .open(
-        id,
-        body,
-      );
+    return this.browserRuntime.open(id, body);
   }
 
   @Post('channels/:id/browser/facebook/login')
@@ -535,9 +335,7 @@ export class AutomationController {
       confirmation?: string;
     },
   ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(id);
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
     return this.browserRuntime.request(
       `/profiles/${encodeURIComponent(
@@ -546,17 +344,14 @@ export class AutomationController {
       {
         method: 'POST',
         headers: {
-          'Content-Type':
-            'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          confirmation:
-            body.confirmation,
+          confirmation: body.confirmation,
         }),
       },
     );
   }
-
 
   @Post('channels/:id/browser/facebook/submit-2fa')
   async submitFacebookTwoFactor(
@@ -566,9 +361,7 @@ export class AutomationController {
       code?: string;
     },
   ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(id);
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
     return this.browserRuntime.request(
       `/profiles/${encodeURIComponent(
@@ -577,30 +370,21 @@ export class AutomationController {
       {
         method: 'POST',
         headers: {
-          'Content-Type':
-            'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          code:
-            body.code,
+          code: body.code,
         }),
       },
     );
   }
 
-
   @Post('channels/:id/browser/inspect')
-  async inspectBrowserPage(
-    @Param('id') id: string,
-  ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(id);
+  async inspectBrowserPage(@Param('id') id: string) {
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
     return this.browserRuntime.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/inspect`,
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/inspect`,
       {
         method: 'POST',
       },
@@ -608,16 +392,11 @@ export class AutomationController {
   }
 
   @Get('channels/:id/browser/status')
-  channelBrowserStatus(
-    @Param('id') id: string,
-  ) {
-    return this.browserRuntime
-      .status(id);
+  channelBrowserStatus(@Param('id') id: string) {
+    return this.browserRuntime.status(id);
   }
 
-  @Post(
-    'channels/:id/browser/facebook/prepare-post',
-  )
+  @Post('channels/:id/browser/facebook/prepare-post')
   async prepareFacebookBrowserPost(
     @Param('id') id: string,
     @Body()
@@ -626,147 +405,89 @@ export class AutomationController {
       imagePath?: string | null;
     },
   ) {
-    const caption =
-      body.caption?.trim() ||
-      '';
+    const caption = body.caption?.trim() || '';
 
-    const imagePath =
-      body.imagePath?.trim() ||
-      null;
+    const imagePath = body.imagePath?.trim() || null;
 
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          id,
-        );
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
-    const action =
-      await this.browserActionHistory
-        .start({
-          channelId: id,
-          flowId:
-            randomUUID(),
-          action:
-            BrowserActionType.PREPARE,
-          browserProfileKey:
-            profile.browserProfileKey,
-          caption,
-          imagePath,
-          requestPayload: {
-            caption,
-            imagePath,
-          },
-        });
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId: randomUUID(),
+      action: BrowserActionType.PREPARE,
+      browserProfileKey: profile.browserProfileKey,
+      caption,
+      imagePath,
+      requestPayload: {
+        caption,
+        imagePath,
+      },
+    });
 
-    const prepareRequestTrace =
-      await this.browserActionTrace
-        .startStep({
-          browserActionId:
-            action.id,
-          stepKey:
-            "PREPARE_REQUEST",
-          stepName:
-            "Prepare Facebook draft request",
-          stepOrder:
-            0,
-          metadata: {
-            channelId:
-              id,
-            browserProfileKey:
-              profile.browserProfileKey,
-          },
-        });
+    const prepareRequestTrace = await this.browserActionTrace.startStep({
+      browserActionId: action.id,
+      stepKey: 'PREPARE_REQUEST',
+      stepName: 'Prepare Facebook draft request',
+      stepOrder: 0,
+      metadata: {
+        channelId: id,
+        browserProfileKey: profile.browserProfileKey,
+      },
+    });
 
     try {
-      const result =
-        await this.browserRuntime
-          .prepareFacebookPostForChannel(
-            id,
-            {
-              caption,
-              imagePath,
-            },
-          );
+      const result = await this.browserRuntime.prepareFacebookPostForChannel(
+        id,
+        {
+          caption,
+          imagePath,
+        },
+      );
 
-      const prepareResult =
-        result as {
-          executionTrace?: unknown;
-        };
+      const prepareResult = result as {
+        executionTrace?: unknown;
+      };
 
-      await this.browserActionTrace
-        .importWorkerTrace(
-          action.id,
-          prepareResult.executionTrace,
-        );
+      await this.browserActionTrace.importWorkerTrace(
+        action.id,
+        prepareResult.executionTrace,
+      );
 
-      await this.browserActionTrace
-        .succeedStep(
-          prepareRequestTrace.id,
-          {
-            metadata: {
-              browserProfileKey:
-                profile.browserProfileKey,
-              resultReceived:
-                true,
-            },
-          },
-        );
+      await this.browserActionTrace.succeedStep(prepareRequestTrace.id, {
+        metadata: {
+          browserProfileKey: profile.browserProfileKey,
+          resultReceived: true,
+        },
+      });
 
-      await this.browserActionHistory
-        .succeed(
-          action.id,
-          {
-            responsePayload:
-              sanitizeBrowserActionResponse(
-                result,
-              ),
-          },
-        );
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
 
       return result;
     } catch (error) {
-      await this.browserActionTrace
-        .failStep(
-          prepareRequestTrace.id,
-          error,
-        );
+      await this.browserActionTrace.failStep(prepareRequestTrace.id, error);
 
-      await this.browserActionHistory
-        .fail(
-          action.id,
-          error,
-        );
+      await this.browserActionHistory.fail(action.id, error);
 
       throw error;
     }
   }
 
-
-  @Post(
-    'browser-actions/:actionId/replay',
-  )
+  @Post('browser-actions/:actionId/replay')
   async replayFacebookBrowserAction(
     @Param('actionId')
     actionId: string,
   ) {
-    const previous =
-      await this.browserActionHistory
-        .getRequired(
-          actionId,
-        );
+    const previous = await this.browserActionHistory.getRequired(actionId);
 
-    if (
-      previous.action !==
-      BrowserActionType.PREPARE
-    ) {
+    if (previous.action !== BrowserActionType.PREPARE) {
       throw new BadRequestException(
         'Replay v1 currently supports PREPARE actions only.',
       );
     }
 
-    const caption =
-      previous.caption?.trim() ||
-      '';
+    const caption = previous.caption?.trim() || '';
 
     if (!caption) {
       throw new BadRequestException(
@@ -774,304 +495,179 @@ export class AutomationController {
       );
     }
 
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          previous.channelId,
-        );
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(
+      previous.channelId,
+    );
 
-    const replayAction =
-      await this.browserActionHistory
-        .start({
-          channelId:
-            previous.channelId,
-          flowId:
-            randomUUID(),
-          action:
-            BrowserActionType.PREPARE,
-          browserProfileKey:
-            profile.browserProfileKey,
-          caption,
-          imagePath:
-            previous.imagePath,
-          requestPayload: {
-            replayOfActionId:
-              previous.id,
-            caption,
-            imagePath:
-              previous.imagePath,
-          },
-        });
+    const replayAction = await this.browserActionHistory.start({
+      channelId: previous.channelId,
+      flowId: randomUUID(),
+      action: BrowserActionType.PREPARE,
+      browserProfileKey: profile.browserProfileKey,
+      caption,
+      imagePath: previous.imagePath,
+      requestPayload: {
+        replayOfActionId: previous.id,
+        caption,
+        imagePath: previous.imagePath,
+      },
+    });
 
-    const replayRequestTrace =
-      await this.browserActionTrace
-        .startStep({
-          browserActionId:
-            replayAction.id,
-          stepKey:
-            'REPLAY_REQUEST',
-          stepName:
-            'Replay Facebook draft request',
-          stepOrder:
-            0,
-          metadata: {
-            replayOfActionId:
-              previous.id,
-            originalFlowId:
-              previous.flowId,
-            channelId:
-              previous.channelId,
-            browserProfileKey:
-              profile.browserProfileKey,
-          },
-        });
+    const replayRequestTrace = await this.browserActionTrace.startStep({
+      browserActionId: replayAction.id,
+      stepKey: 'REPLAY_REQUEST',
+      stepName: 'Replay Facebook draft request',
+      stepOrder: 0,
+      metadata: {
+        replayOfActionId: previous.id,
+        originalFlowId: previous.flowId,
+        channelId: previous.channelId,
+        browserProfileKey: profile.browserProfileKey,
+      },
+    });
 
-    const ensureProfileTrace =
-      await this.browserActionTrace
-        .startStep({
-          browserActionId:
-            replayAction.id,
-          stepKey:
-            'ENSURE_BROWSER_PROFILE',
-          stepName:
-            'Ensure browser profile is running',
-          stepOrder:
-            -1,
-          metadata: {
-            channelId:
-              previous.channelId,
-            browserProfileKey:
-              profile.browserProfileKey,
-          },
-        });
+    const ensureProfileTrace = await this.browserActionTrace.startStep({
+      browserActionId: replayAction.id,
+      stepKey: 'ENSURE_BROWSER_PROFILE',
+      stepName: 'Ensure browser profile is running',
+      stepOrder: -1,
+      metadata: {
+        channelId: previous.channelId,
+        browserProfileKey: profile.browserProfileKey,
+      },
+    });
 
     try {
-      const ensuredProfile =
-        await this.browserRuntime
-          .ensureProfile(
-            previous.channelId,
-            {
-              headless: false,
-              startUrl:
-                'https://www.facebook.com/',
-            },
-          );
+      const ensuredProfile = await this.browserRuntime.ensureProfile(
+        previous.channelId,
+        {
+          headless: false,
+          startUrl: 'https://www.facebook.com/',
+        },
+      );
 
-      await this.browserActionTrace
-        .succeedStep(
-          ensureProfileTrace.id,
-          {
-            metadata: {
-              channelId:
-                previous.channelId,
-              browserProfileKey:
-                ensuredProfile
-                  .browserProfileKey,
-              ensured:
-                true,
-            },
-          },
-        );
+      await this.browserActionTrace.succeedStep(ensureProfileTrace.id, {
+        metadata: {
+          channelId: previous.channelId,
+          browserProfileKey: ensuredProfile.browserProfileKey,
+          ensured: true,
+        },
+      });
 
-      const ensured =
-        await this.browserRuntime
-          .ensureProfile(
-            previous.channelId,
-            {
-              headless: false,
-              startUrl:
-                'https://www.facebook.com/',
-            },
-          );
+      const ensured = await this.browserRuntime.ensureProfile(
+        previous.channelId,
+        {
+          headless: false,
+          startUrl: 'https://www.facebook.com/',
+        },
+      );
 
-      await this.browserActionTrace
-        .succeedStep(
-          ensureProfileTrace.id,
-          {
-            metadata: {
-              channelId:
-                previous.channelId,
-              browserProfileKey:
-                ensuredProfile
-                  .browserProfileKey,
-              ensured:
-                true,
-            },
-          },
-        );
+      await this.browserActionTrace.succeedStep(ensureProfileTrace.id, {
+        metadata: {
+          channelId: previous.channelId,
+          browserProfileKey: ensuredProfile.browserProfileKey,
+          ensured: true,
+        },
+      });
 
-      const result =
-        await this.browserRuntime
-          .prepareFacebookPost(
-            ensuredProfile
-              .browserProfileKey,
-            {
-              caption,
-              imagePath:
-                previous.imagePath,
-            },
-          );
+      const result = await this.browserRuntime.prepareFacebookPost(
+        ensuredProfile.browserProfileKey,
+        {
+          caption,
+          imagePath: previous.imagePath,
+        },
+      );
 
-      const replayResult =
-        result as {
-          executionTrace?: unknown;
-        };
+      const replayResult = result as {
+        executionTrace?: unknown;
+      };
 
-      await this.browserActionTrace
-        .importWorkerTrace(
-          replayAction.id,
-          replayResult.executionTrace,
-        );
+      await this.browserActionTrace.importWorkerTrace(
+        replayAction.id,
+        replayResult.executionTrace,
+      );
 
-      await this.browserActionTrace
-        .succeedStep(
-          replayRequestTrace.id,
-          {
-            metadata: {
-              replayOfActionId:
-                previous.id,
-              browserProfileKey:
-                profile.browserProfileKey,
-              resultReceived:
-                true,
-            },
-          },
-        );
+      await this.browserActionTrace.succeedStep(replayRequestTrace.id, {
+        metadata: {
+          replayOfActionId: previous.id,
+          browserProfileKey: profile.browserProfileKey,
+          resultReceived: true,
+        },
+      });
 
-      await this.browserActionHistory
-        .succeed(
-          replayAction.id,
-          {
-            responsePayload:
-              sanitizeBrowserActionResponse(
-                result,
-              ),
-          },
-        );
+      await this.browserActionHistory.succeed(replayAction.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
 
       return {
         success: true,
-        replayed:
-          true,
-        replayOfActionId:
-          previous.id,
-        actionId:
-          replayAction.id,
-        flowId:
-          replayAction.flowId,
+        replayed: true,
+        replayOfActionId: previous.id,
+        actionId: replayAction.id,
+        flowId: replayAction.flowId,
         result,
       };
     } catch (error) {
       await this.browserActionTrace
-        .failStep(
-          ensureProfileTrace.id,
-          error,
-        )
-        .catch(
-          () => undefined,
-        );
+        .failStep(ensureProfileTrace.id, error)
+        .catch(() => undefined);
 
       await this.browserActionTrace
-        .failStep(
-          replayRequestTrace.id,
-          error,
-        )
-        .catch(
-          () => undefined,
-        );
+        .failStep(replayRequestTrace.id, error)
+        .catch(() => undefined);
 
-      await this.browserActionHistory
-        .fail(
-          replayAction.id,
-          error,
-        );
+      await this.browserActionHistory.fail(replayAction.id, error);
 
       throw error;
     }
   }
 
+  @Post('channels/:id/browser/facebook/discard-post')
+  async discardFacebookBrowserPost(@Param('id') id: string) {
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
-  @Post(
-    'channels/:id/browser/facebook/discard-post',
-  )
-  async discardFacebookBrowserPost(
-    @Param('id') id: string,
-  ) {
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          id,
-        );
+    const flowId = await this.browserActionHistory.findOpenFlowId(id);
 
-    const flowId =
-      await this.browserActionHistory
-        .findOpenFlowId(id);
-
-    const action =
-      await this.browserActionHistory
-        .start({
-          channelId: id,
-          flowId,
-          action:
-            BrowserActionType.DISCARD,
-          browserProfileKey:
-            profile.browserProfileKey,
-          requestPayload: {
-            channelId: id,
-          },
-        });
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId,
+      action: BrowserActionType.DISCARD,
+      browserProfileKey: profile.browserProfileKey,
+      requestPayload: {
+        channelId: id,
+      },
+    });
 
     try {
-      const result =
-        await this.browserRuntime
-          .discardFacebookPost(
-            id,
-          );
+      const result = await this.browserRuntime.discardFacebookPost(id);
 
-      const discardResult =
-        result as {
-          success?: boolean;
-          discarded?: boolean;
-          alreadyClosed?: boolean;
-          executionTrace?: unknown;
-        };
+      const discardResult = result as {
+        success?: boolean;
+        discarded?: boolean;
+        alreadyClosed?: boolean;
+        executionTrace?: unknown;
+      };
 
-      await this.browserActionTrace
-        .importWorkerTrace(
-          action.id,
-          discardResult.executionTrace,
-        );
+      await this.browserActionTrace.importWorkerTrace(
+        action.id,
+        discardResult.executionTrace,
+      );
 
-      const sanitizedResult =
-        sanitizeBrowserActionResponse(
-          result,
-        );
+      const sanitizedResult = sanitizeBrowserActionResponse(result);
 
-      await this.browserActionHistory
-        .succeed(
-          action.id,
-          {
-            responsePayload:
-              sanitizedResult,
-          },
-        );
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizedResult,
+      });
 
       return result;
     } catch (error) {
-      await this.browserActionHistory
-        .fail(
-          action.id,
-          error,
-        );
+      await this.browserActionHistory.fail(action.id, error);
 
       throw error;
     }
   }
 
-
-  @Post(
-    'channels/:id/browser/facebook/publish-post',
-  )
+  @Post('channels/:id/browser/facebook/publish-post')
   async publishFacebookBrowserPost(
     @Param('id') id: string,
     @Body()
@@ -1079,151 +675,99 @@ export class AutomationController {
       confirmation?: string;
     },
   ) {
-    const confirmation =
-      body.confirmation ||
-      '';
+    const confirmation = body.confirmation || '';
 
-    const profile =
-      await this.runtimeProfiles
-        .getBrowserLaunchProfile(
-          id,
-        );
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
-    const flowId =
-      await this.browserActionHistory
-        .findOpenFlowId(id);
+    const flowId = await this.browserActionHistory.findOpenFlowId(id);
 
-    const action =
-      await this.browserActionHistory
-        .start({
-          channelId: id,
-          flowId,
-          action:
-            BrowserActionType.PUBLISH,
-          browserProfileKey:
-            profile.browserProfileKey,
-          requestPayload: {
-            confirmation,
-          },
-        });
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId,
+      action: BrowserActionType.PUBLISH,
+      browserProfileKey: profile.browserProfileKey,
+      requestPayload: {
+        confirmation,
+      },
+    });
 
     try {
-      const result =
-        await this.browserRuntime
-          .publishFacebookPost(
-            id,
-            confirmation,
-          );
+      const result = await this.browserRuntime.publishFacebookPost(
+        id,
+        confirmation,
+      );
 
-      const publishResult =
-        result as {
-          success?: boolean;
-          published?: boolean;
-          executionTrace?: unknown;
-          verification?: {
-            status?: string;
-          };
+      const publishResult = result as {
+        success?: boolean;
+        published?: boolean;
+        executionTrace?: unknown;
+        verification?: {
+          status?: string;
         };
+      };
 
-      await this.browserActionTrace
-        .importWorkerTrace(
-          action.id,
-          publishResult.executionTrace,
-        );
+      await this.browserActionTrace.importWorkerTrace(
+        action.id,
+        publishResult.executionTrace,
+      );
 
-      const sanitizedResult =
-        sanitizeBrowserActionResponse(
-          result,
-        );
+      const sanitizedResult = sanitizeBrowserActionResponse(result);
 
-      const verificationStatus =
-        publishResult.verification
-          ?.status;
+      const verificationStatus = publishResult.verification?.status;
 
       const publishConfirmed =
-        publishResult.published ===
-          true &&
-        (
-          verificationStatus ===
-            "CONFIRMED" ||
-          verificationStatus ===
-            "COMPOSER_CLOSED"
-        );
+        publishResult.published === true &&
+        (verificationStatus === 'CONFIRMED' ||
+          verificationStatus === 'COMPOSER_CLOSED');
 
       if (!publishConfirmed) {
-        const publishError =
-          new Error(
-            verificationStatus ===
-              "UNCONFIRMED"
-              ? "Facebook publishing could not be confirmed."
-              : verificationStatus ===
-                  "FAILED"
-                ? "Facebook publishing failed."
-                : "Facebook did not confirm that the post was published.",
-          );
+        const publishError = new Error(
+          verificationStatus === 'UNCONFIRMED'
+            ? 'Facebook publishing could not be confirmed.'
+            : verificationStatus === 'FAILED'
+              ? 'Facebook publishing failed.'
+              : 'Facebook did not confirm that the post was published.',
+        );
 
-        await this.browserActionHistory
-          .fail(
-            action.id,
-            publishError,
-            sanitizedResult,
-          );
+        await this.browserActionHistory.fail(
+          action.id,
+          publishError,
+          sanitizedResult,
+        );
 
         return result;
       }
 
-      await this.browserActionHistory
-        .succeed(
-          action.id,
-          {
-            responsePayload:
-              sanitizedResult,
-          },
-        );
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizedResult,
+      });
 
       return result;
     } catch (error) {
-      await this.browserActionHistory
-        .fail(
-          action.id,
-          error,
-        );
+      await this.browserActionHistory.fail(action.id, error);
 
       throw error;
     }
   }
 
-
   @Post('channels/:id/browser/check-ip')
-  checkChannelBrowserIp(
-    @Param('id') id: string,
-  ) {
-    return this.browserRuntime
-      .checkIp(id);
+  checkChannelBrowserIp(@Param('id') id: string) {
+    return this.browserRuntime.checkIp(id);
   }
 
   @Post('channels/:id/browser/close')
-  closeChannelBrowser(
-    @Param('id') id: string,
-  ) {
-    return this.browserRuntime
-      .close(id);
+  closeChannelBrowser(@Param('id') id: string) {
+    return this.browserRuntime.close(id);
   }
-
 
   @Post('runtime-profiles/backfill')
   backfillRuntimeProfiles() {
-    return this.runtimeProfiles
-      .backfillMissingProfiles();
+    return this.runtimeProfiles.backfillMissingProfiles();
   }
 
-
   @Get('channels/:id/runtime-profile')
-  getRuntimeProfile(
-    @Param('id') id: string,
-  ) {
-    return this.runtimeProfiles
-      .getForChannel(id);
+  getRuntimeProfile(@Param('id') id: string) {
+    return this.runtimeProfiles.getForChannel(id);
   }
 
   @Put('channels/:id/runtime-profile')
@@ -1234,11 +778,7 @@ export class AutomationController {
       browserProfileName?: string;
       locale?: string;
       timezone?: string;
-      proxyType?:
-        | 'DIRECT'
-        | 'HTTP'
-        | 'HTTPS'
-        | 'SOCKS5';
+      proxyType?: 'DIRECT' | 'HTTP' | 'HTTPS' | 'SOCKS5';
       proxyHost?: string | null;
       proxyPort?: number | null;
       proxyUsername?: string | null;
@@ -1246,47 +786,28 @@ export class AutomationController {
       proxyCountry?: string | null;
     },
   ) {
-    return this.runtimeProfiles
-      .upsertForChannel(
-        id,
-        body,
-      );
+    return this.runtimeProfiles.upsertForChannel(id, body);
   }
-
 
   @Post('channels/:id/runtime-profile/test-proxy')
-  testRuntimeProfileProxy(
-    @Param('id') id: string,
-  ) {
-    return this.runtimeProfiles
-      .testProxy(id);
+  testRuntimeProfileProxy(@Param('id') id: string) {
+    return this.runtimeProfiles.testProxy(id);
   }
 
-
   @Post('channels/:id/test')
-  testChannel(
-    @Param('id') id: string,
-  ) {
-    return this.automationService
-      .testChannel(id);
+  testChannel(@Param('id') id: string) {
+    return this.automationService.testChannel(id);
   }
 
   @Post('channels/:id/disconnect')
-  disconnectChannel(
-    @Param('id') id: string,
-  ) {
-    return this.automationService
-      .disconnectChannel(id);
+  disconnectChannel(@Param('id') id: string) {
+    return this.automationService.disconnectChannel(id);
   }
 
   @Delete('channels/:id')
-  removeChannel(
-    @Param('id') id: string,
-  ) {
-    return this.automationService
-      .removeChannel(id);
+  removeChannel(@Param('id') id: string) {
+    return this.automationService.removeChannel(id);
   }
-
 
   @Post('channels')
   createChannel(
@@ -1301,18 +822,13 @@ export class AutomationController {
       tokenExpiresAt?: string | null;
     },
   ) {
-    return this.automationService.createChannel(
-      body,
-    );
+    return this.automationService.createChannel(body);
   }
 
   @Post('telegram/inspect-bot')
-  inspectTelegramBot(
-    @Body() body: { botToken: string },
-  ) {
+  inspectTelegramBot(@Body() body: { botToken: string }) {
     return this.automationService.inspectTelegramBot(body.botToken);
   }
-
 
   @Patch('channels/:id')
   updateChannel(
@@ -1326,10 +842,7 @@ export class AutomationController {
       tokenExpiresAt?: string | null;
     },
   ) {
-    return this.automationService.updateChannel(
-      id,
-      body,
-    );
+    return this.automationService.updateChannel(id, body);
   }
 
   @Patch('channels/:id/status')
@@ -1348,20 +861,46 @@ export class AutomationController {
     );
   }
 
+  @Get('posts/calendar')
+  calendarPosts(
+    @Query('status')
+    status?: ScheduledPostStatus,
+    @Query('from')
+    from?: string,
+    @Query('to')
+    to?: string,
+    @Query('limit')
+    limit?: string,
+  ) {
+    return this.automationService.listCalendarPosts(
+      status,
+      from,
+      to,
+      limit ? Number(limit) : undefined,
+    );
+  }
+
   @Get('posts')
   posts(
     @Query('status')
     status?: ScheduledPostStatus,
+    @Query('from')
+    from?: string,
+    @Query('to')
+    to?: string,
+    @Query('limit')
+    limit?: string,
   ) {
     return this.automationService.listPosts(
       status,
+      from,
+      to,
+      limit ? Number(limit) : undefined,
     );
   }
 
   @Get('posts/:id')
-  getPost(
-    @Param('id') id: string,
-  ) {
+  getPost(@Param('id') id: string) {
     return this.automationService.getPost(id);
   }
 
@@ -1382,11 +921,8 @@ export class AutomationController {
       status?: ScheduledPostStatus;
     },
   ) {
-    return this.automationService.createPost(
-      body,
-    );
+    return this.automationService.createPost(body);
   }
-
 
   @Post('multi-publish')
   multiPublish(
@@ -1396,77 +932,48 @@ export class AutomationController {
       campaignId?: string;
       historyId?: string;
       title?: string;
-      contents: Partial<
-        Record<
-          SocialPlatform,
-          string
-        >
-      >;
-      mediaUrls?: Partial<
-        Record<
-          SocialPlatform,
-          string[]
-        >
-      >;
+      contents: Partial<Record<SocialPlatform, string>>;
+      mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
       platforms: SocialPlatform[];
       scheduledAt: string;
       timezone?: string;
       queueImmediately?: boolean;
     },
   ) {
-    return this.automationService
-      .createMultiPlatformPosts(body);
+    return this.automationService.createMultiPlatformPosts(body);
   }
 
   @Patch('posts/:id')
-  updatePost(
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.automationService.updatePost(
-      id,
-      body,
-    );
+  updatePost(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.automationService.updatePost(id, body);
   }
 
   @Delete('posts/:id')
-  removePost(
-    @Param('id') id: string,
-  ) {
+  removePost(@Param('id') id: string) {
     return this.automationService.removePost(id);
   }
 
   @Post('posts/:id/queue')
-  queuePost(
-    @Param('id') id: string,
-  ) {
+  queuePost(@Param('id') id: string) {
     return this.automationService.queuePost(id);
   }
 
   @Post('posts/:id/retry')
-  retryPost(
-    @Param('id') id: string,
-  ) {
+  retryPost(@Param('id') id: string) {
     return this.automationService.retryPost(id);
   }
 
   @Post('posts/:id/cancel')
-  cancelPost(
-    @Param('id') id: string,
-  ) {
+  cancelPost(@Param('id') id: string) {
     return this.automationService.cancelPost(id);
   }
-
 
   @Get('facebook/connect')
   connectFacebook(
     @Query('brandId')
     brandId: string,
   ) {
-    return this.facebookOAuth
-      .createAuthorizationUrl(
-        brandId,
-      );
+    return this.facebookOAuth.createAuthorizationUrl(brandId);
   }
 
   @Get('facebook/callback')
@@ -1483,23 +990,18 @@ export class AutomationController {
     response: Response,
   ) {
     try {
-      const result =
-        await this.facebookOAuth
-          .handleCallback({
-            code,
-            state,
-            error,
-            errorDescription,
-          });
+      const result = await this.facebookOAuth.handleCallback({
+        code,
+        state,
+        error,
+        errorDescription,
+      });
 
       return response.redirect(
-        this.facebookOAuth
-          .buildSuccessRedirect({
-            importedCount:
-              result.imported.length,
-            brandId:
-              result.brand.id,
-          }),
+        this.facebookOAuth.buildSuccessRedirect({
+          importedCount: result.imported.length,
+          brandId: result.brand.id,
+        }),
       );
     } catch (callbackError) {
       const message =
@@ -1507,26 +1009,18 @@ export class AutomationController {
           ? callbackError.message
           : 'Facebook connection failed.';
 
-      return response.redirect(
-        this.facebookOAuth
-          .buildErrorRedirect(
-            message,
-          ),
-      );
+      return response.redirect(this.facebookOAuth.buildErrorRedirect(message));
     }
   }
 
-
   @Post('facebook/test')
   testFacebook() {
-    return this.facebookConnector
-      .testConnection();
+    return this.facebookConnector.testConnection();
   }
 
   @Post('facebook/test-post')
   testFacebookPost() {
-    return this.facebookConnector
-      .sendTestPost();
+    return this.facebookConnector.sendTestPost();
   }
 
   @Post('facebook/publish')
@@ -1563,19 +1057,13 @@ export class AutomationController {
       content: string;
     },
   ) {
-    return this.telegramConnector.sendMessage(
-      body.content,
-    );
+    return this.telegramConnector.sendMessage(body.content);
   }
 
-  
-
-  @Post("run")
+  @Post('run')
   runPublisher() {
     return this.automationService.runPublisher();
   }
-
-
 
   @Post('sports-news/morning/force')
   async forceSportsNewsMorning() {
@@ -1592,8 +1080,7 @@ export class AutomationController {
     return this.sportsNews.getStatus();
   }
 
-  
-@Post('sports-news/morning')
+  @Post('sports-news/morning')
   createSportsNewsMorning() {
     return this.sportsNews.createMorningEditionNow();
   }
@@ -1603,7 +1090,7 @@ export class AutomationController {
     return this.sportsNews.createEveningEditionNow();
   }
 
-@Get('settings')
+  @Get('settings')
   settings() {
     return this.automationService.getSettings();
   }
@@ -1621,9 +1108,7 @@ export class AutomationController {
       defaultTelegramTime?: string;
     },
   ) {
-    return this.automationService.updateSettings(
-      body,
-    );
+    return this.automationService.updateSettings(body);
   }
 
   @Get('browser-accounts')
@@ -1632,12 +1117,8 @@ export class AutomationController {
   }
 
   @Get('browser-accounts/:id')
-  getBrowserAccount(
-    @Param('id') id: string,
-  ) {
-    return this.browserAccounts.getById(
-      id,
-    );
+  getBrowserAccount(@Param('id') id: string) {
+    return this.browserAccounts.getById(id);
   }
 
   @Post('browser-accounts')
@@ -1649,11 +1130,7 @@ export class AutomationController {
       browserProfileName?: string;
       locale?: string;
       timezone?: string;
-      proxyType?:
-        | 'DIRECT'
-        | 'HTTP'
-        | 'HTTPS'
-        | 'SOCKS5';
+      proxyType?: 'DIRECT' | 'HTTP' | 'HTTPS' | 'SOCKS5';
       proxyHost?: string | null;
       proxyPort?: number | null;
       proxyUsername?: string | null;
@@ -1663,11 +1140,8 @@ export class AutomationController {
       brandId?: string | null;
     },
   ) {
-    return this.browserAccounts.create(
-      body as any,
-    );
+    return this.browserAccounts.create(body as any);
   }
-
 
   @Get('posts/:id/preview')
   async getPostPreview(@Param('id') id: string) {
@@ -1677,11 +1151,10 @@ export class AutomationController {
       throw new NotFoundException('Scheduled post not found.');
     }
 
-    const previewOptions =
-      this.postPublishOptions.get(id) || {
-        addLogoBeforePublish: false,
-        watermarkMode: 'none' as const,
-      };
+    const previewOptions = this.postPublishOptions.get(id) || {
+      addLogoBeforePublish: false,
+      watermarkMode: 'none' as const,
+    };
 
     return {
       ...post,
@@ -1705,7 +1178,9 @@ export class AutomationController {
 
     const next = {
       addLogoBeforePublish: Boolean(body.addLogoBeforePublish),
-      watermarkMode: body.addLogoBeforePublish ? ('logo' as const) : ('none' as const),
+      watermarkMode: body.addLogoBeforePublish
+        ? ('logo' as const)
+        : ('none' as const),
     };
 
     this.postPublishOptions.set(id, next);
@@ -1732,6 +1207,4 @@ export class AutomationController {
 
     return this.automationService.retryPost(id);
   }
-
-
 }

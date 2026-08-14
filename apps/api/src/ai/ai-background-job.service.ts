@@ -94,7 +94,8 @@ export class AiBackgroundJobService implements OnApplicationBootstrap {
             },
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(`AI Studio job ${job.id} failed: ${message}`);
           await this.prisma.backgroundJob.update({
             where: { id: job.id },
@@ -106,6 +107,12 @@ export class AiBackgroundJobService implements OnApplicationBootstrap {
           });
         }
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`AI background queue cycle failed: ${message}`, stack);
     } finally {
       this.processing = false;
     }

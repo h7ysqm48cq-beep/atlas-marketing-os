@@ -201,6 +201,12 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
           }
         }
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Asset image queue cycle failed: ${message}`, stack);
     } finally {
       this.processing = false;
     }

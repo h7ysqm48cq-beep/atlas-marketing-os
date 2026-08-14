@@ -4573,3 +4573,58 @@ html[data-pwa="standalone"] [contenteditable="true"] {
     padding: 0 7px 7px;
   }
 }
+
+/* ============================================================
+   Atlas Sidebar Final Interaction Hardening
+   Keep the link itself as the single click/touch target.
+   ============================================================ */
+
+.sidebar .nav-item {
+  position: relative;
+  z-index: 1;
+
+  pointer-events: auto !important;
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Icons, labels and decorative layers must never become
+ * separate hit targets. The parent Link handles navigation.
+ */
+.sidebar .nav-item > *,
+.sidebar .nav-item::before,
+.sidebar .nav-item::after {
+  pointer-events: none !important;
+}
+
+/*
+ * Closed mobile drawer must be completely non-interactive.
+ */
+@media (max-width: 780px) {
+  .sidebar:not(.mobile-open),
+  .sidebar:not(.mobile-open) * {
+    pointer-events: none !important;
+  }
+
+  .sidebar.mobile-open {
+    pointer-events: auto !important;
+  }
+
+  .sidebar.mobile-open .nav-item {
+    pointer-events: auto !important;
+    touch-action: manipulation;
+  }
+
+  .mobile-nav-overlay:not(.visible) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .mobile-nav-overlay.visible {
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}

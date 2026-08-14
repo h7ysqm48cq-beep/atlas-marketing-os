@@ -337,18 +337,202 @@ export function BrandCopilot() {
     return days[value.getUTCDay()];
   }
 
+  async function resolveScheduleChannelId(
+    brandId: string,
+    platform: SchedulePlatform,
+  ): Promise<string> {
+    const response = await fetch(`${API_URL}/automation/channels`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Unable to load ${platform} channels.`);
+    }
+
+    const raw = await response.json();
+
+    const channels = (
+      Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.channels)
+          ? raw.channels
+          : Array.isArray(raw?.items)
+            ? raw.items
+            : []
+    ).filter(
+      (channel: {
+        id?: string;
+        brandId?: string;
+        platform?: string;
+        name?: string;
+        status?: string;
+      }) =>
+        channel?.id &&
+        channel.brandId === brandId &&
+        channel.platform === platform &&
+        channel.status === "CONNECTED",
+    );
+
+    if (!channels.length) {
+      throw new Error(`No connected ${platform} channel found.`);
+    }
+
+    if (channels.length === 1) {
+      return channels[0].id;
+    }
+
+    const options = channels
+      .map(
+        (
+          channel: {
+            name?: string;
+          },
+          index: number,
+        ) => `${index + 1}. ${channel.name || `${platform} Channel`}`,
+      )
+      .join("\n");
+
+    const selection = window.prompt(
+      `请选择要发布到哪个 ${
+        platform === "FACEBOOK" ? "Facebook Page" : "Telegram Channel"
+      }：\n\n${options}\n\n请输入编号：`,
+    );
+
+    if (selection === null) {
+      throw new Error("Scheduling cancelled.");
+    }
+
+    const selectedIndex = Number(selection.trim()) - 1;
+
+    if (
+      !Number.isInteger(selectedIndex) ||
+      selectedIndex < 0 ||
+      selectedIndex >= channels.length
+    ) {
+      throw new Error("Invalid channel selection.");
+    }
+
+    return channels[selectedIndex].id;
+  }
+
   async function scheduleWorkspaceAction(
     action: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
     draftOverride?: CopilotStudioResult,
   ) {
-    const draftForSchedule = draftOverride ?? studioDraft;
+    let draftForSchedule: CopilotStudioResult = {
+      ...(draftOverride ?? studioDraft),
+    };
+
+    /*
+     * SCHEDULE_PERSISTED_DRAFT_FALLBACK
+     *
+     * Scheduling must not depend entirely on volatile React state.
+     * If the requested platform draft is missing locally, recover the
+     * latest persisted studioResult directly from this conversation.
+     */
+    const facebookMissing =
+      action.platforms.includes("FACEBOOK") &&
+      !draftForSchedule.facebook?.trim();
+
+    const telegramMissing =
+      action.platforms.includes("TELEGRAM") &&
+      !draftForSchedule.telegram?.trim();
+
+    if ((facebookMissing || telegramMissing) && conversationId) {
+      const conversationResponse = await fetch(
+        `${API_URL}/copilot/conversations/${conversationId}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (conversationResponse.ok) {
+        const conversationData = (await conversationResponse.json()) as {
+          messages?: Array<{
+            role?: string;
+            metadata?: unknown;
+          }>;
+        };
+
+        const persistedDraft = [...(conversationData.messages ?? [])]
+          .reverse()
+          .map((message) => {
+            if (
+              message.role !== "ASSISTANT" ||
+              !message.metadata ||
+              typeof message.metadata !== "object"
+            ) {
+              return null;
+            }
+
+            const metadata = message.metadata as Record<string, unknown>;
+
+            if (
+              !metadata.studioResult ||
+              typeof metadata.studioResult !== "object"
+            ) {
+              return null;
+            }
+
+            const candidate = metadata.studioResult as Record<string, unknown>;
+
+            return {
+              facebook:
+                typeof candidate.facebook === "string"
+                  ? candidate.facebook
+                  : "",
+              telegram:
+                typeof candidate.telegram === "string"
+                  ? candidate.telegram
+                  : "",
+              reels: typeof candidate.reels === "string" ? candidate.reels : "",
+              imagePrompt:
+                typeof candidate.imagePrompt === "string"
+                  ? candidate.imagePrompt
+                  : "",
+            } satisfies CopilotStudioResult;
+          })
+          .find(
+            (candidate) =>
+              candidate &&
+              (candidate.facebook.trim() ||
+                candidate.telegram.trim() ||
+                candidate.reels.trim() ||
+                candidate.imagePrompt.trim()),
+          );
+
+        if (persistedDraft) {
+          draftForSchedule = {
+            facebook:
+              draftForSchedule.facebook?.trim() || persistedDraft.facebook,
+            telegram:
+              draftForSchedule.telegram?.trim() || persistedDraft.telegram,
+            reels: draftForSchedule.reels?.trim() || persistedDraft.reels,
+            imagePrompt:
+              draftForSchedule.imagePrompt?.trim() ||
+              persistedDraft.imagePrompt,
+          };
+
+          setStudioDraft(draftForSchedule);
+        }
+      }
+    }
+
     const brandId = await getActiveBrandId();
 
     const contents: Partial<Record<SchedulePlatform, string>> = {};
 
+    const channelIds: Partial<Record<SchedulePlatform, string>> = {};
+
+    for (const platform of action.platforms) {
+      channelIds[platform] = await resolveScheduleChannelId(brandId, platform);
+    }
+
     if (action.platforms.includes("FACEBOOK")) {
       if (!draftForSchedule.facebook?.trim()) {
-        throw new Error("Facebook draft is empty.");
+        throw new Error(
+          "Facebook draft is unavailable even after conversation recovery.",
+        );
       }
 
       contents.FACEBOOK = draftForSchedule.facebook;
@@ -356,7 +540,9 @@ export function BrandCopilot() {
 
     if (action.platforms.includes("TELEGRAM")) {
       if (!draftForSchedule.telegram?.trim()) {
-        throw new Error("Telegram draft is empty.");
+        throw new Error(
+          "Telegram draft is unavailable even after conversation recovery.",
+        );
       }
 
       contents.TELEGRAM = draftForSchedule.telegram;
@@ -373,6 +559,8 @@ export function BrandCopilot() {
         brandId,
 
         platforms: action.platforms,
+
+        channelIds,
 
         items: [
           {
@@ -407,11 +595,23 @@ export function BrandCopilot() {
     return data;
   }
 
-  async function applyWorkspaceAction(action: WorkspaceAction) {
+  async function applyWorkspaceAction(
+    action: WorkspaceAction,
+    baseDraft?: CopilotStudioResult,
+  ) {
     const actions = action.type === "batch" ? action.actions : [action];
+
+    let draftSnapshot: CopilotStudioResult = {
+      ...(baseDraft ?? studioDraft),
+    };
 
     for (const item of actions) {
       if (item.type === "replace") {
+        draftSnapshot = {
+          ...draftSnapshot,
+          [item.target]: item.content,
+        };
+
         setStudioDraft((current) => ({
           ...current,
           [item.target]: item.content,
@@ -456,7 +656,13 @@ export function BrandCopilot() {
 
       if (item.type === "schedule") {
         try {
-          const scheduleResult = await scheduleWorkspaceAction(item);
+          console.log("DEBUG schedule item", item);
+          console.log("DEBUG draftSnapshot before schedule", draftSnapshot);
+
+          const scheduleResult = await scheduleWorkspaceAction(
+            item,
+            draftSnapshot,
+          );
 
           const scheduledItems = Array.isArray(scheduleResult?.scheduledItems)
             ? scheduleResult.scheduledItems
@@ -608,6 +814,19 @@ export function BrandCopilot() {
 
     localStorage.removeItem("atlas-copilot-last-conversation");
     setMessages(INITIAL_MESSAGES);
+
+    setStudioDraft({
+      facebook: "",
+      telegram: "",
+      reels: "",
+      imagePrompt: "",
+    });
+
+    setStudioTopic("");
+    setStudioStyle("");
+    setHistoryId(null);
+    setIdeaId(null);
+
     setMarketingPlan(null);
     setInput("");
     setAttachments([]);
@@ -618,7 +837,7 @@ export function BrandCopilot() {
   }
 
   async function openConversation(id: string) {
-    if (busy || id === conversationId) {
+    if (busy) {
       return;
     }
 
@@ -635,6 +854,13 @@ export function BrandCopilot() {
       }
 
       const loadedMessages: Message[] = [];
+
+      let restoredDraftSnapshot: CopilotStudioResult = {
+        facebook: "",
+        telegram: "",
+        reels: "",
+        imagePrompt: "",
+      };
 
       for (const message of data.messages) {
         if (message.role !== "USER" && message.role !== "ASSISTANT") {
@@ -693,6 +919,42 @@ export function BrandCopilot() {
               }
             : undefined;
 
+        /*
+         * LEGACY_STUDIO_RESULT_RECOVERY
+         *
+         * Older Copilot messages may predate metadata.studioResult,
+         * while still containing the original ATLAS_WORKSPACE_ACTION
+         * replace/batch payload in message.content.
+         *
+         * Replay that action against the draft snapshot so old
+         * conversations remain schedulable without asking the user
+         * to paste the copy again.
+         */
+        const parsedStoredReply =
+          message.role === "ASSISTANT"
+            ? parseWorkspaceAction(message.content)
+            : {
+                visibleReply: message.content,
+                action: null,
+              };
+
+        const legacyStudioResult =
+          message.role === "ASSISTANT" && parsedStoredReply.action
+            ? studioResultFromWorkspaceAction(
+                parsedStoredReply.action,
+                restoredDraftSnapshot,
+              )
+            : null;
+
+        const effectiveRestoredStudioResult =
+          restoredStudioResult || legacyStudioResult || undefined;
+
+        if (effectiveRestoredStudioResult) {
+          restoredDraftSnapshot = {
+            ...effectiveRestoredStudioResult,
+          };
+        }
+
         const isGeneratedImage =
           message.role === "ASSISTANT" &&
           metadata &&
@@ -745,8 +1007,7 @@ export function BrandCopilot() {
 
         const restoredContent =
           message.role === "ASSISTANT"
-            ? parseWorkspaceAction(message.content).visibleReply ||
-              message.content
+            ? parsedStoredReply.visibleReply || message.content
             : message.content;
 
         loadedMessages.push({
@@ -755,7 +1016,9 @@ export function BrandCopilot() {
           imageUrl,
           assetId,
           studioResult:
-            message.role === "ASSISTANT" ? restoredStudioResult : undefined,
+            message.role === "ASSISTANT"
+              ? effectiveRestoredStudioResult
+              : undefined,
         });
       }
 
@@ -765,6 +1028,35 @@ export function BrandCopilot() {
       setMessages(
         loadedMessages.length > 0 ? loadedMessages : INITIAL_MESSAGES,
       );
+
+      // RESTORE_LATEST_STUDIO_RESULT_TO_DRAFT
+      const latestRestoredStudioResult = [...loadedMessages]
+        .reverse()
+        .find(
+          (message) =>
+            message.role === "assistant" &&
+            message.studioResult &&
+            (message.studioResult.facebook?.trim() ||
+              message.studioResult.telegram?.trim() ||
+              message.studioResult.reels?.trim() ||
+              message.studioResult.imagePrompt?.trim()),
+        )?.studioResult;
+
+      if (latestRestoredStudioResult) {
+        setStudioDraft({
+          facebook: latestRestoredStudioResult.facebook || "",
+          telegram: latestRestoredStudioResult.telegram || "",
+          reels: latestRestoredStudioResult.reels || "",
+          imagePrompt: latestRestoredStudioResult.imagePrompt || "",
+        });
+      } else {
+        setStudioDraft({
+          facebook: "",
+          telegram: "",
+          reels: "",
+          imagePrompt: "",
+        });
+      }
       setCampaignId(data.campaignId || "");
       setMode(data.mode === "marketing-plan" ? "marketing-plan" : "chat");
 
@@ -1229,6 +1521,57 @@ You can continue refining this plan with Elena.
           },
         ]);
       } else {
+        const latestMessageStudioResult = [...messages]
+          .reverse()
+          .find(
+            (message) => message.role === "assistant" && message.studioResult,
+          )?.studioResult;
+
+        const effectiveStudioDraft: CopilotStudioResult = {
+          facebook:
+            studioDraft.facebook.trim() ||
+            latestMessageStudioResult?.facebook?.trim() ||
+            "",
+          telegram:
+            studioDraft.telegram.trim() ||
+            latestMessageStudioResult?.telegram?.trim() ||
+            "",
+          reels:
+            studioDraft.reels.trim() ||
+            latestMessageStudioResult?.reels?.trim() ||
+            "",
+          imagePrompt:
+            studioDraft.imagePrompt.trim() ||
+            latestMessageStudioResult?.imagePrompt?.trim() ||
+            "",
+        };
+
+        setStatus(
+          `DEBUG F:${effectiveStudioDraft.facebook.length} ` +
+            `T:${effectiveStudioDraft.telegram.length} ` +
+            `I:${effectiveStudioDraft.imagePrompt.length}`,
+        );
+
+        setStatus(
+          `DRAFT DEBUG · FB:${effectiveStudioDraft.facebook.length} · TG:${effectiveStudioDraft.telegram.length} · IMG:${effectiveStudioDraft.imagePrompt.length}`,
+        );
+
+        console.log("=== ATLAS DRAFT DEBUG ===");
+        console.log("studioDraft", studioDraft);
+        console.log("latestMessageStudioResult", latestMessageStudioResult);
+        console.log("effectiveStudioDraft", effectiveStudioDraft);
+        console.log(
+          "assistant messages with studioResult",
+          messages
+            .map((message, index) => ({
+              index,
+              role: message.role,
+              hasStudioResult: Boolean(message.studioResult),
+              studioResult: message.studioResult,
+            }))
+            .filter((message) => message.role === "assistant"),
+        );
+
         const response = await fetch(`${API_URL}/copilot/chat`, {
           method: "POST",
           headers: {
@@ -1270,10 +1613,10 @@ You can continue refining this plan with Elena.
               assetIds: undefined,
 
               draft: {
-                facebook: studioDraft.facebook || undefined,
-                telegram: studioDraft.telegram || undefined,
-                reels: studioDraft.reels || undefined,
-                imagePrompt: studioDraft.imagePrompt || undefined,
+                facebook: effectiveStudioDraft.facebook || undefined,
+                telegram: effectiveStudioDraft.telegram || undefined,
+                reels: effectiveStudioDraft.reels || undefined,
+                imagePrompt: effectiveStudioDraft.imagePrompt || undefined,
               },
             },
           }),
@@ -1295,12 +1638,59 @@ You can continue refining this plan with Elena.
 
         const parsedReply = parseWorkspaceAction(data.reply);
 
+        /*
+         * BACKEND_RECOVERED_EXECUTION_DRAFT
+         *
+         * If browser Studio state is empty, CopilotService may recover
+         * persisted draft content from the conversation database.
+         * Use that recovered draft for local workspace actions too.
+         */
+        const recoveredWorkspaceDraft =
+          data.workspaceDraft && typeof data.workspaceDraft === "object"
+            ? (data.workspaceDraft as Partial<CopilotStudioResult>)
+            : null;
+
+        const executionDraft: CopilotStudioResult = {
+          facebook:
+            typeof recoveredWorkspaceDraft?.facebook === "string" &&
+            recoveredWorkspaceDraft.facebook.trim()
+              ? recoveredWorkspaceDraft.facebook
+              : effectiveStudioDraft.facebook,
+
+          telegram:
+            typeof recoveredWorkspaceDraft?.telegram === "string" &&
+            recoveredWorkspaceDraft.telegram.trim()
+              ? recoveredWorkspaceDraft.telegram
+              : effectiveStudioDraft.telegram,
+
+          reels:
+            typeof recoveredWorkspaceDraft?.reels === "string" &&
+            recoveredWorkspaceDraft.reels.trim()
+              ? recoveredWorkspaceDraft.reels
+              : effectiveStudioDraft.reels,
+
+          imagePrompt:
+            typeof recoveredWorkspaceDraft?.imagePrompt === "string" &&
+            recoveredWorkspaceDraft.imagePrompt.trim()
+              ? recoveredWorkspaceDraft.imagePrompt
+              : effectiveStudioDraft.imagePrompt,
+        };
+
+        if (
+          executionDraft.facebook.trim() ||
+          executionDraft.telegram.trim() ||
+          executionDraft.reels.trim() ||
+          executionDraft.imagePrompt.trim()
+        ) {
+          setStudioDraft(executionDraft);
+        }
+
         const assistantStudioResult = parsedReply.action
-          ? studioResultFromWorkspaceAction(parsedReply.action, studioDraft)
+          ? studioResultFromWorkspaceAction(parsedReply.action, executionDraft)
           : null;
 
         if (parsedReply.action) {
-          await applyWorkspaceAction(parsedReply.action);
+          await applyWorkspaceAction(parsedReply.action, executionDraft);
 
           setStatus("Elena updated AI Workspace.");
         }

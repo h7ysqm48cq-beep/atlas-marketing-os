@@ -259,9 +259,29 @@ export function ContentCalendar() {
     setError("");
 
     try {
+      const rangeStart = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 1,
+        1,
+      );
+
+      const rangeEnd = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 2,
+        1,
+      );
+
+      const postsUrl = new URL(`${API_URL}/automation/posts/calendar`);
+
+      postsUrl.searchParams.set("from", rangeStart.toISOString());
+
+      postsUrl.searchParams.set("to", rangeEnd.toISOString());
+
+      postsUrl.searchParams.set("limit", "300");
+
       const [postsResponse, channelsResponse, brandsResponse, assetsResponse] =
         await Promise.all([
-          fetch(`${API_URL}/automation/posts`, { cache: "no-store" }),
+          fetch(postsUrl.toString(), { cache: "no-store" }),
           fetch(`${API_URL}/automation/channels`, { cache: "no-store" }),
           fetch(`${API_URL}/brands`, { cache: "no-store" }),
           fetch(`${API_URL}/assets?type=IMAGE`, { cache: "no-store" }),
@@ -291,18 +311,22 @@ export function ContentCalendar() {
       setBrands(brandsData);
       setAssets(assetsData);
 
-      if (!form.brandId && brandsData[0]?.id) {
+      if (brandsData[0]?.id) {
         const firstBrand = brandsData[0];
         const firstChannel = channelsData.find(
           (item) => item.brandId === firstBrand.id,
         );
 
-        setForm((current) => ({
-          ...current,
-          brandId: firstBrand.id,
-          channelId: firstChannel?.id ?? "",
-          platform: firstChannel?.platform ?? "FACEBOOK",
-        }));
+        setForm((current) =>
+          current.brandId
+            ? current
+            : {
+                ...current,
+                brandId: firstBrand.id,
+                channelId: firstChannel?.id ?? "",
+                platform: firstChannel?.platform ?? "FACEBOOK",
+              },
+        );
       }
     } catch (loadError) {
       setError(
@@ -313,7 +337,7 @@ export function ContentCalendar() {
     } finally {
       setLoading(false);
     }
-  }, [form.brandId]);
+  }, [currentMonth]);
 
   useEffect(() => {
     void load();
@@ -322,7 +346,7 @@ export function ContentCalendar() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       void load();
-    }, 15000);
+    }, 60000);
 
     return () => {
       window.clearInterval(intervalId);
@@ -334,25 +358,17 @@ export function ContentCalendar() {
       return;
     }
 
-    const latestPost =
-      posts.find(
-        (post) => post.id === selectedPost.id,
-      );
+    const latestPost = posts.find((post) => post.id === selectedPost.id);
 
     if (
       latestPost &&
-      (
-        latestPost.status !== selectedPost.status ||
+      (latestPost.status !== selectedPost.status ||
         latestPost.externalPostId !== selectedPost.externalPostId ||
-        latestPost.externalPostUrl !== selectedPost.externalPostUrl
-      )
+        latestPost.externalPostUrl !== selectedPost.externalPostUrl)
     ) {
       setSelectedPost(latestPost);
     }
-  }, [
-    posts,
-    selectedPost,
-  ]);
+  }, [posts, selectedPost]);
 
   const filteredPosts = useMemo(
     () =>
@@ -928,34 +944,48 @@ export function ContentCalendar() {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.quickStats}>
-        <button className={styles.statAction} onClick={() => openDay(new Date())}>
+        <button
+          className={styles.statAction}
+          onClick={() => openDay(new Date())}
+        >
           <span>{ui("Today", "今天")}</span>
           <strong>{quickStats.today}</strong>
           <small>{ui("Posts scheduled today", "今天已排程的帖子")}</small>
           <i aria-hidden="true">→</i>
         </button>
 
-        <button className={styles.statAction} onClick={() => {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          openDay(tomorrow);
-        }}>
+        <button
+          className={styles.statAction}
+          onClick={() => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            openDay(tomorrow);
+          }}
+        >
           <span>{ui("Tomorrow", "明天")}</span>
           <strong>{quickStats.tomorrow}</strong>
           <small>{ui("Next-day content", "明日内容")}</small>
           <i aria-hidden="true">→</i>
         </button>
 
-        <button className={styles.statAction} onClick={() =>
-          document.getElementById("calendar-upcoming")?.scrollIntoView({ behavior: "smooth" })
-        }>
+        <button
+          className={styles.statAction}
+          onClick={() =>
+            document
+              .getElementById("calendar-upcoming")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
           <span>{ui("Next 7 days", "未来 7 天")}</span>
           <strong>{quickStats.thisWeek}</strong>
           <small>{ui("Upcoming schedule", "即将发布的排程")}</small>
           <i aria-hidden="true">→</i>
         </button>
 
-        <button className={styles.statAction} onClick={() => setStatusFilter("PUBLISHED")}>
+        <button
+          className={styles.statAction}
+          onClick={() => setStatusFilter("PUBLISHED")}
+        >
           <span>{ui("Published", "已发布")}</span>
           <strong>{quickStats.published}</strong>
           <small>{ui("Completed posts", "已完成发布的帖子")}</small>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { usePreferences } from "@/components/preferences";
@@ -37,10 +38,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const saved =
-        window.localStorage.getItem(
-          SIDEBAR_STATE_KEY,
-        );
+      const saved = window.localStorage.getItem(SIDEBAR_STATE_KEY);
 
       setCollapsed(saved === "true");
     }, 0);
@@ -51,7 +49,10 @@ export function Sidebar() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("atlas-sidebar-collapsed", collapsed);
+    document.documentElement.classList.toggle(
+      "atlas-sidebar-collapsed",
+      collapsed,
+    );
     window.localStorage.setItem(SIDEBAR_STATE_KEY, String(collapsed));
 
     return () => {
@@ -132,7 +133,7 @@ export function Sidebar() {
       const active = isActive(href);
 
       return (
-        <a
+        <Link
           className={`nav-item${active ? " active" : ""}`}
           href={href}
           key={href}
@@ -143,7 +144,7 @@ export function Sidebar() {
         >
           <span className="nav-icon">{icon}</span>
           <span className="nav-item-label">{t(label)}</span>
-        </a>
+        </Link>
       );
     });
   }
@@ -212,25 +213,19 @@ export function Sidebar() {
         <div className="sidebar-scroll-area">
           <section className="sidebar-nav-section">
             <div className="nav-section-heading">
-              <span className="nav-section-label">
-                {t("workspace")}
-              </span>
+              <span className="nav-section-label">{t("workspace")}</span>
             </div>
 
-            <nav className="nav-list">
-              {renderItems(mainItems)}
-            </nav>
+            <nav className="nav-list">{renderItems(mainItems)}</nav>
           </section>
 
           <section className="sidebar-nav-section">
             <div className="nav-section-heading">
-              <span className="nav-section-label">
-                {t("resources")}
-              </span>
+              <span className="nav-section-label">{t("resources")}</span>
             </div>
 
             <nav className="nav-list">
-              <a
+              <Link
                 className={`nav-item${imageEditorActive ? " active" : ""}`}
                 href="/image-editor"
                 aria-current={imageEditorActive ? "page" : undefined}
@@ -239,10 +234,8 @@ export function Sidebar() {
                 onClick={closeMobileNavigation}
               >
                 <span className="nav-icon">✧</span>
-                <span className="nav-item-label">
-                  {imageEditorLabel}
-                </span>
-              </a>
+                <span className="nav-item-label">{imageEditorLabel}</span>
+              </Link>
 
               {renderItems(resourceItems)}
             </nav>
