@@ -95,6 +95,13 @@ export default function RootLayout({
 
       <body>
         <AtlasThemeBootstrap />
+        <PwaRegister />
+        <PwaStandalone />
+        <PwaAppearanceSync />
+        <PwaStartupRedirect />
+        <PwaRouteMemory />
+        <PwaSessionRestore />
+        <PwaNetworkStatus />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>
