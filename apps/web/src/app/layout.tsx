@@ -4,6 +4,7 @@ import "./sidebar-enhancements.css";
 import "./workspace-compact.css";
 import "./asset-library-mobile-v3.css";
 import { PreferencesProvider } from "@/components/preferences";
+import { AtlasThemeBootstrap } from "@/components/AtlasThemeBootstrap";
 import { PwaRegister } from "@/components/PwaRegister";
 import { PwaStandalone } from "@/components/PwaStandalone";
 import { PwaNetworkStatus } from "@/components/PwaNetworkStatus";
@@ -90,56 +91,10 @@ export default function RootLayout({
           name="atlas-build"
           content={process.env.NEXT_PUBLIC_ATLAS_BUILD || "dev"}
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const raw = localStorage.getItem(
-                  "atlas.interface.preferences"
-                );
-                const saved = raw ? JSON.parse(raw) : {};
-                const language =
-                  saved.language === "zh" ? "zh" : "en";
-                const preference =
-                  ["dark", "light", "system"].includes(
-                    saved.theme
-                  )
-                    ? saved.theme
-                    : "dark";
-                const resolved =
-                  preference === "system"
-                    ? (
-                        matchMedia(
-                          "(prefers-color-scheme: light)"
-                        ).matches
-                          ? "light"
-                          : "dark"
-                      )
-                    : preference;
-
-                document.documentElement.lang =
-                  language === "zh" ? "zh-CN" : "en";
-                document.documentElement.dataset.theme =
-                  resolved;
-                document.documentElement.dataset
-                  .themePreference = preference;
-              } catch {
-                document.documentElement.dataset.theme =
-                  "dark";
-              }
-            `,
-          }}
-        />
       </head>
 
       <body>
-        <PwaRegister />
-        <PwaStandalone />
-        <PwaAppearanceSync />
-        <PwaStartupRedirect />
-        <PwaRouteMemory />
-        <PwaSessionRestore />
-        <PwaNetworkStatus />
+        <AtlasThemeBootstrap />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>

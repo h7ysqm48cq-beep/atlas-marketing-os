@@ -17,12 +17,76 @@ type CopilotStudioResult = {
   imagePrompt: string;
 };
 
+function getMessageContentSections(content: string) {
+  const labelPattern =
+    /^(facebook(?:\s+caption)?|fb(?:\s+caption)?|telegram(?:\s+caption)?|instagram(?:\s+caption)?|ig(?:\s+caption)?|caption|文案|正文|标题|headline|hook|cta|call to action|hashtag|hashtags|image prompt|图片 prompt|图片指令|视觉指令|visual prompt|reels?|小红书|xiaohongshu)\s*[:：]?$/i;
+
+  const lines = content.split("\n");
+  const sections: Array<{
+    label: string;
+    content: string;
+  }> = [];
+
+  let currentLabel = "";
+  let currentLines: string[] = [];
+
+  const flush = () => {
+    const sectionContent = currentLines.join("\n").trim();
+
+    if (currentLabel && sectionContent) {
+      sections.push({
+        label: currentLabel,
+        content: sectionContent,
+      });
+    }
+
+    currentLines = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (labelPattern.test(trimmed)) {
+      flush();
+      currentLabel = trimmed.replace(/[:：]$/, "");
+      continue;
+    }
+
+    if (currentLabel) {
+      currentLines.push(line);
+    }
+  }
+
+  flush();
+
+  return sections;
+}
+
+function renderInlineText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+
+  return parts.map((part, index) => {
+    const isAsteriskBold = part.startsWith("**") && part.endsWith("**");
+
+    const isUnderscoreBold = part.startsWith("__") && part.endsWith("__");
+
+    if (isAsteriskBold || isUnderscoreBold) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+
+    return part;
+  });
+}
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
   assetId?: string;
   studioResult?: CopilotStudioResult;
+  error?: boolean;
+  retryText?: string;
+  retryAttachments?: CopilotAttachment[];
 };
 
 type CopilotAttachment = {
@@ -270,15 +334,13 @@ function parseWorkspaceAction(rawReply: string): {
   }
 }
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    role: "assistant",
-    content:
-      "我是 Elena，你的 AI Marketing Strategist。你可以和我讨论创意、改文案，或切换到 Marketing Plan 模式让我一次生成完整营销方案。",
-  },
-];
+const INITIAL_MESSAGES: Message[] = [];
 
 export function BrandCopilot() {
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldFollowMessagesRef = useRef(true);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
   const [studioDraft, setStudioDraft] = useState({
     facebook: "",
     telegram: "",
@@ -296,6 +358,10 @@ export function BrandCopilot() {
     number | null
   >(null);
 
+  const [generatingImageIndex, setGeneratingImageIndex] = useState<
+    number | null
+  >(null);
+
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
@@ -303,6 +369,38 @@ export function BrandCopilot() {
   const [historyId, setHistoryId] = useState<string | null>(null);
 
   const [ideaId, setIdeaId] = useState<string | null>(null);
+
+  function scrollToLatestMessage() {
+    const container = messagesContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    shouldFollowMessagesRef.current = true;
+    setShowScrollToBottom(false);
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+
+  function handleMessagesScroll() {
+    const container = messagesContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    const nearBottom = distanceFromBottom < 120;
+
+    shouldFollowMessagesRef.current = nearBottom;
+    setShowScrollToBottom(!nearBottom);
+  }
 
   async function getActiveBrandId() {
     const response = await fetch(`${API_URL}/brands`, {
@@ -656,9 +754,6 @@ export function BrandCopilot() {
 
       if (item.type === "schedule") {
         try {
-          console.log("DEBUG schedule item", item);
-          console.log("DEBUG draftSnapshot before schedule", draftSnapshot);
-
           const scheduleResult = await scheduleWorkspaceAction(
             item,
             draftSnapshot,
@@ -732,18 +827,40 @@ export function BrandCopilot() {
   const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!shouldFollowMessagesRef.current) {
+      return;
+    }
+
+    const container = messagesContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+  }, [messages, busy, generatingImageIndex]);
+
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [marketingPlan, setMarketingPlan] = useState<MarketingPlan | null>(
     null,
   );
+  const [marketingPlanExpanded, setMarketingPlanExpanded] = useState(false);
 
   const marketingPlanRef = useRef<HTMLElement | null>(null);
   const [status, setStatus] = useState("Brand Brain is active.");
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(
     null,
   );
-  const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void fetch(`${API_URL}/campaigns`)
@@ -773,12 +890,6 @@ export function BrandCopilot() {
 
     void openConversation(savedConversationId);
   }, []);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages]);
 
   useEffect(() => {
     document.body.classList.toggle(
@@ -828,7 +939,12 @@ export function BrandCopilot() {
     setIdeaId(null);
 
     setMarketingPlan(null);
+    setMarketingPlanExpanded(false);
     setInput("");
+
+    if (composerTextareaRef.current) {
+      composerTextareaRef.current.style.height = "auto";
+    }
     setAttachments([]);
     setCampaignId("");
     setMode("chat");
@@ -1416,16 +1532,31 @@ export function BrandCopilot() {
     ].join("\n");
   }
 
-  async function send(event?: FormEvent) {
+  async function send(
+    event?: FormEvent,
+    retry?: {
+      text: string;
+      attachments: CopilotAttachment[];
+      replaceError?: boolean;
+    },
+  ) {
     event?.preventDefault();
 
-    const rawText = input.trim();
+    shouldFollowMessagesRef.current = true;
 
-    if ((!rawText && attachments.length === 0) || busy || uploadingAttachment) {
+    const rawText = retry ? retry.text.trim() : input.trim();
+
+    const currentAttachments = retry
+      ? [...retry.attachments]
+      : [...attachments];
+
+    if (
+      (!rawText && currentAttachments.length === 0) ||
+      busy ||
+      uploadingAttachment
+    ) {
       return;
     }
-
-    const currentAttachments = [...attachments];
 
     const text =
       rawText ||
@@ -1433,17 +1564,27 @@ export function BrandCopilot() {
         ? "请分析我上传的图片。"
         : "请参考我上传的文件回答。");
 
-    const next: Message[] = [
-      ...messages,
-      {
-        role: "user",
-        content: text,
-      },
-    ];
+    const baseMessages =
+      retry?.replaceError && messages.at(-1)?.error
+        ? messages.slice(0, -1)
+        : messages;
+
+    const next: Message[] = retry?.replaceError
+      ? baseMessages
+      : [
+          ...baseMessages,
+          {
+            role: "user",
+            content: text,
+          },
+        ];
 
     setMessages(next);
-    setInput("");
-    setAttachments([]);
+
+    if (!retry) {
+      setInput("");
+      setAttachments([]);
+    }
     setBusy(true);
     setStatus("Elena is thinking...");
 
@@ -1473,31 +1614,8 @@ export function BrandCopilot() {
           ...current,
           {
             role: "assistant",
-            content: `
-Marketing Plan 已生成
-
-Campaign:
-${data.campaignName || "-"}
-
-Objective:
-${data.objective || "-"}
-
-Audience:
-${data.audience || "-"}
-
-Hook:
-${data.hook || "-"}
-
-Key Message:
-${data.keyMessage || "-"}
-
-Content Pillars:
-${Array.isArray(data.contentPillars) ? data.contentPillars.join(", ") : "-"}
-
-你可以继续告诉我需要调整的方向，例如视觉风格、平台策略或文案版本。
-
-You can continue refining this plan with Elena.
-`,
+            content:
+              "Marketing Plan 已生成。完整方案已经整理好，你可以继续告诉我需要修改的方向。",
           },
         ]);
 
@@ -1511,15 +1629,6 @@ You can continue refining this plan with Elena.
         await refreshConversations();
 
         setStatus("Marketing Plan generated. Continue refining with Elena.");
-
-        setMessages((current) => [
-          ...current,
-          {
-            role: "assistant",
-            content:
-              "Marketing Plan 已生成。你可以继续告诉我需要修改的方向，例如调整受众、内容风格、平台策略，我会继续优化。",
-          },
-        ]);
       } else {
         const latestMessageStudioResult = [...messages]
           .reverse()
@@ -1545,32 +1654,6 @@ You can continue refining this plan with Elena.
             latestMessageStudioResult?.imagePrompt?.trim() ||
             "",
         };
-
-        setStatus(
-          `DEBUG F:${effectiveStudioDraft.facebook.length} ` +
-            `T:${effectiveStudioDraft.telegram.length} ` +
-            `I:${effectiveStudioDraft.imagePrompt.length}`,
-        );
-
-        setStatus(
-          `DRAFT DEBUG · FB:${effectiveStudioDraft.facebook.length} · TG:${effectiveStudioDraft.telegram.length} · IMG:${effectiveStudioDraft.imagePrompt.length}`,
-        );
-
-        console.log("=== ATLAS DRAFT DEBUG ===");
-        console.log("studioDraft", studioDraft);
-        console.log("latestMessageStudioResult", latestMessageStudioResult);
-        console.log("effectiveStudioDraft", effectiveStudioDraft);
-        console.log(
-          "assistant messages with studioResult",
-          messages
-            .map((message, index) => ({
-              index,
-              role: message.role,
-              hasStudioResult: Boolean(message.studioResult),
-              studioResult: message.studioResult,
-            }))
-            .filter((message) => message.role === "assistant"),
-        );
 
         const response = await fetch(`${API_URL}/copilot/chat`, {
           method: "POST",
@@ -1713,13 +1796,17 @@ You can continue refining this plan with Elena.
         );
       }
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content: `发生错误：${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
+          content: `Elena couldn’t complete this request. ${errorMessage}`,
+          error: true,
+          retryText: text,
+          retryAttachments: currentAttachments,
         },
       ]);
 
@@ -1728,6 +1815,47 @@ You can continue refining this plan with Elena.
       setBusy(false);
     }
   }
+
+  const copyContentSection = async (content: string) => {
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        const textarea = document.createElement("textarea");
+
+        textarea.value = content;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        textarea.style.pointerEvents = "none";
+
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+
+        const copied = document.execCommand("copy");
+
+        document.body.removeChild(textarea);
+
+        if (!copied) {
+          throw new Error("Copy command was rejected.");
+        }
+      }
+
+      setStatus("Section copied to clipboard.");
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? `Unable to copy: ${error.message}`
+          : "Unable to copy section.",
+      );
+    }
+  };
 
   const copyMessage = async (content: string, index: number) => {
     try {
@@ -1778,6 +1906,8 @@ You can continue refining this plan with Elena.
   };
 
   const generateImageFromMessage = async (content: string, index: number) => {
+    setGeneratingImageIndex(index);
+
     try {
       setStatus("Generating image...");
 
@@ -1816,6 +1946,19 @@ You can continue refining this plan with Elena.
         ),
       );
 
+      setGeneratingImageIndex(null);
+
+      window.setTimeout(() => {
+        const imageCard = document.querySelector(
+          `[data-copilot-image-index="${index}"]`,
+        );
+
+        imageCard?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 80);
+
       if (!conversationId) {
         setStatus(
           "Image generated. Start a conversation first to save it in history.",
@@ -1852,6 +1995,8 @@ You can continue refining this plan with Elena.
 
       setStatus("Image generated and saved to conversation history.");
     } catch (error) {
+      setGeneratingImageIndex(null);
+
       setStatus(
         error instanceof Error ? error.message : "Image generation failed.",
       );
@@ -2012,104 +2157,84 @@ You can continue refining this plan with Elena.
         onClick={() => setMobileSidebarOpen(false)}
       />
 
-      <section className={styles.mobileCopilotBar}>
-        <div className={styles.mobileCopilotIdentity}>
-          <span>Elena</span>
-          <strong>
-            {mode === "marketing-plan" ? "Marketing Plan" : "Chat"}
-          </strong>
-        </div>
-
-        <button type="button" onClick={() => setMobileSidebarOpen(true)}>
-          Conversations
+      <header className={styles.chatTopbar}>
+        <button
+          type="button"
+          className={styles.chatTopbarMenu}
+          onClick={() => setMobileSidebarOpen(true)}
+          aria-label="Open conversations"
+          title="Conversations"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16" />
+            <path d="M4 12h16" />
+            <path d="M4 18h16" />
+          </svg>
         </button>
-      </section>
+        <button
+          type="button"
+          className={styles.desktopSidebarToggle}
+          onClick={() => setSidebarCollapsed((current) => !current)}
+          aria-label={
+            sidebarCollapsed ? "Show conversations" : "Hide conversations"
+          }
+          aria-pressed={sidebarCollapsed}
+          title={sidebarCollapsed ? "Show conversations" : "Hide conversations"}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="4" width="17" height="16" rx="2" />
+            <path d="M9 4v16" />
+          </svg>
+        </button>
 
-      <section className={styles.mobileControls}>
-        <label>
-          <span>Mode</span>
-          <div className={styles.modeSwitch}>
-            <button
-              type="button"
-              className={
-                mode === "chat" ? styles.modeActive : styles.modeButton
-              }
-              onClick={() => setMode("chat")}
-            >
-              Chat
-            </button>
+        <div className={styles.chatTopbarIdentity}>
+          <div className={styles.elenaAvatar}>E</div>
 
-            <button
-              type="button"
-              className={
-                mode === "marketing-plan"
-                  ? styles.modeActive
-                  : styles.modeButton
-              }
-              onClick={() => setMode("marketing-plan")}
-            >
-              Marketing Plan
-            </button>
+          <div>
+            <strong>Elena</strong>
+            <span>AI Marketing Strategist</span>
           </div>
-        </label>
-
-        <label>
-          <span>Context</span>
-          <select
-            value={campaignId ?? ""}
-            onChange={(event) => setCampaignId(event.target.value || null)}
-          >
-            <option value="">Brand Brain only</option>
-
-            {campaigns.map((campaign) => (
-              <option key={campaign.id} value={campaign.id}>
-                {campaign.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <small>{status}</small>
-      </section>
-
-      <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>Elena Brand Copilot</p>
-          <h1>Work with Elena like an always-on marketing strategist.</h1>
-          <p>连续优化创意，或一次生成完整营销方案。</p>
         </div>
 
-        <div className={styles.context}>
-          <span>Working mode</span>
+        <div className={styles.chatTopbarControls}>
+          <label>
+            <span>Mode</span>
+            <select
+              value={mode}
+              onChange={(event) => setMode(event.target.value as CopilotMode)}
+              aria-label="Elena working mode"
+            >
+              <option value="chat">Chat</option>
+              <option value="marketing-plan">Marketing Plan</option>
+            </select>
+          </label>
 
-          <select
-            value={mode}
-            onChange={(event) => setMode(event.target.value as CopilotMode)}
-          >
-            <option value="chat">Chat mode</option>
-            <option value="marketing-plan">Marketing Plan</option>
-          </select>
+          <label>
+            <span>Context</span>
+            <select
+              value={campaignId ?? ""}
+              onChange={(event) => setCampaignId(event.target.value || null)}
+              aria-label="Campaign context"
+            >
+              <option value="">Brand Brain</option>
 
-          <span>Campaign context</span>
-
-          <select
-            value={campaignId ?? ""}
-            onChange={(event) => setCampaignId(event.target.value || null)}
-          >
-            <option value="">Brand Brain only</option>
-
-            {campaigns.map((campaign) => (
-              <option key={campaign.id} value={campaign.id}>
-                {campaign.name}
-              </option>
-            ))}
-          </select>
-
-          <small>{status}</small>
+              {campaigns.map((campaign) => (
+                <option key={campaign.id} value={campaign.id}>
+                  {campaign.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-      </section>
 
-      <section className={styles.layout}>
+        {status && <small className={styles.chatTopbarStatus}>{status}</small>}
+      </header>
+
+      <section
+        className={`${styles.layout}${
+          sidebarCollapsed ? ` ${styles.layoutSidebarCollapsed}` : ""
+        }`}
+      >
         <aside
           className={`${styles.sidebar}${
             mobileSidebarOpen ? ` ${styles.mobileSidebarOpen}` : ""
@@ -2175,7 +2300,6 @@ You can continue refining this plan with Elena.
                     <strong>{conversation.title}</strong>
 
                     <small>{conversation._count?.messages || 0} messages</small>
-                    <small>{conversation._count?.messages || 0} messages</small>
                   </button>
 
                   {conversation.hasMarketingPlan && (
@@ -2186,6 +2310,7 @@ You can continue refining this plan with Elena.
                       aria-label="View Marketing Plan"
                       onClick={async () => {
                         pendingPlanScrollRef.current = true;
+                        setMarketingPlanExpanded(true);
                         await openConversation(conversation.id);
                       }}
                     >
@@ -2221,25 +2346,102 @@ You can continue refining this plan with Elena.
               ))}
             </div>
           </section>
-
-          <section className={styles.quickDirections}>
-            <p className={styles.eyebrow}>Quick directions</p>
-
-            {[
-              "帮我想10个更容易引起讨论的港剧怀旧话题。",
-              "把这段文案改得更自然、更像马来西亚华人口吻。",
-              "为这个主题生成完整 Facebook、Telegram 和 Reels 营销方案。",
-              "分析为什么这段内容不够吸引人，并直接优化。",
-            ].map((text) => (
-              <button key={text} type="button" onClick={() => setInput(text)}>
-                {text}
-              </button>
-            ))}
-          </section>
         </aside>
 
         <section className={styles.chat}>
-          <div className={styles.messages}>
+          <div
+            ref={messagesContainerRef}
+            className={styles.messages}
+            onScroll={handleMessagesScroll}
+          >
+            {messages.length === 0 && (
+              <section className={styles.emptyChatState}>
+                <div className={styles.emptyChatLogo}>E</div>
+
+                <div className={styles.emptyChatIntro}>
+                  <h2>想做什么？</h2>
+                  <p>和 Elena 讨论创意、优化内容，或直接开始一个营销任务。</p>
+                </div>
+
+                <div className={styles.emptyChatActions}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setInput("帮我优化这段文案，让它更自然、更有吸引力。")
+                    }
+                  >
+                    <span>✎</span>
+                    <div>
+                      <strong>优化文案</strong>
+                      <small>Rewrite & improve</small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setInput("帮我为这个主题想几个更有讨论度的内容创意。")
+                    }
+                  >
+                    <span>＋</span>
+                    <div>
+                      <strong>内容创意</strong>
+                      <small>Ideas & hooks</small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("marketing-plan");
+                      setInput("帮我为这个主题制作完整营销方案。");
+                    }}
+                  >
+                    <span>▦</span>
+                    <div>
+                      <strong>营销方案</strong>
+                      <small>Full campaign plan</small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setInput(
+                        "帮我构思一张适合这个主题的社交媒体视觉，并写出图片生成指令。",
+                      )
+                    }
+                  >
+                    <span>◇</span>
+                    <div>
+                      <strong>图片视觉</strong>
+                      <small>Visual direction</small>
+                    </div>
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {busy && messages.length > 0 && (
+              <div
+                className={styles.elenaThinking}
+                role="status"
+                aria-live="polite"
+              >
+                <div className={styles.elenaThinkingAvatar}>E</div>
+
+                <div className={styles.elenaThinkingBody}>
+                  <span>Elena is thinking</span>
+
+                  <div className={styles.elenaThinkingDots} aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {messages.map((message, index) => (
               <article
                 className={
@@ -2300,7 +2502,156 @@ You can continue refining this plan with Elena.
                   )}
                 </div>
 
-                <p>{message.content}</p>
+                <div className={styles.messageContent}>
+                  {message.content.split("\n").map((line, lineIndex) => {
+                    const trimmed = line.trim();
+
+                    if (!trimmed) {
+                      return (
+                        <div
+                          className={styles.messageSpacer}
+                          key={`spacer-${lineIndex}`}
+                          aria-hidden="true"
+                        />
+                      );
+                    }
+
+                    const markdownHeading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+
+                    if (markdownHeading) {
+                      return (
+                        <h3
+                          className={styles.messageHeading}
+                          key={`heading-${lineIndex}`}
+                        >
+                          {renderInlineText(markdownHeading[2])}
+                        </h3>
+                      );
+                    }
+
+                    const contentLabel = trimmed.match(
+                      /^(facebook(?:\s+caption)?|fb(?:\s+caption)?|telegram(?:\s+caption)?|instagram(?:\s+caption)?|ig(?:\s+caption)?|caption|文案|正文|标题|headline|hook|cta|call to action|hashtag|hashtags|image prompt|图片 prompt|图片指令|视觉指令|visual prompt|reels?|小红书|xiaohongshu)\s*[:：]?$/i,
+                    );
+
+                    if (contentLabel) {
+                      const normalizedLabel = trimmed.replace(/[:：]$/, "");
+
+                      const section = getMessageContentSections(
+                        message.content,
+                      ).find(
+                        (candidate) =>
+                          candidate.label.toLowerCase() ===
+                          normalizedLabel.toLowerCase(),
+                      );
+
+                      return (
+                        <div
+                          className={styles.messageContentLabel}
+                          key={`label-${lineIndex}`}
+                        >
+                          <span>{renderInlineText(normalizedLabel)}</span>
+
+                          {section?.content && (
+                            <button
+                              type="button"
+                              className={styles.sectionCopyButton}
+                              onClick={() =>
+                                void copyContentSection(section.content)
+                              }
+                              aria-label={`Copy ${normalizedLabel}`}
+                              title={`Copy ${normalizedLabel}`}
+                            >
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect
+                                  x="9"
+                                  y="9"
+                                  width="10"
+                                  height="10"
+                                  rx="2"
+                                />
+                                <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                              </svg>
+
+                              <span>Copy</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    const sectionHeading = trimmed.match(
+                      /^(\d{1,2})\s*[｜|、]\s*(.+)$/,
+                    );
+
+                    if (sectionHeading) {
+                      return (
+                        <h4
+                          className={styles.messageSectionHeading}
+                          key={`section-${lineIndex}`}
+                        >
+                          <span>{sectionHeading[1]}</span>
+                          {renderInlineText(sectionHeading[2])}
+                        </h4>
+                      );
+                    }
+
+                    const numberedItem = trimmed.match(/^(\d+)[.)、]\s+(.+)$/);
+
+                    if (numberedItem) {
+                      return (
+                        <div
+                          className={styles.messageListItem}
+                          key={`numbered-${lineIndex}`}
+                        >
+                          <span className={styles.messageListMarker}>
+                            {numberedItem[1]}.
+                          </span>
+                          <span>{renderInlineText(numberedItem[2])}</span>
+                        </div>
+                      );
+                    }
+
+                    const bulletItem = trimmed.match(/^[-•]\s+(.+)$/);
+
+                    if (bulletItem) {
+                      return (
+                        <div
+                          className={styles.messageListItem}
+                          key={`bullet-${lineIndex}`}
+                        >
+                          <span className={styles.messageListMarker}>•</span>
+                          <span>{renderInlineText(bulletItem[1])}</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <p key={`text-${lineIndex}`}>{renderInlineText(line)}</p>
+                    );
+                  })}
+                </div>
+
+                {message.error && message.retryText && (
+                  <div className={styles.messageRetry}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void send(undefined, {
+                          text: message.retryText!,
+                          attachments: message.retryAttachments ?? [],
+                          replaceError: true,
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+                        <path d="M20 4v7h-7" />
+                      </svg>
+                      Retry
+                    </button>
+                  </div>
+                )}
 
                 {/* MESSAGE_STUDIO_RESULT_CARD */}
                 {message.role === "assistant" && message.studioResult && (
@@ -2330,33 +2681,28 @@ You can continue refining this plan with Elena.
                   />
                 )}
 
+                {generatingImageIndex === index && !message.imageUrl && (
+                  <section
+                    className={styles.generatingImageCard}
+                    aria-live="polite"
+                  >
+                    <div className={styles.generatingImageSpinner} />
+
+                    <div>
+                      <strong>Generating image</strong>
+                      <span>Elena is creating your visual…</span>
+                    </div>
+                  </section>
+                )}
+
                 {message.imageUrl && (
-                  <section className={styles.generatedImageCard}>
-                    <button
-                      type="button"
+                  <section
+                    className={styles.generatedImageCard}
+                    data-copilot-image-index={index}
+                  >
+                    <div
                       className={styles.generatedImagePreview}
-                      aria-label="Open generated image in editor"
-                      onClick={() => {
-                        if (!message.assetId) {
-                          setStatus(
-                            "This image has no linked Asset Library ID yet.",
-                          );
-                          return;
-                        }
-
-                        const params = new URLSearchParams({
-                          assetId: message.assetId,
-                          source: "copilot",
-                        });
-
-                        if (conversationId) {
-                          params.set("conversationId", conversationId);
-                        }
-
-                        window.location.assign(
-                          `/image-editor?${params.toString()}`,
-                        );
-                      }}
+                      aria-label="Generated image preview"
                     >
                       <img
                         src={message.imageUrl}
@@ -2364,10 +2710,16 @@ You can continue refining this plan with Elena.
                         className={styles.generatedImage}
                       />
 
-                      <span className={styles.generatedImageHint}>
-                        Open editor
-                      </span>
-                    </button>
+                      {generatingImageIndex === index && (
+                        <div
+                          className={styles.regeneratingImageOverlay}
+                          aria-live="polite"
+                        >
+                          <div className={styles.generatingImageSpinner} />
+                          <span>Regenerating…</span>
+                        </div>
+                      )}
+                    </div>
 
                     <div className={styles.generatedImageToolbar}>
                       <button
@@ -2403,6 +2755,7 @@ You can continue refining this plan with Elena.
 
                       <button
                         type="button"
+                        disabled={generatingImageIndex === index}
                         onClick={() =>
                           void generateImageFromMessage(message.content, index)
                         }
@@ -2456,153 +2809,193 @@ You can continue refining this plan with Elena.
                   <div>
                     <p className={styles.eyebrow}>Marketing Plan</p>
                     <h2>{marketingPlan.campaignName}</h2>
+                    <span className={styles.planBadge}>AI generated</span>
                   </div>
 
-                  <span className={styles.planBadge}>AI generated</span>
+                  <button
+                    type="button"
+                    className={styles.planToggle}
+                    aria-expanded={marketingPlanExpanded}
+                    onClick={() =>
+                      setMarketingPlanExpanded((current) => !current)
+                    }
+                  >
+                    {marketingPlanExpanded ? "Hide Plan" : "View Plan"}
+
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d={
+                          marketingPlanExpanded
+                            ? "m6 15 6-6 6 6"
+                            : "m6 9 6 6 6-6"
+                        }
+                      />
+                    </svg>
+                  </button>
                 </header>
 
-                <div className={styles.planSummaryGrid}>
-                  {[
-                    ["Objective", marketingPlan.objective],
-                    ["Audience", marketingPlan.audience],
-                    ["Hook", marketingPlan.hook],
-                    ["Key Message", marketingPlan.keyMessage],
-                  ].map(([label, value]) => (
-                    <article className={styles.planSummaryCard} key={label}>
-                      <span>{label}</span>
-                      <p>{value}</p>
-                    </article>
-                  ))}
-                </div>
-
-                <section className={styles.planSection}>
-                  <div className={styles.planSectionHeader}>
-                    <div>
-                      <span>Strategy</span>
-                      <h3>Content Pillars</h3>
+                {marketingPlanExpanded && (
+                  <div className={styles.planExpandedContent}>
+                    <div className={styles.planSummaryGrid}>
+                      {[
+                        ["Objective", marketingPlan.objective],
+                        ["Audience", marketingPlan.audience],
+                        ["Hook", marketingPlan.hook],
+                        ["Key Message", marketingPlan.keyMessage],
+                      ].map(([label, value]) => (
+                        <article className={styles.planSummaryCard} key={label}>
+                          <span>{label}</span>
+                          <p>{value}</p>
+                        </article>
+                      ))}
                     </div>
-                  </div>
 
-                  <div className={styles.pillarList}>
-                    {marketingPlan.contentPillars.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </div>
-                </section>
-
-                <section className={styles.planSection}>
-                  <div className={styles.planSectionHeader}>
-                    <div>
-                      <span>Ideas</span>
-                      <h3>Content Directions</h3>
-                    </div>
-                  </div>
-
-                  <ol className={styles.ideaList}>
-                    {marketingPlan.contentIdeas.map((item, index) => (
-                      <li key={item}>
-                        <span>{index + 1}</span>
-                        <p>{item}</p>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-
-                <section className={styles.planSection}>
-                  <div className={styles.planSectionHeader}>
-                    <div>
-                      <span>Channels</span>
-                      <h3>Platform Content</h3>
-                    </div>
-                  </div>
-
-                  <div className={styles.platformPlanGrid}>
-                    {[
-                      ["Facebook", marketingPlan.facebook],
-                      ["Telegram", marketingPlan.telegram],
-                      ["Reels", marketingPlan.reels],
-                    ].map(([platform, items]) => (
-                      <article
-                        className={styles.platformPlanCard}
-                        key={platform as string}
-                      >
-                        <header>
-                          <strong>{platform as string}</strong>
-                          <span>{(items as string[]).length} drafts</span>
-                        </header>
-
+                    <section className={styles.planSection}>
+                      <div className={styles.planSectionHeader}>
                         <div>
-                          {(items as string[]).map((item, index) => (
-                            <section key={item}>
-                              <span>
-                                {(platform as string).slice(0, 2)}
-                                {index + 1}
-                              </span>
-                              <p>{item}</p>
-                            </section>
-                          ))}
+                          <span>Strategy</span>
+                          <h3>Content Pillars</h3>
                         </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
+                      </div>
 
-                <section className={styles.planSection}>
-                  <div className={styles.planSectionHeader}>
-                    <div>
-                      <span>Creative</span>
-                      <h3>Image Prompts</h3>
-                    </div>
-                  </div>
+                      <div className={styles.pillarList}>
+                        {marketingPlan.contentPillars.map((item) => (
+                          <span key={item}>{item}</span>
+                        ))}
+                      </div>
+                    </section>
 
-                  <div className={styles.imagePromptList}>
-                    {marketingPlan.imagePrompts.map((item, index) => (
-                      <article key={item}>
+                    <section className={styles.planSection}>
+                      <div className={styles.planSectionHeader}>
                         <div>
-                          <span>Prompt {index + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => navigator.clipboard.writeText(item)}
+                          <span>Ideas</span>
+                          <h3>Content Directions</h3>
+                        </div>
+                      </div>
+
+                      <ol className={styles.ideaList}>
+                        {marketingPlan.contentIdeas.map((item, index) => (
+                          <li key={item}>
+                            <span>{index + 1}</span>
+                            <p>{item}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+
+                    <section className={styles.planSection}>
+                      <div className={styles.planSectionHeader}>
+                        <div>
+                          <span>Channels</span>
+                          <h3>Platform Content</h3>
+                        </div>
+                      </div>
+
+                      <div className={styles.platformPlanGrid}>
+                        {[
+                          ["Facebook", marketingPlan.facebook],
+                          ["Telegram", marketingPlan.telegram],
+                          ["Reels", marketingPlan.reels],
+                        ].map(([platform, items]) => (
+                          <article
+                            className={styles.platformPlanCard}
+                            key={platform as string}
                           >
-                            Copy
-                          </button>
-                        </div>
-                        <p>{item}</p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
+                            <header>
+                              <strong>{platform as string}</strong>
+                              <span>{(items as string[]).length} drafts</span>
+                            </header>
 
-                <section className={styles.planSection}>
-                  <div className={styles.planSectionHeader}>
-                    <div>
-                      <span>Execution</span>
-                      <h3>Publishing Schedule</h3>
-                    </div>
-                  </div>
+                            <div>
+                              {(items as string[]).map((item, index) => (
+                                <section key={item}>
+                                  <span>
+                                    {(platform as string).slice(0, 2)}
+                                    {index + 1}
+                                  </span>
+                                  <p>{item}</p>
+                                </section>
+                              ))}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
 
-                  <div className={styles.scheduleTimeline}>
-                    {marketingPlan.schedule.map((item) => (
-                      <article key={`${item.day}-${item.platform}`}>
-                        <span className={styles.scheduleDay}>
-                          Day {item.day}
-                        </span>
-
+                    <section className={styles.planSection}>
+                      <div className={styles.planSectionHeader}>
                         <div>
-                          <div>
-                            <strong>{item.platform}</strong>
-                            <span>{item.contentType}</span>
-                          </div>
-                          <p>{item.topic}</p>
+                          <span>Creative</span>
+                          <h3>Image Prompts</h3>
                         </div>
-                      </article>
-                    ))}
+                      </div>
+
+                      <div className={styles.imagePromptList}>
+                        {marketingPlan.imagePrompts.map((item, index) => (
+                          <article key={item}>
+                            <div>
+                              <span>Prompt {index + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigator.clipboard.writeText(item)
+                                }
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <p>{item}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className={styles.planSection}>
+                      <div className={styles.planSectionHeader}>
+                        <div>
+                          <span>Execution</span>
+                          <h3>Publishing Schedule</h3>
+                        </div>
+                      </div>
+
+                      <div className={styles.scheduleTimeline}>
+                        {marketingPlan.schedule.map((item) => (
+                          <article key={`${item.day}-${item.platform}`}>
+                            <span className={styles.scheduleDay}>
+                              Day {item.day}
+                            </span>
+
+                            <div>
+                              <div>
+                                <strong>{item.platform}</strong>
+                                <span>{item.contentType}</span>
+                              </div>
+                              <p>{item.topic}</p>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
                   </div>
-                </section>
+                )}
               </section>
             )}
-            <div ref={endRef} />
           </div>
+
+          {showScrollToBottom && (
+            <button
+              type="button"
+              className={styles.scrollToBottomButton}
+              onClick={scrollToLatestMessage}
+              aria-label="Scroll to latest message"
+              title="回到最新消息"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="m6 13 6 6 6-6" />
+              </svg>
+            </button>
+          )}
 
           <form className={styles.composer} onSubmit={send}>
             <input
@@ -2617,36 +3010,52 @@ You can continue refining this plan with Elena.
             {attachments.length > 0 ? (
               <div className={styles.attachmentTray}>
                 {attachments.map((attachment) => (
-                  <article
-                    key={attachment.id}
-                    className={styles.attachmentCard}
-                  >
+                  <div key={attachment.id} className={styles.attachmentChip}>
                     {attachment.kind === "image" ? (
-                      <img src={attachment.url} alt={attachment.name} />
+                      <img
+                        src={attachment.url}
+                        alt=""
+                        className={styles.attachmentThumbnail}
+                      />
                     ) : (
-                      <div className={styles.documentAttachmentIcon}>DOC</div>
+                      <div className={styles.attachmentFileIcon}>
+                        {attachment.name.toLowerCase().endsWith(".pdf")
+                          ? "PDF"
+                          : "DOC"}
+                      </div>
                     )}
 
-                    <div>
+                    <div className={styles.attachmentChipText}>
                       <strong>{attachment.name}</strong>
                       <span>{formatFileSize(attachment.size)}</span>
                     </div>
 
                     <button
                       type="button"
+                      className={styles.attachmentRemove}
                       aria-label={`Remove ${attachment.name}`}
                       onClick={() => removeAttachment(attachment.id)}
                     >
                       ×
                     </button>
-                  </article>
+                  </div>
                 ))}
               </div>
             ) : null}
 
             <textarea
+              ref={composerTextareaRef}
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              rows={1}
+              onChange={(event) => {
+                setInput(event.target.value);
+
+                event.currentTarget.style.height = "auto";
+                event.currentTarget.style.height = `${Math.min(
+                  event.currentTarget.scrollHeight,
+                  220,
+                )}px`;
+              }}
               placeholder={
                 mode === "marketing-plan"
                   ? "例如：为世界杯怀旧主题生成完整营销方案……"
@@ -2664,7 +3073,7 @@ You can continue refining this plan with Elena.
               }}
             />
 
-            <div>
+            <div className={styles.composerBottomBar}>
               <div className={styles.composerTools}>
                 <button
                   className={styles.attachButton}
@@ -2672,22 +3081,34 @@ You can continue refining this plan with Elena.
                   disabled={busy || uploadingAttachment}
                   onClick={() => attachmentInputRef.current?.click()}
                   aria-label="Attach files"
+                  title="Attach files"
                 >
-                  📎
-                  <span>{uploadingAttachment ? "Uploading..." : "Attach"}</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
                 </button>
-
-                <small>Enter 发送 · Shift + Enter 换行</small>
               </div>
 
               <button
+                className={styles.composerSendButton}
+                type="submit"
+                aria-label={busy ? "Elena is thinking" : "Send message"}
+                title={busy ? "Elena is thinking..." : "Send"}
                 disabled={
                   busy ||
                   uploadingAttachment ||
                   (!input.trim() && attachments.length === 0)
                 }
               >
-                {busy ? "Elena is thinking..." : "Send to Elena"}
+                {busy ? (
+                  <span className={styles.composerThinkingDot} />
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 19V5" />
+                    <path d="m6 11 6-6 6 6" />
+                  </svg>
+                )}
               </button>
             </div>
           </form>
