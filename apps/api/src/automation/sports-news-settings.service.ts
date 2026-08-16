@@ -69,6 +69,8 @@ export type UpdateSportsNewsSettingsInput = {
   footerLogoAssetId?: string | null;
 
   footerQrEnabled?: boolean;
+
+  footerTextEnabled?: boolean;
   footerQrAssetId?: string | null;
   footerQrLink?: string | null;
 
@@ -124,6 +126,12 @@ export type UpdateSportsNewsSettingsInput = {
   imageLowerSafeAreaPrompt?: string | null;
 
   imageLayoutEnabled?: boolean;
+
+  storyPanelEnabled?: boolean;
+
+  mastheadEnabled?: boolean;
+
+  headlineTextEnabled?: boolean;
 
   mastheadScale?: number;
   mastheadTopPercent?: number;

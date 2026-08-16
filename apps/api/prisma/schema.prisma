@@ -952,6 +952,12 @@ model SportsNewsSetting {
 
   imageLayoutEnabled Boolean @default(true)
 
+  storyPanelEnabled Boolean @default(false)
+
+  mastheadEnabled Boolean @default(true)
+
+  headlineTextEnabled Boolean @default(true)
+
   mastheadScale      Float @default(1.0)
   mastheadTopPercent Float @default(0.018)
 
@@ -1022,6 +1028,8 @@ model SportsNewsSetting {
   footerLogoAssetId String?
 
   footerQrEnabled Boolean @default(false)
+
+  footerTextEnabled Boolean @default(true)
 
   footerQrAssetId String?
 

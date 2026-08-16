@@ -5,6 +5,16 @@ import { PrismaService } from '../../database/prisma.service';
 import { LogoOverlayService, LogoPlacement } from '../../image/logo';
 import { SupabaseStorageService } from '../../storage/supabase-storage.service';
 
+
+function getMalaysiaDateKey(date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 @Injectable()
 export class MSportsImageBrandingService {
   private readonly logger = new Logger(MSportsImageBrandingService.name);
@@ -22,9 +32,11 @@ export class MSportsImageBrandingService {
     footerLogoAssetId?: string | null;
     footerQrAssetId?: string | null;
     footerQrLink?: string | null;
+    footerQrEnabled?: boolean;
     footerPlacement?: string;
 
     footerText?: string;
+    footerTextEnabled?: boolean;
     qrLink?: string | null;
     edition?: 'MORNING' | 'EVENING';
     highlights?: Array<{
@@ -72,6 +84,11 @@ export class MSportsImageBrandingService {
     layout?: {
       enabled?: boolean;
 
+      storyPanelEnabled?: boolean;
+
+      mastheadEnabled?: boolean;
+      headlineTextEnabled?: boolean;
+
       mastheadScale?: number;
       mastheadTopPercent?: number;
 
@@ -99,9 +116,11 @@ export class MSportsImageBrandingService {
       footerLogoAssetId,
       footerQrAssetId,
       footerQrLink,
+      footerQrEnabled = false,
       footerPlacement = 'bottom',
-      footerText = '满贯门 mgmbetmyr.com',
-      qrLink = 'https://mgmbetmyr.com',
+      footerText,
+      footerTextEnabled = true,
+      qrLink = null,
       edition = 'MORNING',
       highlights = [],
       branding = {},
@@ -156,6 +175,15 @@ export class MSportsImageBrandingService {
     const footerSeparatorColor = branding.footerSeparatorColor ?? 'transparent';
 
     const layoutEnabled = layout.enabled ?? true;
+
+    const storyPanelEnabled =
+      layout.storyPanelEnabled ?? false;
+
+    const mastheadEnabled =
+      layout.mastheadEnabled ?? true;
+
+    const headlineTextEnabled =
+      layout.headlineTextEnabled ?? true;
 
     const mastheadScale = layout.mastheadScale ?? 1;
 
@@ -406,7 +434,7 @@ export class MSportsImageBrandingService {
       </svg>
     `);
 
-    if (layoutEnabled) {
+    if (layoutEnabled && mastheadEnabled) {
       composites.push({
         input: mastheadSvg,
         left: 0,
@@ -421,7 +449,11 @@ export class MSportsImageBrandingService {
      *
      * This deliberately avoids the large black v1 card.
      */
-    if (layoutEnabled && visibleHighlights.length > 0) {
+    if (
+      layoutEnabled &&
+      storyPanelEnabled &&
+      visibleHighlights.length > 0
+    ) {
       const panelWidth = Math.round(width * panelWidthPercent);
 
       const panelLeft = Math.round((width - panelWidth) / 2);
@@ -460,49 +492,51 @@ export class MSportsImageBrandingService {
         Math.round(width * 0.0155 * secondaryHeadlineScale),
       );
 
-      const secondarySvg = secondary
-        .map((story, index) => {
-          const yPercent =
-            index === 0 ? story02PositionPercent : story03PositionPercent;
+      const secondarySvg = !headlineTextEnabled
+        ? ''
+        : secondary
+            .map((story, index) => {
+              const yPercent =
+                index === 0 ? story02PositionPercent : story03PositionPercent;
 
-          const y = Math.round(panelHeight * yPercent);
+              const y = Math.round(panelHeight * yPercent);
 
-          return `
-            <text
-              x="${Math.round(panelWidth * 0.03)}"
-              y="${y}"
-              font-size="${Math.max(18, Math.round(width * 0.021))}"
-              font-family="Arial, Helvetica, sans-serif"
-              font-weight="800"
-              fill="${accent}"
-            >
-              ${String(index + 2).padStart(2, '0')}
-            </text>
+              return `
+                <text
+                  x="${Math.round(panelWidth * 0.03)}"
+                  y="${y}"
+                  font-size="${Math.max(18, Math.round(width * 0.021))}"
+                  font-family="Arial, Helvetica, sans-serif"
+                  font-weight="800"
+                  fill="${accent}"
+                >
+                  ${String(index + 2).padStart(2, '0')}
+                </text>
 
-            <text
-              x="${Math.round(panelWidth * 0.12)}"
-              y="${y}"
-              font-size="${secondaryZhSize}"
-              font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
-              font-weight="700"
-              fill="${headlinePrimaryColor}"
-            >
-              ${escapeXml(story.zh)}
-            </text>
+                <text
+                  x="${Math.round(panelWidth * 0.12)}"
+                  y="${y}"
+                  font-size="${secondaryZhSize}"
+                  font-family="Noto Sans CJK SC, Noto Sans SC, WenQuanYi Zen Hei, sans-serif"
+                  font-weight="700"
+                  fill="${headlinePrimaryColor}"
+                >
+                  ${escapeXml(story.zh)}
+                </text>
 
-            <text
-              x="${Math.round(panelWidth * 0.12)}"
-              y="${y + Math.round(secondaryEnSize * 1.55)}"
-              font-size="${secondaryEnSize}"
-              font-family="Arial, Helvetica, sans-serif"
-              font-weight="500"
-              fill="${headlineSecondaryColor}"
-            >
-              ${escapeXml(story.en)}
-            </text>
-          `;
-        })
-        .join('');
+                <text
+                  x="${Math.round(panelWidth * 0.12)}"
+                  y="${y + Math.round(secondaryEnSize * 1.55)}"
+                  font-size="${secondaryEnSize}"
+                  font-family="Arial, Helvetica, sans-serif"
+                  font-weight="500"
+                  fill="${headlineSecondaryColor}"
+                >
+                  ${escapeXml(story.en)}
+                </text>
+              `;
+            })
+            .join('');
 
       const highlightSvg = Buffer.from(`
         <svg
@@ -573,6 +607,9 @@ export class MSportsImageBrandingService {
             ${escapeXml(sectionLabel)}
           </text>
 
+          ${
+            headlineTextEnabled
+              ? `
           <text
             x="${Math.round(panelWidth * 0.03)}"
             y="${Math.round(panelHeight * 0.37)}"
@@ -584,6 +621,9 @@ export class MSportsImageBrandingService {
             01
           </text>
 
+          ${
+            headlineTextEnabled
+              ? `
           <text
             x="${Math.round(panelWidth * 0.12)}"
             y="${Math.round(panelHeight * 0.355)}"
@@ -605,6 +645,12 @@ export class MSportsImageBrandingService {
           >
             ${escapeXml(hero.en)}
           </text>
+          `
+              : ""
+          }
+          `
+              : ''
+          }
 
           <line
             x1="${Math.round(panelWidth * 0.03)}"
@@ -707,10 +753,13 @@ export class MSportsImageBrandingService {
       }
     }
 
-    const safeFooterText = footerText
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const safeFooterText =
+      footerTextEnabled && footerText
+        ? footerText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+        : '';
 
     const textX = 24 + (logoWidth ? logoWidth + 18 : 0);
 
@@ -733,18 +782,23 @@ export class MSportsImageBrandingService {
       </svg>
     `);
 
-    composites.push({
-      input: textSvg,
-      left: 0,
-      top: footerTop,
-    });
+    if (footerTextEnabled) {
+      composites.push({
+        input: textSvg,
+        left: 0,
+        top: footerTop,
+      });
+    }
 
     let qrSize = 0;
 
     const selectedQrLink =
       footerQrLink ?? qrLink;
 
-    if (footerQrAssetId) {
+    if (
+      footerQrEnabled &&
+      footerQrAssetId
+    ) {
       const qrAsset = await this.prisma.asset.findUnique({
         where: { id: footerQrAssetId },
         select: { url: true },
@@ -840,7 +894,7 @@ export class MSportsImageBrandingService {
       path: [
         'automation',
         'msports',
-        new Date().toISOString().slice(0, 10),
+        getMalaysiaDateKey(),
         `sports-news-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 10)}.png`,

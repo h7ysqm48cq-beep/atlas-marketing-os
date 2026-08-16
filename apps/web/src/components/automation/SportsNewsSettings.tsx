@@ -10,13 +10,6 @@ type Channel = {
   status: string;
 };
 
-type Asset = {
-  id: string;
-  name: string;
-  type: "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
-  url: string;
-  thumbnailUrl: string | null;
-};
 type Settings = {
   enabled: boolean;
   timezone: string;
@@ -57,13 +50,12 @@ type Settings = {
   imageAspectRatio: string;
   imageTextMode: string;
   imageVisualStyle: string | null;
-  logoEnabled: boolean;
   logoPosition: string;
   brandFooterEnabled: boolean;
+  footerTextEnabled: boolean;
   brandFooterText: string;
 
   logoAssetId: string | null;
-  logoSize: string;
   logoOpacity: number;
   logoMargin: number;
 
@@ -123,6 +115,9 @@ type Settings = {
   imageLowerSafeAreaPrompt: string | null;
 
   imageLayoutEnabled: boolean;
+  storyPanelEnabled: boolean;
+  mastheadEnabled: boolean;
+  headlineTextEnabled: boolean;
 
   mastheadScale: number;
   mastheadTopPercent: number;
@@ -266,15 +261,6 @@ const Toggle = ({
     />
   </label>
 );
-const fmt = (v: string | null, tz: string) =>
-  v
-    ? new Intl.DateTimeFormat("en-MY", {
-        timeZone: tz,
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(v))
-    : "—";
-
 const recommendedDefaults = (current: Settings): Settings => ({
   ...current,
 
@@ -351,6 +337,9 @@ const recommendedDefaults = (current: Settings): Settings => ({
   brandingFailurePolicy: "USE_GENERATED_IMAGE",
 
   imageLayoutEnabled: true,
+  storyPanelEnabled: false,
+  mastheadEnabled: true,
+  headlineTextEnabled: true,
 
   heroStoryWeight: 65,
 
@@ -404,19 +393,18 @@ const recommendedDefaults = (current: Settings): Settings => ({
   watermarkOpacity: 0.72,
   watermarkPosition: "top-right",
 
-  qrEnabled: true,
+  qrEnabled: false,
   qrLink: "https://mgmbetmyr.com",
 
   qrSizePercent: 0.105,
   qrMarginPercent: 0.025,
 
   brandFooterEnabled: true,
+  footerTextEnabled: true,
 
   brandFooterText: "满贯门 mgmbetmyr.com",
 
   logoAssetId: null,
-  logoSize: "medium",
-  logoOpacity: 100,
   logoMargin: 10,
 
   footerLogoEnabled: false,
@@ -447,18 +435,98 @@ const recommendedDefaults = (current: Settings): Settings => ({
   recommendedDefaultsVersion: "v2",
 });
 
+function BrandingPreview({ settings }: { settings: Settings }) {
+  return (
+    <div
+      style={{
+        borderRadius: 16,
+        overflow: "hidden",
+        background: "#101820",
+        color: "white",
+        padding: 20,
+        marginTop: 20,
+      }}
+    >
+      {settings.mastheadEnabled && (
+        <div>
+          <strong>M SPORTS</strong>
+          <div>今日体育新闻</div>
+        </div>
+      )}
+
+      {settings.headlineTextEnabled && (
+        <div
+          style={{
+            marginTop: 20,
+            fontSize: 22,
+            fontWeight: 700,
+          }}
+        >
+          TOP SPORTS STORY
+        </div>
+      )}
+
+      {settings.storyPanelEnabled && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 16,
+            background: "rgba(255,255,255,0.12)",
+            borderRadius: 12,
+          }}
+        >
+          Story Panel
+          <br />
+          01｜Main Highlight
+          <br />
+          02｜Secondary Story
+        </div>
+      )}
+
+      {settings.watermarkEnabled && (
+        <div
+          style={{
+            marginTop: 20,
+            opacity: settings.watermarkOpacity,
+          }}
+        >
+          MGM WATERMARK
+        </div>
+      )}
+
+      <div
+        style={{
+          marginTop: 20,
+          borderTop: "1px solid rgba(255,255,255,.2)",
+          paddingTop: 10,
+        }}
+      >
+        {settings.footerTextEnabled && <span>满贯门 mgmbetmyr.com</span>}
+
+        {settings.footerQrEnabled && (
+          <span
+            style={{
+              marginLeft: 20,
+            }}
+          >
+            QR
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SportsNewsSettings() {
   const [s, setS] = useState<Settings | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState<"morning" | "evening" | null>(null);
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
-    const [a, b, c] = await Promise.all([
+    const [a, b] = await Promise.all([
       fetch(`${API_URL}/sports-news/settings`, { cache: "no-store" }),
       fetch(`${API_URL}/sports-news/channels`, { cache: "no-store" }),
-      fetch(`${API_URL}/assets?type=IMAGE`, { cache: "no-store" }),
     ]);
 
     if (!a.ok || !b.ok) {
@@ -467,18 +535,10 @@ export function SportsNewsSettings() {
 
     setS(await a.json());
     setChannels(await b.json());
-
-    if (c.ok) {
-      const assetData = await c.json();
-
-      setAssets(
-        Array.isArray(assetData)
-          ? assetData.filter((asset: Asset) => asset.type === "IMAGE")
-          : [],
-      );
-    }
   }, []);
   useEffect(() => {
+    // Initial remote-state synchronization for this settings screen.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load().catch((e) =>
       setMessage(e instanceof Error ? e.message : "Load failed."),
     );
@@ -493,26 +553,23 @@ export function SportsNewsSettings() {
      * Strip all read-only/runtime fields before PATCH so Prisma
      * receives operator-editable settings only.
      */
-    const {
-      id: _id,
-      workspaceId: _workspaceId,
-      telegramChannel: _telegramChannel,
-      facebookChannel: _facebookChannel,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      lastMorningRunAt: _lastMorningRunAt,
-      lastEveningRunAt: _lastEveningRunAt,
-      lastRunStatus: _lastRunStatus,
-      lastError: _lastError,
-      ...editableSettings
-    } = settingsToSave as Settings & {
-      id?: string;
-      workspaceId?: string;
-      telegramChannel?: unknown;
-      facebookChannel?: unknown;
-      createdAt?: string;
-      updatedAt?: string;
-    };
+    const readOnlyFields = new Set([
+      "id",
+      "workspaceId",
+      "telegramChannel",
+      "facebookChannel",
+      "createdAt",
+      "updatedAt",
+      "lastMorningRunAt",
+      "lastEveningRunAt",
+      "lastRunStatus",
+      "lastError",
+    ]);
+    const editableSettings = Object.fromEntries(
+      Object.entries(settingsToSave).filter(
+        ([key]) => !readOnlyFields.has(key),
+      ),
+    );
 
     const r = await fetch(`${API_URL}/sports-news/settings`, {
       method: "PATCH",
@@ -920,13 +977,40 @@ export function SportsNewsSettings() {
             </label>
           ))}
         </div>
+
         <div className={styles.panel}>
           <h3>Image Settings</h3>
+
+          <BrandingPreview settings={s} />
+
+          <h4>Generation Settings</h4>
+
+          <h4>Image Layout Controls</h4>
+
+          <Toggle
+            label="Show Masthead"
+            checked={s.mastheadEnabled}
+            onChange={(v) => patch("mastheadEnabled", v)}
+          />
+
+          <Toggle
+            label="Show Headline Text"
+            checked={s.headlineTextEnabled}
+            onChange={(v) => patch("headlineTextEnabled", v)}
+          />
+
+          <Toggle
+            label="Show Story Panel"
+            checked={s.storyPanelEnabled}
+            onChange={(v) => patch("storyPanelEnabled", v)}
+          />
+
           <Toggle
             label="Generate Image"
             checked={s.imageEnabled}
             onChange={(v) => patch("imageEnabled", v)}
           />
+
           <label>
             Aspect Ratio
             <select
@@ -939,17 +1023,99 @@ export function SportsNewsSettings() {
               <option>9:16</option>
             </select>
           </label>
-          <label>
-            Text Mode
-            <select
-              value={s.imageTextMode}
-              onChange={(e) => patch("imageTextMode", e.target.value)}
-            >
-              <option value="minimal">Minimal / key points only</option>
-              <option value="balanced">Balanced</option>
-              <option value="detailed">Detailed</option>
-            </select>
-          </label>
+
+          <div className={styles.report}>
+            <h4>Image Layout Control</h4>
+
+            <Toggle
+              label="Enable Image Layout"
+              checked={s.imageLayoutEnabled}
+              onChange={(v) => patch("imageLayoutEnabled", v)}
+            />
+
+            <Toggle
+              label="Show Masthead"
+              checked={s.mastheadEnabled}
+              onChange={(v) => patch("mastheadEnabled", v)}
+            />
+
+            <Toggle
+              label="Show Headline Text"
+              checked={s.headlineTextEnabled}
+              onChange={(v) => patch("headlineTextEnabled", v)}
+            />
+
+            <Toggle
+              label="Show Story Panel"
+              checked={s.storyPanelEnabled}
+              onChange={(v) => patch("storyPanelEnabled", v)}
+            />
+
+            <label>
+              Hero Story Weight (%)
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={s.heroStoryWeight ?? 55}
+                onChange={(e) =>
+                  patch("heroStoryWeight", Number(e.target.value))
+                }
+              />
+            </label>
+
+            <label>
+              Maximum Stories
+              <input
+                type="number"
+                min={1}
+                max={5}
+                value={s.storyMaximum ?? 3}
+                onChange={(e) => patch("storyMaximum", Number(e.target.value))}
+              />
+            </label>
+          </div>
+
+          <div className={styles.report}>
+            <h4>Footer Branding</h4>
+
+            <Toggle
+              label="Brand Footer"
+              checked={s.brandFooterEnabled}
+              onChange={(v) => patch("brandFooterEnabled", v)}
+            />
+
+            <label>
+              Footer Text
+              <input
+                value={s.brandFooterText}
+                onChange={(e) => patch("brandFooterText", e.target.value)}
+              />
+            </label>
+
+            <Toggle
+              label="Footer Logo"
+              checked={s.footerLogoEnabled}
+              onChange={(v) => patch("footerLogoEnabled", v)}
+            />
+
+            <Toggle
+              label="Footer QR"
+              checked={s.footerQrEnabled}
+              onChange={(v) => patch("footerQrEnabled", v)}
+            />
+
+            {s.footerQrEnabled && (
+              <label>
+                Footer QR Link
+                <input
+                  value={s.footerQrLink ?? ""}
+                  onChange={(e) => patch("footerQrLink", e.target.value)}
+                />
+              </label>
+            )}
+          </div>
+
           {[
             ["imageVisualStyle", "Visual Style"],
             ["imagePrompt", "Default Image Prompt"],
@@ -967,213 +1133,6 @@ export function SportsNewsSettings() {
               />
             </label>
           ))}
-          <Toggle
-            label="Show Logo"
-            checked={s.logoEnabled}
-            onChange={(v) => patch("logoEnabled", v)}
-          />
-
-          <label>
-            Logo Asset
-            <select
-              value={s.logoAssetId ?? ""}
-              onChange={(e) => patch("logoAssetId", e.target.value || null)}
-            >
-              <option value="">Generated / Default</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Logo Position
-            <select
-              value={s.logoPosition}
-              onChange={(e) => patch("logoPosition", e.target.value)}
-            >
-              <option value="top-right">Top right</option>
-              <option value="top-left">Top left</option>
-              <option value="bottom-right">Bottom right</option>
-              <option value="bottom-left">Bottom left</option>
-            </select>
-          </label>
-
-          <label>
-            Logo Size
-            <select
-              value={s.logoSize}
-              onChange={(e) => patch("logoSize", e.target.value)}
-            >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </label>
-
-          <label>
-            Logo Opacity
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={s.logoOpacity}
-              onChange={(e) => patch("logoOpacity", Number(e.target.value))}
-            />
-          </label>
-
-          <label>
-            Logo Margin
-            <input
-              type="number"
-              min={0}
-              value={s.logoMargin}
-              onChange={(e) => patch("logoMargin", Number(e.target.value))}
-            />
-          </label>
-
-          <Toggle
-            label="Brand Footer"
-            checked={s.brandFooterEnabled}
-            onChange={(v) => patch("brandFooterEnabled", v)}
-          />
-
-          <label>
-            Footer Text
-            <input
-              value={s.brandFooterText}
-              onChange={(e) => patch("brandFooterText", e.target.value)}
-            />
-          </label>
-
-          <Toggle
-            label="Footer Logo"
-            checked={s.footerLogoEnabled}
-            onChange={(v) => patch("footerLogoEnabled", v)}
-          />
-
-          {s.footerLogoEnabled && (
-            <label>
-              Footer Logo Asset
-              <select
-                value={s.footerLogoAssetId ?? ""}
-                onChange={(e) =>
-                  patch("footerLogoAssetId", e.target.value || null)
-                }
-              >
-                <option value="">Select logo</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <Toggle
-            label="Footer QR"
-            checked={s.footerQrEnabled}
-            onChange={(v) => patch("footerQrEnabled", v)}
-          />
-
-          {s.footerQrEnabled && (
-            <>
-              <label>
-                Footer QR Asset
-                <select
-                  value={s.footerQrAssetId ?? ""}
-                  onChange={(e) =>
-                    patch("footerQrAssetId", e.target.value || null)
-                  }
-                >
-                  <option value="">Select QR</option>
-                  {assets.map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Footer QR Link
-                <input
-                  value={s.footerQrLink ?? ""}
-                  onChange={(e) => patch("footerQrLink", e.target.value)}
-                />
-              </label>
-            </>
-          )}
-
-          <label>
-            Footer Placement
-            <select
-              value={s.footerPlacement}
-              onChange={(e) => patch("footerPlacement", e.target.value)}
-            >
-              <option value="bottom">Bottom</option>
-              <option value="top">Top</option>
-            </select>
-          </label>
-
-          <div className={styles.footerPreviewBlock}>
-            <div className={styles.footerPreviewHeader}>
-              <strong>Footer Preview</strong>
-              <span>
-                {s.footerPlacement === "auto"
-                  ? "Responsive auto placement"
-                  : `${s.footerPlacement} placement`}
-              </span>
-            </div>
-
-            <div
-              className={`${styles.footerPreview} ${
-                s.footerPlacement === "left"
-                  ? styles.footerPreviewLeft
-                  : s.footerPlacement === "center"
-                    ? styles.footerPreviewCenter
-                    : s.footerPlacement === "right"
-                      ? styles.footerPreviewRight
-                      : styles.footerPreviewAuto
-              }`}
-            >
-              <div className={styles.footerPreviewBrand}>
-                {s.footerLogoEnabled &&
-                  (() => {
-                    const logoId = s.footerLogoAssetId || s.logoAssetId;
-
-                    const selected = assets.find(
-                      (asset) => asset.id === logoId,
-                    );
-
-                    return selected ? (
-                      <img
-                        className={styles.footerPreviewLogo}
-                        src={selected.thumbnailUrl || selected.url}
-                        alt=""
-                      />
-                    ) : (
-                      <div className={styles.footerPreviewLogoPlaceholder}>
-                        LOGO
-                      </div>
-                    );
-                  })()}
-
-                {s.brandFooterText.trim() && (
-                  <span className={styles.footerPreviewText}>
-                    {s.brandFooterText}
-                  </span>
-                )}
-              </div>
-
-              {s.footerQrEnabled && (
-                <div className={styles.footerPreviewQr}>QR</div>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className={styles.panel}>
@@ -1466,26 +1425,13 @@ export function SportsNewsSettings() {
               }
             />
           </label>
-
-          <Toggle
-            label="Show QR"
-            checked={s.qrEnabled}
-            onChange={(v) => patch("qrEnabled", v)}
-          />
-
-          <label>
-            QR Link
-            <input
-              value={s.qrLink}
-              onChange={(e) => patch("qrLink", e.target.value)}
-            />
-          </label>
         </div>
 
         <div className={styles.panel}>
-          <h3>Branding & Typography</h3>
+          <h3>Typography Control</h3>
 
           <label>
+            <h4>Masthead</h4>
             Masthead Brand Text
             <input
               value={s.mastheadBrandText}
@@ -1526,6 +1472,7 @@ export function SportsNewsSettings() {
           </label>
 
           <label>
+            <h4>Section</h4>
             Image Section Label
             <input
               value={s.imageSectionLabel}
@@ -1557,7 +1504,7 @@ export function SportsNewsSettings() {
         </div>
 
         <div className={styles.panel}>
-          <h3>Logo & QR</h3>
+          <h3>Branding Control</h3>
 
           <Toggle
             label="Watermark Enabled"

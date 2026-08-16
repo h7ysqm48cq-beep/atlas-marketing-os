@@ -126,6 +126,26 @@ export class SportsNewsAutomationService {
     }
   }
 
+  private async markEditionRunCompleted(edition: Edition, settingsId: string) {
+    await this.prisma.sportsNewsSetting.update({
+      where: {
+        id: settingsId,
+      },
+      data:
+        edition === 'MORNING'
+          ? {
+              lastMorningRunAt: new Date(),
+              lastRunStatus: 'SUCCESS',
+              lastError: null,
+            }
+          : {
+              lastEveningRunAt: new Date(),
+              lastRunStatus: 'SUCCESS',
+              lastError: null,
+            },
+    });
+  }
+
   async createMorningEditionNow() {
     return this.createEdition('MORNING');
   }
@@ -385,12 +405,11 @@ export class SportsNewsAutomationService {
                     .filter(Boolean)
                     .join(settings.footerDateSeparator)
                 : '',
-
-              qrLink: settings.qrEnabled ? settings.qrLink : null,
-
               footerLogoAssetId: settings.footerLogoEnabled
                 ? settings.footerLogoAssetId
                 : null,
+
+              footerQrEnabled: settings.footerQrEnabled,
 
               footerQrAssetId: settings.footerQrEnabled
                 ? settings.footerQrAssetId
@@ -456,6 +475,10 @@ export class SportsNewsAutomationService {
 
               layout: {
                 enabled: settings.imageLayoutEnabled,
+
+                storyPanelEnabled: settings.storyPanelEnabled,
+                mastheadEnabled: settings.mastheadEnabled,
+                headlineTextEnabled: settings.headlineTextEnabled,
 
                 mastheadScale: settings.mastheadScale,
 
@@ -553,6 +576,8 @@ export class SportsNewsAutomationService {
       });
 
       this.logger.log(`Queued ${title} for ${channel.name}.`);
+
+      await this.markEditionRunCompleted(edition, settings.id);
 
       return {
         success: true,
@@ -694,7 +719,7 @@ export class SportsNewsAutomationService {
 
         settings.customInstructions?.trim(),
 
-        `Return exactly ${settings.storyMinimum} to ${settings.storyMaximum} verified sports stories.`,
+        `Return between 1 and ${settings.storyMaximum} verified sports stories. Do not force a fixed number. If only 1 or 2 stories can be reliably verified, return those verified stories instead of returning an empty stories array.`,
 
         settings.sportsPriority?.trim()
           ? `Sports priority: ${settings.sportsPriority}.`
@@ -727,6 +752,7 @@ export class SportsNewsAutomationService {
         settings.visibleCopyInstructions?.trim(),
 
         [
+          'If at least one sports story can be verified from reliable current sources, you MUST return that story. Do not return {"stories":[]} merely because fewer than the preferred number of stories are available.',
           'Return JSON only.',
           'Do not return Markdown.',
           'Required JSON shape:',
@@ -807,104 +833,312 @@ export class SportsNewsAutomationService {
       freshnessFallbackEnabled: false,
     };
 
-    for (const story of stories.slice(0, settings.storyMaximum)) {
-      const sources = Array.isArray(story.sources)
-        ? story.sources.map((source) => ({
-            title: source.title?.trim() || 'Untitled source',
-            url: source.url ?? null,
-            publishedAt: source.publishedAt ?? null,
-            sourceName: source.sourceName ?? null,
-          }))
-        : [];
+    const validateAndAcceptStories = (candidateStories: typeof stories) => {
+      for (const story of candidateStories.slice(0, settings.storyMaximum)) {
+        const sources = Array.isArray(story.sources)
+          ? story.sources.map((source) => ({
+              title: source.title?.trim() || 'Untitled source',
+              url: source.url ?? null,
+              publishedAt: source.publishedAt ?? null,
+              sourceName: source.sourceName ?? null,
+            }))
+          : [];
 
-      const storyName =
-        story.headlineEn?.trim() ||
-        story.headlineZh?.trim() ||
-        'Unknown sports story';
+        const storyName =
+          story.headlineEn?.trim() ||
+          story.headlineZh?.trim() ||
+          'Unknown sports story';
 
-      try {
-        const validation = this.sportsNewsSourceValidator.validate(
-          sources,
-          perStoryFreshness,
-        );
-
-        if (!validation.enoughSources || validation.accepted.length < 1) {
-          this.logger.warn(
-            `Sports story rejected because no fresh verified source remained: "${storyName}".`,
+        try {
+          const validation = this.sportsNewsSourceValidator.validate(
+            sources,
+            perStoryFreshness,
           );
+
+          if (!validation.enoughSources || validation.accepted.length < 1) {
+            this.logger.error(
+              [
+                'Sports story rejected',
+                `story=${storyName}`,
+                `sourceCount=${sources.length}`,
+                `acceptedSources=${validation.accepted.length}`,
+                `enoughSources=${validation.enoughSources}`,
+                `sources=${JSON.stringify(sources)}`,
+                `rejected=${JSON.stringify(validation.rejected ?? [])}`,
+              ].join(' | '),
+            );
+
+            continue;
+          }
+
+          acceptedSources.push(...validation.accepted);
+        } catch (error) {
+          const sourceDiagnostics = sources.map((source) => ({
+            sourceName: source.sourceName,
+            publishedAt: source.publishedAt,
+            hasUrl: Boolean(source.url?.trim()),
+            title: source.title,
+          }));
+
+          const rejectionMessage =
+            `Sports story rejected by freshness validation: "${storyName}". ` +
+            `sources=${JSON.stringify(sourceDiagnostics)}. ` +
+            `${
+              error instanceof Error
+                ? error.message
+                : 'Unknown validation error'
+            }`;
+
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(rejectionMessage);
+          }
+
+          this.logger.warn(rejectionMessage);
+
           continue;
         }
 
-        acceptedSources.push(...validation.accepted);
-      } catch (error) {
-        const sourceDiagnostics = sources.map((source) => ({
-          sourceName: source.sourceName,
-          publishedAt: source.publishedAt,
-          hasUrl: Boolean(source.url?.trim()),
-          title: source.title,
-        }));
+        if (
+          settings.completedEventPolicy === 'REQUIRE_FINAL_SCORE' &&
+          settings.completedScoreRequired &&
+          story.eventStatus === 'COMPLETED' &&
+          !story.finalScore?.trim()
+        ) {
+          const message = `Completed sports story rejected because finalScore is missing: "${storyName}".`;
 
-        const rejectionMessage =
-          `Sports story rejected by freshness validation: "${storyName}". ` +
-          `sources=${JSON.stringify(sourceDiagnostics)}. ` +
-          `${
-            error instanceof Error ? error.message : 'Unknown validation error'
-          }`;
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
 
-        if (settings.invalidStoryPolicy === 'BLOCK') {
-          throw new Error(rejectionMessage);
+          this.logger.warn(message);
+          continue;
         }
 
-        this.logger.warn(rejectionMessage);
+        if (
+          story.eventStatus === 'UPCOMING' &&
+          settings.upcomingEventPolicy === 'BLOCK'
+        ) {
+          const message = `Upcoming sports story blocked by Settings: "${storyName}".`;
 
-        continue;
-      }
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
 
-      if (
-        settings.completedEventPolicy === 'REQUIRE_FINAL_SCORE' &&
-        settings.completedScoreRequired &&
-        story.eventStatus === 'COMPLETED' &&
-        !story.finalScore?.trim()
-      ) {
-        const message = `Completed sports story rejected because finalScore is missing: "${storyName}".`;
-
-        if (settings.invalidStoryPolicy === 'BLOCK') {
-          throw new Error(message);
+          this.logger.warn(message);
+          continue;
         }
 
-        this.logger.warn(message);
-        continue;
-      }
+        if (
+          story.eventStatus === 'DEVELOPMENT' &&
+          settings.developmentStoryPolicy === 'BLOCK'
+        ) {
+          const message = `Development sports story blocked by Settings: "${storyName}".`;
 
-      if (
-        story.eventStatus === 'UPCOMING' &&
-        settings.upcomingEventPolicy === 'BLOCK'
-      ) {
-        const message = `Upcoming sports story blocked by Settings: "${storyName}".`;
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
 
-        if (settings.invalidStoryPolicy === 'BLOCK') {
-          throw new Error(message);
+          continue;
         }
 
-        this.logger.warn(message);
-        continue;
+        acceptedStories.push(story);
       }
+    };
 
-      if (
-        story.eventStatus === 'DEVELOPMENT' &&
-        settings.developmentStoryPolicy === 'BLOCK'
-      ) {
-        const message = `Development sports story blocked by Settings: "${storyName}".`;
+    validateAndAcceptStories(stories);
 
-        if (settings.invalidStoryPolicy === 'BLOCK') {
-          throw new Error(message);
+    /*
+     * SPORTS SUPPLEMENTAL SEARCH
+     *
+     * Editorial target: 3 stories when possible.
+     * Publication minimum remains controlled by Settings.
+     *
+     * If the first validated pass produces fewer than the preferred
+     * number, perform one additional web-search pass for distinct
+     * current stories. Failure to reach the preferred count does not
+     * block publication if the configured minimum is still satisfied.
+     */
+    const preferredStoryCount = Math.min(3, settings.storyMaximum);
+
+    if (
+      acceptedStories.length < preferredStoryCount &&
+      settings.newsWebSearchEnabled
+    ) {
+      const firstPassHeadlines = stories
+        .map(
+          (story) => story.headlineEn?.trim() || story.headlineZh?.trim() || '',
+        )
+        .filter(Boolean);
+
+      const remainingCapacity = Math.max(
+        1,
+        settings.storyMaximum - acceptedStories.length,
+      );
+
+      this.logger.log(
+        [
+          'SPORTS SUPPLEMENTAL SEARCH',
+          `edition=${edition}`,
+          `firstPassGenerated=${stories.length}`,
+          `firstPassAccepted=${acceptedStories.length}`,
+          `preferred=${preferredStoryCount}`,
+          `capacity=${remainingCapacity}`,
+        ].join(' | '),
+      );
+
+      const supplementalResponse = await this.client!.responses.create({
+        model: await this.aiRuntime.getSportsNewsModel(),
+
+        tools: settings.newsWebSearchEnabled
+          ? [{ type: 'web_search' as const }]
+          : [],
+
+        input: [
+          settings.systemPrompt?.trim(),
+
+          `Publication date in Malaysia is ${dateKey}.`,
+          `Publication timezone is ${freshness.timezone}.`,
+
+          editionInstruction,
+
+          settings.customInstructions?.trim(),
+
+          [
+            'This is a SECOND-PASS supplemental sports-news search.',
+            `The first validation pass produced only ${acceptedStories.length} verified story/stories.`,
+            `Find up to ${remainingCapacity} additional DISTINCT verified sports stories.`,
+            'Do not repeat stories from the first pass.',
+            'Prioritize important current sports developments that were not covered in the first pass.',
+            'Accuracy is more important than quantity.',
+            'If only one additional reliable story exists, return one.',
+            'Do not invent stories merely to reach the preferred count.',
+          ].join('\n'),
+
+          firstPassHeadlines.length
+            ? `DO NOT REPEAT these first-pass stories: ${JSON.stringify(
+                firstPassHeadlines,
+              )}.`
+            : '',
+
+          settings.sportsPriority?.trim()
+            ? `Sports priority: ${settings.sportsPriority}.`
+            : '',
+
+          `Same-day sources only: ${
+            freshness.sameDaySourcesOnly ? 'YES' : 'NO'
+          }.`,
+
+          `Maximum source age: ${freshness.maxSourceAgeHours} hours.`,
+
+          `Published date required: ${
+            freshness.requirePublishedAt ? 'YES' : 'NO'
+          }.`,
+
+          `Source URL required internally: ${
+            freshness.requireSourceUrl ? 'YES' : 'NO'
+          }.`,
+
+          settings.verificationInstructions?.trim(),
+
+          [
+            'Return JSON only.',
+            'Do not return Markdown.',
+            'Required JSON shape:',
+            '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+          ].join('\n'),
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      });
+
+      const supplementalRaw = supplementalResponse.output_text?.trim();
+
+      if (supplementalRaw) {
+        try {
+          const supplementalParsed = JSON.parse(
+            supplementalRaw
+              .replace(/^```json\s*/i, '')
+              .replace(/^```\s*/i, '')
+              .replace(/\s*```$/, ''),
+          ) as typeof parsed;
+
+          const supplementalStories = Array.isArray(supplementalParsed.stories)
+            ? supplementalParsed.stories
+            : [];
+
+          /*
+           * Deduplicate against every first-pass generated story,
+           * not only accepted stories. This prevents the second
+           * search from repeatedly returning a story already rejected.
+           */
+          const existingStoryKeys = new Set(
+            stories.map((story) =>
+              (
+                story.headlineEn?.trim() ||
+                story.headlineZh?.trim() ||
+                ''
+              ).toLowerCase(),
+            ),
+          );
+
+          const distinctSupplementalStories = supplementalStories.filter(
+            (story) => {
+              const key = (
+                story.headlineEn?.trim() ||
+                story.headlineZh?.trim() ||
+                ''
+              ).toLowerCase();
+
+              if (!key) {
+                return false;
+              }
+
+              if (existingStoryKeys.has(key)) {
+                return false;
+              }
+
+              existingStoryKeys.add(key);
+
+              return true;
+            },
+          );
+
+          this.logger.log(
+            [
+              'SPORTS SUPPLEMENTAL RESULT',
+              `generated=${supplementalStories.length}`,
+              `distinct=${distinctSupplementalStories.length}`,
+              `beforeValidation=${acceptedStories.length}`,
+            ].join(' | '),
+          );
+
+          validateAndAcceptStories(distinctSupplementalStories);
+
+          this.logger.log(
+            [
+              'SPORTS SUPPLEMENTAL COMPLETE',
+              `accepted=${acceptedStories.length}`,
+              `preferred=${preferredStoryCount}`,
+            ].join(' | '),
+          );
+        } catch (error) {
+          /*
+           * Supplemental search is best-effort.
+           *
+           * Never throw here if the first pass already produced
+           * publishable stories.
+           */
+          this.logger.warn(
+            `Supplemental sports-news response could not be parsed: ${
+              error instanceof Error ? error.message : 'Unknown parsing error'
+            }`,
+          );
         }
-
-        this.logger.warn(message);
-        continue;
+      } else {
+        this.logger.warn(
+          'Supplemental sports-news search returned empty content.',
+        );
       }
-
-      acceptedStories.push(story);
     }
 
     const requiredStoryCount = Math.max(
@@ -913,6 +1147,18 @@ export class SportsNewsAutomationService {
     );
 
     if (acceptedStories.length < requiredStoryCount) {
+      this.logger.error(
+        [
+          'SPORTS VALIDATION SUMMARY',
+          `edition=${edition}`,
+          `generated=${stories.length}`,
+          `accepted=${acceptedStories.length}`,
+          `required=${requiredStoryCount}`,
+          `dateKey=${dateKey}`,
+          `timezone=${settings.timezone}`,
+        ].join(' | '),
+      );
+
       throw new Error(
         `Only ${acceptedStories.length} sports stories passed validation. Minimum ${requiredStoryCount} required. Publication blocked.`,
       );
