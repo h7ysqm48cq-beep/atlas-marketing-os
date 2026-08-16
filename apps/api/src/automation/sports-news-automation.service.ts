@@ -121,10 +121,7 @@ export class SportsNewsAutomationService {
       await this.createEdition('MORNING');
     }
 
-    if (
-      settings.eveningEnabled &&
-      currentTime >= settings.eveningTime
-    ) {
+    if (settings.eveningEnabled && currentTime >= settings.eveningTime) {
       await this.createEdition('EVENING');
     }
   }
@@ -225,8 +222,26 @@ export class SportsNewsAutomationService {
       }).format(new Date());
       const title = this.renderPostTitle(edition, dateKey, settings);
 
+      const dedupeKey =
+        settings.duplicateEditionPolicy === 'ALLOW'
+          ? null
+          : `sports-news:${channel.id}:${edition}:${dateKey}`;
+
       const existing = await this.prisma.scheduledPost.findFirst({
-        where: { channelId: channel.id, title },
+        where: dedupeKey
+          ? {
+              OR: [
+                { dedupeKey },
+                {
+                  channelId: channel.id,
+                  title,
+                },
+              ],
+            }
+          : {
+              channelId: channel.id,
+              title,
+            },
       });
       if (existing) {
         if (settings.duplicateEditionPolicy === 'SKIP') {
@@ -250,6 +265,7 @@ export class SportsNewsAutomationService {
             },
             data: {
               title: `${existing.title} [REPLACED ${new Date().toISOString()}]`,
+              dedupeKey: null,
             },
           });
 
@@ -527,6 +543,7 @@ export class SportsNewsAutomationService {
           channelId: channel.id,
           platform: SocialPlatform.TELEGRAM,
           title,
+          dedupeKey,
           content,
           mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
           scheduledAt: new Date(),
@@ -549,6 +566,30 @@ export class SportsNewsAutomationService {
         mediaUrls: post.mediaUrls,
       };
     } catch (error) {
+      const prismaError =
+        error && typeof error === 'object'
+          ? (error as {
+              code?: unknown;
+              meta?: unknown;
+            })
+          : null;
+
+      if (
+        prismaError?.code === 'P2002' &&
+        JSON.stringify(prismaError.meta ?? {}).includes('dedupeKey')
+      ) {
+        this.logger.log(
+          `Sports news duplicate prevented by database: ${edition}`,
+        );
+
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Sports news already exists',
+          edition,
+        };
+      }
+
       const message = error instanceof Error ? error.message : 'Unknown error';
 
       this.logger.error(
@@ -1469,8 +1510,15 @@ export class SportsNewsAutomationService {
 
     const title = this.renderPostTitle(edition, dateKey, settings);
 
+    const channel = await this.resolveChannel(settings.telegramChannelId);
+
+    if (!channel) {
+      return 0;
+    }
+
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
+        channelId: channel.id,
         title,
         platform: SocialPlatform.TELEGRAM,
       },
@@ -1488,6 +1536,7 @@ export class SportsNewsAutomationService {
         },
         data: {
           title: `${post.title} [OLD ${new Date().toISOString()}]`,
+          dedupeKey: null,
         },
       });
     }
@@ -1510,8 +1559,15 @@ export class SportsNewsAutomationService {
 
     const title = this.renderPostTitle(edition, dateKey, settings);
 
+    const channel = await this.resolveChannel(settings.telegramChannelId);
+
+    if (!channel) {
+      return 0;
+    }
+
     const result = await this.prisma.scheduledPost.deleteMany({
       where: {
+        channelId: channel.id,
         title,
         platform: SocialPlatform.TELEGRAM,
       },

@@ -42,6 +42,7 @@ export type ScheduledPostMinAggregateOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform | null
   title: string | null
+  dedupeKey: string | null
   content: string | null
   scheduledAt: Date | null
   timezone: string | null
@@ -63,6 +64,7 @@ export type ScheduledPostMaxAggregateOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform | null
   title: string | null
+  dedupeKey: string | null
   content: string | null
   scheduledAt: Date | null
   timezone: string | null
@@ -84,6 +86,7 @@ export type ScheduledPostCountAggregateOutputType = {
   historyId: number
   platform: number
   title: number
+  dedupeKey: number
   content: number
   mediaUrls: number
   brandRenderingSettings: number
@@ -117,6 +120,7 @@ export type ScheduledPostMinAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
+  dedupeKey?: true
   content?: true
   scheduledAt?: true
   timezone?: true
@@ -138,6 +142,7 @@ export type ScheduledPostMaxAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
+  dedupeKey?: true
   content?: true
   scheduledAt?: true
   timezone?: true
@@ -159,6 +164,7 @@ export type ScheduledPostCountAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
+  dedupeKey?: true
   content?: true
   mediaUrls?: true
   brandRenderingSettings?: true
@@ -269,6 +275,7 @@ export type ScheduledPostGroupByOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform
   title: string | null
+  dedupeKey: string | null
   content: string
   mediaUrls: string[]
   brandRenderingSettings: runtime.JsonValue
@@ -315,6 +322,7 @@ export type ScheduledPostWhereInput = {
   historyId?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
+  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
   brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
@@ -343,6 +351,7 @@ export type ScheduledPostOrderByWithRelationInput = {
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
   brandRenderingSettings?: Prisma.SortOrder
@@ -365,6 +374,7 @@ export type ScheduledPostOrderByWithRelationInput = {
 
 export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  dedupeKey?: string
   AND?: Prisma.ScheduledPostWhereInput | Prisma.ScheduledPostWhereInput[]
   OR?: Prisma.ScheduledPostWhereInput[]
   NOT?: Prisma.ScheduledPostWhereInput | Prisma.ScheduledPostWhereInput[]
@@ -392,7 +402,7 @@ export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
   history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
   attempts?: Prisma.PublishAttemptListRelationFilter
-}, "id">
+}, "id" | "dedupeKey">
 
 export type ScheduledPostOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -402,6 +412,7 @@ export type ScheduledPostOrderByWithAggregationInput = {
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
   brandRenderingSettings?: Prisma.SortOrder
@@ -433,6 +444,7 @@ export type ScheduledPostScalarWhereWithAggregatesInput = {
   historyId?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformWithAggregatesFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
+  dedupeKey?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringWithAggregatesFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
   brandRenderingSettings?: Prisma.JsonWithAggregatesFilter<"ScheduledPost">
@@ -452,6 +464,7 @@ export type ScheduledPostCreateInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -480,6 +493,7 @@ export type ScheduledPostUncheckedCreateInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -500,6 +514,7 @@ export type ScheduledPostUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -528,6 +543,7 @@ export type ScheduledPostUncheckedUpdateInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -552,6 +568,7 @@ export type ScheduledPostCreateManyInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -571,6 +588,7 @@ export type ScheduledPostUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -594,6 +612,7 @@ export type ScheduledPostUncheckedUpdateManyInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -627,6 +646,7 @@ export type ScheduledPostCountOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
   brandRenderingSettings?: Prisma.SortOrder
@@ -654,6 +674,7 @@ export type ScheduledPostMaxOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -675,6 +696,7 @@ export type ScheduledPostMinOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -896,6 +918,7 @@ export type ScheduledPostCreateWithoutBrandInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -922,6 +945,7 @@ export type ScheduledPostUncheckedCreateWithoutBrandInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -975,6 +999,7 @@ export type ScheduledPostScalarWhereInput = {
   historyId?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
+  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
   brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
@@ -994,6 +1019,7 @@ export type ScheduledPostCreateWithoutCampaignInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1020,6 +1046,7 @@ export type ScheduledPostUncheckedCreateWithoutCampaignInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1066,6 +1093,7 @@ export type ScheduledPostCreateWithoutHistoryInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1092,6 +1120,7 @@ export type ScheduledPostUncheckedCreateWithoutHistoryInput = {
   campaignId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1138,6 +1167,7 @@ export type ScheduledPostCreateWithoutChannelInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1164,6 +1194,7 @@ export type ScheduledPostUncheckedCreateWithoutChannelInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1210,6 +1241,7 @@ export type ScheduledPostCreateWithoutAttemptsInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1237,6 +1269,7 @@ export type ScheduledPostUncheckedCreateWithoutAttemptsInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1272,6 +1305,7 @@ export type ScheduledPostUpdateWithoutAttemptsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1299,6 +1333,7 @@ export type ScheduledPostUncheckedUpdateWithoutAttemptsInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1321,6 +1356,7 @@ export type ScheduledPostCreateManyBrandInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1340,6 +1376,7 @@ export type ScheduledPostUpdateWithoutBrandInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1366,6 +1403,7 @@ export type ScheduledPostUncheckedUpdateWithoutBrandInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1389,6 +1427,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutBrandInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1411,6 +1450,7 @@ export type ScheduledPostCreateManyCampaignInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1430,6 +1470,7 @@ export type ScheduledPostUpdateWithoutCampaignInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1456,6 +1497,7 @@ export type ScheduledPostUncheckedUpdateWithoutCampaignInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1479,6 +1521,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutCampaignInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1501,6 +1544,7 @@ export type ScheduledPostCreateManyHistoryInput = {
   campaignId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1520,6 +1564,7 @@ export type ScheduledPostUpdateWithoutHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1546,6 +1591,7 @@ export type ScheduledPostUncheckedUpdateWithoutHistoryInput = {
   campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1569,6 +1615,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutHistoryInput = {
   campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1591,6 +1638,7 @@ export type ScheduledPostCreateManyChannelInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
+  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1610,6 +1658,7 @@ export type ScheduledPostUpdateWithoutChannelInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1636,6 +1685,7 @@ export type ScheduledPostUncheckedUpdateWithoutChannelInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1659,6 +1709,7 @@ export type ScheduledPostUncheckedUpdateManyWithoutChannelInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
   brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1713,6 +1764,7 @@ export type ScheduledPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   historyId?: boolean
   platform?: boolean
   title?: boolean
+  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
   brandRenderingSettings?: boolean
@@ -1742,6 +1794,7 @@ export type ScheduledPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   historyId?: boolean
   platform?: boolean
   title?: boolean
+  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
   brandRenderingSettings?: boolean
@@ -1769,6 +1822,7 @@ export type ScheduledPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   historyId?: boolean
   platform?: boolean
   title?: boolean
+  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
   brandRenderingSettings?: boolean
@@ -1796,6 +1850,7 @@ export type ScheduledPostSelectScalar = {
   historyId?: boolean
   platform?: boolean
   title?: boolean
+  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
   brandRenderingSettings?: boolean
@@ -1811,7 +1866,7 @@ export type ScheduledPostSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "content" | "mediaUrls" | "brandRenderingSettings" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledPost"]>
+export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "dedupeKey" | "content" | "mediaUrls" | "brandRenderingSettings" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledPost"]>
 export type ScheduledPostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
@@ -1850,6 +1905,7 @@ export type $ScheduledPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
     historyId: string | null
     platform: $Enums.SocialPlatform
     title: string | null
+    dedupeKey: string | null
     content: string
     mediaUrls: string[]
     brandRenderingSettings: runtime.JsonValue
@@ -2298,6 +2354,7 @@ export interface ScheduledPostFieldRefs {
   readonly historyId: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly platform: Prisma.FieldRef<"ScheduledPost", 'SocialPlatform'>
   readonly title: Prisma.FieldRef<"ScheduledPost", 'String'>
+  readonly dedupeKey: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly content: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly mediaUrls: Prisma.FieldRef<"ScheduledPost", 'String[]'>
   readonly brandRenderingSettings: Prisma.FieldRef<"ScheduledPost", 'Json'>

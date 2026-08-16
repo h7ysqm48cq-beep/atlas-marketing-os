@@ -666,6 +666,7 @@ model ScheduledPost {
 
   platform               SocialPlatform
   title                  String?
+  dedupeKey              String?        @unique
   content                String
   mediaUrls              String[]
   brandRenderingSettings Json           @default("{}")

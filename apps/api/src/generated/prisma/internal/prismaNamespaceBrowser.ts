@@ -509,6 +509,7 @@ export const ScheduledPostScalarFieldEnum = {
   historyId: 'historyId',
   platform: 'platform',
   title: 'title',
+  dedupeKey: 'dedupeKey',
   content: 'content',
   mediaUrls: 'mediaUrls',
   brandRenderingSettings: 'brandRenderingSettings',
