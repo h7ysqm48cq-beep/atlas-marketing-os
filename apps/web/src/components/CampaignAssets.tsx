@@ -62,7 +62,7 @@ export function CampaignAssets({
 
   useEffect(() => {
     void loadAssets();
-  }, [campaignId]);
+  }, [campaignId]); // eslint-disable-line react-hooks/exhaustive-deps -- Campaign id is the remote asset reload trigger.
 
   const stats = useMemo(
     () => ({

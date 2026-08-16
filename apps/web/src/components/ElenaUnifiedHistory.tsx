@@ -117,6 +117,7 @@ export function ElenaUnifiedHistory() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Refresh remote history when the active workspace context changes.
     void refresh();
   }, [refresh, workspace.conversationId, workspace.historyId]);
 

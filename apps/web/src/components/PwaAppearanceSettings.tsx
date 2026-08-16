@@ -15,6 +15,7 @@ export function PwaAppearanceSettings() {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client-only appearance settings from localStorage after mount.
     setSettings(readPwaAppearanceSettings());
   }, []);
 

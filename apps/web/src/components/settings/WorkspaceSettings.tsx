@@ -213,6 +213,7 @@ export function WorkspaceSettings() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch persisted workspace settings when the panel mounts.
     void load();
   }, [load]);
 
@@ -229,6 +230,7 @@ export function WorkspaceSettings() {
       const imported =
         params.get("imported") || "0";
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Surface the OAuth redirect result encoded in the browser URL.
       setMessage(
         `Facebook connected successfully. ${imported} Page(s) imported.`,
       );

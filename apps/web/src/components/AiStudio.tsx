@@ -148,6 +148,7 @@ export function AiStudio({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Mirror the shared workspace draft into this editor when it changes externally.
     setResult((current) => {
       if (!current) {
         return current;
@@ -170,6 +171,7 @@ export function AiStudio({
     workspace.draft.telegram,
     workspace.draft.reels,
     workspace.draft.imagePrompt,
+    result,
   ]);
 
   /*
@@ -180,11 +182,11 @@ export function AiStudio({
    */
   useEffect(() => {
     workspace.setStyle(style);
-  }, [style]);
+  }, [style]); // eslint-disable-line react-hooks/exhaustive-deps -- Workspace setter identity is stable; style is the synchronization trigger.
 
   useEffect(() => {
     workspace.setLanguage(language);
-  }, [language]);
+  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps -- Workspace setter identity is stable; language is the synchronization trigger.
 
   useEffect(() => {
     if (!result) {
@@ -202,7 +204,7 @@ export function AiStudio({
 
       imagePrompt: result.image || undefined,
     });
-  }, [result]);
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps -- Workspace setters are stable and result is the synchronization trigger.
 
   const [availableAssets, setAvailableAssets] = useState<StudioAsset[]>([]);
   const [selectedAssets, setSelectedAssets] = useState<StudioAsset[]>([]);
@@ -362,11 +364,11 @@ export function AiStudio({
     return () => {
       cancelled = true;
     };
-  }, [workspace.command]);
+  }, [workspace.command]); // eslint-disable-line react-hooks/exhaustive-deps -- Commands are intentionally processed once by command identity.
 
   useEffect(() => {
     workspace.setAssetIds(selectedAssets.map((asset) => asset.id));
-  }, [selectedAssets]);
+  }, [selectedAssets]); // eslint-disable-line react-hooks/exhaustive-deps -- Workspace setter identity is stable; asset selection is the synchronization trigger.
 
   const [assetSearch, setAssetSearch] = useState("");
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
@@ -560,7 +562,7 @@ export function AiStudio({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Initial browser workspace restoration runs once on mount.
 
   useEffect(() => {
     let cancelled = false;
@@ -595,6 +597,7 @@ export function AiStudio({
     const pendingJobId = window.localStorage.getItem(AI_STUDIO_JOB_KEY);
     if (!pendingJobId) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore a browser-persisted background job on mount.
     setIsGenerating(true);
     setMessage("Restoring AI task running in the background...");
     void completeJob(pendingJobId).catch(() => undefined);
@@ -907,13 +910,14 @@ export function AiStudio({
     lastExternalRequestRef.current = request.requestId;
 
     if (request.mode === "image") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Execute an explicit generation command received from the parent workspace.
       void generateContent(["Image Prompt"], request);
 
       return;
     }
 
     void generateContent(undefined, request);
-  }, [externalGenerateRequest?.requestId]);
+  }, [externalGenerateRequest?.requestId]); // eslint-disable-line react-hooks/exhaustive-deps -- External requests are intentionally deduplicated by request id.
 
   return (
     <div className={styles.page}>

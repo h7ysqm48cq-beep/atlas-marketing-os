@@ -107,6 +107,7 @@ export function PromptLibrary() {
       );
 
       if (!stored) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Seed browser storage and UI state on the first client visit.
         setPrompts(starterPrompts);
         window.localStorage.setItem(
           STORAGE_KEY,
@@ -205,7 +206,7 @@ export function PromptLibrary() {
     setStatus(`Copied: ${prompt.title}`);
   }
 
-  function useInCopilot(
+  function openInCopilot(
     prompt: SavedPrompt,
   ) {
     window.localStorage.setItem(
@@ -401,7 +402,7 @@ export function PromptLibrary() {
                 type="button"
                 className={styles.useButton}
                 onClick={() =>
-                  useInCopilot(prompt)
+                  openInCopilot(prompt)
                 }
               >
                 Use in Copilot

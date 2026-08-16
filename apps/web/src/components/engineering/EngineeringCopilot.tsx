@@ -67,17 +67,6 @@ const IDLE_RUNTIME: CopilotRuntimeView = {
 };
 
 
-type EngineeringSnapshot = {
-  id: string;
-  files: string[];
-  description: string;
-  backupPath?: string | null;
-  status: string;
-  createdAt: string;
-};
-
-
-
 function riskScore(
   risk: EngineeringRisk,
 ): number {

@@ -286,7 +286,7 @@ export function BrowserAccountsManager({
 
   useEffect(() => {
     void loadChannels();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Channels are fetched once when the manager mounts.
 
   useEffect(() => {
     if (selectedId) {

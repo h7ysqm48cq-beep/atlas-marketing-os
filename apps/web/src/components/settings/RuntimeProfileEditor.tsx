@@ -172,7 +172,7 @@ export function RuntimeProfileEditor({
     void refreshBrowserStatus(
       true,
     );
-  }, [open, loaded]);
+  }, [open, loaded]); // eslint-disable-line react-hooks/exhaustive-deps -- Opening and hydration state control profile/status refreshes.
 
   function applyProfile(
     nextProfile: RuntimeProfile,

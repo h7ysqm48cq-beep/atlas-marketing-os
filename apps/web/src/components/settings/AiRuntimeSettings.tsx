@@ -82,6 +82,7 @@ export function AiRuntimeSettings() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch persisted runtime settings when the panel mounts.
     void loadSettings();
   }, [loadSettings]);
 

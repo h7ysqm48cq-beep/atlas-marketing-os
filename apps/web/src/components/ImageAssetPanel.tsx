@@ -380,6 +380,7 @@ export function ImageAssetPanel({
       );
 
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Auto-generation is deduplicated by request id; callback identity must not retrigger it.
     [
       autoGenerateRequestId,
       isGenerating,

@@ -19,6 +19,7 @@ export function PwaAppSettings() {
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client-only navigation settings from localStorage after mount.
     setSettings(readPwaNavigationSettings());
   }, []);
 

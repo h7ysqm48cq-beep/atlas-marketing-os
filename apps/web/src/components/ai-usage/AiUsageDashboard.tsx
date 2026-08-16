@@ -188,6 +188,7 @@ export function AiUsageDashboard() {
   }, [days]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch remote usage data when the dashboard range changes.
     void load();
   }, [load]);
 

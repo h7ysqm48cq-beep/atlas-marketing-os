@@ -61,10 +61,6 @@ export function BrandBrain() {
     return Math.round((completed / values.length) * 100);
   }, [form]);
 
-  useEffect(() => {
-    void loadBrand();
-  }, []);
-
   async function loadBrand() {
     try {
       const response = await fetch(`${API_URL}/brands`);
@@ -101,6 +97,11 @@ export function BrandBrain() {
       );
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Load persisted brand data when the client mounts.
+    void loadBrand();
+  }, []);
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({

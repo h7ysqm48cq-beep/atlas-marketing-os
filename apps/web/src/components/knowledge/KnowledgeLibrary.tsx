@@ -59,10 +59,6 @@ export function KnowledgeLibrary() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    void load();
-  }, []);
-
   const categories = useMemo(
     () =>
       Array.from(
@@ -132,6 +128,11 @@ export function KnowledgeLibrary() {
       );
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Load remote knowledge documents when the client mounts.
+    void load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Knowledge documents are loaded once when the library mounts.
 
   function selectDocument(document: KnowledgeDocument | null) {
     setSelected(document);

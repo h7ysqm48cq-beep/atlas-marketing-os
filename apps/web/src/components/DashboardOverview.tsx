@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePreferences } from "@/components/preferences";
 import { API_URL } from "@/lib/api";
 import styles from "./DashboardOverview.module.css";
@@ -133,6 +134,7 @@ export function DashboardOverview() {
   }, [t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch dashboard data when the client mounts or locale changes.
     void load();
   }, [load]);
 
@@ -241,7 +243,7 @@ export function DashboardOverview() {
         {error ? <div className={styles.warning}>{error}</div> : null}
 
         <section className={styles.kpiGrid}>
-          <a
+          <Link
             className={`${styles.kpiCard} ${styles.kpiLink}`}
             href="/content-history?status=PENDING_REVIEW"
             aria-label={t("pendingApproval")}
@@ -251,9 +253,9 @@ export function DashboardOverview() {
             <small>
               {approved} {t("approvedReady")}
             </small>
-          </a>
+          </Link>
 
-          <a
+          <Link
             className={`${styles.kpiCard} ${styles.kpiLink}`}
             href="/calendar?status=SCHEDULED"
             aria-label={t("scheduledPosts")}
@@ -263,9 +265,9 @@ export function DashboardOverview() {
             <small>
               {publishingQueue} {t("currentlyQueue")}
             </small>
-          </a>
+          </Link>
 
-          <a
+          <Link
             className={`${styles.kpiCard} ${styles.kpiLink}`}
             href="/campaigns"
             aria-label={t("activeCampaigns")}
@@ -275,7 +277,7 @@ export function DashboardOverview() {
             <small>
               {data.campaigns.length} {t("campaignsTotal")}
             </small>
-          </a>
+          </Link>
 
           <a
             className={`${styles.kpiCard} ${styles.kpiLink}`}
@@ -346,7 +348,7 @@ export function DashboardOverview() {
             </small>
           </a>
 
-          <a
+          <Link
             className={`${styles.mobileKpiCard} ${styles.kpiLink}`}
             href="/campaigns"
             aria-label={t("campaignsLabel")}
@@ -356,7 +358,7 @@ export function DashboardOverview() {
             <small>
               {data.campaigns.length} {t("total")}
             </small>
-          </a>
+          </Link>
 
           <a
             className={`${styles.mobileKpiCard} ${styles.kpiLink}`}

@@ -27,6 +27,7 @@ export function PwaNetworkStatus() {
     };
 
     if (!navigator.onLine) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialize from the browser network state before subscribing to changes.
       setState("offline");
     }
 

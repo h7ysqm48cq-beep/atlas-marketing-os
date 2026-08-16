@@ -130,12 +130,16 @@ export function PlatformCard({
   const [savingPrompt, setSavingPrompt] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset approval inputs when the parent approval record changes.
     setReviewNote(approval.reviewNote || "");
     setReviewer(approval.reviewedBy || "Loh");
   }, [approval.reviewNote, approval.reviewedBy]);
 
   useEffect(() => {
-    if (!editingPrompt) setPromptDraft(content);
+    if (!editingPrompt) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Keep the prompt draft synchronized until the user starts editing.
+      setPromptDraft(content);
+    }
   }, [content, editingPrompt]);
 
   const hasGeneratedContent = useMemo(
@@ -145,7 +149,7 @@ export function PlatformCard({
 
   useEffect(() => {
     if (historyId) void loadVersions();
-  }, [historyId, title]);
+  }, [historyId, title]); // eslint-disable-line react-hooks/exhaustive-deps -- History and platform identify the version list to reload.
 
   useEffect(() => {
     if (
@@ -155,7 +159,7 @@ export function PlatformCard({
     ) {
       void runAction(copilotRequest.action);
     }
-  }, [copilotRequest?.nonce]);
+  }, [copilotRequest?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps -- Copilot actions are intentionally deduplicated by nonce.
 
   async function loadVersions() {
     if (!historyId) return;

@@ -36,6 +36,7 @@ export function PwaControlCenter() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client-only PWA controls from localStorage after mount.
     setSettings(readPwaControlSettings());
   }, []);
 

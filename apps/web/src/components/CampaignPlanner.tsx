@@ -50,11 +50,12 @@ export function CampaignPlanner({
       requestedTab === "ideas" ||
       requestedTab === "assets"
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate the selected campaign tab from the URL.
       setActiveTab(requestedTab);
     }
 
     void load();
-  }, [campaignId]);
+  }, [campaignId]); // eslint-disable-line react-hooks/exhaustive-deps -- Campaign id is the planner reload trigger.
 
   async function load() {
     try {

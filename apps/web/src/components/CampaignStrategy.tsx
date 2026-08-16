@@ -44,6 +44,7 @@ export function CampaignStrategy({
     if (!cached) return;
 
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore the campaign strategy persisted in browser storage.
       setResult(JSON.parse(cached) as CampaignStrategyResult);
       setMessage("Previously generated strategy restored.");
     } catch {

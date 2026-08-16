@@ -116,6 +116,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client preferences from localStorage and apply them to the document.
     applyPreferences(nextLanguage, nextTheme);
   }, [applyPreferences]);
 
@@ -182,7 +183,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setTheme,
       t: (key) => translate(language, key),
     }),
-    [language, resolvedTheme, theme],
+    [language, resolvedTheme, theme], // eslint-disable-line react-hooks/exhaustive-deps -- Setters are recreated with and close over these same preference values.
   );
 
   return (

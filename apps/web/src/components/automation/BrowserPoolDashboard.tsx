@@ -199,6 +199,7 @@ export function BrowserPoolDashboard() {
     );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch remote browser-pool state when the dashboard mounts.
     void load();
   }, [
     load,

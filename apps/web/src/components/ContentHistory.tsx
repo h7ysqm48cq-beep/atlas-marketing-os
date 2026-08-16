@@ -143,12 +143,14 @@ export function ContentHistory() {
     const requestedCampaign = params.get("campaignId") || "";
 
     if (statuses.includes(requestedStatus as ContentStatus)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate history filters from the URL on mount.
       setStatusFilter(requestedStatus as ContentStatus);
     }
     setCampaignFilter(requestedCampaign);
     void load();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- URL filters and remote history are hydrated once on mount.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset the review form when the selected record changes.
     setReviewNote(selected?.reviewNote || "");
     setReviewer(selected?.reviewedBy || "Loh");
   }, [selected?.id, selected?.reviewNote, selected?.reviewedBy]);
@@ -174,6 +176,7 @@ export function ContentHistory() {
 
   useEffect(() => {
     if (!filtered.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear a selection that is no longer present after filtering.
       setSelected(null);
       return;
     }
@@ -872,19 +875,4 @@ function formatDate(value: string, locale: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-function formatStatus(status: ContentStatus) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function formatPublishStatus(status: string) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }

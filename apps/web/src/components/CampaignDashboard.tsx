@@ -41,7 +41,7 @@ export function CampaignDashboard({
 
   useEffect(() => {
     void loadDashboard();
-  }, [campaign.id]);
+  }, [campaign.id]); // eslint-disable-line react-hooks/exhaustive-deps -- Campaign id is the dashboard reload trigger.
 
   async function loadDashboard() {
     setMessage("Loading campaign intelligence...");

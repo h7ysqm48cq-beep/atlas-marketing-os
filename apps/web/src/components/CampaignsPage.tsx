@@ -205,10 +205,6 @@ export function CampaignsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState(copy.loading);
 
-  useEffect(() => {
-    void loadCampaigns();
-  }, []);
-
   const filteredCampaigns = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
 
@@ -256,6 +252,11 @@ export function CampaignsPage() {
       setMessage(error instanceof Error ? error.message : copy.loadFailed);
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Load remote campaigns when the client mounts.
+    void loadCampaigns();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Campaigns are loaded once when the page mounts.
 
   function openCreateModal() {
     setSelected(null);
@@ -624,10 +625,6 @@ function StatusBadge({
       {label}
     </span>
   );
-}
-
-function formatStatus(status: CampaignStatus) {
-  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 function toDateInput(value: string | null) {

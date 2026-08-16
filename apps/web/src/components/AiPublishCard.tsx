@@ -84,11 +84,12 @@ export function AiPublishCard({
   const [savingDraft, setSavingDraft] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset editor snapshots when a different generated result is selected.
     setOriginalFacebook(result.facebook);
     setOriginalTelegram(result.telegram);
     setSavedFacebook(result.facebook);
     setSavedTelegram(result.telegram);
-  }, [result.historyId]);
+  }, [result.historyId, result.facebook, result.telegram]);
 
   useEffect(() => {
     let cancelled = false;

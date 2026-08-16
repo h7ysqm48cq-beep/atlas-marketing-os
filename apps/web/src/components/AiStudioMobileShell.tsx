@@ -77,32 +77,6 @@ export function AiStudioMobileShell() {
     };
   }
 
-  function findImageGenerateButton(
-    shell: HTMLElement,
-  ): HTMLButtonElement | null {
-    const panel = shell.querySelector<HTMLElement>(
-      '[class*="ImageAssetPanel_panel"]',
-    );
-
-    if (!panel) {
-      return null;
-    }
-
-    return (
-      Array.from(panel.querySelectorAll<HTMLButtonElement>("button")).find(
-        (button) => {
-          const label = button.textContent?.trim().toLowerCase() || "";
-
-          return (
-            label.includes("generate and save") ||
-            label.includes("generate another concept") ||
-            label.includes("generating image")
-          );
-        },
-      ) || null
-    );
-  }
-
   function runPromptGeneration() {
     if (isRunning) {
       return;
@@ -356,7 +330,7 @@ export function AiStudioMobileShell() {
     return () => {
       cancelled = true;
     };
-  }, [workspace.command]);
+  }, [workspace.command]); // eslint-disable-line react-hooks/exhaustive-deps -- Commands are intentionally processed once by command identity.
 
   /*
    * ELENA_WORKSPACE_COMMAND_ROUTER
@@ -378,6 +352,7 @@ export function AiStudioMobileShell() {
     lastWorkspaceCommandRef.current = command.id;
 
     if (command.type === "generate-content") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Execute a user command delivered through the shared workspace command bus.
       runPromptGeneration();
       return;
     }
@@ -385,9 +360,7 @@ export function AiStudioMobileShell() {
     if (command.type === "generate-image") {
       runImageGeneration();
     }
-  }, [workspace.command]);
-
-  const isGenerating = isRunning;
+  }, [workspace.command]); // eslint-disable-line react-hooks/exhaustive-deps -- Command handlers read the current shell state and are keyed by command identity.
 
   return (
     <section

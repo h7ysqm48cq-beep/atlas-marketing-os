@@ -177,6 +177,7 @@ function getMonthCells(currentMonth: Date) {
 }
 
 export function ContentCalendar() {
+  const [mountedAt] = useState(() => Date.now());
   const { language } = usePreferences();
   const locale = language === "zh" ? "zh-CN" : "en-MY";
 
@@ -250,7 +251,7 @@ export function ContentCalendar() {
     mediaUrls: [] as string[],
   });
 
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -337,9 +338,10 @@ export function ContentCalendar() {
     } finally {
       setLoading(false);
     }
-  }, [currentMonth]);
+  }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps -- Month is the calendar reload trigger; locale helper identity is not.
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch calendar data when the visible month changes.
     void load();
   }, [load]);
 
@@ -366,6 +368,7 @@ export function ContentCalendar() {
         latestPost.externalPostId !== selectedPost.externalPostId ||
         latestPost.externalPostUrl !== selectedPost.externalPostUrl)
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Refresh the open detail panel from the latest remote post state.
       setSelectedPost(latestPost);
     }
   }, [posts, selectedPost]);
@@ -421,7 +424,7 @@ export function ContentCalendar() {
       filteredPosts
         .filter(
           (post) =>
-            new Date(post.scheduledAt).getTime() >= Date.now() &&
+            new Date(post.scheduledAt).getTime() >= mountedAt &&
             !["PUBLISHED", "CANCELLED"].includes(post.status),
         )
         .sort(
@@ -430,7 +433,7 @@ export function ContentCalendar() {
             new Date(b.scheduledAt).getTime(),
         )
         .slice(0, 8),
-    [filteredPosts],
+    [filteredPosts, mountedAt],
   );
 
   const quickStats = useMemo(() => {

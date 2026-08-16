@@ -147,6 +147,7 @@ export function AiWorkspace({
         result?.image?.trim()
       ) {
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Reveal the image panel when an external image request arrives.
         setTab(
           "image",
         );
@@ -162,6 +163,7 @@ export function AiWorkspace({
 
   useEffect(() => {
     if (!result?.historyId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset approval state when the selected result has no persisted history.
       setApproval({ status: "DRAFT" });
       return;
     }
@@ -242,7 +244,10 @@ const hasContent = cards.some(([, , key]) => key !== "image");
 
   useEffect(() => {
     if (!availableTabs.length) return;
-    if (!availableTabs.includes(tab)) setTab(availableTabs[0]);
+    if (!availableTabs.includes(tab)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Keep the selected tab valid when result capabilities change.
+      setTab(availableTabs[0]);
+    }
   }, [availableTabs, tab]);
 
   /*
@@ -272,6 +277,7 @@ const hasContent = cards.some(([, , key]) => key !== "image");
         );
 
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Select the appropriate default panel for a newly generated result.
       setTab(
         nextIsImageOnly
           ? "image"
@@ -285,6 +291,7 @@ const hasContent = cards.some(([, , key]) => key !== "image");
       result?.facebook,
       result?.telegram,
       result?.reels,
+      result,
     ],
   );
 

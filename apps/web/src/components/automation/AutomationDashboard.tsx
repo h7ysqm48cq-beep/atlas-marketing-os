@@ -748,10 +748,6 @@ export function AutomationDashboard() {
     "ALL" | "PENDING" | "SUCCESS" | "FAILED"
   >("ALL");
 
-  const [expandedBrowserActionId, setExpandedBrowserActionId] = useState<
-    string | null
-  >(null);
-
   const [selectedBrowserHistoryItem, setSelectedBrowserHistoryItem] =
     useState<BrowserActionHistoryItem | null>(null);
 
@@ -784,7 +780,7 @@ export function AutomationDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Dashboard loader identity is fixed for this mount; locale changes do not trigger network reloads.
 
   async function replayBrowserAction(actionId: string) {
     if (replayingBrowserActionId) {
@@ -873,9 +869,10 @@ export function AutomationDashboard() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch remote automation state when the dashboard mounts.
     void load();
     void loadBrowserActions();
-  }, [load]);
+  }, [load]); // eslint-disable-line react-hooks/exhaustive-deps -- Browser actions are already loaded by the dashboard loader.
 
   useEffect(() => {
     if (selectedFacebookChannelId || !dashboard) {
@@ -887,6 +884,7 @@ export function AutomationDashboard() {
     );
 
     if (facebookChannel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Select the first available Facebook channel after remote data arrives.
       setSelectedFacebookChannelId(facebookChannel.id);
     }
   }, [dashboard, selectedFacebookChannelId]);

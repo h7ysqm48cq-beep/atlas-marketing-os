@@ -553,10 +553,20 @@ export function ImageBrandEditor() {
 
       const responseText = await response.text();
 
-      let data: any = null;
+      let data:
+        | (Partial<Asset> & {
+            message?: string | string[];
+            error?: string;
+          })
+        | null = null;
 
       try {
-        data = responseText ? JSON.parse(responseText) : null;
+        data = responseText
+          ? (JSON.parse(responseText) as Partial<Asset> & {
+              message?: string | string[];
+              error?: string;
+            })
+          : null;
       } catch {
         throw new Error(
           `Eraser API returned HTTP ${response.status}: ${responseText || "empty response"}`,

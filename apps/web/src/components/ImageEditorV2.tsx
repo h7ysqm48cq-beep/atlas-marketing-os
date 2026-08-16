@@ -100,6 +100,7 @@ export function ImageEditorV2() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Load the latest persisted image when the editor mounts.
     void loadLatestImage();
   }, []);
 

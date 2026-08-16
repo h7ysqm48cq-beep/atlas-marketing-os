@@ -19,6 +19,7 @@ export function PwaStartupSettings() {
   const [lastRoute, setLastRoute] = useState<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client-only startup settings from localStorage after mount.
     setSettings(readPwaStartupSettings());
 
     setLastRoute(readLastPwaRoute());

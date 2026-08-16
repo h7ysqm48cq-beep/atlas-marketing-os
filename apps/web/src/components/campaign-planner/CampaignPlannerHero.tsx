@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "../CampaignPlanner.module.css";
 import { Campaign } from "./campaign-planner.types";
 
@@ -9,9 +10,9 @@ export function CampaignPlannerHero({
   return (
     <section className={styles.hero}>
       <div>
-        <a href="/campaigns" className={styles.backLink}>
+        <Link href="/campaigns" className={styles.backLink}>
           ← Campaigns
-        </a>
+        </Link>
 
         <p className={styles.eyebrow}>AI Campaign Planner</p>
 
