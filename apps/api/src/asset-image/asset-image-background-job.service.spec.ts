@@ -6,11 +6,15 @@ import { AssetImageBackgroundJobService } from './asset-image-background-job.ser
 
 describe('AssetImageBackgroundJobService', () => {
   const findMany = jest.fn();
+  const findFirst = jest.fn();
+  const updateMany = jest.fn();
 
   const service = new AssetImageBackgroundJobService(
     {
       backgroundJob: {
         findMany,
+        findFirst,
+        updateMany,
       },
     } as never,
     {} as never,
@@ -18,6 +22,35 @@ describe('AssetImageBackgroundJobService', () => {
 
   beforeEach(() => {
     findMany.mockReset();
+    findFirst.mockReset();
+    findFirst.mockResolvedValue(null);
+    updateMany.mockReset();
+  });
+
+  it('only recovers running jobs whose lease is stale', async () => {
+    updateMany.mockResolvedValue({ count: 0 });
+
+    await service.onApplicationBootstrap();
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        type: BackgroundJobType.ASSET_IMAGE,
+        status: BackgroundJobStatus.RUNNING,
+        OR: [
+          { startedAt: null },
+          {
+            startedAt: {
+              lt: expect.any(Date),
+            },
+          },
+        ],
+      },
+      data: {
+        status: BackgroundJobStatus.QUEUED,
+        startedAt: null,
+        error: null,
+      },
+    });
   });
 
   it('does not expose jobs without a conversation id', async () => {

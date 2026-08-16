@@ -133,9 +133,11 @@ type ImageBackgroundJob = {
   payload?: {
     conversationId?: string;
     messageIndex?: number;
+    prompt?: string;
   };
   result?: {
     asset?: {
+      id?: string;
       url?: string;
       thumbnailUrl?: string;
     };
@@ -1938,6 +1940,7 @@ export function BrandCopilot() {
     originConversationId: string,
     index: number,
     imageUrl: string,
+    assetId?: string,
   ) {
     if (conversationIdRef.current !== originConversationId) {
       return;
@@ -1949,10 +1952,54 @@ export function BrandCopilot() {
           ? {
               ...message,
               imageUrl,
+              assetId: assetId || message.assetId,
             }
           : message,
       ),
     );
+  }
+
+  async function persistCompletedImageJob(
+    originConversationId: string,
+    job: ImageBackgroundJob,
+  ) {
+    const imageUrl = job.result?.asset?.url || job.result?.asset?.thumbnailUrl;
+    const messageIndex = job.payload?.messageIndex;
+
+    if (!imageUrl || typeof messageIndex !== "number") {
+      return false;
+    }
+
+    updateMessageImage(
+      originConversationId,
+      messageIndex,
+      imageUrl,
+      job.result?.asset?.id,
+    );
+
+    const response = await fetch(
+      `${API_URL}/copilot/conversations/${originConversationId}/image`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl,
+          assetId: job.result?.asset?.id,
+          prompt: job.payload?.prompt,
+          sourceMessageIndex: messageIndex,
+          sourceJobId: job.id,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(data?.message || "Generated image could not be saved.");
+    }
+
+    return true;
   }
 
   async function resumeImageJobs(originConversationId: string) {
@@ -1985,7 +2032,7 @@ export function BrandCopilot() {
         return;
       }
 
-      const applyCompletedJob = (job: ImageBackgroundJob) => {
+      const applyCompletedJob = async (job: ImageBackgroundJob) => {
         if (
           conversationIdRef.current !== originConversationId ||
           job.payload?.conversationId !== originConversationId
@@ -2004,15 +2051,14 @@ export function BrandCopilot() {
           return false;
         }
 
-        updateMessageImage(originConversationId, messageIndex, imageUrl);
-        return true;
+        return persistCompletedImageJob(originConversationId, job);
       };
 
-      conversationJobs
-        .filter((job) => job.status === "SUCCEEDED")
-        .forEach((job) => {
-          applyCompletedJob(job);
-        });
+      for (const job of conversationJobs.filter(
+        (candidate) => candidate.status === "SUCCEEDED",
+      )) {
+        await applyCompletedJob(job);
+      }
 
       const activeJobs = conversationJobs.filter(
         (job) => job.status === "QUEUED" || job.status === "RUNNING",
@@ -2040,7 +2086,7 @@ export function BrandCopilot() {
                   (currentTimer) => currentTimer !== timer,
                 );
 
-              if (applyCompletedJob(result)) {
+              if (await applyCompletedJob(result)) {
                 setStatus("Image generated.");
               }
             }
@@ -2066,7 +2112,7 @@ export function BrandCopilot() {
 
   const generateImageFromMessage = async (content: string, index: number) => {
     let timer: ReturnType<typeof setInterval> | null = null;
-    const originConversationId = conversationId || null;
+    const originConversationId = conversationIdRef.current;
 
     try {
       setGeneratingImageIndex(index);
@@ -2130,16 +2176,21 @@ export function BrandCopilot() {
               return;
             }
 
-            setMessages((current) =>
-              current.map((message, messageIndex) =>
-                messageIndex === index
-                  ? {
-                      ...message,
-                      imageUrl,
-                    }
-                  : message,
-              ),
-            );
+            if (originConversationId) {
+              await persistCompletedImageJob(originConversationId, job);
+            } else {
+              setMessages((current) =>
+                current.map((message, messageIndex) =>
+                  messageIndex === index
+                    ? {
+                        ...message,
+                        imageUrl,
+                        assetId: job.result?.asset?.id || message.assetId,
+                      }
+                    : message,
+                ),
+              );
+            }
 
             setStatus("Image generated.");
 

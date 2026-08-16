@@ -258,9 +258,11 @@ export class ConversationMemoryService {
       assetId?: string;
       prompt?: string;
       sourceMessageIndex?: number;
+      sourceJobId?: string;
     },
   ) {
     const imageUrl = input.imageUrl?.trim();
+    const sourceJobId = input.sourceJobId?.trim();
 
     if (!imageUrl) {
       throw new BadRequestException('Generated image URL is required.');
@@ -270,6 +272,22 @@ export class ConversationMemoryService {
       conversationId,
       firstMessage: input.prompt?.trim() || 'Generated image',
     });
+
+    if (sourceJobId) {
+      const existing = await this.prisma.copilotConversationMessage.findFirst({
+        where: {
+          conversationId,
+          metadata: {
+            path: ['sourceJobId'],
+            equals: sourceJobId,
+          },
+        },
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
 
     return this.appendAssistantMessage(
       conversationId,
@@ -283,6 +301,7 @@ export class ConversationMemoryService {
           typeof input.sourceMessageIndex === 'number'
             ? input.sourceMessageIndex
             : undefined,
+        sourceJobId: sourceJobId || undefined,
       },
     );
   }

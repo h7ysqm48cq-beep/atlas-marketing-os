@@ -17,6 +17,8 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
 
   private readonly maximumAttempts = 3;
 
+  private readonly staleRunningJobAgeMs = 30 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly assetImages: AssetImageService,
@@ -24,13 +26,23 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     /*
-     * Jobs interrupted by an API restart are safely returned
-     * to the queue instead of being permanently marked RUNNING.
+     * Recover only jobs whose lease is old enough to be considered stale.
+     * A blanket RUNNING reset can duplicate work during rolling deploys,
+     * while another instance is still generating the image.
      */
+    const staleBefore = new Date(Date.now() - this.staleRunningJobAgeMs);
     const recovered = await this.prisma.backgroundJob.updateMany({
       where: {
         type: BackgroundJobType.ASSET_IMAGE,
         status: BackgroundJobStatus.RUNNING,
+        OR: [
+          { startedAt: null },
+          {
+            startedAt: {
+              lt: staleBefore,
+            },
+          },
+        ],
       },
       data: {
         status: BackgroundJobStatus.QUEUED,
