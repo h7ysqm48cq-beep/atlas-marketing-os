@@ -1978,9 +1978,7 @@
     flex: 1;
   }
 
-  .conversationActions,
-  .renameConversation,
-  .deleteConversation {
+  .conversationActions {
     opacity: 1;
   }
 }
@@ -2343,13 +2341,6 @@
   .attachmentTray {
     gap: 6px;
     padding-bottom: 4px;
-  }
-
-  .attachmentThumbnail,
-  .attachmentFileIcon {
-    width: 30px;
-    height: 30px;
-    flex-basis: 30px;
   }
 }
 /* Final BrandCopilot residual dedup — canonical */
