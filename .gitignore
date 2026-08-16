@@ -94,6 +94,8 @@ tools/dependency-graph.json
 # Local backup files
 *.bak
 *.bak.*
+*.bak-*
+*.before-*
 *.save
 
 # Python cache
