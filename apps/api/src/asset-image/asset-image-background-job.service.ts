@@ -67,6 +67,22 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
     return this.toPublicJob(job);
   }
 
+  async getActiveJobs() {
+    const jobs = await this.prisma.backgroundJob.findMany({
+      where: {
+        type: BackgroundJobType.ASSET_IMAGE,
+        status: {
+          in: [BackgroundJobStatus.QUEUED, BackgroundJobStatus.RUNNING],
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return jobs.map((job) => this.toPublicJob(job));
+  }
+
   async getJob(id: string) {
     const job = await this.prisma.backgroundJob.findFirstOrThrow({
       where: {
@@ -215,6 +231,7 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
   private toPublicJob(job: {
     id: string;
     status: BackgroundJobStatus;
+    payload: Prisma.JsonValue;
     result: Prisma.JsonValue | null;
     error: string | null;
     attempts: number;
@@ -226,6 +243,7 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
     return {
       id: job.id,
       status: job.status,
+      payload: job.payload,
       result: job.result,
       error: job.error,
       attempts: job.attempts,

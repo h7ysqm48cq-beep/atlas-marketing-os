@@ -829,6 +829,16 @@ export function BrandCopilot() {
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const imagePollingTimersRef = useRef<Array<ReturnType<typeof setInterval>>>(
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      imagePollingTimersRef.current.forEach((timer) => clearInterval(timer));
+      imagePollingTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (!shouldFollowMessagesRef.current) {
@@ -877,6 +887,10 @@ export function BrandCopilot() {
 
   useEffect(() => {
     void refreshConversations();
+  }, []);
+
+  useEffect(() => {
+    void resumeImageJobs();
   }, []);
 
   useEffect(() => {
@@ -1907,10 +1921,92 @@ export function BrandCopilot() {
     }
   };
 
+  function updateMessageImage(index: number, imageUrl: string) {
+    setMessages((current) =>
+      current.map((message, messageIndex) =>
+        messageIndex === index
+          ? {
+              ...message,
+              imageUrl,
+            }
+          : message,
+      ),
+    );
+  }
+
+  async function resumeImageJobs() {
+    try {
+      const response = await fetch(`${API_URL}/copilot/image/jobs`);
+
+      if (!response.ok) {
+        return;
+      }
+
+      const jobs = await response.json();
+
+      if (!Array.isArray(jobs)) {
+        return;
+      }
+
+      const activeJobs = jobs.filter(
+        (job) => job.status === "QUEUED" || job.status === "RUNNING",
+      );
+
+      if (activeJobs.length === 0) {
+        return;
+      }
+
+      setStatus("Resuming image generation...");
+
+      activeJobs.forEach((job) => {
+        const timer = setInterval(async () => {
+          try {
+            const resultResponse = await fetch(
+              `${API_URL}/copilot/image/${job.id}`,
+            );
+
+            const result = await resultResponse.json();
+
+            if (result.status === "SUCCEEDED") {
+              clearInterval(timer);
+
+              const imageUrl =
+                result.result?.asset?.url || result.result?.asset?.thumbnailUrl;
+
+              if (imageUrl) {
+                const currentIndex =
+                  typeof result.payload?.messageIndex === "number"
+                    ? result.payload.messageIndex
+                    : -1;
+
+                if (currentIndex >= 0) {
+                  updateMessageImage(currentIndex, imageUrl);
+                }
+              }
+
+              setStatus("Image generated.");
+            }
+
+            if (result.status === "FAILED") {
+              clearInterval(timer);
+            }
+          } catch {
+            clearInterval(timer);
+          }
+        }, 3000);
+
+        imagePollingTimersRef.current.push(timer);
+      });
+    } catch {
+      // ignore resume failure
+    }
+  }
+
   const generateImageFromMessage = async (content: string, index: number) => {
-    setGeneratingImageIndex(index);
+    let timer: ReturnType<typeof setInterval> | null = null;
 
     try {
+      setGeneratingImageIndex(index);
       setStatus("Generating image...");
 
       const response = await fetch(`${API_URL}/copilot/image`, {
@@ -1920,7 +2016,9 @@ export function BrandCopilot() {
         },
         body: JSON.stringify({
           content,
-          platform: "Facebook post",
+          platform: "Facebook",
+          conversationId,
+          messageIndex: index,
         }),
       });
 
@@ -1930,78 +2028,87 @@ export function BrandCopilot() {
         throw new Error(data.message || "Image generation failed.");
       }
 
-      const imageUrl = data.asset?.url || data.asset?.thumbnailUrl;
+      const jobId = data.id;
 
-      if (!imageUrl) {
-        throw new Error("Image generated but no URL returned.");
+      if (!jobId) {
+        throw new Error("Image job id missing.");
       }
 
-      setMessages((current) =>
-        current.map((message, messageIndex) =>
-          messageIndex === index
-            ? {
-                ...message,
-                imageUrl,
-                assetId: data.asset?.id,
-              }
-            : message,
-        ),
-      );
+      timer = setInterval(async () => {
+        imagePollingTimersRef.current =
+          imagePollingTimersRef.current.filter(Boolean);
 
-      setGeneratingImageIndex(null);
+        try {
+          const jobResponse = await fetch(`${API_URL}/copilot/image/${jobId}`);
 
-      window.setTimeout(() => {
-        const imageCard = document.querySelector(
-          `[data-copilot-image-index="${index}"]`,
-        );
+          const job = await jobResponse.json();
 
-        imageCard?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }, 80);
+          if (job.status === "SUCCEEDED") {
+            if (timer) {
+              clearInterval(timer);
+              imagePollingTimersRef.current =
+                imagePollingTimersRef.current.filter(
+                  (currentTimer) => currentTimer !== timer,
+                );
+            }
 
-      if (!conversationId) {
-        setStatus(
-          "Image generated. Start a conversation first to save it in history.",
-        );
-        return;
+            const imageUrl =
+              job.result?.asset?.url || job.result?.asset?.thumbnailUrl;
+
+            if (!imageUrl) {
+              throw new Error("Generated image URL missing.");
+            }
+
+            setMessages((current) =>
+              current.map((message, messageIndex) =>
+                messageIndex === index
+                  ? {
+                      ...message,
+                      imageUrl,
+                    }
+                  : message,
+              ),
+            );
+
+            setStatus("Image generated.");
+
+            setGeneratingImageIndex(null);
+            return;
+          }
+
+          if (job.status === "FAILED") {
+            if (timer) {
+              clearInterval(timer);
+              imagePollingTimersRef.current =
+                imagePollingTimersRef.current.filter(
+                  (currentTimer) => currentTimer !== timer,
+                );
+            }
+
+            throw new Error(job.error || "Image generation failed.");
+          }
+        } catch (error) {
+          if (timer) {
+            clearInterval(timer);
+          }
+
+          setStatus(
+            error instanceof Error ? error.message : "Image generation failed.",
+          );
+
+          setGeneratingImageIndex(null);
+        }
+      }, 3000);
+
+      if (timer) {
+        imagePollingTimersRef.current.push(timer);
       }
-
-      const saveResponse = await fetch(
-        `${API_URL}/copilot/conversations/${conversationId}/image`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageUrl,
-            assetId: data.asset?.id,
-            sourceMessageIndex: index,
-            prompt: content,
-          }),
-        },
-      );
-
-      const saveData = await saveResponse.json();
-
-      if (!saveResponse.ok) {
-        throw new Error(
-          saveData.message ||
-            "Image generated, but conversation history save failed.",
-        );
-      }
-
-      await refreshConversations();
-
-      setStatus("Image generated and saved to conversation history.");
     } catch (error) {
-      setGeneratingImageIndex(null);
-
       setStatus(
         error instanceof Error ? error.message : "Image generation failed.",
       );
+
+      setGeneratingImageIndex(null);
     }
   };
 
