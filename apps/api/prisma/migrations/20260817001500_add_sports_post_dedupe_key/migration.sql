@@ -1,5 +1,5 @@
 ALTER TABLE "ScheduledPost"
-ADD COLUMN "dedupeKey" TEXT;
+ADD COLUMN IF NOT EXISTS "dedupeKey" TEXT;
 
-CREATE UNIQUE INDEX "ScheduledPost_dedupeKey_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "ScheduledPost_dedupeKey_key"
 ON "ScheduledPost"("dedupeKey");
