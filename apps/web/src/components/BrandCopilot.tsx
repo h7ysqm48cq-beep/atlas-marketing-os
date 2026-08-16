@@ -1429,6 +1429,8 @@ export function BrandCopilot() {
           ".txt",
           ".md",
           ".markdown",
+          ".xlsx",
+          ".xls",
         ].some((extension) => lowerName.endsWith(extension));
 
         if (!documentSupported) {
@@ -3003,7 +3005,7 @@ export function BrandCopilot() {
               className={styles.attachmentInput}
               type="file"
               multiple
-              accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.markdown"
+              accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.markdown,.xlsx,.xls"
               onChange={handleAttachmentSelection}
             />
 
@@ -3021,7 +3023,10 @@ export function BrandCopilot() {
                       <div className={styles.attachmentFileIcon}>
                         {attachment.name.toLowerCase().endsWith(".pdf")
                           ? "PDF"
-                          : "DOC"}
+                          : attachment.name.toLowerCase().endsWith(".xlsx") ||
+                              attachment.name.toLowerCase().endsWith(".xls")
+                            ? "XLS"
+                            : "DOC"}
                       </div>
                     )}
 
