@@ -1,35 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
+
+import { useBrowserAccounts } from "./browser-accounts/hooks/useBrowserAccounts";
 
 import {
   getAutomationPolicy,
   updateAutomationPolicy as updateAutomationPolicyApi,
 } from "./browser-accounts/api/policy.api";
 
-import {
-  getTimeline,
-} from "./browser-accounts/api/timeline.api";
+import { getTimeline } from "./browser-accounts/api/timeline.api";
 
-import {
-  createBrowserViewerSession,
-} from "./browser-accounts/api/viewer.api";
+import { createBrowserViewerSession } from "./browser-accounts/api/viewer.api";
 
 import {
   createBrowserAccount,
-  getBrowserAccounts,
-  getBrands,
   updateBrowserAccount,
 } from "./browser-accounts/api/accounts.api";
 
-import {
-  getBrowserStatus,
-  openBrowser as openBrowserApi,
-  closeBrowser as closeBrowserApi,
-  inspectBrowser,
-} from "./browser-accounts/api/browserRuntime.api";
+import { getBrowserStatus } from "./browser-accounts/api/browserRuntime.api";
 
 import { AccountActions } from "./browser-accounts/components/AccountActions";
 import { AccountOverview } from "./browser-accounts/components/AccountOverview";
@@ -52,12 +42,10 @@ import {
 
 import type {
   ProxyType,
-  LoginStatus,
   BrowserAccount,
   BrowserSession,
   AccountRuntime,
   EditAccountForm,
-  BrandOption,
   AutomationPolicy,
   TimelineEvent,
   OnboardingStep,
@@ -100,11 +88,20 @@ export function BrowserAccountsManagerV2({
 }: {
   requestedAccountId?: string | null;
 }) {
-  const [accounts, setAccounts] = useState<BrowserAccount[]>([]);
+  const {
+    accounts,
+    brands,
+    selectedId,
+    selectedAccount,
+    loading,
+    setSelectedId,
+    loadAccounts,
+    loadBrands,
+  } = useBrowserAccounts({
+    requestedAccountId,
+  });
 
   const [runtimes, setRuntimes] = useState<Record<string, AccountRuntime>>({});
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [selectedForBatch, setSelectedForBatch] = useState<Set<string>>(
     new Set(),
@@ -131,13 +128,9 @@ export function BrowserAccountsManagerV2({
 
   const [importAccountsOpen, setImportAccountsOpen] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-
   const [globalError, setGlobalError] = useState("");
 
   const [actionMessage, setActionMessage] = useState("");
-
-  const [brands, setBrands] = useState<BrandOption[]>([]);
 
   const [onboardingRunning, setOnboardingRunning] = useState(false);
 
@@ -215,9 +208,6 @@ export function BrowserAccountsManagerV2({
     };
   }, [viewerOpen, viewerKey]);
 
-  const selectedAccount =
-    accounts.find((account) => account.id === selectedId) || null;
-
   const selectedRuntime = selectedId
     ? runtimes[selectedId] || EMPTY_RUNTIME
     : EMPTY_RUNTIME;
@@ -292,63 +282,14 @@ export function BrowserAccountsManagerV2({
     [updateRuntime],
   );
 
-  const loadBrands = useCallback(async () => {
-    try {
-      const candidates = (await getBrands()) as BrandOption[];
-
-      setBrands(candidates as BrandOption[]);
-    } catch (error) {
-      setGlobalError(
-        error instanceof Error ? error.message : "Unable to load Brands.",
-      );
-    }
-  }, []);
-
-  const loadAccounts = useCallback(async () => {
-    setLoading(true);
-    setGlobalError("");
-
-    try {
-      const nextAccounts = (await getBrowserAccounts()) as BrowserAccount[];
-
-      setAccounts(nextAccounts);
-
-      setSelectedId((current) => {
-        const requested =
-          requestedAccountId &&
-          nextAccounts.some((account) => account.id === requestedAccountId)
-            ? requestedAccountId
-            : null;
-
-        const currentExists =
-          current && nextAccounts.some((account) => account.id === current);
-
-        return (
-          requested ||
-          (currentExists ? current : null) ||
-          nextAccounts[0]?.id ||
-          null
-        );
-      });
-
-      await Promise.all(nextAccounts.map((account) => loadRuntime(account.id)));
-    } catch (error) {
-      setGlobalError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load browser accounts.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [loadRuntime, requestedAccountId]);
-
   useEffect(() => {
     void Promise.all([loadAccounts(), loadBrands()]);
   }, [loadAccounts, loadBrands]);
 
   useEffect(() => {
     if (!selectedId) {
+      // Reset data owned by the previously selected account.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAutomationPolicy(null);
       setTimeline([]);
       return;
@@ -413,32 +354,21 @@ export function BrowserAccountsManagerV2({
       const proxyPort =
         editForm.proxyType === "DIRECT" ? null : Number(editForm.proxyPort);
 
-      await updateBrowserAccount(
-        selectedAccount.id,
-        {
-          displayName: editForm.displayName,
-          browserProfileName: editForm.browserProfileName,
-          brandId: editForm.brandId || null,
-          locale: editForm.locale,
-          timezone: editForm.timezone,
-          proxyType: editForm.proxyType,
-          proxyHost:
-            editForm.proxyType === "DIRECT"
-              ? null
-              : editForm.proxyHost,
-          proxyPort,
-          proxyUsername:
-            editForm.proxyUsername || undefined,
-          proxyPassword:
-            editForm.proxyPassword || undefined,
-          proxyCountry:
-            editForm.proxyType === "DIRECT"
-              ? null
-              : editForm.proxyCountry,
-          clearProxyCredentials:
-            editForm.clearProxyCredentials,
-        },
-      );
+      await updateBrowserAccount(selectedAccount.id, {
+        displayName: editForm.displayName,
+        browserProfileName: editForm.browserProfileName,
+        brandId: editForm.brandId || null,
+        locale: editForm.locale,
+        timezone: editForm.timezone,
+        proxyType: editForm.proxyType,
+        proxyHost: editForm.proxyType === "DIRECT" ? null : editForm.proxyHost,
+        proxyPort,
+        proxyUsername: editForm.proxyUsername || undefined,
+        proxyPassword: editForm.proxyPassword || undefined,
+        proxyCountry:
+          editForm.proxyType === "DIRECT" ? null : editForm.proxyCountry,
+        clearProxyCredentials: editForm.clearProxyCredentials,
+      });
 
       setEditOpen(false);
       setEditForm(null);
@@ -461,10 +391,7 @@ export function BrowserAccountsManagerV2({
     setPolicyLoading(true);
 
     try {
-      const body =
-        await getAutomationPolicy(
-          accountId,
-        );
+      const body = await getAutomationPolicy(accountId);
 
       setAutomationPolicy(body as unknown as AutomationPolicy);
     } catch (error) {
@@ -482,10 +409,7 @@ export function BrowserAccountsManagerV2({
     setTimelineLoading(true);
 
     try {
-      const body =
-        await getTimeline(
-          accountId,
-        );
+      const body = await getTimeline(accountId);
 
       setTimeline(
         Array.isArray(body) ? (body as unknown as TimelineEvent[]) : [],
@@ -516,11 +440,7 @@ export function BrowserAccountsManagerV2({
     setGlobalError("");
 
     try {
-      const body =
-        await updateAutomationPolicyApi(
-          selectedAccount.id,
-          patch,
-        );
+      const body = await updateAutomationPolicyApi(selectedAccount.id, patch);
 
       setAutomationPolicy(body as unknown as AutomationPolicy);
 
@@ -1150,20 +1070,11 @@ export function BrowserAccountsManagerV2({
 
         proxyPort: hasProxy ? Number(proxyPort) : null,
 
-        proxyUsername:
-          hasProxy
-            ? proxyUsername || null
-            : null,
+        proxyUsername: hasProxy ? proxyUsername || null : null,
 
-        proxyPassword:
-          hasProxy
-            ? proxyPassword || null
-            : null,
+        proxyPassword: hasProxy ? proxyPassword || null : null,
 
-        proxyCountry:
-          hasProxy
-            ? "MY"
-            : null,
+        proxyCountry: hasProxy ? "MY" : null,
 
         browserEngine: "chromium",
 
