@@ -94,6 +94,7 @@ export function BrowserAccountsManagerV2({
     selectedId,
     selectedAccount,
     loading,
+    error: accountsError,
     setSelectedId,
     loadAccounts,
     loadBrands,
@@ -285,6 +286,10 @@ export function BrowserAccountsManagerV2({
   useEffect(() => {
     void Promise.all([loadAccounts(), loadBrands()]);
   }, [loadAccounts, loadBrands]);
+
+  useEffect(() => {
+    void Promise.all(accounts.map((account) => loadRuntime(account.id)));
+  }, [accounts, loadRuntime]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -1131,6 +1136,8 @@ export function BrowserAccountsManagerV2({
       });
   }
 
+  const pageError = globalError || accountsError;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -1208,7 +1215,7 @@ export function BrowserAccountsManagerV2({
         </article>
       </section>
 
-      {globalError ? <div className={styles.error}>{globalError}</div> : null}
+      {pageError ? <div className={styles.error}>{pageError}</div> : null}
 
       {actionMessage ? (
         <div className={styles.success}>{actionMessage}</div>
@@ -1282,7 +1289,7 @@ export function BrowserAccountsManagerV2({
                 </tr>
               ) : null}
 
-              {!loading && !filteredAccounts.length ? (
+              {!loading && !pageError && !filteredAccounts.length ? (
                 <tr>
                   <td className={styles.emptyCell} colSpan={9}>
                     No independent browser accounts found.
