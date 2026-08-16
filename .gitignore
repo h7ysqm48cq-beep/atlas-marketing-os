@@ -7,6 +7,8 @@ dist/
 **/dist/
 .next/
 **/.next/
+.next-build/
+**/.next-build/
 out/
 coverage/
 
@@ -63,9 +65,10 @@ apps/api/storage/
 .assets-*backup*
 
 # Atlas local patch framework
-        tools/backups/
-        __pycache__/
-        *.pyc
+tools/backups/
+.atlas/backup/
+.atlas/tmp/
+tmp/
 
 # Atlas analyzer generated output
 tools/project-manifest.json
@@ -73,22 +76,7 @@ tools/project-manifest.json
 # Atlas dependency analyzer generated output
 tools/dependency-graph.json
 
-# Local environment and secret backups
-.env
-.env.*
-!.env.example
-**/.env
-**/.env.*
-!**/.env.example
-*.env.backup*
-
-# Local environment and secret backups
-.env
-.env.*
-!.env.example
-**/.env
-**/.env.*
-!**/.env.example
+# Local environment backups
 *.env.backup*
 
 # Local backup files
