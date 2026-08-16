@@ -4,15 +4,9 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor(configService: ConfigService) {
-    const connectionString =
-      configService.getOrThrow<string>(
-        'DATABASE_URL',
-      );
+    const connectionString = configService.getOrThrow<string>('DATABASE_URL');
 
     /*
      * The hosted Postgres pool currently has a
@@ -21,36 +15,42 @@ export class PrismaService
      * Do not allow one Atlas API process to consume
      * the entire database pool.
      */
-    const configuredPoolMax =
-      Number(
-        configService.get<string>(
-          'DATABASE_POOL_MAX',
-        ) ?? '4',
-      );
+    const configuredPoolMax = Number(
+      configService.get<string>('DATABASE_POOL_MAX') ?? '4',
+    );
 
     const poolMax =
-      Number.isFinite(
-        configuredPoolMax,
-      ) &&
-      configuredPoolMax > 0
-        ? Math.floor(
-            configuredPoolMax,
-          )
+      Number.isFinite(configuredPoolMax) && configuredPoolMax > 0
+        ? Math.floor(configuredPoolMax)
         : 4;
 
-    const adapter =
-      new PrismaPg({
-        connectionString,
+    const adapter = new PrismaPg({
+      connectionString,
 
-        max:
-          poolMax,
+      /*
+       * Keep the per-process pool deliberately small.
+       *
+       * Atlas can run several database-heavy background jobs while
+       * interactive requests such as Calendar and Copilot are active.
+       * A small pool prevents one API process from monopolising the
+       * hosted Supabase session pool.
+       */
+      max: poolMax,
 
-        idleTimeoutMillis:
-          30_000,
+      /*
+       * Reuse established database sessions instead of discarding them
+       * aggressively. This reduces connection churn against Supavisor.
+       */
+      idleTimeoutMillis: 300_000,
 
-        connectionTimeoutMillis:
-          10_000,
-      });
+      /*
+       * Supavisor session mode may queue clients when backend database
+       * connections are temporarily busy. Ten seconds is too aggressive
+       * for the current Atlas workload and can turn transient pressure
+       * into application-level failures.
+       */
+      connectionTimeoutMillis: 60_000,
+    });
 
     super({
       adapter,
