@@ -5,7 +5,6 @@ import { PrismaService } from '../../database/prisma.service';
 import { LogoOverlayService, LogoPlacement } from '../../image/logo';
 import { SupabaseStorageService } from '../../storage/supabase-storage.service';
 
-
 function getMalaysiaDateKey(date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Kuala_Lumpur',
@@ -176,14 +175,11 @@ export class MSportsImageBrandingService {
 
     const layoutEnabled = layout.enabled ?? true;
 
-    const storyPanelEnabled =
-      layout.storyPanelEnabled ?? false;
+    const storyPanelEnabled = layout.storyPanelEnabled ?? false;
 
-    const mastheadEnabled =
-      layout.mastheadEnabled ?? true;
+    const mastheadEnabled = layout.mastheadEnabled ?? true;
 
-    const headlineTextEnabled =
-      layout.headlineTextEnabled ?? true;
+    const headlineTextEnabled = layout.headlineTextEnabled ?? true;
 
     const mastheadScale = layout.mastheadScale ?? 1;
 
@@ -449,11 +445,7 @@ export class MSportsImageBrandingService {
      *
      * This deliberately avoids the large black v1 card.
      */
-    if (
-      layoutEnabled &&
-      storyPanelEnabled &&
-      visibleHighlights.length > 0
-    ) {
+    if (layoutEnabled && storyPanelEnabled && visibleHighlights.length > 0) {
       const panelWidth = Math.round(width * panelWidthPercent);
 
       const panelLeft = Math.round((width - panelWidth) / 2);
@@ -646,7 +638,7 @@ export class MSportsImageBrandingService {
             ${escapeXml(hero.en)}
           </text>
           `
-              : ""
+              : ''
           }
           `
               : ''
@@ -704,8 +696,7 @@ export class MSportsImageBrandingService {
     let logoWidth = 0;
     let logoHeight = 0;
 
-    const selectedLogoAssetId =
-      footerLogoAssetId ?? logoAssetId;
+    const selectedLogoAssetId = footerLogoAssetId;
 
     if (selectedLogoAssetId) {
       const asset = await this.prisma.asset.findUnique({
@@ -792,13 +783,9 @@ export class MSportsImageBrandingService {
 
     let qrSize = 0;
 
-    const selectedQrLink =
-      footerQrLink ?? qrLink;
+    const selectedQrLink = footerQrLink ?? qrLink;
 
-    if (
-      footerQrEnabled &&
-      footerQrAssetId
-    ) {
+    if (footerQrEnabled && footerQrAssetId) {
       const qrAsset = await this.prisma.asset.findUnique({
         where: { id: footerQrAssetId },
         select: { url: true },
@@ -809,14 +796,9 @@ export class MSportsImageBrandingService {
           const qrResponse = await fetch(qrAsset.url);
 
           if (qrResponse.ok) {
-            const qrBuffer = Buffer.from(
-              await qrResponse.arrayBuffer(),
-            );
+            const qrBuffer = Buffer.from(await qrResponse.arrayBuffer());
 
-            qrSize = Math.max(
-              24,
-              Math.round(width * qrSizePercent),
-            );
+            qrSize = Math.max(24, Math.round(width * qrSizePercent));
 
             const preparedQr = await sharp(qrBuffer)
               .resize({
@@ -829,23 +811,14 @@ export class MSportsImageBrandingService {
 
             composites.push({
               input: preparedQr,
-              left:
-                width -
-                qrSize -
-                Math.round(width * qrMarginPercent),
-              top:
-                footerTop +
-                Math.round(
-                  (footerHeight - qrSize) / 2,
-                ),
+              left: width - qrSize - Math.round(width * qrMarginPercent),
+              top: footerTop + Math.round((footerHeight - qrSize) / 2),
             });
           }
         } catch (error) {
           this.logger.warn(
             `Footer QR asset skipped: ${
-              error instanceof Error
-                ? error.message
-                : 'Unknown QR error'
+              error instanceof Error ? error.message : 'Unknown QR error'
             }`,
           );
         }

@@ -19,6 +19,37 @@ import {
 
 type Edition = 'MORNING' | 'EVENING';
 
+export function shouldRunScheduledEdition(input: {
+  enabled: boolean;
+  currentTime: string;
+  scheduledTime: string;
+  beforeTime?: string;
+  lastCompletedAt: Date | null;
+  now: Date;
+  timezone: string;
+}) {
+  if (
+    !input.enabled ||
+    input.currentTime < input.scheduledTime ||
+    (input.beforeTime !== undefined && input.currentTime >= input.beforeTime)
+  ) {
+    return false;
+  }
+
+  if (!input.lastCompletedAt) {
+    return true;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: input.timezone,
+  });
+
+  return (
+    dateFormatter.format(input.lastCompletedAt) !==
+    dateFormatter.format(input.now)
+  );
+}
+
 @Injectable()
 export class SportsNewsAutomationService {
   private cleanPublishedContent(content: string): string {
@@ -114,14 +145,29 @@ export class SportsNewsAutomationService {
     const currentTime = `${hour}:${minute}`;
 
     if (
-      settings.morningEnabled &&
-      currentTime >= settings.morningTime &&
-      currentTime < settings.eveningTime
+      shouldRunScheduledEdition({
+        enabled: settings.morningEnabled,
+        currentTime,
+        scheduledTime: settings.morningTime,
+        beforeTime: settings.eveningTime,
+        lastCompletedAt: settings.lastMorningRunAt,
+        now,
+        timezone: settings.timezone,
+      })
     ) {
       await this.createEdition('MORNING');
     }
 
-    if (settings.eveningEnabled && currentTime >= settings.eveningTime) {
+    if (
+      shouldRunScheduledEdition({
+        enabled: settings.eveningEnabled,
+        currentTime,
+        scheduledTime: settings.eveningTime,
+        lastCompletedAt: settings.lastEveningRunAt,
+        now,
+        timezone: settings.timezone,
+      })
+    ) {
       await this.createEdition('EVENING');
     }
   }
@@ -267,6 +313,8 @@ export class SportsNewsAutomationService {
         if (settings.duplicateEditionPolicy === 'SKIP') {
           this.logger.log(`Sports news already exists: ${title}`);
 
+          await this.markEditionRunCompleted(edition, settings.id);
+
           return {
             success: true,
             skipped: true,
@@ -405,6 +453,7 @@ export class SportsNewsAutomationService {
                     .filter(Boolean)
                     .join(settings.footerDateSeparator)
                 : '',
+              footerTextEnabled: settings.footerTextEnabled,
               footerLogoAssetId: settings.footerLogoEnabled
                 ? settings.footerLogoAssetId
                 : null,
