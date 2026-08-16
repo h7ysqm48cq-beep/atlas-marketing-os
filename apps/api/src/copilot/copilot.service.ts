@@ -187,11 +187,135 @@ export class CopilotService {
      * Workspace context tells Elena what the user is
      * actively creating in AI Studio now.
      */
+    /*
+     * COPILOT_WORKSPACE_DRAFT_FALLBACK
+     *
+     * Browser/UI state can be lost after refresh, HMR or conversation
+     * restoration. The persisted conversation remains the source of truth.
+     *
+     * When the incoming workspace draft is empty, recover the latest
+     * metadata.studioResult from this conversation before asking Elena
+     * to reason about scheduling or editing the current content.
+     */
+    let effectiveWorkspaceContext = dto.workspaceContext;
+
+    const incomingDraft =
+      dto.workspaceContext &&
+      typeof dto.workspaceContext === 'object' &&
+      dto.workspaceContext.draft &&
+      typeof dto.workspaceContext.draft === 'object'
+        ? (dto.workspaceContext.draft as Record<string, unknown>)
+        : undefined;
+
+    const draftValue = (key: string) => {
+      const value = incomingDraft?.[key];
+
+      return typeof value === 'string' ? value.trim() : '';
+    };
+
+    const hasIncomingDraft = Boolean(
+      draftValue('facebook') ||
+      draftValue('telegram') ||
+      draftValue('reels') ||
+      draftValue('imagePrompt'),
+    );
+
+    if (!hasIncomingDraft) {
+      try {
+        const conversationDetail = await this.conversations.get(
+          conversation.id,
+        );
+
+        const latestPersistedStudioResult = [...conversationDetail.messages]
+          .reverse()
+          .map((message) => {
+            const metadata =
+              message.metadata && typeof message.metadata === 'object'
+                ? (message.metadata as Record<string, unknown>)
+                : null;
+
+            const candidate =
+              metadata &&
+              'studioResult' in metadata &&
+              metadata.studioResult &&
+              typeof metadata.studioResult === 'object'
+                ? (metadata.studioResult as Record<string, unknown>)
+                : null;
+
+            if (!candidate) {
+              return null;
+            }
+
+            return {
+              facebook:
+                typeof candidate.facebook === 'string'
+                  ? candidate.facebook
+                  : '',
+              telegram:
+                typeof candidate.telegram === 'string'
+                  ? candidate.telegram
+                  : '',
+              reels: typeof candidate.reels === 'string' ? candidate.reels : '',
+              imagePrompt:
+                typeof candidate.imagePrompt === 'string'
+                  ? candidate.imagePrompt
+                  : '',
+            };
+          })
+          .find(
+            (candidate) =>
+              candidate &&
+              (candidate.facebook.trim() ||
+                candidate.telegram.trim() ||
+                candidate.reels.trim() ||
+                candidate.imagePrompt.trim()),
+          );
+
+        if (latestPersistedStudioResult) {
+          effectiveWorkspaceContext = {
+            ...(dto.workspaceContext ?? {}),
+            draft: latestPersistedStudioResult,
+          };
+
+          this.logger.log(
+            JSON.stringify({
+              event: 'copilot_workspace_draft_recovered',
+              conversationId: conversation.id,
+              facebookLength: latestPersistedStudioResult.facebook.length,
+              telegramLength: latestPersistedStudioResult.telegram.length,
+              reelsLength: latestPersistedStudioResult.reels.length,
+              imagePromptLength: latestPersistedStudioResult.imagePrompt.length,
+            }),
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          JSON.stringify({
+            event: 'copilot_workspace_draft_recovery_failed',
+            conversationId: conversation.id,
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Unknown draft recovery error',
+          }),
+        );
+      }
+    }
+
+    this.logger.warn(
+      JSON.stringify({
+        event: 'copilot_workspace_draft_debug',
+        conversationId: conversation.id,
+        activeView: effectiveWorkspaceContext?.activeView ?? null,
+        draft: effectiveWorkspaceContext?.draft ?? null,
+      }),
+    );
+
     const workspaceContext =
-      dto.workspaceContext && typeof dto.workspaceContext === 'object'
+      effectiveWorkspaceContext && typeof effectiveWorkspaceContext === 'object'
         ? [
             'CURRENT ATLAS AI STUDIO WORKSPACE:',
-            JSON.stringify(dto.workspaceContext, null, 2),
+            JSON.stringify(effectiveWorkspaceContext, null, 2),
             '',
             "Treat this as the user's current working state.",
             'When the user refers to "this", "the current draft", "the image prompt", "what we are doing", or similar references, use this workspace context when relevant.',
@@ -324,7 +448,26 @@ Description: ${campaign.description || 'Not set'}`
       '{"type":"batch","actions":[{"type":"set","target":"topic","value":"Grab Consumer Marketing"},{"type":"set","target":"style","value":"Educational"},{"type":"generate","target":"content"}]}',
       '</ATLAS_WORKSPACE_ACTION>',
       '',
+      'Replace + schedule example:',
+      '<ATLAS_WORKSPACE_ACTION>',
+      '{"type":"batch","actions":[{"type":"replace","target":"facebook","content":"FULL FINAL FACEBOOK COPY"},{"type":"schedule","platforms":["FACEBOOK"],"date":"2026-08-14","time":"11:30","timezone":"Asia/Kuala_Lumpur"}]}',
+      '</ATLAS_WORKSPACE_ACTION>',
+      '',
       'Important execution rules:',
+      '',
+      'MANDATORY SCHEDULE INTENT RULES:',
+      '- When the user explicitly asks to schedule, arrange, queue, 排程, 安排, 定时, or specifies that Facebook or Telegram content should be posted at a particular future date/time, you MUST emit a schedule action when platform, date and time are sufficiently clear.',
+      '- Never merely say that content is ready to schedule when the user explicitly asked you to schedule it.',
+      '- Never omit the schedule action just because the same response also needs to create or replace the draft.',
+      '- If the same user instruction asks you to create, rewrite, restore or replace content AND schedule it, emit ONE batch action in execution order: draft-changing actions first, schedule LAST.',
+      '- A draft created or replaced earlier in the same batch is valid for the schedule action later in that batch.',
+      '- Example: replace Facebook copy and schedule it => batch [replace facebook, schedule FACEBOOK].',
+      '- If the user says 刚才那篇, 这篇, current draft, that post, or equivalent and the relevant current Facebook/Telegram draft exists in CURRENT ATLAS AI STUDIO WORKSPACE, schedule that draft directly instead of asking the user to paste it again.',
+      '- If platform is unambiguous from the current draft or the user explicitly names Facebook/Telegram, do not ask for platform again.',
+      '- If date or time is genuinely missing or ambiguous, ask only for the missing scheduling detail and do not invent it.',
+      '- Resolve relative dates such as today/tomorrow using the supplied current server time and Asia/Kuala_Lumpur as the operational timezone.',
+      '- Do not schedule empty platform drafts unless the required draft is created or replaced earlier in the SAME batch.',
+
       '- Only emit actions when the user clearly asks you to perform the change.',
       '- Never emit an executable action merely for advice, brainstorming, explanation, or research.',
       '- Do not schedule empty platform drafts.',
@@ -488,7 +631,7 @@ Description: ${campaign.description || 'Not set'}`
 
       const studioResultMetadata = this.extractStudioResultMetadata(
         response.output_text,
-        dto.workspaceContext,
+        effectiveWorkspaceContext,
       );
 
       await this.conversations.appendAssistantMessage(
@@ -536,6 +679,7 @@ Description: ${campaign.description || 'Not set'}`
       return {
         reply: response.output_text,
         mode,
+        workspaceDraft: effectiveWorkspaceContext?.draft ?? null,
         conversation: {
           id: conversation.id,
           title: conversation.title,

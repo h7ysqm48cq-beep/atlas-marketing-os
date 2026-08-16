@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AutomationService } from '../automation/automation.service';
 import type {
   AutoQueueInput,
@@ -14,10 +11,8 @@ import { QueuePlannerService } from './queue-planner.service';
 @Injectable()
 export class WorkflowService {
   constructor(
-    private readonly automationService:
-      AutomationService,
-    private readonly queuePlanner:
-      QueuePlannerService,
+    private readonly automationService: AutomationService,
+    private readonly queuePlanner: QueuePlannerService,
   ) {}
 
   async scheduleContent(
@@ -25,23 +20,19 @@ export class WorkflowService {
   ): Promise<ScheduleContentResult> {
     this.validateScheduleInput(input);
 
-    const result =
-      await this.automationService
-        .createMultiPlatformPosts({
-          brandId: input.brandId,
-          campaignId: input.campaignId,
-          historyId: input.historyId,
-          title: input.title,
-          contents: input.contents,
-          mediaUrls: input.mediaUrls,
-          platforms: input.platforms,
-          scheduledAt: input.scheduledAt,
-          timezone:
-            input.timezone ||
-            'Asia/Kuala_Lumpur',
-          queueImmediately:
-            input.queueImmediately ?? false,
-        });
+    const result = await this.automationService.createMultiPlatformPosts({
+      brandId: input.brandId,
+      campaignId: input.campaignId,
+      historyId: input.historyId,
+      title: input.title,
+      contents: input.contents,
+      mediaUrls: input.mediaUrls,
+      channelIds: input.channelIds,
+      platforms: input.platforms,
+      scheduledAt: input.scheduledAt,
+      timezone: input.timezone || 'Asia/Kuala_Lumpur',
+      queueImmediately: input.queueImmediately ?? false,
+    });
 
     return {
       success: result.success,
@@ -51,89 +42,58 @@ export class WorkflowService {
     };
   }
 
-  async autoQueue(
-    input: AutoQueueInput,
-  ): Promise<AutoQueueResult> {
+  async autoQueue(input: AutoQueueInput): Promise<AutoQueueResult> {
     if (!input.brandId?.trim()) {
-      throw new BadRequestException(
-        'brandId is required.',
-      );
+      throw new BadRequestException('brandId is required.');
     }
 
     if (!input.platforms?.length) {
-      throw new BadRequestException(
-        'At least one platform is required.',
-      );
+      throw new BadRequestException('At least one platform is required.');
     }
 
     if (!input.items?.length) {
-      throw new BadRequestException(
-        'At least one content item is required.',
-      );
+      throw new BadRequestException('At least one content item is required.');
     }
 
     if (!input.postingDays?.length) {
-      throw new BadRequestException(
-        'At least one posting day is required.',
-      );
+      throw new BadRequestException('At least one posting day is required.');
     }
 
-    if (
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(
-        input.postingTime,
-      )
-    ) {
-      throw new BadRequestException(
-        'postingTime must use HH:mm format.',
-      );
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(input.postingTime)) {
+      throw new BadRequestException('postingTime must use HH:mm format.');
     }
 
-    const schedules =
-      this.queuePlanner.planQueue({
-        startDate: input.startDate,
-        postingDays: input.postingDays,
-        postingTime: input.postingTime,
-        numberOfPosts: input.items.length,
-        timezone:
-          input.timezone ||
-          'Asia/Kuala_Lumpur',
-      });
+    const schedules = this.queuePlanner.planQueue({
+      startDate: input.startDate,
+      postingDays: input.postingDays,
+      postingTime: input.postingTime,
+      numberOfPosts: input.items.length,
+      timezone: input.timezone || 'Asia/Kuala_Lumpur',
+    });
 
-    const scheduledItems: AutoQueueResult[
-      'scheduledItems'
-    ] = [];
+    const scheduledItems: AutoQueueResult['scheduledItems'] = [];
 
-    for (
-      let index = 0;
-      index < input.items.length;
-      index += 1
-    ) {
+    for (let index = 0; index < input.items.length; index += 1) {
       const item = input.items[index];
       const schedule = schedules[index];
 
-      const result =
-        await this.automationService
-          .createMultiPlatformPosts({
-            brandId: input.brandId,
-            campaignId: item.campaignId,
-            historyId: item.historyId,
-            title: item.title,
-            contents: item.contents,
-            mediaUrls: item.mediaUrls,
-            platforms: input.platforms,
-            scheduledAt:
-              schedule.scheduledAtUtc.toISOString(),
-            timezone:
-              input.timezone ||
-              'Asia/Kuala_Lumpur',
-            queueImmediately:
-              input.queueImmediately ?? false,
-          });
+      const result = await this.automationService.createMultiPlatformPosts({
+        brandId: input.brandId,
+        campaignId: item.campaignId,
+        historyId: item.historyId,
+        title: item.title,
+        contents: item.contents,
+        mediaUrls: item.mediaUrls,
+        channelIds: input.channelIds,
+        platforms: input.platforms,
+        scheduledAt: schedule.scheduledAtUtc.toISOString(),
+        timezone: input.timezone || 'Asia/Kuala_Lumpur',
+        queueImmediately: input.queueImmediately ?? false,
+      });
 
       scheduledItems.push({
         index,
-        scheduledAt:
-          schedule.scheduledAtUtc.toISOString(),
+        scheduledAt: schedule.scheduledAtUtc.toISOString(),
         title: item.title,
         posts: result.posts,
       });
@@ -144,56 +104,37 @@ export class WorkflowService {
       workflow: 'AUTO_QUEUE',
       itemCount: input.items.length,
       postCount: scheduledItems.reduce(
-        (total, item) =>
-          total + item.posts.length,
+        (total, item) => total + item.posts.length,
         0,
       ),
       scheduledItems,
     };
   }
 
-  private validateScheduleInput(
-    input: ScheduleContentInput,
-  ) {
+  private validateScheduleInput(input: ScheduleContentInput) {
     if (!input.brandId?.trim()) {
-      throw new BadRequestException(
-        'brandId is required.',
-      );
+      throw new BadRequestException('brandId is required.');
     }
 
     if (!input.platforms?.length) {
-      throw new BadRequestException(
-        'At least one platform is required.',
-      );
+      throw new BadRequestException('At least one platform is required.');
     }
 
     if (!input.scheduledAt) {
-      throw new BadRequestException(
-        'scheduledAt is required.',
-      );
+      throw new BadRequestException('scheduledAt is required.');
     }
 
-    const scheduledAt =
-      new Date(input.scheduledAt);
+    const scheduledAt = new Date(input.scheduledAt);
 
-    if (
-      Number.isNaN(
-        scheduledAt.getTime(),
-      )
-    ) {
-      throw new BadRequestException(
-        'Invalid scheduledAt value.',
-      );
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt value.');
     }
 
     for (const platform of input.platforms) {
-      const content =
-        input.contents?.[platform]?.trim();
+      const content = input.contents?.[platform]?.trim();
 
       if (!content) {
-        throw new BadRequestException(
-          `Content is required for ${platform}.`,
-        );
+        throw new BadRequestException(`Content is required for ${platform}.`);
       }
     }
   }

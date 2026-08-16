@@ -27,6 +27,14 @@ export class GenerateAssetImageDto {
 
   @IsString()
   @IsOptional()
+  conversationId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  messageIndex?: number;
+
+  @IsString()
+  @IsOptional()
   platform?: string;
 
   @IsString()

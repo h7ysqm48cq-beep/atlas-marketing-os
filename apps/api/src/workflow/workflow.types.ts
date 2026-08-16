@@ -6,13 +6,11 @@ export type ScheduleContentInput = {
   historyId?: string;
   title?: string;
 
-  contents: Partial<
-    Record<SocialPlatform, string>
-  >;
+  contents: Partial<Record<SocialPlatform, string>>;
 
-  mediaUrls?: Partial<
-    Record<SocialPlatform, string[]>
-  >;
+  mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
+
+  channelIds?: Partial<Record<SocialPlatform, string>>;
 
   platforms: SocialPlatform[];
   scheduledAt: string;
@@ -42,28 +40,17 @@ export type AutoQueueContentItem = {
   title?: string;
   historyId?: string;
   campaignId?: string;
-  contents: Partial<
-    Record<SocialPlatform, string>
-  >;
-  mediaUrls?: Partial<
-    Record<SocialPlatform, string[]>
-  >;
+  contents: Partial<Record<SocialPlatform, string>>;
+  mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
 };
 
 export type AutoQueueInput = {
   brandId: string;
   platforms: SocialPlatform[];
+  channelIds?: Partial<Record<SocialPlatform, string>>;
   items: AutoQueueContentItem[];
   startDate: string;
-  postingDays: Array<
-    | 'SUN'
-    | 'MON'
-    | 'TUE'
-    | 'WED'
-    | 'THU'
-    | 'FRI'
-    | 'SAT'
-  >;
+  postingDays: Array<'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT'>;
   postingTime: string;
   timezone?: string;
   queueImmediately?: boolean;

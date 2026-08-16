@@ -49,6 +49,15 @@ export class CopilotController {
 
   @Post('chat')
   chat(@Body() dto: ChatCopilotDto) {
+    console.warn(
+      '[COPILOT_CHAT_CONTROLLER]',
+      JSON.stringify({
+        conversationId: dto.conversationId ?? null,
+        mode: dto.mode ?? null,
+        workspaceDraft: dto.workspaceContext?.draft ?? null,
+      }),
+    );
+
     return this.service.chat(dto);
   }
 
