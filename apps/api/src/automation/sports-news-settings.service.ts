@@ -350,6 +350,36 @@ export class SportsNewsSettingsService {
       throw new BadRequestException('minimumSources must be between 1 and 20.');
     }
 
+    if (
+      sanitizedInput.minimumSourcesPerStory !== undefined &&
+      (sanitizedInput.minimumSourcesPerStory < 1 ||
+        sanitizedInput.minimumSourcesPerStory > 20)
+    ) {
+      throw new BadRequestException(
+        'minimumSourcesPerStory must be between 1 and 20.',
+      );
+    }
+
+    if (
+      sanitizedInput.publishRetryLimit !== undefined &&
+      (sanitizedInput.publishRetryLimit < 0 ||
+        sanitizedInput.publishRetryLimit > 20)
+    ) {
+      throw new BadRequestException(
+        'publishRetryLimit must be between 0 and 20.',
+      );
+    }
+
+    if (
+      sanitizedInput.publishRetryDelayMinutes !== undefined &&
+      (sanitizedInput.publishRetryDelayMinutes < 0 ||
+        sanitizedInput.publishRetryDelayMinutes > 1440)
+    ) {
+      throw new BadRequestException(
+        'publishRetryDelayMinutes must be between 0 and 1440.',
+      );
+    }
+
     const nextStoryMinimum =
       sanitizedInput.storyMinimum ?? settings.storyMinimum;
 

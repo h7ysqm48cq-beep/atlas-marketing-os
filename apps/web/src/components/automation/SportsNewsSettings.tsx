@@ -1005,12 +1005,6 @@ export function SportsNewsSettings() {
             onChange={(v) => patch("storyPanelEnabled", v)}
           />
 
-          <Toggle
-            label="Generate Image"
-            checked={s.imageEnabled}
-            onChange={(v) => patch("imageEnabled", v)}
-          />
-
           <label>
             Aspect Ratio
             <select

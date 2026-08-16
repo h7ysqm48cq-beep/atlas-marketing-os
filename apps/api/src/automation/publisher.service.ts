@@ -17,6 +17,10 @@ import { FacebookConnectorService } from "./facebook-connector.service";
 import { TelegramConnectorService } from "./telegram-connector.service";
 import { RuntimeProfileService } from "./runtime-profile.service";
 import { BrowserRuntimeBridgeService } from "./browser-runtime-bridge.service";
+import {
+  resolveSportsNewsRetryDecision,
+  type SportsNewsRetryPolicy,
+} from "./publisher-retry-policy";
 
 @Injectable()
 export class PublisherService {
@@ -68,27 +72,6 @@ export class PublisherService {
 
 
   async run() {
-
-    const diagnosticPost =
-      await this.prisma.scheduledPost.findUnique({
-        where: {
-          id: "cmsdhf6fi0002p69kx0ef5b08",
-        },
-        select: {
-          id: true,
-          status: true,
-          scheduledAt: true,
-        },
-      });
-
-    this.logger.warn(
-      [
-        "Publisher diagnostic.",
-        `Now: ${new Date().toISOString()}.`,
-        `Post: ${JSON.stringify(diagnosticPost)}.`,
-      ].join(" "),
-    );
-
     const posts =
       await this.prisma.scheduledPost.findMany({
         where: {
@@ -854,19 +837,51 @@ export class PublisherService {
           },
         });
 
+        const failedAttemptCount =
+          post.retryCount + 1;
+
+        const retryDecision =
+          resolveSportsNewsRetryDecision({
+            policy:
+              this.readSportsNewsRetryPolicy(
+                post.brandRenderingSettings,
+              ),
+            failedAttemptCount,
+            failedAt:
+              new Date(),
+          });
+
         await this.prisma.scheduledPost.update({
           where: {
             id: post.id,
           },
           data: {
             status:
-              ScheduledPostStatus.FAILED,
+              retryDecision.shouldRetry
+                ? ScheduledPostStatus.SCHEDULED
+                : ScheduledPostStatus.FAILED,
             retryCount:
-              post.retryCount + 1,
+              failedAttemptCount,
             lastError:
               errorMessage,
+            ...(retryDecision.scheduledAt
+              ? {
+                  scheduledAt:
+                    retryDecision.scheduledAt,
+                }
+              : {}),
           },
         });
+
+        if (retryDecision.scheduledAt) {
+          this.logger.warn(
+            [
+              `Publish retry scheduled for post ${post.id}.`,
+              `Attempt: ${failedAttemptCount}.`,
+              `Next run: ${retryDecision.scheduledAt.toISOString()}.`,
+            ].join(" "),
+          );
+        }
 
       }
 
@@ -879,6 +894,54 @@ export class PublisherService {
       blocked,
     };
 
+  }
+
+
+  private readSportsNewsRetryPolicy(
+    value: unknown,
+  ): SportsNewsRetryPolicy | null {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value)
+    ) {
+      return null;
+    }
+
+    const sportsNews =
+      (value as Record<string, unknown>)
+        .sportsNews;
+
+    if (
+      !sportsNews ||
+      typeof sportsNews !== "object" ||
+      Array.isArray(sportsNews)
+    ) {
+      return null;
+    }
+
+    const policy =
+      sportsNews as Record<string, unknown>;
+
+    if (
+      typeof policy.publishRetryEnabled !==
+        "boolean" ||
+      typeof policy.publishRetryLimit !==
+        "number" ||
+      typeof policy.publishRetryDelayMinutes !==
+        "number"
+    ) {
+      return null;
+    }
+
+    return {
+      publishRetryEnabled:
+        policy.publishRetryEnabled,
+      publishRetryLimit:
+        policy.publishRetryLimit,
+      publishRetryDelayMinutes:
+        policy.publishRetryDelayMinutes,
+    };
   }
 
 

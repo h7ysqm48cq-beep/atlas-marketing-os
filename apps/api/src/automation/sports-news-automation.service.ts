@@ -19,6 +19,63 @@ import {
 
 type Edition = 'MORNING' | 'EVENING';
 
+type SportsNewsChannelSettings = {
+  telegramEnabled: boolean;
+  facebookEnabled: boolean;
+  morningTelegramEnabled: boolean;
+  morningFacebookEnabled: boolean;
+  eveningTelegramEnabled: boolean;
+  eveningFacebookEnabled: boolean;
+};
+
+export function getEditionPlatforms(
+  edition: Edition,
+  settings: SportsNewsChannelSettings,
+): SocialPlatform[] {
+  const telegramEditionEnabled =
+    edition === 'MORNING'
+      ? settings.morningTelegramEnabled
+      : settings.eveningTelegramEnabled;
+  const facebookEditionEnabled =
+    edition === 'MORNING'
+      ? settings.morningFacebookEnabled
+      : settings.eveningFacebookEnabled;
+
+  return [
+    ...(settings.telegramEnabled && telegramEditionEnabled
+      ? [SocialPlatform.TELEGRAM]
+      : []),
+    ...(settings.facebookEnabled && facebookEditionEnabled
+      ? [SocialPlatform.FACEBOOK]
+      : []),
+  ];
+}
+
+export function resolveSportsNewsInitialStatus(input: {
+  autoPublishEnabled: boolean;
+  approvalRequired: boolean;
+  queueStatusOnCreate: string;
+}): ScheduledPostStatus {
+  if (!input.autoPublishEnabled || input.approvalRequired) {
+    return ScheduledPostStatus.DRAFT;
+  }
+
+  const normalized = input.queueStatusOnCreate.trim().toUpperCase();
+
+  switch (normalized) {
+    case 'DRAFT':
+      return ScheduledPostStatus.DRAFT;
+    case 'SCHEDULED':
+      return ScheduledPostStatus.SCHEDULED;
+    case 'QUEUED':
+      return ScheduledPostStatus.QUEUED;
+    default:
+      throw new Error(
+        `Unsupported Sports News queue status: ${input.queueStatusOnCreate}`,
+      );
+  }
+}
+
 export function shouldRunScheduledEdition(input: {
   enabled: boolean;
   currentTime: string;
@@ -203,7 +260,10 @@ export class SportsNewsAutomationService {
   async getStatus() {
     const settings = await this.sportsNewsSettings.get();
 
-    const channel = await this.resolveChannel(settings.telegramChannelId);
+    const channel = await this.resolveChannel(
+      SocialPlatform.TELEGRAM,
+      settings.telegramChannelId,
+    );
 
     return {
       enabled: settings.enabled,
@@ -240,22 +300,13 @@ export class SportsNewsAutomationService {
     }
 
     this.running = true;
+    let settingsId: string | null = null;
 
     try {
       const settingsRaw = await this.sportsNewsSettings.get();
 
-      const settings = settingsRaw as typeof settingsRaw & {
-        logoAssetId?: string | null;
-
-        footerLogoEnabled?: boolean;
-        footerLogoAssetId?: string | null;
-
-        footerQrEnabled?: boolean;
-        footerQrAssetId?: string | null;
-        footerQrLink?: string | null;
-
-        footerPlacement?: string;
-      };
+      const settings = settingsRaw;
+      settingsId = settings.id;
 
       if (!settings.enabled) {
         return {
@@ -266,19 +317,48 @@ export class SportsNewsAutomationService {
         };
       }
 
-      const channel = await this.resolveChannel(settings.telegramChannelId);
-      if (!channel) {
-        const reason = 'No connected Sports News Telegram channel was found.';
+      const requestedPlatforms = getEditionPlatforms(edition, settings);
 
-        this.logger.warn(reason);
+      if (requestedPlatforms.length === 0) {
+        const reason = `No publishing channels are enabled for the ${edition.toLowerCase()} edition.`;
+
+        this.logger.log(reason);
+        await this.markEditionRunCompleted(edition, settings.id);
 
         return {
-          success: false,
+          success: true,
           skipped: true,
           reason,
           edition,
         };
       }
+
+      const resolvedTargets = await Promise.all(
+        requestedPlatforms.map(async (platform) => ({
+          platform,
+          channel: await this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        })),
+      );
+      const missingPlatforms = resolvedTargets
+        .filter((target) => !target.channel)
+        .map((target) => target.platform);
+
+      if (missingPlatforms.length > 0) {
+        throw new Error(
+          `No connected channel was found for enabled platform(s): ${missingPlatforms.join(', ')}.`,
+        );
+      }
+
+      const targets = resolvedTargets as Array<{
+        platform: SocialPlatform;
+        channel: NonNullable<(typeof resolvedTargets)[number]['channel']>;
+      }>;
+      const primaryChannel = targets[0].channel;
 
       const dateKey = new Intl.DateTimeFormat('en-CA', {
         timeZone: settings.timezone,
@@ -288,64 +368,65 @@ export class SportsNewsAutomationService {
       }).format(new Date());
       const title = this.renderPostTitle(edition, dateKey, settings);
 
-      const dedupeKey =
-        settings.duplicateEditionPolicy === 'ALLOW'
-          ? null
-          : `sports-news:${channel.id}:${edition}:${dateKey}`;
+      const targetStates = await Promise.all(
+        targets.map(async (target) => {
+          const dedupeKey =
+            settings.duplicateEditionPolicy === 'ALLOW'
+              ? null
+              : `sports-news:${target.channel.id}:${edition}:${dateKey}`;
+          const existing =
+            settings.duplicateEditionPolicy === 'ALLOW'
+              ? null
+              : await this.prisma.scheduledPost.findFirst({
+                  where: {
+                    OR: [
+                      { dedupeKey },
+                      {
+                        channelId: target.channel.id,
+                        title,
+                      },
+                    ],
+                  },
+                });
 
-      const existing = await this.prisma.scheduledPost.findFirst({
-        where: dedupeKey
-          ? {
-              OR: [
-                { dedupeKey },
-                {
-                  channelId: channel.id,
-                  title,
-                },
-              ],
-            }
-          : {
-              channelId: channel.id,
-              title,
-            },
-      });
-      if (existing) {
-        if (settings.duplicateEditionPolicy === 'SKIP') {
-          this.logger.log(`Sports news already exists: ${title}`);
-
-          await this.markEditionRunCompleted(edition, settings.id);
+          if (existing && settings.duplicateEditionPolicy === 'REPLACE') {
+            await this.prisma.scheduledPost.update({
+              where: { id: existing.id },
+              data: {
+                title: `${existing.title} [REPLACED ${new Date().toISOString()}]`,
+                dedupeKey: null,
+              },
+            });
+            this.logger.log(
+              `Existing Sports News edition marked as replaced: ${existing.id}`,
+            );
+          }
 
           return {
-            success: true,
-            skipped: true,
-            reason: 'Sports news already exists',
-            edition,
-            title,
-            postId: existing.id,
-            status: existing.status,
+            ...target,
+            dedupeKey,
+            existing,
+            skip:
+              Boolean(existing) && settings.duplicateEditionPolicy === 'SKIP',
           };
-        }
+        }),
+      );
+      const publishTargets = targetStates.filter((target) => !target.skip);
 
-        if (settings.duplicateEditionPolicy === 'REPLACE') {
-          await this.prisma.scheduledPost.update({
-            where: {
-              id: existing.id,
-            },
-            data: {
-              title: `${existing.title} [REPLACED ${new Date().toISOString()}]`,
-              dedupeKey: null,
-            },
-          });
+      if (publishTargets.length === 0) {
+        this.logger.log(`Sports news already exists on all targets: ${title}`);
+        await this.markEditionRunCompleted(edition, settings.id);
 
-          this.logger.log(
-            `Existing Sports News edition marked as replaced: ${existing.id}`,
-          );
-        }
-
-        /*
-         * ALLOW:
-         * continue without changing the existing edition.
-         */
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Sports news already exists on all enabled channels',
+          edition,
+          title,
+          postIds: targetStates
+            .map((target) => target.existing?.id)
+            .filter(Boolean),
+        };
       }
 
       const generatedNews = await this.generateNews(
@@ -375,7 +456,7 @@ export class SportsNewsAutomationService {
         try {
           const image = await this.assetImages.generateAndSave({
             name: title,
-            platform: 'Telegram',
+            platform: publishTargets.map((target) => target.platform).join(','),
 
             model:
               settings.imageModelOverrideEnabled &&
@@ -428,7 +509,7 @@ export class SportsNewsAutomationService {
 
           const activeBrand = await this.prisma.brand.findFirst({
             where: {
-              id: channel.brandId,
+              id: primaryChannel.brandId,
             },
             select: {
               primaryLogoAssetId: true,
@@ -609,22 +690,45 @@ export class SportsNewsAutomationService {
         );
       }
 
-      const post = await this.prisma.scheduledPost.create({
-        data: {
-          brandId: channel.brandId,
-          channelId: channel.id,
-          platform: SocialPlatform.TELEGRAM,
-          title,
-          dedupeKey,
-          content,
-          mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
-          scheduledAt: new Date(),
-          timezone: settings.timezone,
-          status: this.resolveQueueStatus(settings.queueStatusOnCreate),
-        },
-      });
+      const initialStatus = resolveSportsNewsInitialStatus(settings);
+      const scheduledAt = new Date();
+      const posts: Array<{
+        id: string;
+        status: ScheduledPostStatus;
+        channelId: string;
+        mediaUrls: string[];
+      }> = [];
 
-      this.logger.log(`Queued ${title} for ${channel.name}.`);
+      for (const target of publishTargets) {
+        const post = await this.prisma.scheduledPost.create({
+          data: {
+            brandId: target.channel.brandId,
+            channelId: target.channel.id,
+            platform: target.platform,
+            title,
+            dedupeKey: target.dedupeKey,
+            content,
+            mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
+            scheduledAt,
+            timezone: settings.timezone,
+            status: initialStatus,
+            brandRenderingSettings: {
+              sportsNews: {
+                publishRetryEnabled: settings.publishRetryEnabled,
+                publishRetryLimit: settings.publishRetryLimit,
+                publishRetryDelayMinutes: settings.publishRetryDelayMinutes,
+              },
+            },
+          },
+        });
+
+        posts.push(post);
+        this.logger.log(
+          `Created ${title} for ${target.channel.name} with status ${post.status}.`,
+        );
+      }
+
+      const post = posts[0];
 
       await this.markEditionRunCompleted(edition, settings.id);
 
@@ -634,9 +738,12 @@ export class SportsNewsAutomationService {
         edition,
         title,
         postId: post.id,
+        postIds: posts.map((createdPost) => createdPost.id),
         status: post.status,
-        channelId: channel.id,
-        channelName: channel.name,
+        channelId: post.channelId,
+        channelIds: posts.map((createdPost) => createdPost.channelId),
+        channelName: publishTargets[0].channel.name,
+        channelNames: publishTargets.map((target) => target.channel.name),
         mediaUrls: post.mediaUrls,
       };
     } catch (error) {
@@ -656,6 +763,10 @@ export class SportsNewsAutomationService {
           `Sports news duplicate prevented by database: ${edition}`,
         );
 
+        if (settingsId) {
+          await this.markEditionRunCompleted(edition, settingsId);
+        }
+
         return {
           success: true,
           skipped: true,
@@ -670,6 +781,26 @@ export class SportsNewsAutomationService {
         `Sports news generation failed: ${message}`,
         error instanceof Error ? error.stack : undefined,
       );
+
+      if (settingsId) {
+        try {
+          await this.prisma.sportsNewsSetting.update({
+            where: { id: settingsId },
+            data: {
+              lastRunStatus: 'FAILED',
+              lastError: message.slice(0, 2000),
+            },
+          });
+        } catch (statusError) {
+          this.logger.error(
+            `Unable to persist Sports News failure status: ${
+              statusError instanceof Error
+                ? statusError.message
+                : String(statusError)
+            }`,
+          );
+        }
+      }
 
       return {
         success: false,
@@ -698,28 +829,13 @@ export class SportsNewsAutomationService {
       .trim();
   }
 
-  private resolveQueueStatus(value: string): ScheduledPostStatus {
-    const normalized = value.trim().toUpperCase();
-
-    switch (normalized) {
-      case 'DRAFT':
-        return ScheduledPostStatus.DRAFT;
-
-      case 'SCHEDULED':
-        return ScheduledPostStatus.SCHEDULED;
-
-      case 'QUEUED':
-        return ScheduledPostStatus.QUEUED;
-
-      default:
-        throw new Error(`Unsupported Sports News queue status: ${value}`);
-    }
-  }
-
-  private async resolveChannel(settingsChannelId?: string | null) {
+  private async resolveChannel(
+    platform: SocialPlatform,
+    settingsChannelId?: string | null,
+  ) {
     const configuredId = settingsChannelId?.trim();
     const connectedWhere = {
-      platform: SocialPlatform.TELEGRAM,
+      platform,
       status: SocialChannelStatus.CONNECTED,
     } as const;
 
@@ -872,13 +988,13 @@ export class SportsNewsAutomationService {
      * Validate freshness per story without applying the global
      * minimumSources requirement to every individual story.
      *
-     * A story needs at least one fresh, verifiable source.
+     * Each story must satisfy the configured per-story source requirement.
      * The configured minimumSources requirement is enforced
      * across the complete edition after story validation.
      */
     const perStoryFreshness: SportsNewsFreshnessRules = {
       ...freshness,
-      minimumSources: 1,
+      minimumSources: settings.minimumSourcesPerStory,
       freshnessFallbackEnabled: false,
     };
 
@@ -904,7 +1020,10 @@ export class SportsNewsAutomationService {
             perStoryFreshness,
           );
 
-          if (!validation.enoughSources || validation.accepted.length < 1) {
+          if (
+            !validation.enoughSources ||
+            validation.accepted.length < settings.minimumSourcesPerStory
+          ) {
             this.logger.error(
               [
                 'Sports story rejected',
@@ -1805,17 +1924,29 @@ export class SportsNewsAutomationService {
 
     const title = this.renderPostTitle(edition, dateKey, settings);
 
-    const channel = await this.resolveChannel(settings.telegramChannelId);
+    const channels = (
+      await Promise.all(
+        getEditionPlatforms(edition, settings).map((platform) =>
+          this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        ),
+      )
+    ).filter((channel) => channel !== null);
 
-    if (!channel) {
+    if (channels.length === 0) {
       return 0;
     }
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
-        channelId: channel.id,
+        channelId: {
+          in: channels.map((channel) => channel.id),
+        },
         title,
-        platform: SocialPlatform.TELEGRAM,
       },
       select: {
         id: true,
@@ -1854,17 +1985,29 @@ export class SportsNewsAutomationService {
 
     const title = this.renderPostTitle(edition, dateKey, settings);
 
-    const channel = await this.resolveChannel(settings.telegramChannelId);
+    const channels = (
+      await Promise.all(
+        getEditionPlatforms(edition, settings).map((platform) =>
+          this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        ),
+      )
+    ).filter((channel) => channel !== null);
 
-    if (!channel) {
+    if (channels.length === 0) {
       return 0;
     }
 
     const result = await this.prisma.scheduledPost.deleteMany({
       where: {
-        channelId: channel.id,
+        channelId: {
+          in: channels.map((channel) => channel.id),
+        },
         title,
-        platform: SocialPlatform.TELEGRAM,
       },
     });
 

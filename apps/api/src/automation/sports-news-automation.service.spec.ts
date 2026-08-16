@@ -1,4 +1,9 @@
-import { shouldRunScheduledEdition } from './sports-news-automation.service';
+import {
+  getEditionPlatforms,
+  resolveSportsNewsInitialStatus,
+  shouldRunScheduledEdition,
+} from './sports-news-automation.service';
+import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
 
 describe('shouldRunScheduledEdition', () => {
   const now = new Date('2026-08-17T02:30:00.000Z');
@@ -56,5 +61,48 @@ describe('shouldRunScheduledEdition', () => {
         timezone: 'Asia/Kuala_Lumpur',
       }),
     ).toBe(true);
+  });
+
+  it('builds the target list from global and edition channel switches', () => {
+    expect(
+      getEditionPlatforms('MORNING', {
+        telegramEnabled: true,
+        facebookEnabled: true,
+        morningTelegramEnabled: false,
+        morningFacebookEnabled: true,
+        eveningTelegramEnabled: true,
+        eveningFacebookEnabled: false,
+      }),
+    ).toEqual([SocialPlatform.FACEBOOK]);
+  });
+
+  it('keeps approval-required content in draft', () => {
+    expect(
+      resolveSportsNewsInitialStatus({
+        autoPublishEnabled: true,
+        approvalRequired: true,
+        queueStatusOnCreate: 'QUEUED',
+      }),
+    ).toBe(ScheduledPostStatus.DRAFT);
+  });
+
+  it('keeps content in draft when auto publishing is disabled', () => {
+    expect(
+      resolveSportsNewsInitialStatus({
+        autoPublishEnabled: false,
+        approvalRequired: false,
+        queueStatusOnCreate: 'SCHEDULED',
+      }),
+    ).toBe(ScheduledPostStatus.DRAFT);
+  });
+
+  it('honors the configured queue status when automatic publishing is safe', () => {
+    expect(
+      resolveSportsNewsInitialStatus({
+        autoPublishEnabled: true,
+        approvalRequired: false,
+        queueStatusOnCreate: 'SCHEDULED',
+      }),
+    ).toBe(ScheduledPostStatus.SCHEDULED);
   });
 });
