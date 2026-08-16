@@ -29,6 +29,7 @@ function resolveAtlasBuild() {
 const atlasBuild = resolveAtlasBuild();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.101.3"],
   env: {
     NEXT_PUBLIC_ATLAS_BUILD: atlasBuild,
   },

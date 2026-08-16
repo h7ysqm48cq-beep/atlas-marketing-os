@@ -1,13 +1,18 @@
-const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.trim();
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+const isLocalBrowser =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1");
 
 export const API_URL = (
-  configuredApiUrl || 'http://localhost:3001'
-).replace(/\/+$/, '');
+  isLocalBrowser
+    ? "http://localhost:3001"
+    : configuredApiUrl || "http://localhost:3001"
+).replace(/\/+$/, "");
 
 export function apiUrl(path: string): string {
-  const normalizedPath =
-    path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
   return `${API_URL}${normalizedPath}`;
 }
