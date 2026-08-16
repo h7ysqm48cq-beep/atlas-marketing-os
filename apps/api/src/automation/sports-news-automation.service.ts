@@ -113,11 +113,18 @@ export class SportsNewsAutomationService {
 
     const currentTime = `${hour}:${minute}`;
 
-    if (settings.morningEnabled && currentTime === settings.morningTime) {
+    if (
+      settings.morningEnabled &&
+      currentTime >= settings.morningTime &&
+      currentTime < settings.eveningTime
+    ) {
       await this.createEdition('MORNING');
     }
 
-    if (settings.eveningEnabled && currentTime === settings.eveningTime) {
+    if (
+      settings.eveningEnabled &&
+      currentTime >= settings.eveningTime
+    ) {
       await this.createEdition('EVENING');
     }
   }
