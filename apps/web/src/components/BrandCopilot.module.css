@@ -48,17 +48,10 @@
   justify-content: space-between;
 }
 
-.assistant strong,
 .user strong {
   color: var(--gold-light);
   font-size: 9px;
   text-transform: uppercase;
-}
-
-.assistant button {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
 }
 
 .composer > div {
@@ -85,14 +78,6 @@
   opacity: 0.5;
 }
 
-@media (max-width: 720px) {
-  .composer > div {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-
 /* Copilot mobile v1 */
 .mobileSidebarHeader,
 .mobileConversationOverlay {
@@ -100,10 +85,6 @@
 }
 
 @media (max-width: 720px) {
-  .page {
-    gap: 12px;
-  }
-
   .sidebar.mobileSidebarOpen {
     transform: translateX(0);
   }
@@ -164,57 +145,11 @@
     opacity: 1;
     pointer-events: auto;
   }
-
-  .composer > div {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .composer small {
-    font-size: 9px;
-  }
-
-  .composer button {
-    min-height: 40px;
-    padding: 0 13px;
-    font-size: 11px;
-    white-space: nowrap;
-  }
 }
 
 /* Copilot mobile v2 chat-first */
-@media (max-width: 720px) {
-  .page {
-    gap: 10px;
-  }
-
-  .composer small {
-    display: none;
-  }
-
-  .composer button {
-    margin-left: auto;
-    min-height: 38px;
-    padding: 0 13px;
-    font-size: 11px;
-  }
-}
 
 /* Copilot mobile v3 fixed composer */
-@media (max-width: 720px) {
-  .page {
-    min-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
-  }
-
-  .composer > div {
-    min-height: 38px;
-  }
-
-  .composer button {
-    min-width: 84px;
-  }
-}
 
 /* Marketing plan card system v4 */
 
@@ -469,37 +404,12 @@
   display: none;
 }
 
-.attachmentTray {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 0 10px;
-}
-
 .attachButton:hover {
   border-color: rgba(209, 163, 63, 0.4);
   color: var(--gold-light);
 }
 
-.attachButton:disabled {
-  cursor: wait;
-  opacity: 0.55;
-}
-
-.generatedImage {
-  width: 100%;
-  max-width: 420px;
-  margin-top: 16px;
-  border-radius: 16px;
-  display: block;
-}
-
 /* Copilot professional message actions */
-.messageActions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
 .messageActionButton {
   min-height: 30px;
@@ -543,16 +453,6 @@
   transform: scale(0.96);
 }
 
-.generatedImage {
-  display: block;
-  width: min(100%, 560px);
-  height: auto;
-  margin-top: 6px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  object-fit: cover;
-}
-
 @media (max-width: 720px) {
   .messageActionButton {
     min-height: 32px;
@@ -575,17 +475,6 @@
   display: grid;
   gap: 8px;
   margin-top: 6px;
-}
-
-.generatedImagePreview {
-  position: relative;
-  width: 100%;
-  display: block;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid var(--border) !important;
-  border-radius: 13px;
-  background: #080a0f !important;
 }
 
 .generatedImagePreview .generatedImage {
@@ -788,24 +677,6 @@
 /* === END COPILOT STUDIO RESULT ACTIONS === */
 
 /* Elena readable selectable response content */
-.messageContent {
-  min-width: 0;
-  display: grid;
-  gap: 12px;
-  -webkit-user-select: text;
-  user-select: text;
-  cursor: text;
-}
-
-.messageContent p {
-  margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.75;
-  overflow-wrap: anywhere;
-  -webkit-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: default;
-}
 
 .messageContent::selection,
 .messageContent p::selection {
@@ -813,25 +684,6 @@
 }
 
 /* Elena structured readable responses */
-.messageContent {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  -webkit-user-select: text;
-  user-select: text;
-  cursor: text;
-}
-
-.messageContent p {
-  margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.72;
-  overflow-wrap: anywhere;
-  -webkit-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: default;
-}
 
 .messageSpacer {
   height: 8px;
@@ -868,17 +720,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.messageListItem {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 5px;
-  align-items: start;
-  line-height: 1.65;
-  overflow-wrap: anywhere;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
 .messageListMarker {
   color: var(--gold-light);
   text-align: right;
@@ -890,55 +731,6 @@
 
 .messageContent ::selection {
   background: rgba(209, 163, 63, 0.32);
-}
-
-.messageContent strong {
-  color: inherit;
-  font-size: inherit;
-  font-weight: 760;
-  text-transform: none;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.messageContentLabel {
-  width: fit-content;
-  margin: 12px 0 3px;
-  padding: 4px 8px;
-  border: 1px solid rgba(209, 163, 63, 0.22);
-  border-radius: 7px;
-  background: rgba(209, 163, 63, 0.07);
-  color: var(--gold-light);
-  font-size: 10px;
-  line-height: 1.4;
-  font-weight: 760;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.messageContentLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sectionCopyButton {
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 650;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 .sectionCopyButton:hover {
@@ -959,7 +751,6 @@
 .assistant h3,
 .assistant h4,
 .assistant span,
-.assistant strong,
 .assistant div {
   -webkit-user-select: text;
   user-select: text;
@@ -967,11 +758,8 @@
 }
 
 /* Interactive controls should not become part of dragged text */
-.assistant button,
 .assistant button *,
-.messageActions,
 .messageActions *,
-.sectionCopyButton,
 .sectionCopyButton * {
   -webkit-user-select: none;
   user-select: none;
@@ -979,16 +767,10 @@
 }
 
 /* Make dragging across long responses feel natural */
-.messageContent {
-  cursor: text;
-}
 
-.messageContent p,
 .messageContent h3,
 .messageContent h4,
-.messageContent span,
-.messageContent strong,
-.messageListItem {
+.messageContent span {
   cursor: text;
 }
 
@@ -1042,11 +824,6 @@
   }
 }
 
-.generatedImagePreview {
-  position: relative;
-  overflow: hidden;
-}
-
 .regeneratingImageOverlay {
   position: absolute;
   inset: 0;
@@ -1074,10 +851,6 @@
 /* ChatGPT-style Elena composer */
 
 /* Elena single-box chat composer */
-
-.attachButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06) !important;
-}
 
 @keyframes elenaThinkingPulse {
   from {
@@ -1305,17 +1078,6 @@
 
 /* Old hero is no longer part of the primary chat experience */
 @media (max-width: 720px) {
-  .chatTopbar {
-    min-height: 52px;
-    gap: 8px;
-    padding: 7px 9px;
-  }
-
-  .chatTopbarIdentity {
-    min-width: 0;
-    margin-right: auto;
-  }
-
   .elenaAvatar {
     width: 30px;
     height: 30px;
@@ -1583,16 +1345,6 @@
 /* Collapsible Marketing Plan */
 
 /* Compact ChatGPT-like attachment tray */
-.attachmentTray {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 3px 2px 5px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-}
 
 .attachmentChip {
   min-width: 0;
@@ -1606,29 +1358,6 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.025);
-}
-
-.attachmentThumbnail,
-.attachmentFileIcon {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 7px;
-}
-
-.attachmentThumbnail {
-  object-fit: cover;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.attachmentFileIcon {
-  display: grid;
-  place-items: center;
-  background: rgba(209, 163, 63, 0.09);
-  color: var(--gold-light);
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: 0.04em;
 }
 
 .attachmentChipText {
@@ -1673,21 +1402,9 @@
 
 /* Neutralize legacy large attachment cards if still present elsewhere */
 @media (max-width: 720px) {
-  .attachmentTray {
-    gap: 6px;
-    padding-bottom: 4px;
-  }
-
   .attachmentChip {
     max-width: 180px;
     height: 40px;
-  }
-
-  .attachmentThumbnail,
-  .attachmentFileIcon {
-    width: 30px;
-    height: 30px;
-    flex-basis: 30px;
   }
 }
 
@@ -1761,15 +1478,6 @@
 @media (max-width: 720px) {
   .chatTopbarMenu {
     display: grid;
-  }
-
-  .chatTopbar {
-    width: 100%;
-    min-height: 52px;
-  }
-
-  .chatTopbarIdentity {
-    flex: 1;
   }
 }
 
@@ -1935,13 +1643,6 @@
   background: transparent;
   color: var(--text);
   font-size: 10px;
-}
-.attachButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-}
-.attachButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }
 .attachButton svg {
   width: 17px;
@@ -2239,22 +1940,6 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
-.renameConversation,
-.deleteConversation {
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  opacity: 0;
-}
-.renameConversation {
-  font-size: 14px;
-}
-.deleteConversation {
-  font-size: 18px;
-}
 @media (max-width: 950px) {
   .layout {
     grid-template-columns: 1fr;
@@ -2515,5 +2200,249 @@
   .ideaList p {
     font-size: 12px;
     line-height: 1.55;
+  }
+}
+/* Elena message system — canonical */
+.assistant strong {
+  color: var(--gold-light);
+  font-size: 9px;
+  text-transform: uppercase;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+.assistant button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.messageContent {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.messageContent p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+  cursor: text;
+}
+.messageListItem {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 5px;
+  align-items: start;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.messageContent strong {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 760;
+  text-transform: none;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.messageContentLabel {
+  width: fit-content;
+  margin: 12px 0 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid rgba(209, 163, 63, 0.22);
+  border-radius: 7px;
+  background: rgba(209, 163, 63, 0.07);
+  color: var(--gold-light);
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.messageActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.sectionCopyButton {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Generated image + attachments — canonical */
+.generatedImage {
+  display: block;
+  width: min(100%, 560px);
+  height: auto;
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  object-fit: cover;
+}
+.generatedImagePreview {
+  position: relative;
+  width: 100%;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+  border-radius: 13px;
+  background: #080a0f !important;
+}
+.attachmentTray {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 2px 5px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.attachButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.attachButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+@media (max-width: 720px) {
+  .attachmentTray {
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .attachmentThumbnail,
+  .attachmentFileIcon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+}
+/* Final BrandCopilot residual dedup — canonical */
+.renameConversation {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0;
+  font-size: 14px;
+}
+.deleteConversation {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0;
+  font-size: 18px;
+}
+.attachmentThumbnail {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 7px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.04);
+}
+.attachmentFileIcon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: rgba(209, 163, 63, 0.09);
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 720px) {
+  .page {
+    gap: 10px;
+    min-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
+  }
+
+  .composer > div {
+    min-height: 38px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .composer small {
+    display: none;
+    font-size: 9px;
+  }
+
+  .composer button {
+    min-width: 84px;
+    min-height: 38px;
+    margin-left: auto;
+    padding: 0 13px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .chatTopbar {
+    width: 100%;
+    min-height: 52px;
+    gap: 8px;
+    padding: 7px 9px;
+  }
+
+  .chatTopbarIdentity {
+    min-width: 0;
+    flex: 1;
+    margin-right: auto;
+  }
+
+  .renameConversation,
+  .deleteConversation {
+    opacity: 1;
+  }
+
+  .attachmentThumbnail,
+  .attachmentFileIcon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
   }
 }
