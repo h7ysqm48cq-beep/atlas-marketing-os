@@ -67,17 +67,42 @@ export class AssetImageBackgroundJobService implements OnApplicationBootstrap {
     return this.toPublicJob(job);
   }
 
-  async getActiveJobs() {
+  async getRecoverableJobs(conversationId: string) {
+    const normalizedConversationId = conversationId.trim();
+
+    if (!normalizedConversationId) {
+      return [];
+    }
+
+    const recentTerminalCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
     const jobs = await this.prisma.backgroundJob.findMany({
       where: {
         type: BackgroundJobType.ASSET_IMAGE,
-        status: {
-          in: [BackgroundJobStatus.QUEUED, BackgroundJobStatus.RUNNING],
+        payload: {
+          path: ['conversationId'],
+          equals: normalizedConversationId,
         },
+        OR: [
+          {
+            status: {
+              in: [BackgroundJobStatus.QUEUED, BackgroundJobStatus.RUNNING],
+            },
+          },
+          {
+            status: {
+              in: [BackgroundJobStatus.SUCCEEDED, BackgroundJobStatus.FAILED],
+            },
+            completedAt: {
+              gte: recentTerminalCutoff,
+            },
+          },
+        ],
       },
       orderBy: {
         createdAt: 'desc',
       },
+      take: 50,
     });
 
     return jobs.map((job) => this.toPublicJob(job));

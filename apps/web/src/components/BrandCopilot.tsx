@@ -127,6 +127,23 @@ type ConversationDetail = {
   }>;
 };
 
+type ImageBackgroundJob = {
+  id: string;
+  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  payload?: {
+    conversationId?: string;
+    messageIndex?: number;
+  };
+  result?: {
+    asset?: {
+      url?: string;
+      thumbnailUrl?: string;
+    };
+  };
+  error?: string | null;
+  createdAt: string;
+};
+
 type MarketingPlan = {
   campaignName: string;
   objective: string;
@@ -363,6 +380,12 @@ export function BrandCopilot() {
   >(null);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const conversationIdRef = useRef<string | null>(null);
+
+  function selectConversationId(nextConversationId: string | null) {
+    conversationIdRef.current = nextConversationId || null;
+    setConversationId(nextConversationId);
+  }
 
   const [campaignId, setCampaignId] = useState<string | null>(null);
 
@@ -890,8 +913,22 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
-    void resumeImageJobs();
-  }, []);
+    conversationIdRef.current = conversationId || null;
+
+    imagePollingTimersRef.current.forEach((timer) => clearInterval(timer));
+    imagePollingTimersRef.current = [];
+
+    if (conversationId) {
+      void resumeImageJobs(conversationId);
+    }
+
+    return () => {
+      imagePollingTimersRef.current.forEach((timer) => clearInterval(timer));
+      imagePollingTimersRef.current = [];
+    };
+    // resumeImageJobs is intentionally scoped to the conversation transition.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   useEffect(() => {
     const savedConversationId = localStorage.getItem(
@@ -903,6 +940,8 @@ export function BrandCopilot() {
     }
 
     void openConversation(savedConversationId);
+    // Restore exactly once from the persisted conversation id on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -935,7 +974,7 @@ export function BrandCopilot() {
   }
 
   function newChat() {
-    setConversationId("");
+    selectConversationId("");
 
     localStorage.removeItem("atlas-copilot-last-conversation");
     setMessages(INITIAL_MESSAGES);
@@ -1152,7 +1191,7 @@ export function BrandCopilot() {
         });
       }
 
-      setConversationId(data.id);
+      selectConversationId(data.id);
 
       localStorage.setItem("atlas-copilot-last-conversation", data.id);
       setMessages(
@@ -1270,6 +1309,8 @@ export function BrandCopilot() {
   }
 
   useEffect(() => {
+    // Editing state belongs to the previously selected conversation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditingStudioResultIndex(null);
   }, [conversationId]);
 
@@ -1520,34 +1561,6 @@ export function BrandCopilot() {
     );
   }
 
-  function buildAttachmentContext() {
-    if (!attachments.length) {
-      return "";
-    }
-
-    const lines = attachments.map((attachment, index) => {
-      const parts = [
-        `${index + 1}. ${attachment.name}`,
-        `Type: ${attachment.mimeType}`,
-        attachment.url ? `URL: ${attachment.url}` : "",
-        attachment.documentId
-          ? `Knowledge document ID: ${attachment.documentId}`
-          : "",
-      ].filter(Boolean);
-
-      return parts.join("\n");
-    });
-
-    return [
-      "",
-      "",
-      "[Attached files]",
-      ...lines,
-      "",
-      "Use these attached files as context for this request.",
-    ].join("\n");
-  }
-
   async function send(
     event?: FormEvent,
     retry?: {
@@ -1636,7 +1649,7 @@ export function BrandCopilot() {
         ]);
 
         if (data.conversation?.id || data.conversationId) {
-          setConversationId(data.conversation?.id || data.conversationId);
+          selectConversationId(data.conversation?.id || data.conversationId);
         }
 
         // Keep Marketing Plan mode active.
@@ -1732,7 +1745,7 @@ export function BrandCopilot() {
         }
 
         if (data.conversation?.id) {
-          setConversationId(data.conversation.id);
+          selectConversationId(data.conversation.id);
         }
 
         const parsedReply = parseWorkspaceAction(data.reply);
@@ -1921,7 +1934,15 @@ export function BrandCopilot() {
     }
   };
 
-  function updateMessageImage(index: number, imageUrl: string) {
+  function updateMessageImage(
+    originConversationId: string,
+    index: number,
+    imageUrl: string,
+  ) {
+    if (conversationIdRef.current !== originConversationId) {
+      return;
+    }
+
     setMessages((current) =>
       current.map((message, messageIndex) =>
         messageIndex === index
@@ -1934,9 +1955,13 @@ export function BrandCopilot() {
     );
   }
 
-  async function resumeImageJobs() {
+  async function resumeImageJobs(originConversationId: string) {
     try {
-      const response = await fetch(`${API_URL}/copilot/image/jobs`);
+      const response = await fetch(
+        `${API_URL}/copilot/image/jobs?conversationId=${encodeURIComponent(
+          originConversationId,
+        )}`,
+      );
 
       if (!response.ok) {
         return;
@@ -1948,7 +1973,48 @@ export function BrandCopilot() {
         return;
       }
 
-      const activeJobs = jobs.filter(
+      const conversationJobs = (jobs as ImageBackgroundJob[])
+        .filter((job) => job.payload?.conversationId === originConversationId)
+        .sort(
+          (left, right) =>
+            new Date(left.createdAt).getTime() -
+            new Date(right.createdAt).getTime(),
+        );
+
+      if (conversationJobs.length === 0) {
+        return;
+      }
+
+      const applyCompletedJob = (job: ImageBackgroundJob) => {
+        if (
+          conversationIdRef.current !== originConversationId ||
+          job.payload?.conversationId !== originConversationId
+        ) {
+          return false;
+        }
+
+        const imageUrl =
+          job.result?.asset?.url || job.result?.asset?.thumbnailUrl;
+        const messageIndex =
+          typeof job.payload?.messageIndex === "number"
+            ? job.payload.messageIndex
+            : -1;
+
+        if (!imageUrl || messageIndex < 0) {
+          return false;
+        }
+
+        updateMessageImage(originConversationId, messageIndex, imageUrl);
+        return true;
+      };
+
+      conversationJobs
+        .filter((job) => job.status === "SUCCEEDED")
+        .forEach((job) => {
+          applyCompletedJob(job);
+        });
+
+      const activeJobs = conversationJobs.filter(
         (job) => job.status === "QUEUED" || job.status === "RUNNING",
       );
 
@@ -1969,26 +2035,22 @@ export function BrandCopilot() {
 
             if (result.status === "SUCCEEDED") {
               clearInterval(timer);
+              imagePollingTimersRef.current =
+                imagePollingTimersRef.current.filter(
+                  (currentTimer) => currentTimer !== timer,
+                );
 
-              const imageUrl =
-                result.result?.asset?.url || result.result?.asset?.thumbnailUrl;
-
-              if (imageUrl) {
-                const currentIndex =
-                  typeof result.payload?.messageIndex === "number"
-                    ? result.payload.messageIndex
-                    : -1;
-
-                if (currentIndex >= 0) {
-                  updateMessageImage(currentIndex, imageUrl);
-                }
+              if (applyCompletedJob(result)) {
+                setStatus("Image generated.");
               }
-
-              setStatus("Image generated.");
             }
 
             if (result.status === "FAILED") {
               clearInterval(timer);
+              imagePollingTimersRef.current =
+                imagePollingTimersRef.current.filter(
+                  (currentTimer) => currentTimer !== timer,
+                );
             }
           } catch {
             clearInterval(timer);
@@ -2004,6 +2066,7 @@ export function BrandCopilot() {
 
   const generateImageFromMessage = async (content: string, index: number) => {
     let timer: ReturnType<typeof setInterval> | null = null;
+    const originConversationId = conversationId || null;
 
     try {
       setGeneratingImageIndex(index);
@@ -2017,7 +2080,7 @@ export function BrandCopilot() {
         body: JSON.stringify({
           content,
           platform: "Facebook",
-          conversationId,
+          conversationId: originConversationId || undefined,
           messageIndex: index,
         }),
       });
@@ -2059,6 +2122,14 @@ export function BrandCopilot() {
               throw new Error("Generated image URL missing.");
             }
 
+            if (
+              conversationIdRef.current !== originConversationId ||
+              (originConversationId &&
+                job.payload?.conversationId !== originConversationId)
+            ) {
+              return;
+            }
+
             setMessages((current) =>
               current.map((message, messageIndex) =>
                 messageIndex === index
@@ -2085,18 +2156,26 @@ export function BrandCopilot() {
                 );
             }
 
-            throw new Error(job.error || "Image generation failed.");
+            if (conversationIdRef.current === originConversationId) {
+              throw new Error(job.error || "Image generation failed.");
+            }
+
+            return;
           }
         } catch (error) {
           if (timer) {
             clearInterval(timer);
           }
 
-          setStatus(
-            error instanceof Error ? error.message : "Image generation failed.",
-          );
+          if (conversationIdRef.current === originConversationId) {
+            setStatus(
+              error instanceof Error
+                ? error.message
+                : "Image generation failed.",
+            );
 
-          setGeneratingImageIndex(null);
+            setGeneratingImageIndex(null);
+          }
         }
       }, 3000);
 
@@ -2104,11 +2183,13 @@ export function BrandCopilot() {
         imagePollingTimersRef.current.push(timer);
       }
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "Image generation failed.",
-      );
+      if (conversationIdRef.current === originConversationId) {
+        setStatus(
+          error instanceof Error ? error.message : "Image generation failed.",
+        );
 
-      setGeneratingImageIndex(null);
+        setGeneratingImageIndex(null);
+      }
     }
   };
 

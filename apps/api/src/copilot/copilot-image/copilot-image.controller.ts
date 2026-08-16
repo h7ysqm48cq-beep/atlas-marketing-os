@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CopilotImageService } from './copilot-image.service';
 import { AssetImageBackgroundJobService } from '../../asset-image/asset-image-background-job.service';
 
@@ -23,8 +23,8 @@ export class CopilotImageController {
   }
 
   @Get('image/jobs')
-  getActiveImageJobs() {
-    return this.backgroundJobs.getActiveJobs();
+  getRecoverableImageJobs(@Query('conversationId') conversationId = '') {
+    return this.backgroundJobs.getRecoverableJobs(conversationId);
   }
 
   @Get('image/:id')
