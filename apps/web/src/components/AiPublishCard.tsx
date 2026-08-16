@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceResult } from "./AiWorkspace";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./AiPublishCard.module.css";
 import { usePreferences } from "@/components/preferences";
 
@@ -620,7 +621,7 @@ export function AiPublishCard({
 
         {selectedAsset ? (
           <div className={styles.selectedAsset}>
-            <img
+            <RuntimeImage
               src={selectedAsset.thumbnailUrl || selectedAsset.url}
               alt={selectedAsset.name}
             />
@@ -781,7 +782,7 @@ export function AiPublishCard({
                         setAssetPickerOpen(false);
                       }}
                     >
-                      <img
+                      <RuntimeImage
                         src={asset.thumbnailUrl || asset.url}
                         alt={asset.name}
                       />

@@ -1,5 +1,6 @@
 "use client";
 
+import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./AssetDetailsDrawer.module.css";
 
 type DrawerAsset = {
@@ -55,7 +56,9 @@ export function AssetDetailsDrawer({
 
         <div className={styles.preview}>
           {asset.type === "IMAGE" ? (
-            <img
+            <RuntimeImage
+              width={asset.width || undefined}
+              height={asset.height || undefined}
               src={asset.thumbnailUrl || asset.url}
               alt={asset.name}
             />

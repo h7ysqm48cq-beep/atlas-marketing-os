@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DragEvent } from "react";
+import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./ContentCalendar.module.css";
 import { usePreferences } from "@/components/preferences";
 
@@ -1170,7 +1171,7 @@ export function ContentCalendar() {
                         }}
                       >
                         {post.mediaUrls[0] ? (
-                          <img
+                          <RuntimeImage
                             className={styles.eventThumbnail}
                             alt=""
                             src={post.mediaUrls[0]}
@@ -1589,7 +1590,7 @@ export function ContentCalendar() {
                   <div className={styles.selectedMedia}>
                     {form.mediaUrls.map((url) => (
                       <div className={styles.selectedMediaItem} key={url}>
-                        <img
+                        <RuntimeImage
                           alt={ui("Selected media", "已选择媒体")}
                           src={url}
                         />
@@ -1635,7 +1636,9 @@ export function ContentCalendar() {
                             type="button"
                             onClick={() => toggleMediaUrl(asset.url)}
                           >
-                            <img
+                            <RuntimeImage
+                              width={asset.width || undefined}
+                              height={asset.height || undefined}
                               alt={asset.name}
                               src={asset.thumbnailUrl || asset.url}
                             />
@@ -1772,7 +1775,7 @@ export function ContentCalendar() {
             {selectedPost.mediaUrls.length ? (
               <section className={styles.postMediaPreview}>
                 {selectedPost.mediaUrls.map((url) => (
-                  <img alt="Post media" key={url} src={url} />
+                  <RuntimeImage alt="Post media" key={url} src={url} />
                 ))}
               </section>
             ) : null}

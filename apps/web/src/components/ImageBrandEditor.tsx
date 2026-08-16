@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { API_URL } from "@/lib/api";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./ImageBrandEditorV3.module.css";
 
 const aiEditPresets = [
@@ -728,7 +729,9 @@ export function ImageBrandEditor() {
       <div
         className={`${styles.canvas} ${fullscreenMode ? styles.fullscreenCanvas : ""}`}
       >
-        <img
+        <RuntimeImage
+          width={selected.width || undefined}
+          height={selected.height || undefined}
           className={styles.sourceImage}
           src={selected.url}
           alt={selected.name}
@@ -762,7 +765,7 @@ export function ImageBrandEditor() {
           />
         ) : null}
         {showLogo && logoAsset && activeTool !== "eraser" ? (
-          <img
+          <RuntimeImage
             className={`${styles.logoPreview} ${draggingLogo ? styles.logoDragging : ""}`}
             src={logoAsset.url}
             alt="Official brand logo preview"
@@ -1032,7 +1035,12 @@ export function ImageBrandEditor() {
                 className={selectedId === asset.id ? styles.selectedAsset : ""}
                 onClick={() => chooseAsset(asset)}
               >
-                <img src={asset.thumbnailUrl || asset.url} alt={asset.name} />
+                <RuntimeImage
+                  src={asset.thumbnailUrl || asset.url}
+                  alt={asset.name}
+                  width={asset.width || undefined}
+                  height={asset.height || undefined}
+                />
                 <span>{asset.name}</span>
               </button>
             ))}
@@ -1126,7 +1134,9 @@ export function ImageBrandEditor() {
                         }
                         onClick={() => chooseAsset(asset)}
                       >
-                        <img
+                        <RuntimeImage
+                          width={asset.width || undefined}
+                          height={asset.height || undefined}
                           src={asset.thumbnailUrl || asset.url}
                           alt={asset.name}
                         />
@@ -1284,7 +1294,9 @@ export function ImageBrandEditor() {
                   <button type="button" className={styles.layerRow}>
                     <span className={styles.layerThumbnail}>
                       {selected ? (
-                        <img
+                        <RuntimeImage
+                          width={selected.width || undefined}
+                          height={selected.height || undefined}
                           src={selected.thumbnailUrl || selected.url}
                           alt=""
                         />
@@ -1302,7 +1314,9 @@ export function ImageBrandEditor() {
                     onClick={() => setShowLogo((current) => !current)}
                   >
                     <span className={styles.layerThumbnail}>
-                      {logoAsset ? <img src={logoAsset.url} alt="" /> : null}
+                      {logoAsset ? (
+                        <RuntimeImage src={logoAsset.url} alt="" />
+                      ) : null}
                     </span>
                     <span>
                       <b>Brand logo</b>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./AutomationDashboard.module.css";
 import { usePreferences } from "@/components/preferences";
 
@@ -1727,7 +1728,10 @@ export function AutomationDashboard() {
                 <small>Authorizing secure viewer session.</small>
               </div>
             ) : draftScreenshot ? (
-              <img src={draftScreenshot} alt={copy.screenshotPreview} />
+              <RuntimeImage
+                src={draftScreenshot}
+                alt={copy.screenshotPreview}
+              />
             ) : (
               <div className={styles.previewEmpty}>
                 <span>Facebook</span>
@@ -2305,7 +2309,7 @@ export function AutomationDashboard() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <img
+                      <RuntimeImage
                         src={browserActionScreenshotUrl(
                           selectedBrowserHistoryItem.id,
                         )}
@@ -2325,7 +2329,7 @@ export function AutomationDashboard() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <img
+                      <RuntimeImage
                         src={browserActionScreenshotUrl(
                           selectedBrowserHistoryItem.id,
                           "before",
@@ -2346,7 +2350,7 @@ export function AutomationDashboard() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <img
+                      <RuntimeImage
                         src={browserActionScreenshotUrl(
                           selectedBrowserHistoryItem.id,
                           "after",

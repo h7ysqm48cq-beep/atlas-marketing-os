@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "@/lib/api";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./ImageEditorV2.module.css";
 
 type ImageAsset = {
@@ -274,7 +275,12 @@ export function ImageEditorV2() {
           <div className={styles.preview}>
             {asset ? (
               <>
-                <img src={asset.url} alt={asset.name} />
+                <RuntimeImage
+                  src={asset.url}
+                  alt={asset.name}
+                  width={asset.width || undefined}
+                  height={asset.height || undefined}
+                />
                 {previewTextLayers.map((layer) => (
                   <div
                     key={layer.id}
@@ -294,7 +300,9 @@ export function ImageEditorV2() {
                   </div>
                 ))}
                 {previewQrLayers.map((layer) => (
-                  <img
+                  <RuntimeImage
+                    width={260}
+                    height={260}
                     key={layer.id}
                     className={styles.qrPreview}
                     src={`https://quickchart.io/qr?size=260&margin=1&text=${encodeURIComponent(

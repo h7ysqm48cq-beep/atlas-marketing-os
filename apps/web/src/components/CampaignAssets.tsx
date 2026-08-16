@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./CampaignAssets.module.css";
 import { AssetDetailsDrawer } from "./campaign-assets/AssetDetailsDrawer";
+import { RuntimeImage } from "./RuntimeImage";
 
 import { API_URL } from '@/lib/api';
 type AssetType =
@@ -483,7 +484,9 @@ export function CampaignAssets({
             >
               <div className={styles.preview}>
                 {asset.type === "IMAGE" ? (
-                  <img
+                  <RuntimeImage
+                    width={asset.width || undefined}
+                    height={asset.height || undefined}
                     src={asset.thumbnailUrl || asset.url}
                     alt={asset.name}
                   />

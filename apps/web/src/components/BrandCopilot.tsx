@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import styles from "./BrandCopilot.module.css";
 import { CopilotStudioResultCard } from "./CopilotStudioResultCard";
+import { RuntimeImage } from "./RuntimeImage";
 import { API_URL } from "@/lib/api";
 
 type Campaign = {
@@ -2945,7 +2946,7 @@ export function BrandCopilot() {
                       className={styles.generatedImagePreview}
                       aria-label="Generated image preview"
                     >
-                      <img
+                      <RuntimeImage
                         src={message.imageUrl}
                         alt="Generated visual"
                         className={styles.generatedImage}
@@ -3253,7 +3254,7 @@ export function BrandCopilot() {
                 {attachments.map((attachment) => (
                   <div key={attachment.id} className={styles.attachmentChip}>
                     {attachment.kind === "image" ? (
-                      <img
+                      <RuntimeImage
                         src={attachment.url}
                         alt=""
                         className={styles.attachmentThumbnail}

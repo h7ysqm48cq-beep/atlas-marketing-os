@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./AssetLibrary.module.css";
 import { usePreferences } from "@/components/preferences";
 
@@ -542,7 +543,9 @@ export function AssetLibrary() {
                       <small>Legacy file is no longer available</small>
                     </div>
                   ) : (
-                    <img
+                    <RuntimeImage
+                      width={asset.width || undefined}
+                      height={asset.height || undefined}
                       src={asset.thumbnailUrl || asset.url}
                       alt={asset.name}
                     />
@@ -692,7 +695,9 @@ export function AssetLibrary() {
 
             <div className={styles.assetEditorSummary}>
               {editingAsset.type === "IMAGE" ? (
-                <img
+                <RuntimeImage
+                  width={editingAsset.width || undefined}
+                  height={editingAsset.height || undefined}
                   src={editingAsset.thumbnailUrl || editingAsset.url}
                   alt={editingAsset.name}
                 />

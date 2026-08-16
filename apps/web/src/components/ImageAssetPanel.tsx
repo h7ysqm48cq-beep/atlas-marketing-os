@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
@@ -562,7 +563,12 @@ export function ImageAssetPanel({
       {asset ? (
         <>
           <div className={styles.result}>
-            <img src={asset.url} alt={asset.name} />
+            <RuntimeImage
+              src={asset.url}
+              alt={asset.name}
+              width={asset.width || undefined}
+              height={asset.height || undefined}
+            />
 
             <div>
               <span>Saved asset · Version {selectedVersion}</span>

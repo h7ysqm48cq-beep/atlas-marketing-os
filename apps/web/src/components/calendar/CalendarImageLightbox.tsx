@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePreferences } from "@/components/preferences";
+import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./CalendarImageLightbox.module.css";
 
 function isPreviewableCalendarImage(image: HTMLImageElement) {
@@ -93,7 +94,7 @@ export function CalendarImageLightbox({ children }: { children: ReactNode }) {
             </header>
 
             <div className={styles.imageStage}>
-              <img src={imageUrl} alt={imageAlt} />
+              <RuntimeImage src={imageUrl} alt={imageAlt} />
             </div>
 
             <footer>

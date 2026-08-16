@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { AiWorkspace, WorkspaceResult } from "./AiWorkspace";
 import { AiTopicSuggestions } from "./AiTopicSuggestions";
+import { RuntimeImage } from "./RuntimeImage";
 import styles from "./AiStudio.module.css";
 import { usePreferences } from "@/components/preferences";
 
@@ -1124,7 +1125,7 @@ export function AiStudio({
               <div className={styles.selectedAssets}>
                 {selectedAssets.map((asset) => (
                   <div className={styles.selectedAsset} key={asset.id}>
-                    <img
+                    <RuntimeImage
                       src={asset.thumbnailUrl || asset.url}
                       alt={asset.name}
                     />
@@ -1312,7 +1313,7 @@ export function AiStudio({
                         key={asset.id}
                         onClick={() => toggleAsset(asset)}
                       >
-                        <img
+                        <RuntimeImage
                           src={asset.thumbnailUrl || asset.url}
                           alt={asset.name}
                         />
