@@ -5,6 +5,7 @@ import { HistoryModule } from '../history/history.module';
 import { AiProviderService } from './ai-provider.service';
 import { AiProviderController } from './ai-provider.controller';
 import { OpenAiProvider } from './openai.provider';
+import { GoogleAiStudioProvider } from './google-ai-studio.provider';
 
 @Module({
   controllers: [AiProviderController],
@@ -12,10 +13,12 @@ import { OpenAiProvider } from './openai.provider';
   providers: [
     AiProviderService,
     OpenAiProvider,
+    GoogleAiStudioProvider,
   ],
   exports: [
     AiProviderService,
     OpenAiProvider,
+    GoogleAiStudioProvider,
   ],
 })
 export class AiProviderModule {}
