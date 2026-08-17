@@ -16,6 +16,7 @@ type TestAiProviderDto = {
   language?: string;
   style?: string;
   model?: string;
+  provider?: 'openai' | 'google';
 };
 
 @Controller('ai-provider')
@@ -46,9 +47,7 @@ export class AiProviderController {
       });
 
     const builtPrompt =
-      this.promptBuilderService.build(
-        context,
-      );
+      this.promptBuilderService.build(context);
 
     const result =
       await this.aiProviderService.generate(
@@ -57,93 +56,61 @@ export class AiProviderController {
           user: builtPrompt.user,
         },
         {
+          provider: dto.provider,
           model: dto.model,
           maxOutputTokens: 1600,
-          responseFormat:
-            builtPrompt.outputFormat,
+          responseFormat: builtPrompt.outputFormat,
         },
       );
 
     let structuredResult:
       StructuredMarketingOutput | null = null;
 
-    if (
-      builtPrompt.outputFormat === 'json'
-    ) {
+    if (builtPrompt.outputFormat === 'json') {
       try {
-        structuredResult =
-          JSON.parse(
-            result.text,
-          ) as StructuredMarketingOutput;
+        structuredResult = JSON.parse(result.text) as StructuredMarketingOutput;
       } catch {
         structuredResult = null;
       }
     }
 
-    const history =
-      structuredResult
-        ? await this.historyService.save({
-            brandId: context.brand.id,
-            campaignId:
-              context.request.campaignId ??
-              undefined,
-            topic: context.request.prompt,
-            platforms:
-              context.request.platforms,
-            style:
-              context.request.style,
-            language:
-              context.request.language,
-            facebook:
-              structuredResult.facebook.caption,
-            telegram:
-              [
-                structuredResult.telegram.message,
-                structuredResult.telegram.callToAction,
-              ]
-                .filter(Boolean)
-                .join('\n\n'),
-            reels:
-              JSON.stringify(
-                structuredResult.reels,
-              ),
-            imagePrompt:
-              structuredResult.imagePrompt,
-            analysis: {
-              title:
-                structuredResult.title,
-              hook:
-                structuredResult.hook,
-              discussionQuestion:
-                structuredResult.facebook
-                  .discussionQuestion,
-              hashtags:
-                structuredResult.hashtags,
-              provider:
-                result.provider,
-              model:
-                result.model,
-              usage:
-                result.usage,
-              durationMs:
-                result.durationMs,
-              contextMetadata:
-                context.metadata,
-              promptMetadata:
-                builtPrompt.metadata,
-              outputFormat:
-                builtPrompt.outputFormat,
-            },
-          })
-        : null;
+    const history = structuredResult
+      ? await this.historyService.save({
+          brandId: context.brand.id,
+          campaignId:
+            context.request.campaignId ?? undefined,
+          topic: context.request.prompt,
+          platforms: context.request.platforms,
+          style: context.request.style,
+          language: context.request.language,
+          facebook: structuredResult.facebook.caption,
+          telegram: [
+            structuredResult.telegram.message,
+            structuredResult.telegram.callToAction,
+          ].filter(Boolean).join('\n\n'),
+          reels: JSON.stringify(structuredResult.reels),
+          imagePrompt: structuredResult.imagePrompt,
+          analysis: {
+            title: structuredResult.title,
+            hook: structuredResult.hook,
+            discussionQuestion:
+              structuredResult.facebook.discussionQuestion,
+            hashtags: structuredResult.hashtags,
+            provider: result.provider,
+            model: result.model,
+            usage: result.usage,
+            durationMs: result.durationMs,
+            contextMetadata: context.metadata,
+            promptMetadata: builtPrompt.metadata,
+            outputFormat: builtPrompt.outputFormat,
+          },
+        })
+      : null;
 
     return {
-      contextMetadata:
-        context.metadata,
-      promptMetadata:
-        builtPrompt.metadata,
-      outputFormat:
-        builtPrompt.outputFormat,
+      contextMetadata: context.metadata,
+      promptMetadata: builtPrompt.metadata,
+      outputFormat: builtPrompt.outputFormat,
       history: history
         ? {
             id: history.id,
@@ -153,8 +120,7 @@ export class AiProviderController {
         : null,
       result: {
         ...result,
-        structured:
-          structuredResult,
+        structured: structuredResult,
       },
     };
   }
