@@ -1457,12 +1457,15 @@ export function WorkspaceSettings() {
                         </div>
                       </div>
 
-                      {(channel.browserAccounts?.length || 0) > 1 ? (
+                      {(channel.browserAccounts?.length || 0) > 0 ? (
                         <label>
                           <span>Account used for publishing</span>
                           <select
                             value={channel.primaryBrowserAccount.id}
-                            disabled={channelBusy}
+                            disabled={
+                              channelBusy ||
+                              (channel.browserAccounts?.length || 0) < 2
+                            }
                             onChange={(event) =>
                               void selectPublishingAccount(
                                 channel,
@@ -1477,9 +1480,9 @@ export function WorkspaceSettings() {
                             ))}
                           </select>
                           <small>
-                            This Page is connected to more than one Facebook
-                            login. Choose which account Atlas should use by
-                            default when publishing.
+                            {(channel.browserAccounts?.length || 0) > 1
+                              ? "This Page is connected to more than one Facebook login. Choose which account Atlas should use by default when publishing."
+                              : "Only one Facebook login is currently connected to this Page. Connect the same Page from another Browser Account to enable switching."}
                           </small>
                         </label>
                       ) : null}
