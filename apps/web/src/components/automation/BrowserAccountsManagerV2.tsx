@@ -408,6 +408,7 @@ export function BrowserAccountsManagerV2({
 
   const [onboardingResult, setOnboardingResult] =
     useState<OnboardingResult | null>(null);
+  const [onboardingError, setOnboardingError] = useState("");
 
   const [automationPolicy, setAutomationPolicy] =
     useState<AutomationPolicy | null>(null);
@@ -921,18 +922,19 @@ export function BrowserAccountsManagerV2({
     setOnboardingRunning(true);
     setOnboardingStep("VERIFYING");
     setOnboardingResult(null);
+    setOnboardingError("");
     setGlobalError("");
     setActionMessage("");
 
+    const progressTimer = window.setTimeout(() => {
+      setOnboardingStep("DISCOVERING");
+    }, 1400);
+
+    const syncTimer = window.setTimeout(() => {
+      setOnboardingStep("SYNCING");
+    }, 3200);
+
     try {
-      const progressTimer = window.setTimeout(() => {
-        setOnboardingStep("DISCOVERING");
-      }, 1400);
-
-      const syncTimer = window.setTimeout(() => {
-        setOnboardingStep("SYNCING");
-      }, 3200);
-
       const response = await fetch(
         `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/onboarding/run`,
         {
@@ -945,9 +947,6 @@ export function BrowserAccountsManagerV2({
           }),
         },
       );
-
-      window.clearTimeout(progressTimer);
-      window.clearTimeout(syncTimer);
 
       const body = await readJson(response);
 
@@ -1002,13 +1001,15 @@ export function BrowserAccountsManagerV2({
       ]);
     } catch (error) {
       setOnboardingStep("FAILED");
-
-      setGlobalError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Unable to complete onboarding.",
-      );
+          : "Unable to complete onboarding.";
+      setOnboardingError(message);
+      setGlobalError(message);
     } finally {
+      window.clearTimeout(progressTimer);
+      window.clearTimeout(syncTimer);
       setOnboardingRunning(false);
     }
   }
@@ -2637,11 +2638,40 @@ export function BrowserAccountsManagerV2({
                       Select Brand
                     </button>
                   ) : null}
+
+                  {onboardingResult?.step === "LOGIN" ? (
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() =>
+                        void openBrowser(selectedAccount.id).catch((error) =>
+                          setOnboardingError(
+                            error instanceof Error
+                              ? error.message
+                              : "Unable to open browser for login.",
+                          ),
+                        )
+                      }
+                    >
+                      Open Browser to Login
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
               {onboardingStep === "FAILED" ? (
-                <div className={styles.error}>Automatic onboarding failed.</div>
+                <div className={styles.error}>
+                  <strong>Automatic onboarding failed.</strong>
+                  <p>{onboardingError || "Unable to complete onboarding."}</p>
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    disabled={onboardingRunning}
+                    onClick={() => void runOnboarding(selectedAccount.id)}
+                  >
+                    Retry Onboarding
+                  </button>
+                </div>
               ) : null}
             </section>
           </>
