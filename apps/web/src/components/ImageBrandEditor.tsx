@@ -127,6 +127,7 @@ export function ImageBrandEditor() {
   const [message, setMessage] = useState("Loading images...");
 
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastMaskPointRef = useRef<NormalizedPosition | null>(null);
 
   const [brushSize, setBrushSize] = useState(64);
   const [drawingMask, setDrawingMask] = useState(false);
@@ -386,11 +387,24 @@ export function ImageBrandEditor() {
 
     context.fillStyle = "rgba(255, 64, 64, 0.48)";
 
+    const previous = lastMaskPointRef.current;
+
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.lineWidth = radius * 2;
+    context.strokeStyle = "rgba(255, 64, 64, 0.48)";
     context.beginPath();
 
-    context.arc(x, y, radius, 0, Math.PI * 2);
+    if (previous) {
+      context.moveTo(previous.x, previous.y);
+      context.lineTo(x, y);
+      context.stroke();
+    } else {
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
 
-    context.fill();
+    lastMaskPointRef.current = { x, y };
     context.restore();
   }
 
@@ -406,6 +420,7 @@ export function ImageBrandEditor() {
 
     canvas.setPointerCapture(event.pointerId);
 
+    lastMaskPointRef.current = null;
     setDrawingMask(true);
     drawMaskPoint(event);
   }
@@ -423,6 +438,7 @@ export function ImageBrandEditor() {
     }
 
     setDrawingMask(false);
+    lastMaskPointRef.current = null;
   }
 
   function clearMask() {
@@ -516,16 +532,22 @@ export function ImageBrandEditor() {
      * Mask contract:
      * opaque white = preserve
      * transparent = regenerate
+     *
+     * The visible red overlay is intentionally translucent. Convert it to a
+     * binary alpha mask here so the selected logo is fully regenerated.
      */
-    context.fillStyle = "#ffffff";
+    const maskPixels = context.createImageData(output.width, output.height);
 
-    context.fillRect(0, 0, output.width, output.height);
+    for (let index = 0; index < maskPixels.data.length; index += 4) {
+      const selected = pixels[index + 3] > 5;
 
-    context.globalCompositeOperation = "destination-out";
+      maskPixels.data[index] = 255;
+      maskPixels.data[index + 1] = 255;
+      maskPixels.data[index + 2] = 255;
+      maskPixels.data[index + 3] = selected ? 0 : 255;
+    }
 
-    context.drawImage(source, 0, 0);
-
-    context.globalCompositeOperation = "source-over";
+    context.putImageData(maskPixels, 0, 0);
 
     return output.toDataURL("image/png");
   }

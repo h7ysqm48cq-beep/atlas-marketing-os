@@ -547,9 +547,44 @@ export class AssetImageEditorService {
      */
     const rawMask = Buffer.from(maskMatch[1], 'base64');
 
-    const maskBuffer = await sharp(rawMask)
+    const normalizedMask = await sharp(rawMask)
       .resize(width, height, {
         fit: 'fill',
+      })
+      .ensureAlpha()
+      .raw()
+      .toBuffer();
+
+    const edgeExpansion = Math.max(
+      2,
+      Math.min(10, Math.round(Math.min(width, height) * 0.004)),
+    );
+
+    /*
+     * Expand the selected area slightly so antialiased logo edges and shadows
+     * are included, then feather the boundary for a natural reconstruction.
+     */
+    const selectionAlpha = await sharp(normalizedMask, {
+      raw: { width, height, channels: 4 },
+    })
+      .extractChannel(3)
+      .negate()
+      .threshold(8)
+      .dilate(edgeExpansion)
+      .blur(Math.max(0.8, edgeExpansion / 3))
+      .negate()
+      .toBuffer();
+
+    const maskBuffer = await sharp({
+      create: {
+        width,
+        height,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 },
+      },
+    })
+      .joinChannel(selectionAlpha, {
+        raw: { width, height, channels: 1 },
       })
       .png()
       .toBuffer();
@@ -564,14 +599,16 @@ export class AssetImageEditorService {
 
     const model = await this.aiRuntime.getImageModel();
 
-    const prompt =
-      dto.prompt?.trim() ||
-      [
-        'Remove only the objects covered by the transparent mask.',
-        'Reconstruct the missing area naturally using the surrounding image.',
-        'Preserve the original composition, people, lighting, colors, typography, and all unmasked content.',
-        'Do not add any new logo, watermark, text, QR code, branding, or decorative element.',
-      ].join(' ');
+    const prompt = [
+      dto.prompt?.trim(),
+      'Remove only the objects covered by the transparent mask.',
+      'Remove the complete logo, watermark, text, object, and any antialiased edge, outline, glow, or shadow inside the mask.',
+      'Reconstruct the missing area naturally using the surrounding image.',
+      'Preserve the original composition, people, lighting, colors, typography, and all unmasked content.',
+      'Do not add any new logo, watermark, text, QR code, branding, or decorative element.',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     const response = await this.client.images.edit({
       model,
