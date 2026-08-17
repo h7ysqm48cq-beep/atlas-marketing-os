@@ -2065,6 +2065,10 @@ export class BrowserAccountService {
         account.displayName,
       platform:
         account.platform,
+      workspaceId:
+        account.workspaceId,
+      brandId:
+        account.brandId,
       browserProfileKey:
         account.browserProfileKey,
       browserProfileName:
