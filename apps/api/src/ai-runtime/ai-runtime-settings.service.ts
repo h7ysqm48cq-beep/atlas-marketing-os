@@ -6,6 +6,16 @@ export type AiRuntimeSettings = {
   imageModel: string;
   embeddingModel: string;
   sportsNewsModel: string;
+  aiStudioModel: string;
+  aiStudioInstructions: string;
+  aiStudioTimeoutMs: number;
+  aiStudioRetryLimit: number;
+  copilotModel: string;
+  copilotInstructions: string;
+  copilotKnowledgeLimit: number;
+  copilotConversationRecallLimit: number;
+  copilotStudioHistoryLimit: number;
+  copilotContextMaxChars: number;
 };
 
 const DEFAULT_SETTINGS: AiRuntimeSettings = {
@@ -13,6 +23,16 @@ const DEFAULT_SETTINGS: AiRuntimeSettings = {
   imageModel: 'gpt-image-2',
   embeddingModel: 'text-embedding-3-large',
   sportsNewsModel: 'gpt-5.6-luna',
+  aiStudioModel: 'gpt-5.6-luna',
+  aiStudioInstructions: '',
+  aiStudioTimeoutMs: 30000,
+  aiStudioRetryLimit: 1,
+  copilotModel: 'gpt-5.6-luna',
+  copilotInstructions: '',
+  copilotKnowledgeLimit: 4,
+  copilotConversationRecallLimit: 7,
+  copilotStudioHistoryLimit: 5,
+  copilotContextMaxChars: 7500,
 };
 
 @Injectable()
@@ -36,6 +56,16 @@ export class AiRuntimeSettingsService {
         embeddingModel: existing.embeddingModel,
         sportsNewsModel:
           existing.sportsNewsModel,
+        aiStudioModel: existing.aiStudioModel,
+        aiStudioInstructions: existing.aiStudioInstructions,
+        aiStudioTimeoutMs: existing.aiStudioTimeoutMs,
+        aiStudioRetryLimit: existing.aiStudioRetryLimit,
+        copilotModel: existing.copilotModel,
+        copilotInstructions: existing.copilotInstructions,
+        copilotKnowledgeLimit: existing.copilotKnowledgeLimit,
+        copilotConversationRecallLimit: existing.copilotConversationRecallLimit,
+        copilotStudioHistoryLimit: existing.copilotStudioHistoryLimit,
+        copilotContextMaxChars: existing.copilotContextMaxChars,
       };
     }
 
@@ -44,13 +74,7 @@ export class AiRuntimeSettingsService {
         data: DEFAULT_SETTINGS,
       });
 
-    return {
-      textModel: created.textModel,
-      imageModel: created.imageModel,
-      embeddingModel: created.embeddingModel,
-      sportsNewsModel:
-        created.sportsNewsModel,
-    };
+    return this.toSettings(created);
   }
 
   async update(
@@ -89,6 +113,36 @@ export class AiRuntimeSettingsService {
               input.sportsNewsModel.trim(),
           }
         : {}),
+      ...(input.aiStudioModel !== undefined
+        ? { aiStudioModel: input.aiStudioModel.trim() }
+        : {}),
+      ...(input.aiStudioInstructions !== undefined
+        ? { aiStudioInstructions: input.aiStudioInstructions.trim() }
+        : {}),
+      ...(input.aiStudioTimeoutMs !== undefined
+        ? { aiStudioTimeoutMs: Math.min(Math.max(input.aiStudioTimeoutMs, 5000), 180000) }
+        : {}),
+      ...(input.aiStudioRetryLimit !== undefined
+        ? { aiStudioRetryLimit: Math.min(Math.max(input.aiStudioRetryLimit, 0), 5) }
+        : {}),
+      ...(input.copilotModel !== undefined
+        ? { copilotModel: input.copilotModel.trim() }
+        : {}),
+      ...(input.copilotInstructions !== undefined
+        ? { copilotInstructions: input.copilotInstructions.trim() }
+        : {}),
+      ...(input.copilotKnowledgeLimit !== undefined
+        ? { copilotKnowledgeLimit: Math.min(Math.max(input.copilotKnowledgeLimit, 1), 20) }
+        : {}),
+      ...(input.copilotConversationRecallLimit !== undefined
+        ? { copilotConversationRecallLimit: Math.min(Math.max(input.copilotConversationRecallLimit, 1), 20) }
+        : {}),
+      ...(input.copilotStudioHistoryLimit !== undefined
+        ? { copilotStudioHistoryLimit: Math.min(Math.max(input.copilotStudioHistoryLimit, 1), 20) }
+        : {}),
+      ...(input.copilotContextMaxChars !== undefined
+        ? { copilotContextMaxChars: Math.min(Math.max(input.copilotContextMaxChars, 1000), 30000) }
+        : {}),
     };
 
     if (!current) {
@@ -101,12 +155,7 @@ export class AiRuntimeSettingsService {
         });
 
       return {
-        textModel: created.textModel,
-        imageModel: created.imageModel,
-        embeddingModel:
-          created.embeddingModel,
-        sportsNewsModel:
-          created.sportsNewsModel,
+        ...this.toSettings(created),
       };
     }
 
@@ -118,14 +167,7 @@ export class AiRuntimeSettingsService {
         data,
       });
 
-    return {
-      textModel: updated.textModel,
-      imageModel: updated.imageModel,
-      embeddingModel:
-        updated.embeddingModel,
-      sportsNewsModel:
-        updated.sportsNewsModel,
-    };
+    return this.toSettings(updated);
   }
 
   async getTextModel() {
@@ -143,5 +185,36 @@ export class AiRuntimeSettingsService {
   async getSportsNewsModel() {
     return (await this.get())
       .sportsNewsModel;
+  }
+
+  async getAiStudioSettings() {
+    const settings = await this.get();
+    return {
+      model: settings.aiStudioModel,
+      instructions: settings.aiStudioInstructions,
+      timeoutMs: settings.aiStudioTimeoutMs,
+      retryLimit: settings.aiStudioRetryLimit,
+    };
+  }
+
+  async getCopilotSettings() {
+    const settings = await this.get();
+    return {
+      model: settings.copilotModel,
+      instructions: settings.copilotInstructions,
+      knowledgeLimit: settings.copilotKnowledgeLimit,
+      conversationRecallLimit: settings.copilotConversationRecallLimit,
+      studioHistoryLimit: settings.copilotStudioHistoryLimit,
+      contextMaxChars: settings.copilotContextMaxChars,
+    };
+  }
+
+  private toSettings(setting: AiRuntimeSettings): AiRuntimeSettings {
+    return Object.fromEntries(
+      Object.keys(DEFAULT_SETTINGS).map((key) => [
+        key,
+        setting[key as keyof AiRuntimeSettings],
+      ]),
+    ) as AiRuntimeSettings;
   }
 }

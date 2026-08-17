@@ -214,7 +214,8 @@ export class AiService {
         ].join('\\n'),
       );
 
-    const model = await this.selectModel(dto);
+    const aiStudioSettings = await this.aiRuntime.getAiStudioSettings();
+    const model = aiStudioSettings.model;
 
     console.log(`[AI] model: ${model}`);
 
@@ -262,6 +263,7 @@ export class AiService {
     );
 
     const prompt = [
+      aiStudioSettings.instructions,
       compactMergedPrompt,
       '',
       'ELENA CONFIRMED LONG-TERM MEMORY',
@@ -408,15 +410,28 @@ export class AiService {
 
       let response;
 
-      try {
-        response = await withTimeout(createGeneration(), 30000);
-      } catch (firstError) {
-        console.warn(
-          '[AI] generation retry:',
-          firstError instanceof Error ? firstError.message : 'Unknown error',
-        );
+      for (let attempt = 0; attempt <= aiStudioSettings.retryLimit; attempt += 1) {
+        try {
+          response = await withTimeout(
+            createGeneration(),
+            aiStudioSettings.timeoutMs,
+          );
+          break;
+        } catch (generationError) {
+          if (attempt >= aiStudioSettings.retryLimit) {
+            throw generationError;
+          }
+          console.warn(
+            `[AI] generation retry ${attempt + 1}:`,
+            generationError instanceof Error
+              ? generationError.message
+              : 'Unknown error',
+          );
+        }
+      }
 
-        response = await withTimeout(createGeneration(), 30000);
+      if (!response) {
+        throw new Error('AI Studio generation returned no response.');
       }
 
       console.timeEnd('[AI] generation');

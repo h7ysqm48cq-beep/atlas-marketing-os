@@ -9,6 +9,16 @@ type AiRuntimeSettingsData = {
   imageModel: string;
   embeddingModel: string;
   sportsNewsModel: string;
+  aiStudioModel: string;
+  aiStudioInstructions: string;
+  aiStudioTimeoutMs: number;
+  aiStudioRetryLimit: number;
+  copilotModel: string;
+  copilotInstructions: string;
+  copilotKnowledgeLimit: number;
+  copilotConversationRecallLimit: number;
+  copilotStudioHistoryLimit: number;
+  copilotContextMaxChars: number;
 };
 
 const FIELDS: Array<{
@@ -100,19 +110,41 @@ export function AiRuntimeSettings() {
     setError("");
   }
 
+  function patchNumber(key: keyof AiRuntimeSettingsData, value: number) {
+    setSettings((current) =>
+      current ? { ...current, [key]: value } : current,
+    );
+    setMessage("");
+    setError("");
+  }
+
   async function saveSettings() {
     if (!settings) {
       return;
     }
 
     const payload: AiRuntimeSettingsData = {
+      ...settings,
       textModel: settings.textModel.trim(),
       imageModel: settings.imageModel.trim(),
       embeddingModel: settings.embeddingModel.trim(),
       sportsNewsModel: settings.sportsNewsModel.trim(),
+      aiStudioModel: settings.aiStudioModel.trim(),
+      aiStudioInstructions: settings.aiStudioInstructions.trim(),
+      copilotModel: settings.copilotModel.trim(),
+      copilotInstructions: settings.copilotInstructions.trim(),
     };
 
-    if (Object.values(payload).some((value) => !value)) {
+    if (
+      [
+        payload.textModel,
+        payload.imageModel,
+        payload.embeddingModel,
+        payload.sportsNewsModel,
+        payload.aiStudioModel,
+        payload.copilotModel,
+      ].some((value) => !value)
+    ) {
       setError("Model names cannot be empty.");
       return;
     }
@@ -197,6 +229,56 @@ export function AiRuntimeSettings() {
                 />
               </label>
             ))}
+          </div>
+
+          <h3 className={styles.sectionTitle}>AI Studio</h3>
+          <div className={styles.grid}>
+            <label className={styles.field}>
+              <span className={styles.label}>AI Studio Model</span>
+              <span className={styles.description}>Dedicated model for Studio content generation.</span>
+              <input className={styles.input} value={settings.aiStudioModel} onChange={(event) => patch("aiStudioModel", event.target.value)} />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.label}>Generation Timeout (ms)</span>
+              <span className={styles.description}>5,000–180,000 milliseconds per attempt.</span>
+              <input className={styles.input} type="number" min={5000} max={180000} value={settings.aiStudioTimeoutMs} onChange={(event) => patchNumber("aiStudioTimeoutMs", Number(event.target.value))} />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.label}>Retry Limit</span>
+              <span className={styles.description}>Automatic retries after a failed generation, from 0–5.</span>
+              <input className={styles.input} type="number" min={0} max={5} value={settings.aiStudioRetryLimit} onChange={(event) => patchNumber("aiStudioRetryLimit", Number(event.target.value))} />
+            </label>
+            <label className={`${styles.field} ${styles.fullWidth}`}>
+              <span className={styles.label}>AI Studio Instructions</span>
+              <span className={styles.description}>Additional global instructions applied to every Studio generation.</span>
+              <textarea className={styles.input} rows={5} value={settings.aiStudioInstructions} onChange={(event) => patch("aiStudioInstructions", event.target.value)} />
+            </label>
+          </div>
+
+          <h3 className={styles.sectionTitle}>Copilot</h3>
+          <div className={styles.grid}>
+            <label className={styles.field}>
+              <span className={styles.label}>Copilot Model</span>
+              <span className={styles.description}>Dedicated model for Copilot conversations.</span>
+              <input className={styles.input} value={settings.copilotModel} onChange={(event) => patch("copilotModel", event.target.value)} />
+            </label>
+            {[
+              ["copilotKnowledgeLimit", "Knowledge Results", 1, 20],
+              ["copilotConversationRecallLimit", "Conversation Recall", 1, 20],
+              ["copilotStudioHistoryLimit", "Studio History Recall", 1, 20],
+              ["copilotContextMaxChars", "Context Character Budget", 1000, 30000],
+            ].map(([key, label, min, max]) => (
+              <label className={styles.field} key={key as string}>
+                <span className={styles.label}>{label as string}</span>
+                <span className={styles.description}>Controls how much saved context Copilot can load.</span>
+                <input className={styles.input} type="number" min={min as number} max={max as number} value={settings[key as keyof AiRuntimeSettingsData] as number} onChange={(event) => patchNumber(key as keyof AiRuntimeSettingsData, Number(event.target.value))} />
+              </label>
+            ))}
+            <label className={`${styles.field} ${styles.fullWidth}`}>
+              <span className={styles.label}>Copilot Instructions</span>
+              <span className={styles.description}>Additional global instructions applied to every Copilot response.</span>
+              <textarea className={styles.input} rows={5} value={settings.copilotInstructions} onChange={(event) => patch("copilotInstructions", event.target.value)} />
+            </label>
           </div>
 
           <div className={styles.footer}>

@@ -1175,6 +1175,18 @@ model AiRuntimeSetting {
 
   sportsNewsModel String @default("gpt-5.6-luna")
 
+  aiStudioModel        String @default("gpt-5.6-luna")
+  aiStudioInstructions String @default("") @db.Text
+  aiStudioTimeoutMs    Int    @default(30000)
+  aiStudioRetryLimit   Int    @default(1)
+
+  copilotModel                   String @default("gpt-5.6-luna")
+  copilotInstructions            String @default("") @db.Text
+  copilotKnowledgeLimit          Int    @default(4)
+  copilotConversationRecallLimit Int    @default(7)
+  copilotStudioHistoryLimit      Int    @default(5)
+  copilotContextMaxChars         Int    @default(7500)
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt

@@ -3635,6 +3635,16 @@ export const AiRuntimeSettingScalarFieldEnum = {
   imageModel: 'imageModel',
   embeddingModel: 'embeddingModel',
   sportsNewsModel: 'sportsNewsModel',
+  aiStudioModel: 'aiStudioModel',
+  aiStudioInstructions: 'aiStudioInstructions',
+  aiStudioTimeoutMs: 'aiStudioTimeoutMs',
+  aiStudioRetryLimit: 'aiStudioRetryLimit',
+  copilotModel: 'copilotModel',
+  copilotInstructions: 'copilotInstructions',
+  copilotKnowledgeLimit: 'copilotKnowledgeLimit',
+  copilotConversationRecallLimit: 'copilotConversationRecallLimit',
+  copilotStudioHistoryLimit: 'copilotStudioHistoryLimit',
+  copilotContextMaxChars: 'copilotContextMaxChars',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -57,6 +57,7 @@ export class CopilotService {
     }
 
     const brand = await this.brands.getActiveBrand();
+    const copilotSettings = await this.aiRuntime.getCopilotSettings();
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -125,7 +126,7 @@ export class CopilotService {
       this.knowledgeRetrieval.searchAttachments({
         query: latestUserMessage.content,
         documentIds: attachmentDocumentIds,
-        limitPerDocument: 4,
+        limitPerDocument: copilotSettings.knowledgeLimit,
       }),
 
       this.conversationRecall.search({
@@ -148,9 +149,9 @@ export class CopilotService {
       semanticConversationContext,
       {
         query: latestUserMessage.content,
-        limit: 7,
+        limit: copilotSettings.conversationRecallLimit,
         maxCharsPerConversation: 1500,
-        maxTotalChars: 7500,
+        maxTotalChars: copilotSettings.contextMaxChars,
       },
     );
 
@@ -169,7 +170,7 @@ export class CopilotService {
     const studioHistoryRecallItems = await this.generationHistoryRecall.search({
       query: latestUserMessage.content,
       brandId: brand.id,
-      limit: 5,
+      limit: copilotSettings.studioHistoryLimit,
     });
 
     const studioHistoryRecallContext =
@@ -324,6 +325,7 @@ export class CopilotService {
         : '';
 
     const baseContext = [
+      copilotSettings.instructions,
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
       `Current server UTC time: ${new Date().toISOString()}`,
       'Default operational timezone: Asia/Kuala_Lumpur.',
@@ -529,7 +531,7 @@ Description: ${campaign.description || 'Not set'}`
     try {
       const requestStartedAt = Date.now();
 
-      const model = await this.aiRuntime.getTextModel();
+      const model = copilotSettings.model;
 
       const response = await this.client.responses.create({
         model,

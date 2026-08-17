@@ -61,6 +61,21 @@
   gap: 18px;
 }
 
+.sectionTitle {
+  margin: 28px 0 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border, rgba(148, 163, 184, 0.15));
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+textarea.input {
+  min-height: 120px;
+  resize: vertical;
+}
+
 .field {
   display: flex;
   flex-direction: column;
