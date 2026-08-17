@@ -121,6 +121,7 @@ export function ImageBrandEditor() {
   const [showSafeArea, setShowSafeArea] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolPanel | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("Loading images...");
@@ -728,6 +729,10 @@ export function ImageBrandEditor() {
     return (
       <div
         className={`${styles.canvas} ${fullscreenMode ? styles.fullscreenCanvas : ""}`}
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "center center",
+        }}
       >
         <RuntimeImage
           width={selected.width || undefined}
@@ -1087,13 +1092,12 @@ export function ImageBrandEditor() {
                 <strong>Live preview</strong>
                 <span>{positionLabel}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setFullscreen(true)}
-                disabled={!selected}
-              >
-                Open fullscreen
-              </button>
+              <div className={styles.zoomControls}>
+                <button type="button" onClick={() => setZoom((value) => Math.max(0.5, value - 0.1))} disabled={zoom <= 0.5}>−</button>
+                <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+                <button type="button" onClick={() => setZoom((value) => Math.min(3, value + 0.1))} disabled={zoom >= 3}>+</button>
+                <button type="button" onClick={() => setFullscreen(true)} disabled={!selected}>Fullscreen</button>
+              </div>
             </div>
             <div
               className={styles.preview}
@@ -1433,6 +1437,11 @@ export function ImageBrandEditor() {
             <div>
               <strong>{selected?.name}</strong>
               <span>{positionLabel}</span>
+            </div>
+            <div className={styles.zoomControls}>
+              <button type="button" onClick={() => setZoom((value) => Math.max(0.5, value - 0.1))} disabled={zoom <= 0.5}>−</button>
+              <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+              <button type="button" onClick={() => setZoom((value) => Math.min(3, value + 0.1))} disabled={zoom >= 3}>+</button>
             </div>
             <button
               type="button"
