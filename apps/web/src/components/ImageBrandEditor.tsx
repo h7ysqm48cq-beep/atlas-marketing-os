@@ -75,6 +75,7 @@ export function ImageBrandEditor() {
   const [showSafeArea, setShowSafeArea] = useState(false);
   const [activeTool, setActiveTool] = useState<ToolPanel | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("Loading images...");
@@ -196,6 +197,13 @@ export function ImageBrandEditor() {
     setName("");
     setCustomPosition(null);
     setActiveTool(null);
+    setZoom(1);
+  }
+
+  function changeZoom(delta: number) {
+    setZoom((current) =>
+      Math.min(3, Math.max(0.5, Math.round((current + delta) * 10) / 10)),
+    );
   }
 
   function toggleTool(tool: ToolPanel) {
@@ -275,7 +283,14 @@ export function ImageBrandEditor() {
   function renderCanvas(fullscreenMode = false) {
     if (!selected) return <div className={styles.emptyCanvas}>Choose an image to begin.</div>;
     return (
-      <div className={`${styles.canvas} ${fullscreenMode ? styles.fullscreenCanvas : ""}`}>
+      <div
+        className={`${styles.canvas} ${fullscreenMode ? styles.fullscreenCanvas : ""}`}
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "center",
+          transition: "transform 180ms ease",
+        }}
+      >
         <img
           className={styles.sourceImage}
           src={selected.url}
@@ -450,7 +465,12 @@ export function ImageBrandEditor() {
                 <strong>Live preview</strong>
                 <span>{positionLabel}</span>
               </div>
-              <button type="button" onClick={() => setFullscreen(true)} disabled={!selected}>Open fullscreen</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button type="button" onClick={() => changeZoom(-0.1)} disabled={!selected || zoom <= 0.5} aria-label="Zoom out">−</button>
+                <button type="button" onClick={() => setZoom(1)} disabled={!selected}>{Math.round(zoom * 100)}%</button>
+                <button type="button" onClick={() => changeZoom(0.1)} disabled={!selected || zoom >= 3} aria-label="Zoom in">+</button>
+                <button type="button" onClick={() => setFullscreen(true)} disabled={!selected}>Fullscreen</button>
+              </div>
             </div>
             <div className={styles.preview} role="button" tabIndex={0} aria-label="Open fullscreen preview">
               {renderCanvas()}
@@ -531,7 +551,12 @@ export function ImageBrandEditor() {
         <div className={styles.fullscreen} role="dialog" aria-modal="true">
           <header className={styles.fullscreenHeader}>
             <div><strong>{selected?.name}</strong><span>{positionLabel}</span></div>
-            <button type="button" onClick={() => setFullscreen(false)} aria-label="Close preview">×</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button type="button" onClick={() => changeZoom(-0.1)} disabled={zoom <= 0.5} aria-label="Zoom out">−</button>
+              <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+              <button type="button" onClick={() => changeZoom(0.1)} disabled={zoom >= 3} aria-label="Zoom in">+</button>
+              <button type="button" onClick={() => setFullscreen(false)} aria-label="Close preview">×</button>
+            </div>
           </header>
           <main className={styles.fullscreenStage}>{renderCanvas(true)}</main>
           <section className={styles.fullscreenControls}>{renderLogoControls(true)}</section>
