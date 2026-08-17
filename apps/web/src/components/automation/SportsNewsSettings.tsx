@@ -536,6 +536,12 @@ function BrandingPreview({ settings }: { settings: Settings }) {
               marginLeft: 20,
             }}
           >
+            {Math.max(
+              1,
+              (settings.footerQrLink ?? "")
+                .split(/\r?\n/)
+                .filter((link) => link.trim()).length,
+            )}{" "}
             QR
           </span>
         )}
@@ -1149,10 +1155,16 @@ export function SportsNewsSettings() {
 
             {s.footerQrEnabled && (
               <label>
-                Footer QR Link
-                <input
+                Footer QR Links (one per line, maximum 3)
+                <textarea
+                  rows={3}
                   value={s.footerQrLink ?? ""}
                   onChange={(e) => patch("footerQrLink", e.target.value)}
+                  placeholder={[
+                    "https://example.com/promotion",
+                    "https://t.me/example",
+                    "https://wa.me/example",
+                  ].join("\n")}
                 />
               </label>
             )}

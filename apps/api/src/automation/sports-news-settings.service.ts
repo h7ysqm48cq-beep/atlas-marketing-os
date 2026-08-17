@@ -343,6 +343,37 @@ export class SportsNewsSettingsService {
       this.validateTime(sanitizedInput.eveningTime, 'eveningTime');
     }
 
+    if (sanitizedInput.footerQrLink !== undefined) {
+      const qrLinks = (sanitizedInput.footerQrLink ?? '')
+        .split(/\r?\n/)
+        .map((link) => link.trim())
+        .filter(Boolean);
+
+      if (qrLinks.length > 3) {
+        throw new BadRequestException(
+          'Footer QR supports a maximum of 3 links.',
+        );
+      }
+
+      for (const [index, link] of qrLinks.entries()) {
+        let parsed: URL;
+
+        try {
+          parsed = new URL(link);
+        } catch {
+          throw new BadRequestException(
+            `Footer QR link ${index + 1} is invalid.`,
+          );
+        }
+
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          throw new BadRequestException(
+            `Footer QR link ${index + 1} must use http:// or https://.`,
+          );
+        }
+      }
+    }
+
     if (
       sanitizedInput.maxSourceAgeHours !== undefined &&
       (sanitizedInput.maxSourceAgeHours < 1 ||

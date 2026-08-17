@@ -783,7 +783,14 @@ export class MSportsImageBrandingService {
 
     let qrSize = 0;
 
-    const selectedQrLink = footerQrLink ?? qrLink;
+    const selectedQrLinks = Array.from(
+      new Set(
+        (footerQrLink ?? qrLink ?? '')
+          .split(/\r?\n/)
+          .map((link) => link.trim())
+          .filter(Boolean),
+      ),
+    ).slice(0, 3);
 
     if (footerQrEnabled && footerQrAssetId) {
       const qrAsset = await this.prisma.asset.findUnique({
@@ -823,38 +830,65 @@ export class MSportsImageBrandingService {
           );
         }
       }
-    } else if (selectedQrLink) {
-      const parsed = new URL(selectedQrLink);
+    } else if (selectedQrLinks.length) {
+      const qrGap = Math.max(
+        6,
+        Math.round(width * qrMarginPercent * 0.35),
+      );
 
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        throw new Error('QR link must use http:// or https://');
+      const configuredQrSize = Math.round(width * qrSizePercent);
+      const footerQrSize = Math.round(footerHeight * 0.82);
+      const availableQrWidth = Math.round(width * 0.42);
+      const perQrWidth = Math.floor(
+        (availableQrWidth - qrGap * (selectedQrLinks.length - 1)) /
+          selectedQrLinks.length,
+      );
+
+      qrSize = Math.max(
+        24,
+        Math.min(configuredQrSize, footerQrSize, perQrWidth),
+      );
+
+      const rightMargin = Math.round(width * qrMarginPercent);
+
+      for (const [index, selectedQrLink] of selectedQrLinks.entries()) {
+        const parsed = new URL(selectedQrLink);
+
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error(
+            `QR link ${index + 1} must use http:// or https://`,
+          );
+        }
+
+        const qr = await QRCode.toBuffer(selectedQrLink, {
+          type: 'png',
+          errorCorrectionLevel: 'M',
+          margin: 2,
+          width: 512,
+        });
+
+        const preparedQr = await sharp(qr)
+          .resize({
+            width: qrSize,
+            height: qrSize,
+            fit: 'contain',
+            kernel: sharp.kernel.nearest,
+          })
+          .png()
+          .toBuffer();
+
+        composites.push({
+          input: preparedQr,
+          left:
+            width -
+            rightMargin -
+            (selectedQrLinks.length - index) * qrSize -
+            (selectedQrLinks.length - index - 1) * qrGap,
+          top:
+            footerTop +
+            Math.max(0, Math.round((footerHeight - qrSize) / 2)),
+        });
       }
-
-      qrSize = Math.max(24, Math.round(width * qrSizePercent));
-
-      const qr = await QRCode.toBuffer(selectedQrLink, {
-        type: 'png',
-        errorCorrectionLevel: 'M',
-        margin: 2,
-        width: 512,
-      });
-
-      const preparedQr = await sharp(qr)
-        .resize({
-          width: qrSize,
-          height: qrSize,
-          fit: 'contain',
-          kernel: sharp.kernel.nearest,
-        })
-        .png()
-        .toBuffer();
-
-      composites.push({
-        input: preparedQr,
-        left: width - qrSize - Math.round(width * qrMarginPercent),
-
-        top: footerTop + Math.max(0, Math.round((footerHeight - qrSize) / 2)),
-      });
     }
 
     const output = await sharp(workingBuffer)
@@ -886,6 +920,11 @@ export class MSportsImageBrandingService {
       storagePath: uploaded.path,
       footerApplied: true,
       qrApplied: Boolean(qrSize),
+      qrCount: qrSize
+        ? footerQrAssetId && footerQrEnabled
+          ? 1
+          : selectedQrLinks.length
+        : 0,
       logoApplied: Boolean(logoWidth),
     };
   }
