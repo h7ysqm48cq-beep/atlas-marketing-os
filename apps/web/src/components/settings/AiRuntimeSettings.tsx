@@ -56,7 +56,11 @@ const FIELDS: Array<{
   },
 ];
 
-export function AiRuntimeSettings() {
+export function AiRuntimeSettings({
+  section = "all",
+}: {
+  section?: "all" | "studio" | "copilot";
+}) {
   const [settings, setSettings] = useState<AiRuntimeSettingsData | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -194,7 +198,13 @@ export function AiRuntimeSettings() {
       <div className={styles.header}>
         <div>
           <p className={styles.eyebrow}>AI SYSTEM</p>
-          <h2>AI Runtime</h2>
+          <h2>
+            {section === "studio"
+              ? "AI Studio Settings"
+              : section === "copilot"
+                ? "Copilot Settings"
+                : "AI Runtime"}
+          </h2>
           <p className={styles.intro}>
             Control the models Atlas uses at runtime without changing
             environment variables or source code.
@@ -213,7 +223,7 @@ export function AiRuntimeSettings() {
 
       {settings ? (
         <>
-          <div className={styles.grid}>
+          {section === "all" ? <div className={styles.grid}>
             {FIELDS.map((field) => (
               <label className={styles.field} key={field.key}>
                 <span className={styles.label}>{field.label}</span>
@@ -229,9 +239,10 @@ export function AiRuntimeSettings() {
                 />
               </label>
             ))}
-          </div>
+          </div> : null}
 
-          <h3 className={styles.sectionTitle}>AI Studio</h3>
+          {section !== "copilot" ? <>
+          {section === "all" ? <h3 className={styles.sectionTitle}>AI Studio</h3> : null}
           <div className={styles.grid}>
             <label className={styles.field}>
               <span className={styles.label}>AI Studio Model</span>
@@ -254,8 +265,10 @@ export function AiRuntimeSettings() {
               <textarea className={styles.input} rows={5} value={settings.aiStudioInstructions} onChange={(event) => patch("aiStudioInstructions", event.target.value)} />
             </label>
           </div>
+          </> : null}
 
-          <h3 className={styles.sectionTitle}>Copilot</h3>
+          {section !== "studio" ? <>
+          {section === "all" ? <h3 className={styles.sectionTitle}>Copilot</h3> : null}
           <div className={styles.grid}>
             <label className={styles.field}>
               <span className={styles.label}>Copilot Model</span>
@@ -280,6 +293,7 @@ export function AiRuntimeSettings() {
               <textarea className={styles.input} rows={5} value={settings.copilotInstructions} onChange={(event) => patch("copilotInstructions", event.target.value)} />
             </label>
           </div>
+          </> : null}
 
           <div className={styles.footer}>
             <p>

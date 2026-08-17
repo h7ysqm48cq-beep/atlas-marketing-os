@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { AiRuntimeSettings } from "./AiRuntimeSettings";
+import { ChannelAiSettings } from "./ChannelAiSettings";
 import { PwaDiagnostics } from "@/components/PwaDiagnostics";
 import { PwaControlCenter } from "@/components/PwaControlCenter";
 import { PwaSettingsSection } from "@/components/PwaSettingsAccordion";
@@ -68,7 +69,10 @@ export function SettingsNavigation() {
         {activeTab === "general" ? (
           <WorkspaceSettings />
         ) : activeTab === "ai-runtime" ? (
-          <AiRuntimeSettings />
+          <>
+            <AiRuntimeSettings />
+            <ChannelAiSettings />
+          </>
         ) : (
           <div className="atlas-pwa-settings-stack">
             <PwaSettingsSection
