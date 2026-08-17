@@ -29,6 +29,7 @@ export type BrowserAccount = {
   hasProxyPassword: boolean;
   facebookUserId: string | null;
   facebookUserName: string | null;
+  maskedEmail: string | null;
   loginStatus: LoginStatus;
   cookieStatus: string;
   lastKnownIp: string | null;

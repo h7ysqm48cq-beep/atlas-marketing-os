@@ -38,9 +38,17 @@ export function AccountOverview({
         <div>
           <p className={styles.eyebrow}>Account Details</p>
 
-          <h2>{account.displayName}</h2>
+          <h2>{account.facebookUserName || account.displayName}</h2>
 
-          <p>{account.browserProfileKey}</p>
+          <p>
+            {[
+              account.facebookUserName ? account.displayName : null,
+              account.maskedEmail,
+              account.browserProfileKey,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         </div>
 
         <span
@@ -98,10 +106,14 @@ export function AccountOverview({
           <span>FACEBOOK IDENTITY</span>
 
           <strong className={loginStatusClass(account.loginStatus)}>
-            {readableStatus(account.loginStatus)}
+            {account.facebookUserName || readableStatus(account.loginStatus)}
           </strong>
 
-          <small>{facebookIdentityMessage(account.loginStatus)}</small>
+          <small>
+            {account.maskedEmail
+              ? `${account.maskedEmail} · ${facebookIdentityMessage(account.loginStatus)}`
+              : facebookIdentityMessage(account.loginStatus)}
+          </small>
         </article>
       </div>
 

@@ -1383,16 +1383,28 @@ export function BrowserAccountsManagerV2({
                           aria-hidden="true"
                           className={styles.accountAvatar}
                         >
-                          {account.displayName
+                          {(account.facebookUserName || account.displayName)
                             .trim()
                             .slice(0, 1)
                             .toUpperCase() || "B"}
                         </span>
 
                         <div>
-                          <strong>{account.displayName}</strong>
+                          <strong>
+                            {account.facebookUserName || account.displayName}
+                          </strong>
 
-                          <small>{account.browserProfileName}</small>
+                          <small>
+                            {[
+                              account.facebookUserName
+                                ? account.displayName
+                                : null,
+                              account.maskedEmail,
+                              account.browserProfileName,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
                         </div>
                       </div>
                     </td>
