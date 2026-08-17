@@ -5,6 +5,7 @@ import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
 import { waitForBackgroundJob } from "@/lib/background-job";
+import { saveRemoteFile } from "@/lib/save-file";
 
 const ASSET_IMAGE_JOB_KEY = "atlas-asset-image-background-job";
 
@@ -396,24 +397,18 @@ export function ImageAssetPanel({
 
   async function downloadAsset(currentAsset: ImageAsset) {
     try {
-      const response = await fetch(currentAsset.url);
+      const result = await saveRemoteFile(
+        currentAsset.url,
+        `${currentAsset.name || "atlas-image"}.png`,
+      );
 
-      if (!response.ok) {
-        throw new Error("Unable to download image.");
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = blobUrl;
-      link.download = `${currentAsset.name || "atlas-image"}.png`;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
+      setMessage(
+        result === "shared"
+          ? "Choose Save Image to store it on your phone."
+          : "Image download started.",
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       setMessage("Unable to download image.");
     }
   }
@@ -561,7 +556,16 @@ export function ImageAssetPanel({
       {asset ? (
         <>
           <div className={styles.result}>
-            <img src={asset.url} alt={asset.name} />
+            <button
+              type="button"
+              className={styles.savePreview}
+              onClick={() => void downloadAsset(asset)}
+              aria-label={`Save ${asset.name} to this device`}
+              title="Save image to device"
+            >
+              <img src={asset.url} alt={asset.name} />
+              <span>Tap image to save</span>
+            </button>
 
             <div>
               <span>Saved asset · Version {selectedVersion}</span>
@@ -589,7 +593,7 @@ export function ImageAssetPanel({
                 </a>
 
                 <button type="button" onClick={() => void downloadAsset(asset)}>
-                  Download PNG
+                  Save to device
                 </button>
 
                 <a href="/assets">View in Library</a>
