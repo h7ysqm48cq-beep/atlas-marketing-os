@@ -18,6 +18,7 @@ import {
   ExistingAssetLogoPlacement,
 } from './dto/brand-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
+import { FocusEraseAssetDto } from './dto/focus-erase-asset.dto';
 
 @Injectable()
 export class AssetImageService {
@@ -310,6 +311,130 @@ export class AssetImageService {
         brand: { select: { id: true, name: true } },
         campaign: { select: { id: true, name: true } },
         history: { select: { id: true, topic: true } },
+      },
+    });
+  }
+
+  async focusEraseAsset(dto: FocusEraseAssetDto) {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'OPENAI_API_KEY is not configured in apps/api/.env',
+      );
+    }
+
+    const brand = await this.brandsService.getActiveBrand();
+    const sourceAsset = await this.prisma.asset.findFirst({
+      where: { id: dto.assetId, brandId: brand.id, type: 'IMAGE' },
+    });
+
+    if (!sourceAsset?.url?.startsWith('https://')) {
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
+    }
+
+    const maskMatch = dto.maskDataUrl.match(
+      /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/,
+    );
+    if (!maskMatch)
+      throw new BadRequestException('Erase mask must be a PNG data URL.');
+
+    const [sourceResponse, maskBuffer] = await Promise.all([
+      fetch(sourceAsset.url),
+      Promise.resolve(Buffer.from(maskMatch[1], 'base64')),
+    ]);
+    if (!sourceResponse.ok)
+      throw new BadRequestException('Unable to download the selected image.');
+    if (!maskBuffer.length || maskBuffer.length > 4 * 1024 * 1024) {
+      throw new BadRequestException('Erase mask must be smaller than 4MB.');
+    }
+
+    const sourceBuffer = await sharp(
+      Buffer.from(await sourceResponse.arrayBuffer()),
+    )
+      .png()
+      .toBuffer();
+    const [sourceMeta, maskMeta] = await Promise.all([
+      sharp(sourceBuffer).metadata(),
+      sharp(maskBuffer).metadata(),
+    ]);
+    if (
+      !sourceMeta.width ||
+      !sourceMeta.height ||
+      sourceMeta.width !== maskMeta.width ||
+      sourceMeta.height !== maskMeta.height
+    ) {
+      throw new BadRequestException(
+        'Erase mask dimensions must match the source image.',
+      );
+    }
+
+    const model =
+      this.configService.get<string>('OPENAI_IMAGE_MODEL') || 'gpt-image-2';
+    const response = await this.client.images.edit({
+      model,
+      image: await OpenAI.toFile(sourceBuffer, 'source.png', {
+        type: 'image/png',
+      }),
+      mask: await OpenAI.toFile(maskBuffer, 'mask.png', { type: 'image/png' }),
+      prompt:
+        dto.instruction?.trim() ||
+        'Remove the objects in the transparent masked area and reconstruct the background naturally. Preserve everything outside the masked area.',
+      input_fidelity: 'high',
+      output_format: 'png',
+      size: `${sourceMeta.width}x${sourceMeta.height}`,
+    });
+    const base64 = response.data?.[0]?.b64_json;
+    if (!base64)
+      throw new InternalServerErrorException(
+        'Image edit did not return image data.',
+      );
+
+    const outputName = dto.name?.trim() || `${sourceAsset.name} · Erased`;
+    const filename = `${Date.now()}-${this.slugify(outputName).slice(0, 40)}-${randomUUID().replace(/-/g, '').slice(0, 8)}.png`;
+    const now = new Date();
+    const uploaded = await this.storageService.uploadImage({
+      buffer: Buffer.from(base64, 'base64'),
+      path: [
+        'brands',
+        brand.id,
+        String(now.getUTCFullYear()),
+        String(now.getUTCMonth() + 1).padStart(2, '0'),
+        filename,
+      ].join('/'),
+      contentType: 'image/png',
+    });
+
+    return this.prisma.asset.create({
+      data: {
+        brandId: brand.id,
+        campaignId: sourceAsset.campaignId,
+        historyId: sourceAsset.historyId,
+        name: outputName,
+        type: 'IMAGE',
+        provider: model,
+        platform: sourceAsset.platform || 'Multi-platform',
+        prompt: sourceAsset.prompt,
+        revisedPrompt: dto.instruction?.trim() || 'Focused erase',
+        generationModel: model,
+        generationSize: `${sourceMeta.width}x${sourceMeta.height}`,
+        generationQuality: sourceAsset.generationQuality,
+        storageProvider: uploaded.provider,
+        storagePath: uploaded.path,
+        fileSize: uploaded.size,
+        remark: `Focused erase from asset ${sourceAsset.id}`,
+        aiEnabled: false,
+        tags: [
+          ...sourceAsset.tags,
+          'image-edited',
+          'focus-erase',
+          `source-asset-${sourceAsset.id}`,
+        ],
+        url: uploaded.publicUrl,
+        thumbnailUrl: uploaded.publicUrl,
+        mimeType: 'image/png',
+        width: sourceMeta.width,
+        height: sourceMeta.height,
       },
     });
   }
