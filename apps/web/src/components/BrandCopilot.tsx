@@ -5,6 +5,7 @@ import styles from "./BrandCopilot.module.css";
 import { CopilotStudioResultCard } from "./CopilotStudioResultCard";
 import { RuntimeImage } from "./RuntimeImage";
 import { API_URL } from "@/lib/api";
+import { saveRemoteFile } from "@/lib/save-file";
 
 type Campaign = {
   id: string;
@@ -2245,6 +2246,25 @@ export function BrandCopilot() {
     }
   };
 
+  async function saveGeneratedImage(imageUrl: string, index: number) {
+    try {
+      const result = await saveRemoteFile({
+        url: imageUrl,
+        filename: `atlas-copilot-image-${index + 1}.png`,
+        mimeType: "image/png",
+        title: "Atlas Copilot image",
+      });
+      setStatus(
+        result === "shared"
+          ? "Choose Save Image to store it on your phone."
+          : "Image downloaded.",
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setStatus("Unable to save image.");
+    }
+  }
+
   function requestStudioRegeneration(
     source: CopilotStudioResult = studioDraft,
   ) {
@@ -2964,6 +2984,18 @@ export function BrandCopilot() {
                     </div>
 
                     <div className={styles.generatedImageToolbar}>
+                      <button
+                        type="button"
+                        onClick={() => void saveGeneratedImage(message.imageUrl!, index)}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 3v12" />
+                          <path d="m7 10 5 5 5-5" />
+                          <path d="M5 21h14" />
+                        </svg>
+                        <span>Save</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
