@@ -140,6 +140,10 @@ export function BrowserAccountsManagerV2({
   const [onboardingResult, setOnboardingResult] =
     useState<OnboardingResult | null>(null);
 
+  const [onboardingError, setOnboardingError] = useState("");
+
+  const [brandSaving, setBrandSaving] = useState(false);
+
   const [automationPolicy, setAutomationPolicy] =
     useState<AutomationPolicy | null>(null);
 
@@ -485,18 +489,19 @@ export function BrowserAccountsManagerV2({
     setOnboardingRunning(true);
     setOnboardingStep("VERIFYING");
     setOnboardingResult(null);
+    setOnboardingError("");
     setGlobalError("");
     setActionMessage("");
 
+    const progressTimer = window.setTimeout(() => {
+      setOnboardingStep("DISCOVERING");
+    }, 1400);
+
+    const syncTimer = window.setTimeout(() => {
+      setOnboardingStep("SYNCING");
+    }, 3200);
+
     try {
-      const progressTimer = window.setTimeout(() => {
-        setOnboardingStep("DISCOVERING");
-      }, 1400);
-
-      const syncTimer = window.setTimeout(() => {
-        setOnboardingStep("SYNCING");
-      }, 3200);
-
       const response = await fetch(
         `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/onboarding/run`,
         {
@@ -509,9 +514,6 @@ export function BrowserAccountsManagerV2({
           }),
         },
       );
-
-      window.clearTimeout(progressTimer);
-      window.clearTimeout(syncTimer);
 
       const body = await readJson(response);
 
@@ -566,14 +568,70 @@ export function BrowserAccountsManagerV2({
       ]);
     } catch (error) {
       setOnboardingStep("FAILED");
-
-      setGlobalError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Unable to complete onboarding.",
-      );
+          : "Unable to complete onboarding.";
+
+      setOnboardingError(message);
+      setGlobalError(message);
     } finally {
+      window.clearTimeout(progressTimer);
+      window.clearTimeout(syncTimer);
       setOnboardingRunning(false);
+    }
+  }
+
+  async function assignBrandAndContinue(accountId: string, brandId: string) {
+    if (!brandId) {
+      return;
+    }
+
+    setBrandSaving(true);
+    setOnboardingError("");
+    setGlobalError("");
+
+    try {
+      await updateBrowserAccount(accountId, { brandId });
+      await loadAccounts();
+      setActionMessage("Brand saved. Continuing onboarding…");
+      await runOnboarding(accountId);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to save Brand.";
+
+      setOnboardingError(message);
+      setGlobalError(message);
+    } finally {
+      setBrandSaving(false);
+    }
+  }
+
+  async function verifyLoginAndContinue(accountId: string) {
+    setOnboardingError("");
+
+    try {
+      const inspection = await verifyLogin(accountId);
+
+      if (normalizeStatus(inspection.loginStatus) !== "LOGGED_IN") {
+        setOnboardingResult({
+          completed: false,
+          requiresAttention: true,
+          step: "LOGIN",
+          loginStatus: inspection.loginStatus,
+        });
+        setOnboardingStep("ATTENTION");
+        return;
+      }
+
+      await runOnboarding(accountId);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to verify login.";
+
+      setOnboardingError(message);
+      setGlobalError(message);
+      setOnboardingStep("FAILED");
     }
   }
 
@@ -1923,19 +1981,63 @@ export function BrowserAccountsManagerV2({
                   </span>
 
                   {onboardingResult?.step === "SELECT_BRAND" ? (
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => openEdit(selectedAccount)}
+                    <select
+                      aria-label="Select Brand and continue onboarding"
+                      disabled={brandSaving || onboardingRunning}
+                      defaultValue={selectedAccount.brandId || ""}
+                      onChange={(event) =>
+                        void assignBrandAndContinue(
+                          selectedAccount.id,
+                          event.target.value,
+                        )
+                      }
                     >
-                      Select Brand
-                    </button>
+                      <option value="">Select Brand</option>
+                      {brands.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+
+                  {onboardingResult?.step === "LOGIN" ? (
+                    <>
+                      <button
+                        className={styles.secondaryButton}
+                        type="button"
+                        onClick={() => void openBrowser(selectedAccount.id)}
+                      >
+                        Open Facebook Login
+                      </button>
+                      <button
+                        className={styles.secondaryButton}
+                        type="button"
+                        disabled={onboardingRunning}
+                        onClick={() =>
+                          void verifyLoginAndContinue(selectedAccount.id)
+                        }
+                      >
+                        I&apos;ve Logged In — Verify &amp; Continue
+                      </button>
+                    </>
                   ) : null}
                 </div>
               ) : null}
 
               {onboardingStep === "FAILED" ? (
-                <div className={styles.error}>Automatic onboarding failed.</div>
+                <div className={styles.error}>
+                  <strong>Automatic onboarding failed.</strong>
+                  <p>{onboardingError || "Unable to complete onboarding."}</p>
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    disabled={onboardingRunning}
+                    onClick={() => void runOnboarding(selectedAccount.id)}
+                  >
+                    Retry Onboarding
+                  </button>
+                </div>
               ) : null}
             </section>
           </>
