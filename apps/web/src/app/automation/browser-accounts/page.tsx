@@ -5,6 +5,7 @@ type BrowserAccountsPageProps = {
   searchParams: Promise<{
     accountId?: string;
     channelId?: string;
+    viewer?: string;
   }>;
 };
 
@@ -21,6 +22,7 @@ export default async function BrowserAccountsPage({
           params.accountId ||
           null
         }
+        requestedViewerOpen={params.viewer === "1"}
       />
     </AppLayout>
   );

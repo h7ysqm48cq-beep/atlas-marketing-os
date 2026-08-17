@@ -85,8 +85,10 @@ function getErrorMessage(body: Record<string, unknown>, fallback: string) {
 
 export function BrowserAccountsManagerV2({
   requestedAccountId,
+  requestedViewerOpen = false,
 }: {
   requestedAccountId?: string | null;
+  requestedViewerOpen?: boolean;
 }) {
   const {
     accounts,
@@ -176,6 +178,7 @@ export function BrowserAccountsManagerV2({
   const [healthCheckProgress, setHealthCheckProgress] = useState("");
 
   const viewerRef = useRef<HTMLElement | null>(null);
+  const automaticViewerRequestedRef = useRef(false);
 
   async function connectSecureBrowserViewer() {
     const token = await createBrowserViewerSession();
@@ -914,6 +917,26 @@ export function BrowserAccountsManagerV2({
     }
   }
 
+  useEffect(() => {
+    if (
+      !requestedViewerOpen ||
+      !selectedAccount ||
+      automaticViewerRequestedRef.current
+    ) {
+      return;
+    }
+
+    automaticViewerRequestedRef.current = true;
+
+    void openBrowser(selectedAccount.id).catch((error) => {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open Live Browser.",
+      );
+    });
+  }, [requestedViewerOpen, selectedAccount]);
+
   async function verifyLogin(accountId: string) {
     setActionMessage("");
 
@@ -1471,7 +1494,18 @@ export function BrowserAccountsManagerV2({
                             setSelectedId(account.id);
 
                             if (runtime.running) {
-                              setViewerOpen(true);
+                              void connectSecureBrowserViewer()
+                                .then(() => {
+                                  setViewerOpen(true);
+                                  setViewerKey((current) => current + 1);
+                                })
+                                .catch((error) =>
+                                  setGlobalError(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "Unable to open Live Browser.",
+                                  ),
+                                );
                               return;
                             }
 

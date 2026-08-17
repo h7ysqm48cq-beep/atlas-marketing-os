@@ -290,7 +290,12 @@ export function WorkspaceSettings() {
           ? `${channel.name} Browser Account is already open.`
           : `${channel.name} Browser Account opened.`,
       );
-      await load();
+
+      window.location.assign(
+        `/automation/browser-accounts?accountId=${encodeURIComponent(
+          accountId,
+        )}&viewer=1`,
+      );
     } catch (openError) {
       setError(
         openError instanceof Error
