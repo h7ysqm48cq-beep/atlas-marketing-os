@@ -190,6 +190,7 @@ export type SportsNewsSettingCountAggregateOutputType = {
   logoPosition: number
   brandFooterEnabled: number
   brandFooterText: number
+  channelOverrides: number
   lastMorningRunAt: number
   lastEveningRunAt: number
   lastRunStatus: number
@@ -364,6 +365,7 @@ export type SportsNewsSettingCountAggregateInputType = {
   logoPosition?: true
   brandFooterEnabled?: true
   brandFooterText?: true
+  channelOverrides?: true
   lastMorningRunAt?: true
   lastEveningRunAt?: true
   lastRunStatus?: true
@@ -505,6 +507,7 @@ export type SportsNewsSettingGroupByOutputType = {
   logoPosition: string
   brandFooterEnabled: boolean
   brandFooterText: string
+  channelOverrides: runtime.JsonValue
   lastMorningRunAt: Date | null
   lastEveningRunAt: Date | null
   lastRunStatus: string | null
@@ -582,6 +585,7 @@ export type SportsNewsSettingWhereInput = {
   logoPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   brandFooterText?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   lastMorningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastEveningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastRunStatus?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -639,6 +643,7 @@ export type SportsNewsSettingOrderByWithRelationInput = {
   logoPosition?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   brandFooterText?: Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   lastMorningRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastEveningRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastRunStatus?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -699,6 +704,7 @@ export type SportsNewsSettingWhereUniqueInput = Prisma.AtLeast<{
   logoPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   brandFooterText?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   lastMorningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastEveningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastRunStatus?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -756,6 +762,7 @@ export type SportsNewsSettingOrderByWithAggregationInput = {
   logoPosition?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   brandFooterText?: Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   lastMorningRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastEveningRunAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastRunStatus?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -818,6 +825,7 @@ export type SportsNewsSettingScalarWhereWithAggregatesInput = {
   logoPosition?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
   brandFooterEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   brandFooterText?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
+  channelOverrides?: Prisma.JsonWithAggregatesFilter<"SportsNewsSetting">
   lastMorningRunAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SportsNewsSetting"> | Date | string | null
   lastEveningRunAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SportsNewsSetting"> | Date | string | null
   lastRunStatus?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
@@ -869,6 +877,7 @@ export type SportsNewsSettingCreateInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -926,6 +935,7 @@ export type SportsNewsSettingUncheckedCreateInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -977,6 +987,7 @@ export type SportsNewsSettingUpdateInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1034,6 +1045,7 @@ export type SportsNewsSettingUncheckedUpdateInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1088,6 +1100,7 @@ export type SportsNewsSettingCreateManyInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1139,6 +1152,7 @@ export type SportsNewsSettingUpdateManyMutationInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1193,6 +1207,7 @@ export type SportsNewsSettingUncheckedUpdateManyInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1262,6 +1277,7 @@ export type SportsNewsSettingCountOrderByAggregateInput = {
   logoPosition?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   brandFooterText?: Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   lastMorningRunAt?: Prisma.SortOrder
   lastEveningRunAt?: Prisma.SortOrder
   lastRunStatus?: Prisma.SortOrder
@@ -1547,6 +1563,7 @@ export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1602,6 +1619,7 @@ export type SportsNewsSettingUncheckedCreateWithoutWorkspaceInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1669,6 +1687,7 @@ export type SportsNewsSettingUpdateWithoutWorkspaceInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1724,6 +1743,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutWorkspaceInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1775,6 +1795,7 @@ export type SportsNewsSettingCreateWithoutTelegramChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1830,6 +1851,7 @@ export type SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1891,6 +1913,7 @@ export type SportsNewsSettingCreateWithoutFacebookChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -1946,6 +1969,7 @@ export type SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -2029,6 +2053,7 @@ export type SportsNewsSettingScalarWhereInput = {
   logoPosition?: Prisma.StringFilter<"SportsNewsSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   brandFooterText?: Prisma.StringFilter<"SportsNewsSetting"> | string
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   lastMorningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastEveningRunAt?: Prisma.DateTimeNullableFilter<"SportsNewsSetting"> | Date | string | null
   lastRunStatus?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -2098,6 +2123,7 @@ export type SportsNewsSettingCreateManyTelegramChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -2151,6 +2177,7 @@ export type SportsNewsSettingCreateManyFacebookChannelInput = {
   logoPosition?: string
   brandFooterEnabled?: boolean
   brandFooterText?: string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Date | string | null
   lastEveningRunAt?: Date | string | null
   lastRunStatus?: string | null
@@ -2202,6 +2229,7 @@ export type SportsNewsSettingUpdateWithoutTelegramChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2257,6 +2285,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutTelegramChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2310,6 +2339,7 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2361,6 +2391,7 @@ export type SportsNewsSettingUpdateWithoutFacebookChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2416,6 +2447,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutFacebookChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2469,6 +2501,7 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelInput = {
   logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2525,6 +2558,7 @@ export type SportsNewsSettingSelect<ExtArgs extends runtime.Types.Extensions.Int
   logoPosition?: boolean
   brandFooterEnabled?: boolean
   brandFooterText?: boolean
+  channelOverrides?: boolean
   lastMorningRunAt?: boolean
   lastEveningRunAt?: boolean
   lastRunStatus?: boolean
@@ -2582,6 +2616,7 @@ export type SportsNewsSettingSelectCreateManyAndReturn<ExtArgs extends runtime.T
   logoPosition?: boolean
   brandFooterEnabled?: boolean
   brandFooterText?: boolean
+  channelOverrides?: boolean
   lastMorningRunAt?: boolean
   lastEveningRunAt?: boolean
   lastRunStatus?: boolean
@@ -2639,6 +2674,7 @@ export type SportsNewsSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   logoPosition?: boolean
   brandFooterEnabled?: boolean
   brandFooterText?: boolean
+  channelOverrides?: boolean
   lastMorningRunAt?: boolean
   lastEveningRunAt?: boolean
   lastRunStatus?: boolean
@@ -2696,6 +2732,7 @@ export type SportsNewsSettingSelectScalar = {
   logoPosition?: boolean
   brandFooterEnabled?: boolean
   brandFooterText?: boolean
+  channelOverrides?: boolean
   lastMorningRunAt?: boolean
   lastEveningRunAt?: boolean
   lastRunStatus?: boolean
@@ -2704,7 +2741,7 @@ export type SportsNewsSettingSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
+export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "channelOverrides" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
 export type SportsNewsSettingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
@@ -2774,6 +2811,7 @@ export type $SportsNewsSettingPayload<ExtArgs extends runtime.Types.Extensions.I
     logoPosition: string
     brandFooterEnabled: boolean
     brandFooterText: string
+    channelOverrides: runtime.JsonValue
     lastMorningRunAt: Date | null
     lastEveningRunAt: Date | null
     lastRunStatus: string | null
@@ -3251,6 +3289,7 @@ export interface SportsNewsSettingFieldRefs {
   readonly logoPosition: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly brandFooterEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly brandFooterText: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly channelOverrides: Prisma.FieldRef<"SportsNewsSetting", 'Json'>
   readonly lastMorningRunAt: Prisma.FieldRef<"SportsNewsSetting", 'DateTime'>
   readonly lastEveningRunAt: Prisma.FieldRef<"SportsNewsSetting", 'DateTime'>
   readonly lastRunStatus: Prisma.FieldRef<"SportsNewsSetting", 'String'>

@@ -856,6 +856,8 @@ model SportsNewsSetting {
   brandFooterEnabled Boolean @default(true)
   brandFooterText    String  @default("满贯门 mgmbetmyr.com")
 
+  channelOverrides Json @default("{}")
+
   lastMorningRunAt DateTime?
   lastEveningRunAt DateTime?
   lastRunStatus    String?

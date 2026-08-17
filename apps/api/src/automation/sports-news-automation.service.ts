@@ -204,6 +204,36 @@ export class SportsNewsAutomationService {
         };
       }
 
+      const channelOverride = (
+        settings.channelOverrides as Record<
+          string,
+          {
+            customInstructions?: string | null;
+            morningPrompt?: string | null;
+            eveningPrompt?: string | null;
+            imagePrompt?: string | null;
+            morningImagePrompt?: string | null;
+            eveningImagePrompt?: string | null;
+          }
+        >
+      )?.[channel.id];
+      const editionPrompt =
+        edition === 'MORNING'
+          ? channelOverride?.morningPrompt ||
+            (settings.customPromptEnabled ? settings.morningPrompt : null)
+          : channelOverride?.eveningPrompt ||
+            (settings.customPromptEnabled ? settings.eveningPrompt : null);
+      const editionImagePrompt =
+        edition === 'MORNING'
+          ? channelOverride?.morningImagePrompt ||
+            settings.morningImagePrompt ||
+            channelOverride?.imagePrompt ||
+            settings.imagePrompt
+          : channelOverride?.eveningImagePrompt ||
+            settings.eveningImagePrompt ||
+            channelOverride?.imagePrompt ||
+            settings.imagePrompt;
+
       const dateKey = new Intl.DateTimeFormat('en-CA', {
         timeZone: TIMEZONE,
         year: 'numeric',
@@ -232,28 +262,41 @@ export class SportsNewsAutomationService {
         };
       }
 
-      const generatedNews = await this.generateNews(edition, dateKey, {
-        timezone: settings.timezone,
+      const generatedNews = await this.generateNews(
+        edition,
+        dateKey,
+        {
+          timezone: settings.timezone,
 
-        /*
-         * Morning editions use a rolling freshness window.
-         *
-         * Example:
-         * 10 Aug 09:00 MYT may legitimately report an important
-         * verified result published late on 9 Aug.
-         *
-         * Evening editions remain strict same-calendar-day when
-         * sameDaySourcesOnly is enabled in Settings.
-         */
-        sameDaySourcesOnly:
-          edition === 'MORNING' ? false : settings.sameDaySourcesOnly,
+          /*
+           * Morning editions use a rolling freshness window.
+           *
+           * Example:
+           * 10 Aug 09:00 MYT may legitimately report an important
+           * verified result published late on 9 Aug.
+           *
+           * Evening editions remain strict same-calendar-day when
+           * sameDaySourcesOnly is enabled in Settings.
+           */
+          sameDaySourcesOnly:
+            edition === 'MORNING' ? false : settings.sameDaySourcesOnly,
 
-        maxSourceAgeHours: settings.maxSourceAgeHours,
-        requirePublishedAt: settings.requirePublishedAt,
-        requireSourceUrl: settings.requireSourceUrl,
-        minimumSources: settings.minimumSources,
-        freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
-      });
+          maxSourceAgeHours: settings.maxSourceAgeHours,
+          requirePublishedAt: settings.requirePublishedAt,
+          requireSourceUrl: settings.requireSourceUrl,
+          minimumSources: settings.minimumSources,
+          freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
+        },
+        {
+          systemPrompt: settings.customPromptEnabled
+            ? settings.systemPrompt
+            : null,
+          editionPrompt,
+          customInstructions:
+            channelOverride?.customInstructions ||
+            (settings.customPromptEnabled ? settings.customInstructions : null),
+        },
+      );
       const content = this.cleanPublishedContent(generatedNews.content);
 
       const image = await this.assetImages.generateAndSave({
@@ -263,6 +306,9 @@ export class SportsNewsAutomationService {
         quality: 'medium',
         logoMode: 'NEVER',
         prompt: [
+          editionImagePrompt
+            ? `CHANNEL-SPECIFIC VISUAL DIRECTION: ${editionImagePrompt}`
+            : null,
           'Premium editorial M-Sports / 满贯门体育新闻 poster for a Malaysian audience.',
           edition === 'MORNING'
             ? 'Fresh energetic morning sports atmosphere.'
@@ -292,7 +338,9 @@ export class SportsNewsAutomationService {
           'Do not render M-Sports, 满贯门体育早报 or 满贯门体育晚报 as visible text.',
           'The masthead and edition title will be added later by deterministic post-processing.',
           'Vertical 4:5 social-media composition.',
-        ].join(' '),
+        ]
+          .filter(Boolean)
+          .join(' '),
       });
 
       const activeBrand = await this.prisma.brand.findFirst({
@@ -419,6 +467,11 @@ export class SportsNewsAutomationService {
     edition: Edition,
     dateKey: string,
     freshness: SportsNewsFreshnessRules,
+    prompts?: {
+      systemPrompt?: string | null;
+      editionPrompt?: string | null;
+      customInstructions?: string | null;
+    },
   ) {
     const editionInstruction =
       edition === 'MORNING'
@@ -435,10 +488,13 @@ export class SportsNewsAutomationService {
       model: this.config.get<string>('OPENAI_MODEL') || 'gpt-5.5',
       tools: [{ type: 'web_search' }],
       input: [
+        prompts?.systemPrompt?.trim() || null,
         'You are the verification editor for M-Sports / 满贯门体育新闻.',
         `Publication date in Malaysia is ${dateKey}.`,
         `Publication timezone is ${freshness.timezone}.`,
         editionInstruction,
+        prompts?.editionPrompt?.trim() || null,
+        prompts?.customInstructions?.trim() || null,
 
         'Return JSON only. Do not return markdown.',
         'The JSON shape must be:',
@@ -476,7 +532,9 @@ export class SportsNewsAutomationService {
         'Do not use ellipsis in imageHeadlineZh or imageHeadlineEn.',
         'Do not write clickbait.',
         'Do not change an UPCOMING event into a completed result or a COMPLETED event into a preview.',
-      ].join('\n'),
+      ]
+        .filter(Boolean)
+        .join('\n'),
     });
 
     const raw = response.output_text?.trim();

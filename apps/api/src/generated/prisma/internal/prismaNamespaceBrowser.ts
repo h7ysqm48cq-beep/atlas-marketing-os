@@ -626,6 +626,7 @@ export const SportsNewsSettingScalarFieldEnum = {
   logoPosition: 'logoPosition',
   brandFooterEnabled: 'brandFooterEnabled',
   brandFooterText: 'brandFooterText',
+  channelOverrides: 'channelOverrides',
   lastMorningRunAt: 'lastMorningRunAt',
   lastEveningRunAt: 'lastEveningRunAt',
   lastRunStatus: 'lastRunStatus',
