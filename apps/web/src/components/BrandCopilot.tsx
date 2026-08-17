@@ -1565,6 +1565,48 @@ export function BrandCopilot() {
     );
   }
 
+  async function waitForCopilotJob(jobId: string) {
+    const deadline = Date.now() + 10 * 60 * 1000;
+    let lastNetworkError: Error | null = null;
+
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => window.setTimeout(resolve, 2500));
+
+      let response: Response;
+
+      try {
+        response = await fetch(`${API_URL}/copilot/jobs/${jobId}`, {
+          cache: "no-store",
+        });
+      } catch (pollError) {
+        lastNetworkError =
+          pollError instanceof Error
+            ? pollError
+            : new Error("Unable to read Copilot job.");
+        continue;
+      }
+
+      const text = await response.text();
+      const job = text ? JSON.parse(text) : {};
+
+      if (!response.ok) {
+        throw new Error(job.message || "Unable to read Copilot job.");
+      }
+
+      if (job.status === "SUCCEEDED") {
+        return job.result;
+      }
+
+      if (job.status === "FAILED" || job.status === "CANCELLED") {
+        throw new Error(job.error || "Copilot job failed.");
+      }
+
+      lastNetworkError = null;
+    }
+
+    throw lastNetworkError || new Error("Copilot job is still running.");
+  }
+
   async function send(
     event?: FormEvent,
     retry?: {
@@ -1623,7 +1665,7 @@ export function BrandCopilot() {
 
     try {
       if (mode === "marketing-plan") {
-        const response = await fetch(`${API_URL}/copilot/marketing-plan`, {
+        const response = await fetch(`${API_URL}/copilot/marketing-plan/jobs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1635,11 +1677,21 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = await response.json();
+        const queued = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Unable to generate marketing plan.");
+          throw new Error(
+            queued.message || "Unable to queue marketing plan.",
+          );
         }
+
+        if (queued.conversationId) {
+          selectConversationId(queued.conversationId);
+        }
+
+        setStatus("Marketing Plan is running in the background...");
+
+        const data = await waitForCopilotJob(queued.id);
 
         setMarketingPlan(data);
 
@@ -1688,7 +1740,7 @@ export function BrandCopilot() {
             "",
         };
 
-        const response = await fetch(`${API_URL}/copilot/chat`, {
+        const response = await fetch(`${API_URL}/copilot/chat/jobs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1738,10 +1790,22 @@ export function BrandCopilot() {
           }),
         });
 
-        const data = await response.json();
+        const queued = await response.json();
 
-        if (!response.ok || !data.reply) {
-          throw new Error(data.message || "Unable to get response.");
+        if (!response.ok || !queued.id) {
+          throw new Error(queued.message || "Unable to queue response.");
+        }
+
+        if (queued.conversationId) {
+          selectConversationId(queued.conversationId);
+        }
+
+        setStatus("Elena is working in the background...");
+
+        const data = await waitForCopilotJob(queued.id);
+
+        if (!data?.reply) {
+          throw new Error("Copilot job completed without a response.");
         }
 
         if (data.marketingPlan) {

@@ -4,6 +4,10 @@ import { PrismaService } from '../database/prisma.service';
 export type AiRuntimeSettings = {
   textModel: string;
   imageModel: string;
+  imageGenerationInstructions: string;
+  imageNegativeInstructions: string;
+  imageModelLogoEnabled: boolean;
+  imageAtlasLogoOverlayEnabled: boolean;
   embeddingModel: string;
   sportsNewsModel: string;
   aiStudioModel: string;
@@ -21,6 +25,10 @@ export type AiRuntimeSettings = {
 const DEFAULT_SETTINGS: AiRuntimeSettings = {
   textModel: 'gpt-5.6-luna',
   imageModel: 'gpt-image-2',
+  imageGenerationInstructions: '',
+  imageNegativeInstructions: '',
+  imageModelLogoEnabled: false,
+  imageAtlasLogoOverlayEnabled: true,
   embeddingModel: 'text-embedding-3-large',
   sportsNewsModel: 'gpt-5.6-luna',
   aiStudioModel: 'gpt-5.6-luna',
@@ -53,6 +61,10 @@ export class AiRuntimeSettingsService {
       return {
         textModel: existing.textModel,
         imageModel: existing.imageModel,
+        imageGenerationInstructions: existing.imageGenerationInstructions,
+        imageNegativeInstructions: existing.imageNegativeInstructions,
+        imageModelLogoEnabled: existing.imageModelLogoEnabled,
+        imageAtlasLogoOverlayEnabled: existing.imageAtlasLogoOverlayEnabled,
         embeddingModel: existing.embeddingModel,
         sportsNewsModel:
           existing.sportsNewsModel,
@@ -98,6 +110,22 @@ export class AiRuntimeSettingsService {
         ? {
             imageModel:
               input.imageModel.trim(),
+          }
+        : {}),
+      ...(input.imageGenerationInstructions !== undefined
+        ? { imageGenerationInstructions: input.imageGenerationInstructions.trim() }
+        : {}),
+      ...(input.imageNegativeInstructions !== undefined
+        ? { imageNegativeInstructions: input.imageNegativeInstructions.trim() }
+        : {}),
+      ...(input.imageModelLogoEnabled !== undefined
+        ? { imageModelLogoEnabled: Boolean(input.imageModelLogoEnabled) }
+        : {}),
+      ...(input.imageAtlasLogoOverlayEnabled !== undefined
+        ? {
+            imageAtlasLogoOverlayEnabled: Boolean(
+              input.imageAtlasLogoOverlayEnabled,
+            ),
           }
         : {}),
       ...(input.embeddingModel !== undefined
@@ -176,6 +204,30 @@ export class AiRuntimeSettingsService {
 
   async getImageModel() {
     return (await this.get()).imageModel;
+  }
+
+  async applyImageGenerationPolicy(prompt: string) {
+    const settings = await this.get();
+    const rules = [
+      prompt.trim(),
+      settings.imageGenerationInstructions.trim(),
+      settings.imageNegativeInstructions.trim()
+        ? `Avoid the following: ${settings.imageNegativeInstructions.trim()}`
+        : '',
+      settings.imageModelLogoEnabled
+        ? ''
+        : [
+            'LOGO GENERATION IS DISABLED.',
+            'Do not draw, reproduce, invent, imitate, typeset, or place any logo, brand mark, watermark, website wordmark, or branded signature inside the generated image.',
+            'Leave suitable clean space when branding is needed; Atlas will add the official logo after image generation.',
+          ].join(' '),
+    ].filter(Boolean);
+
+    return {
+      prompt: rules.join('\n\n'),
+      modelLogoEnabled: settings.imageModelLogoEnabled,
+      atlasLogoOverlayEnabled: settings.imageAtlasLogoOverlayEnabled,
+    };
   }
 
   async getEmbeddingModel() {

@@ -30,9 +30,12 @@ export class ImageService {
     const model = await this.aiRuntime.getImageModel();
 
     try {
+      const imagePolicy = await this.aiRuntime.applyImageGenerationPolicy(
+        dto.prompt,
+      );
       const result = await this.client.images.generate({
         model,
-        prompt: dto.prompt,
+        prompt: imagePolicy.prompt,
         size: dto.size,
         quality: dto.quality,
         n: 1,

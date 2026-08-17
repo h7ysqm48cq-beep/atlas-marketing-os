@@ -1172,6 +1172,11 @@ model AiRuntimeSetting {
 
   imageModel String @default("gpt-image-2")
 
+  imageGenerationInstructions String  @default("") @db.Text
+  imageNegativeInstructions   String  @default("") @db.Text
+  imageModelLogoEnabled       Boolean @default(false)
+  imageAtlasLogoOverlayEnabled Boolean @default(true)
+
   embeddingModel String @default("text-embedding-3-large")
 
   sportsNewsModel String @default("gpt-5.6-luna")

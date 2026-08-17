@@ -48,6 +48,10 @@ export type AiRuntimeSettingMinAggregateOutputType = {
   id: string | null;
   textModel: string | null;
   imageModel: string | null;
+  imageGenerationInstructions: string | null;
+  imageNegativeInstructions: string | null;
+  imageModelLogoEnabled: boolean | null;
+  imageAtlasLogoOverlayEnabled: boolean | null;
   embeddingModel: string | null;
   sportsNewsModel: string | null;
   aiStudioModel: string | null;
@@ -68,6 +72,10 @@ export type AiRuntimeSettingMaxAggregateOutputType = {
   id: string | null;
   textModel: string | null;
   imageModel: string | null;
+  imageGenerationInstructions: string | null;
+  imageNegativeInstructions: string | null;
+  imageModelLogoEnabled: boolean | null;
+  imageAtlasLogoOverlayEnabled: boolean | null;
   embeddingModel: string | null;
   sportsNewsModel: string | null;
   aiStudioModel: string | null;
@@ -88,6 +96,10 @@ export type AiRuntimeSettingCountAggregateOutputType = {
   id: number;
   textModel: number;
   imageModel: number;
+  imageGenerationInstructions: number;
+  imageNegativeInstructions: number;
+  imageModelLogoEnabled: number;
+  imageAtlasLogoOverlayEnabled: number;
   embeddingModel: number;
   sportsNewsModel: number;
   aiStudioModel: number;
@@ -127,6 +139,10 @@ export type AiRuntimeSettingMinAggregateInputType = {
   id?: true;
   textModel?: true;
   imageModel?: true;
+  imageGenerationInstructions?: true;
+  imageNegativeInstructions?: true;
+  imageModelLogoEnabled?: true;
+  imageAtlasLogoOverlayEnabled?: true;
   embeddingModel?: true;
   sportsNewsModel?: true;
   aiStudioModel?: true;
@@ -147,6 +163,10 @@ export type AiRuntimeSettingMaxAggregateInputType = {
   id?: true;
   textModel?: true;
   imageModel?: true;
+  imageGenerationInstructions?: true;
+  imageNegativeInstructions?: true;
+  imageModelLogoEnabled?: true;
+  imageAtlasLogoOverlayEnabled?: true;
   embeddingModel?: true;
   sportsNewsModel?: true;
   aiStudioModel?: true;
@@ -167,6 +187,10 @@ export type AiRuntimeSettingCountAggregateInputType = {
   id?: true;
   textModel?: true;
   imageModel?: true;
+  imageGenerationInstructions?: true;
+  imageNegativeInstructions?: true;
+  imageModelLogoEnabled?: true;
+  imageAtlasLogoOverlayEnabled?: true;
   embeddingModel?: true;
   sportsNewsModel?: true;
   aiStudioModel?: true;
@@ -285,6 +309,10 @@ export type AiRuntimeSettingGroupByOutputType = {
   id: string;
   textModel: string;
   imageModel: string;
+  imageGenerationInstructions: string;
+  imageNegativeInstructions: string;
+  imageModelLogoEnabled: boolean;
+  imageAtlasLogoOverlayEnabled: boolean;
   embeddingModel: string;
   sportsNewsModel: string;
   aiStudioModel: string;
@@ -329,6 +357,12 @@ export type AiRuntimeSettingWhereInput = {
   id?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
   textModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
   imageModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
+  imageGenerationInstructions?:
+    Prisma.StringFilter<'AiRuntimeSetting'> | string;
+  imageNegativeInstructions?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
+  imageModelLogoEnabled?: Prisma.BoolFilter<'AiRuntimeSetting'> | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolFilter<'AiRuntimeSetting'> | boolean;
   embeddingModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
   sportsNewsModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
   aiStudioModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
@@ -350,6 +384,10 @@ export type AiRuntimeSettingOrderByWithRelationInput = {
   id?: Prisma.SortOrder;
   textModel?: Prisma.SortOrder;
   imageModel?: Prisma.SortOrder;
+  imageGenerationInstructions?: Prisma.SortOrder;
+  imageNegativeInstructions?: Prisma.SortOrder;
+  imageModelLogoEnabled?: Prisma.SortOrder;
+  imageAtlasLogoOverlayEnabled?: Prisma.SortOrder;
   embeddingModel?: Prisma.SortOrder;
   sportsNewsModel?: Prisma.SortOrder;
   aiStudioModel?: Prisma.SortOrder;
@@ -376,6 +414,13 @@ export type AiRuntimeSettingWhereUniqueInput = Prisma.AtLeast<
       Prisma.AiRuntimeSettingWhereInput | Prisma.AiRuntimeSettingWhereInput[];
     textModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
     imageModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
+    imageGenerationInstructions?:
+      Prisma.StringFilter<'AiRuntimeSetting'> | string;
+    imageNegativeInstructions?:
+      Prisma.StringFilter<'AiRuntimeSetting'> | string;
+    imageModelLogoEnabled?: Prisma.BoolFilter<'AiRuntimeSetting'> | boolean;
+    imageAtlasLogoOverlayEnabled?:
+      Prisma.BoolFilter<'AiRuntimeSetting'> | boolean;
     embeddingModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
     sportsNewsModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
     aiStudioModel?: Prisma.StringFilter<'AiRuntimeSetting'> | string;
@@ -399,6 +444,10 @@ export type AiRuntimeSettingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder;
   textModel?: Prisma.SortOrder;
   imageModel?: Prisma.SortOrder;
+  imageGenerationInstructions?: Prisma.SortOrder;
+  imageNegativeInstructions?: Prisma.SortOrder;
+  imageModelLogoEnabled?: Prisma.SortOrder;
+  imageAtlasLogoOverlayEnabled?: Prisma.SortOrder;
   embeddingModel?: Prisma.SortOrder;
   sportsNewsModel?: Prisma.SortOrder;
   aiStudioModel?: Prisma.SortOrder;
@@ -431,6 +480,14 @@ export type AiRuntimeSettingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
   textModel?: Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
   imageModel?: Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
+  imageGenerationInstructions?:
+    Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
+  imageNegativeInstructions?:
+    Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
+  imageModelLogoEnabled?:
+    Prisma.BoolWithAggregatesFilter<'AiRuntimeSetting'> | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolWithAggregatesFilter<'AiRuntimeSetting'> | boolean;
   embeddingModel?:
     Prisma.StringWithAggregatesFilter<'AiRuntimeSetting'> | string;
   sportsNewsModel?:
@@ -464,6 +521,10 @@ export type AiRuntimeSettingCreateInput = {
   id?: string;
   textModel?: string;
   imageModel?: string;
+  imageGenerationInstructions?: string;
+  imageNegativeInstructions?: string;
+  imageModelLogoEnabled?: boolean;
+  imageAtlasLogoOverlayEnabled?: boolean;
   embeddingModel?: string;
   sportsNewsModel?: string;
   aiStudioModel?: string;
@@ -484,6 +545,10 @@ export type AiRuntimeSettingUncheckedCreateInput = {
   id?: string;
   textModel?: string;
   imageModel?: string;
+  imageGenerationInstructions?: string;
+  imageNegativeInstructions?: string;
+  imageModelLogoEnabled?: boolean;
+  imageAtlasLogoOverlayEnabled?: boolean;
   embeddingModel?: string;
   sportsNewsModel?: string;
   aiStudioModel?: string;
@@ -504,6 +569,12 @@ export type AiRuntimeSettingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string;
   textModel?: Prisma.StringFieldUpdateOperationsInput | string;
   imageModel?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageGenerationInstructions?:
+    Prisma.StringFieldUpdateOperationsInput | string;
+  imageNegativeInstructions?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageModelLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolFieldUpdateOperationsInput | boolean;
   embeddingModel?: Prisma.StringFieldUpdateOperationsInput | string;
   sportsNewsModel?: Prisma.StringFieldUpdateOperationsInput | string;
   aiStudioModel?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -525,6 +596,12 @@ export type AiRuntimeSettingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string;
   textModel?: Prisma.StringFieldUpdateOperationsInput | string;
   imageModel?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageGenerationInstructions?:
+    Prisma.StringFieldUpdateOperationsInput | string;
+  imageNegativeInstructions?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageModelLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolFieldUpdateOperationsInput | boolean;
   embeddingModel?: Prisma.StringFieldUpdateOperationsInput | string;
   sportsNewsModel?: Prisma.StringFieldUpdateOperationsInput | string;
   aiStudioModel?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -546,6 +623,10 @@ export type AiRuntimeSettingCreateManyInput = {
   id?: string;
   textModel?: string;
   imageModel?: string;
+  imageGenerationInstructions?: string;
+  imageNegativeInstructions?: string;
+  imageModelLogoEnabled?: boolean;
+  imageAtlasLogoOverlayEnabled?: boolean;
   embeddingModel?: string;
   sportsNewsModel?: string;
   aiStudioModel?: string;
@@ -566,6 +647,12 @@ export type AiRuntimeSettingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string;
   textModel?: Prisma.StringFieldUpdateOperationsInput | string;
   imageModel?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageGenerationInstructions?:
+    Prisma.StringFieldUpdateOperationsInput | string;
+  imageNegativeInstructions?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageModelLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolFieldUpdateOperationsInput | boolean;
   embeddingModel?: Prisma.StringFieldUpdateOperationsInput | string;
   sportsNewsModel?: Prisma.StringFieldUpdateOperationsInput | string;
   aiStudioModel?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -587,6 +674,12 @@ export type AiRuntimeSettingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string;
   textModel?: Prisma.StringFieldUpdateOperationsInput | string;
   imageModel?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageGenerationInstructions?:
+    Prisma.StringFieldUpdateOperationsInput | string;
+  imageNegativeInstructions?: Prisma.StringFieldUpdateOperationsInput | string;
+  imageModelLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  imageAtlasLogoOverlayEnabled?:
+    Prisma.BoolFieldUpdateOperationsInput | boolean;
   embeddingModel?: Prisma.StringFieldUpdateOperationsInput | string;
   sportsNewsModel?: Prisma.StringFieldUpdateOperationsInput | string;
   aiStudioModel?: Prisma.StringFieldUpdateOperationsInput | string;
@@ -608,6 +701,10 @@ export type AiRuntimeSettingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder;
   textModel?: Prisma.SortOrder;
   imageModel?: Prisma.SortOrder;
+  imageGenerationInstructions?: Prisma.SortOrder;
+  imageNegativeInstructions?: Prisma.SortOrder;
+  imageModelLogoEnabled?: Prisma.SortOrder;
+  imageAtlasLogoOverlayEnabled?: Prisma.SortOrder;
   embeddingModel?: Prisma.SortOrder;
   sportsNewsModel?: Prisma.SortOrder;
   aiStudioModel?: Prisma.SortOrder;
@@ -637,6 +734,10 @@ export type AiRuntimeSettingMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder;
   textModel?: Prisma.SortOrder;
   imageModel?: Prisma.SortOrder;
+  imageGenerationInstructions?: Prisma.SortOrder;
+  imageNegativeInstructions?: Prisma.SortOrder;
+  imageModelLogoEnabled?: Prisma.SortOrder;
+  imageAtlasLogoOverlayEnabled?: Prisma.SortOrder;
   embeddingModel?: Prisma.SortOrder;
   sportsNewsModel?: Prisma.SortOrder;
   aiStudioModel?: Prisma.SortOrder;
@@ -657,6 +758,10 @@ export type AiRuntimeSettingMinOrderByAggregateInput = {
   id?: Prisma.SortOrder;
   textModel?: Prisma.SortOrder;
   imageModel?: Prisma.SortOrder;
+  imageGenerationInstructions?: Prisma.SortOrder;
+  imageNegativeInstructions?: Prisma.SortOrder;
+  imageModelLogoEnabled?: Prisma.SortOrder;
+  imageAtlasLogoOverlayEnabled?: Prisma.SortOrder;
   embeddingModel?: Prisma.SortOrder;
   sportsNewsModel?: Prisma.SortOrder;
   aiStudioModel?: Prisma.SortOrder;
@@ -690,6 +795,10 @@ export type AiRuntimeSettingSelect<
     id?: boolean;
     textModel?: boolean;
     imageModel?: boolean;
+    imageGenerationInstructions?: boolean;
+    imageNegativeInstructions?: boolean;
+    imageModelLogoEnabled?: boolean;
+    imageAtlasLogoOverlayEnabled?: boolean;
     embeddingModel?: boolean;
     sportsNewsModel?: boolean;
     aiStudioModel?: boolean;
@@ -716,6 +825,10 @@ export type AiRuntimeSettingSelectCreateManyAndReturn<
     id?: boolean;
     textModel?: boolean;
     imageModel?: boolean;
+    imageGenerationInstructions?: boolean;
+    imageNegativeInstructions?: boolean;
+    imageModelLogoEnabled?: boolean;
+    imageAtlasLogoOverlayEnabled?: boolean;
     embeddingModel?: boolean;
     sportsNewsModel?: boolean;
     aiStudioModel?: boolean;
@@ -742,6 +855,10 @@ export type AiRuntimeSettingSelectUpdateManyAndReturn<
     id?: boolean;
     textModel?: boolean;
     imageModel?: boolean;
+    imageGenerationInstructions?: boolean;
+    imageNegativeInstructions?: boolean;
+    imageModelLogoEnabled?: boolean;
+    imageAtlasLogoOverlayEnabled?: boolean;
     embeddingModel?: boolean;
     sportsNewsModel?: boolean;
     aiStudioModel?: boolean;
@@ -764,6 +881,10 @@ export type AiRuntimeSettingSelectScalar = {
   id?: boolean;
   textModel?: boolean;
   imageModel?: boolean;
+  imageGenerationInstructions?: boolean;
+  imageNegativeInstructions?: boolean;
+  imageModelLogoEnabled?: boolean;
+  imageAtlasLogoOverlayEnabled?: boolean;
   embeddingModel?: boolean;
   sportsNewsModel?: boolean;
   aiStudioModel?: boolean;
@@ -787,6 +908,10 @@ export type AiRuntimeSettingOmit<
   | 'id'
   | 'textModel'
   | 'imageModel'
+  | 'imageGenerationInstructions'
+  | 'imageNegativeInstructions'
+  | 'imageModelLogoEnabled'
+  | 'imageAtlasLogoOverlayEnabled'
   | 'embeddingModel'
   | 'sportsNewsModel'
   | 'aiStudioModel'
@@ -815,6 +940,10 @@ export type $AiRuntimeSettingPayload<
       id: string;
       textModel: string;
       imageModel: string;
+      imageGenerationInstructions: string;
+      imageNegativeInstructions: string;
+      imageModelLogoEnabled: boolean;
+      imageAtlasLogoOverlayEnabled: boolean;
       embeddingModel: string;
       sportsNewsModel: string;
       aiStudioModel: string;
@@ -1440,6 +1569,22 @@ export interface AiRuntimeSettingFieldRefs {
   readonly id: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;
   readonly textModel: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;
   readonly imageModel: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;
+  readonly imageGenerationInstructions: Prisma.FieldRef<
+    'AiRuntimeSetting',
+    'String'
+  >;
+  readonly imageNegativeInstructions: Prisma.FieldRef<
+    'AiRuntimeSetting',
+    'String'
+  >;
+  readonly imageModelLogoEnabled: Prisma.FieldRef<
+    'AiRuntimeSetting',
+    'Boolean'
+  >;
+  readonly imageAtlasLogoOverlayEnabled: Prisma.FieldRef<
+    'AiRuntimeSetting',
+    'Boolean'
+  >;
   readonly embeddingModel: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;
   readonly sportsNewsModel: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;
   readonly aiStudioModel: Prisma.FieldRef<'AiRuntimeSetting', 'String'>;

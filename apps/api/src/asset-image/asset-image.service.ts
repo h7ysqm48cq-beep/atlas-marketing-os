@@ -52,9 +52,12 @@ export class AssetImageService {
     const generationStartedAt = Date.now();
 
     try {
+      const imagePolicy = await this.aiRuntime.applyImageGenerationPolicy(
+        dto.prompt,
+      );
       const response = await this.client.images.generate({
         model,
-        prompt: dto.prompt,
+        prompt: imagePolicy.prompt,
         size,
         quality,
         output_format: 'png',
@@ -73,7 +76,9 @@ export class AssetImageService {
       const imageBuffer = Buffer.from(base64, 'base64');
       const [width, height] = size.split('x').map(Number);
 
-      const logoMode = dto.logoMode ?? 'AUTO';
+      const logoMode =
+        dto.logoMode ??
+        (imagePolicy.atlasLogoOverlayEnabled ? 'AUTO' : 'NEVER');
       const logoPlacement = this.resolveLogoPlacement(dto.logoPlacement);
       const logoScale = dto.logoScale ?? 1;
       const logoOpacity = dto.logoOpacity ?? 1;
@@ -120,7 +125,7 @@ export class AssetImageService {
           type: 'IMAGE',
           provider: model,
           platform: dto.platform || 'Multi-platform',
-          prompt: dto.prompt,
+          prompt: imagePolicy.prompt,
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt

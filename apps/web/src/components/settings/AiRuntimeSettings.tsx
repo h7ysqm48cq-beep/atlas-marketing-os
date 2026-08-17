@@ -7,6 +7,10 @@ import styles from "./AiRuntimeSettings.module.css";
 type AiRuntimeSettingsData = {
   textModel: string;
   imageModel: string;
+  imageGenerationInstructions: string;
+  imageNegativeInstructions: string;
+  imageModelLogoEnabled: boolean;
+  imageAtlasLogoOverlayEnabled: boolean;
   embeddingModel: string;
   sportsNewsModel: string;
   aiStudioModel: string;
@@ -21,8 +25,14 @@ type AiRuntimeSettingsData = {
   copilotContextMaxChars: number;
 };
 
+type ModelFieldKey =
+  | "textModel"
+  | "imageModel"
+  | "embeddingModel"
+  | "sportsNewsModel";
+
 const FIELDS: Array<{
-  key: keyof AiRuntimeSettingsData;
+  key: ModelFieldKey;
   label: string;
   description: string;
   placeholder: string;
@@ -115,6 +125,14 @@ export function AiRuntimeSettings({
   }
 
   function patchNumber(key: keyof AiRuntimeSettingsData, value: number) {
+    setSettings((current) =>
+      current ? { ...current, [key]: value } : current,
+    );
+    setMessage("");
+    setError("");
+  }
+
+  function patchBoolean(key: keyof AiRuntimeSettingsData, value: boolean) {
     setSettings((current) =>
       current ? { ...current, [key]: value } : current,
     );
@@ -240,6 +258,87 @@ export function AiRuntimeSettings({
               </label>
             ))}
           </div> : null}
+
+          {section === "all" ? (
+            <>
+              <h3 className={styles.sectionTitle}>Image Generation Policy</h3>
+              <div className={styles.grid}>
+                <label className={`${styles.field} ${styles.fullWidth}`}>
+                  <span className={styles.label}>Global Image Instructions</span>
+                  <span className={styles.description}>
+                    Rules appended to every final image-generation request from Studio, Copilot, Sports and Assets.
+                  </span>
+                  <textarea
+                    className={styles.input}
+                    rows={6}
+                    value={settings.imageGenerationInstructions}
+                    onChange={(event) =>
+                      patch("imageGenerationInstructions", event.target.value)
+                    }
+                  />
+                </label>
+
+                <label className={`${styles.field} ${styles.fullWidth}`}>
+                  <span className={styles.label}>Global Negative Instructions</span>
+                  <span className={styles.description}>
+                    Objects, styles and visual mistakes every image request should avoid.
+                  </span>
+                  <textarea
+                    className={styles.input}
+                    rows={5}
+                    value={settings.imageNegativeInstructions}
+                    onChange={(event) =>
+                      patch("imageNegativeInstructions", event.target.value)
+                    }
+                  />
+                </label>
+
+                <label className={styles.field}>
+                  <span className={styles.label}>Model-generated Logo</span>
+                  <span className={styles.description}>
+                    Disabled by default. Atlas tells the image model not to draw any logo or wordmark.
+                  </span>
+                  <select
+                    className={styles.input}
+                    value={settings.imageModelLogoEnabled ? "enabled" : "disabled"}
+                    onChange={(event) =>
+                      patchBoolean(
+                        "imageModelLogoEnabled",
+                        event.target.value === "enabled",
+                      )
+                    }
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option value="enabled">Enabled</option>
+                  </select>
+                </label>
+
+                <label className={styles.field}>
+                  <span className={styles.label}>Atlas Logo Overlay</span>
+                  <span className={styles.description}>
+                    Adds the official Brand logo after generation when the request supports branding.
+                  </span>
+                  <select
+                    className={styles.input}
+                    value={
+                      settings.imageAtlasLogoOverlayEnabled
+                        ? "enabled"
+                        : "disabled"
+                    }
+                    onChange={(event) =>
+                      patchBoolean(
+                        "imageAtlasLogoOverlayEnabled",
+                        event.target.value === "enabled",
+                      )
+                    }
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+              </div>
+            </>
+          ) : null}
 
           {section !== "copilot" ? <>
           {section === "all" ? <h3 className={styles.sectionTitle}>AI Studio</h3> : null}

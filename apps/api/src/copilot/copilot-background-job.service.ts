@@ -44,12 +44,49 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
     void this.processQueue();
   }
 
-  enqueueChat(dto: ChatCopilotDto) {
-    return this.enqueue({ type: 'chat', dto });
+  async enqueueChat(dto: ChatCopilotDto) {
+    const firstMessage = dto.messages.find(
+      (message) => message.role === 'user',
+    )?.content;
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode: dto.mode || 'chat',
+      firstMessage: firstMessage || 'New Copilot request',
+    });
+    const job = await this.enqueue({
+      type: 'chat',
+      dto: {
+        ...dto,
+        conversationId: conversation.id,
+      },
+    });
+
+    return {
+      ...job,
+      conversationId: conversation.id,
+    };
   }
 
-  enqueueMarketingPlan(dto: CreateMarketingPlanDto) {
-    return this.enqueue({ type: 'marketing-plan', dto });
+  async enqueueMarketingPlan(dto: CreateMarketingPlanDto) {
+    const conversation = await this.conversations.ensureConversation({
+      conversationId: dto.conversationId,
+      campaignId: dto.campaignId,
+      mode: 'marketing-plan',
+      firstMessage: dto.prompt,
+    });
+    const job = await this.enqueue({
+      type: 'marketing-plan',
+      dto: {
+        ...dto,
+        conversationId: conversation.id,
+      },
+    });
+
+    return {
+      ...job,
+      conversationId: conversation.id,
+    };
   }
 
   async get(id: string) {
