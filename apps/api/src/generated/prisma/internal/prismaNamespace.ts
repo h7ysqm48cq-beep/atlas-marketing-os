@@ -3468,6 +3468,7 @@ export const SportsNewsSettingScalarFieldEnum = {
   eveningPrompt: 'eveningPrompt',
   knowledgePrompt: 'knowledgePrompt',
   customInstructions: 'customInstructions',
+  channelOverrides: 'channelOverrides',
   imageEnabled: 'imageEnabled',
   imagePrompt: 'imagePrompt',
   morningImagePrompt: 'morningImagePrompt',

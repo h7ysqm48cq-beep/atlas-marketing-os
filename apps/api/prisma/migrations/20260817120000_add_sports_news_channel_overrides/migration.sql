@@ -1,0 +1,2 @@
+ALTER TABLE "SportsNewsSetting"
+ADD COLUMN IF NOT EXISTS "channelOverrides" JSONB NOT NULL DEFAULT '{}';

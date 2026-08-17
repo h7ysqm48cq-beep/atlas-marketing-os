@@ -10,6 +10,15 @@ type Channel = {
   status: string;
 };
 
+type ChannelOverride = {
+  customInstructions?: string | null;
+  morningPrompt?: string | null;
+  eveningPrompt?: string | null;
+  imagePrompt?: string | null;
+  morningImagePrompt?: string | null;
+  eveningImagePrompt?: string | null;
+};
+
 type Settings = {
   enabled: boolean;
   timezone: string;
@@ -43,6 +52,7 @@ type Settings = {
   eveningPrompt: string | null;
   knowledgePrompt: string | null;
   customInstructions: string | null;
+  channelOverrides: Record<string, ChannelOverride>;
   imageEnabled: boolean;
   imagePrompt: string | null;
   morningImagePrompt: string | null;
@@ -551,6 +561,27 @@ export function SportsNewsSettings() {
     setSaved(false);
     setS((x) => (x ? { ...x, [k]: v } : x));
   };
+  const patchChannelOverride = (
+    channelId: string,
+    key: keyof ChannelOverride,
+    value: string,
+  ) => {
+    setSaved(false);
+    setS((current) =>
+      current
+        ? {
+            ...current,
+            channelOverrides: {
+              ...(current.channelOverrides || {}),
+              [channelId]: {
+                ...(current.channelOverrides?.[channelId] || {}),
+                [key]: value || null,
+              },
+            },
+          }
+        : current,
+    );
+  };
   const saveSettings = async (settingsToSave: Settings) => {
     /*
      * GET /sports-news/settings returns Prisma metadata and
@@ -997,6 +1028,53 @@ export function SportsNewsSettings() {
               />
             </label>
           ))}
+        </div>
+
+        <div className={styles.panel}>
+          <h3>Channel-specific AI Settings</h3>
+          <p>
+            Each channel can override the global prompts. Blank fields inherit
+            the global value.
+          </p>
+          {channels.length === 0 ? (
+            <p>No social channels are connected yet.</p>
+          ) : (
+            channels.map((channel) => (
+              <div className={styles.report} key={channel.id}>
+                <h4>
+                  {channel.name} · {channel.platform}
+                </h4>
+                {[
+                  ["customInstructions", "Channel instructions"],
+                  ["morningPrompt", "Morning prompt"],
+                  ["eveningPrompt", "Evening prompt"],
+                  ["imagePrompt", "Default image prompt"],
+                  ["morningImagePrompt", "Morning image prompt"],
+                  ["eveningImagePrompt", "Evening image prompt"],
+                ].map(([key, label]) => (
+                  <label key={key}>
+                    {label}
+                    <textarea
+                      rows={3}
+                      value={
+                        s.channelOverrides?.[channel.id]?.[
+                          key as keyof ChannelOverride
+                        ] ?? ""
+                      }
+                      placeholder="Inherit global setting"
+                      onChange={(event) =>
+                        patchChannelOverride(
+                          channel.id,
+                          key as keyof ChannelOverride,
+                          event.target.value,
+                        )
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            ))
+          )}
         </div>
 
         <div className={styles.panel}>

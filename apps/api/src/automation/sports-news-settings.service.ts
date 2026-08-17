@@ -49,6 +49,7 @@ export type UpdateSportsNewsSettingsInput = {
   eveningPrompt?: string | null;
   knowledgePrompt?: string | null;
   customInstructions?: string | null;
+  channelOverrides?: Record<string, SportsNewsChannelOverride>;
 
   imageEnabled?: boolean;
   imagePrompt?: string | null;
@@ -251,6 +252,15 @@ export type UpdateSportsNewsSettingsInput = {
   previewTelegramCaptionEnabled?: boolean;
 
   recommendedDefaultsVersion?: string;
+};
+
+export type SportsNewsChannelOverride = {
+  customInstructions?: string | null;
+  morningPrompt?: string | null;
+  eveningPrompt?: string | null;
+  imagePrompt?: string | null;
+  morningImagePrompt?: string | null;
+  eveningImagePrompt?: string | null;
 };
 
 @Injectable()
@@ -496,6 +506,18 @@ export class SportsNewsSettingsService {
         sanitizedInput.facebookChannelId,
         SocialPlatform.FACEBOOK,
       );
+    }
+
+    if (sanitizedInput.channelOverrides) {
+      const channelIds = Object.keys(sanitizedInput.channelOverrides);
+      const validChannels = await this.prisma.socialChannel.count({
+        where: { id: { in: channelIds }, workspaceId: settings.workspaceId },
+      });
+      if (validChannels !== channelIds.length) {
+        throw new BadRequestException(
+          'Channel overrides contain an invalid social channel.',
+        );
+      }
     }
 
     return this.prisma.sportsNewsSetting.update({

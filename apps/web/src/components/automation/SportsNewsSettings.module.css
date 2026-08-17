@@ -505,7 +505,69 @@
   opacity: 0.55;
 }
 
+.stickySaveBar {
+  display: none;
+}
+
+.stickySaveInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stickySaveActions {
+  display: flex;
+  gap: 10px;
+}
+
+.stickySaveActions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  background: #7868ff;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.stickySaveActions button:disabled {
+  opacity: 0.6;
+}
+
 @media (max-width: 720px) {
+  .wrap {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
+  }
+
+  .stickySaveBar {
+    position: fixed;
+    z-index: 100;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 21, 31, 0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .stickySaveInner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stickySaveActions,
+  .stickySaveActions button {
+    width: 100%;
+  }
+
+  .stickySaveActions button {
+    flex: 1;
+  }
+
   .footerOptionGrid {
     grid-template-columns: 1fr;
   }

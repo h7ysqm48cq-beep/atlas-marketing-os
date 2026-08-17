@@ -359,6 +359,19 @@ export class SportsNewsAutomationService {
         channel: NonNullable<(typeof resolvedTargets)[number]['channel']>;
       }>;
       const primaryChannel = targets[0].channel;
+      const channelOverride = (
+        settings.channelOverrides as Record<
+          string,
+          {
+            customInstructions?: string | null;
+            morningPrompt?: string | null;
+            eveningPrompt?: string | null;
+            imagePrompt?: string | null;
+            morningImagePrompt?: string | null;
+            eveningImagePrompt?: string | null;
+          }
+        >
+      )?.[primaryChannel.id];
 
       const dateKey = new Intl.DateTimeFormat('en-CA', {
         timeZone: settings.timezone,
@@ -447,6 +460,7 @@ export class SportsNewsAutomationService {
           freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
         },
         settings,
+        channelOverride,
       );
       const content = this.cleanPublishedContent(generatedNews.content);
 
@@ -473,12 +487,15 @@ export class SportsNewsAutomationService {
             logoMode: 'NEVER',
 
             prompt: [
-              settings.imagePrompt?.trim(),
+              channelOverride?.imagePrompt?.trim() ||
+                settings.imagePrompt?.trim(),
               settings.imageVisualStyle?.trim(),
 
               edition === 'MORNING'
-                ? settings.morningImagePrompt?.trim()
-                : settings.eveningImagePrompt?.trim(),
+                ? channelOverride?.morningImagePrompt?.trim() ||
+                  settings.morningImagePrompt?.trim()
+                : channelOverride?.eveningImagePrompt?.trim() ||
+                  settings.eveningImagePrompt?.trim(),
 
               settings.visualDirectorEnabled
                 ? generatedNews.visualDirection?.trim()
@@ -863,11 +880,20 @@ export class SportsNewsAutomationService {
     dateKey: string,
     freshness: SportsNewsFreshnessRules,
     settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+    channelOverride?: {
+      customInstructions?: string | null;
+      morningPrompt?: string | null;
+      eveningPrompt?: string | null;
+    },
   ) {
     const editionInstruction =
       edition === 'MORNING'
-        ? settings.morningPrompt?.trim() || ''
-        : settings.eveningPrompt?.trim() || '';
+        ? channelOverride?.morningPrompt?.trim() ||
+          settings.morningPrompt?.trim() ||
+          ''
+        : channelOverride?.eveningPrompt?.trim() ||
+          settings.eveningPrompt?.trim() ||
+          '';
 
     const response = await this.client!.responses.create({
       model: await this.aiRuntime.getSportsNewsModel(),
@@ -882,7 +908,8 @@ export class SportsNewsAutomationService {
 
         editionInstruction,
 
-        settings.customInstructions?.trim(),
+        channelOverride?.customInstructions?.trim() ||
+          settings.customInstructions?.trim(),
 
         `Return between 1 and ${settings.storyMaximum} verified sports stories. Do not force a fixed number. If only 1 or 2 stories can be reliably verified, return those verified stories instead of returning an empty stories array.`,
 

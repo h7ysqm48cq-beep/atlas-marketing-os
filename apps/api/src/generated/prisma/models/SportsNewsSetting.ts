@@ -527,6 +527,7 @@ export type SportsNewsSettingCountAggregateOutputType = {
   eveningPrompt: number
   knowledgePrompt: number
   customInstructions: number
+  channelOverrides: number
   imageEnabled: number
   imagePrompt: number
   morningImagePrompt: number
@@ -1187,6 +1188,7 @@ export type SportsNewsSettingCountAggregateInputType = {
   eveningPrompt?: true
   knowledgePrompt?: true
   customInstructions?: true
+  channelOverrides?: true
   imageEnabled?: true
   imagePrompt?: true
   morningImagePrompt?: true
@@ -1466,6 +1468,7 @@ export type SportsNewsSettingGroupByOutputType = {
   eveningPrompt: string | null
   knowledgePrompt: string | null
   customInstructions: string | null
+  channelOverrides: runtime.JsonValue
   imageEnabled: boolean
   imagePrompt: string | null
   morningImagePrompt: string | null
@@ -1681,6 +1684,7 @@ export type SportsNewsSettingWhereInput = {
   eveningPrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   knowledgePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   customInstructions?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   imageEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   imagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   morningImagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -1876,6 +1880,7 @@ export type SportsNewsSettingOrderByWithRelationInput = {
   eveningPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   knowledgePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   customInstructions?: Prisma.SortOrderInput | Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   imageEnabled?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   morningImagePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -2074,6 +2079,7 @@ export type SportsNewsSettingWhereUniqueInput = Prisma.AtLeast<{
   eveningPrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   knowledgePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   customInstructions?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   imageEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   imagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   morningImagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -2269,6 +2275,7 @@ export type SportsNewsSettingOrderByWithAggregationInput = {
   eveningPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   knowledgePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   customInstructions?: Prisma.SortOrderInput | Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   imageEnabled?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
   morningImagePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -2469,6 +2476,7 @@ export type SportsNewsSettingScalarWhereWithAggregatesInput = {
   eveningPrompt?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
   knowledgePrompt?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
   customInstructions?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  channelOverrides?: Prisma.JsonWithAggregatesFilter<"SportsNewsSetting">
   imageEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   imagePrompt?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
   morningImagePrompt?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
@@ -2658,6 +2666,7 @@ export type SportsNewsSettingCreateInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -2853,6 +2862,7 @@ export type SportsNewsSettingUncheckedCreateInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -3042,6 +3052,7 @@ export type SportsNewsSettingUpdateInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3237,6 +3248,7 @@ export type SportsNewsSettingUncheckedUpdateInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3429,6 +3441,7 @@ export type SportsNewsSettingCreateManyInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -3618,6 +3631,7 @@ export type SportsNewsSettingUpdateManyMutationInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3810,6 +3824,7 @@ export type SportsNewsSettingUncheckedUpdateManyInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4017,6 +4032,7 @@ export type SportsNewsSettingCountOrderByAggregateInput = {
   eveningPrompt?: Prisma.SortOrder
   knowledgePrompt?: Prisma.SortOrder
   customInstructions?: Prisma.SortOrder
+  channelOverrides?: Prisma.SortOrder
   imageEnabled?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   morningImagePrompt?: Prisma.SortOrder
@@ -4788,6 +4804,7 @@ export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -4981,6 +4998,7 @@ export type SportsNewsSettingUncheckedCreateWithoutWorkspaceInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -5186,6 +5204,7 @@ export type SportsNewsSettingUpdateWithoutWorkspaceInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5379,6 +5398,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutWorkspaceInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5568,6 +5588,7 @@ export type SportsNewsSettingCreateWithoutTelegramChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -5761,6 +5782,7 @@ export type SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -5960,6 +5982,7 @@ export type SportsNewsSettingCreateWithoutFacebookChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -6153,6 +6176,7 @@ export type SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -6374,6 +6398,7 @@ export type SportsNewsSettingScalarWhereInput = {
   eveningPrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   knowledgePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   customInstructions?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   imageEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   imagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   morningImagePrompt?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
@@ -6581,6 +6606,7 @@ export type SportsNewsSettingCreateManyTelegramChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -6772,6 +6798,7 @@ export type SportsNewsSettingCreateManyFacebookChannelInput = {
   eveningPrompt?: string | null
   knowledgePrompt?: string | null
   customInstructions?: string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: boolean
   imagePrompt?: string | null
   morningImagePrompt?: string | null
@@ -6961,6 +6988,7 @@ export type SportsNewsSettingUpdateWithoutTelegramChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -7154,6 +7182,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutTelegramChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -7345,6 +7374,7 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -7534,6 +7564,7 @@ export type SportsNewsSettingUpdateWithoutFacebookChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -7727,6 +7758,7 @@ export type SportsNewsSettingUncheckedUpdateWithoutFacebookChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -7918,6 +7950,7 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelInput = {
   eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -8112,6 +8145,7 @@ export type SportsNewsSettingSelect<ExtArgs extends runtime.Types.Extensions.Int
   eveningPrompt?: boolean
   knowledgePrompt?: boolean
   customInstructions?: boolean
+  channelOverrides?: boolean
   imageEnabled?: boolean
   imagePrompt?: boolean
   morningImagePrompt?: boolean
@@ -8307,6 +8341,7 @@ export type SportsNewsSettingSelectCreateManyAndReturn<ExtArgs extends runtime.T
   eveningPrompt?: boolean
   knowledgePrompt?: boolean
   customInstructions?: boolean
+  channelOverrides?: boolean
   imageEnabled?: boolean
   imagePrompt?: boolean
   morningImagePrompt?: boolean
@@ -8502,6 +8537,7 @@ export type SportsNewsSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   eveningPrompt?: boolean
   knowledgePrompt?: boolean
   customInstructions?: boolean
+  channelOverrides?: boolean
   imageEnabled?: boolean
   imagePrompt?: boolean
   morningImagePrompt?: boolean
@@ -8697,6 +8733,7 @@ export type SportsNewsSettingSelectScalar = {
   eveningPrompt?: boolean
   knowledgePrompt?: boolean
   customInstructions?: boolean
+  channelOverrides?: boolean
   imageEnabled?: boolean
   imagePrompt?: boolean
   morningImagePrompt?: boolean
@@ -8854,7 +8891,7 @@ export type SportsNewsSettingSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "storyPanelEnabled" | "mastheadEnabled" | "headlineTextEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "logoAssetId" | "logoSize" | "logoOpacity" | "logoMargin" | "footerLogoEnabled" | "footerLogoAssetId" | "footerQrEnabled" | "footerTextEnabled" | "footerQrAssetId" | "footerQrLink" | "footerPlacement" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
+export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "channelOverrides" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "storyPanelEnabled" | "mastheadEnabled" | "headlineTextEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "logoAssetId" | "logoSize" | "logoOpacity" | "logoMargin" | "footerLogoEnabled" | "footerLogoAssetId" | "footerQrEnabled" | "footerTextEnabled" | "footerQrAssetId" | "footerQrLink" | "footerPlacement" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["sportsNewsSetting"]>
 export type SportsNewsSettingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
@@ -8913,6 +8950,7 @@ export type $SportsNewsSettingPayload<ExtArgs extends runtime.Types.Extensions.I
     eveningPrompt: string | null
     knowledgePrompt: string | null
     customInstructions: string | null
+    channelOverrides: runtime.JsonValue
     imageEnabled: boolean
     imagePrompt: string | null
     morningImagePrompt: string | null
@@ -9528,6 +9566,7 @@ export interface SportsNewsSettingFieldRefs {
   readonly eveningPrompt: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly knowledgePrompt: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly customInstructions: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly channelOverrides: Prisma.FieldRef<"SportsNewsSetting", 'Json'>
   readonly imageEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly imagePrompt: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly morningImagePrompt: Prisma.FieldRef<"SportsNewsSetting", 'String'>

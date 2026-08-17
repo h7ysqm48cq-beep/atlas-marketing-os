@@ -869,6 +869,8 @@ model SportsNewsSetting {
   knowledgePrompt     String?
   customInstructions  String?
 
+  channelOverrides Json @default("{}")
+
   imageEnabled       Boolean @default(true)
   imagePrompt        String?
   morningImagePrompt String?
