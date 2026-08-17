@@ -90,6 +90,8 @@ export function SportsNewsSettings() {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState<"morning" | "evening" | null>(null);
   const [message, setMessage] = useState("");
+  const [savedSnapshot, setSavedSnapshot] = useState<Settings | null>(null);
+  const [saved, setSaved] = useState(false);
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
       fetch(`${API_URL}/sports-news/settings`, { cache: "no-store" }),
@@ -100,7 +102,9 @@ export function SportsNewsSettings() {
       throw new Error("Unable to load Sports News settings.");
     }
 
-    setS(await a.json());
+    const settings: Settings = await a.json();
+    setS(settings);
+    setSavedSnapshot(settings);
     setChannels(await b.json());
   }, []);
   useEffect(() => {
@@ -108,8 +112,10 @@ export function SportsNewsSettings() {
       setMessage(e instanceof Error ? e.message : "Load failed."),
     );
   }, [load]);
-  const patch = <K extends keyof Settings>(k: K, v: Settings[K]) =>
+  const patch = <K extends keyof Settings>(k: K, v: Settings[K]) => {
+    setSaved(false);
     setS((x) => (x ? { ...x, [k]: v } : x));
+  };
   const save = async () => {
     if (!s) return;
     setSaving(true);
@@ -121,7 +127,10 @@ export function SportsNewsSettings() {
         body: JSON.stringify(s),
       });
       if (!r.ok) throw new Error(await r.text());
-      setS(await r.json());
+      const updated: Settings = await r.json();
+      setS(updated);
+      setSavedSnapshot(updated);
+      setSaved(true);
       setMessage("Sports News settings saved.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Save failed.");
@@ -162,6 +171,13 @@ export function SportsNewsSettings() {
     );
   const tg = channels.filter((c) => c.platform === "TELEGRAM"),
     fb = channels.filter((c) => c.platform === "FACEBOOK");
+  const hasChanges = JSON.stringify(s) !== JSON.stringify(savedSnapshot);
+  const discardChanges = () => {
+    if (!savedSnapshot) return;
+    setS(savedSnapshot);
+    setSaved(false);
+    setMessage("");
+  };
   return (
     <section className={styles.wrap}>
       <header className={styles.header}>
@@ -173,8 +189,15 @@ export function SportsNewsSettings() {
             publishing.
           </span>
         </div>
-        <button onClick={save} disabled={saving || Boolean(running)}>
-          {saving ? "Saving..." : "Save settings"}
+        <button
+          onClick={save}
+          disabled={saving || Boolean(running) || !hasChanges}
+        >
+          {saving
+            ? "Saving..."
+            : saved && !hasChanges
+              ? "Saved ✓"
+              : "Save changes"}
         </button>
       </header>
       {message && <div className={styles.message}>{message}</div>}
@@ -498,6 +521,29 @@ export function SportsNewsSettings() {
         <span>Last status: {s.lastRunStatus ?? "—"}</span>
         {s.lastError && <span>Error: {s.lastError}</span>}
       </div>
+      {hasChanges && (
+        <div className={styles.stickySaveBar}>
+          <div className={styles.stickySaveInner}>
+            <span>You have unsaved changes.</span>
+            <div className={styles.stickySaveActions}>
+              <button
+                type="button"
+                onClick={discardChanges}
+                disabled={saving || Boolean(running)}
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving || Boolean(running)}
+              >
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
