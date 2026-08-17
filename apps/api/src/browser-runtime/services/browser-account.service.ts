@@ -750,7 +750,7 @@ export class BrowserAccountService {
     }
 
     const normalizedPages =
-      rawPages.map(
+      rawPages.flatMap(
         (page, index) => {
           const name =
             page.name?.trim() ||
@@ -778,9 +778,7 @@ export class BrowserAccountService {
             '';
 
           if (!pageId) {
-            throw new BadRequestException(
-              `Page ID is required for item ${index + 1}.`,
-            );
+            return [];
           }
 
           if (
@@ -794,12 +792,10 @@ export class BrowserAccountService {
           }
 
           if (!name) {
-            throw new BadRequestException(
-              `Page name is required for item ${index + 1}.`,
-            );
+            return [];
           }
 
-          return {
+          return [{
             pageId,
             name,
             url,
@@ -807,9 +803,15 @@ export class BrowserAccountService {
               page.imageUrl?.trim() ||
               null,
             username,
-          };
+          }];
         },
       );
+
+    if (!normalizedPages.length) {
+      throw new BadRequestException(
+        'Facebook did not return any Page with a usable ID or username. Open the browser, switch to the Page profile once, then retry onboarding.',
+      );
+    }
 
     const uniquePages =
       Array.from(

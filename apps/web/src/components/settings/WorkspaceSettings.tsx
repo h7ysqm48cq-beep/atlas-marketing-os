@@ -17,6 +17,27 @@ type AutomationSettings = {
   defaultTelegramTime: string;
 };
 
+type BrowserPublishingAccount = {
+  id: string;
+  displayName: string;
+  browserProfileKey: string;
+  browserProfileName: string;
+  loginStatus: string;
+  cookieStatus: string;
+  proxyType: string;
+  proxyCountry: string | null;
+  lastKnownIp: string | null;
+  lastLoginAt: string | null;
+  lastVerifiedAt: string | null;
+  lastHeartbeatAt: string | null;
+  lastLoginError: string | null;
+  isPrimary: boolean;
+  health: {
+    score: number;
+    status: "HEALTHY" | "WARNING" | "CRITICAL" | string;
+  };
+};
+
 type Channel = {
   id: string;
   brandId?: string;
@@ -46,30 +67,8 @@ type Channel = {
     browserProfileName: string;
   } | null;
 
-  primaryBrowserAccount?: {
-    id: string;
-    displayName: string;
-    browserProfileKey: string;
-    browserProfileName: string;
-    loginStatus: string;
-    cookieStatus: string;
-    proxyType: string;
-    proxyCountry: string | null;
-    lastKnownIp: string | null;
-    lastLoginAt: string | null;
-    lastVerifiedAt: string | null;
-    lastHeartbeatAt: string | null;
-    lastLoginError: string | null;
-    isPrimary: boolean;
-    health: {
-      score: number;
-      status:
-        | "HEALTHY"
-        | "WARNING"
-        | "CRITICAL"
-        | string;
-    };
-  } | null;
+  browserAccounts?: BrowserPublishingAccount[];
+  primaryBrowserAccount?: BrowserPublishingAccount | null;
 
   brand?: {
     id: string;
@@ -427,6 +426,49 @@ export function WorkspaceSettings() {
       );
     } finally {
       setVerifyingTelegram(false);
+    }
+  }
+
+  async function selectPublishingAccount(
+    channel: Channel,
+    accountId: string,
+  ) {
+    setActiveChannelAction(`${channel.id}:publishing-account`);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/browser-runtime/accounts/${accountId}/channels/${channel.id}/link`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isPrimary: true }),
+        },
+      );
+
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message || "Unable to select the publishing account.",
+        );
+      }
+
+      await load();
+      setMessage(
+        `${channel.name} will publish with the selected Facebook account.`,
+      );
+    } catch (selectionError) {
+      setError(
+        selectionError instanceof Error
+          ? selectionError.message
+          : "Unable to select the publishing account.",
+      );
+    } finally {
+      setActiveChannelAction(null);
     }
   }
 
@@ -1414,6 +1456,33 @@ export function WorkspaceSettings() {
                           </strong>
                         </div>
                       </div>
+
+                      {(channel.browserAccounts?.length || 0) > 1 ? (
+                        <label>
+                          <span>Account used for publishing</span>
+                          <select
+                            value={channel.primaryBrowserAccount.id}
+                            disabled={channelBusy}
+                            onChange={(event) =>
+                              void selectPublishingAccount(
+                                channel,
+                                event.target.value,
+                              )
+                            }
+                          >
+                            {channel.browserAccounts?.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {account.displayName} · {account.loginStatus.replaceAll("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                          <small>
+                            This Page is connected to more than one Facebook
+                            login. Choose which account Atlas should use by
+                            default when publishing.
+                          </small>
+                        </label>
+                      ) : null}
 
                       <div className={styles.browserRuntimeActions}>
                         <a

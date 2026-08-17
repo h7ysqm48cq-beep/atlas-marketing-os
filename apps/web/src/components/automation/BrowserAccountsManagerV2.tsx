@@ -1919,6 +1919,12 @@ export function BrowserAccountsManagerV2({
                     Verify login, discover Pages, sync Connected Platforms and
                     refresh account health.
                   </p>
+
+                  <p>
+                    Current Brand: {brands.find(
+                      (brand) => brand.id === selectedAccount.brandId,
+                    )?.name || "Not selected"}
+                  </p>
                 </div>
 
                 <button

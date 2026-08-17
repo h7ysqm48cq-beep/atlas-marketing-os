@@ -5569,7 +5569,7 @@ app.post(
 
               const match =
                 url.pathname.match(
-                  /\/(?:profile\.php\/)?(\d{5,})/,
+                  /\/(?:profile\.php\/|pages\/(?:[^/]+\/)?)*(\d{5,})/,
                 );
 
               return match?.[1] ||
