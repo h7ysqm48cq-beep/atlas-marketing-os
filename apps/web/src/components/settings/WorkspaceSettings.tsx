@@ -38,6 +38,15 @@ type BrowserPublishingAccount = {
   };
 };
 
+type BrowserAccountOption = {
+  id: string;
+  displayName: string;
+  platform: string;
+  brandId: string | null;
+  loginStatus: string;
+  cookieStatus: string;
+};
+
 type Channel = {
   id: string;
   brandId?: string;
@@ -111,6 +120,14 @@ export function WorkspaceSettings() {
 
   const [brands, setBrands] = useState<Brand[]>([]);
 
+  const [browserAccounts, setBrowserAccounts] = useState<
+    BrowserAccountOption[]
+  >([]);
+
+  const [browserAccountSelections, setBrowserAccountSelections] = useState<
+    Record<string, string>
+  >({});
+
   const [localPreferences, setLocalPreferences] = useState<LocalPreferences>(
     DEFAULT_LOCAL_PREFERENCES,
   );
@@ -166,26 +183,40 @@ export function WorkspaceSettings() {
     setError("");
 
     try {
-      const [settingsResponse, channelsResponse, brandsResponse] =
-        await Promise.all([
+      const [
+        settingsResponse,
+        channelsResponse,
+        brandsResponse,
+        accountsResponse,
+      ] = await Promise.all([
           fetch(`${API_URL}/automation/settings`, { cache: "no-store" }),
           fetch(`${API_URL}/automation/channels`, { cache: "no-store" }),
           fetch(`${API_URL}/brands`, { cache: "no-store" }),
+          fetch(`${API_URL}/browser-runtime/accounts`, { cache: "no-store" }),
         ]);
 
-      if (!settingsResponse.ok || !channelsResponse.ok || !brandsResponse.ok) {
+      if (
+        !settingsResponse.ok ||
+        !channelsResponse.ok ||
+        !brandsResponse.ok
+      ) {
         throw new Error("Unable to load workspace settings.");
       }
 
-      const [settingsData, channelsData, brandsData] = await Promise.all([
-        settingsResponse.json() as Promise<AutomationSettings>,
-        channelsResponse.json() as Promise<Channel[]>,
-        brandsResponse.json() as Promise<Brand[]>,
-      ]);
+      const [settingsData, channelsData, brandsData, accountsData] =
+        await Promise.all([
+          settingsResponse.json() as Promise<AutomationSettings>,
+          channelsResponse.json() as Promise<Channel[]>,
+          brandsResponse.json() as Promise<Brand[]>,
+          accountsResponse.ok
+            ? (accountsResponse.json() as Promise<BrowserAccountOption[]>)
+            : Promise.resolve([]),
+        ]);
 
       setSettings(settingsData);
       setChannels(channelsData);
       setBrands(brandsData);
+      setBrowserAccounts(Array.isArray(accountsData) ? accountsData : []);
 
       const stored = window.localStorage.getItem("atlas.settings.preferences");
 
@@ -214,6 +245,106 @@ export function WorkspaceSettings() {
       setLoading(false);
     }
   }, []);
+
+  async function responseBody(response: Response) {
+    const text = await response.text();
+
+    if (!text.trim()) return {} as Record<string, unknown>;
+
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { message: text } as Record<string, unknown>;
+    }
+  }
+
+  async function openBrowserAccount(channel: Channel, accountId: string) {
+    setActiveChannelAction(`${channel.id}:open-browser`);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/browser-runtime/accounts/${accountId}/browser/open`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            headless: false,
+            startUrl: "https://www.facebook.com/",
+          }),
+        },
+      );
+      const body = await responseBody(response);
+
+      if (!response.ok) {
+        throw new Error(
+          typeof body.message === "string"
+            ? body.message
+            : "Unable to open Browser Account.",
+        );
+      }
+
+      setMessage(
+        body.alreadyRunning
+          ? `${channel.name} Browser Account is already open.`
+          : `${channel.name} Browser Account opened.`,
+      );
+      await load();
+    } catch (openError) {
+      setError(
+        openError instanceof Error
+          ? openError.message
+          : "Unable to open Browser Account.",
+      );
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function linkBrowserAccount(channel: Channel) {
+    const accountId = browserAccountSelections[channel.id];
+
+    if (!accountId) {
+      setError("Select a Browser Account first.");
+      return;
+    }
+
+    setActiveChannelAction(`${channel.id}:link-browser`);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/browser-runtime/accounts/${accountId}/channels/${channel.id}/link`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isPrimary: true }),
+        },
+      );
+      const body = await responseBody(response);
+
+      if (!response.ok) {
+        throw new Error(
+          typeof body.message === "string"
+            ? body.message
+            : "Unable to link Browser Account.",
+        );
+      }
+
+      setMessage(`${channel.name} linked to the selected Browser Account.`);
+      await load();
+    } catch (linkError) {
+      setError(
+        linkError instanceof Error
+          ? linkError.message
+          : "Unable to link Browser Account.",
+      );
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch persisted workspace settings when the panel mounts.
@@ -1594,12 +1725,27 @@ export function WorkspaceSettings() {
                       ) : null}
 
                       <div className={styles.browserRuntimeActions}>
+                        <button
+                          type="button"
+                          disabled={channelBusy}
+                          onClick={() =>
+                            void openBrowserAccount(
+                              channel,
+                              channel.primaryBrowserAccount!.id,
+                            )
+                          }
+                        >
+                          {activeChannelAction === `${channel.id}:open-browser`
+                            ? "Opening..."
+                            : "Open Browser"}
+                        </button>
+
                         <a
                           href={`/automation/browser-accounts?accountId=${encodeURIComponent(
                             channel.primaryBrowserAccount.id,
                           )}`}
                         >
-                          Open Browser Account
+                          Manage Browser Account
                         </a>
 
                         <a
@@ -1628,9 +1774,55 @@ export function WorkspaceSettings() {
                           migrating login and proxy management.
                         </span>
 
-                        <a href="/automation/browser-accounts">
-                          Link Browser Account
-                        </a>
+                        {(() => {
+                          const eligibleAccounts = browserAccounts.filter(
+                            (account) =>
+                              account.platform === "FACEBOOK" &&
+                              (!channel.brandId ||
+                                account.brandId === channel.brandId),
+                          );
+
+                          return eligibleAccounts.length ? (
+                            <div className={styles.browserLinkControls}>
+                              <select
+                                aria-label={`Browser Account for ${channel.name}`}
+                                value={browserAccountSelections[channel.id] || ""}
+                                disabled={channelBusy}
+                                onChange={(event) =>
+                                  setBrowserAccountSelections((current) => ({
+                                    ...current,
+                                    [channel.id]: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Select Browser Account</option>
+                                {eligibleAccounts.map((account) => (
+                                  <option key={account.id} value={account.id}>
+                                    {account.displayName} ·{" "}
+                                    {account.loginStatus.replaceAll("_", " ")}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <button
+                                type="button"
+                                disabled={
+                                  channelBusy ||
+                                  !browserAccountSelections[channel.id]
+                                }
+                                onClick={() => void linkBrowserAccount(channel)}
+                              >
+                                {activeChannelAction === `${channel.id}:link-browser`
+                                  ? "Linking..."
+                                  : "Link Browser Account"}
+                              </button>
+                            </div>
+                          ) : (
+                            <a href="/automation/browser-accounts">
+                              Create Browser Account
+                            </a>
+                          );
+                        })()}
                       </div>
 
                       <RuntimeProfileEditor

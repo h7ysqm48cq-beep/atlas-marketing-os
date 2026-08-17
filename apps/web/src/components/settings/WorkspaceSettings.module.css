@@ -810,6 +810,7 @@
 }
 
 .browserRuntimeActions a,
+.browserRuntimeActions button,
 .legacyRuntimeNotice a {
   display: inline-flex;
   align-items: center;
@@ -821,6 +822,28 @@
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.browserRuntimeActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.browserLinkControls {
+  display: grid;
+  gap: 8px;
+}
+
+.browserLinkControls select,
+.browserLinkControls button {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+  border-radius: 8px;
+  background: var(--surface-input, rgba(127, 127, 127, 0.1));
+  color: inherit;
 }
 
 .runtimeNotice {
@@ -1239,7 +1262,8 @@
   padding: 13px 14px 4px;
 }
 
-.browserRuntimeActions a {
+.browserRuntimeActions a,
+.browserRuntimeActions button {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
@@ -1267,7 +1291,8 @@
     transform 140ms ease;
 }
 
-.browserRuntimeActions a:hover {
+.browserRuntimeActions a:hover,
+.browserRuntimeActions button:hover {
   border-color:
     var(--accent, #6d5dfc);
   background:
@@ -1491,6 +1516,7 @@
   }
 
   .browserRuntimeActions a,
+  .browserRuntimeActions button,
   .channelActions button,
   .connectionActions button,
   .connectionActions a {
