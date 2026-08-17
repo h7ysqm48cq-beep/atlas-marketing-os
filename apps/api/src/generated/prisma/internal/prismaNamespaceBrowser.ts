@@ -348,6 +348,7 @@ export const SocialChannelScalarFieldEnum = {
   status: 'status',
   accessTokenEncrypted: 'accessTokenEncrypted',
   tokenExpiresAt: 'tokenExpiresAt',
+  publishingPreference: 'publishingPreference',
   lastConnectedAt: 'lastConnectedAt',
   lastError: 'lastError',
   createdAt: 'createdAt',

@@ -414,6 +414,7 @@ model SocialChannel {
 
   accessTokenEncrypted String?
   tokenExpiresAt       DateTime?
+  publishingPreference String @default("AUTOMATIC")
   lastConnectedAt      DateTime?
   lastError            String?
 

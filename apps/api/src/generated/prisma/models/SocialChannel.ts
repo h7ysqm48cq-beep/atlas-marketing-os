@@ -35,6 +35,7 @@ export type SocialChannelMinAggregateOutputType = {
   status: $Enums.SocialChannelStatus | null
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
+  publishingPreference: string | null
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date | null
@@ -52,6 +53,7 @@ export type SocialChannelMaxAggregateOutputType = {
   status: $Enums.SocialChannelStatus | null
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
+  publishingPreference: string | null
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date | null
@@ -69,6 +71,7 @@ export type SocialChannelCountAggregateOutputType = {
   status: number
   accessTokenEncrypted: number
   tokenExpiresAt: number
+  publishingPreference: number
   lastConnectedAt: number
   lastError: number
   createdAt: number
@@ -88,6 +91,7 @@ export type SocialChannelMinAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
+  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
@@ -105,6 +109,7 @@ export type SocialChannelMaxAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
+  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
@@ -122,6 +127,7 @@ export type SocialChannelCountAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
+  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
@@ -212,6 +218,7 @@ export type SocialChannelGroupByOutputType = {
   status: $Enums.SocialChannelStatus
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
+  publishingPreference: string
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date
@@ -250,6 +257,7 @@ export type SocialChannelWhereInput = {
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
@@ -275,6 +283,7 @@ export type SocialChannelOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -304,6 +313,7 @@ export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
@@ -329,6 +339,7 @@ export type SocialChannelOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -352,6 +363,7 @@ export type SocialChannelScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumSocialChannelStatusWithAggregatesFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableWithAggregatesFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannel"> | Date | string | null
+  publishingPreference?: Prisma.StringWithAggregatesFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableWithAggregatesFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannel"> | Date | string
@@ -367,6 +379,7 @@ export type SocialChannelCreateInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -392,6 +405,7 @@ export type SocialChannelUncheckedCreateInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -413,6 +427,7 @@ export type SocialChannelUpdateInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -438,6 +453,7 @@ export type SocialChannelUncheckedUpdateInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -461,6 +477,7 @@ export type SocialChannelCreateManyInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -476,6 +493,7 @@ export type SocialChannelUpdateManyMutationInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -493,6 +511,7 @@ export type SocialChannelUncheckedUpdateManyInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -526,6 +545,7 @@ export type SocialChannelCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -543,6 +563,7 @@ export type SocialChannelMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -560,6 +581,7 @@ export type SocialChannelMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -765,6 +787,7 @@ export type SocialChannelCreateWithoutWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -788,6 +811,7 @@ export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -840,6 +864,7 @@ export type SocialChannelScalarWhereInput = {
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
@@ -855,6 +880,7 @@ export type SocialChannelCreateWithoutBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -878,6 +904,7 @@ export type SocialChannelUncheckedCreateWithoutBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -925,6 +952,7 @@ export type SocialChannelCreateWithoutSocialChannelRuntimeProfileInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -949,6 +977,7 @@ export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput 
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -985,6 +1014,7 @@ export type SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1009,6 +1039,7 @@ export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput 
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1029,6 +1060,7 @@ export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1053,6 +1085,7 @@ export type SocialChannelUncheckedCreateWithoutBrowserAccountLinksInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1089,6 +1122,7 @@ export type SocialChannelUpdateWithoutBrowserAccountLinksInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1113,6 +1147,7 @@ export type SocialChannelUncheckedUpdateWithoutBrowserAccountLinksInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1133,6 +1168,7 @@ export type SocialChannelCreateWithoutScheduledPostsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1157,6 +1193,7 @@ export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1193,6 +1230,7 @@ export type SocialChannelUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1217,6 +1255,7 @@ export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1237,6 +1276,7 @@ export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1261,6 +1301,7 @@ export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1297,6 +1338,7 @@ export type SocialChannelUpdateWithoutBrowserActionHistoryInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1321,6 +1363,7 @@ export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1341,6 +1384,7 @@ export type SocialChannelCreateWithoutSportsNewsTelegramSettingsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1365,6 +1409,7 @@ export type SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput =
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1390,6 +1435,7 @@ export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1414,6 +1460,7 @@ export type SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput =
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1450,6 +1497,7 @@ export type SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1474,6 +1522,7 @@ export type SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput =
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1505,6 +1554,7 @@ export type SocialChannelUpdateWithoutSportsNewsFacebookSettingsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1529,6 +1579,7 @@ export type SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput =
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1550,6 +1601,7 @@ export type SocialChannelCreateManyWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1565,6 +1617,7 @@ export type SocialChannelUpdateWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1588,6 +1641,7 @@ export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1610,6 +1664,7 @@ export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1626,6 +1681,7 @@ export type SocialChannelCreateManyBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
+  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
@@ -1641,6 +1697,7 @@ export type SocialChannelUpdateWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1664,6 +1721,7 @@ export type SocialChannelUncheckedUpdateWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1686,6 +1744,7 @@ export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1770,6 +1829,7 @@ export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.Interna
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
+  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
@@ -1796,6 +1856,7 @@ export type SocialChannelSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
+  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
@@ -1815,6 +1876,7 @@ export type SocialChannelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
+  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
@@ -1834,13 +1896,14 @@ export type SocialChannelSelectScalar = {
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
+  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialChannel"]>
+export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "publishingPreference" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialChannel"]>
 export type SocialChannelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
@@ -1884,6 +1947,7 @@ export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.Inter
     status: $Enums.SocialChannelStatus
     accessTokenEncrypted: string | null
     tokenExpiresAt: Date | null
+    publishingPreference: string
     lastConnectedAt: Date | null
     lastError: string | null
     createdAt: Date
@@ -2329,6 +2393,7 @@ export interface SocialChannelFieldRefs {
   readonly status: Prisma.FieldRef<"SocialChannel", 'SocialChannelStatus'>
   readonly accessTokenEncrypted: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly tokenExpiresAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
+  readonly publishingPreference: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly lastConnectedAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
   readonly lastError: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly createdAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>

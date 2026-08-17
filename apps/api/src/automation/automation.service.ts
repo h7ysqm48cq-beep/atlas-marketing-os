@@ -614,9 +614,30 @@ export class AutomationService {
       username?: string | null;
       accessToken?: string | null;
       tokenExpiresAt?: string | null;
+      publishingPreference?: string;
     },
   ) {
     await this.ensureChannel(id);
+
+    const publishingPreference =
+      input.publishingPreference === undefined
+        ? undefined
+        : input.publishingPreference.trim().toUpperCase();
+
+    if (
+      publishingPreference !== undefined &&
+      ![
+        'AUTOMATIC',
+        'NATIVE_API',
+        'BROWSER_RUNTIME',
+      ].includes(
+        publishingPreference,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid publishing preference.',
+      );
+    }
 
     const accessToken =
       input.accessToken === undefined
@@ -647,6 +668,7 @@ export class AutomationService {
           input.tokenExpiresAt === undefined
             ? undefined
             : this.parseOptionalDate(input.tokenExpiresAt),
+        publishingPreference,
         status: accessToken
           ? SocialChannelStatus.CONNECTED
           : accessToken === null

@@ -51,6 +51,10 @@ type Channel = {
     | "EXPIRED"
     | "ERROR";
   hasAccessToken?: boolean;
+  publishingPreference?:
+    | "AUTOMATIC"
+    | "NATIVE_API"
+    | "BROWSER_RUNTIME";
   tokenExpiresAt?: string | null;
   lastConnectedAt?: string | null;
   lastError?: string | null;
@@ -466,6 +470,61 @@ export function WorkspaceSettings() {
         selectionError instanceof Error
           ? selectionError.message
           : "Unable to select the publishing account.",
+      );
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function selectPublishingMethod(
+    channel: Channel,
+    publishingPreference:
+      | "AUTOMATIC"
+      | "NATIVE_API"
+      | "BROWSER_RUNTIME",
+  ) {
+    setActiveChannelAction(
+      `${channel.id}:publishing-method`,
+    );
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${channel.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            publishingPreference,
+          }),
+        },
+      );
+
+      const body = (await response
+        .json()
+        .catch(() => ({}))) as {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            "Unable to select publishing method.",
+        );
+      }
+
+      await load();
+      setMessage(
+        `${channel.name} publishing method updated.`,
+      );
+    } catch (selectionError) {
+      setError(
+        selectionError instanceof Error
+          ? selectionError.message
+          : "Unable to select publishing method.",
       );
     } finally {
       setActiveChannelAction(null);
@@ -1340,6 +1399,53 @@ export function WorkspaceSettings() {
                   <p className={styles.channelError}>
                     {channel.lastError}
                   </p>
+                ) : null}
+
+                {channel.platform === "FACEBOOK" ? (
+                  <section className={styles.browserRuntimeSummary}>
+                    <label>
+                      <span>Publishing method</span>
+                      <select
+                        value={
+                          channel.publishingPreference ||
+                          "AUTOMATIC"
+                        }
+                        disabled={channelBusy}
+                        onChange={(event) =>
+                          void selectPublishingMethod(
+                            channel,
+                            event.target.value as
+                              | "AUTOMATIC"
+                              | "NATIVE_API"
+                              | "BROWSER_RUNTIME",
+                          )
+                        }
+                      >
+                        <option value="AUTOMATIC">
+                          Automatic fallback
+                        </option>
+                        <option
+                          value="NATIVE_API"
+                          disabled={!channel.hasAccessToken}
+                        >
+                          Facebook API
+                        </option>
+                        <option
+                          value="BROWSER_RUNTIME"
+                          disabled={
+                            !(channel.browserAccounts?.length || 0)
+                          }
+                        >
+                          Cloud Browser
+                        </option>
+                      </select>
+                      <small>
+                        Automatic uses Cloud Browser when connected,
+                        otherwise Facebook API. Select a fixed method to
+                        prevent automatic switching.
+                      </small>
+                    </label>
+                  </section>
                 ) : null}
 
                 {channel.platform === "FACEBOOK" ? (

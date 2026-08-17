@@ -840,6 +840,7 @@ export class AutomationController {
       username?: string | null;
       accessToken?: string | null;
       tokenExpiresAt?: string | null;
+      publishingPreference?: string;
     },
   ) {
     return this.automationService.updateChannel(id, body);

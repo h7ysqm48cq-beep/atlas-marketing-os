@@ -922,6 +922,9 @@ export class RuntimeProfileService {
 
   async getPublishNetwork(
     channelId: string,
+    options?: {
+      nativeApiOnly?: boolean;
+    },
   ): Promise<{
     proxyType:
       | 'DIRECT'
@@ -952,6 +955,27 @@ export class RuntimeProfileService {
     await this.ensureChannel(
       channelId,
     );
+
+    if (
+      options?.nativeApiOnly
+    ) {
+      return {
+        proxyType:
+          'DIRECT',
+        proxyUrl:
+          null,
+        locale:
+          'en-MY',
+        timezone:
+          'Asia/Kuala_Lumpur',
+        browserProfileKey:
+          null,
+        browserAccountId:
+          null,
+        source:
+          'NONE',
+      };
+    }
 
     const {
       preferredLink,

@@ -139,18 +139,61 @@ export class PublisherService {
         SocialPlatform.FACEBOOK
       ) {
         try {
-          facebookSafetyGate =
-            await this.runtimeProfiles
-              .getBrowserPublishingSafety(
-                post.channel.id,
+          const publishingPreference =
+            String(
+              post.channel
+                .publishingPreference ||
+              'AUTOMATIC',
+            ).toUpperCase();
+
+          const nativeApiOnly =
+            publishingPreference ===
+            'NATIVE_API';
+
+          if (nativeApiOnly) {
+            facebookPublishNetwork =
+              await this.runtimeProfiles
+                .getPublishNetwork(
+                  post.channel.id,
+                  {
+                    nativeApiOnly:
+                      true,
+                  },
+                );
+          } else {
+            facebookSafetyGate =
+              await this.runtimeProfiles
+                .getBrowserPublishingSafety(
+                  post.channel.id,
+                );
+
+            const browserUnavailable =
+              !facebookSafetyGate
+                .hasLinkedAccounts ||
+              !facebookSafetyGate
+                .allowed ||
+              !facebookSafetyGate
+                .selected;
+
+            const canUseNativeApi =
+              Boolean(
+                post.channel
+                  .accessTokenEncrypted,
               );
 
-          if (
-            facebookSafetyGate
-              .hasLinkedAccounts &&
-            !facebookSafetyGate
-              .allowed
-          ) {
+            if (
+              (
+                publishingPreference ===
+                  'BROWSER_RUNTIME' &&
+                browserUnavailable
+              ) ||
+              (
+                publishingPreference ===
+                  'AUTOMATIC' &&
+                browserUnavailable &&
+                !canUseNativeApi
+              )
+            ) {
             blocked += 1;
 
             const candidateSummary =
@@ -212,29 +255,42 @@ export class PublisherService {
                 },
               });
 
-            continue;
-          }
+              continue;
+            }
 
-          facebookPublishNetwork =
-            await this.runtimeProfiles
-              .getPublishNetwork(
-                post.channel.id,
+            const useAutomaticNativeFallback =
+              publishingPreference ===
+                'AUTOMATIC' &&
+              browserUnavailable &&
+              canUseNativeApi;
+
+            facebookPublishNetwork =
+              await this.runtimeProfiles
+                .getPublishNetwork(
+                  post.channel.id,
+                  useAutomaticNativeFallback
+                    ? {
+                        nativeApiOnly:
+                          true,
+                      }
+                    : undefined,
+                );
+
+            if (
+              facebookSafetyGate
+                .hasLinkedAccounts &&
+              facebookSafetyGate
+                .selected
+            ) {
+              this.logger.log(
+                [
+                  "Facebook Safety Gate passed.",
+                  `Post: ${post.id}.`,
+                  `Browser Account: ${facebookSafetyGate.selected.displayName}.`,
+                  `Profile: ${facebookSafetyGate.selected.browserProfileKey}.`,
+                ].join(" "),
               );
-
-          if (
-            facebookSafetyGate
-              .hasLinkedAccounts &&
-            facebookSafetyGate
-              .selected
-          ) {
-            this.logger.log(
-              [
-                "Facebook Safety Gate passed.",
-                `Post: ${post.id}.`,
-                `Browser Account: ${facebookSafetyGate.selected.displayName}.`,
-                `Profile: ${facebookSafetyGate.selected.browserProfileKey}.`,
-              ].join(" "),
-            );
+            }
           }
         } catch (error) {
           blocked += 1;
