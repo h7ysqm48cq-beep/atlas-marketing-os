@@ -7,7 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
@@ -15,6 +18,12 @@ import { UpdateAssetDto } from './dto/update-asset.dto';
 @Controller('assets')
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  upload(@UploadedFile() file: Express.Multer.File) {
+    return this.assetsService.upload(file);
+  }
 
   @Post()
   create(@Body() dto: CreateAssetDto) {
@@ -31,10 +40,8 @@ export class AssetsController {
     @Query('collection') collection?: string,
     @Query('platform') platform?: string,
     @Query('provider') provider?: string,
-    @Query('generationModel')
-    generationModel?: string,
-    @Query('storageProvider')
-    storageProvider?: string,
+    @Query('generationModel') generationModel?: string,
+    @Query('storageProvider') storageProvider?: string,
     @Query('sort') sort?: string,
   ) {
     return this.assetsService.findAll({
