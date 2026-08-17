@@ -6,6 +6,7 @@ import styles from "./ImageAssetPanel.module.css";
 
 import { API_URL } from "@/lib/api";
 import { waitForBackgroundJob } from "@/lib/background-job";
+import { saveRemoteFile } from "@/lib/save-file";
 
 const ASSET_IMAGE_JOB_KEY = "atlas-asset-image-background-job";
 
@@ -398,25 +399,20 @@ export function ImageAssetPanel({
 
   async function downloadAsset(currentAsset: ImageAsset) {
     try {
-      const response = await fetch(currentAsset.url);
-
-      if (!response.ok) {
-        throw new Error("Unable to download image.");
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = blobUrl;
-      link.download = `${currentAsset.name || "atlas-image"}.png`;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      setMessage("Unable to download image.");
+      const result = await saveRemoteFile({
+        url: currentAsset.url,
+        filename: `${currentAsset.name || "atlas-image"}.png`,
+        mimeType: "image/png",
+        title: currentAsset.name,
+      });
+      setMessage(
+        result === "shared"
+          ? "Choose Save Image to store it on your phone."
+          : "Image downloaded.",
+      );
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setMessage("Unable to save image.");
     }
   }
 
@@ -596,7 +592,7 @@ export function ImageAssetPanel({
                 </a>
 
                 <button type="button" onClick={() => void downloadAsset(asset)}>
-                  Download PNG
+                  Save image
                 </button>
 
                 <a href="/assets">View in Library</a>

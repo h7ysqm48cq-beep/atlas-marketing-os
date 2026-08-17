@@ -6,6 +6,7 @@ import styles from "./AssetLibrary.module.css";
 import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
+import { saveRemoteFile } from "@/lib/save-file";
 type AssetType = "IMAGE" | "VIDEO" | "DOCUMENT" | "TEMPLATE";
 
 type Campaign = {
@@ -624,16 +625,6 @@ export function AssetLibrary() {
                       type="button"
                       onClick={async () => {
                         try {
-                          const response = await fetch(asset.url);
-
-                          if (!response.ok) {
-                            throw new Error("Unable to download asset.");
-                          }
-
-                          const blob = await response.blob();
-                          const blobUrl = URL.createObjectURL(blob);
-                          const link = document.createElement("a");
-
                           const extension =
                             asset.mimeType === "image/png"
                               ? "png"
@@ -643,20 +634,24 @@ export function AssetLibrary() {
                                   ? "mp4"
                                   : "file";
 
-                          link.href = blobUrl;
-                          link.download = `${asset.name || "atlas-asset"}.${extension}`;
-
-                          document.body.appendChild(link);
-                          link.click();
-                          link.remove();
-
-                          URL.revokeObjectURL(blobUrl);
-                        } catch {
-                          setMessage("Unable to download asset.");
+                          const result = await saveRemoteFile({
+                            url: asset.url,
+                            filename: `${asset.name || "atlas-asset"}.${extension}`,
+                            mimeType: asset.mimeType,
+                            title: asset.name,
+                          });
+                          setMessage(
+                            result === "shared"
+                              ? "Choose Save Image or Save to Files."
+                              : "Asset downloaded.",
+                          );
+                        } catch (error) {
+                          if (error instanceof DOMException && error.name === "AbortError") return;
+                          setMessage("Unable to save asset.");
                         }
                       }}
                     >
-                      Download
+                      Save
                     </button>
                     <button type="button" onClick={() => openAiNotes(asset)}>
                       Edit AI Notes
