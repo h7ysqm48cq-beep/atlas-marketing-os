@@ -19,6 +19,23 @@ type ChannelOverride = {
   eveningImagePrompt?: string | null;
 };
 
+const parseOptionalJson = (text: string): Record<string, unknown> => {
+  const value = text.trim();
+
+  if (!value || value === "undefined" || value === "null") {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    throw new Error("The server returned an invalid response. Please try again.");
+  }
+};
+
 type Settings = {
   enabled: boolean;
   timezone: string;
@@ -669,7 +686,7 @@ export function SportsNewsSettings() {
         throw new Error(responseText || `Run failed (${r.status}).`);
       }
 
-      const result = responseText ? JSON.parse(responseText) : {};
+      const result = parseOptionalJson(responseText);
 
       setMessage(
         result.skipped
@@ -716,7 +733,7 @@ export function SportsNewsSettings() {
       });
       const text = await r.text();
       if (!r.ok) throw new Error(text || `Run failed (${r.status}).`);
-      const result = text ? JSON.parse(text) : {};
+      const result = parseOptionalJson(text);
       setMessage(
         result.skipped
           ? `Run skipped: ${result.reason ?? "unknown reason"}.`
