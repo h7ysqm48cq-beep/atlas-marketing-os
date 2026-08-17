@@ -1,20 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
 import styles from "./BrowserAccountsManagerV2.module.css";
 
-type ProxyType =
-  | "DIRECT"
-  | "HTTP"
-  | "HTTPS"
-  | "SOCKS5";
+type ProxyType = "DIRECT" | "HTTP" | "HTTPS" | "SOCKS5";
 
 type LoginStatus =
   | "PENDING"
@@ -47,6 +37,7 @@ type BrowserAccount = {
 
   facebookUserId: string | null;
   facebookUserName: string | null;
+  maskedEmail: string | null;
 
   loginStatus: LoginStatus;
   cookieStatus: string;
@@ -60,6 +51,20 @@ type BrowserAccount = {
   createdAt: string;
   updatedAt: string;
 };
+
+function accountIdentityName(account: BrowserAccount) {
+  return account.facebookUserName?.trim() || account.displayName;
+}
+
+function accountIdentityMeta(account: BrowserAccount) {
+  return [
+    account.facebookUserName ? account.displayName : null,
+    account.maskedEmail,
+    account.browserProfileName,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 type BrowserSession = {
   channelId: string;
@@ -119,12 +124,7 @@ type TimelineEvent = {
   id: string;
   browserAccountId: string;
   eventType: string;
-  status:
-    | "INFO"
-    | "SUCCESS"
-    | "WARNING"
-    | "FAILED"
-    | string;
+  status: "INFO" | "SUCCESS" | "WARNING" | "FAILED" | string;
   title: string;
   message: string | null;
   metadata?: unknown;
@@ -168,15 +168,9 @@ type InspectionResult = {
   };
 };
 
-
 type AccountHealthResult = {
   accountId: string;
-  status:
-    | "READY"
-    | "LOGIN_REQUIRED"
-    | "ATTENTION"
-    | "UNKNOWN"
-    | "FAILED";
+  status: "READY" | "LOGIN_REQUIRED" | "ATTENTION" | "UNKNOWN" | "FAILED";
   loginStatus: string;
   browserWasRunning: boolean;
   checkedAt: string;
@@ -193,49 +187,31 @@ const EMPTY_RUNTIME: AccountRuntime = {
 const DEFAULT_BROWSER_RUNTIME_API_URL =
   "https://api-production-7f7d.up.railway.app";
 
-
 function getBrowserRuntimeApiUrl() {
-  const configured =
-    process.env
-      .NEXT_PUBLIC_BROWSER_RUNTIME_API_URL
-      ?.trim();
+  const configured = process.env.NEXT_PUBLIC_BROWSER_RUNTIME_API_URL?.trim();
 
   if (configured) {
-    return configured.replace(
-      /\/+$/,
-      "",
-    );
+    return configured.replace(/\/+$/, "");
   }
 
   if (
     typeof window !== "undefined" &&
-    (
-      window.location.hostname ===
-        "localhost" ||
-      window.location.hostname ===
-        "127.0.0.1"
-    )
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1")
   ) {
     return DEFAULT_BROWSER_RUNTIME_API_URL;
   }
 
-  return API_URL.replace(
-    /\/+$/,
-    "",
-  );
+  return API_URL.replace(/\/+$/, "");
 }
 
-
-function buildNoVncUrl(
-  viewerToken: string,
-) {
+function buildNoVncUrl(viewerToken: string) {
   const configured =
     process.env.NEXT_PUBLIC_BROWSER_VIEW_URL ||
     "https://browser-worker-production-536a.up.railway.app/vnc.html";
 
   try {
-    const url =
-      new URL(configured);
+    const url = new URL(configured);
 
     /*
      * Railway already routes this domain directly to
@@ -244,32 +220,18 @@ function buildNoVncUrl(
      * Use same-origin websocket transport and connect
      * automatically when the viewer opens.
      */
-    url.searchParams.set(
-      "autoconnect",
-      "1",
-    );
+    url.searchParams.set("autoconnect", "1");
 
-    url.searchParams.set(
-      "resize",
-      "scale",
-    );
+    url.searchParams.set("resize", "scale");
 
     url.searchParams.set(
       "path",
-      `websockify?token=${encodeURIComponent(
-        viewerToken,
-      )}`,
+      `websockify?token=${encodeURIComponent(viewerToken)}`,
     );
 
-    url.searchParams.set(
-      "reconnect",
-      "1",
-    );
+    url.searchParams.set("reconnect", "1");
 
-    url.searchParams.set(
-      "reconnect_delay",
-      "1000",
-    );
+    url.searchParams.set("reconnect_delay", "1000");
 
     return url.toString();
   } catch {
@@ -277,21 +239,15 @@ function buildNoVncUrl(
   }
 }
 
-
-async function readJson(
-  response: Response,
-): Promise<Record<string, unknown>> {
-  const text =
-    await response.text();
+async function readJson(response: Response): Promise<Record<string, unknown>> {
+  const text = await response.text();
 
   if (!text.trim()) {
     return {};
   }
 
   try {
-    return JSON.parse(
-      text,
-    ) as Record<string, unknown>;
+    return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return {
       message: text,
@@ -299,181 +255,107 @@ async function readJson(
   }
 }
 
-function getErrorMessage(
-  body: Record<string, unknown>,
-  fallback: string,
-) {
-  return typeof body.message ===
-    "string" &&
-    body.message.trim()
+function getErrorMessage(body: Record<string, unknown>, fallback: string) {
+  return typeof body.message === "string" && body.message.trim()
     ? body.message
     : fallback;
 }
 
-function formatDate(
-  value?: string | null,
-) {
+function formatDate(value?: string | null) {
   if (!value) {
     return "—";
   }
 
-  const date =
-    new Date(value);
+  const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime(),
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return new Intl.DateTimeFormat(
-    "en-MY",
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
-    },
-  ).format(date);
+  return new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
-function normalizeStatus(
-  value?: string | null,
-) {
-  return (
-    value?.trim().toUpperCase() ||
-    "UNKNOWN"
-  );
+function normalizeStatus(value?: string | null) {
+  return value?.trim().toUpperCase() || "UNKNOWN";
 }
 
-function loginStatusClass(
-  status?: string | null,
-) {
-  const normalized =
-    normalizeStatus(status);
+function loginStatusClass(status?: string | null) {
+  const normalized = normalizeStatus(status);
 
-  if (
-    normalized === "LOGGED_IN"
-  ) {
+  if (normalized === "LOGGED_IN") {
     return styles.good;
   }
 
   if (
-    normalized ===
-      "TWO_FACTOR_REQUIRED" ||
-    normalized ===
-      "CHECKPOINT_REQUIRED"
+    normalized === "TWO_FACTOR_REQUIRED" ||
+    normalized === "CHECKPOINT_REQUIRED"
   ) {
     return styles.warning;
   }
 
-  if (
-    normalized ===
-      "LOGIN_REQUIRED" ||
-    normalized === "FAILED"
-  ) {
+  if (normalized === "LOGIN_REQUIRED" || normalized === "FAILED") {
     return styles.bad;
   }
 
   return styles.neutral;
 }
 
-function readableStatus(
-  value?: string | null,
-) {
-  return normalizeStatus(
-    value,
-  ).replaceAll(
-    "_",
-    " ",
-  );
+function readableStatus(value?: string | null) {
+  return normalizeStatus(value).replaceAll("_", " ");
 }
-
 
 function healthStatusFromLogin(
   value?: string | null,
 ): AccountHealthResult["status"] {
-  const status =
-    normalizeStatus(
-      value,
-    );
+  const status = normalizeStatus(value);
 
-  if (
-    status === "LOGGED_IN"
-  ) {
+  if (status === "LOGGED_IN") {
     return "READY";
   }
 
-  if (
-    status === "LOGIN_REQUIRED"
-  ) {
+  if (status === "LOGIN_REQUIRED") {
     return "LOGIN_REQUIRED";
   }
 
-  if (
-    status ===
-      "TWO_FACTOR_REQUIRED" ||
-    status ===
-      "CHECKPOINT_REQUIRED"
-  ) {
+  if (status === "TWO_FACTOR_REQUIRED" || status === "CHECKPOINT_REQUIRED") {
     return "ATTENTION";
   }
 
   return "UNKNOWN";
 }
 
+function facebookIdentityMessage(value?: string | null) {
+  const status = normalizeStatus(value);
 
-function facebookIdentityMessage(
-  value?: string | null,
-) {
-  const status =
-    normalizeStatus(
-      value,
-    );
-
-  if (
-    status === "LOGGED_IN"
-  ) {
+  if (status === "LOGGED_IN") {
     return "Facebook is logged in for this browser profile.";
   }
 
-  if (
-    status ===
-    "LOGIN_REQUIRED"
-  ) {
+  if (status === "LOGIN_REQUIRED") {
     return "Facebook login is required once for this browser profile.";
   }
 
-  if (
-    status ===
-    "TWO_FACTOR_REQUIRED"
-  ) {
+  if (status === "TWO_FACTOR_REQUIRED") {
     return "Facebook 2FA verification is required.";
   }
 
-  if (
-    status ===
-    "CHECKPOINT_REQUIRED"
-  ) {
+  if (status === "CHECKPOINT_REQUIRED") {
     return "Facebook security checkpoint requires attention.";
   }
 
   if (
-    status ===
-      "BROWSER_OPEN" ||
-    status ===
-      "BROWSER_CLOSED" ||
-    status ===
-      "PENDING" ||
-    status ===
-      "UNKNOWN"
+    status === "BROWSER_OPEN" ||
+    status === "BROWSER_CLOSED" ||
+    status === "PENDING" ||
+    status === "UNKNOWN"
   ) {
     return "Facebook identity has not been verified yet.";
   }
 
-  return `Facebook identity: ${readableStatus(
-    value,
-  )}.`;
+  return `Facebook identity: ${readableStatus(value)}.`;
 }
 
 export function BrowserAccountsManagerV2({
@@ -481,68 +363,27 @@ export function BrowserAccountsManagerV2({
 }: {
   requestedAccountId?: string | null;
 }) {
-  const [
-    accounts,
-    setAccounts,
-  ] = useState<
-    BrowserAccount[]
-  >([]);
+  const [accounts, setAccounts] = useState<BrowserAccount[]>([]);
 
-  const [
-    runtimes,
-    setRuntimes,
-  ] = useState<
-    Record<
-      string,
-      AccountRuntime
-    >
-  >({});
+  const [runtimes, setRuntimes] = useState<Record<string, AccountRuntime>>({});
 
-  const [
-    selectedId,
-    setSelectedId,
-  ] = useState<
-    string | null
-  >(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [
-    selectedForBatch,
-    setSelectedForBatch,
-  ] = useState<
-    Set<string>
-  >(new Set());
-
-  const [
-    search,
-    setSearch,
-  ] = useState("");
-
-  const [
-    createAccountOpen,
-    setCreateAccountOpen,
-  ] = useState(false);
-
-  const [
-    manualCreateOpen,
-    setManualCreateOpen,
-  ] = useState(false);
-
-  const [
-    createSubmitting,
-    setCreateSubmitting,
-  ] = useState(false);
-
-  const [
-    createError,
-    setCreateError,
-  ] = useState<string | null>(
-    null,
+  const [selectedForBatch, setSelectedForBatch] = useState<Set<string>>(
+    new Set(),
   );
 
-  const [
-    createForm,
-    setCreateForm,
-  ] = useState({
+  const [search, setSearch] = useState("");
+
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
+
+  const [manualCreateOpen, setManualCreateOpen] = useState(false);
+
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const [createForm, setCreateForm] = useState({
     facebookEmail: "",
     facebookPassword: "",
     proxyHost: "",
@@ -551,189 +392,81 @@ export function BrowserAccountsManagerV2({
     proxyPassword: "",
   });
 
-  const [
-    importAccountsOpen,
-    setImportAccountsOpen,
-  ] = useState(false);
+  const [importAccountsOpen, setImportAccountsOpen] = useState(false);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    globalError,
-    setGlobalError,
-  ] = useState("");
+  const [globalError, setGlobalError] = useState("");
 
-  const [
-    actionMessage,
-    setActionMessage,
-  ] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
-  const [
-    brands,
-    setBrands,
-  ] = useState<BrandOption[]>([]);
+  const [brands, setBrands] = useState<BrandOption[]>([]);
 
-  const [
-    onboardingRunning,
-    setOnboardingRunning,
-  ] = useState(false);
+  const [onboardingRunning, setOnboardingRunning] = useState(false);
 
-  const [
-    onboardingStep,
-    setOnboardingStep,
-  ] = useState<OnboardingStep>(
-    "IDLE",
-  );
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>("IDLE");
 
-  const [
-    onboardingResult,
-    setOnboardingResult,
-  ] = useState<OnboardingResult | null>(
-    null,
-  );
+  const [onboardingResult, setOnboardingResult] =
+    useState<OnboardingResult | null>(null);
 
-  const [
-    automationPolicy,
-    setAutomationPolicy,
-  ] = useState<AutomationPolicy | null>(
-    null,
-  );
+  const [automationPolicy, setAutomationPolicy] =
+    useState<AutomationPolicy | null>(null);
 
-  const [
-    policyLoading,
-    setPolicyLoading,
-  ] = useState(false);
+  const [policyLoading, setPolicyLoading] = useState(false);
 
-  const [
-    policySaving,
-    setPolicySaving,
-  ] = useState(false);
+  const [policySaving, setPolicySaving] = useState(false);
 
-  const [
-    timeline,
-    setTimeline,
-  ] = useState<TimelineEvent[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
 
-  const [
-    timelineLoading,
-    setTimelineLoading,
-  ] = useState(false);
+  const [timelineLoading, setTimelineLoading] = useState(false);
 
-  const [
-    editOpen,
-    setEditOpen,
-  ] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
-  const [
-    editSaving,
-    setEditSaving,
-  ] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
 
-  const [
-    editForm,
-    setEditForm,
-  ] = useState<EditAccountForm | null>(
-    null,
-  );
+  const [editForm, setEditForm] = useState<EditAccountForm | null>(null);
 
-  const [
-    viewerOpen,
-    setViewerOpen,
-  ] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
-  const [
-    viewerKey,
-    setViewerKey,
-  ] = useState(0);
+  const [viewerKey, setViewerKey] = useState(0);
 
-  const [
-    viewerUrl,
-    setViewerUrl,
-  ] = useState<string | null>(
-    null,
-  );
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
-
-  const [
-    healthResults,
-    setHealthResults,
-  ] = useState<
-    Record<
-      string,
-      AccountHealthResult
-    >
+  const [healthResults, setHealthResults] = useState<
+    Record<string, AccountHealthResult>
   >({});
 
-  const [
-    healthCheckRunning,
-    setHealthCheckRunning,
-  ] = useState(false);
+  const [healthCheckRunning, setHealthCheckRunning] = useState(false);
 
-  const [
-    healthCheckProgress,
-    setHealthCheckProgress,
-  ] = useState("");
+  const [healthCheckProgress, setHealthCheckProgress] = useState("");
 
-  const viewerRef =
-    useRef<HTMLElement | null>(
-      null,
-    );
-
+  const viewerRef = useRef<HTMLElement | null>(null);
 
   async function connectSecureBrowserViewer() {
-    const response =
-      await fetch(
-        "/api/browser-viewer/session",
-        {
-          method:
-            "POST",
-          cache:
-            "no-store",
-          headers: {
-            Accept:
-              "application/json",
-          },
-        },
-      );
+    const response = await fetch("/api/browser-viewer/session", {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
-    const body =
-      await readJson(
-        response,
-      );
+    const body = await readJson(response);
 
-    const token =
-      typeof body.token ===
-        "string"
-        ? body.token
-        : "";
+    const token = typeof body.token === "string" ? body.token : "";
 
-    if (
-      !response.ok ||
-      !token
-    ) {
+    if (!response.ok || !token) {
       throw new Error(
-        getErrorMessage(
-          body,
-          "Unable to authorize Live Browser.",
-        ),
+        getErrorMessage(body, "Unable to authorize Live Browser."),
       );
     }
 
-    const nextUrl =
-      buildNoVncUrl(
-        token,
-      );
+    const nextUrl = buildNoVncUrl(token);
 
-    setViewerUrl(
-      nextUrl,
-    );
+    setViewerUrl(nextUrl);
 
     return nextUrl;
   }
-
 
   /*
    * Auto-focus the live browser viewer.
@@ -743,448 +476,253 @@ export function BrowserAccountsManagerV2({
    * move it directly into view so the user does not need to
    * manually scroll down.
    */
-  useEffect(
-    () => {
+  useEffect(() => {
+    if (!viewerOpen) {
+      return;
+    }
 
-      if (
-        !viewerOpen
-      ) {
-        return;
-      }
+    const timer = window.setTimeout(() => {
+      viewerRef.current?.scrollIntoView({
+        behavior: "smooth",
 
+        block: "start",
+      });
+    }, 120);
 
-      const timer =
-        window.setTimeout(
-          () => {
-
-            viewerRef.current
-              ?.scrollIntoView({
-                behavior:
-                  "smooth",
-
-                block:
-                  "start",
-              });
-
-          },
-          120,
-        );
-
-
-      return () => {
-
-        window.clearTimeout(
-          timer,
-        );
-
-      };
-
-    },
-    [
-      viewerOpen,
-      viewerKey,
-    ],
-  );
-
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [viewerOpen, viewerKey]);
 
   const selectedAccount =
-    accounts.find(
-      (account) =>
-        account.id ===
-        selectedId,
-    ) || null;
+    accounts.find((account) => account.id === selectedId) || null;
 
-  const selectedRuntime =
-    selectedId
-      ? runtimes[selectedId] ||
-        EMPTY_RUNTIME
-      : EMPTY_RUNTIME;
+  const selectedRuntime = selectedId
+    ? runtimes[selectedId] || EMPTY_RUNTIME
+    : EMPTY_RUNTIME;
 
-  const filteredAccounts =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredAccounts = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      if (!query) {
-        return accounts;
-      }
+    if (!query) {
+      return accounts;
+    }
 
-      return accounts.filter(
-        (account) =>
-          [
-            account.displayName,
-            account.facebookUserName,
-            account.browserProfileName,
-            account.browserProfileKey,
-            account.proxyCountry,
-            account.lastKnownIp,
-            account.loginStatus,
-            account.cookieStatus,
-          ]
-            .filter(Boolean)
-            .some((value) =>
-              String(value)
-                .toLowerCase()
-                .includes(
-                  query,
-                ),
-            ),
-      );
-    }, [
-      accounts,
-      search,
-    ]);
-
-  const updateRuntime =
-    useCallback(
-      (
-        accountId: string,
-        patch:
-          Partial<AccountRuntime>,
-      ) => {
-        setRuntimes(
-          (current) => ({
-            ...current,
-            [accountId]: {
-              ...(current[
-                accountId
-              ] ||
-                EMPTY_RUNTIME),
-              ...patch,
-            },
-          }),
-        );
-      },
-      [],
+    return accounts.filter((account) =>
+      [
+        account.displayName,
+        account.facebookUserName,
+        account.browserProfileName,
+        account.browserProfileKey,
+        account.proxyCountry,
+        account.lastKnownIp,
+        account.loginStatus,
+        account.cookieStatus,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
     );
+  }, [accounts, search]);
 
-  const loadRuntime =
-    useCallback(
-      async (
-        accountId: string,
-      ) => {
-        updateRuntime(
-          accountId,
+  const updateRuntime = useCallback(
+    (accountId: string, patch: Partial<AccountRuntime>) => {
+      setRuntimes((current) => ({
+        ...current,
+        [accountId]: {
+          ...(current[accountId] || EMPTY_RUNTIME),
+          ...patch,
+        },
+      }));
+    },
+    [],
+  );
+
+  const loadRuntime = useCallback(
+    async (accountId: string) => {
+      updateRuntime(accountId, {
+        loading: true,
+        error: "",
+      });
+
+      try {
+        const response = await fetch(
+          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/status`,
           {
-            loading: true,
-            error: "",
+            cache: "no-store",
           },
         );
 
-        try {
-          const response =
-            await fetch(
-              `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/status`,
-              {
-                cache:
-                  "no-store",
-              },
-            );
+        const body = await readJson(response);
 
-          const body =
-            await readJson(
-              response,
-            );
-
-          if (
-            !response.ok
-          ) {
-            throw new Error(
-              getErrorMessage(
-                body,
-                "Unable to load browser status.",
-              ),
-            );
-          }
-
-          const session =
-            body.session &&
-            typeof body.session ===
-              "object"
-              ? (body.session as BrowserSession)
-              : null;
-
-          updateRuntime(
-            accountId,
-            {
-              loading: false,
-              running:
-                body.running ===
-                true,
-              session,
-              error: "",
-            },
-          );
-        } catch (error) {
-          updateRuntime(
-            accountId,
-            {
-              loading: false,
-              error:
-                error instanceof
-                Error
-                  ? error.message
-                  : "Unable to load browser status.",
-            },
+        if (!response.ok) {
+          throw new Error(
+            getErrorMessage(body, "Unable to load browser status."),
           );
         }
-      },
-      [
-        updateRuntime,
-      ],
-    );
 
-  const loadBrands =
-    useCallback(
-      async () => {
-        try {
-          const response =
-            await fetch(
-              `${API_URL}/brands`,
-              {
-                cache:
-                  "no-store",
-              },
-            );
+        const session =
+          body.session && typeof body.session === "object"
+            ? (body.session as BrowserSession)
+            : null;
 
-          const body =
-            await readJson(
-              response,
-            );
-
-          if (!response.ok) {
-            throw new Error(
-              getErrorMessage(
-                body,
-                "Unable to load Brands.",
-              ),
-            );
-          }
-
-          const candidates =
-            Array.isArray(
-              body,
-            )
-              ? body
-              : Array.isArray(
-                    body.brands,
-                  )
-                ? body.brands
-                : [];
-
-          setBrands(
-            candidates as BrandOption[],
-          );
-        } catch (error) {
-          setGlobalError(
+        updateRuntime(accountId, {
+          loading: false,
+          running: body.running === true,
+          session,
+          error: "",
+        });
+      } catch (error) {
+        updateRuntime(accountId, {
+          loading: false,
+          error:
             error instanceof Error
               ? error.message
-              : "Unable to load Brands.",
-          );
-        }
-      },
-      [],
-    );
+              : "Unable to load browser status.",
+        });
+      }
+    },
+    [updateRuntime],
+  );
 
-  const loadAccounts =
-    useCallback(
-      async () => {
-        setLoading(true);
-        setGlobalError("");
+  const loadBrands = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/brands`, {
+        cache: "no-store",
+      });
 
-        try {
-          const response =
-            await fetch(
-              `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
-              {
-                cache:
-                  "no-store",
-              },
-            );
+      const body = await readJson(response);
 
-          const body =
-            await readJson(
-              response,
-            );
+      if (!response.ok) {
+        throw new Error(getErrorMessage(body, "Unable to load Brands."));
+      }
 
-          if (
-            !response.ok
-          ) {
-            throw new Error(
-              getErrorMessage(
-                body,
-                "Unable to load browser accounts.",
-              ),
-            );
-          }
+      const candidates = Array.isArray(body)
+        ? body
+        : Array.isArray(body.brands)
+          ? body.brands
+          : [];
 
-          const nextAccounts =
-            (
-              Array.isArray(
-                body,
-              )
-                ? body
-                : []
-            ) as BrowserAccount[];
+      setBrands(candidates as BrandOption[]);
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error ? error.message : "Unable to load Brands.",
+      );
+    }
+  }, []);
 
-          setAccounts(
-            nextAccounts,
-          );
+  const loadAccounts = useCallback(async () => {
+    setLoading(true);
+    setGlobalError("");
 
-          setSelectedId(
-            (current) => {
-              const requested =
-                requestedAccountId &&
-                nextAccounts.some(
-                  (account) =>
-                    account.id ===
-                    requestedAccountId,
-                )
-                  ? requestedAccountId
-                  : null;
+    try {
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
+        {
+          cache: "no-store",
+        },
+      );
 
-              const currentExists =
-                current &&
-                nextAccounts.some(
-                  (account) =>
-                    account.id ===
-                    current,
-                );
+      const body = await readJson(response);
 
-              return (
-                requested ||
-                (currentExists
-                  ? current
-                  : null) ||
-                nextAccounts[0]
-                  ?.id ||
-                null
-              );
-            },
-          );
+      if (!response.ok) {
+        throw new Error(
+          getErrorMessage(body, "Unable to load browser accounts."),
+        );
+      }
 
-          await Promise.all(
-            nextAccounts.map(
-              (account) =>
-                loadRuntime(
-                  account.id,
-                ),
-            ),
-          );
-        } catch (error) {
-          setGlobalError(
-            error instanceof
-              Error
-              ? error.message
-              : "Unable to load browser accounts.",
-          );
-        } finally {
-          setLoading(false);
-        }
-      },
-      [
-        loadRuntime,
-        requestedAccountId,
-      ],
-    );
+      const nextAccounts = (
+        Array.isArray(body) ? body : []
+      ) as BrowserAccount[];
+
+      setAccounts(nextAccounts);
+
+      setSelectedId((current) => {
+        const requested =
+          requestedAccountId &&
+          nextAccounts.some((account) => account.id === requestedAccountId)
+            ? requestedAccountId
+            : null;
+
+        const currentExists =
+          current && nextAccounts.some((account) => account.id === current);
+
+        return (
+          requested ||
+          (currentExists ? current : null) ||
+          nextAccounts[0]?.id ||
+          null
+        );
+      });
+
+      await Promise.all(nextAccounts.map((account) => loadRuntime(account.id)));
+    } catch (error) {
+      setGlobalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load browser accounts.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [loadRuntime, requestedAccountId]);
 
   useEffect(() => {
-    void Promise.all([
-      loadAccounts(),
-      loadBrands(),
-    ]);
-  }, [
-    loadAccounts,
-    loadBrands,
-  ]);
+    void Promise.all([loadAccounts(), loadBrands()]);
+  }, [loadAccounts, loadBrands]);
 
   useEffect(() => {
     if (!selectedId) {
-      setAutomationPolicy(
-        null,
-      );
+      setAutomationPolicy(null);
       setTimeline([]);
       return;
     }
 
     void Promise.all([
-      loadAutomationPolicy(
-        selectedId,
-      ),
-      loadTimeline(
-        selectedId,
-      ),
+      loadAutomationPolicy(selectedId),
+      loadTimeline(selectedId),
     ]);
-  }, [
-    selectedId,
-  ]);
+  }, [selectedId]);
 
-  function openEdit(
-    account: BrowserAccount,
-  ) {
+  function openEdit(account: BrowserAccount) {
     setEditForm({
-      displayName:
-        account.displayName,
-      browserProfileName:
-        account.browserProfileName,
-      brandId:
-        account.brandId || "",
-      locale:
-        account.locale,
-      timezone:
-        account.timezone,
-      proxyType:
-        account.proxyType,
-      proxyHost:
-        account.proxyHost || "",
-      proxyPort:
-        account.proxyPort
-          ? String(
-              account.proxyPort,
-            )
-          : "",
+      displayName: account.displayName,
+      browserProfileName: account.browserProfileName,
+      brandId: account.brandId || "",
+      locale: account.locale,
+      timezone: account.timezone,
+      proxyType: account.proxyType,
+      proxyHost: account.proxyHost || "",
+      proxyPort: account.proxyPort ? String(account.proxyPort) : "",
       proxyUsername: "",
       proxyPassword: "",
-      proxyCountry:
-        account.proxyCountry || "",
-      clearProxyCredentials:
-        false,
+      proxyCountry: account.proxyCountry || "",
+      clearProxyCredentials: false,
     });
 
     setEditOpen(true);
     setGlobalError("");
   }
 
-  function updateEditField<
-    Key extends keyof EditAccountForm,
-  >(
+  function updateEditField<Key extends keyof EditAccountForm>(
     key: Key,
     value: EditAccountForm[Key],
   ) {
-    setEditForm(
-      (current) =>
-        current
-          ? {
-              ...current,
-              [key]: value,
-            }
-          : current,
+    setEditForm((current) =>
+      current
+        ? {
+            ...current,
+            [key]: value,
+          }
+        : current,
     );
   }
 
   async function saveEdit() {
-    if (
-      !selectedAccount ||
-      !editForm
-    ) {
+    if (!selectedAccount || !editForm) {
       return;
     }
 
-    if (
-      selectedRuntime.running
-    ) {
+    if (selectedRuntime.running) {
       setGlobalError(
         "Close the browser before changing its profile or proxy settings.",
       );
@@ -1196,70 +734,39 @@ export function BrowserAccountsManagerV2({
 
     try {
       const proxyPort =
-        editForm.proxyType ===
-        "DIRECT"
-          ? null
-          : Number(
-              editForm.proxyPort,
-            );
+        editForm.proxyType === "DIRECT" ? null : Number(editForm.proxyPort);
 
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              displayName:
-                editForm.displayName,
-              browserProfileName:
-                editForm.browserProfileName,
-              brandId:
-                editForm.brandId ||
-                null,
-              locale:
-                editForm.locale,
-              timezone:
-                editForm.timezone,
-              proxyType:
-                editForm.proxyType,
-              proxyHost:
-                editForm.proxyType ===
-                "DIRECT"
-                  ? null
-                  : editForm.proxyHost,
-              proxyPort,
-              proxyUsername:
-                editForm.proxyUsername ||
-                undefined,
-              proxyPassword:
-                editForm.proxyPassword ||
-                undefined,
-              proxyCountry:
-                editForm.proxyType ===
-                "DIRECT"
-                  ? null
-                  : editForm.proxyCountry,
-              clearProxyCredentials:
-                editForm.clearProxyCredentials,
-            }),
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            displayName: editForm.displayName,
+            browserProfileName: editForm.browserProfileName,
+            brandId: editForm.brandId || null,
+            locale: editForm.locale,
+            timezone: editForm.timezone,
+            proxyType: editForm.proxyType,
+            proxyHost:
+              editForm.proxyType === "DIRECT" ? null : editForm.proxyHost,
+            proxyPort,
+            proxyUsername: editForm.proxyUsername || undefined,
+            proxyPassword: editForm.proxyPassword || undefined,
+            proxyCountry:
+              editForm.proxyType === "DIRECT" ? null : editForm.proxyCountry,
+            clearProxyCredentials: editForm.clearProxyCredentials,
+          }),
+        },
+      );
 
-      const body =
-        await readJson(
-          response,
-        );
+      const body = await readJson(response);
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessage(
-            body,
-            "Unable to update browser account.",
-          ),
+          getErrorMessage(body, "Unable to update browser account."),
         );
       }
 
@@ -1268,9 +775,7 @@ export function BrowserAccountsManagerV2({
 
       await loadAccounts();
 
-      setActionMessage(
-        "Browser account updated.",
-      );
+      setActionMessage("Browser account updated.");
     } catch (error) {
       setGlobalError(
         error instanceof Error
@@ -1282,39 +787,26 @@ export function BrowserAccountsManagerV2({
     }
   }
 
-  async function loadAutomationPolicy(
-    accountId: string,
-  ) {
+  async function loadAutomationPolicy(accountId: string) {
     setPolicyLoading(true);
 
     try {
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/automation-policy`,
-          {
-            cache:
-              "no-store",
-          },
-        );
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/automation-policy`,
+        {
+          cache: "no-store",
+        },
+      );
 
-      const body =
-        await readJson(
-          response,
-        );
+      const body = await readJson(response);
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessage(
-            body,
-            "Unable to load automation policy.",
-          ),
+          getErrorMessage(body, "Unable to load automation policy."),
         );
       }
 
-      setAutomationPolicy(
-        body as unknown as
-          AutomationPolicy,
-      );
+      setAutomationPolicy(body as unknown as AutomationPolicy);
     } catch (error) {
       setGlobalError(
         error instanceof Error
@@ -1326,123 +818,76 @@ export function BrowserAccountsManagerV2({
     }
   }
 
-  async function loadTimeline(
-    accountId: string,
-  ) {
+  async function loadTimeline(accountId: string) {
     setTimelineLoading(true);
 
     try {
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/timeline`,
-          {
-            cache:
-              "no-store",
-          },
-        );
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/timeline`,
+        {
+          cache: "no-store",
+        },
+      );
 
-      const body =
-        await readJson(
-          response,
-        );
+      const body = await readJson(response);
 
       if (!response.ok) {
-        throw new Error(
-          getErrorMessage(
-            body,
-            "Unable to load timeline.",
-          ),
-        );
+        throw new Error(getErrorMessage(body, "Unable to load timeline."));
       }
 
       setTimeline(
-        Array.isArray(
-          body,
-        )
-          ? body as unknown as
-              TimelineEvent[]
-          : [],
+        Array.isArray(body) ? (body as unknown as TimelineEvent[]) : [],
       );
     } catch (error) {
       setGlobalError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load timeline.",
+        error instanceof Error ? error.message : "Unable to load timeline.",
       );
     } finally {
       setTimelineLoading(false);
     }
   }
 
-  async function updateAutomationPolicy(
-    patch:
-      Partial<AutomationPolicy>,
-  ) {
-    if (
-      !selectedAccount ||
-      !automationPolicy
-    ) {
+  async function updateAutomationPolicy(patch: Partial<AutomationPolicy>) {
+    if (!selectedAccount || !automationPolicy) {
       return;
     }
 
-    const previous =
-      automationPolicy;
+    const previous = automationPolicy;
 
     const next = {
       ...previous,
       ...patch,
     };
 
-    setAutomationPolicy(
-      next,
-    );
+    setAutomationPolicy(next);
     setPolicySaving(true);
     setGlobalError("");
 
     try {
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
-          {
-            method:
-              "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body:
-              JSON.stringify(
-                patch,
-              ),
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${selectedAccount.id}/automation-policy`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify(patch),
+        },
+      );
 
-      const body =
-        await readJson(
-          response,
-        );
+      const body = await readJson(response);
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessage(
-            body,
-            "Unable to update automation policy.",
-          ),
+          getErrorMessage(body, "Unable to update automation policy."),
         );
       }
 
-      setAutomationPolicy(
-        body as unknown as
-          AutomationPolicy,
-      );
+      setAutomationPolicy(body as unknown as AutomationPolicy);
 
-      setActionMessage(
-        "Automation policy updated.",
-      );
+      setActionMessage("Automation policy updated.");
     } catch (error) {
-      setAutomationPolicy(
-        previous,
-      );
+      setAutomationPolicy(previous);
 
       setGlobalError(
         error instanceof Error
@@ -1454,155 +899,85 @@ export function BrowserAccountsManagerV2({
     }
   }
 
-  function timelineStatusClass(
-    status: string,
-  ) {
-    const normalized =
-      status
-        .trim()
-        .toUpperCase();
+  function timelineStatusClass(status: string) {
+    const normalized = status.trim().toUpperCase();
 
-    if (
-      normalized ===
-      "SUCCESS"
-    ) {
+    if (normalized === "SUCCESS") {
       return styles.timelineSuccess;
     }
 
-    if (
-      normalized ===
-      "WARNING"
-    ) {
+    if (normalized === "WARNING") {
       return styles.timelineWarning;
     }
 
-    if (
-      normalized ===
-      "FAILED"
-    ) {
+    if (normalized === "FAILED") {
       return styles.timelineFailed;
     }
 
     return styles.timelineInfo;
   }
 
-  async function runOnboarding(
-    accountId: string,
-  ) {
+  async function runOnboarding(accountId: string) {
     setOnboardingRunning(true);
-    setOnboardingStep(
-      "VERIFYING",
-    );
-    setOnboardingResult(
-      null,
-    );
+    setOnboardingStep("VERIFYING");
+    setOnboardingResult(null);
     setGlobalError("");
     setActionMessage("");
 
     try {
-      const progressTimer =
-        window.setTimeout(
-          () => {
-            setOnboardingStep(
-              "DISCOVERING",
-            );
-          },
-          1400,
-        );
+      const progressTimer = window.setTimeout(() => {
+        setOnboardingStep("DISCOVERING");
+      }, 1400);
 
-      const syncTimer =
-        window.setTimeout(
-          () => {
-            setOnboardingStep(
-              "SYNCING",
-            );
-          },
-          3200,
-        );
+      const syncTimer = window.setTimeout(() => {
+        setOnboardingStep("SYNCING");
+      }, 3200);
 
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/onboarding/run`,
-          {
-            method:
-              "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body:
-              JSON.stringify({
-                verifyLogin:
-                  true,
-              }),
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/onboarding/run`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
-
-      window.clearTimeout(
-        progressTimer,
-      );
-      window.clearTimeout(
-        syncTimer,
+          body: JSON.stringify({
+            verifyLogin: true,
+          }),
+        },
       );
 
-      const body =
-        await readJson(
-          response,
-        );
+      window.clearTimeout(progressTimer);
+      window.clearTimeout(syncTimer);
+
+      const body = await readJson(response);
 
       if (!response.ok) {
         throw new Error(
-          getErrorMessage(
-            body,
-            "Unable to complete onboarding.",
-          ),
+          getErrorMessage(body, "Unable to complete onboarding."),
         );
       }
 
-      const result =
-        body as OnboardingResult;
+      const result = body as OnboardingResult;
 
-      setOnboardingResult(
-        result,
-      );
+      setOnboardingResult(result);
 
-      if (
-        result.requiresAttention
-      ) {
-        setOnboardingStep(
-          "ATTENTION",
-        );
+      if (result.requiresAttention) {
+        setOnboardingStep("ATTENTION");
 
         const attentionMessage =
-          result.step ===
-          "SELECT_BRAND"
+          result.step === "SELECT_BRAND"
             ? "Select a Brand for this account, then run onboarding again."
             : `Onboarding requires attention at ${result.step || "UNKNOWN"}.`;
 
-        setActionMessage(
-          attentionMessage,
-        );
-      } else if (
-        result.completed
-      ) {
-        setOnboardingStep(
-          "COMPLETED",
-        );
+        setActionMessage(attentionMessage);
+      } else if (result.completed) {
+        setOnboardingStep("COMPLETED");
 
-        const created =
-          result.syncResult
-            ?.created ||
-          0;
+        const created = result.syncResult?.created || 0;
 
-        const reused =
-          result.syncResult
-            ?.reused ||
-          0;
+        const reused = result.syncResult?.reused || 0;
 
-        const linked =
-          result.syncResult
-            ?.linked ||
-          0;
+        const linked = result.syncResult?.linked || 0;
 
         setActionMessage(
           [
@@ -1614,31 +989,19 @@ export function BrowserAccountsManagerV2({
           ].join(" "),
         );
       } else {
-        setOnboardingStep(
-          "ATTENTION",
-        );
+        setOnboardingStep("ATTENTION");
 
-        setActionMessage(
-          "Onboarding paused before completion.",
-        );
+        setActionMessage("Onboarding paused before completion.");
       }
 
       await Promise.all([
         loadAccounts(),
-        loadRuntime(
-          accountId,
-        ),
-        loadTimeline(
-          accountId,
-        ),
-        loadAutomationPolicy(
-          accountId,
-        ),
+        loadRuntime(accountId),
+        loadTimeline(accountId),
+        loadAutomationPolicy(accountId),
       ]);
     } catch (error) {
-      setOnboardingStep(
-        "FAILED",
-      );
+      setOnboardingStep("FAILED");
 
       setGlobalError(
         error instanceof Error
@@ -1646,62 +1009,40 @@ export function BrowserAccountsManagerV2({
           : "Unable to complete onboarding.",
       );
     } finally {
-      setOnboardingRunning(
-        false,
-      );
+      setOnboardingRunning(false);
     }
   }
 
-  function onboardingStepLabel(
-    step: OnboardingStep,
-  ) {
-    return step.replaceAll(
-      "_",
-      " ",
-    );
+  function onboardingStepLabel(step: OnboardingStep) {
+    return step.replaceAll("_", " ");
   }
 
   async function healthCheckAccount(
     account: BrowserAccount,
   ): Promise<AccountHealthResult> {
-    const apiOrigin =
-      getBrowserRuntimeApiUrl();
+    const apiOrigin = getBrowserRuntimeApiUrl();
 
-    let browserWasRunning =
-      false;
+    let browserWasRunning = false;
 
-    let openedTemporarily =
-      false;
+    let openedTemporarily = false;
 
     try {
-      const statusResponse =
-        await fetch(
-          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/status`,
-          {
-            cache:
-              "no-store",
-          },
-        );
+      const statusResponse = await fetch(
+        `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/status`,
+        {
+          cache: "no-store",
+        },
+      );
 
-      const statusBody =
-        await readJson(
-          statusResponse,
-        );
+      const statusBody = await readJson(statusResponse);
 
-      if (
-        !statusResponse.ok
-      ) {
+      if (!statusResponse.ok) {
         throw new Error(
-          getErrorMessage(
-            statusBody,
-            "Unable to read browser status.",
-          ),
+          getErrorMessage(statusBody, "Unable to read browser status."),
         );
       }
 
-      browserWasRunning =
-        statusBody.running ===
-        true;
+      browserWasRunning = statusBody.running === true;
 
       /*
        * If stopped, temporarily start this
@@ -1710,40 +1051,27 @@ export function BrowserAccountsManagerV2({
        * No Live Viewer is opened.
        * No other account profile is reused.
        */
-      if (
-        !browserWasRunning
-      ) {
-        const openResponse =
-          await fetch(
-            `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/open`,
-            {
-              method:
-                "POST",
+      if (!browserWasRunning) {
+        const openResponse = await fetch(
+          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/open`,
+          {
+            method: "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify({
-                  headless:
-                    true,
-
-                  startUrl:
-                    "https://www.facebook.com/",
-                }),
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
 
-        const openBody =
-          await readJson(
-            openResponse,
-          );
+            body: JSON.stringify({
+              headless: true,
 
-        if (
-          !openResponse.ok
-        ) {
+              startUrl: "https://www.facebook.com/",
+            }),
+          },
+        );
+
+        const openBody = await readJson(openResponse);
+
+        if (!openResponse.ok) {
           throw new Error(
             getErrorMessage(
               openBody,
@@ -1752,87 +1080,55 @@ export function BrowserAccountsManagerV2({
           );
         }
 
-        openedTemporarily =
-          true;
+        openedTemporarily = true;
       }
 
-      const inspectResponse =
-        await fetch(
-          `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/inspect`,
-          {
-            method:
-              "POST",
-          },
-        );
+      const inspectResponse = await fetch(
+        `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/inspect`,
+        {
+          method: "POST",
+        },
+      );
 
-      const inspectBody =
-        await readJson(
-          inspectResponse,
-        );
+      const inspectBody = await readJson(inspectResponse);
 
-      if (
-        !inspectResponse.ok
-      ) {
+      if (!inspectResponse.ok) {
         throw new Error(
-          getErrorMessage(
-            inspectBody,
-            "Unable to inspect Facebook identity.",
-          ),
+          getErrorMessage(inspectBody, "Unable to inspect Facebook identity."),
         );
       }
 
-      const inspection =
-        inspectBody as
-          InspectionResult;
+      const inspection = inspectBody as InspectionResult;
 
-      const loginStatus =
-        normalizeStatus(
-          inspection.loginStatus,
-        );
+      const loginStatus = normalizeStatus(inspection.loginStatus);
 
       return {
-        accountId:
-          account.id,
+        accountId: account.id,
 
-        status:
-          healthStatusFromLogin(
-            loginStatus,
-          ),
+        status: healthStatusFromLogin(loginStatus),
 
         loginStatus,
 
         browserWasRunning,
 
-        checkedAt:
-          new Date()
-            .toISOString(),
+        checkedAt: new Date().toISOString(),
 
-        message:
-          facebookIdentityMessage(
-            loginStatus,
-          ),
+        message: facebookIdentityMessage(loginStatus),
       };
     } catch (error) {
       return {
-        accountId:
-          account.id,
+        accountId: account.id,
 
-        status:
-          "FAILED",
+        status: "FAILED",
 
-        loginStatus:
-          "UNKNOWN",
+        loginStatus: "UNKNOWN",
 
         browserWasRunning,
 
-        checkedAt:
-          new Date()
-            .toISOString(),
+        checkedAt: new Date().toISOString(),
 
         message:
-          error instanceof Error
-            ? error.message
-            : "Health check failed.",
+          error instanceof Error ? error.message : "Health check failed.",
       };
     } finally {
       /*
@@ -1842,105 +1138,59 @@ export function BrowserAccountsManagerV2({
        * Only close sessions created by
        * Health Monitor itself.
        */
-      if (
-        openedTemporarily
-      ) {
+      if (openedTemporarily) {
         await fetch(
           `${apiOrigin}/browser-runtime/accounts/${account.id}/browser/close`,
           {
-            method:
-              "POST",
+            method: "POST",
           },
-        ).catch(
-          () =>
-            undefined,
-        );
+        ).catch(() => undefined);
       }
     }
   }
 
-
   async function runAllHealthChecks() {
-    if (
-      healthCheckRunning ||
-      !accounts.length
-    ) {
+    if (healthCheckRunning || !accounts.length) {
       return;
     }
 
-    setHealthCheckRunning(
-      true,
-    );
+    setHealthCheckRunning(true);
 
     setGlobalError("");
     setActionMessage("");
 
-    const nextResults:
-      Record<
-        string,
-        AccountHealthResult
-      > = {};
+    const nextResults: Record<string, AccountHealthResult> = {};
 
     try {
-      for (
-        let index = 0;
-        index <
-          accounts.length;
-        index += 1
-      ) {
-        const account =
-          accounts[index];
+      for (let index = 0; index < accounts.length; index += 1) {
+        const account = accounts[index];
 
         setHealthCheckProgress(
           `Checking ${index + 1}/${accounts.length}: ${account.displayName}`,
         );
 
-        const result =
-          await healthCheckAccount(
-            account,
-          );
+        const result = await healthCheckAccount(account);
 
-        nextResults[
-          account.id
-        ] = result;
+        nextResults[account.id] = result;
 
         setHealthResults({
           ...nextResults,
         });
       }
 
-      const results =
-        Object.values(
-          nextResults,
-        );
+      const results = Object.values(nextResults);
 
-      const ready =
-        results.filter(
-          (item) =>
-            item.status ===
-            "READY",
-        ).length;
+      const ready = results.filter((item) => item.status === "READY").length;
 
-      const loginRequired =
-        results.filter(
-          (item) =>
-            item.status ===
-            "LOGIN_REQUIRED",
-        ).length;
+      const loginRequired = results.filter(
+        (item) => item.status === "LOGIN_REQUIRED",
+      ).length;
 
-      const attention =
-        results.filter(
-          (item) =>
-            item.status ===
-            "ATTENTION",
-        ).length;
+      const attention = results.filter(
+        (item) => item.status === "ATTENTION",
+      ).length;
 
-      const failed =
-        results.filter(
-          (item) =>
-            item.status ===
-            "FAILED",
-        ).length;
+      const failed = results.filter((item) => item.status === "FAILED").length;
 
       setActionMessage(
         [
@@ -1960,93 +1210,55 @@ export function BrowserAccountsManagerV2({
           : "Unable to complete health check.",
       );
     } finally {
-      setHealthCheckProgress(
-        "",
-      );
+      setHealthCheckProgress("");
 
-      setHealthCheckRunning(
-        false,
-      );
+      setHealthCheckRunning(false);
     }
   }
 
-
-  async function openBrowser(
-    accountId: string,
-  ) {
+  async function openBrowser(accountId: string) {
     setActionMessage("");
-    updateRuntime(
-      accountId,
+    updateRuntime(accountId, {
+      loading: true,
+      error: "",
+    });
+
+    const response = await fetch(
+      `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
       {
-        loading: true,
-        error: "",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          headless: false,
+          startUrl: "https://www.facebook.com/",
+        }),
       },
     );
 
-    const response =
-      await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            headless: false,
-            startUrl:
-              "https://www.facebook.com/",
-          }),
-        },
-      );
-
-    const body =
-      await readJson(
-        response,
-      );
+    const body = await readJson(response);
 
     if (!response.ok) {
-      updateRuntime(
-        accountId,
-        {
-          loading: false,
-          error:
-            getErrorMessage(
-              body,
-              "Unable to open browser.",
-            ),
-        },
-      );
+      updateRuntime(accountId, {
+        loading: false,
+        error: getErrorMessage(body, "Unable to open browser."),
+      });
 
-      throw new Error(
-        getErrorMessage(
-          body,
-          "Unable to open browser.",
-        ),
-      );
+      throw new Error(getErrorMessage(body, "Unable to open browser."));
     }
 
-    await Promise.all([
-      loadRuntime(
-        accountId,
-      ),
-      loadAccounts(),
-    ]);
+    await Promise.all([loadRuntime(accountId), loadAccounts()]);
 
     await connectSecureBrowserViewer();
 
     await connectSecureBrowserViewer();
 
-    setActionMessage(
-      "Browser profile opened.",
-    );
+    setActionMessage("Browser profile opened.");
 
     setViewerOpen(true);
 
-    setViewerKey(
-      (current) =>
-        current + 1,
-    );
+    setViewerKey((current) => current + 1);
 
     /*
      * Browser running and Facebook logged in
@@ -2058,28 +1270,18 @@ export function BrowserAccountsManagerV2({
      * persistent browser profile.
      */
     try {
-      const inspection =
-        await verifyLogin(
-          accountId,
-        );
+      const inspection = await verifyLogin(accountId);
 
-      const identityStatus =
-        inspection?.loginStatus ||
-        "UNKNOWN";
+      const identityStatus = inspection?.loginStatus || "UNKNOWN";
 
       setActionMessage(
         [
           "Browser profile opened.",
-          facebookIdentityMessage(
-            identityStatus,
-          ),
+          facebookIdentityMessage(identityStatus),
         ].join(" "),
       );
     } catch (error) {
-      console.warn(
-        "Facebook identity auto-check failed:",
-        error,
-      );
+      console.warn("Facebook identity auto-check failed:", error);
 
       /*
        * Browser opening succeeded.
@@ -2092,481 +1294,268 @@ export function BrowserAccountsManagerV2({
     }
   }
 
-  async function verifyLogin(
-    accountId: string,
-  ) {
+  async function verifyLogin(accountId: string) {
     setActionMessage("");
 
-    updateRuntime(
-      accountId,
+    updateRuntime(accountId, {
+      loading: true,
+      error: "",
+    });
+
+    const response = await fetch(
+      `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/inspect`,
       {
-        loading: true,
-        error: "",
+        method: "POST",
       },
     );
 
-    const response =
-      await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/inspect`,
-        {
-          method: "POST",
-        },
-      );
-
-    const body =
-      await readJson(
-        response,
-      );
+    const body = await readJson(response);
 
     if (!response.ok) {
-      updateRuntime(
-        accountId,
-        {
-          loading: false,
-          error:
-            getErrorMessage(
-              body,
-              "Unable to verify login.",
-            ),
-        },
-      );
+      updateRuntime(accountId, {
+        loading: false,
+        error: getErrorMessage(body, "Unable to verify login."),
+      });
 
-      throw new Error(
-        getErrorMessage(
-          body,
-          "Unable to verify login.",
-        ),
-      );
+      throw new Error(getErrorMessage(body, "Unable to verify login."));
     }
 
-    const result =
-      body as InspectionResult;
+    const result = body as InspectionResult;
 
     await Promise.all([
       loadAccounts(),
-      loadRuntime(
-        accountId,
-      ),
-      loadTimeline(
-        accountId,
-      ),
-      loadAutomationPolicy(
-        accountId,
-      ),
+      loadRuntime(accountId),
+      loadTimeline(accountId),
+      loadAutomationPolicy(accountId),
     ]);
 
-    const status =
-      readableStatus(
-        result.loginStatus,
-      );
+    const status = readableStatus(result.loginStatus);
 
-    setActionMessage(
-      `Login verification: ${status}.`,
-    );
+    setActionMessage(`Login verification: ${status}.`);
 
     return result;
   }
 
-  async function closeBrowser(
-    accountId: string,
-  ) {
+  async function closeBrowser(accountId: string) {
     setActionMessage("");
 
-    updateRuntime(
-      accountId,
+    updateRuntime(accountId, {
+      loading: true,
+      error: "",
+    });
+
+    const response = await fetch(
+      `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/close`,
       {
-        loading: true,
-        error: "",
+        method: "POST",
       },
     );
 
-    const response =
-      await fetch(
-        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/close`,
-        {
-          method: "POST",
-        },
-      );
-
-    const body =
-      await readJson(
-        response,
-      );
+    const body = await readJson(response);
 
     if (!response.ok) {
-      updateRuntime(
-        accountId,
-        {
-          loading: false,
-          error:
-            getErrorMessage(
-              body,
-              "Unable to close browser.",
-            ),
-        },
-      );
+      updateRuntime(accountId, {
+        loading: false,
+        error: getErrorMessage(body, "Unable to close browser."),
+      });
 
-      throw new Error(
-        getErrorMessage(
-          body,
-          "Unable to close browser.",
-        ),
-      );
+      throw new Error(getErrorMessage(body, "Unable to close browser."));
     }
 
-    await Promise.all([
-      loadRuntime(
-        accountId,
-      ),
-      loadAccounts(),
-    ]);
+    await Promise.all([loadRuntime(accountId), loadAccounts()]);
 
     setViewerOpen(false);
 
-    setViewerUrl(
-      null,
-    );
+    setViewerUrl(null);
 
     setActionMessage(
       "Browser profile closed. Cookies remain stored in the profile.",
     );
   }
 
-  function toggleBatch(
-    accountId: string,
-  ) {
-    setSelectedForBatch(
-      (current) => {
-        const next =
-          new Set(
-            current,
-          );
+  function toggleBatch(accountId: string) {
+    setSelectedForBatch((current) => {
+      const next = new Set(current);
 
-        if (
-          next.has(
-            accountId,
-          )
-        ) {
-          next.delete(
-            accountId,
-          );
-        } else {
-          next.add(
-            accountId,
-          );
-        }
+      if (next.has(accountId)) {
+        next.delete(accountId);
+      } else {
+        next.add(accountId);
+      }
 
-        return next;
-      },
-    );
+      return next;
+    });
   }
 
   function toggleAllVisible() {
-    const visibleIds =
-      filteredAccounts.map(
-        (account) =>
-          account.id,
-      );
+    const visibleIds = filteredAccounts.map((account) => account.id);
 
     const allSelected =
-      visibleIds.length >
-        0 &&
-      visibleIds.every(
-        (id) =>
-          selectedForBatch.has(
-            id,
-          ),
-      );
+      visibleIds.length > 0 &&
+      visibleIds.every((id) => selectedForBatch.has(id));
 
-    setSelectedForBatch(
-      (current) => {
-        const next =
-          new Set(
-            current,
-          );
+    setSelectedForBatch((current) => {
+      const next = new Set(current);
 
-        for (
-          const id
-          of visibleIds
-        ) {
-          if (allSelected) {
-            next.delete(id);
-          } else {
-            next.add(id);
-          }
+      for (const id of visibleIds) {
+        if (allSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
         }
+      }
 
-        return next;
-      },
-    );
+      return next;
+    });
   }
 
   async function verifySelected() {
-    const selected =
-      accounts.filter(
-        (account) =>
-          selectedForBatch.has(
-            account.id,
-          ),
-      );
+    const selected = accounts.filter((account) =>
+      selectedForBatch.has(account.id),
+    );
 
-    if (
-      !selected.length
-    ) {
+    if (!selected.length) {
       return;
     }
 
     setGlobalError("");
-    setActionMessage(
-      `Verifying ${selected.length} account(s)…`,
-    );
+    setActionMessage(`Verifying ${selected.length} account(s)…`);
 
-    for (
-      const account
-      of selected
-    ) {
+    for (const account of selected) {
       try {
-        await verifyLogin(
-          account.id,
-        );
+        await verifyLogin(account.id);
       } catch (error) {
         setGlobalError(
-          error instanceof
-            Error
-            ? error.message
-            : "Batch verification failed.",
+          error instanceof Error ? error.message : "Batch verification failed.",
         );
         break;
       }
     }
 
-    setActionMessage(
-      "Batch verification completed.",
-    );
+    setActionMessage("Batch verification completed.");
   }
 
-  const accountStats =
-    useMemo(
-      () => {
-        const loggedIn =
-          accounts.filter(
-            (account) =>
-              normalizeStatus(
-                account.loginStatus,
-              ) ===
-              "LOGGED_IN",
-          ).length;
+  const accountStats = useMemo(() => {
+    const loggedIn = accounts.filter(
+      (account) => normalizeStatus(account.loginStatus) === "LOGGED_IN",
+    ).length;
 
-        const loginRequired =
-          accounts.filter(
-            (account) =>
-              [
-                "LOGIN_REQUIRED",
-                "TWO_FACTOR_REQUIRED",
-                "CHECKPOINT_REQUIRED",
-              ].includes(
-                normalizeStatus(
-                  account.loginStatus,
-                ),
-              ),
-          ).length;
+    const loginRequired = accounts.filter((account) =>
+      ["LOGIN_REQUIRED", "TWO_FACTOR_REQUIRED", "CHECKPOINT_REQUIRED"].includes(
+        normalizeStatus(account.loginStatus),
+      ),
+    ).length;
 
-        const running =
-          accounts.filter(
-            (account) =>
-              Boolean(
-                runtimes[
-                  account.id
-                ]?.running,
-              ),
-          ).length;
+    const running = accounts.filter((account) =>
+      Boolean(runtimes[account.id]?.running),
+    ).length;
 
-        const proxyAttention =
-          accounts.filter(
-            (account) =>
-              account.proxyType !==
-                "DIRECT" &&
-              (
-                !account.proxyHost ||
-                !account.proxyPort ||
-                !account.lastKnownIp
-              ),
-          ).length;
+    const proxyAttention = accounts.filter(
+      (account) =>
+        account.proxyType !== "DIRECT" &&
+        (!account.proxyHost || !account.proxyPort || !account.lastKnownIp),
+    ).length;
 
-        return {
-          total:
-            accounts.length,
-          loggedIn,
-          loginRequired,
-          running,
-          proxyAttention,
-        };
-      },
-      [
-        accounts,
-        runtimes,
-      ],
-    );
+    return {
+      total: accounts.length,
+      loggedIn,
+      loginRequired,
+      running,
+      proxyAttention,
+    };
+  }, [accounts, runtimes]);
 
   async function submitManualAccount() {
     if (createSubmitting) {
       return;
     }
 
-    const facebookEmail =
-      createForm.facebookEmail
-        .trim();
+    const facebookEmail = createForm.facebookEmail.trim();
 
-    const facebookPassword =
-      createForm.facebookPassword;
+    const facebookPassword = createForm.facebookPassword;
 
-    const proxyHost =
-      createForm.proxyHost
-        .trim();
+    const proxyHost = createForm.proxyHost.trim();
 
-    const proxyPort =
-      createForm.proxyPort
-        .trim();
+    const proxyPort = createForm.proxyPort.trim();
 
-    const proxyUsername =
-      createForm.proxyUsername
-        .trim();
+    const proxyUsername = createForm.proxyUsername.trim();
 
-    const proxyPassword =
-      createForm.proxyPassword;
+    const proxyPassword = createForm.proxyPassword;
 
     if (!facebookEmail) {
-      setCreateError(
-        "Facebook email is required.",
-      );
+      setCreateError("Facebook email is required.");
       return;
     }
 
     if (!facebookPassword) {
-      setCreateError(
-        "Facebook password is required.",
-      );
+      setCreateError("Facebook password is required.");
       return;
     }
 
-    const hasProxy =
-      Boolean(proxyHost);
+    const hasProxy = Boolean(proxyHost);
 
-    if (
-      hasProxy &&
-      !proxyPort
-    ) {
-      setCreateError(
-        "Proxy port is required when proxy host is provided.",
-      );
+    if (hasProxy && !proxyPort) {
+      setCreateError("Proxy port is required when proxy host is provided.");
       return;
     }
 
-    setCreateSubmitting(
-      true,
-    );
-    setCreateError(
-      null,
-    );
+    setCreateSubmitting(true);
+    setCreateError(null);
 
     try {
-      const response =
-        await fetch(
-          `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              facebookEmail,
-              facebookPassword,
-
-              proxyType:
-                hasProxy
-                  ? "HTTP"
-                  : "DIRECT",
-
-              proxyHost:
-                hasProxy
-                  ? proxyHost
-                  : null,
-
-              proxyPort:
-                hasProxy
-                  ? Number(
-                      proxyPort,
-                    )
-                  : null,
-
-              proxyUsername:
-                hasProxy
-                  ? (
-                      proxyUsername ||
-                      null
-                    )
-                  : null,
-
-              proxyPassword:
-                hasProxy
-                  ? (
-                      proxyPassword ||
-                      null
-                    )
-                  : null,
-
-              proxyCountry:
-                hasProxy
-                  ? "MY"
-                  : null,
-
-              browserEngine:
-                "chromium",
-
-              operatingSystem:
-                "macOS",
-
-              screenWidth:
-                1440,
-
-              screenHeight:
-                900,
-
-              deviceScaleFactor:
-                2,
-
-              locale:
-                "en-MY",
-
-              timezone:
-                "Asia/Kuala_Lumpur",
-
-              identityLocked:
-                true,
-            }),
+      const response = await fetch(
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            facebookEmail,
+            facebookPassword,
 
-      const body =
-        await response
-          .json()
-          .catch(
-            () => ({}),
-          ) as {
-            message?: string;
-          };
+            proxyType: hasProxy ? "HTTP" : "DIRECT",
+
+            proxyHost: hasProxy ? proxyHost : null,
+
+            proxyPort: hasProxy ? Number(proxyPort) : null,
+
+            proxyUsername: hasProxy ? proxyUsername || null : null,
+
+            proxyPassword: hasProxy ? proxyPassword || null : null,
+
+            proxyCountry: hasProxy ? "MY" : null,
+
+            browserEngine: "chromium",
+
+            operatingSystem: "macOS",
+
+            screenWidth: 1440,
+
+            screenHeight: 900,
+
+            deviceScaleFactor: 2,
+
+            locale: "en-MY",
+
+            timezone: "Asia/Kuala_Lumpur",
+
+            identityLocked: true,
+          }),
+        },
+      );
+
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
 
       if (!response.ok) {
         throw new Error(
-          body.message ||
-          `Request failed with status ${response.status}.`,
+          body.message || `Request failed with status ${response.status}.`,
         );
       }
 
-      setManualCreateOpen(
-        false,
-      );
+      setManualCreateOpen(false);
 
       setCreateForm({
         facebookEmail: "",
@@ -2585,26 +1574,19 @@ export function BrowserAccountsManagerV2({
           : "Unable to create browser account.",
       );
     } finally {
-      setCreateSubmitting(
-        false,
-      );
+      setCreateSubmitting(false);
     }
   }
 
-  function scrollToDetailSection(
-    section: string,
-  ) {
-    const accountId =
-      selectedAccount?.id;
+  function scrollToDetailSection(section: string) {
+    const accountId = selectedAccount?.id;
 
     if (!accountId) {
       return;
     }
 
     document
-      .getElementById(
-        `browser-account-${accountId}-${section}`,
-      )
+      .getElementById(`browser-account-${accountId}-${section}`)
       ?.scrollIntoView({
         behavior: "smooth",
         block: "start",
@@ -2614,17 +1596,11 @@ export function BrowserAccountsManagerV2({
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-
-
         <div className={styles.headerActions}>
           <button
             className={styles.primaryButton}
             type="button"
-            onClick={() =>
-              setCreateAccountOpen(
-                true,
-              )
-            }
+            onClick={() => setCreateAccountOpen(true)}
           >
             + Add Account
           </button>
@@ -2632,19 +1608,12 @@ export function BrowserAccountsManagerV2({
           <button
             className={styles.secondaryButton}
             type="button"
-            onClick={() =>
-              setImportAccountsOpen(
-                true,
-              )
-            }
+            onClick={() => setImportAccountsOpen(true)}
           >
             Import Excel
           </button>
 
-          <a
-            className={styles.secondaryButton}
-            href="/automation/browser-pool"
-          >
+          <a className={styles.secondaryButton} href="/automation/browser-pool">
             Browser Pool
           </a>
 
@@ -2652,139 +1621,85 @@ export function BrowserAccountsManagerV2({
             className={styles.secondaryButton}
             type="button"
             disabled={loading}
-            onClick={() =>
-              void loadAccounts()
-            }
+            onClick={() => void loadAccounts()}
           >
-            {loading
-              ? "Refreshing…"
-              : "Refresh"}
+            {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </header>
 
       <section className={styles.accountStats}>
         <article>
-          <span>
-            Total Accounts
-          </span>
+          <span>Total Accounts</span>
 
-          <strong>
-            {accountStats.total}
-          </strong>
+          <strong>{accountStats.total}</strong>
 
-          <small>
-            Independent profiles
-          </small>
+          <small>Independent profiles</small>
         </article>
 
         <article>
-          <span>
-            Logged In
-          </span>
+          <span>Logged In</span>
 
-          <strong>
-            {accountStats.loggedIn}
-          </strong>
+          <strong>{accountStats.loggedIn}</strong>
 
-          <small>
-            Facebook sessions ready
-          </small>
+          <small>Facebook sessions ready</small>
         </article>
 
         <article>
-          <span>
-            Login Required
-          </span>
+          <span>Login Required</span>
 
-          <strong>
-            {accountStats.loginRequired}
-          </strong>
+          <strong>{accountStats.loginRequired}</strong>
 
-          <small>
-            Accounts needing attention
-          </small>
+          <small>Accounts needing attention</small>
         </article>
 
         <article>
-          <span>
-            Running
-          </span>
+          <span>Running</span>
 
-          <strong>
-            {accountStats.running}
-          </strong>
+          <strong>{accountStats.running}</strong>
 
-          <small>
-            Live browser sessions
-          </small>
+          <small>Live browser sessions</small>
         </article>
 
         <article>
-          <span>
-            Proxy Attention
-          </span>
+          <span>Proxy Attention</span>
 
-          <strong>
-            {accountStats.proxyAttention}
-          </strong>
+          <strong>{accountStats.proxyAttention}</strong>
 
-          <small>
-            IP or proxy not verified
-          </small>
+          <small>IP or proxy not verified</small>
         </article>
       </section>
 
-      {globalError ? (
-        <div className={styles.error}>
-          {globalError}
-        </div>
-      ) : null}
+      {globalError ? <div className={styles.error}>{globalError}</div> : null}
 
       {actionMessage ? (
-        <div className={styles.success}>
-          {actionMessage}
-        </div>
+        <div className={styles.success}>{actionMessage}</div>
       ) : null}
 
       <section className={styles.toolbar}>
         <div className={styles.searchWrap}>
-          <span
-            aria-hidden="true"
-            className={styles.searchIcon}
-          >
+          <span aria-hidden="true" className={styles.searchIcon}>
             ⌕
           </span>
 
           <input
             className={styles.search}
-          value={search}
-          onChange={(event) =>
-            setSearch(
-              event.target.value,
-            )
-          }
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Search account, profile, IP or status…"
           />
         </div>
 
         <div className={styles.toolbarActions}>
           <span className={styles.selectionCount}>
-            {
-              selectedForBatch.size
-            } selected
+            {selectedForBatch.size} selected
           </span>
 
           <button
             className={styles.primaryButton}
             type="button"
-            disabled={
-              selectedForBatch.size ===
-              0
-            }
-            onClick={() =>
-              void verifySelected()
-            }
+            disabled={selectedForBatch.size === 0}
+            onClick={() => void verifySelected()}
           >
             Verify Selected Accounts
           </button>
@@ -2800,18 +1715,12 @@ export function BrowserAccountsManagerV2({
                   <input
                     type="checkbox"
                     checked={
-                      filteredAccounts.length >
-                        0 &&
-                      filteredAccounts.every(
-                        (account) =>
-                          selectedForBatch.has(
-                            account.id,
-                          ),
+                      filteredAccounts.length > 0 &&
+                      filteredAccounts.every((account) =>
+                        selectedForBatch.has(account.id),
                       )
                     }
-                    onChange={
-                      toggleAllVisible
-                    }
+                    onChange={toggleAllVisible}
                   />
                 </th>
 
@@ -2822,430 +1731,259 @@ export function BrowserAccountsManagerV2({
                 <th>Browser</th>
                 <th>IP</th>
                 <th>Last verified</th>
-                <th className={styles.quickActionHeader}>
-                  Quick Actions
-                </th>
+                <th className={styles.quickActionHeader}>Quick Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {loading ? (
                 <tr>
-                  <td
-                    className={styles.emptyCell}
-                    colSpan={9}
-                  >
+                  <td className={styles.emptyCell} colSpan={9}>
                     Loading browser accounts…
                   </td>
                 </tr>
               ) : null}
 
-              {!loading &&
-              !filteredAccounts.length ? (
+              {!loading && !filteredAccounts.length ? (
                 <tr>
-                  <td
-                    className={styles.emptyCell}
-                    colSpan={9}
-                  >
+                  <td className={styles.emptyCell} colSpan={9}>
                     No independent browser accounts found.
                   </td>
                 </tr>
               ) : null}
 
-              {filteredAccounts.map(
-                (account) => {
-                  const runtime =
-                    runtimes[
-                      account.id
-                    ] ||
-                    EMPTY_RUNTIME;
+              {filteredAccounts.map((account) => {
+                const runtime = runtimes[account.id] || EMPTY_RUNTIME;
 
-                  const selected =
-                    selectedId ===
-                    account.id;
+                const selected = selectedId === account.id;
 
-                  return (
-                    <tr
-                      className={
-                        selected
-                          ? styles.selectedRow
-                          : undefined
-                      }
-                      key={account.id}
-                      onClick={() =>
-                        setSelectedId(
-                          account.id,
-                        )
-                      }
+                return (
+                  <tr
+                    className={selected ? styles.selectedRow : undefined}
+                    key={account.id}
+                    onClick={() => setSelectedId(account.id)}
+                  >
+                    <td
+                      className={styles.checkboxCell}
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      <td
-                        className={
-                          styles.checkboxCell
-                        }
-                        onClick={(
-                          event,
-                        ) =>
-                          event.stopPropagation()
-                        }
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedForBatch.has(
-                            account.id,
-                          )}
-                          onChange={() =>
-                            toggleBatch(
-                              account.id,
-                            )
-                          }
-                        />
-                      </td>
+                      <input
+                        type="checkbox"
+                        checked={selectedForBatch.has(account.id)}
+                        onChange={() => toggleBatch(account.id)}
+                      />
+                    </td>
 
-                      <td>
-                        <div className={styles.accountIdentity}>
-                          <span
-                            aria-hidden="true"
-                            className={styles.accountAvatar}
-                          >
-                            {account.displayName
-                              .trim()
-                              .slice(0, 1)
-                              .toUpperCase() ||
-                              "B"}
-                          </span>
+                    <td>
+                      <div className={styles.accountIdentity}>
+                        <span
+                          aria-hidden="true"
+                          className={styles.accountAvatar}
+                        >
+                          {accountIdentityName(account)
+                            .trim()
+                            .slice(0, 1)
+                            .toUpperCase() || "B"}
+                        </span>
 
-                          <div>
-                            <strong>
-                              {account.displayName}
-                            </strong>
+                        <div>
+                          <strong>{accountIdentityName(account)}</strong>
 
-                            <small>
-                              {
-                                account.browserProfileName
-                              }
-                            </small>
-                          </div>
+                          <small>{accountIdentityMeta(account)}</small>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      <td>
-                        <span
-                          className={[
-                            styles.status,
-                            loginStatusClass(
-                              account.loginStatus,
-                            ),
-                          ].join(" ")}
-                        >
-                          {readableStatus(
-                            account.loginStatus,
-                          )}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span
-                          className={[
-                            styles.status,
-                            account.cookieStatus ===
-                            "ACTIVE"
-                              ? styles.good
-                              : styles.neutral,
-                          ].join(" ")}
-                        >
-                          {readableStatus(
-                            account.cookieStatus,
-                          )}
-                        </span>
-                      </td>
-
-                      <td>
-                        <strong>
-                          {
-                            account.proxyType
-                          }
-                        </strong>
-
-                        <small>
-                          {account.proxyCountry ||
-                            "—"}
-                        </small>
-                      </td>
-
-                      <td>
-                        <span
-                          className={[
-                            styles.status,
-                            runtime.running
-                              ? styles.good
-                              : styles.neutral,
-                          ].join(" ")}
-                        >
-                          {runtime.loading
-                            ? "CHECKING"
-                            : runtime.running
-                              ? "RUNNING"
-                              : "STOPPED"}
-                        </span>
-                      </td>
-
-                      <td>
-                        {account.lastKnownIp ||
-                          "—"}
-                      </td>
-
-                      <td>
-                        {formatDate(
-                          account.lastVerifiedAt,
-                        )}
-                      </td>
-
-                      <td
-                        className={styles.quickActionCell}
-                        onClick={(event) =>
-                          event.stopPropagation()
-                        }
+                    <td>
+                      <span
+                        className={[
+                          styles.status,
+                          loginStatusClass(account.loginStatus),
+                        ].join(" ")}
                       >
-                        <div className={styles.rowActions}>
-                          <button
-                            className={styles.rowActionPrimary}
-                            type="button"
-                            disabled={runtime.loading}
-                            onClick={() => {
-                              setSelectedId(
-                                account.id,
-                              );
+                        {readableStatus(account.loginStatus)}
+                      </span>
+                    </td>
 
-                              if (
-                                runtime.running
-                              ) {
-                                setViewerOpen(
-                                  true,
-                                );
-                                return;
-                              }
+                    <td>
+                      <span
+                        className={[
+                          styles.status,
+                          account.cookieStatus === "ACTIVE"
+                            ? styles.good
+                            : styles.neutral,
+                        ].join(" ")}
+                      >
+                        {readableStatus(account.cookieStatus)}
+                      </span>
+                    </td>
 
-                              void openBrowser(
-                                account.id,
-                              ).catch(
-                                (error) =>
-                                  setGlobalError(
-                                    error instanceof
-                                      Error
-                                      ? error.message
-                                      : "Unable to open browser.",
-                                  ),
-                              );
-                            }}
-                          >
-                            {runtime.running
-                              ? "View"
-                              : "Open"}
-                          </button>
+                    <td>
+                      <strong>{account.proxyType}</strong>
 
-                          <button
-                            type="button"
-                            disabled={runtime.loading}
-                            onClick={() => {
-                              setSelectedId(
-                                account.id,
-                              );
+                      <small>{account.proxyCountry || "—"}</small>
+                    </td>
 
-                              void verifyLogin(
-                                account.id,
-                              ).catch(
-                                (error) =>
-                                  setGlobalError(
-                                    error instanceof
-                                      Error
-                                      ? error.message
-                                      : "Unable to verify login.",
-                                  ),
-                              );
-                            }}
-                          >
-                            Verify
-                          </button>
+                    <td>
+                      <span
+                        className={[
+                          styles.status,
+                          runtime.running ? styles.good : styles.neutral,
+                        ].join(" ")}
+                      >
+                        {runtime.loading
+                          ? "CHECKING"
+                          : runtime.running
+                            ? "RUNNING"
+                            : "STOPPED"}
+                      </span>
+                    </td>
 
-                          <button
-                            type="button"
-                            disabled={runtime.loading}
-                            onClick={() => {
-                              setSelectedId(
-                                account.id,
-                              );
+                    <td>{account.lastKnownIp || "—"}</td>
 
-                              openEdit(
-                                account,
-                              );
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-</tr>
-                  );
-                },
-              )}
+                    <td>{formatDate(account.lastVerifiedAt)}</td>
+
+                    <td
+                      className={styles.quickActionCell}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className={styles.rowActions}>
+                        <button
+                          className={styles.rowActionPrimary}
+                          type="button"
+                          disabled={runtime.loading}
+                          onClick={() => {
+                            setSelectedId(account.id);
+
+                            if (runtime.running) {
+                              setViewerOpen(true);
+                              return;
+                            }
+
+                            void openBrowser(account.id).catch((error) =>
+                              setGlobalError(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Unable to open browser.",
+                              ),
+                            );
+                          }}
+                        >
+                          {runtime.running ? "View" : "Open"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={runtime.loading}
+                          onClick={() => {
+                            setSelectedId(account.id);
+
+                            void verifyLogin(account.id).catch((error) =>
+                              setGlobalError(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Unable to verify login.",
+                              ),
+                            );
+                          }}
+                        >
+                          Verify
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={runtime.loading}
+                          onClick={() => {
+                            setSelectedId(account.id);
+
+                            openEdit(account);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </section>
 
-      <section
-        className={
-          styles.healthMonitor
-        }
-      >
-        <div
-          className={
-            styles.healthMonitorHeader
-          }
-        >
+      <section className={styles.healthMonitor}>
+        <div className={styles.healthMonitorHeader}>
           <div>
-            <p
-              className={
-                styles.eyebrow
-              }
-            >
-              ACCOUNT HEALTH MONITOR
-            </p>
+            <p className={styles.eyebrow}>ACCOUNT HEALTH MONITOR</p>
 
-            <h2>
-              Facebook Account Health
-            </h2>
+            <h2>Facebook Account Health</h2>
 
             <p>
-              Check every browser profile and verify whether its stored Facebook identity is still usable.
+              Check every browser profile and verify whether its stored Facebook
+              identity is still usable.
             </p>
           </div>
 
           <button
             type="button"
-            className={
-              styles.primaryButton
-            }
-            disabled={
-              healthCheckRunning ||
-              accounts.length === 0
-            }
+            className={styles.primaryButton}
+            disabled={healthCheckRunning || accounts.length === 0}
             onClick={() => {
               void runAllHealthChecks();
             }}
           >
-            {healthCheckRunning
-              ? "Checking…"
-              : "Check All Accounts"}
+            {healthCheckRunning ? "Checking…" : "Check All Accounts"}
           </button>
         </div>
 
         {healthCheckProgress ? (
-          <div
-            className={
-              styles.healthProgress
-            }
-          >
-            {healthCheckProgress}
-          </div>
+          <div className={styles.healthProgress}>{healthCheckProgress}</div>
         ) : null}
 
-        <div
-          className={
-            styles.healthAccountGrid
-          }
-        >
-          {accounts.map(
-            (account) => {
-              const result =
-                healthResults[
-                  account.id
-                ];
+        <div className={styles.healthAccountGrid}>
+          {accounts.map((account) => {
+            const result = healthResults[account.id];
 
-              const status =
-                result?.status ||
-                healthStatusFromLogin(
-                  account.loginStatus,
-                );
+            const status =
+              result?.status || healthStatusFromLogin(account.loginStatus);
 
-              const runtime =
-                runtimes[
-                  account.id
-                ];
+            const runtime = runtimes[account.id];
 
-              return (
-                <article
-                  key={
-                    account.id
-                  }
-                >
-                  <div
-                    className={
-                      styles.healthAccountTop
-                    }
-                  >
-                    <strong>
-                      {
-                        account.displayName
-                      }
-                    </strong>
+            return (
+              <article key={account.id}>
+                <div className={styles.healthAccountTop}>
+                  <strong>{account.displayName}</strong>
 
-                    <span
-                      data-health-status={
-                        status
-                      }
-                    >
-                      {status}
-                    </span>
-                  </div>
+                  <span data-health-status={status}>{status}</span>
+                </div>
 
-                  <small>
+                <small>
+                  {result
+                    ? result.message
+                    : facebookIdentityMessage(account.loginStatus)}
+                </small>
+
+                <div className={styles.healthMeta}>
+                  <span>
+                    Facebook:{" "}
                     {result
-                      ? result.message
-                      : facebookIdentityMessage(
-                          account.loginStatus,
-                        )}
-                  </small>
+                      ? readableStatus(result.loginStatus)
+                      : readableStatus(account.loginStatus)}
+                  </span>
 
-                  <div
-                    className={
-                      styles.healthMeta
-                    }
-                  >
-                    <span>
-                      Facebook:{" "}
-                      {result
-                        ? readableStatus(
-                            result.loginStatus,
-                          )
-                        : readableStatus(
-                            account.loginStatus,
-                          )}
-                    </span>
+                  <span>
+                    Browser: {runtime?.running ? "RUNNING" : "STOPPED"}
+                  </span>
 
-                    <span>
-                      Browser:{" "}
-                      {runtime?.running
-                        ? "RUNNING"
-                        : "STOPPED"}
-                    </span>
-
-                    {result ? (
-                      <span>
-                        Checked:{" "}
-                        {formatDate(
-                          result.checkedAt,
-                        )}
-                      </span>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            },
-          )}
+                  {result ? (
+                    <span>Checked: {formatDate(result.checkedAt)}</span>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
-
 
       <section className={styles.detailsPanel}>
         {!selectedAccount ? (
@@ -3264,21 +2002,15 @@ export function BrowserAccountsManagerV2({
                 ["automation", "Automation"],
                 ["timeline", "Timeline"],
                 ["onboarding", "Onboarding"],
-              ].map(
-                ([section, label]) => (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() =>
-                      scrollToDetailSection(
-                        section,
-                      )
-                    }
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
+              ].map(([section, label]) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => scrollToDetailSection(section)}
+                >
+                  {label}
+                </button>
+              ))}
             </nav>
 
             <div
@@ -3286,108 +2018,60 @@ export function BrowserAccountsManagerV2({
               id={`browser-account-${selectedAccount.id}-overview`}
             >
               <div>
-                <p className={styles.eyebrow}>
-                  Account Details
-                </p>
+                <p className={styles.eyebrow}>Account Details</p>
 
-                <h2>
-                  {
-                    selectedAccount.displayName
-                  }
-                </h2>
+                <h2>{accountIdentityName(selectedAccount)}</h2>
 
                 <p>
-                  {
-                    selectedAccount.browserProfileKey
-                  }
+                  {`${selectedAccount.displayName} · ${selectedAccount.browserProfileKey}`}
                 </p>
               </div>
 
               <span
                 className={[
                   styles.largeStatus,
-                  loginStatusClass(
-                    selectedAccount.loginStatus,
-                  ),
+                  loginStatusClass(selectedAccount.loginStatus),
                 ].join(" ")}
               >
-                {readableStatus(
-                  selectedAccount.loginStatus,
-                )}
+                {readableStatus(selectedAccount.loginStatus)}
               </span>
             </div>
 
             {selectedRuntime.error ? (
-              <div className={styles.error}>
-                {
-                  selectedRuntime.error
-                }
-              </div>
+              <div className={styles.error}>{selectedRuntime.error}</div>
             ) : null}
 
             <div className={styles.metrics}>
               <article>
-                <span>
-                  Browser
-                </span>
+                <span>Browser</span>
                 <strong>
-                  {selectedRuntime.running
-                    ? "RUNNING"
-                    : "STOPPED"}
+                  {selectedRuntime.running ? "RUNNING" : "STOPPED"}
                 </strong>
               </article>
 
               <article>
-                <span>
-                  Cookie
-                </span>
-                <strong>
-                  {readableStatus(
-                    selectedAccount.cookieStatus,
-                  )}
-                </strong>
+                <span>Cookie</span>
+                <strong>{readableStatus(selectedAccount.cookieStatus)}</strong>
               </article>
 
               <article>
-                <span>
-                  Proxy
-                </span>
-                <strong>
-                  {
-                    selectedAccount.proxyType
-                  }
-                </strong>
+                <span>Proxy</span>
+                <strong>{selectedAccount.proxyType}</strong>
               </article>
 
               <article>
-                <span>
-                  Pages
-                </span>
-                <strong>
-                  {
-                    selectedAccount.channels
-                      .length
-                  }
-                </strong>
+                <span>Pages</span>
+                <strong>{selectedAccount.channels.length}</strong>
               </article>
             </div>
 
-
-            <div
-              className={
-                styles.identityStatusGrid
-              }
-            >
+            <div className={styles.identityStatusGrid}>
               <article>
-                <span>
-                  BROWSER
-                </span>
+                <span>BROWSER</span>
 
                 <strong
                   className={
-                    selectedRuntime.running
-                      ? styles.good
-                      : styles.neutral
+                    selectedRuntime.running ? styles.good : styles.neutral
                   }
                 >
                   {selectedRuntime.loading
@@ -3405,30 +2089,19 @@ export function BrowserAccountsManagerV2({
               </article>
 
               <article>
-                <span>
-                  FACEBOOK IDENTITY
-                </span>
+                <span>FACEBOOK IDENTITY</span>
 
                 <strong
-                  className={
-                    loginStatusClass(
-                      selectedAccount.loginStatus,
-                    )
-                  }
+                  className={loginStatusClass(selectedAccount.loginStatus)}
                 >
-                  {readableStatus(
-                    selectedAccount.loginStatus,
-                  )}
+                  {readableStatus(selectedAccount.loginStatus)}
                 </strong>
 
                 <small>
-                  {facebookIdentityMessage(
-                    selectedAccount.loginStatus,
-                  )}
+                  {facebookIdentityMessage(selectedAccount.loginStatus)}
                 </small>
               </article>
             </div>
-
 
             <div
               className={styles.actions}
@@ -3437,14 +2110,8 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.secondaryButton}
                 type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
-                onClick={() =>
-                  openEdit(
-                    selectedAccount,
-                  )
-                }
+                disabled={selectedRuntime.loading}
+                onClick={() => openEdit(selectedAccount)}
               >
                 Edit Account
               </button>
@@ -3452,20 +2119,14 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.primaryButton}
                 type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
+                disabled={selectedRuntime.loading}
                 onClick={() =>
-                  void openBrowser(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to open browser.",
-                      ),
+                  void openBrowser(selectedAccount.id).catch((error) =>
+                    setGlobalError(
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to open browser.",
+                    ),
                   )
                 }
               >
@@ -3475,20 +2136,14 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.secondaryButton}
                 type="button"
-                disabled={
-                  selectedRuntime.loading
-                }
+                disabled={selectedRuntime.loading}
                 onClick={() =>
-                  void verifyLogin(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to verify login.",
-                      ),
+                  void verifyLogin(selectedAccount.id).catch((error) =>
+                    setGlobalError(
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to verify login.",
+                    ),
                   )
                 }
               >
@@ -3498,21 +2153,14 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.dangerButton}
                 type="button"
-                disabled={
-                  selectedRuntime.loading ||
-                  !selectedRuntime.running
-                }
+                disabled={selectedRuntime.loading || !selectedRuntime.running}
                 onClick={() =>
-                  void closeBrowser(
-                    selectedAccount.id,
-                  ).catch(
-                    (error) =>
-                      setGlobalError(
-                        error instanceof
-                          Error
-                          ? error.message
-                          : "Unable to close browser.",
-                      ),
+                  void closeBrowser(selectedAccount.id).catch((error) =>
+                    setGlobalError(
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to close browser.",
+                    ),
                   )
                 }
               >
@@ -3520,256 +2168,167 @@ export function BrowserAccountsManagerV2({
               </button>
             </div>
 
+            {viewerOpen && selectedAccount ? (
+              <section ref={viewerRef} className={styles.viewerPanel}>
+                <div className={styles.viewerHeader}>
+                  <div>
+                    <p className={styles.eyebrow}>Live Browser</p>
 
-            {viewerOpen &&
-      selectedAccount ? (
-        <section
-          ref={viewerRef}
-          className={styles.viewerPanel}
-        >
-          <div className={styles.viewerHeader}>
-            <div>
-              <p className={styles.eyebrow}>
-                Live Browser
-              </p>
+                    <h2>{selectedAccount.displayName}</h2>
 
-              <h2>
-                {selectedAccount.displayName}
-              </h2>
+                    <p>
+                      {selectedRuntime.session?.currentUrl ||
+                        "Remote Chromium session"}
+                    </p>
+                  </div>
 
-              <p>
-                {
-                  selectedRuntime.session
-                    ?.currentUrl ||
-                  "Remote Chromium session"
-                }
-              </p>
-            </div>
+                  <div className={styles.viewerActions}>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() => {
+                        void connectSecureBrowserViewer()
+                          .then(() => {
+                            setViewerKey((current) => current + 1);
+                          })
+                          .catch((error) => {
+                            setGlobalError(
+                              error instanceof Error
+                                ? error.message
+                                : "Unable to reload Live Browser.",
+                            );
+                          });
+                      }}
+                    >
+                      Reload Viewer
+                    </button>
 
-            <div className={styles.viewerActions}>
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() => {
-                  void connectSecureBrowserViewer()
-                    .then(() => {
-                      setViewerKey(
-                        (current) =>
-                          current + 1,
-                      );
-                    })
-                    .catch(
-                      (error) => {
-                        setGlobalError(
-                          error instanceof Error
-                            ? error.message
-                            : "Unable to reload Live Browser.",
-                        );
-                      },
-                    );
-                }}
-              >
-                Reload Viewer
-              </button>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() => {
+                        const popup = window.open("", "_blank");
 
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={() => {
-                  const popup =
-                    window.open(
-                      "",
-                      "_blank",
-                    );
+                        void connectSecureBrowserViewer()
+                          .then((nextUrl) => {
+                            if (!popup) {
+                              throw new Error("Browser blocked the new tab.");
+                            }
 
-                  void connectSecureBrowserViewer()
-                    .then(
-                      (nextUrl) => {
-                        if (!popup) {
-                          throw new Error(
-                            "Browser blocked the new tab.",
-                          );
-                        }
+                            popup.opener = null;
 
-                        popup.opener =
-                          null;
+                            popup.location.href = nextUrl;
+                          })
+                          .catch((error) => {
+                            popup?.close();
 
-                        popup.location.href =
-                          nextUrl;
-                      },
-                    )
-                    .catch(
-                      (error) => {
-                        popup?.close();
+                            setGlobalError(
+                              error instanceof Error
+                                ? error.message
+                                : "Unable to open Live Browser.",
+                            );
+                          });
+                      }}
+                    >
+                      Open in New Tab
+                    </button>
 
-                        setGlobalError(
-                          error instanceof Error
-                            ? error.message
-                            : "Unable to open Live Browser.",
-                        );
-                      },
-                    );
-                }}
-              >
-                Open in New Tab
-              </button>
+                    <button
+                      className={styles.dangerButton}
+                      type="button"
+                      onClick={() => {
+                        setViewerOpen(false);
 
-              <button
-                className={styles.dangerButton}
-                type="button"
-                onClick={() => {
-                  setViewerOpen(
-                    false,
-                  );
+                        setViewerUrl(null);
+                      }}
+                    >
+                      Hide Viewer
+                    </button>
+                  </div>
+                </div>
 
-                  setViewerUrl(
-                    null,
-                  );
-                }}
-              >
-                Hide Viewer
-              </button>
-            </div>
-          </div>
+                <div className={styles.viewerFrameWrap}>
+                  {viewerUrl ? (
+                    <iframe
+                      className={styles.viewerFrame}
+                      key={viewerKey}
+                      src={viewerUrl}
+                      title={`${selectedAccount.displayName} browser viewer`}
+                      allow="clipboard-read; clipboard-write; fullscreen"
+                    />
+                  ) : (
+                    <div className={styles.previewEmpty}>
+                      Authorizing secure Live Browser…
+                    </div>
+                  )}
+                </div>
+              </section>
+            ) : null}
 
-          <div className={styles.viewerFrameWrap}>
-            {viewerUrl ? (
-              <iframe
-                className={styles.viewerFrame}
-                key={viewerKey}
-                src={viewerUrl}
-                title={`${selectedAccount.displayName} browser viewer`}
-                allow="clipboard-read; clipboard-write; fullscreen"
-              />
-            ) : (
-              <div className={styles.previewEmpty}>
-                Authorizing secure Live Browser…
-              </div>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-
-<dl className={styles.definitionList}>
+            <dl className={styles.definitionList}>
               <div>
-                <dt>
-                  Brand
-                </dt>
+                <dt>Brand</dt>
                 <dd>
-                  {brands.find(
-                    (brand) =>
-                      brand.id ===
-                      selectedAccount.brandId,
-                  )?.name ||
-                    "Not selected"}
+                  {brands.find((brand) => brand.id === selectedAccount.brandId)
+                    ?.name || "Not selected"}
                 </dd>
               </div>
 
               <div>
-                <dt>
-                  Profile name
-                </dt>
-                <dd>
-                  {
-                    selectedAccount.browserProfileName
-                  }
-                </dd>
+                <dt>Profile name</dt>
+                <dd>{selectedAccount.browserProfileName}</dd>
               </div>
 
               <div>
-                <dt>
-                  Current URL
-                </dt>
-                <dd>
-                  {selectedRuntime.session
-                    ?.currentUrl ||
-                    "—"}
-                </dd>
+                <dt>Current URL</dt>
+                <dd>{selectedRuntime.session?.currentUrl || "—"}</dd>
               </div>
 
               <div>
-                <dt>
-                  Profile directory
-                </dt>
+                <dt>Profile directory</dt>
                 <dd>
-                  {selectedRuntime.session
-                    ?.profileDirectory ||
+                  {selectedRuntime.session?.profileDirectory ||
                     "Created when opened"}
                 </dd>
               </div>
 
               <div>
-                <dt>
-                  Locale / Timezone
-                </dt>
+                <dt>Locale / Timezone</dt>
                 <dd>
-                  {
-                    selectedAccount.locale
-                  }{" "}
-                  /{" "}
-                  {
-                    selectedAccount.timezone
-                  }
+                  {selectedAccount.locale} / {selectedAccount.timezone}
                 </dd>
               </div>
 
               <div>
-                <dt>
-                  Last login
-                </dt>
-                <dd>
-                  {formatDate(
-                    selectedAccount.lastLoginAt,
-                  )}
-                </dd>
+                <dt>Last login</dt>
+                <dd>{formatDate(selectedAccount.lastLoginAt)}</dd>
               </div>
 
               <div>
-                <dt>
-                  Last verified
-                </dt>
-                <dd>
-                  {formatDate(
-                    selectedAccount.lastVerifiedAt,
-                  )}
-                </dd>
+                <dt>Last verified</dt>
+                <dd>{formatDate(selectedAccount.lastVerifiedAt)}</dd>
               </div>
 
               <div>
-                <dt>
-                  Last heartbeat
-                </dt>
-                <dd>
-                  {formatDate(
-                    selectedAccount.lastHeartbeatAt,
-                  )}
-                </dd>
+                <dt>Last heartbeat</dt>
+                <dd>{formatDate(selectedAccount.lastHeartbeatAt)}</dd>
               </div>
 
               <div>
-                <dt>
-                  Last error
-                </dt>
-                <dd>
-                  {selectedAccount.lastLoginError ||
-                    "—"}
-                </dd>
+                <dt>Last error</dt>
+                <dd>{selectedAccount.lastLoginError || "—"}</dd>
               </div>
             </dl>
 
-            <section className={styles.accountSection}
+            <section
+              className={styles.accountSection}
               id={`browser-account-${selectedAccount.id}-automation`}
             >
               <div className={styles.sectionHeader}>
                 <div>
-                  <p className={styles.eyebrow}>
-                    Automation
-                  </p>
+                  <p className={styles.eyebrow}>Automation</p>
 
-                  <h3>
-                    Automation Policy
-                  </h3>
+                  <h3>Automation Policy</h3>
                 </div>
 
                 <span className={styles.saveStatus}>
@@ -3790,22 +2349,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoVerifyLogin
-                      }
+                      checked={automationPolicy.autoVerifyLogin}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoVerifyLogin:
-                            event.target.checked,
+                          autoVerifyLogin: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Verify Login
-                      </strong>
+                      <strong>Auto Verify Login</strong>
 
                       <small>
                         Automatically verify the current Facebook session.
@@ -3816,22 +2370,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoDiscoverPages
-                      }
+                      checked={automationPolicy.autoDiscoverPages}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoDiscoverPages:
-                            event.target.checked,
+                          autoDiscoverPages: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Discover Pages
-                      </strong>
+                      <strong>Auto Discover Pages</strong>
 
                       <small>
                         Discover Facebook Pages after login verification.
@@ -3842,22 +2391,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoSyncPages
-                      }
+                      checked={automationPolicy.autoSyncPages}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoSyncPages:
-                            event.target.checked,
+                          autoSyncPages: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Sync Pages
-                      </strong>
+                      <strong>Auto Sync Pages</strong>
 
                       <small>
                         Sync discovered Pages into Connected Platforms.
@@ -3868,22 +2412,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoHealthCheck
-                      }
+                      checked={automationPolicy.autoHealthCheck}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoHealthCheck:
-                            event.target.checked,
+                          autoHealthCheck: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Health Check
-                      </strong>
+                      <strong>Auto Health Check</strong>
 
                       <small>
                         Monitor browser, cookie, proxy and session health.
@@ -3894,22 +2433,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoNotifications
-                      }
+                      checked={automationPolicy.autoNotifications}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoNotifications:
-                            event.target.checked,
+                          autoNotifications: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Notifications
-                      </strong>
+                      <strong>Auto Notifications</strong>
 
                       <small>
                         Notify when login, sync or health checks fail.
@@ -3920,22 +2454,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.autoCloseBrowser
-                      }
+                      checked={automationPolicy.autoCloseBrowser}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          autoCloseBrowser:
-                            event.target.checked,
+                          autoCloseBrowser: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Auto Close Browser
-                      </strong>
+                      <strong>Auto Close Browser</strong>
 
                       <small>
                         Close the browser after onboarding completes.
@@ -3946,22 +2475,17 @@ export function BrowserAccountsManagerV2({
                   <label className={styles.policyOption}>
                     <input
                       type="checkbox"
-                      checked={
-                        automationPolicy.keepBrowserOpenAfterLogin
-                      }
+                      checked={automationPolicy.keepBrowserOpenAfterLogin}
                       disabled={policySaving}
                       onChange={(event) =>
                         void updateAutomationPolicy({
-                          keepBrowserOpenAfterLogin:
-                            event.target.checked,
+                          keepBrowserOpenAfterLogin: event.target.checked,
                         })
                       }
                     />
 
                     <span>
-                      <strong>
-                        Keep Browser Open
-                      </strong>
+                      <strong>Keep Browser Open</strong>
 
                       <small>
                         Keep the live browser available after login.
@@ -3972,94 +2496,60 @@ export function BrowserAccountsManagerV2({
               )}
             </section>
 
-            <section className={styles.accountSection}
+            <section
+              className={styles.accountSection}
               id={`browser-account-${selectedAccount.id}-timeline`}
             >
               <div className={styles.sectionHeader}>
                 <div>
-                  <p className={styles.eyebrow}>
-                    Activity
-                  </p>
+                  <p className={styles.eyebrow}>Activity</p>
 
-                  <h3>
-                    Timeline
-                  </h3>
+                  <h3>Timeline</h3>
                 </div>
 
                 <button
                   className={styles.secondaryButton}
                   type="button"
                   disabled={timelineLoading}
-                  onClick={() =>
-                    void loadTimeline(
-                      selectedAccount.id,
-                    )
-                  }
+                  onClick={() => void loadTimeline(selectedAccount.id)}
                 >
-                  {timelineLoading
-                    ? "Refreshing…"
-                    : "Refresh Timeline"}
+                  {timelineLoading ? "Refreshing…" : "Refresh Timeline"}
                 </button>
               </div>
 
-              {timelineLoading &&
-              !timeline.length ? (
-                <div className={styles.sectionEmpty}>
-                  Loading timeline…
-                </div>
+              {timelineLoading && !timeline.length ? (
+                <div className={styles.sectionEmpty}>Loading timeline…</div>
               ) : null}
 
-              {!timelineLoading &&
-              !timeline.length ? (
+              {!timelineLoading && !timeline.length ? (
                 <div className={styles.sectionEmpty}>
                   No browser activity recorded yet.
                 </div>
               ) : null}
 
               <div className={styles.timeline}>
-                {timeline.map(
-                  (event) => (
-                    <article
-                      className={styles.timelineItem}
-                      key={event.id}
-                    >
-                      <span
-                        className={[
-                          styles.timelineDot,
-                          timelineStatusClass(
-                            event.status,
-                          ),
-                        ].join(" ")}
-                      />
+                {timeline.map((event) => (
+                  <article className={styles.timelineItem} key={event.id}>
+                    <span
+                      className={[
+                        styles.timelineDot,
+                        timelineStatusClass(event.status),
+                      ].join(" ")}
+                    />
 
-                      <div className={styles.timelineContent}>
-                        <div className={styles.timelineTitle}>
-                          <strong>
-                            {event.title}
-                          </strong>
+                    <div className={styles.timelineContent}>
+                      <div className={styles.timelineTitle}>
+                        <strong>{event.title}</strong>
 
-                          <time>
-                            {formatDate(
-                              event.createdAt,
-                            )}
-                          </time>
-                        </div>
-
-                        {event.message ? (
-                          <p>
-                            {event.message}
-                          </p>
-                        ) : null}
-
-                        <small>
-                          {readableStatus(
-                            event.eventType,
-                          )}
-                        </small>
+                        <time>{formatDate(event.createdAt)}</time>
                       </div>
-                    </article>
-                  ),
-                )}
+
+                      {event.message ? <p>{event.message}</p> : null}
+
+                      <small>{readableStatus(event.eventType)}</small>
+                    </div>
+                  </article>
+                ))}
               </div>
             </section>
 
@@ -4069,17 +2559,12 @@ export function BrowserAccountsManagerV2({
             >
               <div className={styles.onboardingHeader}>
                 <div>
-                  <p className={styles.eyebrow}>
-                    Guided Setup
-                  </p>
+                  <p className={styles.eyebrow}>Guided Setup</p>
 
-                  <h3>
-                    Complete Onboarding
-                  </h3>
+                  <h3>Complete Onboarding</h3>
 
                   <p>
-                    Verify login, discover Pages,
-                    sync Connected Platforms and
+                    Verify login, discover Pages, sync Connected Platforms and
                     refresh account health.
                   </p>
                 </div>
@@ -4087,29 +2572,15 @@ export function BrowserAccountsManagerV2({
                 <button
                   className={styles.primaryButton}
                   type="button"
-                  disabled={
-                    onboardingRunning ||
-                    selectedRuntime.loading
-                  }
-                  onClick={() =>
-                    void runOnboarding(
-                      selectedAccount.id,
-                    )
-                  }
+                  disabled={onboardingRunning || selectedRuntime.loading}
+                  onClick={() => void runOnboarding(selectedAccount.id)}
                 >
-                  {onboardingRunning
-                    ? "Running…"
-                    : "Complete Onboarding"}
+                  {onboardingRunning ? "Running…" : "Complete Onboarding"}
                 </button>
               </div>
 
               <div className={styles.onboardingSteps}>
-                {[
-                  "VERIFYING",
-                  "DISCOVERING",
-                  "SYNCING",
-                  "COMPLETED",
-                ].map(
+                {["VERIFYING", "DISCOVERING", "SYNCING", "COMPLETED"].map(
                   (step) => {
                     const order = [
                       "VERIFYING",
@@ -4118,51 +2589,31 @@ export function BrowserAccountsManagerV2({
                       "COMPLETED",
                     ];
 
-                    const currentIndex =
-                      order.indexOf(
-                        onboardingStep,
-                      );
+                    const currentIndex = order.indexOf(onboardingStep);
 
-                    const stepIndex =
-                      order.indexOf(
-                        step,
-                      );
+                    const stepIndex = order.indexOf(step);
 
-                    const active =
-                      onboardingStep ===
-                      step;
+                    const active = onboardingStep === step;
 
                     const done =
-                      currentIndex >
-                      stepIndex ||
-                      onboardingStep ===
-                      "COMPLETED";
+                      currentIndex > stepIndex ||
+                      onboardingStep === "COMPLETED";
 
                     return (
                       <div
                         className={[
                           styles.onboardingStep,
-                          active
-                            ? styles.onboardingStepActive
-                            : "",
-                          done
-                            ? styles.onboardingStepDone
-                            : "",
+                          active ? styles.onboardingStepActive : "",
+                          done ? styles.onboardingStepDone : "",
                         ]
                           .filter(Boolean)
                           .join(" ")}
                         key={step}
                       >
-                        <span>
-                          {done
-                            ? "✓"
-                            : stepIndex + 1}
-                        </span>
+                        <span>{done ? "✓" : stepIndex + 1}</span>
 
                         <strong>
-                          {onboardingStepLabel(
-                            step as OnboardingStep,
-                          )}
+                          {onboardingStepLabel(step as OnboardingStep)}
                         </strong>
                       </div>
                     );
@@ -4170,32 +2621,18 @@ export function BrowserAccountsManagerV2({
                 )}
               </div>
 
-              {onboardingStep ===
-              "ATTENTION" ? (
+              {onboardingStep === "ATTENTION" ? (
                 <div className={styles.warningMessage}>
                   <span>
-                    Onboarding needs attention:
-                    {" "}
-                    {
-                      onboardingResult
-                        ?.step ||
-                      "UNKNOWN"
-                    }
+                    Onboarding needs attention:{" "}
+                    {onboardingResult?.step || "UNKNOWN"}
                   </span>
 
-                  {onboardingResult
-                    ?.step ===
-                  "SELECT_BRAND" ? (
+                  {onboardingResult?.step === "SELECT_BRAND" ? (
                     <button
-                      className={
-                        styles.secondaryButton
-                      }
+                      className={styles.secondaryButton}
                       type="button"
-                      onClick={() =>
-                        openEdit(
-                          selectedAccount,
-                        )
-                      }
+                      onClick={() => openEdit(selectedAccount)}
                     >
                       Select Brand
                     </button>
@@ -4203,32 +2640,21 @@ export function BrowserAccountsManagerV2({
                 </div>
               ) : null}
 
-              {onboardingStep ===
-              "FAILED" ? (
-                <div className={styles.error}>
-                  Automatic onboarding failed.
-                </div>
+              {onboardingStep === "FAILED" ? (
+                <div className={styles.error}>Automatic onboarding failed.</div>
               ) : null}
             </section>
-
-
           </>
         )}
       </section>
-
 
       {createAccountOpen ? (
         <div
           className={styles.modalBackdrop}
           role="presentation"
           onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              setCreateAccountOpen(
-                false,
-              );
+            if (event.target === event.currentTarget) {
+              setCreateAccountOpen(false);
             }
           }}
         >
@@ -4240,17 +2666,12 @@ export function BrowserAccountsManagerV2({
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>
-                  Browser Account V2
-                </p>
+                <p className={styles.eyebrow}>Browser Account V2</p>
 
-                <h2>
-                  Add Account
-                </h2>
+                <h2>Add Account</h2>
 
                 <p>
-                  Create one independent Facebook
-                  browser identity with its own
+                  Create one independent Facebook browser identity with its own
                   profile, cookie storage and proxy.
                 </p>
               </div>
@@ -4259,11 +2680,7 @@ export function BrowserAccountsManagerV2({
                 aria-label="Close add account dialog"
                 className={styles.iconButton}
                 type="button"
-                onClick={() =>
-                  setCreateAccountOpen(
-                    false,
-                  )
-                }
+                onClick={() => setCreateAccountOpen(false)}
               >
                 ×
               </button>
@@ -4271,18 +2688,13 @@ export function BrowserAccountsManagerV2({
 
             <div className={styles.entryOptions}>
               <article>
-                <span className={styles.entryIcon}>
-                  +
-                </span>
+                <span className={styles.entryIcon}>+</span>
 
                 <div>
-                  <strong>
-                    Create Manually
-                  </strong>
+                  <strong>Create Manually</strong>
 
                   <p>
-                    Enter account name, browser
-                    profile, locale, timezone and
+                    Enter account name, browser profile, locale, timezone and
                     proxy settings.
                   </p>
                 </div>
@@ -4291,15 +2703,9 @@ export function BrowserAccountsManagerV2({
                   className={styles.primaryButton}
                   type="button"
                   onClick={() => {
-                    setCreateAccountOpen(
-                      false,
-                    );
-                    setManualCreateOpen(
-                      true,
-                    );
-                    setCreateError(
-                      null,
-                    );
+                    setCreateAccountOpen(false);
+                    setManualCreateOpen(true);
+                    setCreateError(null);
                   }}
                 >
                   Continue
@@ -4307,18 +2713,13 @@ export function BrowserAccountsManagerV2({
               </article>
 
               <article>
-                <span className={styles.entryIcon}>
-                  ⇩
-                </span>
+                <span className={styles.entryIcon}>⇩</span>
 
                 <div>
-                  <strong>
-                    Import from Excel
-                  </strong>
+                  <strong>Import from Excel</strong>
 
                   <p>
-                    Create multiple independent
-                    Browser Accounts from one
+                    Create multiple independent Browser Accounts from one
                     spreadsheet.
                   </p>
                 </div>
@@ -4327,12 +2728,8 @@ export function BrowserAccountsManagerV2({
                   className={styles.secondaryButton}
                   type="button"
                   onClick={() => {
-                    setCreateAccountOpen(
-                      false,
-                    );
-                    setImportAccountsOpen(
-                      true,
-                    );
+                    setCreateAccountOpen(false);
+                    setImportAccountsOpen(true);
                   }}
                 >
                   Import Accounts
@@ -4348,13 +2745,8 @@ export function BrowserAccountsManagerV2({
           className={styles.modalBackdrop}
           role="presentation"
           onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              setManualCreateOpen(
-                false,
-              );
+            if (event.target === event.currentTarget) {
+              setManualCreateOpen(false);
             }
           }}
         >
@@ -4366,19 +2758,13 @@ export function BrowserAccountsManagerV2({
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>
-                  Browser Account V2
-                </p>
+                <p className={styles.eyebrow}>Browser Account V2</p>
 
-                <h2>
-                  Create Account
-                </h2>
+                <h2>Create Account</h2>
 
                 <p>
-                  Create one independent Facebook
-                  account identity with its own
-                  browser profile, cookie storage
-                  and proxy.
+                  Create one independent Facebook account identity with its own
+                  browser profile, cookie storage and proxy.
                 </p>
               </div>
 
@@ -4386,11 +2772,7 @@ export function BrowserAccountsManagerV2({
                 aria-label="Close create account dialog"
                 className={styles.iconButton}
                 type="button"
-                onClick={() =>
-                  setManualCreateOpen(
-                    false,
-                  )
-                }
+                onClick={() => setManualCreateOpen(false)}
               >
                 ×
               </button>
@@ -4398,101 +2780,65 @@ export function BrowserAccountsManagerV2({
 
             <div className={styles.manualCreateForm}>
               <label>
-                <span>
-                  Facebook Email
-                </span>
+                <span>Facebook Email</span>
 
                 <input
                   autoComplete="username"
                   type="email"
-                  value={
-                    createForm.facebookEmail
-                  }
+                  value={createForm.facebookEmail}
                   onChange={(event) =>
-                    setCreateForm(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        facebookEmail:
-                          event.target.value,
-                      }),
-                    )
+                    setCreateForm((current) => ({
+                      ...current,
+                      facebookEmail: event.target.value,
+                    }))
                   }
                 />
               </label>
 
               <label>
-                <span>
-                  Facebook Password
-                </span>
+                <span>Facebook Password</span>
 
                 <input
                   autoComplete="current-password"
                   type="password"
-                  value={
-                    createForm.facebookPassword
-                  }
+                  value={createForm.facebookPassword}
                   onChange={(event) =>
-                    setCreateForm(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        facebookPassword:
-                          event.target.value,
-                      }),
-                    )
+                    setCreateForm((current) => ({
+                      ...current,
+                      facebookPassword: event.target.value,
+                    }))
                   }
                 />
               </label>
 
               <div className={styles.formGrid}>
                 <label>
-                  <span>
-                    Proxy Host
-                  </span>
+                  <span>Proxy Host</span>
 
                   <input
                     placeholder="Optional"
-                    value={
-                      createForm.proxyHost
-                    }
+                    value={createForm.proxyHost}
                     onChange={(event) =>
-                      setCreateForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-                          proxyHost:
-                            event.target.value,
-                        }),
-                      )
+                      setCreateForm((current) => ({
+                        ...current,
+                        proxyHost: event.target.value,
+                      }))
                     }
                   />
                 </label>
 
                 <label>
-                  <span>
-                    Proxy Port
-                  </span>
+                  <span>Proxy Port</span>
 
                   <input
                     inputMode="numeric"
                     placeholder="Optional"
-                    value={
-                      createForm.proxyPort
-                    }
+                    value={createForm.proxyPort}
                     onChange={(event) =>
-                      setCreateForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-                          proxyPort:
-                            event.target.value,
-                        }),
-                      )
+                      setCreateForm((current) => ({
+                        ...current,
+                        proxyPort: event.target.value,
+                      }))
                     }
                   />
                 </label>
@@ -4500,77 +2846,49 @@ export function BrowserAccountsManagerV2({
 
               <div className={styles.formGrid}>
                 <label>
-                  <span>
-                    Proxy Username
-                  </span>
+                  <span>Proxy Username</span>
 
                   <input
                     placeholder="Optional"
-                    value={
-                      createForm.proxyUsername
-                    }
+                    value={createForm.proxyUsername}
                     onChange={(event) =>
-                      setCreateForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-                          proxyUsername:
-                            event.target.value,
-                        }),
-                      )
+                      setCreateForm((current) => ({
+                        ...current,
+                        proxyUsername: event.target.value,
+                      }))
                     }
                   />
                 </label>
 
                 <label>
-                  <span>
-                    Proxy Password
-                  </span>
+                  <span>Proxy Password</span>
 
                   <input
                     placeholder="Optional"
                     type="password"
-                    value={
-                      createForm.proxyPassword
-                    }
+                    value={createForm.proxyPassword}
                     onChange={(event) =>
-                      setCreateForm(
-                        (
-                          current,
-                        ) => ({
-                          ...current,
-                          proxyPassword:
-                            event.target.value,
-                        }),
-                      )
+                      setCreateForm((current) => ({
+                        ...current,
+                        proxyPassword: event.target.value,
+                      }))
                     }
                   />
                 </label>
               </div>
 
               <div className={styles.identitySummary}>
-                <strong>
-                  Identity defaults
-                </strong>
+                <strong>Identity defaults</strong>
 
-                <span>
-                  Chromium · macOS · 1440 × 900
-                </span>
+                <span>Chromium · macOS · 1440 × 900</span>
 
-                <span>
-                  en-MY · Asia/Kuala_Lumpur
-                </span>
+                <span>en-MY · Asia/Kuala_Lumpur</span>
 
-                <span>
-                  Fingerprint locked · isolated cookie profile
-                </span>
+                <span>Fingerprint locked · isolated cookie profile</span>
               </div>
 
               {createError ? (
-                <div className={styles.formError}>
-                  {createError}
-                </div>
+                <div className={styles.formError}>{createError}</div>
               ) : null}
             </div>
 
@@ -4579,11 +2897,7 @@ export function BrowserAccountsManagerV2({
                 className={styles.secondaryButton}
                 type="button"
                 disabled={createSubmitting}
-                onClick={() =>
-                  setManualCreateOpen(
-                    false,
-                  )
-                }
+                onClick={() => setManualCreateOpen(false)}
               >
                 Cancel
               </button>
@@ -4592,13 +2906,9 @@ export function BrowserAccountsManagerV2({
                 className={styles.primaryButton}
                 type="button"
                 disabled={createSubmitting}
-                onClick={() =>
-                  void submitManualAccount()
-                }
+                onClick={() => void submitManualAccount()}
               >
-                {createSubmitting
-                  ? "Creating…"
-                  : "Create Account"}
+                {createSubmitting ? "Creating…" : "Create Account"}
               </button>
             </div>
           </section>
@@ -4610,13 +2920,8 @@ export function BrowserAccountsManagerV2({
           className={styles.modalBackdrop}
           role="presentation"
           onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              setImportAccountsOpen(
-                false,
-              );
+            if (event.target === event.currentTarget) {
+              setImportAccountsOpen(false);
             }
           }}
         >
@@ -4628,19 +2933,13 @@ export function BrowserAccountsManagerV2({
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>
-                  Bulk Account Setup
-                </p>
+                <p className={styles.eyebrow}>Bulk Account Setup</p>
 
-                <h2>
-                  Import Excel
-                </h2>
+                <h2>Import Excel</h2>
 
                 <p>
-                  This V2 importer creates
-                  BrowserAccount records directly.
-                  It does not write into legacy
-                  Channel Runtime Profiles.
+                  This V2 importer creates BrowserAccount records directly. It
+                  does not write into legacy Channel Runtime Profiles.
                 </p>
               </div>
 
@@ -4648,34 +2947,23 @@ export function BrowserAccountsManagerV2({
                 aria-label="Close import dialog"
                 className={styles.iconButton}
                 type="button"
-                onClick={() =>
-                  setImportAccountsOpen(
-                    false,
-                  )
-                }
+                onClick={() => setImportAccountsOpen(false)}
               >
                 ×
               </button>
             </div>
 
             <div className={styles.importNotice}>
-              <strong>
-                Excel columns
-              </strong>
+              <strong>Excel columns</strong>
 
               <code>
-                displayName, browserProfileName,
-                locale, timezone, proxyType,
-                proxyHost, proxyPort,
-                proxyUsername, proxyPassword,
-                proxyCountry
+                displayName, browserProfileName, locale, timezone, proxyType,
+                proxyHost, proxyPort, proxyUsername, proxyPassword, proxyCountry
               </code>
 
               <p>
-                The V2 upload parser will be
-                connected in the next step.
-                Legacy Bulk Login remains disabled
-                here to prevent duplicate browser
+                The V2 upload parser will be connected in the next step. Legacy
+                Bulk Login remains disabled here to prevent duplicate browser
                 identities.
               </p>
             </div>
@@ -4684,20 +2972,12 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.secondaryButton}
                 type="button"
-                onClick={() =>
-                  setImportAccountsOpen(
-                    false,
-                  )
-                }
+                onClick={() => setImportAccountsOpen(false)}
               >
                 Close
               </button>
 
-              <button
-                className={styles.primaryButton}
-                type="button"
-                disabled
-              >
+              <button className={styles.primaryButton} type="button" disabled>
                 Upload Excel
               </button>
             </div>
@@ -4705,17 +2985,12 @@ export function BrowserAccountsManagerV2({
         </div>
       ) : null}
 
-      {editOpen &&
-      editForm &&
-      selectedAccount ? (
+      {editOpen && editForm && selectedAccount ? (
         <div
           className={styles.modalBackdrop}
           role="presentation"
           onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
+            if (event.target === event.currentTarget) {
               setEditOpen(false);
             }
           }}
@@ -4728,30 +3003,18 @@ export function BrowserAccountsManagerV2({
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>
-                  Browser Profile
-                </p>
+                <p className={styles.eyebrow}>Browser Profile</p>
 
-                <h2>
-                  Edit Account
-                </h2>
+                <h2>Edit Account</h2>
 
-                <p>
-                  {
-                    selectedAccount.browserProfileKey
-                  }
-                </p>
+                <p>{selectedAccount.browserProfileKey}</p>
               </div>
 
               <button
                 className={styles.iconButton}
                 type="button"
                 aria-label="Close edit dialog"
-                onClick={() =>
-                  setEditOpen(
-                    false,
-                  )
-                }
+                onClick={() => setEditOpen(false)}
               >
                 ×
               </button>
@@ -4759,237 +3022,141 @@ export function BrowserAccountsManagerV2({
 
             {selectedRuntime.running ? (
               <div className={styles.warningMessage}>
-                Close this browser before changing
-                profile or proxy settings.
+                Close this browser before changing profile or proxy settings.
               </div>
             ) : null}
 
             <div className={styles.formGrid}>
               <label>
-                <span>
-                  Account name
-                </span>
+                <span>Account name</span>
 
                 <input
-                  value={
-                    editForm.displayName
-                  }
+                  value={editForm.displayName}
                   onChange={(event) =>
-                    updateEditField(
-                      "displayName",
-                      event.target.value,
-                    )
+                    updateEditField("displayName", event.target.value)
                   }
                 />
               </label>
 
               <label>
-                <span>
-                  Browser profile name
-                </span>
+                <span>Browser profile name</span>
 
                 <input
-                  value={
-                    editForm.browserProfileName
-                  }
+                  value={editForm.browserProfileName}
                   onChange={(event) =>
-                    updateEditField(
-                      "browserProfileName",
-                      event.target.value,
-                    )
+                    updateEditField("browserProfileName", event.target.value)
                   }
                 />
               </label>
 
               <label>
-                <span>
-                  Brand
-                </span>
+                <span>Brand</span>
 
                 <select
-                  value={
-                    editForm.brandId
-                  }
+                  value={editForm.brandId}
                   onChange={(event) =>
-                    updateEditField(
-                      "brandId",
-                      event.target.value,
-                    )
+                    updateEditField("brandId", event.target.value)
                   }
                 >
-                  <option value="">
-                    Select Brand
-                  </option>
+                  <option value="">Select Brand</option>
 
-                  {brands.map(
-                    (brand) => (
-                      <option
-                        key={brand.id}
-                        value={brand.id}
-                      >
-                        {brand.name}
-                      </option>
-                    ),
-                  )}
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
                 </select>
               </label>
 
               <label>
-                <span>
-                  Locale
-                </span>
+                <span>Locale</span>
 
                 <input
-                  value={
-                    editForm.locale
-                  }
+                  value={editForm.locale}
                   onChange={(event) =>
-                    updateEditField(
-                      "locale",
-                      event.target.value,
-                    )
+                    updateEditField("locale", event.target.value)
                   }
                   placeholder="en-MY"
                 />
               </label>
 
               <label>
-                <span>
-                  Timezone
-                </span>
+                <span>Timezone</span>
 
                 <input
-                  value={
-                    editForm.timezone
-                  }
+                  value={editForm.timezone}
                   onChange={(event) =>
-                    updateEditField(
-                      "timezone",
-                      event.target.value,
-                    )
+                    updateEditField("timezone", event.target.value)
                   }
                   placeholder="Asia/Kuala_Lumpur"
                 />
               </label>
 
               <label>
-                <span>
-                  Proxy type
-                </span>
+                <span>Proxy type</span>
 
                 <select
-                  value={
-                    editForm.proxyType
-                  }
+                  value={editForm.proxyType}
                   onChange={(event) =>
                     updateEditField(
                       "proxyType",
-                      event.target
-                        .value as ProxyType,
+                      event.target.value as ProxyType,
                     )
                   }
                 >
-                  <option value="DIRECT">
-                    DIRECT
-                  </option>
-                  <option value="HTTP">
-                    HTTP
-                  </option>
-                  <option value="HTTPS">
-                    HTTPS
-                  </option>
-                  <option value="SOCKS5">
-                    SOCKS5
-                  </option>
+                  <option value="DIRECT">DIRECT</option>
+                  <option value="HTTP">HTTP</option>
+                  <option value="HTTPS">HTTPS</option>
+                  <option value="SOCKS5">SOCKS5</option>
                 </select>
               </label>
 
               <label>
-                <span>
-                  Proxy country
-                </span>
+                <span>Proxy country</span>
 
                 <input
-                  disabled={
-                    editForm.proxyType ===
-                    "DIRECT"
-                  }
-                  value={
-                    editForm.proxyCountry
-                  }
+                  disabled={editForm.proxyType === "DIRECT"}
+                  value={editForm.proxyCountry}
                   onChange={(event) =>
-                    updateEditField(
-                      "proxyCountry",
-                      event.target.value,
-                    )
+                    updateEditField("proxyCountry", event.target.value)
                   }
                   placeholder="MY"
                 />
               </label>
 
               <label>
-                <span>
-                  Proxy host
-                </span>
+                <span>Proxy host</span>
 
                 <input
-                  disabled={
-                    editForm.proxyType ===
-                    "DIRECT"
-                  }
-                  value={
-                    editForm.proxyHost
-                  }
+                  disabled={editForm.proxyType === "DIRECT"}
+                  value={editForm.proxyHost}
                   onChange={(event) =>
-                    updateEditField(
-                      "proxyHost",
-                      event.target.value,
-                    )
+                    updateEditField("proxyHost", event.target.value)
                   }
                 />
               </label>
 
               <label>
-                <span>
-                  Proxy port
-                </span>
+                <span>Proxy port</span>
 
                 <input
-                  disabled={
-                    editForm.proxyType ===
-                    "DIRECT"
-                  }
+                  disabled={editForm.proxyType === "DIRECT"}
                   inputMode="numeric"
-                  value={
-                    editForm.proxyPort
-                  }
+                  value={editForm.proxyPort}
                   onChange={(event) =>
-                    updateEditField(
-                      "proxyPort",
-                      event.target.value,
-                    )
+                    updateEditField("proxyPort", event.target.value)
                   }
                 />
               </label>
 
               <label>
-                <span>
-                  New proxy username
-                </span>
+                <span>New proxy username</span>
 
                 <input
-                  disabled={
-                    editForm.proxyType ===
-                    "DIRECT"
-                  }
-                  value={
-                    editForm.proxyUsername
-                  }
+                  disabled={editForm.proxyType === "DIRECT"}
+                  value={editForm.proxyUsername}
                   onChange={(event) =>
-                    updateEditField(
-                      "proxyUsername",
-                      event.target.value,
-                    )
+                    updateEditField("proxyUsername", event.target.value)
                   }
                   placeholder={
                     selectedAccount.hasProxyUsername
@@ -5000,24 +3167,14 @@ export function BrowserAccountsManagerV2({
               </label>
 
               <label>
-                <span>
-                  New proxy password
-                </span>
+                <span>New proxy password</span>
 
                 <input
-                  disabled={
-                    editForm.proxyType ===
-                    "DIRECT"
-                  }
+                  disabled={editForm.proxyType === "DIRECT"}
                   type="password"
-                  value={
-                    editForm.proxyPassword
-                  }
+                  value={editForm.proxyPassword}
                   onChange={(event) =>
-                    updateEditField(
-                      "proxyPassword",
-                      event.target.value,
-                    )
+                    updateEditField("proxyPassword", event.target.value)
                   }
                   placeholder={
                     selectedAccount.hasProxyPassword
@@ -5031,21 +3188,13 @@ export function BrowserAccountsManagerV2({
             <label className={styles.checkOption}>
               <input
                 type="checkbox"
-                checked={
-                  editForm.clearProxyCredentials
-                }
+                checked={editForm.clearProxyCredentials}
                 onChange={(event) =>
-                  updateEditField(
-                    "clearProxyCredentials",
-                    event.target.checked,
-                  )
+                  updateEditField("clearProxyCredentials", event.target.checked)
                 }
               />
 
-              <span>
-                Clear saved proxy username and
-                password
-              </span>
+              <span>Clear saved proxy username and password</span>
             </label>
 
             <div className={styles.modalActions}>
@@ -5053,11 +3202,7 @@ export function BrowserAccountsManagerV2({
                 className={styles.secondaryButton}
                 type="button"
                 disabled={editSaving}
-                onClick={() =>
-                  setEditOpen(
-                    false,
-                  )
-                }
+                onClick={() => setEditOpen(false)}
               >
                 Cancel
               </button>
@@ -5065,17 +3210,10 @@ export function BrowserAccountsManagerV2({
               <button
                 className={styles.primaryButton}
                 type="button"
-                disabled={
-                  editSaving ||
-                  selectedRuntime.running
-                }
-                onClick={() =>
-                  void saveEdit()
-                }
+                disabled={editSaving || selectedRuntime.running}
+                onClick={() => void saveEdit()}
               >
-                {editSaving
-                  ? "Saving…"
-                  : "Save Changes"}
+                {editSaving ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </section>
