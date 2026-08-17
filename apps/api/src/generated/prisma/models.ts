@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/BackgroundJob.js'
 export type * from './models/Workspace.js'
 export type * from './models/Brand.js'
 export type * from './models/Campaign.js'

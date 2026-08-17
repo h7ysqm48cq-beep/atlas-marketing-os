@@ -331,14 +331,6 @@ export type WorkspaceScalarRelationFilter = {
   isNot?: Prisma.WorkspaceWhereInput
 }
 
-export type StringFieldUpdateOperationsInput = {
-  set?: string
-}
-
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type WorkspaceCreateNestedOneWithoutBrandsInput = {
   create?: Prisma.XOR<Prisma.WorkspaceCreateWithoutBrandsInput, Prisma.WorkspaceUncheckedCreateWithoutBrandsInput>
   connectOrCreate?: Prisma.WorkspaceCreateOrConnectWithoutBrandsInput

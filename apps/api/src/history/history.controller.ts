@@ -23,6 +23,17 @@ export class HistoryController {
     return this.historyService.updateStatus(id, dto);
   }
 
+  @Patch(':id/image-prompt')
+  updateImagePrompt(
+    @Param('id') id: string,
+    @Body() body: { imagePrompt?: string },
+  ) {
+    return this.historyService.updateImagePrompt(
+      id,
+      body.imagePrompt || '',
+    );
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) { return this.historyService.remove(id); }
 }
