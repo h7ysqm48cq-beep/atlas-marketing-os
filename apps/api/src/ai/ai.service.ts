@@ -17,7 +17,10 @@ import { GenerateContentDto } from './dto/generate-content.dto';
 import type { TopicSuggestionsDto } from './dto/topic-suggestions.dto';
 import { PromptBuilderService } from './prompt-builder.service';
 import { ContentQualityService } from './content-quality.service';
-import { AssetContextService } from './asset-context.service';
+import {
+  AssetContextService,
+  type ResolvedAiAsset,
+} from './asset-context.service';
 import {
   MarketingThinkingResult,
   MarketingThinkingService,
@@ -126,9 +129,23 @@ type GeneratedOutputs = GeneratedContent & {
   };
 };
 
+type NormalizedAiUsage = {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+type StructuredGenerationResult = {
+  outputText: string;
+  usage: NormalizedAiUsage;
+  provider: 'openai' | 'google';
+};
+
 @Injectable()
 export class AiService {
   private readonly client: OpenAI | null;
+  private readonly googleClient: OpenAI | null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -144,17 +161,20 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly aiRuntime: AiRuntimeSettingsService,
   ) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+    const openAiKey = this.configService.get<string>('OPENAI_API_KEY');
+    const geminiKey = this.configService.get<string>('GEMINI_API_KEY');
+
+    this.client = openAiKey ? new OpenAI({ apiKey: openAiKey }) : null;
+    this.googleClient = geminiKey
+      ? new OpenAI({
+          apiKey: geminiKey,
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+        })
+      : null;
   }
 
   async generate(dto: GenerateContentDto): Promise<GeneratedOutputs> {
     console.time('[AI] total');
-    if (!this.client) {
-      throw new ServiceUnavailableException(
-        'OPENAI_API_KEY is not configured in apps/api/.env',
-      );
-    }
 
     const brand = await this.brandsService.getActiveBrand();
     const context = await this.resolveCampaignContext(dto, brand.id);
@@ -215,21 +235,22 @@ export class AiService {
       );
 
     const aiStudioSettings = await this.aiRuntime.getAiStudioSettings();
-    const model = aiStudioSettings.model;
+    const model = aiStudioSettings.model.trim();
 
-    console.log(`[AI] model: ${model}`);
+    this.assertModelClient(model);
+
+    console.log(
+      `[AI] provider: ${this.isGeminiModel(model) ? 'google' : 'openai'} · model: ${model}`,
+    );
 
     const selectedPlatforms = new Set(
       dto.platforms.map((platform) => platform.trim().toLowerCase()),
     );
 
     const wantsFacebook = selectedPlatforms.has('facebook');
-
     const wantsTelegram = selectedPlatforms.has('telegram');
-
     const wantsReels =
       selectedPlatforms.has('reels') || selectedPlatforms.has('reel');
-
     const wantsImage =
       selectedPlatforms.has('image prompt') ||
       selectedPlatforms.has('image') ||
@@ -287,132 +308,36 @@ export class AiService {
       .filter(Boolean)
       .join('\n');
 
-    const generationInput = this.assetContextService.buildVisionInput(
-      prompt,
-      assetContext.assets,
-    );
+    const schema = this.buildContentSchema({
+      wantsFacebook,
+      wantsTelegram,
+      wantsReels,
+      wantsImage,
+    });
 
     const requestStartedAt = Date.now();
 
     try {
       console.time('[AI] generation');
+
       const createGeneration = () =>
-        this.client!.responses.create({
+        this.createStructuredGeneration({
           model,
-          input: generationInput,
-          text: {
-            format: {
-              type: 'json_schema',
-              name: 'atlas_content_package',
-              strict: true,
-              schema: {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                  facebook: wantsFacebook
-                    ? { type: 'string' }
-                    : {
-                        type: 'string',
-                        enum: [''],
-                      },
-                  telegram: wantsTelegram
-                    ? { type: 'string' }
-                    : {
-                        type: 'string',
-                        enum: [''],
-                      },
-                  reels: wantsReels
-                    ? { type: 'string' }
-                    : {
-                        type: 'string',
-                        enum: [''],
-                      },
-                  image: wantsImage
-                    ? { type: 'string' }
-                    : {
-                        type: 'string',
-                        enum: [''],
-                      },
-                  analysis: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      summary: { type: 'string' },
-                      viralScore: {
-                        type: 'integer',
-                        minimum: 0,
-                        maximum: 100,
-                      },
-                      discussionScore: {
-                        type: 'integer',
-                        minimum: 0,
-                        maximum: 100,
-                      },
-                      shareabilityScore: {
-                        type: 'integer',
-                        minimum: 0,
-                        maximum: 100,
-                      },
-                      brandFitScore: {
-                        type: 'integer',
-                        minimum: 0,
-                        maximum: 100,
-                      },
-                      bestPostingTime: { type: 'string' },
-                    },
-                    required: [
-                      'summary',
-                      'viralScore',
-                      'discussionScore',
-                      'shareabilityScore',
-                      'brandFitScore',
-                      'bestPostingTime',
-                    ],
-                  },
-                },
-                required: [
-                  'facebook',
-                  'telegram',
-                  'reels',
-                  'image',
-                  'analysis',
-                ],
-              },
-            },
-          },
+          prompt,
+          assets: assetContext.assets,
+          schemaName: 'atlas_content_package',
+          schema,
         });
 
-      const withTimeout = async <T>(
-        operation: Promise<T>,
-        timeoutMs: number,
-      ): Promise<T> => {
-        let timeout: NodeJS.Timeout | undefined;
+      let response: StructuredGenerationResult | undefined;
 
+      for (
+        let attempt = 0;
+        attempt <= aiStudioSettings.retryLimit;
+        attempt += 1
+      ) {
         try {
-          return await Promise.race([
-            operation,
-            new Promise<T>((_, reject) => {
-              timeout = setTimeout(
-                () =>
-                  reject(
-                    new Error(`Generation timed out after ${timeoutMs}ms`),
-                  ),
-                timeoutMs,
-              );
-            }),
-          ]);
-        } finally {
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-        }
-      };
-
-      let response;
-
-      for (let attempt = 0; attempt <= aiStudioSettings.retryLimit; attempt += 1) {
-        try {
-          response = await withTimeout(
+          response = await this.withTimeout(
             createGeneration(),
             aiStudioSettings.timeoutMs,
           );
@@ -421,6 +346,7 @@ export class AiService {
           if (attempt >= aiStudioSettings.retryLimit) {
             throw generationError;
           }
+
           console.warn(
             `[AI] generation retry ${attempt + 1}:`,
             generationError instanceof Error
@@ -436,7 +362,7 @@ export class AiService {
 
       console.timeEnd('[AI] generation');
 
-      const generated = JSON.parse(response.output_text) as GeneratedContent;
+      const generated = JSON.parse(response.outputText) as GeneratedContent;
 
       console.time('[AI] unified-quality');
 
@@ -468,6 +394,7 @@ export class AiService {
       };
 
       console.time('[AI] history');
+
       const history = await this.historyService.save({
         brandId: brand.id,
         campaignId: context.campaign?.id,
@@ -483,24 +410,13 @@ export class AiService {
         analysis: generated.analysis,
       });
 
-      const usage = (response as any).usage ?? {};
-
-      const promptTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
-
-      const cachedInputTokens =
-        usage.input_tokens_details?.cached_tokens ??
-        usage.prompt_tokens_details?.cached_tokens ??
-        0;
-
-      const completionTokens =
-        usage.output_tokens ?? usage.completion_tokens ?? 0;
-
-      const totalTokens = usage.total_tokens ?? promptTokens + completionTokens;
-
+      const promptTokens = response.usage.inputTokens;
+      const cachedInputTokens = response.usage.cachedInputTokens;
+      const completionTokens = response.usage.outputTokens;
+      const totalTokens = response.usage.totalTokens;
       const durationMs = Date.now() - requestStartedAt;
 
       const pricing = this.getModelPricing(model);
-
       const regularInputTokens = Math.max(0, promptTokens - cachedInputTokens);
 
       const estimatedCostUsd =
@@ -583,7 +499,7 @@ export class AiService {
       };
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Unknown OpenAI error';
+        error instanceof Error ? error.message : 'Unknown AI provider error';
 
       throw new InternalServerErrorException(
         `Content generation failed: ${message}`,
@@ -592,12 +508,6 @@ export class AiService {
   }
 
   async suggestTopics(dto: TopicSuggestionsDto) {
-    if (!this.client) {
-      throw new ServiceUnavailableException(
-        'OPENAI_API_KEY is not configured in apps/api/.env',
-      );
-    }
-
     const brand = await this.brandsService.getActiveBrand();
 
     const campaign = dto.campaignId
@@ -684,53 +594,43 @@ export class AiService {
       'Return only JSON matching the required schema.',
     ].join('\n');
 
-    const model = await this.aiRuntime.getTextModel();
+    const model = (await this.aiRuntime.getTextModel()).trim();
+    this.assertModelClient(model);
 
-    try {
-      const response = await this.client.responses.create({
-        model,
-        input: prompt,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'atlas_topic_suggestions',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                suggestions: {
-                  type: 'array',
-                  minItems: count,
-                  maxItems: count,
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      title: {
-                        type: 'string',
-                      },
-                      angle: {
-                        type: 'string',
-                      },
-                      hook: {
-                        type: 'string',
-                      },
-                      reason: {
-                        type: 'string',
-                      },
-                    },
-                    required: ['title', 'angle', 'hook', 'reason'],
-                  },
-                },
-              },
-              required: ['suggestions'],
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        suggestions: {
+          type: 'array',
+          minItems: count,
+          maxItems: count,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              title: { type: 'string' },
+              angle: { type: 'string' },
+              hook: { type: 'string' },
+              reason: { type: 'string' },
             },
+            required: ['title', 'angle', 'hook', 'reason'],
           },
         },
+      },
+      required: ['suggestions'],
+    };
+
+    try {
+      const response = await this.createStructuredGeneration({
+        model,
+        prompt,
+        assets: [],
+        schemaName: 'atlas_topic_suggestions',
+        schema,
       });
 
-      const parsed = JSON.parse(response.output_text) as {
+      const parsed = JSON.parse(response.outputText) as {
         suggestions: Array<{
           title: string;
           angle: string;
@@ -768,6 +668,232 @@ export class AiService {
     return this.promptBuilder.preview(dto, brand);
   }
 
+  private async createStructuredGeneration(input: {
+    model: string;
+    prompt: string;
+    assets: ResolvedAiAsset[];
+    schemaName: string;
+    schema: Record<string, unknown>;
+  }): Promise<StructuredGenerationResult> {
+    if (this.isGeminiModel(input.model)) {
+      const content = this.buildGeminiContent(input.prompt, input.assets);
+
+      const response = await this.googleClient!.chat.completions.create({
+        model: input.model,
+        messages: [
+          {
+            role: 'user',
+            content,
+          },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: input.schemaName,
+            strict: true,
+            schema: input.schema,
+          },
+        },
+      } as any);
+
+      const promptTokens = response.usage?.prompt_tokens ?? 0;
+      const outputTokens = response.usage?.completion_tokens ?? 0;
+      const cachedInputTokens =
+        (response.usage as any)?.prompt_tokens_details?.cached_tokens ?? 0;
+
+      return {
+        provider: 'google',
+        outputText: response.choices[0]?.message?.content ?? '',
+        usage: {
+          inputTokens: promptTokens,
+          cachedInputTokens,
+          outputTokens,
+          totalTokens:
+            response.usage?.total_tokens ?? promptTokens + outputTokens,
+        },
+      };
+    }
+
+    const generationInput = this.assetContextService.buildVisionInput(
+      input.prompt,
+      input.assets,
+    );
+
+    const response = await this.client!.responses.create({
+      model: input.model,
+      input: generationInput,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: input.schemaName,
+          strict: true,
+          schema: input.schema as any,
+        },
+      },
+    });
+
+    const promptTokens = response.usage?.input_tokens ?? 0;
+    const outputTokens = response.usage?.output_tokens ?? 0;
+    const cachedInputTokens =
+      response.usage?.input_tokens_details?.cached_tokens ?? 0;
+
+    return {
+      provider: 'openai',
+      outputText: response.output_text,
+      usage: {
+        inputTokens: promptTokens,
+        cachedInputTokens,
+        outputTokens,
+        totalTokens:
+          response.usage?.total_tokens ?? promptTokens + outputTokens,
+      },
+    };
+  }
+
+  private buildGeminiContent(prompt: string, assets: ResolvedAiAsset[]) {
+    const supportedMimeTypes = new Set([
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+    ]);
+
+    const images = assets
+      .filter((asset) => {
+        const mimeType = asset.mimeType?.trim().toLowerCase();
+        return (
+          asset.url.startsWith('https://') &&
+          Boolean(mimeType) &&
+          supportedMimeTypes.has(mimeType!)
+        );
+      })
+      .slice(0, 8);
+
+    if (!images.length) {
+      return prompt;
+    }
+
+    return [
+      {
+        type: 'text',
+        text: prompt,
+      },
+      ...images.map((asset) => ({
+        type: 'image_url',
+        image_url: {
+          url: asset.url,
+        },
+      })),
+    ] as any;
+  }
+
+  private buildContentSchema(input: {
+    wantsFacebook: boolean;
+    wantsTelegram: boolean;
+    wantsReels: boolean;
+    wantsImage: boolean;
+  }): Record<string, unknown> {
+    return {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        facebook: input.wantsFacebook
+          ? { type: 'string' }
+          : { type: 'string', enum: [''] },
+        telegram: input.wantsTelegram
+          ? { type: 'string' }
+          : { type: 'string', enum: [''] },
+        reels: input.wantsReels
+          ? { type: 'string' }
+          : { type: 'string', enum: [''] },
+        image: input.wantsImage
+          ? { type: 'string' }
+          : { type: 'string', enum: [''] },
+        analysis: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            summary: { type: 'string' },
+            viralScore: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+            },
+            discussionScore: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+            },
+            shareabilityScore: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+            },
+            brandFitScore: {
+              type: 'integer',
+              minimum: 0,
+              maximum: 100,
+            },
+            bestPostingTime: { type: 'string' },
+          },
+          required: [
+            'summary',
+            'viralScore',
+            'discussionScore',
+            'shareabilityScore',
+            'brandFitScore',
+            'bestPostingTime',
+          ],
+        },
+      },
+      required: ['facebook', 'telegram', 'reels', 'image', 'analysis'],
+    };
+  }
+
+  private async withTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number,
+  ): Promise<T> {
+    let timeout: NodeJS.Timeout | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error(`Generation timed out after ${timeoutMs}ms`)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+  }
+
+  private isGeminiModel(model: string): boolean {
+    return model.trim().toLowerCase().startsWith('gemini-');
+  }
+
+  private assertModelClient(model: string) {
+    if (this.isGeminiModel(model)) {
+      if (!this.googleClient) {
+        throw new ServiceUnavailableException(
+          'GEMINI_API_KEY is not configured in apps/api/.env',
+        );
+      }
+      return;
+    }
+
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'OPENAI_API_KEY is not configured in apps/api/.env',
+      );
+    }
+  }
+
   private getModelPricing(model: string): {
     inputPerMillion: number;
     cachedInputPerMillion: number;
@@ -781,6 +907,14 @@ export class AiService {
       };
     }
 
+    if (model.startsWith('gemini-3.6-flash')) {
+      return {
+        inputPerMillion: 1.5,
+        cachedInputPerMillion: 0.15,
+        outputPerMillion: 7.5,
+      };
+    }
+
     console.warn(`[AI] Missing pricing for model: ${model}`);
 
     return {
@@ -788,10 +922,6 @@ export class AiService {
       cachedInputPerMillion: 0,
       outputPerMillion: 0,
     };
-  }
-
-  private async selectModel(_dto: GenerateContentDto): Promise<string> {
-    return this.aiRuntime.getTextModel();
   }
 
   private compressPromptChainPrompt(prompt: string): string {
@@ -812,8 +942,9 @@ export class AiService {
       .split('\n')
       .filter((line) => {
         const trimmed = line.trim();
-
-        return !removablePrefixes.some((prefix) => trimmed.startsWith(prefix));
+        return !removablePrefixes.some((prefix) =>
+          trimmed.startsWith(prefix),
+        );
       })
       .join('\n')
       .replace(/\n{3,}/g, '\n\n')
