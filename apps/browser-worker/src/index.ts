@@ -5589,6 +5589,32 @@ app.post(
           const candidates:
             PageCandidate[] = [];
 
+          const reservedPaths =
+            new Set([
+              "ads",
+              "adsmanager",
+              "bookmarks",
+              "business",
+              "events",
+              "friends",
+              "gaming",
+              "groups",
+              "help",
+              "latest",
+              "marketplace",
+              "me",
+              "memories",
+              "messages",
+              "notifications",
+              "pages",
+              "policies",
+              "privacy",
+              "profile.php",
+              "reels",
+              "settings",
+              "watch",
+            ]);
+
           for (
             const anchor
             of anchors
@@ -5644,6 +5670,9 @@ app.post(
                 "settings",
                 "notifications",
                 "messages",
+                "find friends",
+                "meta business suite",
+                "professional dashboard",
                 "switch now",
                 "view profile",
               ].includes(
@@ -5668,27 +5697,23 @@ app.post(
                 url,
               ).pathname;
 
+            const firstPathPart =
+              pathname
+                .split("/")
+                .filter(Boolean)[0]
+                ?.toLowerCase() ||
+              "";
+
             const likelyPageLink =
               Boolean(
                 pageId,
               ) ||
               (
                 pathname !== "/" &&
-                !pathname.startsWith(
-                  "/pages/",
+                !reservedPaths.has(
+                  firstPathPart,
                 ) &&
-                !pathname.startsWith(
-                  "/groups/",
-                ) &&
-                !pathname.startsWith(
-                  "/watch",
-                ) &&
-                !pathname.startsWith(
-                  "/marketplace",
-                ) &&
-                !pathname.startsWith(
-                  "/messages",
-                )
+                Boolean(image)
               );
 
             if (!likelyPageLink) {

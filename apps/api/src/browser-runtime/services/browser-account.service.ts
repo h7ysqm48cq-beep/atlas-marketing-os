@@ -777,7 +777,15 @@ export class BrowserAccountService {
             username ||
             '';
 
-          if (!pageId) {
+          if (
+            !pageId ||
+            this.isReservedFacebookPath(pageId) ||
+            [
+              'find friends',
+              'meta business suite',
+              'professional dashboard',
+            ].includes(name.toLowerCase())
+          ) {
             return [];
           }
 
@@ -1027,16 +1035,7 @@ export class BrowserAccountService {
 
       if (
         !candidate ||
-        [
-          'pages',
-          'profile.php',
-          'groups',
-          'watch',
-          'marketplace',
-          'messages',
-        ].includes(
-          candidate.toLowerCase(),
-        )
+        this.isReservedFacebookPath(candidate)
       ) {
         return null;
       }
@@ -1045,6 +1044,33 @@ export class BrowserAccountService {
     } catch {
       return null;
     }
+  }
+
+  private isReservedFacebookPath(value: string) {
+    return [
+      'ads',
+      'adsmanager',
+      'bookmarks',
+      'business',
+      'events',
+      'friends',
+      'gaming',
+      'groups',
+      'help',
+      'latest',
+      'marketplace',
+      'me',
+      'memories',
+      'messages',
+      'notifications',
+      'pages',
+      'policies',
+      'privacy',
+      'profile.php',
+      'reels',
+      'settings',
+      'watch',
+    ].includes(value.trim().toLowerCase());
   }
 
   async linkChannel(
