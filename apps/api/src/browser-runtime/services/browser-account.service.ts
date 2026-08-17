@@ -752,10 +752,6 @@ export class BrowserAccountService {
     const normalizedPages =
       rawPages.map(
         (page, index) => {
-          const pageId =
-            page.pageId?.trim() ||
-            '';
-
           const name =
             page.name?.trim() ||
             '';
@@ -769,6 +765,17 @@ export class BrowserAccountService {
             this.extractFacebookUsername(
               url,
             );
+
+          /*
+           * Facebook often exposes managed Pages with a vanity URL instead
+           * of a numeric ID. The browser worker cannot derive a numeric ID
+           * from those links, so use the stable URL username as the external
+           * identifier rather than rejecting the whole onboarding batch.
+           */
+          const pageId =
+            page.pageId?.trim() ||
+            username ||
+            '';
 
           if (!pageId) {
             throw new BadRequestException(
