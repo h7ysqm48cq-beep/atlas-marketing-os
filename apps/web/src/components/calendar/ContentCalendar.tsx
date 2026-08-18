@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./ContentCalendar.module.css";
@@ -213,6 +213,8 @@ export function ContentCalendar() {
   const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [assetSearch, setAssetSearch] = useState("");
 
@@ -699,6 +701,54 @@ export function ContentCalendar() {
       ...current,
       mediaUrls: current.mediaUrls.filter((item) => item !== url),
     }));
+  }
+
+  async function uploadImage(file: File) {
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      const body = new FormData();
+
+      body.append("file", file);
+
+      const response = await fetch(`${API_URL}/assets/upload`, {
+        method: "POST",
+        body,
+      });
+
+      const uploaded = (await response.json()) as Asset & { message?: string };
+
+      if (!response.ok) {
+        throw new Error(
+          uploaded.message || ui("Unable to upload image.", "无法上传图片。"),
+        );
+      }
+
+      setAssets((current) => [
+        uploaded,
+        ...current.filter((asset) => asset.id !== uploaded.id),
+      ]);
+
+      setForm((current) => ({
+        ...current,
+        mediaUrls: current.mediaUrls.includes(uploaded.url)
+          ? current.mediaUrls
+          : [...current.mediaUrls, uploaded.url],
+      }));
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : ui("Unable to upload image.", "无法上传图片。"),
+      );
+    } finally {
+      setUploadingImage(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   }
 
   const filteredAssets = assets.filter((asset) => {
@@ -1570,20 +1620,46 @@ export function ContentCalendar() {
                     <span>{ui("Media", "媒体")}</span>
                     <small>
                       {ui(
-                        "Select images from Asset Library",
-                        "从素材库选择图片",
+                        "Upload from your device or select from Asset Library",
+                        "从设备上传或从素材库选择图片",
                       )}
                     </small>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowAssetPicker((current) => !current)}
-                  >
-                    {showAssetPicker
-                      ? ui("Close library", "关闭素材库")
-                      : "+ Add image"}
-                  </button>
+                  <div className={styles.mediaActions}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      hidden
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+
+                        if (file) {
+                          void uploadImage(file);
+                        }
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploadingImage
+                        ? ui("Uploading...", "上传中……")
+                        : ui("Upload from device", "从设备上传")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAssetPicker((current) => !current)}
+                    >
+                      {showAssetPicker
+                        ? ui("Close library", "关闭素材库")
+                        : ui("Asset Library", "素材库")}
+                    </button>
+                  </div>
                 </div>
 
                 {form.mediaUrls.length ? (
