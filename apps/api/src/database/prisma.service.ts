@@ -7,6 +7,19 @@ import { PrismaClient } from '../generated/prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor(configService: ConfigService) {
     const connectionString = configService.getOrThrow<string>('DATABASE_URL');
+    const databaseUrl = new URL(connectionString);
+    const isSupabaseHost =
+      databaseUrl.hostname.endsWith('.supabase.co') ||
+      databaseUrl.hostname.endsWith('.pooler.supabase.com');
+
+    /*
+     * Supabase can enforce SSL at the Postgres / Supavisor layer.
+     * Keep local or non-Supabase Postgres connections unchanged while
+     * ensuring Atlas always uses encrypted transport for Supabase.
+     */
+    if (isSupabaseHost) {
+      databaseUrl.searchParams.set('sslmode', 'require');
+    }
 
     /*
      * The hosted Postgres pool currently has a
@@ -25,7 +38,7 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
         : 4;
 
     const adapter = new PrismaPg({
-      connectionString,
+      connectionString: databaseUrl.toString(),
 
       /*
        * Keep the per-process pool deliberately small.
