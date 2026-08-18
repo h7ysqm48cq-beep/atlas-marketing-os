@@ -1136,6 +1136,13 @@
   font-size: 11px;
 }
 
+.mediaActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .selectedMedia {
   display: grid;
   grid-template-columns:
@@ -1291,6 +1298,17 @@
 }
 
 @media (max-width: 760px) {
+  .mediaFieldHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mediaActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .selectedMedia {
     grid-template-columns:
       repeat(3, minmax(0, 1fr));

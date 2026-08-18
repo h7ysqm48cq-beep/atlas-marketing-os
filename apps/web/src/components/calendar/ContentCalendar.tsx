@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type {
@@ -234,6 +235,10 @@ export function ContentCalendar() {
 
   const [showAssetPicker, setShowAssetPicker] =
     useState(false);
+  const [uploadingImage, setUploadingImage] =
+    useState(false);
+  const fileInputRef =
+    useRef<HTMLInputElement>(null);
 
   const [assetSearch, setAssetSearch] =
     useState("");
@@ -811,6 +816,72 @@ export function ContentCalendar() {
           (item) => item !== url,
         ),
     }));
+  }
+
+  async function uploadImage(
+    file: File,
+  ) {
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      const body = new FormData();
+
+      body.append("file", file);
+
+      const response = await fetch(
+        `${API_URL}/assets/upload`,
+        {
+          method: "POST",
+          body,
+        },
+      );
+
+      const uploaded =
+        (await response.json()) as Asset & {
+          message?: string;
+        };
+
+      if (!response.ok) {
+        throw new Error(
+          uploaded.message ||
+            "Unable to upload image.",
+        );
+      }
+
+      setAssets((current) => [
+        uploaded,
+        ...current.filter(
+          (asset) =>
+            asset.id !== uploaded.id,
+        ),
+      ]);
+
+      setForm((current) => ({
+        ...current,
+        mediaUrls:
+          current.mediaUrls.includes(
+            uploaded.url,
+          )
+            ? current.mediaUrls
+            : [
+                ...current.mediaUrls,
+                uploaded.url,
+              ],
+      }));
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Unable to upload image.",
+      );
+    } finally {
+      setUploadingImage(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   }
 
   const filteredAssets = assets.filter(
@@ -1944,22 +2015,53 @@ export function ContentCalendar() {
                   <div>
                     <span>Media</span>
                     <small>
-                      Select images from Asset Library
+                      Upload from your device or select from Asset Library
                     </small>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowAssetPicker(
-                        (current) => !current,
-                      )
-                    }
+                  <div
+                    className={styles.mediaActions}
                   >
-                    {showAssetPicker
-                      ? "Close library"
-                      : "+ Add image"}
-                  </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      hidden
+                      onChange={(event) => {
+                        const file =
+                          event.target.files?.[0];
+
+                        if (file) {
+                          void uploadImage(file);
+                        }
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() =>
+                        fileInputRef.current?.click()
+                      }
+                    >
+                      {uploadingImage
+                        ? "Uploading..."
+                        : "Upload from device"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowAssetPicker(
+                          (current) => !current,
+                        )
+                      }
+                    >
+                      {showAssetPicker
+                        ? "Close library"
+                        : "Asset Library"}
+                    </button>
+                  </div>
                 </div>
 
                 {form.mediaUrls.length ? (

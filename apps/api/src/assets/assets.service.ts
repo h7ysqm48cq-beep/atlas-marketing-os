@@ -134,7 +134,43 @@ export class AssetsService {
     return { deleted: true, id };
   }
 
-  private async validateRelations() {}
+  private async validateRelations(
+    brandId: string,
+    campaignId?: string | null,
+    historyId?: string | null,
+  ) {
+    if (campaignId) {
+      const campaign = await this.prisma.campaign.findFirst({
+        where: {
+          id: campaignId,
+          brandId,
+        },
+        select: { id: true },
+      });
+
+      if (!campaign) {
+        throw new BadRequestException(
+          'Campaign was not found for the active brand.',
+        );
+      }
+    }
+
+    if (historyId) {
+      const history = await this.prisma.generationHistory.findFirst({
+        where: {
+          id: historyId,
+          brandId,
+        },
+        select: { id: true },
+      });
+
+      if (!history) {
+        throw new BadRequestException(
+          'History record was not found for the active brand.',
+        );
+      }
+    }
+  }
 
   private readonly assetInclude = {
     brand: { select: { id: true, name: true } },
