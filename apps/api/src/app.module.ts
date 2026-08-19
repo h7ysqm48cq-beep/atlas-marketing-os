@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AiRuntimeModule } from './ai-runtime/ai-runtime.module';
 import { AiModule } from './ai/ai.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AppController } from './app.controller';
@@ -36,6 +37,7 @@ import { ImagePromptEngineModule } from './image-prompt-engine/image-prompt-engi
 import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 @Module({
   imports: [
+    AiRuntimeModule,
     PlannerModule,
     PromptBuilderModule,
     AiProviderModule,
