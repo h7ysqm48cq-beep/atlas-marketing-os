@@ -554,3 +554,35 @@ model BrandMemoryFact {
   @@index([brandId, type])
   @@index([updatedAt])
 }
+
+model AiRuntimeSetting {
+  id String @id @default(cuid())
+
+  textModel String @default("gpt-5.6-luna")
+
+  imageModel String @default("gpt-image-2")
+
+  imageGenerationInstructions  String  @default("") @db.Text
+  imageNegativeInstructions    String  @default("") @db.Text
+  imageModelLogoEnabled        Boolean @default(false)
+  imageAtlasLogoOverlayEnabled Boolean @default(true)
+
+  embeddingModel String @default("text-embedding-3-large")
+
+  sportsNewsModel String @default("gpt-5.6-luna")
+
+  aiStudioModel        String @default("gpt-5.6-luna")
+  aiStudioInstructions String @default("") @db.Text
+  aiStudioTimeoutMs    Int    @default(30000)
+  aiStudioRetryLimit   Int    @default(1)
+
+  copilotModel                   String @default("gpt-5.6-luna")
+  copilotInstructions            String @default("") @db.Text
+  copilotKnowledgeLimit          Int    @default(4)
+  copilotConversationRecallLimit Int    @default(7)
+  copilotStudioHistoryLimit      Int    @default(5)
+  copilotContextMaxChars         Int    @default(7500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { StorageModule } from '../storage/storage.module';
 import { BrandsModule } from '../brands/brands.module';
 import { AiModule } from '../ai/ai.module';
+import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { StrategyModule } from '../strategy/strategy.module';
 import { MemoryModule } from '../memory/memory.module';
@@ -18,6 +19,7 @@ import { MarketingPlannerService } from './marketing-planner.service';
     BrandsModule,
     StrategyModule,
     AiModule,
+    AiRuntimeModule,
     KnowledgeModule,
     MemoryModule,
   ],

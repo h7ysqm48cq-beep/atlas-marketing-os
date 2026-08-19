@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryFactsService } from '../memory/memory-facts.service';
@@ -20,6 +21,7 @@ export class CopilotService {
 
   constructor(
     private readonly config: ConfigService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
     private readonly brands: BrandsService,
     private readonly prisma: PrismaService,
     private readonly conversations: ConversationMemoryService,
@@ -39,6 +41,7 @@ export class CopilotService {
     }
 
     const brand = await this.brands.getActiveBrand();
+    const copilotSettings = await this.aiRuntime.getCopilotSettings();
 
     const campaign = dto.campaignId
       ? await this.prisma.campaign.findFirst({
@@ -104,7 +107,7 @@ export class CopilotService {
       this.knowledgeRetrieval.searchAttachments({
         query: latestUserMessage.content,
         documentIds: attachmentDocumentIds,
-        limitPerDocument: 8,
+        limitPerDocument: copilotSettings.knowledgeLimit,
       }),
     ]);
 
@@ -114,6 +117,7 @@ export class CopilotService {
     const baseContext = [
       'You are Elena, the AI marketing strategist inside Atlas Marketing OS.',
       'You are practical, commercially aware, creative and direct.',
+      copilotSettings.instructions.trim(),
       `Brand: ${brand.name}`,
       `Country: ${brand.country}`,
       `Audience: ${brand.targetAudience}`,
@@ -124,9 +128,7 @@ export class CopilotService {
       `Rules: ${brand.brandRules.join(' | ')}`,
       `Forbidden words: ${brand.forbiddenWords.join(', ')}`,
       campaign
-        ? `Campaign: ${campaign.name}
-Objective: ${campaign.objective || 'Not set'}
-Description: ${campaign.description || 'Not set'}`
+        ? `Campaign: ${campaign.name}\nObjective: ${campaign.objective || 'Not set'}\nDescription: ${campaign.description || 'Not set'}`
         : 'Campaign: none selected',
       confirmedMemoryContext,
       attachmentDocumentContext,
@@ -145,7 +147,7 @@ Description: ${campaign.description || 'Not set'}`
       'Avoid unsupported claims, fake urgency and unverified current facts.',
       'When rewriting, provide the improved version before the explanation.',
       'Keep outputs ready to copy and use.',
-    ];
+    ].filter(Boolean);
 
     const modeContext =
       mode === 'marketing-plan'
@@ -189,7 +191,7 @@ Description: ${campaign.description || 'Not set'}`
 
     try {
       const response = await this.client.responses.create({
-        model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
+        model: copilotSettings.model,
         input: this.promptContextBuilder.build({
           context,
           conversationMessages,
@@ -202,7 +204,7 @@ Description: ${campaign.description || 'Not set'}`
         conversation.id,
         response.output_text,
         {
-          model: this.config.get<string>('OPENAI_MODEL') || 'gpt-4.1-mini',
+          model: copilotSettings.model,
           mode,
           knowledgeSources: attachmentKnowledgeMatches.map((match, index) => ({
             source: index + 1,
