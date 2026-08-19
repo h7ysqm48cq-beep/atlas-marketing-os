@@ -9,6 +9,7 @@ import { MemoryModule } from '../memory/memory.module';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { CopilotController } from './copilot.controller';
 import { CopilotAttachmentService } from './copilot-attachment.service';
+import { CopilotBackgroundJobService } from './copilot-background-job.service';
 import { CopilotService } from './copilot.service';
 import { PromptContextBuilder } from './prompt-context.builder';
 import { MarketingPlannerService } from './marketing-planner.service';
@@ -29,6 +30,7 @@ import { MarketingPlannerService } from './marketing-planner.service';
     CopilotService,
     MarketingPlannerService,
     ConversationMemoryService,
+    CopilotBackgroundJobService,
 
     PromptContextBuilder,
   ],
