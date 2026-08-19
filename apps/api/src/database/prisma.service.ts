@@ -14,10 +14,19 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
 
     /*
      * Supabase can enforce SSL at the Postgres / Supavisor layer.
-     * Keep local or non-Supabase Postgres connections unchanged while
-     * ensuring Atlas always uses encrypted transport for Supabase.
+     *
+     * pg-connection-string currently treats sslmode=require as
+     * verify-full unless libpq compatibility is explicitly enabled.
+     * Supabase's managed certificate chain can therefore fail with
+     * "self-signed certificate in certificate chain" even though the
+     * connection is encrypted.
+     *
+     * Enable libpq semantics so sslmode=require means encrypted transport
+     * without requiring CA verification. This also keeps Atlas compatible
+     * when Supabase SSL enforcement is enabled again.
      */
     if (isSupabaseHost) {
+      databaseUrl.searchParams.set('uselibpqcompat', 'true');
       databaseUrl.searchParams.set('sslmode', 'require');
     }
 
