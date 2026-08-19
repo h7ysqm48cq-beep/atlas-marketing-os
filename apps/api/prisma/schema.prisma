@@ -96,7 +96,7 @@ model Campaign {
   name                 String
   description          String?
   objective            String?
-  status               CampaignStatus        @default(ACTIVE)
+  status               CampaignStatus        @default(DRAFT)
   startDate            DateTime?
   endDate              DateTime?
   ideas                CampaignIdea[]
