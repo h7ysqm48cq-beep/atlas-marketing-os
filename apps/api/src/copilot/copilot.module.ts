@@ -5,9 +5,6 @@ import { AssetImageModule } from '../asset-image/asset-image.module';
 import { ImagePromptEngineModule } from '../image-prompt-engine/image-prompt-engine.module';
 import { CopilotImageController } from './copilot-image/copilot-image.controller';
 import { CopilotImageService } from './copilot-image/copilot-image.service';
-import { CopilotJobController } from './jobs/copilot-job.controller';
-import { CopilotJobProcessor } from './jobs/copilot-job.processor';
-import { CopilotJobService } from './jobs/copilot-job.service';
 import { BrandsModule } from '../brands/brands.module';
 import { AiModule } from '../ai/ai.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
@@ -42,7 +39,6 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
   controllers: [
     CopilotController,
     CopilotImageController,
-    CopilotJobController,
   ],
   providers: [
     ConversationRecallService,
@@ -57,8 +53,6 @@ import { ConversationRecallContextBuilder } from './conversation-recall-context.
     CopilotBackgroundJobService,
 
     CopilotImageService,
-    CopilotJobService,
-    CopilotJobProcessor,
 
     PromptContextBuilder,
     PromptContextPipelineService,
