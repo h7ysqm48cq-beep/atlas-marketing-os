@@ -102,10 +102,7 @@ export class CopilotService {
       confirmedMemoryContext,
       attachmentKnowledgeMatches,
     ] = await Promise.all([
-      this.conversations.recentMessages(
-        conversation.id,
-        copilotSettings.conversationRecallLimit,
-      ),
+      this.conversations.recentMessages(conversation.id, 20),
       this.memoryFacts.confirmedPromptContext(),
       this.knowledgeRetrieval.searchAttachments({
         query: latestUserMessage.content,
@@ -190,9 +187,7 @@ export class CopilotService {
             'Do not force the full marketing-plan structure unless the user asks for a complete package.',
           ];
 
-    const context = [...baseContext, ...modeContext]
-      .join('\n')
-      .slice(0, copilotSettings.contextMaxChars);
+    const context = [...baseContext, ...modeContext].join('\n');
 
     try {
       const response = await this.client.responses.create({
