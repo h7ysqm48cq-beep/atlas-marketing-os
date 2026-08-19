@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
 import { Prisma } from '../generated/prisma/client';
 import {
   BackgroundJobStatus,
@@ -20,6 +19,7 @@ type CopilotPayload =
 export class CopilotBackgroundJobService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CopilotBackgroundJobService.name);
   private processing = false;
+  private wakeupRequested = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,7 +41,8 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
       },
       data: { status: BackgroundJobStatus.QUEUED },
     });
-    void this.processQueue();
+
+    this.requestProcessing();
   }
 
   async enqueueChat(dto: ChatCopilotDto) {
@@ -104,11 +105,6 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
     return this.publicJob(job);
   }
 
-  @Interval(5000)
-  processPending() {
-    void this.processQueue();
-  }
-
   private async enqueue(payload: CopilotPayload) {
     const type = payload.type === 'chat'
       ? BackgroundJobType.COPILOT_CHAT
@@ -119,70 +115,88 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
         payload: payload as unknown as Prisma.InputJsonValue,
       },
     });
-    void this.processQueue();
+
+    this.requestProcessing();
     return this.publicJob(job);
   }
 
+  private requestProcessing() {
+    if (this.processing) {
+      this.wakeupRequested = true;
+      return;
+    }
+
+    void this.processQueue();
+  }
+
   private async processQueue() {
-    if (this.processing) return;
+    if (this.processing) {
+      this.wakeupRequested = true;
+      return;
+    }
+
     this.processing = true;
 
     try {
-      while (true) {
-        const job = await this.prisma.backgroundJob.findFirst({
-          where: {
-            type: {
-              in: [
-                BackgroundJobType.COPILOT_CHAT,
-                BackgroundJobType.COPILOT_MARKETING_PLAN,
-              ],
+      do {
+        this.wakeupRequested = false;
+
+        while (true) {
+          const job = await this.prisma.backgroundJob.findFirst({
+            where: {
+              type: {
+                in: [
+                  BackgroundJobType.COPILOT_CHAT,
+                  BackgroundJobType.COPILOT_MARKETING_PLAN,
+                ],
+              },
+              status: BackgroundJobStatus.QUEUED,
             },
-            status: BackgroundJobStatus.QUEUED,
-          },
-          orderBy: { createdAt: 'asc' },
-        });
-        if (!job) break;
+            orderBy: { createdAt: 'asc' },
+          });
+          if (!job) break;
 
-        const claimed = await this.prisma.backgroundJob.updateMany({
-          where: { id: job.id, status: BackgroundJobStatus.QUEUED },
-          data: {
-            status: BackgroundJobStatus.RUNNING,
-            startedAt: new Date(),
-            attempts: { increment: 1 },
-            error: null,
-          },
-        });
-        if (!claimed.count) continue;
-
-        try {
-          const payload = job.payload as unknown as CopilotPayload;
-          const result = payload.type === 'chat'
-            ? await this.copilot.chat(payload.dto)
-            : await this.generateMarketingPlan(payload.dto);
-
-          await this.prisma.backgroundJob.update({
-            where: { id: job.id },
+          const claimed = await this.prisma.backgroundJob.updateMany({
+            where: { id: job.id, status: BackgroundJobStatus.QUEUED },
             data: {
-              status: BackgroundJobStatus.SUCCEEDED,
-              result: JSON.parse(
-                JSON.stringify(result),
-              ) as Prisma.InputJsonValue,
-              completedAt: new Date(),
+              status: BackgroundJobStatus.RUNNING,
+              startedAt: new Date(),
+              attempts: { increment: 1 },
+              error: null,
             },
           });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
-          this.logger.error(`Copilot job ${job.id} failed: ${message}`);
-          await this.prisma.backgroundJob.update({
-            where: { id: job.id },
-            data: {
-              status: BackgroundJobStatus.FAILED,
-              error: message,
-              completedAt: new Date(),
-            },
-          });
+          if (!claimed.count) continue;
+
+          try {
+            const payload = job.payload as unknown as CopilotPayload;
+            const result = payload.type === 'chat'
+              ? await this.copilot.chat(payload.dto)
+              : await this.generateMarketingPlan(payload.dto);
+
+            await this.prisma.backgroundJob.update({
+              where: { id: job.id },
+              data: {
+                status: BackgroundJobStatus.SUCCEEDED,
+                result: JSON.parse(
+                  JSON.stringify(result),
+                ) as Prisma.InputJsonValue,
+                completedAt: new Date(),
+              },
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Copilot job ${job.id} failed: ${message}`);
+            await this.prisma.backgroundJob.update({
+              where: { id: job.id },
+              data: {
+                status: BackgroundJobStatus.FAILED,
+                error: message,
+                completedAt: new Date(),
+              },
+            });
+          }
         }
-      }
+      } while (this.wakeupRequested);
     } finally {
       this.processing = false;
     }
