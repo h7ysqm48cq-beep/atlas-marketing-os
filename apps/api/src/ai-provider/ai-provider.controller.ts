@@ -16,6 +16,7 @@ type TestAiProviderDto = {
   language?: string;
   style?: string;
   model?: string;
+  provider?: 'openai' | 'google';
 };
 
 @Controller('ai-provider')
@@ -57,6 +58,7 @@ export class AiProviderController {
           user: builtPrompt.user,
         },
         {
+          provider: dto.provider,
           model: dto.model,
           maxOutputTokens: 1600,
           responseFormat:
