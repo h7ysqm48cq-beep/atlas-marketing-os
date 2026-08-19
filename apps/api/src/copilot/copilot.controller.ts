@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -15,6 +16,7 @@ import { memoryStorage } from 'multer';
 import { ConversationMemoryService } from './conversation-memory.service';
 import { CopilotService } from './copilot.service';
 import { CopilotAttachmentService } from './copilot-attachment.service';
+import { CopilotBackgroundJobService } from './copilot-background-job.service';
 import { ChatCopilotDto } from './dto/chat-copilot.dto';
 import { CreateMarketingPlanDto } from './dto/create-marketing-plan.dto';
 import { MarketingPlannerService } from './marketing-planner.service';
@@ -26,6 +28,7 @@ export class CopilotController {
     private readonly marketingPlanner: MarketingPlannerService,
     private readonly conversations: ConversationMemoryService,
     private readonly attachments: CopilotAttachmentService,
+    private readonly jobs: CopilotBackgroundJobService,
   ) {}
 
   @Post('attachments/image')
@@ -47,6 +50,23 @@ export class CopilotController {
   @Post('chat')
   chat(@Body() dto: ChatCopilotDto) {
     return this.service.chat(dto);
+  }
+
+  @Post('chat/jobs')
+  @HttpCode(202)
+  chatJob(@Body() dto: ChatCopilotDto) {
+    return this.jobs.enqueueChat(dto);
+  }
+
+  @Post('marketing-plan/jobs')
+  @HttpCode(202)
+  marketingPlanJob(@Body() dto: CreateMarketingPlanDto) {
+    return this.jobs.enqueueMarketingPlan(dto);
+  }
+
+  @Get('jobs/:id')
+  getJob(@Param('id') id: string) {
+    return this.jobs.get(id);
   }
 
   @Post('marketing-plan')
