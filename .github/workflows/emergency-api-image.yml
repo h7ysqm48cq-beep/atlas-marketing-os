@@ -1,0 +1,34 @@
+name: Emergency API Image
+
+on:
+  push:
+    branches:
+      - agent/railway-sync
+    paths:
+      - Dockerfile.api.recovery
+      - .github/workflows/emergency-api-image.yml
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build emergency API image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f Dockerfile.api.recovery \
+            -t ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h \
+            .
+
+      - name: Push emergency API image
+        run: |
+          docker push ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h
+
+      - name: Record image
+        run: |
+          echo "Emergency image: ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h" >> "$GITHUB_STEP_SUMMARY"
