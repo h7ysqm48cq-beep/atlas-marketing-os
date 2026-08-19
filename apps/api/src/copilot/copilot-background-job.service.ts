@@ -4,7 +4,6 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
 
 import { PrismaService } from '../database/prisma.service';
@@ -42,6 +41,7 @@ type BackgroundJobRow = {
 export class CopilotBackgroundJobService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CopilotBackgroundJobService.name);
   private processing = false;
+  private wakeupRequested = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -63,7 +63,7 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
       AND "status" = 'RUNNING'::"BackgroundJobStatus"
     `;
 
-    void this.processQueue();
+    this.requestProcessing();
   }
 
   async enqueueChat(dto: ChatCopilotDto) {
@@ -141,11 +141,6 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
     return this.publicJob(job);
   }
 
-  @Interval(5000)
-  processPending() {
-    void this.processQueue();
-  }
-
   private async enqueue(payload: CopilotPayload) {
     const id = randomUUID();
     const type: CopilotJobType =
@@ -186,96 +181,109 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
       throw new Error('Unable to create Copilot job.');
     }
 
-    void this.processQueue();
-
+    this.requestProcessing();
     return this.publicJob(job);
+  }
+
+  private requestProcessing() {
+    if (this.processing) {
+      this.wakeupRequested = true;
+      return;
+    }
+
+    void this.processQueue();
   }
 
   private async processQueue() {
     if (this.processing) {
+      this.wakeupRequested = true;
       return;
     }
 
     this.processing = true;
 
     try {
-      while (true) {
-        const rows = await this.prisma.$queryRaw<BackgroundJobRow[]>`
-          SELECT
-            "id",
-            "type",
-            "status",
-            "payload",
-            "result",
-            "error",
-            "createdAt",
-            "updatedAt"
-          FROM "BackgroundJob"
-          WHERE "type" IN (
-            'COPILOT_CHAT'::"BackgroundJobType",
-            'COPILOT_MARKETING_PLAN'::"BackgroundJobType"
-          )
-          AND "status" = 'QUEUED'::"BackgroundJobStatus"
-          ORDER BY "createdAt" ASC
-          LIMIT 1
-        `;
+      do {
+        this.wakeupRequested = false;
 
-        const job = rows[0];
+        while (true) {
+          const rows = await this.prisma.$queryRaw<BackgroundJobRow[]>`
+            SELECT
+              "id",
+              "type",
+              "status",
+              "payload",
+              "result",
+              "error",
+              "createdAt",
+              "updatedAt"
+            FROM "BackgroundJob"
+            WHERE "type" IN (
+              'COPILOT_CHAT'::"BackgroundJobType",
+              'COPILOT_MARKETING_PLAN'::"BackgroundJobType"
+            )
+            AND "status" = 'QUEUED'::"BackgroundJobStatus"
+            ORDER BY "createdAt" ASC
+            LIMIT 1
+          `;
 
-        if (!job) {
-          break;
-        }
+          const job = rows[0];
 
-        const claimed = await this.prisma.$executeRaw`
-          UPDATE "BackgroundJob"
-          SET
-            "status" = 'RUNNING'::"BackgroundJobStatus",
-            "startedAt" = NOW(),
-            "attempts" = "attempts" + 1,
-            "error" = NULL,
-            "updatedAt" = NOW()
-          WHERE "id" = ${job.id}
-          AND "status" = 'QUEUED'::"BackgroundJobStatus"
-        `;
+          if (!job) {
+            break;
+          }
 
-        if (!claimed) {
-          continue;
-        }
-
-        try {
-          const payload = this.parsePayload(job.payload);
-          const result =
-            payload.type === 'chat'
-              ? await this.copilot.chat(payload.dto)
-              : await this.generateMarketingPlan(payload.dto);
-          const resultJson = JSON.stringify(result);
-
-          await this.prisma.$executeRaw`
+          const claimed = await this.prisma.$executeRaw`
             UPDATE "BackgroundJob"
             SET
-              "status" = 'SUCCEEDED'::"BackgroundJobStatus",
-              "result" = ${resultJson}::jsonb,
-              "completedAt" = NOW(),
+              "status" = 'RUNNING'::"BackgroundJobStatus",
+              "startedAt" = NOW(),
+              "attempts" = "attempts" + 1,
+              "error" = NULL,
               "updatedAt" = NOW()
             WHERE "id" = ${job.id}
+            AND "status" = 'QUEUED'::"BackgroundJobStatus"
           `;
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : 'Unknown Copilot job error';
 
-          this.logger.error(`Copilot job ${job.id} failed: ${message}`);
+          if (!claimed) {
+            continue;
+          }
 
-          await this.prisma.$executeRaw`
-            UPDATE "BackgroundJob"
-            SET
-              "status" = 'FAILED'::"BackgroundJobStatus",
-              "error" = ${message},
-              "completedAt" = NOW(),
-              "updatedAt" = NOW()
-            WHERE "id" = ${job.id}
-          `;
+          try {
+            const payload = this.parsePayload(job.payload);
+            const result =
+              payload.type === 'chat'
+                ? await this.copilot.chat(payload.dto)
+                : await this.generateMarketingPlan(payload.dto);
+            const resultJson = JSON.stringify(result);
+
+            await this.prisma.$executeRaw`
+              UPDATE "BackgroundJob"
+              SET
+                "status" = 'SUCCEEDED'::"BackgroundJobStatus",
+                "result" = ${resultJson}::jsonb,
+                "completedAt" = NOW(),
+                "updatedAt" = NOW()
+              WHERE "id" = ${job.id}
+            `;
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'Unknown Copilot job error';
+
+            this.logger.error(`Copilot job ${job.id} failed: ${message}`);
+
+            await this.prisma.$executeRaw`
+              UPDATE "BackgroundJob"
+              SET
+                "status" = 'FAILED'::"BackgroundJobStatus",
+                "error" = ${message},
+                "completedAt" = NOW(),
+                "updatedAt" = NOW()
+              WHERE "id" = ${job.id}
+            `;
+          }
         }
-      }
+      } while (this.wakeupRequested);
     } finally {
       this.processing = false;
     }
