@@ -1,5 +1,6 @@
 export type AiProviderName =
-  | 'openai';
+  | 'openai'
+  | 'google';
 
 export interface AiProviderPrompt {
   system: string;
@@ -8,6 +9,7 @@ export interface AiProviderPrompt {
 
 export interface AiProviderOptions {
   model?: string;
+  provider?: AiProviderName;
   temperature?: number;
   maxOutputTokens?: number;
   responseFormat?: 'text' | 'json';
