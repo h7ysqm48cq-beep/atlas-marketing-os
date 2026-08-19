@@ -8,6 +8,10 @@ on:
       - .github/workflows/emergency-api-image.yml
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -18,18 +22,25 @@ jobs:
         with:
           ref: agent/railway-sync
 
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build emergency API image
         run: |
           docker build \
             --platform linux/amd64 \
             -f Dockerfile.api.recovery \
-            -t ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h \
+            -t ghcr.io/h7ysqm48cq-beep/atlas-marketing-os-api-recovery:emergency \
             .
 
       - name: Push emergency API image
         run: |
-          docker push ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h
+          docker push ghcr.io/h7ysqm48cq-beep/atlas-marketing-os-api-recovery:emergency
 
       - name: Record image
         run: |
-          echo "Emergency image: ttl.sh/3380d0d1-a6a2-4f75-8112-b60109390590:24h" >> "$GITHUB_STEP_SUMMARY"
+          echo "Emergency image: ghcr.io/h7ysqm48cq-beep/atlas-marketing-os-api-recovery:emergency" >> "$GITHUB_STEP_SUMMARY"
