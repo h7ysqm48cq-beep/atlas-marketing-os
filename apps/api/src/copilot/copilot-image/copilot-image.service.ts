@@ -16,6 +16,8 @@ export class CopilotImageService {
     platform?: string;
     conversationId?: string;
     messageIndex?: number;
+    pageId?: string;
+    channelId?: string;
   }) {
     const brand = await this.brands.getActiveBrand();
 
@@ -37,6 +39,8 @@ export class CopilotImageService {
       platform: input.platform || 'Facebook',
       conversationId: input.conversationId,
       messageIndex: input.messageIndex,
+      pageId: input.pageId,
+      channelId: input.channelId,
     });
   }
 }

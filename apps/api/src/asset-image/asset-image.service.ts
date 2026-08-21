@@ -14,23 +14,29 @@ import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { LogoOverlayService, LogoPlacement } from '../image/logo';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { ImagePostProcessorService } from '../image-processing/image-post-processor.service';
 import {
   BrandExistingAssetDto,
   ExistingAssetLogoPlacement,
 } from './dto/brand-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
+import { ImageSettingsService } from '../image-settings/image-settings.service';
+import { BrandRendererService } from '../brand-renderer/brand-renderer.service';
 @Injectable()
 export class AssetImageService {
   private readonly client: OpenAI | null;
 
   constructor(
+    private readonly brandRenderer: BrandRendererService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
     private readonly logoOverlayService: LogoOverlayService,
     private readonly aiRuntime: AiRuntimeSettingsService,
+    private readonly imageSettings: ImageSettingsService,
+    private readonly imagePostProcessor: ImagePostProcessorService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -76,32 +82,143 @@ export class AssetImageService {
       const imageBuffer = Buffer.from(base64, 'base64');
       const [width, height] = size.split('x').map(Number);
 
-      const logoMode =
-        dto.logoMode ??
-        (imagePolicy.atlasLogoOverlayEnabled ? 'AUTO' : 'NEVER');
-      const logoPlacement = this.resolveLogoPlacement(dto.logoPlacement);
-      const logoScale = dto.logoScale ?? 1;
-      const logoOpacity = dto.logoOpacity ?? 1;
-      const shouldOverlayLogo = this.shouldOverlayLogo({
-        mode: logoMode,
-        platform: dto.platform,
-        name: dto.name,
-        prompt: dto.prompt,
-      });
+      const imageSetting =
+        await this.imageSettings.get({
+          pageId: dto.pageId,
+          channelId: dto.channelId,
+        });
 
-      const finalImageBuffer = shouldOverlayLogo
-        ? await this.applyPrimaryLogo({
+      // Independent Corner Logo.
+      // Brand Signature logo is controlled separately
+      // by footerLogoMode.
+      /*
+       * Corner Logo
+       *
+       * Source of truth:
+       * ImageGenerationSetting
+       * Workspace / Page / Channel inheritance.
+       */
+      const cornerLogoEnabled =
+        imageSetting.cornerLogoEnabled ??
+        false;
+
+      const cornerLogoPlacement =
+        this.resolveLogoPlacement(
+          (
+            imageSetting.cornerLogoPlacement ??
+            'TOP_RIGHT'
+          ) as keyof typeof LogoPlacement,
+        );
+
+      const cornerLogoScale =
+        imageSetting.cornerLogoScale ??
+        1;
+
+      const cornerLogoOpacity =
+        imageSetting.cornerLogoOpacity ??
+        1;
+
+      /*
+       * Prevent Corner Logo from occupying
+       * the same bottom zone as Brand Signature.
+       *
+       * Brand Signature has priority.
+       * Conflicting Corner Logo moves to TOP_RIGHT.
+       */
+      const footerCornerConflict =
+        imageSetting.brandFooterEnabled &&
+        Boolean(
+          imageSetting.footerText?.trim(),
+        ) &&
+        (
+          (
+            imageSetting.footerPosition ===
+              'bottom-left' &&
+            cornerLogoPlacement ===
+              'BOTTOM_LEFT'
+          ) ||
+          (
+            imageSetting.footerPosition ===
+              'bottom-center' &&
+            cornerLogoPlacement ===
+              'BOTTOM_CENTER'
+          ) ||
+          (
+            imageSetting.footerPosition ===
+              'bottom-right' &&
+            cornerLogoPlacement ===
+              'BOTTOM_RIGHT'
+          )
+        );
+
+      const effectiveCornerLogoPlacement =
+        footerCornerConflict
+          ? this.resolveLogoPlacement(
+              'TOP_RIGHT',
+            )
+          : cornerLogoPlacement;
+
+      const footerLogoMode =
+        imageSetting.footerLogoMode ??
+        'auto';
+
+      const signatureLogoEnabled =
+        imageSetting.brandFooterEnabled &&
+        footerLogoMode !== 'hide';
+
+      const processedImageBuffer =
+        await this.imagePostProcessor.process(
+          imageBuffer,
+          {
+            textOverlayEnabled:
+              imageSetting.textOverlayEnabled,
+
+            brandFooterEnabled:
+              false,
+
+            footerText:
+              undefined,
+
+            footerPosition:
+              undefined,
+
+            footerStyle:
+              undefined,
+
+            brandLogo:
+              undefined,
+
+            logoEnabled:
+              false,
+          },
+          dto.name,
+        );
+
+      /*
+       * Independent Corner Logo
+       *
+       * ALWAYS = ON
+       * NEVER  = OFF
+       * AUTO   = backward-compatible conditional mode
+       */
+      const shouldOverlayCornerLogo =
+        cornerLogoEnabled;
+
+      const finalImageBuffer =
+        await this.brandRenderer.render(
+          {
             brandId: brand.id,
-            primaryLogoAssetId: brand.primaryLogoAssetId,
-            imageBuffer,
-            width,
-            height,
-            platform: dto.platform,
-            placement: logoPlacement,
-            scale: logoScale,
-            opacity: logoOpacity,
-          })
-        : imageBuffer;
+            pageId: dto.pageId,
+            channelId: dto.channelId,
+
+            workspaceSetting:
+              imageSetting,
+
+            imageWidth: width,
+            imageHeight: height,
+            buffer: processedImageBuffer,
+          },
+        );
 
       const now = new Date();
       const year = String(now.getUTCFullYear());
@@ -142,11 +259,11 @@ export class AssetImageService {
           tags: [
             'ai-generated',
             dto.platform?.toLowerCase() ?? 'multi-platform',
-            shouldOverlayLogo ? 'logo-overlay' : 'logo-skipped',
-            `logo-mode-${logoMode.toLowerCase()}`,
-            `logo-placement-${logoPlacement.toLowerCase()}`,
-            `logo-scale-${logoScale}`,
-            `logo-opacity-${logoOpacity}`,
+            cornerLogoEnabled ? 'corner-logo-overlay' : 'corner-logo-skipped',
+            `corner-logo-${cornerLogoEnabled ? 'enabled' : 'disabled'}`,
+            `logo-placement-${effectiveCornerLogoPlacement.toLowerCase()}`,
+            `corner-logo-scale-${cornerLogoScale}`,
+            `corner-logo-opacity-${cornerLogoOpacity}`,
           ],
           url,
           thumbnailUrl: url,
@@ -167,9 +284,12 @@ export class AssetImageService {
           model,
           size,
           quality,
-          logoPlacement,
-          logoScale,
-          logoOpacity,
+          cornerLogoPlacement:
+            effectiveCornerLogoPlacement,
+          cornerLogoScale:
+            cornerLogoScale,
+          cornerLogoOpacity:
+            cornerLogoOpacity,
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt
@@ -237,18 +357,38 @@ export class AssetImageService {
     const hasCustomPosition =
       Number.isFinite(dto.logoX) && Number.isFinite(dto.logoY);
 
-    const finalBuffer = await this.applyPrimaryLogo({
+    const finalBuffer = await this.brandRenderer.render({
       brandId: brand.id,
-      primaryLogoAssetId: brand.primaryLogoAssetId,
-      imageBuffer: sourceBuffer,
-      width,
-      height,
-      platform,
+
+      brandBrainRules: {
+        visualPolicy: {
+          visualStyle: brand.visualStyle,
+        },
+        promptPolicy: {
+          negativePrompt:
+            sourceAsset.negativePrompt ?? null,
+        },
+        brandRules: brand.brandRules,
+        brandKit: brand.brandKit,
+      },
+
+      imageWidth: width,
+      imageHeight: height,
+      buffer: sourceBuffer,
+    }, {
+      logoEnabled: true,
       placement,
       scale,
       opacity,
-      normalizedX: hasCustomPosition ? dto.logoX : undefined,
-      normalizedY: hasCustomPosition ? dto.logoY : undefined,
+      platform,
+      normalizedX:
+        hasCustomPosition
+          ? dto.logoX
+          : undefined,
+      normalizedY:
+        hasCustomPosition
+          ? dto.logoY
+          : undefined,
     });
 
     const outputName = dto.name?.trim() || `${sourceAsset.name} · Branded`;
@@ -321,7 +461,7 @@ export class AssetImageService {
   }
 
   private resolveLogoPlacement(
-    placement?: GenerateAssetImageDto['logoPlacement'],
+    placement?: keyof typeof LogoPlacement,
   ): LogoPlacement {
     return placement ? LogoPlacement[placement] : LogoPlacement.AUTO;
   }
@@ -332,118 +472,7 @@ export class AssetImageService {
     return placement ? LogoPlacement[placement] : LogoPlacement.AUTO;
   }
 
-  private shouldOverlayLogo(input: {
-    mode: 'AUTO' | 'ALWAYS' | 'NEVER';
-    platform?: string;
-    name: string;
-    prompt: string;
-  }): boolean {
-    if (input.mode === 'ALWAYS') return true;
-    if (input.mode === 'NEVER') return false;
 
-    const searchableText = [input.platform, input.name, input.prompt]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-
-    const skipKeywords = [
-      'background only',
-      'plain background',
-      'background asset',
-      'reference image',
-      'style reference',
-      'visual reference',
-      'moodboard',
-      'mood board',
-      'texture',
-      'raw portrait',
-      'portrait reference',
-      'editing source',
-      'source image',
-      'transparent asset',
-      'transparent background',
-      'product cutout',
-      'cutout',
-      'mask image',
-      'image mask',
-      'logo design',
-      'design a logo',
-      'create a logo',
-      'unbranded',
-      'without branding',
-      'without logo',
-      'no logo',
-    ];
-
-    return !skipKeywords.some((keyword) => searchableText.includes(keyword));
-  }
-
-  private async applyPrimaryLogo(input: {
-    brandId: string;
-    primaryLogoAssetId?: string | null;
-    imageBuffer: Buffer;
-    width: number;
-    height: number;
-    platform?: string;
-    placement: LogoPlacement;
-    scale: number;
-    opacity: number;
-    normalizedX?: number;
-    normalizedY?: number;
-  }): Promise<Buffer> {
-    const logoAssetId = input.primaryLogoAssetId?.trim();
-
-    if (!logoAssetId) return input.imageBuffer;
-
-    const logoAsset = await this.prisma.asset.findFirst({
-      where: {
-        id: logoAssetId,
-        brandId: input.brandId,
-        type: 'IMAGE',
-        aiEnabled: true,
-      },
-      select: { id: true, name: true, url: true, mimeType: true },
-    });
-
-    if (!logoAsset?.url || !logoAsset.url.startsWith('https://')) {
-      return input.imageBuffer;
-    }
-
-    try {
-      const logoResponse = await fetch(logoAsset.url);
-
-      if (!logoResponse.ok) {
-        throw new Error(`Logo download returned HTTP ${logoResponse.status}.`);
-      }
-
-      const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
-
-      return await this.logoOverlayService.overlay({
-        image: input.imageBuffer,
-        logo: logoBuffer,
-        width: input.width,
-        height: input.height,
-        platform: input.platform,
-        placement: input.placement,
-        scale: input.scale,
-        opacity: input.opacity,
-        normalizedX: input.normalizedX,
-        normalizedY: input.normalizedY,
-      });
-    } catch (error) {
-      console.warn(
-        [
-          '[AssetImageService]',
-          'Primary logo overlay skipped.',
-          error instanceof Error
-            ? error.message
-            : 'Unknown logo processing error.',
-        ].join(' '),
-      );
-
-      return input.imageBuffer;
-    }
-  }
 
   private async validateRelations(
     brandId: string,

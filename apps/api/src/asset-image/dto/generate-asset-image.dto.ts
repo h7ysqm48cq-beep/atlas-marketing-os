@@ -4,8 +4,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Max,
-  Min,
 } from 'class-validator';
 
 export class GenerateAssetImageDto {
@@ -49,44 +47,13 @@ export class GenerateAssetImageDto {
   @IsOptional()
   quality?: 'low' | 'medium' | 'high' | 'auto';
 
-  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
-  @IsOptional()
-  logoMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
 
-  @IsIn([
-    'AUTO',
-    'TOP_LEFT',
-    'TOP_CENTER',
-    'TOP_RIGHT',
-    'CENTER_LEFT',
-    'CENTER',
-    'CENTER_RIGHT',
-    'BOTTOM_LEFT',
-    'BOTTOM_CENTER',
-    'BOTTOM_RIGHT',
-  ])
-  @IsOptional()
-  logoPlacement?:
-    | 'AUTO'
-    | 'TOP_LEFT'
-    | 'TOP_CENTER'
-    | 'TOP_RIGHT'
-    | 'CENTER_LEFT'
-    | 'CENTER'
-    | 'CENTER_RIGHT'
-    | 'BOTTOM_LEFT'
-    | 'BOTTOM_CENTER'
-    | 'BOTTOM_RIGHT';
 
-  @IsNumber()
-  @Min(0.5)
-  @Max(1.5)
   @IsOptional()
-  logoScale?: number;
+  @IsString()
+  pageId?: string;
 
-  @IsNumber()
-  @Min(0.2)
-  @Max(1)
   @IsOptional()
-  logoOpacity?: number;
+  @IsString()
+  channelId?: string;
 }

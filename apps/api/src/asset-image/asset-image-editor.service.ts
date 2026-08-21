@@ -11,6 +11,8 @@ import sharp, { OverlayOptions } from 'sharp';
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
+import { ImagePostProcessorService } from '../image-processing/image-post-processor.service';
+import { ImageSettingsService } from '../image-settings/image-settings.service';
 import {
   CompositeExistingAssetDto,
   ImageEditorLayerDto,
@@ -28,6 +30,8 @@ export class AssetImageEditorService {
     private readonly storageService: SupabaseStorageService,
     private readonly configService: ConfigService,
     private readonly aiRuntime: AiRuntimeSettingsService,
+    private readonly imagePostProcessor: ImagePostProcessorService,
+    private readonly imageSettings: ImageSettingsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -38,6 +42,130 @@ export class AssetImageEditorService {
           maxRetries: 2,
         })
       : null;
+  }
+
+
+  private async loadBrandSignatureLogo(
+    brandId: string,
+    primaryLogoAssetId?: string | null,
+  ): Promise<Buffer | null> {
+    const logoAssetId =
+      primaryLogoAssetId?.trim();
+
+    if (!logoAssetId) {
+      return null;
+    }
+
+    const logoAsset =
+      await this.prisma.asset.findFirst({
+        where: {
+          id: logoAssetId,
+          brandId,
+          type: 'IMAGE',
+        },
+        select: {
+          url: true,
+        },
+      });
+
+    if (
+      !logoAsset?.url ||
+      !logoAsset.url.startsWith('https://')
+    ) {
+      return null;
+    }
+
+    try {
+      const response =
+        await fetch(
+          logoAsset.url,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          `Logo download returned HTTP ${response.status}.`,
+        );
+      }
+
+      return Buffer.from(
+        await response.arrayBuffer(),
+      );
+    } catch (error) {
+      console.warn(
+        [
+          '[AssetImageEditorService]',
+          'Brand signature logo skipped.',
+          error instanceof Error
+            ? error.message
+            : 'Unknown logo processing error.',
+        ].join(' '),
+      );
+
+      return null;
+    }
+  }
+
+  private async applyImageGenerationSettings(
+    input: {
+      buffer: Buffer;
+      brandId: string;
+      primaryLogoAssetId?: string | null;
+      name?: string;
+      pageId?: string;
+      channelId?: string;
+    },
+  ) {
+    const setting =
+      await this.imageSettings.get({
+        pageId: input.pageId,
+        channelId: input.channelId,
+      });
+
+    const footerLogoMode =
+      setting.footerLogoMode ??
+      'auto';
+
+    const logoBuffer =
+      setting.brandFooterEnabled &&
+      footerLogoMode !== 'hide'
+        ? await this.loadBrandSignatureLogo(
+            input.brandId,
+            input.primaryLogoAssetId,
+          )
+        : null;
+
+    return this.imagePostProcessor.process(
+      input.buffer,
+      {
+        textOverlayEnabled:
+          setting.textOverlayEnabled,
+
+        brandFooterEnabled:
+          setting.brandFooterEnabled,
+
+        footerText:
+          setting.footerText,
+
+        footerPosition:
+          setting.footerPosition,
+
+        footerStyle:
+          setting.footerStyle,
+
+        brandLogo:
+          logoBuffer ??
+          undefined,
+
+        logoEnabled:
+          Boolean(
+            logoBuffer,
+          ),
+
+        logoScale: 1,
+        logoOpacity: 1,
+      },
+      input.name,
+    );
   }
 
   async latestImage() {
@@ -116,11 +244,20 @@ export class AssetImageEditorService {
       }
     }
 
-    const finalBuffer = composites.length
+    const compositeBuffer = composites.length
       ? await sharp(sourceBuffer).composite(composites).png().toBuffer()
       : await sharp(sourceBuffer).png().toBuffer();
 
     const outputName = dto.name?.trim() || `${sourceAsset.name} · Edited`;
+
+    const finalBuffer =
+      await this.applyImageGenerationSettings({
+        buffer: compositeBuffer,
+        brandId: brand.id,
+        primaryLogoAssetId:
+          brand.primaryLogoAssetId,
+        name: outputName,
+      });
     const filename = `${Date.now()}-${this.slugify(outputName).slice(0, 40)}-${randomUUID()
       .replace(/-/g, '')
       .slice(0, 8)}.png`;
@@ -339,11 +476,22 @@ export class AssetImageEditorService {
       );
     }
 
-    const editedBuffer = Buffer.from(imageBase64, 'base64');
+    const rawEditedBuffer = Buffer.from(imageBase64, 'base64');
+
+    const outputName = dto.name?.trim() || `${sourceAsset.name} · AI Edited`;
+
+    const editedBuffer =
+      await this.applyImageGenerationSettings({
+        buffer: rawEditedBuffer,
+        brandId: brand.id,
+        primaryLogoAssetId:
+          brand.primaryLogoAssetId,
+        name: outputName,
+      });
 
     const finalMetadata = await sharp(editedBuffer).metadata();
 
-    const outputName = dto.name?.trim() || `${sourceAsset.name} · AI Edited`;
+    
 
     const filename =
       `${Date.now()}-` +
@@ -626,9 +774,18 @@ export class AssetImageEditorService {
       throw new BadRequestException('Image edit completed without image data.');
     }
 
-    const editedBuffer = Buffer.from(imageBase64, 'base64');
+    const rawEditedBuffer = Buffer.from(imageBase64, 'base64');
 
     const outputName = dto.name?.trim() || `${sourceAsset.name} · Cleaned`;
+
+    const editedBuffer =
+      await this.applyImageGenerationSettings({
+        buffer: rawEditedBuffer,
+        brandId: brand.id,
+        primaryLogoAssetId:
+          brand.primaryLogoAssetId,
+        name: outputName,
+      });
 
     const filename =
       `${Date.now()}-${this.slugify(outputName).slice(0, 40)}-` +
@@ -760,7 +917,6 @@ export class AssetImageEditorService {
         id: primaryLogoAssetId,
         brandId,
         type: 'IMAGE',
-        aiEnabled: true,
       },
       select: { url: true },
     });
