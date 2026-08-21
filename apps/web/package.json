@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "dev:clean": "rm -rf .next && next dev --webpack"
+    "dev:clean": "rm -rf .next && next dev --webpack",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

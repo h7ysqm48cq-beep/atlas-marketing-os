@@ -102,3 +102,7 @@ htmlcov/
 apps/browser-worker/.env.local
 apps/browser-worker/.browser-profiles/
 .browser-profiles/
+
+test-results/
+
+playwright-report/

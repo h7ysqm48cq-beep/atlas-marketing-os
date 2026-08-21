@@ -17,6 +17,7 @@
     "playwright": "^1.62.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "prisma": "^7.9.1"
   }
 }
