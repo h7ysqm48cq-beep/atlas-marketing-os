@@ -38,8 +38,12 @@ import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { BrowserRuntimeModule } from './browser-runtime/browser-runtime.module';
 import { JobsModule } from './jobs/jobs.module';
 import { EngineeringModule } from './engineering/engineering.module';
+import { ImageSettingsModule } from './image-settings/image-settings.module';
+import { ImageProcessingModule } from './image-processing/image-processing.module';
 @Module({
   imports: [
+    ImageProcessingModule,
+    ImageSettingsModule,
     AiRuntimeModule,
     EngineeringModule,
     JobsModule,
@@ -74,7 +78,9 @@ import { EngineeringModule } from './engineering/engineering.module';
     AiModule,
     ImageModule,
   ],
-  controllers: [AppController],
+  controllers: [
+    AppController,
+  ],
   providers: [AppService],
 })
 export class AppModule {}

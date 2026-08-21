@@ -4,6 +4,26 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
 
+
+
+/*
+ * Atlas API single-instance guard.
+ *
+ * Prevent duplicate Nest processes from starting
+ * multiple Prisma pools, schedulers and workers.
+ */
+const INSTANCE_LOCK_KEY = "ATLAS_API_INSTANCE_LOCK";
+
+if ((globalThis as any)[INSTANCE_LOCK_KEY]) {
+  console.error(
+    "Atlas API instance already running. Exiting duplicate process.",
+  );
+  process.exit(1);
+}
+
+(globalThis as any)[INSTANCE_LOCK_KEY] = true;
+
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
