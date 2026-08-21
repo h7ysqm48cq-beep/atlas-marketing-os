@@ -1,0 +1,21 @@
+import {
+  Controller,
+  Get,
+} from '@nestjs/common';
+
+import { SystemHealthService } from './system-health.service';
+
+
+@Controller('system-health')
+export class SystemHealthController {
+
+  constructor(
+    private readonly health: SystemHealthService,
+  ) {}
+
+  @Get()
+  snapshot() {
+    return this.health.snapshot();
+  }
+
+}
