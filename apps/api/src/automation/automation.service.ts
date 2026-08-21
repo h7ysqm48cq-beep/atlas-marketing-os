@@ -915,8 +915,8 @@ export class AutomationService {
     return posts.map((post) => ({
       ...post,
 
-      // Calendar list must never pull legacy
-      // base64 image payloads into memory.
+      // Defense in depth. API and database guards reject
+      // inline/base64 payloads before they can be persisted.
       mediaUrls:
           post.mediaUrls?.filter(
             (url) => !url.startsWith("data:")
@@ -1055,6 +1055,65 @@ export class AutomationService {
     return post;
   }
 
+  private normalizeScheduledPostMediaUrls(
+    mediaUrls?: string[],
+  ) {
+    if (mediaUrls === undefined) {
+      return undefined;
+    }
+
+    const normalized = [
+      ...new Set(
+        mediaUrls
+          .map((url) => url.trim())
+          .filter(Boolean),
+      ),
+    ];
+
+    if (normalized.length > 20) {
+      throw new BadRequestException(
+        'A scheduled post can contain at most 20 media URLs.',
+      );
+    }
+
+    for (const url of normalized) {
+      if (
+        url.toLowerCase().startsWith('data:')
+      ) {
+        throw new BadRequestException(
+          'Inline/base64 media is not allowed. Upload the asset first and store its URL.',
+        );
+      }
+
+      if (url.length > 4096) {
+        throw new BadRequestException(
+          'Media URL is too large.',
+        );
+      }
+
+      let parsed: URL;
+
+      try {
+        parsed = new URL(url);
+      } catch {
+        throw new BadRequestException(
+          'Invalid media URL.',
+        );
+      }
+
+      if (
+        parsed.protocol !== 'http:' &&
+        parsed.protocol !== 'https:'
+      ) {
+        throw new BadRequestException(
+          'Media URL must use HTTP or HTTPS.',
+        );
+      }
+    }
+
+    return normalized;
+  }
+
   async createPost(input: CreatePostInput) {
     if (!input.content?.trim()) {
       throw new BadRequestException('Content is required.');
@@ -1095,7 +1154,10 @@ export class AutomationService {
         platform: input.platform,
         title: input.title?.trim() || null,
         content: input.content.trim(),
-        mediaUrls: input.mediaUrls ?? [],
+        mediaUrls:
+          this.normalizeScheduledPostMediaUrls(
+            input.mediaUrls,
+          ) ?? [],
         scheduledAt,
         timezone: input.timezone || 'Asia/Kuala_Lumpur',
         status: input.status ?? ScheduledPostStatus.DRAFT,
@@ -1272,7 +1334,10 @@ export class AutomationService {
         title:
           input.title === undefined ? undefined : input.title.trim() || null,
         content: input.content === undefined ? undefined : input.content.trim(),
-        mediaUrls: input.mediaUrls,
+        mediaUrls:
+          this.normalizeScheduledPostMediaUrls(
+            input.mediaUrls,
+          ),
         scheduledAt,
         timezone: input.timezone,
         status: input.status,
