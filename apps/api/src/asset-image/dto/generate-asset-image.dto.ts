@@ -56,4 +56,14 @@ export class GenerateAssetImageDto {
   @IsOptional()
   @IsString()
   channelId?: string;
+
+
+  /**
+   * Controls logo rendering behavior.
+   * AUTO    = follow brand settings
+   * ALWAYS  = force logo rendering
+   * NEVER   = disable logo rendering
+   */
+  logoMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
+
 }
