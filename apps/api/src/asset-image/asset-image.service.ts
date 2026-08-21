@@ -201,8 +201,7 @@ export class AssetImageService {
        * NEVER  = OFF
        * AUTO   = backward-compatible conditional mode
        */
-      const shouldOverlayCornerLogo =
-        cornerLogoEnabled;
+      
 
       const finalImageBuffer =
         await this.brandRenderer.render(

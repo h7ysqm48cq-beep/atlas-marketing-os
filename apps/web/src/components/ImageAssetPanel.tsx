@@ -62,7 +62,7 @@ function readImageGenerationScope(): {
   return {};
 }
 
-type LogoMode = "AUTO" | "ALWAYS" | "NEVER";
+type CornerLogoMode = "AUTO" | "ALWAYS" | "NEVER";
 type LogoPlacement =
   | "AUTO"
   | "TOP_LEFT"
@@ -172,7 +172,7 @@ export function ImageAssetPanel({
 }) {
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
-  const [logoMode, setLogoMode] = useState<LogoMode>("NEVER");
+  const [cornerLogoMode, setCornerLogoMode] = useState<CornerLogoMode>("AUTO");
   const [logoPlacement, setLogoPlacement] =
     useState<LogoPlacement>("TOP_RIGHT");
   const [logoScale, setLogoScale] = useState(1);
@@ -206,10 +206,12 @@ export function ImageAssetPanel({
   function applyCornerLogoSettings(
     data: CornerLogoSettings,
   ) {
-    setLogoMode(
-      data.cornerLogoEnabled
-        ? "ALWAYS"
-        : "NEVER",
+    setCornerLogoMode(
+      data.cornerLogoEnabled === undefined
+        ? "AUTO"
+        : data.cornerLogoEnabled
+          ? "ALWAYS"
+          : "NEVER",
     );
 
     setLogoPlacement(
@@ -658,13 +660,13 @@ export function ImageAssetPanel({
           <input
             type="checkbox"
             checked={
-              logoMode !== "NEVER"
+              cornerLogoMode !== "NEVER"
             }
             onChange={(event) => {
               const enabled =
                 event.target.checked;
 
-              setLogoMode(
+              setCornerLogoMode(
                 enabled
                   ? "ALWAYS"
                   : "NEVER",
@@ -677,7 +679,7 @@ export function ImageAssetPanel({
             }}
           />
           {" "}
-          {logoMode !== "NEVER"
+          {cornerLogoMode !== "NEVER"
             ? "On"
             : "Off"}
         </label>
@@ -699,7 +701,7 @@ export function ImageAssetPanel({
                   value,
               });
             }}
-            disabled={logoMode === "NEVER"}
+            disabled={cornerLogoMode === "NEVER"}
           >
             <option value="AUTO">Auto · Recommended</option>
             <option value="BOTTOM_LEFT">Bottom left</option>
@@ -733,7 +735,7 @@ export function ImageAssetPanel({
                   value,
               });
             }}
-            disabled={logoMode === "NEVER"}
+            disabled={cornerLogoMode === "NEVER"}
           >
             <option value={0.7}>Small</option>
             <option value={0.85}>Compact</option>
@@ -762,7 +764,7 @@ export function ImageAssetPanel({
                   value,
               });
             }}
-            disabled={logoMode === "NEVER"}
+            disabled={cornerLogoMode === "NEVER"}
           >
             <option value={1}>100% · Solid</option>
             <option value={0.9}>90% · Recommended</option>
