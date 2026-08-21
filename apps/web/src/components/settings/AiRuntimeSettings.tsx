@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
 import styles from "./AiRuntimeSettings.module.css";
+import ImageGenerationSettings from "./ImageGenerationSettings";
 
 type AiRuntimeSettingsData = {
   textModel: string;
   imageModel: string;
   imageGenerationInstructions: string;
   imageNegativeInstructions: string;
-  imageModelLogoEnabled: boolean;
-  imageAtlasLogoOverlayEnabled: boolean;
   embeddingModel: string;
   sportsNewsModel: string;
   aiStudioModel: string;
@@ -71,6 +70,12 @@ export function AiRuntimeSettings({
 }: {
   section?: "all" | "studio" | "copilot";
 }) {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   const [settings, setSettings] = useState<AiRuntimeSettingsData | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -203,9 +208,20 @@ export function AiRuntimeSettings({
     }
   }
 
+  if (!hydrated) {
+    return (
+      <section className={styles.card}>
+        <div className={styles.state}>
+          Loading AI Runtime settings...
+        </div>
+      </section>
+    );
+  }
+
   if (loading && !settings) {
     return (
       <section className={styles.card}>
+        <ImageGenerationSettings />
         <div className={styles.state}>Loading AI Runtime settings...</div>
       </section>
     );
@@ -213,6 +229,8 @@ export function AiRuntimeSettings({
 
   return (
     <section className={styles.card}>
+      <ImageGenerationSettings />
+
       <div className={styles.header}>
         <div>
           <p className={styles.eyebrow}>AI SYSTEM</p>
@@ -292,50 +310,57 @@ export function AiRuntimeSettings({
                     }
                   />
                 </label>
-
-                <label className={styles.field}>
-                  <span className={styles.label}>Model-generated Logo</span>
-                  <span className={styles.description}>
-                    Disabled by default. Atlas tells the image model not to draw any logo or wordmark.
+                <div className={styles.field}>
+                  <span className={styles.label}>
+                    AI Brand Rendering
                   </span>
-                  <select
-                    className={styles.input}
-                    value={settings.imageModelLogoEnabled ? "enabled" : "disabled"}
-                    onChange={(event) =>
-                      patchBoolean(
-                        "imageModelLogoEnabled",
-                        event.target.value === "enabled",
-                      )
-                    }
-                  >
-                    <option value="disabled">Disabled</option>
-                    <option value="enabled">Enabled</option>
-                  </select>
-                </label>
 
-                <label className={styles.field}>
-                  <span className={styles.label}>Atlas Logo Overlay</span>
                   <span className={styles.description}>
-                    Adds the official Brand logo after generation when the request supports branding.
+                    Managed by Atlas · Always blocked for official branding.
+                    The image model must not generate official logos,
+                    brand names, website URLs, branded signatures,
+                    watermarks or branded QR codes.
                   </span>
-                  <select
+
+                  <div
                     className={styles.input}
-                    value={
-                      settings.imageAtlasLogoOverlayEnabled
-                        ? "enabled"
-                        : "disabled"
-                    }
-                    onChange={(event) =>
-                      patchBoolean(
-                        "imageAtlasLogoOverlayEnabled",
-                        event.target.value === "enabled",
-                      )
-                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: 42,
+                      opacity: 0.78,
+                      cursor: "default",
+                    }}
                   >
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
-                  </select>
-                </label>
+                    Official Brand Generation · Disabled
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <span className={styles.label}>
+                    Official Branding
+                  </span>
+
+                  <span className={styles.description}>
+                    Logo and footer rendering are controlled by
+                    Brand Signature and Corner Logo settings below.
+                    Official logos come only from uploaded Brand assets.
+                  </span>
+
+                  <div
+                    className={styles.input}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: 42,
+                      opacity: 0.78,
+                      cursor: "default",
+                    }}
+                  >
+                    Managed by Image Generation Settings
+                  </div>
+                </div>
+
               </div>
             </>
           ) : null}

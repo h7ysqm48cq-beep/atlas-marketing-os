@@ -20,7 +20,18 @@ type Brand = {
   forbiddenWords: string[];
   brandRules: string[];
   examplePosts: string[];
+  primaryLogoAssetId: string | null;
   updatedAt: string;
+};
+
+type BrandAsset = {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  thumbnailUrl?: string | null;
+  collection?: string | null;
+  aiEnabled?: boolean;
 };
 
 function listToText(items: string[]) {
@@ -55,11 +66,40 @@ export function BrandBrain() {
   const [status, setStatus] = useState("Loading brand memory...");
   const [isSaving, setIsSaving] = useState(false);
 
+  const [
+    brandAssets,
+    setBrandAssets,
+  ] = useState<BrandAsset[]>([]);
+
+  const [
+    selectedLogoAssetId,
+    setSelectedLogoAssetId,
+  ] = useState("");
+
+  const [
+    isSavingLogo,
+    setIsSavingLogo,
+  ] = useState(false);
+
   const completion = useMemo(() => {
     const values = Object.values(form);
     const completed = values.filter((value) => value.trim().length > 0).length;
     return Math.round((completed / values.length) * 100);
   }, [form]);
+
+  const selectedLogoAsset =
+    useMemo(
+      () =>
+        brandAssets.find(
+          (asset) =>
+            asset.id ===
+            selectedLogoAssetId,
+        ) ?? null,
+      [
+        brandAssets,
+        selectedLogoAssetId,
+      ],
+    );
 
   async function loadBrand() {
     try {
@@ -72,6 +112,10 @@ export function BrandBrain() {
 
       const current = brands[0];
       setBrand(current);
+      setSelectedLogoAssetId(
+        current.primaryLogoAssetId ??
+          "",
+      );
       setForm({
         name: current.name,
         website: current.website || "",
@@ -98,9 +142,61 @@ export function BrandBrain() {
     }
   }
 
+  async function loadBrandAssets() {
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/assets?type=IMAGE`,
+          {
+            cache: "no-store",
+          },
+        );
+
+      const data =
+        (await response.json()) as
+          | BrandAsset[]
+          | {
+              message?: string;
+            };
+
+      if (
+        !response.ok ||
+        !Array.isArray(data)
+      ) {
+        throw new Error(
+          !Array.isArray(data) &&
+            data.message
+            ? data.message
+            : "Unable to load Brand Assets.",
+        );
+      }
+
+      /*
+       * Official Logo assets are NOT filtered
+       * by aiEnabled.
+       *
+       * Brand identity assets are authoritative
+       * uploaded assets, not optional AI inputs.
+       */
+      setBrandAssets(
+        data.filter(
+          (asset) =>
+            asset.type === "IMAGE",
+        ),
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Unable to load Brand Assets.",
+      );
+    }
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Load persisted brand data when the client mounts.
     void loadBrand();
+    void loadBrandAssets();
   }, []);
 
   function updateField(field: keyof typeof form, value: string) {
@@ -108,6 +204,79 @@ export function BrandBrain() {
       ...current,
       [field]: value,
     }));
+  }
+
+  async function setOfficialLogo() {
+    if (
+      !brand ||
+      !selectedLogoAssetId
+    ) {
+      return;
+    }
+
+    setIsSavingLogo(true);
+
+    setStatus(
+      "Saving Official Logo...",
+    );
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/brands/${brand.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              primaryLogoAssetId:
+                selectedLogoAssetId,
+            }),
+          },
+        );
+
+      const data =
+        (await response.json()) as
+          | Brand
+          | {
+              message?: string;
+            };
+
+      if (!response.ok) {
+        throw new Error(
+          "message" in data &&
+            data.message
+            ? data.message
+            : "Unable to save Official Logo.",
+        );
+      }
+
+      const updatedBrand =
+        data as Brand;
+
+      setBrand(
+        updatedBrand,
+      );
+
+      setSelectedLogoAssetId(
+        updatedBrand.primaryLogoAssetId ??
+          selectedLogoAssetId,
+      );
+
+      setStatus(
+        "Official Logo saved. Brand Signature, Corner Logo and Image Editor will use this asset.",
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Unable to save Official Logo.",
+      );
+    } finally {
+      setIsSavingLogo(false);
+    }
   }
 
   async function save() {
@@ -303,6 +472,169 @@ export function BrandBrain() {
               value={form.examplePosts}
               onChange={(value) => updateField("examplePosts", value)}
             />
+          </section>
+          <section className={styles.card}>
+            <div className={styles.cardHeading}>
+              <div>
+                <span>05</span>
+                <h2>
+                  Official Brand Assets
+                </h2>
+              </div>
+
+              <p>
+                Select the uploaded asset Atlas
+                must use as the official brand logo.
+              </p>
+            </div>
+
+            <label
+              style={{
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <strong>
+                Official Logo
+              </strong>
+
+              <select
+                value={
+                  selectedLogoAssetId
+                }
+                onChange={(event) =>
+                  setSelectedLogoAssetId(
+                    event.target.value,
+                  )
+                }
+              >
+                <option value="">
+                  Select an image from Asset Library
+                </option>
+
+                {brandAssets.map(
+                  (asset) => (
+                    <option
+                      key={asset.id}
+                      value={asset.id}
+                    >
+                      {asset.name}
+                      {asset.id ===
+                      brand?.primaryLogoAssetId
+                        ? " · Official"
+                        : ""}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+
+            {selectedLogoAsset ? (
+              <div
+                style={{
+                  marginTop: 16,
+                  display: "grid",
+                  gridTemplateColumns:
+                    "96px minmax(0, 1fr)",
+                  gap: 14,
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  aria-label={
+                    selectedLogoAsset.name
+                  }
+                  style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: 14,
+                    backgroundColor:
+                      "rgba(128,128,128,0.10)",
+                    backgroundImage:
+                      `url("${selectedLogoAsset.thumbnailUrl || selectedLogoAsset.url}")`,
+                    backgroundSize:
+                      "contain",
+                    backgroundPosition:
+                      "center",
+                    backgroundRepeat:
+                      "no-repeat",
+                    border:
+                      "1px solid rgba(128,128,128,0.25)",
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong>
+                    {
+                      selectedLogoAsset.name
+                    }
+                  </strong>
+
+                  <span
+                    style={{
+                      fontSize: 12,
+                      opacity: 0.7,
+                    }}
+                  >
+                    {selectedLogoAsset.id ===
+                    brand?.primaryLogoAssetId
+                      ? "✓ Current Official Logo"
+                      : "Available Brand Asset"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void setOfficialLogo()
+                    }
+                    disabled={
+                      isSavingLogo ||
+                      !selectedLogoAssetId ||
+                      selectedLogoAssetId ===
+                        brand?.primaryLogoAssetId
+                    }
+                  >
+                    {isSavingLogo
+                      ? "Saving..."
+                      : selectedLogoAssetId ===
+                          brand?.primaryLogoAssetId
+                        ? "✓ Official Logo"
+                        : "Set as Official Logo"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p
+                style={{
+                  marginTop: 12,
+                  fontSize: 13,
+                  opacity: 0.72,
+                }}
+              >
+                No logo selected. Upload the
+                official logo to Asset Library,
+                then select it here.
+              </p>
+            )}
+
+            <p
+              style={{
+                marginTop: 14,
+                fontSize: 12,
+                opacity: 0.65,
+              }}
+            >
+              Official Logo is shared by Brand
+              Signature, Corner Logo and Image
+              Editor. AI image generation must
+              not recreate or hallucinate this
+              logo.
+            </p>
           </section>
         </div>
 

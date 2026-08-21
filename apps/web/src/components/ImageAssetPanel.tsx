@@ -9,6 +9,58 @@ import { waitForBackgroundJob } from "@/lib/background-job";
 import { saveRemoteFile } from "@/lib/save-file";
 
 const ASSET_IMAGE_JOB_KEY = "atlas-asset-image-background-job";
+const IMAGE_SCOPE_KEY = "atlas-image-generation-scope";
+
+function readImageGenerationScope(): {
+  pageId?: string;
+  channelId?: string;
+} {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw =
+      window.localStorage.getItem(
+        IMAGE_SCOPE_KEY,
+      );
+
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw) as {
+      scopeType?: string;
+      pageId?: string;
+      channelId?: string;
+    };
+
+    if (
+      parsed.scopeType === "page" &&
+      typeof parsed.pageId === "string" &&
+      parsed.pageId
+    ) {
+      return {
+        pageId: parsed.pageId,
+      };
+    }
+
+    if (
+      parsed.scopeType === "channel" &&
+      typeof parsed.channelId === "string" &&
+      parsed.channelId
+    ) {
+      return {
+        channelId:
+          parsed.channelId,
+      };
+    }
+  } catch {
+    // Invalid local scope falls back to workspace.
+  }
+
+  return {};
+}
 
 type LogoMode = "AUTO" | "ALWAYS" | "NEVER";
 type LogoPlacement =
@@ -47,6 +99,13 @@ type GenerateResponse = {
     logoScale?: number;
     logoOpacity?: number;
   };
+};
+
+type CornerLogoSettings = {
+  cornerLogoEnabled?: boolean;
+  cornerLogoPlacement?: LogoPlacement;
+  cornerLogoScale?: number;
+  cornerLogoOpacity?: number;
 };
 
 type ImageVersion = {
@@ -113,9 +172,9 @@ export function ImageAssetPanel({
 }) {
   const [size, setSize] = useState("1024x1536");
   const [quality, setQuality] = useState("medium");
-  const [logoMode, setLogoMode] = useState<LogoMode>("AUTO");
+  const [logoMode, setLogoMode] = useState<LogoMode>("NEVER");
   const [logoPlacement, setLogoPlacement] =
-    useState<LogoPlacement>("AUTO");
+    useState<LogoPlacement>("TOP_RIGHT");
   const [logoScale, setLogoScale] = useState(1);
   const [logoOpacity, setLogoOpacity] = useState(1);
 
@@ -143,6 +202,149 @@ export function ImageAssetPanel({
       ),
     [versions],
   );
+
+  function applyCornerLogoSettings(
+    data: CornerLogoSettings,
+  ) {
+    setLogoMode(
+      data.cornerLogoEnabled
+        ? "ALWAYS"
+        : "NEVER",
+    );
+
+    setLogoPlacement(
+      data.cornerLogoPlacement ??
+        "TOP_RIGHT",
+    );
+
+    setLogoScale(
+      typeof data.cornerLogoScale ===
+        "number"
+        ? data.cornerLogoScale
+        : 1,
+    );
+
+    setLogoOpacity(
+      typeof data.cornerLogoOpacity ===
+        "number"
+        ? data.cornerLogoOpacity
+        : 1,
+    );
+  }
+
+  function buildImageSettingsQuery() {
+    const scope =
+      readImageGenerationScope();
+
+    const params =
+      new URLSearchParams();
+
+    if (scope.pageId) {
+      params.set(
+        "pageId",
+        scope.pageId,
+      );
+    }
+
+    if (scope.channelId) {
+      params.set(
+        "channelId",
+        scope.channelId,
+      );
+    }
+
+    const query =
+      params.toString();
+
+    return query
+      ? `?${query}`
+      : "";
+  }
+
+  async function loadCornerLogoSettings() {
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/image-settings${buildImageSettingsQuery()}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data =
+        (await response.json()) as CornerLogoSettings;
+
+      applyCornerLogoSettings(
+        data,
+      );
+    } catch {
+      // Keep current UI state if settings cannot be loaded.
+    }
+  }
+
+  async function saveCornerLogoSettings(
+    payload: CornerLogoSettings,
+  ) {
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/image-settings`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              ...readImageGenerationScope(),
+              ...payload,
+            }),
+          },
+        );
+
+      if (!response.ok) {
+        setMessage(
+          "Unable to save Corner Logo settings.",
+        );
+        return;
+      }
+
+      const data =
+        (await response.json()) as CornerLogoSettings;
+
+      applyCornerLogoSettings(
+        data,
+      );
+    } catch {
+      setMessage(
+        "Unable to save Corner Logo settings.",
+      );
+    }
+  }
+
+  useEffect(() => {
+    void loadCornerLogoSettings();
+
+    const handleScopeChange = () => {
+      void loadCornerLogoSettings();
+    };
+
+    window.addEventListener(
+      "atlas-image-generation-scope-change",
+      handleScopeChange,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "atlas-image-generation-scope-change",
+        handleScopeChange,
+      );
+    };
+  }, []);
 
   function buildGenerationPrompt(revisionRequest?: string) {
     const cleanRevision = revisionRequest?.trim();
@@ -254,10 +456,7 @@ export function ImageAssetPanel({
           platform: "Multi-platform",
           size,
           quality,
-          logoMode,
-          logoPlacement,
-          logoScale,
-          logoOpacity,
+          ...readImageGenerationScope(),
         }),
       });
 
@@ -454,24 +653,52 @@ export function ImageAssetPanel({
         </label>
 
         <label>
-          <span>Brand logo</span>
-          <select
-            value={logoMode}
-            onChange={(event) => setLogoMode(event.target.value as LogoMode)}
-          >
-            <option value="AUTO">Auto · Recommended</option>
-            <option value="ALWAYS">Always include</option>
-            <option value="NEVER">Never include</option>
-          </select>
+          <span>Corner Logo</span>
+
+          <input
+            type="checkbox"
+            checked={
+              logoMode !== "NEVER"
+            }
+            onChange={(event) => {
+              const enabled =
+                event.target.checked;
+
+              setLogoMode(
+                enabled
+                  ? "ALWAYS"
+                  : "NEVER",
+              );
+
+              void saveCornerLogoSettings({
+                cornerLogoEnabled:
+                  enabled,
+              });
+            }}
+          />
+          {" "}
+          {logoMode !== "NEVER"
+            ? "On"
+            : "Off"}
         </label>
 
         <label>
-          <span>Logo position</span>
+          <span>Corner Logo position</span>
           <select
             value={logoPlacement}
-            onChange={(event) =>
-              setLogoPlacement(event.target.value as LogoPlacement)
-            }
+            onChange={(event) => {
+              const value =
+                event.target.value as LogoPlacement;
+
+              setLogoPlacement(
+                value,
+              );
+
+              void saveCornerLogoSettings({
+                cornerLogoPlacement:
+                  value,
+              });
+            }}
             disabled={logoMode === "NEVER"}
           >
             <option value="AUTO">Auto · Recommended</option>
@@ -488,10 +715,24 @@ export function ImageAssetPanel({
         </label>
 
         <label>
-          <span>Logo size</span>
+          <span>Corner Logo size</span>
           <select
             value={logoScale}
-            onChange={(event) => setLogoScale(Number(event.target.value))}
+            onChange={(event) => {
+              const value =
+                Number(
+                  event.target.value,
+                );
+
+              setLogoScale(
+                value,
+              );
+
+              void saveCornerLogoSettings({
+                cornerLogoScale:
+                  value,
+              });
+            }}
             disabled={logoMode === "NEVER"}
           >
             <option value={0.7}>Small</option>
@@ -503,10 +744,24 @@ export function ImageAssetPanel({
         </label>
 
         <label>
-          <span>Logo opacity</span>
+          <span>Corner Logo opacity</span>
           <select
             value={logoOpacity}
-            onChange={(event) => setLogoOpacity(Number(event.target.value))}
+            onChange={(event) => {
+              const value =
+                Number(
+                  event.target.value,
+                );
+
+              setLogoOpacity(
+                value,
+              );
+
+              void saveCornerLogoSettings({
+                cornerLogoOpacity:
+                  value,
+              });
+            }}
             disabled={logoMode === "NEVER"}
           >
             <option value={1}>100% · Solid</option>
