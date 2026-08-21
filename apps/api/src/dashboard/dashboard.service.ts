@@ -16,6 +16,21 @@ export class DashboardService {
   ) {}
 
   async summary() {
+    const timed = async <T>(
+      name: string,
+      fn: () => Promise<T>,
+    ) => {
+      const started = Date.now();
+
+      const result = await fn();
+
+      console.log(
+        `[Dashboard] ${name}: ${Date.now() - started}ms`,
+      );
+
+      return result;
+    };
+
     const [
       brand,
       confirmedFacts,
@@ -25,25 +40,49 @@ export class DashboardService {
       historyRecords,
       aiUsageSummary,
     ] = await Promise.all([
-      this.brands.getActiveBrand(),
+      timed(
+        "brand",
+        () => this.brands.getActiveBrand(),
+      ),
 
-      this.memoryFacts.findAll({
-        status: 'CONFIRMED',
-      }),
+      timed(
+        "confirmed memory",
+        () =>
+          this.memoryFacts.findAll({
+            status: 'CONFIRMED',
+          }),
+      ),
 
-      this.memoryFacts.findAll({
-        status: 'CANDIDATE',
-      }),
+      timed(
+        "candidate memory",
+        () =>
+          this.memoryFacts.findAll({
+            status: 'CANDIDATE',
+          }),
+      ),
 
-      this.memoryFacts.findAll({
-        status: 'REJECTED',
-      }),
+      timed(
+        "rejected memory",
+        () =>
+          this.memoryFacts.findAll({
+            status: 'REJECTED',
+          }),
+      ),
 
-      this.knowledgeService.findAll(),
+      timed(
+        "knowledge",
+        () => this.knowledgeService.findAll(),
+      ),
 
-      this.historyService.list(),
+      timed(
+        "history",
+        () => this.historyService.list(),
+      ),
 
-      this.aiUsageService.summary(30),
+      timed(
+        "ai usage",
+        () => this.aiUsageService.summary(30),
+      ),
     ]);
 
     const totalFacts =
