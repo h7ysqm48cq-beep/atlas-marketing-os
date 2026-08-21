@@ -889,6 +889,7 @@ export class AutomationService {
         platform: true,
         title: true,
         content: true,
+        mediaUrls: true,
         scheduledAt: true,
         timezone: true,
         status: true,
@@ -916,7 +917,10 @@ export class AutomationService {
 
       // Calendar list must never pull legacy
       // base64 image payloads into memory.
-      mediaUrls: [] as string[],
+      mediaUrls:
+          post.mediaUrls?.filter(
+            (url) => !url.startsWith("data:")
+          ) ?? [],
     }));
   }
 
