@@ -16,19 +16,35 @@ export class DashboardService {
   ) {}
 
   async summary() {
-    const brand = await this.brands.getActiveBrand();
+    const [
+      brand,
+      confirmedFacts,
+      candidateFacts,
+      rejectedFacts,
+      knowledgeDocuments,
+      historyRecords,
+      aiUsageSummary,
+    ] = await Promise.all([
+      this.brands.getActiveBrand(),
 
-    const confirmedFacts = await this.memoryFacts.findAll({
-      status: 'CONFIRMED',
-    });
+      this.memoryFacts.findAll({
+        status: 'CONFIRMED',
+      }),
 
-    const candidateFacts = await this.memoryFacts.findAll({
-      status: 'CANDIDATE',
-    });
+      this.memoryFacts.findAll({
+        status: 'CANDIDATE',
+      }),
 
-    const rejectedFacts = await this.memoryFacts.findAll({
-      status: 'REJECTED',
-    });
+      this.memoryFacts.findAll({
+        status: 'REJECTED',
+      }),
+
+      this.knowledgeService.findAll(),
+
+      this.historyService.list(),
+
+      this.aiUsageService.summary(30),
+    ]);
 
     const totalFacts =
       confirmedFacts.length +
@@ -50,8 +66,6 @@ export class DashboardService {
         )
       : 0;
 
-    const knowledgeDocuments =
-      await this.knowledgeService.findAll();
 
     const knowledgeCategories = new Set(
       knowledgeDocuments
@@ -69,8 +83,6 @@ export class DashboardService {
     const latestKnowledgeDocument =
       knowledgeDocuments[0] ?? null;
 
-    const historyRecords =
-      await this.historyService.list();
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -96,8 +108,6 @@ export class DashboardService {
     const latestHistory =
       historyRecords[0] ?? null;
 
-    const aiUsageSummary =
-      await this.aiUsageService.summary(30);
 
     return {
       status: 'building',
