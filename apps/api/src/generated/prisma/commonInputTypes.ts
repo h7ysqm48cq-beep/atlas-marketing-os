@@ -423,13 +423,6 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
 }
 
-export type EnumAiUsageFeatureFilter<$PrismaModel = never> = {
-  equals?: $Enums.AiUsageFeature | Prisma.EnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  in?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel> | $Enums.AiUsageFeature
-}
-
 export type FloatFilter<$PrismaModel = never> = {
   equals?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel>
@@ -441,14 +434,11 @@ export type FloatFilter<$PrismaModel = never> = {
   not?: Prisma.NestedFloatFilter<$PrismaModel> | number
 }
 
-export type EnumAiUsageFeatureWithAggregatesFilter<$PrismaModel = never> = {
+export type EnumAiUsageFeatureFilter<$PrismaModel = never> = {
   equals?: $Enums.AiUsageFeature | Prisma.EnumAiUsageFeatureFieldRefInput<$PrismaModel>
   in?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
   notIn?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel> | $Enums.AiUsageFeature
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
+  not?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel> | $Enums.AiUsageFeature
 }
 
 export type FloatWithAggregatesFilter<$PrismaModel = never> = {
@@ -465,6 +455,16 @@ export type FloatWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatFilter<$PrismaModel>
   _min?: Prisma.NestedFloatFilter<$PrismaModel>
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
+}
+
+export type EnumAiUsageFeatureWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiUsageFeature | Prisma.EnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  in?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel> | $Enums.AiUsageFeature
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
 }
 
 export type EnumSocialPlatformFilter<$PrismaModel = never> = {
@@ -1046,16 +1046,6 @@ export type NestedEnumAiUsageFeatureFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel> | $Enums.AiUsageFeature
 }
 
-export type NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.AiUsageFeature | Prisma.EnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  in?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel> | $Enums.AiUsageFeature
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
-}
-
 export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
   equals?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel>
@@ -1070,6 +1060,16 @@ export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatFilter<$PrismaModel>
   _min?: Prisma.NestedFloatFilter<$PrismaModel>
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
+}
+
+export type NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiUsageFeature | Prisma.EnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  in?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiUsageFeature[] | Prisma.ListEnumAiUsageFeatureFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiUsageFeatureWithAggregatesFilter<$PrismaModel> | $Enums.AiUsageFeature
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiUsageFeatureFilter<$PrismaModel>
 }
 
 export type NestedEnumSocialPlatformFilter<$PrismaModel = never> = {

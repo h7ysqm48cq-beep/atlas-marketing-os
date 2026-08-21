@@ -182,3 +182,8 @@ export type EngineeringSnapshot = Prisma.EngineeringSnapshotModel
  * 
  */
 export type EngineeringAudit = Prisma.EngineeringAuditModel
+/**
+ * Model ImageGenerationSetting
+ * 
+ */
+export type ImageGenerationSetting = Prisma.ImageGenerationSettingModel

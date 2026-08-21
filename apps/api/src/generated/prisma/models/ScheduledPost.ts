@@ -42,7 +42,6 @@ export type ScheduledPostMinAggregateOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform | null
   title: string | null
-  dedupeKey: string | null
   content: string | null
   scheduledAt: Date | null
   timezone: string | null
@@ -54,6 +53,7 @@ export type ScheduledPostMinAggregateOutputType = {
   retryCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
+  dedupeKey: string | null
 }
 
 export type ScheduledPostMaxAggregateOutputType = {
@@ -64,7 +64,6 @@ export type ScheduledPostMaxAggregateOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform | null
   title: string | null
-  dedupeKey: string | null
   content: string | null
   scheduledAt: Date | null
   timezone: string | null
@@ -76,6 +75,7 @@ export type ScheduledPostMaxAggregateOutputType = {
   retryCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
+  dedupeKey: string | null
 }
 
 export type ScheduledPostCountAggregateOutputType = {
@@ -86,10 +86,8 @@ export type ScheduledPostCountAggregateOutputType = {
   historyId: number
   platform: number
   title: number
-  dedupeKey: number
   content: number
   mediaUrls: number
-  brandRenderingSettings: number
   scheduledAt: number
   timezone: number
   status: number
@@ -100,6 +98,8 @@ export type ScheduledPostCountAggregateOutputType = {
   retryCount: number
   createdAt: number
   updatedAt: number
+  brandRenderingSettings: number
+  dedupeKey: number
   _all: number
 }
 
@@ -120,7 +120,6 @@ export type ScheduledPostMinAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
-  dedupeKey?: true
   content?: true
   scheduledAt?: true
   timezone?: true
@@ -132,6 +131,7 @@ export type ScheduledPostMinAggregateInputType = {
   retryCount?: true
   createdAt?: true
   updatedAt?: true
+  dedupeKey?: true
 }
 
 export type ScheduledPostMaxAggregateInputType = {
@@ -142,7 +142,6 @@ export type ScheduledPostMaxAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
-  dedupeKey?: true
   content?: true
   scheduledAt?: true
   timezone?: true
@@ -154,6 +153,7 @@ export type ScheduledPostMaxAggregateInputType = {
   retryCount?: true
   createdAt?: true
   updatedAt?: true
+  dedupeKey?: true
 }
 
 export type ScheduledPostCountAggregateInputType = {
@@ -164,10 +164,8 @@ export type ScheduledPostCountAggregateInputType = {
   historyId?: true
   platform?: true
   title?: true
-  dedupeKey?: true
   content?: true
   mediaUrls?: true
-  brandRenderingSettings?: true
   scheduledAt?: true
   timezone?: true
   status?: true
@@ -178,6 +176,8 @@ export type ScheduledPostCountAggregateInputType = {
   retryCount?: true
   createdAt?: true
   updatedAt?: true
+  brandRenderingSettings?: true
+  dedupeKey?: true
   _all?: true
 }
 
@@ -275,10 +275,8 @@ export type ScheduledPostGroupByOutputType = {
   historyId: string | null
   platform: $Enums.SocialPlatform
   title: string | null
-  dedupeKey: string | null
   content: string
   mediaUrls: string[]
-  brandRenderingSettings: runtime.JsonValue
   scheduledAt: Date
   timezone: string
   status: $Enums.ScheduledPostStatus
@@ -289,6 +287,8 @@ export type ScheduledPostGroupByOutputType = {
   retryCount: number
   createdAt: Date
   updatedAt: Date
+  brandRenderingSettings: runtime.JsonValue
+  dedupeKey: string | null
   _count: ScheduledPostCountAggregateOutputType | null
   _avg: ScheduledPostAvgAggregateOutputType | null
   _sum: ScheduledPostSumAggregateOutputType | null
@@ -322,10 +322,8 @@ export type ScheduledPostWhereInput = {
   historyId?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
-  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
-  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -336,11 +334,13 @@ export type ScheduledPostWhereInput = {
   retryCount?: Prisma.IntFilter<"ScheduledPost"> | number
   createdAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
-  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
-  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
-  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
-  history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
+  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   attempts?: Prisma.PublishAttemptListRelationFilter
+  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
+  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
+  history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
 }
 
 export type ScheduledPostOrderByWithRelationInput = {
@@ -351,10 +351,8 @@ export type ScheduledPostOrderByWithRelationInput = {
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
-  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
-  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -365,11 +363,13 @@ export type ScheduledPostOrderByWithRelationInput = {
   retryCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  brand?: Prisma.BrandOrderByWithRelationInput
-  channel?: Prisma.SocialChannelOrderByWithRelationInput
-  campaign?: Prisma.CampaignOrderByWithRelationInput
-  history?: Prisma.GenerationHistoryOrderByWithRelationInput
+  brandRenderingSettings?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   attempts?: Prisma.PublishAttemptOrderByRelationAggregateInput
+  brand?: Prisma.BrandOrderByWithRelationInput
+  campaign?: Prisma.CampaignOrderByWithRelationInput
+  channel?: Prisma.SocialChannelOrderByWithRelationInput
+  history?: Prisma.GenerationHistoryOrderByWithRelationInput
 }
 
 export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
@@ -386,7 +386,6 @@ export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
-  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -397,11 +396,12 @@ export type ScheduledPostWhereUniqueInput = Prisma.AtLeast<{
   retryCount?: Prisma.IntFilter<"ScheduledPost"> | number
   createdAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
-  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
-  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
-  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
-  history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   attempts?: Prisma.PublishAttemptListRelationFilter
+  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
+  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
+  history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
 }, "id" | "dedupeKey">
 
 export type ScheduledPostOrderByWithAggregationInput = {
@@ -412,10 +412,8 @@ export type ScheduledPostOrderByWithAggregationInput = {
   historyId?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
-  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
-  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -426,6 +424,8 @@ export type ScheduledPostOrderByWithAggregationInput = {
   retryCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ScheduledPostCountOrderByAggregateInput
   _avg?: Prisma.ScheduledPostAvgOrderByAggregateInput
   _max?: Prisma.ScheduledPostMaxOrderByAggregateInput
@@ -444,10 +444,8 @@ export type ScheduledPostScalarWhereWithAggregatesInput = {
   historyId?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformWithAggregatesFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
-  dedupeKey?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringWithAggregatesFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
-  brandRenderingSettings?: Prisma.JsonWithAggregatesFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeWithAggregatesFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringWithAggregatesFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusWithAggregatesFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -458,16 +456,16 @@ export type ScheduledPostScalarWhereWithAggregatesInput = {
   retryCount?: Prisma.IntWithAggregatesFilter<"ScheduledPost"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ScheduledPost"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ScheduledPost"> | Date | string
+  brandRenderingSettings?: Prisma.JsonWithAggregatesFilter<"ScheduledPost">
+  dedupeKey?: Prisma.StringNullableWithAggregatesFilter<"ScheduledPost"> | string | null
 }
 
 export type ScheduledPostCreateInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -478,11 +476,13 @@ export type ScheduledPostCreateInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
-  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
-  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
-  history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
+  brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
+  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
+  history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
 }
 
 export type ScheduledPostUncheckedCreateInput = {
@@ -493,10 +493,8 @@ export type ScheduledPostUncheckedCreateInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -507,6 +505,8 @@ export type ScheduledPostUncheckedCreateInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptUncheckedCreateNestedManyWithoutScheduledPostInput
 }
 
@@ -514,10 +514,8 @@ export type ScheduledPostUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -528,11 +526,13 @@ export type ScheduledPostUpdateInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
-  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
-  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
-  history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
+  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
+  history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
 }
 
 export type ScheduledPostUncheckedUpdateInput = {
@@ -543,10 +543,8 @@ export type ScheduledPostUncheckedUpdateInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -557,6 +555,8 @@ export type ScheduledPostUncheckedUpdateInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUncheckedUpdateManyWithoutScheduledPostNestedInput
 }
 
@@ -568,10 +568,8 @@ export type ScheduledPostCreateManyInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -582,16 +580,16 @@ export type ScheduledPostCreateManyInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -602,6 +600,8 @@ export type ScheduledPostUpdateManyMutationInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostUncheckedUpdateManyInput = {
@@ -612,10 +612,8 @@ export type ScheduledPostUncheckedUpdateManyInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -626,6 +624,8 @@ export type ScheduledPostUncheckedUpdateManyInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostListRelationFilter = {
@@ -646,10 +646,8 @@ export type ScheduledPostCountOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
-  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   mediaUrls?: Prisma.SortOrder
-  brandRenderingSettings?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -660,6 +658,8 @@ export type ScheduledPostCountOrderByAggregateInput = {
   retryCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  brandRenderingSettings?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
 }
 
 export type ScheduledPostAvgOrderByAggregateInput = {
@@ -674,7 +674,6 @@ export type ScheduledPostMaxOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
-  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -686,6 +685,7 @@ export type ScheduledPostMaxOrderByAggregateInput = {
   retryCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
 }
 
 export type ScheduledPostMinOrderByAggregateInput = {
@@ -696,7 +696,6 @@ export type ScheduledPostMinOrderByAggregateInput = {
   historyId?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   title?: Prisma.SortOrder
-  dedupeKey?: Prisma.SortOrder
   content?: Prisma.SortOrder
   scheduledAt?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -708,6 +707,7 @@ export type ScheduledPostMinOrderByAggregateInput = {
   retryCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  dedupeKey?: Prisma.SortOrder
 }
 
 export type ScheduledPostSumOrderByAggregateInput = {
@@ -918,10 +918,8 @@ export type ScheduledPostCreateWithoutBrandInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -932,10 +930,12 @@ export type ScheduledPostCreateWithoutBrandInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
-  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
-  history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
+  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
+  history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
 }
 
 export type ScheduledPostUncheckedCreateWithoutBrandInput = {
@@ -945,10 +945,8 @@ export type ScheduledPostUncheckedCreateWithoutBrandInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -959,6 +957,8 @@ export type ScheduledPostUncheckedCreateWithoutBrandInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptUncheckedCreateNestedManyWithoutScheduledPostInput
 }
 
@@ -999,10 +999,8 @@ export type ScheduledPostScalarWhereInput = {
   historyId?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   platform?: Prisma.EnumSocialPlatformFilter<"ScheduledPost"> | $Enums.SocialPlatform
   title?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
-  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
   content?: Prisma.StringFilter<"ScheduledPost"> | string
   mediaUrls?: Prisma.StringNullableListFilter<"ScheduledPost">
-  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
   scheduledAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   timezone?: Prisma.StringFilter<"ScheduledPost"> | string
   status?: Prisma.EnumScheduledPostStatusFilter<"ScheduledPost"> | $Enums.ScheduledPostStatus
@@ -1013,16 +1011,16 @@ export type ScheduledPostScalarWhereInput = {
   retryCount?: Prisma.IntFilter<"ScheduledPost"> | number
   createdAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ScheduledPost"> | Date | string
+  brandRenderingSettings?: Prisma.JsonFilter<"ScheduledPost">
+  dedupeKey?: Prisma.StringNullableFilter<"ScheduledPost"> | string | null
 }
 
 export type ScheduledPostCreateWithoutCampaignInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1033,10 +1031,12 @@ export type ScheduledPostCreateWithoutCampaignInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
+  attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
   brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
   channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
-  attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
 }
 
 export type ScheduledPostUncheckedCreateWithoutCampaignInput = {
@@ -1046,10 +1046,8 @@ export type ScheduledPostUncheckedCreateWithoutCampaignInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1060,6 +1058,8 @@ export type ScheduledPostUncheckedCreateWithoutCampaignInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptUncheckedCreateNestedManyWithoutScheduledPostInput
 }
 
@@ -1093,10 +1093,8 @@ export type ScheduledPostCreateWithoutHistoryInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1107,10 +1105,12 @@ export type ScheduledPostCreateWithoutHistoryInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
-  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
-  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
+  brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
+  campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
+  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
 }
 
 export type ScheduledPostUncheckedCreateWithoutHistoryInput = {
@@ -1120,10 +1120,8 @@ export type ScheduledPostUncheckedCreateWithoutHistoryInput = {
   campaignId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1134,6 +1132,8 @@ export type ScheduledPostUncheckedCreateWithoutHistoryInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptUncheckedCreateNestedManyWithoutScheduledPostInput
 }
 
@@ -1167,10 +1167,8 @@ export type ScheduledPostCreateWithoutChannelInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1181,10 +1179,12 @@ export type ScheduledPostCreateWithoutChannelInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
+  attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
   brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
   campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
-  attempts?: Prisma.PublishAttemptCreateNestedManyWithoutScheduledPostInput
 }
 
 export type ScheduledPostUncheckedCreateWithoutChannelInput = {
@@ -1194,10 +1194,8 @@ export type ScheduledPostUncheckedCreateWithoutChannelInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1208,6 +1206,8 @@ export type ScheduledPostUncheckedCreateWithoutChannelInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   attempts?: Prisma.PublishAttemptUncheckedCreateNestedManyWithoutScheduledPostInput
 }
 
@@ -1241,10 +1241,8 @@ export type ScheduledPostCreateWithoutAttemptsInput = {
   id?: string
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1255,9 +1253,11 @@ export type ScheduledPostCreateWithoutAttemptsInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
   brand: Prisma.BrandCreateNestedOneWithoutScheduledPostsInput
-  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
   campaign?: Prisma.CampaignCreateNestedOneWithoutScheduledPostsInput
+  channel: Prisma.SocialChannelCreateNestedOneWithoutScheduledPostsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutScheduledPostsInput
 }
 
@@ -1269,10 +1269,8 @@ export type ScheduledPostUncheckedCreateWithoutAttemptsInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1283,6 +1281,8 @@ export type ScheduledPostUncheckedCreateWithoutAttemptsInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostCreateOrConnectWithoutAttemptsInput = {
@@ -1305,10 +1305,8 @@ export type ScheduledPostUpdateWithoutAttemptsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1319,9 +1317,11 @@ export type ScheduledPostUpdateWithoutAttemptsInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
-  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
   campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
+  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
 }
 
@@ -1333,10 +1333,8 @@ export type ScheduledPostUncheckedUpdateWithoutAttemptsInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1347,6 +1345,8 @@ export type ScheduledPostUncheckedUpdateWithoutAttemptsInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostCreateManyBrandInput = {
@@ -1356,10 +1356,8 @@ export type ScheduledPostCreateManyBrandInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1370,16 +1368,16 @@ export type ScheduledPostCreateManyBrandInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostUpdateWithoutBrandInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1390,10 +1388,12 @@ export type ScheduledPostUpdateWithoutBrandInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
-  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
-  history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
+  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
+  history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
 }
 
 export type ScheduledPostUncheckedUpdateWithoutBrandInput = {
@@ -1403,10 +1403,8 @@ export type ScheduledPostUncheckedUpdateWithoutBrandInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1417,6 +1415,8 @@ export type ScheduledPostUncheckedUpdateWithoutBrandInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUncheckedUpdateManyWithoutScheduledPostNestedInput
 }
 
@@ -1427,10 +1427,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutBrandInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1441,6 +1439,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutBrandInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostCreateManyCampaignInput = {
@@ -1450,10 +1450,8 @@ export type ScheduledPostCreateManyCampaignInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1464,16 +1462,16 @@ export type ScheduledPostCreateManyCampaignInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostUpdateWithoutCampaignInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1484,10 +1482,12 @@ export type ScheduledPostUpdateWithoutCampaignInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
   channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
-  attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
 }
 
 export type ScheduledPostUncheckedUpdateWithoutCampaignInput = {
@@ -1497,10 +1497,8 @@ export type ScheduledPostUncheckedUpdateWithoutCampaignInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1511,6 +1509,8 @@ export type ScheduledPostUncheckedUpdateWithoutCampaignInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUncheckedUpdateManyWithoutScheduledPostNestedInput
 }
 
@@ -1521,10 +1521,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutCampaignInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1535,6 +1533,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutCampaignInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostCreateManyHistoryInput = {
@@ -1544,10 +1544,8 @@ export type ScheduledPostCreateManyHistoryInput = {
   campaignId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1558,16 +1556,16 @@ export type ScheduledPostCreateManyHistoryInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostUpdateWithoutHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1578,10 +1576,12 @@ export type ScheduledPostUpdateWithoutHistoryInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
-  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
-  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
+  campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
+  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutScheduledPostsNestedInput
 }
 
 export type ScheduledPostUncheckedUpdateWithoutHistoryInput = {
@@ -1591,10 +1591,8 @@ export type ScheduledPostUncheckedUpdateWithoutHistoryInput = {
   campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1605,6 +1603,8 @@ export type ScheduledPostUncheckedUpdateWithoutHistoryInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUncheckedUpdateManyWithoutScheduledPostNestedInput
 }
 
@@ -1615,10 +1615,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutHistoryInput = {
   campaignId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1629,6 +1627,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutHistoryInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ScheduledPostCreateManyChannelInput = {
@@ -1638,10 +1638,8 @@ export type ScheduledPostCreateManyChannelInput = {
   historyId?: string | null
   platform: $Enums.SocialPlatform
   title?: string | null
-  dedupeKey?: string | null
   content: string
   mediaUrls?: Prisma.ScheduledPostCreatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt: Date | string
   timezone?: string
   status?: $Enums.ScheduledPostStatus
@@ -1652,16 +1650,16 @@ export type ScheduledPostCreateManyChannelInput = {
   retryCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: string | null
 }
 
 export type ScheduledPostUpdateWithoutChannelInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1672,10 +1670,12 @@ export type ScheduledPostUpdateWithoutChannelInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutScheduledPostsNestedInput
   campaign?: Prisma.CampaignUpdateOneWithoutScheduledPostsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutScheduledPostsNestedInput
-  attempts?: Prisma.PublishAttemptUpdateManyWithoutScheduledPostNestedInput
 }
 
 export type ScheduledPostUncheckedUpdateWithoutChannelInput = {
@@ -1685,10 +1685,8 @@ export type ScheduledPostUncheckedUpdateWithoutChannelInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1699,6 +1697,8 @@ export type ScheduledPostUncheckedUpdateWithoutChannelInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.PublishAttemptUncheckedUpdateManyWithoutScheduledPostNestedInput
 }
 
@@ -1709,10 +1709,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutChannelInput = {
   historyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   mediaUrls?: Prisma.ScheduledPostUpdatemediaUrlsInput | string[]
-  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumScheduledPostStatusFieldUpdateOperationsInput | $Enums.ScheduledPostStatus
@@ -1723,6 +1721,8 @@ export type ScheduledPostUncheckedUpdateManyWithoutChannelInput = {
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brandRenderingSettings?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  dedupeKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1764,10 +1764,8 @@ export type ScheduledPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   historyId?: boolean
   platform?: boolean
   title?: boolean
-  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
-  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1778,11 +1776,13 @@ export type ScheduledPostSelect<ExtArgs extends runtime.Types.Extensions.Interna
   retryCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
-  campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
-  history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
+  brandRenderingSettings?: boolean
+  dedupeKey?: boolean
   attempts?: boolean | Prisma.ScheduledPost$attemptsArgs<ExtArgs>
+  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
+  history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
   _count?: boolean | Prisma.ScheduledPostCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["scheduledPost"]>
 
@@ -1794,10 +1794,8 @@ export type ScheduledPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   historyId?: boolean
   platform?: boolean
   title?: boolean
-  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
-  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1808,9 +1806,11 @@ export type ScheduledPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   retryCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  brandRenderingSettings?: boolean
+  dedupeKey?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
 }, ExtArgs["result"]["scheduledPost"]>
 
@@ -1822,10 +1822,8 @@ export type ScheduledPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   historyId?: boolean
   platform?: boolean
   title?: boolean
-  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
-  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1836,9 +1834,11 @@ export type ScheduledPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   retryCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  brandRenderingSettings?: boolean
+  dedupeKey?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
 }, ExtArgs["result"]["scheduledPost"]>
 
@@ -1850,10 +1850,8 @@ export type ScheduledPostSelectScalar = {
   historyId?: boolean
   platform?: boolean
   title?: boolean
-  dedupeKey?: boolean
   content?: boolean
   mediaUrls?: boolean
-  brandRenderingSettings?: boolean
   scheduledAt?: boolean
   timezone?: boolean
   status?: boolean
@@ -1864,38 +1862,40 @@ export type ScheduledPostSelectScalar = {
   retryCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  brandRenderingSettings?: boolean
+  dedupeKey?: boolean
 }
 
-export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "dedupeKey" | "content" | "mediaUrls" | "brandRenderingSettings" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledPost"]>
+export type ScheduledPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "channelId" | "campaignId" | "historyId" | "platform" | "title" | "content" | "mediaUrls" | "scheduledAt" | "timezone" | "status" | "publishedAt" | "externalPostId" | "externalPostUrl" | "lastError" | "retryCount" | "createdAt" | "updatedAt" | "brandRenderingSettings" | "dedupeKey", ExtArgs["result"]["scheduledPost"]>
 export type ScheduledPostInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
-  campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
-  history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
   attempts?: boolean | Prisma.ScheduledPost$attemptsArgs<ExtArgs>
+  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
+  history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
   _count?: boolean | Prisma.ScheduledPostCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ScheduledPostIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
 }
 export type ScheduledPostIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.ScheduledPost$campaignArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   history?: boolean | Prisma.ScheduledPost$historyArgs<ExtArgs>
 }
 
 export type $ScheduledPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ScheduledPost"
   objects: {
-    brand: Prisma.$BrandPayload<ExtArgs>
-    channel: Prisma.$SocialChannelPayload<ExtArgs>
-    campaign: Prisma.$CampaignPayload<ExtArgs> | null
-    history: Prisma.$GenerationHistoryPayload<ExtArgs> | null
     attempts: Prisma.$PublishAttemptPayload<ExtArgs>[]
+    brand: Prisma.$BrandPayload<ExtArgs>
+    campaign: Prisma.$CampaignPayload<ExtArgs> | null
+    channel: Prisma.$SocialChannelPayload<ExtArgs>
+    history: Prisma.$GenerationHistoryPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1905,10 +1905,8 @@ export type $ScheduledPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
     historyId: string | null
     platform: $Enums.SocialPlatform
     title: string | null
-    dedupeKey: string | null
     content: string
     mediaUrls: string[]
-    brandRenderingSettings: runtime.JsonValue
     scheduledAt: Date
     timezone: string
     status: $Enums.ScheduledPostStatus
@@ -1919,6 +1917,8 @@ export type $ScheduledPostPayload<ExtArgs extends runtime.Types.Extensions.Inter
     retryCount: number
     createdAt: Date
     updatedAt: Date
+    brandRenderingSettings: runtime.JsonValue
+    dedupeKey: string | null
   }, ExtArgs["result"]["scheduledPost"]>
   composites: {}
 }
@@ -2313,11 +2313,11 @@ readonly fields: ScheduledPostFieldRefs;
  */
 export interface Prisma__ScheduledPostClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  channel<T extends Prisma.SocialChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  campaign<T extends Prisma.ScheduledPost$campaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScheduledPost$campaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  history<T extends Prisma.ScheduledPost$historyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScheduledPost$historyArgs<ExtArgs>>): Prisma.Prisma__GenerationHistoryClient<runtime.Types.Result.GetResult<Prisma.$GenerationHistoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   attempts<T extends Prisma.ScheduledPost$attemptsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScheduledPost$attemptsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PublishAttemptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  campaign<T extends Prisma.ScheduledPost$campaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScheduledPost$campaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  channel<T extends Prisma.SocialChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  history<T extends Prisma.ScheduledPost$historyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ScheduledPost$historyArgs<ExtArgs>>): Prisma.Prisma__GenerationHistoryClient<runtime.Types.Result.GetResult<Prisma.$GenerationHistoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2354,10 +2354,8 @@ export interface ScheduledPostFieldRefs {
   readonly historyId: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly platform: Prisma.FieldRef<"ScheduledPost", 'SocialPlatform'>
   readonly title: Prisma.FieldRef<"ScheduledPost", 'String'>
-  readonly dedupeKey: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly content: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly mediaUrls: Prisma.FieldRef<"ScheduledPost", 'String[]'>
-  readonly brandRenderingSettings: Prisma.FieldRef<"ScheduledPost", 'Json'>
   readonly scheduledAt: Prisma.FieldRef<"ScheduledPost", 'DateTime'>
   readonly timezone: Prisma.FieldRef<"ScheduledPost", 'String'>
   readonly status: Prisma.FieldRef<"ScheduledPost", 'ScheduledPostStatus'>
@@ -2368,6 +2366,8 @@ export interface ScheduledPostFieldRefs {
   readonly retryCount: Prisma.FieldRef<"ScheduledPost", 'Int'>
   readonly createdAt: Prisma.FieldRef<"ScheduledPost", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ScheduledPost", 'DateTime'>
+  readonly brandRenderingSettings: Prisma.FieldRef<"ScheduledPost", 'Json'>
+  readonly dedupeKey: Prisma.FieldRef<"ScheduledPost", 'String'>
 }
     
 
@@ -2769,6 +2769,30 @@ export type ScheduledPostDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
+ * ScheduledPost.attempts
+ */
+export type ScheduledPost$attemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PublishAttempt
+   */
+  select?: Prisma.PublishAttemptSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PublishAttempt
+   */
+  omit?: Prisma.PublishAttemptOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PublishAttemptInclude<ExtArgs> | null
+  where?: Prisma.PublishAttemptWhereInput
+  orderBy?: Prisma.PublishAttemptOrderByWithRelationInput | Prisma.PublishAttemptOrderByWithRelationInput[]
+  cursor?: Prisma.PublishAttemptWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PublishAttemptScalarFieldEnum | Prisma.PublishAttemptScalarFieldEnum[]
+}
+
+/**
  * ScheduledPost.campaign
  */
 export type ScheduledPost$campaignArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2804,30 +2828,6 @@ export type ScheduledPost$historyArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   include?: Prisma.GenerationHistoryInclude<ExtArgs> | null
   where?: Prisma.GenerationHistoryWhereInput
-}
-
-/**
- * ScheduledPost.attempts
- */
-export type ScheduledPost$attemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the PublishAttempt
-   */
-  select?: Prisma.PublishAttemptSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the PublishAttempt
-   */
-  omit?: Prisma.PublishAttemptOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.PublishAttemptInclude<ExtArgs> | null
-  where?: Prisma.PublishAttemptWhereInput
-  orderBy?: Prisma.PublishAttemptOrderByWithRelationInput | Prisma.PublishAttemptOrderByWithRelationInput[]
-  cursor?: Prisma.PublishAttemptWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.PublishAttemptScalarFieldEnum | Prisma.PublishAttemptScalarFieldEnum[]
 }
 
 /**

@@ -27,17 +27,17 @@ export type AggregateSocialChannelRuntimeProfile = {
 }
 
 export type SocialChannelRuntimeProfileAvgAggregateOutputType = {
-  screenWidth: number | null
-  screenHeight: number | null
-  deviceScaleFactor: number | null
   proxyPort: number | null
+  deviceScaleFactor: number | null
+  screenHeight: number | null
+  screenWidth: number | null
 }
 
 export type SocialChannelRuntimeProfileSumAggregateOutputType = {
-  screenWidth: number | null
-  screenHeight: number | null
-  deviceScaleFactor: number | null
   proxyPort: number | null
+  deviceScaleFactor: number | null
+  screenHeight: number | null
+  screenWidth: number | null
 }
 
 export type SocialChannelRuntimeProfileMinAggregateOutputType = {
@@ -47,13 +47,6 @@ export type SocialChannelRuntimeProfileMinAggregateOutputType = {
   browserProfileName: string | null
   locale: string | null
   timezone: string | null
-  browserEngine: string | null
-  operatingSystem: string | null
-  userAgent: string | null
-  screenWidth: number | null
-  screenHeight: number | null
-  deviceScaleFactor: number | null
-  identityLocked: boolean | null
   proxyType: $Enums.SocialProxyType | null
   proxyHost: string | null
   proxyPort: number | null
@@ -66,6 +59,13 @@ export type SocialChannelRuntimeProfileMinAggregateOutputType = {
   lastConnectionTestAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  browserEngine: string | null
+  deviceScaleFactor: number | null
+  identityLocked: boolean | null
+  operatingSystem: string | null
+  screenHeight: number | null
+  screenWidth: number | null
+  userAgent: string | null
 }
 
 export type SocialChannelRuntimeProfileMaxAggregateOutputType = {
@@ -75,13 +75,6 @@ export type SocialChannelRuntimeProfileMaxAggregateOutputType = {
   browserProfileName: string | null
   locale: string | null
   timezone: string | null
-  browserEngine: string | null
-  operatingSystem: string | null
-  userAgent: string | null
-  screenWidth: number | null
-  screenHeight: number | null
-  deviceScaleFactor: number | null
-  identityLocked: boolean | null
   proxyType: $Enums.SocialProxyType | null
   proxyHost: string | null
   proxyPort: number | null
@@ -94,6 +87,13 @@ export type SocialChannelRuntimeProfileMaxAggregateOutputType = {
   lastConnectionTestAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  browserEngine: string | null
+  deviceScaleFactor: number | null
+  identityLocked: boolean | null
+  operatingSystem: string | null
+  screenHeight: number | null
+  screenWidth: number | null
+  userAgent: string | null
 }
 
 export type SocialChannelRuntimeProfileCountAggregateOutputType = {
@@ -103,13 +103,6 @@ export type SocialChannelRuntimeProfileCountAggregateOutputType = {
   browserProfileName: number
   locale: number
   timezone: number
-  browserEngine: number
-  operatingSystem: number
-  userAgent: number
-  screenWidth: number
-  screenHeight: number
-  deviceScaleFactor: number
-  identityLocked: number
   proxyType: number
   proxyHost: number
   proxyPort: number
@@ -122,22 +115,29 @@ export type SocialChannelRuntimeProfileCountAggregateOutputType = {
   lastConnectionTestAt: number
   createdAt: number
   updatedAt: number
+  browserEngine: number
+  deviceScaleFactor: number
+  identityLocked: number
+  operatingSystem: number
+  screenHeight: number
+  screenWidth: number
+  userAgent: number
   _all: number
 }
 
 
 export type SocialChannelRuntimeProfileAvgAggregateInputType = {
-  screenWidth?: true
-  screenHeight?: true
-  deviceScaleFactor?: true
   proxyPort?: true
+  deviceScaleFactor?: true
+  screenHeight?: true
+  screenWidth?: true
 }
 
 export type SocialChannelRuntimeProfileSumAggregateInputType = {
-  screenWidth?: true
-  screenHeight?: true
-  deviceScaleFactor?: true
   proxyPort?: true
+  deviceScaleFactor?: true
+  screenHeight?: true
+  screenWidth?: true
 }
 
 export type SocialChannelRuntimeProfileMinAggregateInputType = {
@@ -147,13 +147,6 @@ export type SocialChannelRuntimeProfileMinAggregateInputType = {
   browserProfileName?: true
   locale?: true
   timezone?: true
-  browserEngine?: true
-  operatingSystem?: true
-  userAgent?: true
-  screenWidth?: true
-  screenHeight?: true
-  deviceScaleFactor?: true
-  identityLocked?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -166,6 +159,13 @@ export type SocialChannelRuntimeProfileMinAggregateInputType = {
   lastConnectionTestAt?: true
   createdAt?: true
   updatedAt?: true
+  browserEngine?: true
+  deviceScaleFactor?: true
+  identityLocked?: true
+  operatingSystem?: true
+  screenHeight?: true
+  screenWidth?: true
+  userAgent?: true
 }
 
 export type SocialChannelRuntimeProfileMaxAggregateInputType = {
@@ -175,13 +175,6 @@ export type SocialChannelRuntimeProfileMaxAggregateInputType = {
   browserProfileName?: true
   locale?: true
   timezone?: true
-  browserEngine?: true
-  operatingSystem?: true
-  userAgent?: true
-  screenWidth?: true
-  screenHeight?: true
-  deviceScaleFactor?: true
-  identityLocked?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -194,6 +187,13 @@ export type SocialChannelRuntimeProfileMaxAggregateInputType = {
   lastConnectionTestAt?: true
   createdAt?: true
   updatedAt?: true
+  browserEngine?: true
+  deviceScaleFactor?: true
+  identityLocked?: true
+  operatingSystem?: true
+  screenHeight?: true
+  screenWidth?: true
+  userAgent?: true
 }
 
 export type SocialChannelRuntimeProfileCountAggregateInputType = {
@@ -203,13 +203,6 @@ export type SocialChannelRuntimeProfileCountAggregateInputType = {
   browserProfileName?: true
   locale?: true
   timezone?: true
-  browserEngine?: true
-  operatingSystem?: true
-  userAgent?: true
-  screenWidth?: true
-  screenHeight?: true
-  deviceScaleFactor?: true
-  identityLocked?: true
   proxyType?: true
   proxyHost?: true
   proxyPort?: true
@@ -222,6 +215,13 @@ export type SocialChannelRuntimeProfileCountAggregateInputType = {
   lastConnectionTestAt?: true
   createdAt?: true
   updatedAt?: true
+  browserEngine?: true
+  deviceScaleFactor?: true
+  identityLocked?: true
+  operatingSystem?: true
+  screenHeight?: true
+  screenWidth?: true
+  userAgent?: true
   _all?: true
 }
 
@@ -318,13 +318,6 @@ export type SocialChannelRuntimeProfileGroupByOutputType = {
   browserProfileName: string
   locale: string
   timezone: string
-  browserEngine: string
-  operatingSystem: string
-  userAgent: string | null
-  screenWidth: number
-  screenHeight: number
-  deviceScaleFactor: number
-  identityLocked: boolean
   proxyType: $Enums.SocialProxyType
   proxyHost: string | null
   proxyPort: number | null
@@ -337,6 +330,13 @@ export type SocialChannelRuntimeProfileGroupByOutputType = {
   lastConnectionTestAt: Date | null
   createdAt: Date
   updatedAt: Date
+  browserEngine: string
+  deviceScaleFactor: number
+  identityLocked: boolean
+  operatingSystem: string
+  screenHeight: number
+  screenWidth: number
+  userAgent: string | null
   _count: SocialChannelRuntimeProfileCountAggregateOutputType | null
   _avg: SocialChannelRuntimeProfileAvgAggregateOutputType | null
   _sum: SocialChannelRuntimeProfileSumAggregateOutputType | null
@@ -369,13 +369,6 @@ export type SocialChannelRuntimeProfileWhereInput = {
   browserProfileName?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
   locale?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
   timezone?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  browserEngine?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  operatingSystem?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  userAgent?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
-  screenWidth?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
-  screenHeight?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
-  deviceScaleFactor?: Prisma.FloatFilter<"SocialChannelRuntimeProfile"> | number
-  identityLocked?: Prisma.BoolFilter<"SocialChannelRuntimeProfile"> | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFilter<"SocialChannelRuntimeProfile"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
   proxyPort?: Prisma.IntNullableFilter<"SocialChannelRuntimeProfile"> | number | null
@@ -388,8 +381,15 @@ export type SocialChannelRuntimeProfileWhereInput = {
   lastConnectionTestAt?: Prisma.DateTimeNullableFilter<"SocialChannelRuntimeProfile"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannelRuntimeProfile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannelRuntimeProfile"> | Date | string
-  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
+  browserEngine?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
+  deviceScaleFactor?: Prisma.FloatFilter<"SocialChannelRuntimeProfile"> | number
+  identityLocked?: Prisma.BoolFilter<"SocialChannelRuntimeProfile"> | boolean
+  operatingSystem?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
+  screenHeight?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
+  screenWidth?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
+  userAgent?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
   generationHistories?: Prisma.GenerationHistoryListRelationFilter
+  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
 }
 
 export type SocialChannelRuntimeProfileOrderByWithRelationInput = {
@@ -399,13 +399,6 @@ export type SocialChannelRuntimeProfileOrderByWithRelationInput = {
   browserProfileName?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
-  browserEngine?: Prisma.SortOrder
-  operatingSystem?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
-  identityLocked?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrderInput | Prisma.SortOrder
   proxyPort?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -418,8 +411,15 @@ export type SocialChannelRuntimeProfileOrderByWithRelationInput = {
   lastConnectionTestAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  channel?: Prisma.SocialChannelOrderByWithRelationInput
+  browserEngine?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
   generationHistories?: Prisma.GenerationHistoryOrderByRelationAggregateInput
+  channel?: Prisma.SocialChannelOrderByWithRelationInput
 }
 
 export type SocialChannelRuntimeProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -432,13 +432,6 @@ export type SocialChannelRuntimeProfileWhereUniqueInput = Prisma.AtLeast<{
   browserProfileName?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
   locale?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
   timezone?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  browserEngine?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  operatingSystem?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
-  userAgent?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
-  screenWidth?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
-  screenHeight?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
-  deviceScaleFactor?: Prisma.FloatFilter<"SocialChannelRuntimeProfile"> | number
-  identityLocked?: Prisma.BoolFilter<"SocialChannelRuntimeProfile"> | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFilter<"SocialChannelRuntimeProfile"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
   proxyPort?: Prisma.IntNullableFilter<"SocialChannelRuntimeProfile"> | number | null
@@ -451,8 +444,15 @@ export type SocialChannelRuntimeProfileWhereUniqueInput = Prisma.AtLeast<{
   lastConnectionTestAt?: Prisma.DateTimeNullableFilter<"SocialChannelRuntimeProfile"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannelRuntimeProfile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannelRuntimeProfile"> | Date | string
-  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
+  browserEngine?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
+  deviceScaleFactor?: Prisma.FloatFilter<"SocialChannelRuntimeProfile"> | number
+  identityLocked?: Prisma.BoolFilter<"SocialChannelRuntimeProfile"> | boolean
+  operatingSystem?: Prisma.StringFilter<"SocialChannelRuntimeProfile"> | string
+  screenHeight?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
+  screenWidth?: Prisma.IntFilter<"SocialChannelRuntimeProfile"> | number
+  userAgent?: Prisma.StringNullableFilter<"SocialChannelRuntimeProfile"> | string | null
   generationHistories?: Prisma.GenerationHistoryListRelationFilter
+  channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
 }, "id" | "channelId" | "browserProfileKey">
 
 export type SocialChannelRuntimeProfileOrderByWithAggregationInput = {
@@ -462,13 +462,6 @@ export type SocialChannelRuntimeProfileOrderByWithAggregationInput = {
   browserProfileName?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
-  browserEngine?: Prisma.SortOrder
-  operatingSystem?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
-  identityLocked?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrderInput | Prisma.SortOrder
   proxyPort?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -481,6 +474,13 @@ export type SocialChannelRuntimeProfileOrderByWithAggregationInput = {
   lastConnectionTestAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SocialChannelRuntimeProfileCountOrderByAggregateInput
   _avg?: Prisma.SocialChannelRuntimeProfileAvgOrderByAggregateInput
   _max?: Prisma.SocialChannelRuntimeProfileMaxOrderByAggregateInput
@@ -498,13 +498,6 @@ export type SocialChannelRuntimeProfileScalarWhereWithAggregatesInput = {
   browserProfileName?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
   locale?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
   timezone?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
-  browserEngine?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
-  operatingSystem?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
-  userAgent?: Prisma.StringNullableWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string | null
-  screenWidth?: Prisma.IntWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
-  screenHeight?: Prisma.IntWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
-  deviceScaleFactor?: Prisma.FloatWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
-  identityLocked?: Prisma.BoolWithAggregatesFilter<"SocialChannelRuntimeProfile"> | boolean
   proxyType?: Prisma.EnumSocialProxyTypeWithAggregatesFilter<"SocialChannelRuntimeProfile"> | $Enums.SocialProxyType
   proxyHost?: Prisma.StringNullableWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string | null
   proxyPort?: Prisma.IntNullableWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number | null
@@ -517,6 +510,13 @@ export type SocialChannelRuntimeProfileScalarWhereWithAggregatesInput = {
   lastConnectionTestAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannelRuntimeProfile"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannelRuntimeProfile"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannelRuntimeProfile"> | Date | string
+  browserEngine?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
+  deviceScaleFactor?: Prisma.FloatWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
+  identityLocked?: Prisma.BoolWithAggregatesFilter<"SocialChannelRuntimeProfile"> | boolean
+  operatingSystem?: Prisma.StringWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string
+  screenHeight?: Prisma.IntWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
+  screenWidth?: Prisma.IntWithAggregatesFilter<"SocialChannelRuntimeProfile"> | number
+  userAgent?: Prisma.StringNullableWithAggregatesFilter<"SocialChannelRuntimeProfile"> | string | null
 }
 
 export type SocialChannelRuntimeProfileCreateInput = {
@@ -525,13 +525,6 @@ export type SocialChannelRuntimeProfileCreateInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -544,8 +537,15 @@ export type SocialChannelRuntimeProfileCreateInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  channel: Prisma.SocialChannelCreateNestedOneWithoutSocialChannelRuntimeProfileInput
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
   generationHistories?: Prisma.GenerationHistoryCreateNestedManyWithoutRuntimeProfileInput
+  channel: Prisma.SocialChannelCreateNestedOneWithoutSocialChannelRuntimeProfileInput
 }
 
 export type SocialChannelRuntimeProfileUncheckedCreateInput = {
@@ -555,13 +555,6 @@ export type SocialChannelRuntimeProfileUncheckedCreateInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -574,6 +567,13 @@ export type SocialChannelRuntimeProfileUncheckedCreateInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
   generationHistories?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutRuntimeProfileInput
 }
 
@@ -583,13 +583,6 @@ export type SocialChannelRuntimeProfileUpdateInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -602,8 +595,15 @@ export type SocialChannelRuntimeProfileUpdateInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutSocialChannelRuntimeProfileNestedInput
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generationHistories?: Prisma.GenerationHistoryUpdateManyWithoutRuntimeProfileNestedInput
+  channel?: Prisma.SocialChannelUpdateOneRequiredWithoutSocialChannelRuntimeProfileNestedInput
 }
 
 export type SocialChannelRuntimeProfileUncheckedUpdateInput = {
@@ -613,13 +613,6 @@ export type SocialChannelRuntimeProfileUncheckedUpdateInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -632,6 +625,13 @@ export type SocialChannelRuntimeProfileUncheckedUpdateInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generationHistories?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileNestedInput
 }
 
@@ -642,13 +642,6 @@ export type SocialChannelRuntimeProfileCreateManyInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -661,6 +654,13 @@ export type SocialChannelRuntimeProfileCreateManyInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
 }
 
 export type SocialChannelRuntimeProfileUpdateManyMutationInput = {
@@ -669,13 +669,6 @@ export type SocialChannelRuntimeProfileUpdateManyMutationInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -688,6 +681,13 @@ export type SocialChannelRuntimeProfileUpdateManyMutationInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelRuntimeProfileUncheckedUpdateManyInput = {
@@ -697,13 +697,6 @@ export type SocialChannelRuntimeProfileUncheckedUpdateManyInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -716,6 +709,13 @@ export type SocialChannelRuntimeProfileUncheckedUpdateManyInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelRuntimeProfileNullableScalarRelationFilter = {
@@ -730,13 +730,6 @@ export type SocialChannelRuntimeProfileCountOrderByAggregateInput = {
   browserProfileName?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
-  browserEngine?: Prisma.SortOrder
-  operatingSystem?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
-  identityLocked?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -749,13 +742,20 @@ export type SocialChannelRuntimeProfileCountOrderByAggregateInput = {
   lastConnectionTestAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
 }
 
 export type SocialChannelRuntimeProfileAvgOrderByAggregateInput = {
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
 }
 
 export type SocialChannelRuntimeProfileMaxOrderByAggregateInput = {
@@ -765,13 +765,6 @@ export type SocialChannelRuntimeProfileMaxOrderByAggregateInput = {
   browserProfileName?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
-  browserEngine?: Prisma.SortOrder
-  operatingSystem?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
-  identityLocked?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -784,6 +777,13 @@ export type SocialChannelRuntimeProfileMaxOrderByAggregateInput = {
   lastConnectionTestAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
 }
 
 export type SocialChannelRuntimeProfileMinOrderByAggregateInput = {
@@ -793,13 +793,6 @@ export type SocialChannelRuntimeProfileMinOrderByAggregateInput = {
   browserProfileName?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
-  browserEngine?: Prisma.SortOrder
-  operatingSystem?: Prisma.SortOrder
-  userAgent?: Prisma.SortOrder
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
-  identityLocked?: Prisma.SortOrder
   proxyType?: Prisma.SortOrder
   proxyHost?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
@@ -812,13 +805,20 @@ export type SocialChannelRuntimeProfileMinOrderByAggregateInput = {
   lastConnectionTestAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  browserEngine?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  identityLocked?: Prisma.SortOrder
+  operatingSystem?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
+  userAgent?: Prisma.SortOrder
 }
 
 export type SocialChannelRuntimeProfileSumOrderByAggregateInput = {
-  screenWidth?: Prisma.SortOrder
-  screenHeight?: Prisma.SortOrder
-  deviceScaleFactor?: Prisma.SortOrder
   proxyPort?: Prisma.SortOrder
+  deviceScaleFactor?: Prisma.SortOrder
+  screenHeight?: Prisma.SortOrder
+  screenWidth?: Prisma.SortOrder
 }
 
 export type SocialChannelRuntimeProfileCreateNestedOneWithoutGenerationHistoriesInput = {
@@ -879,13 +879,6 @@ export type SocialChannelRuntimeProfileCreateWithoutGenerationHistoriesInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -898,6 +891,13 @@ export type SocialChannelRuntimeProfileCreateWithoutGenerationHistoriesInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
   channel: Prisma.SocialChannelCreateNestedOneWithoutSocialChannelRuntimeProfileInput
 }
 
@@ -908,13 +908,6 @@ export type SocialChannelRuntimeProfileUncheckedCreateWithoutGenerationHistories
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -927,6 +920,13 @@ export type SocialChannelRuntimeProfileUncheckedCreateWithoutGenerationHistories
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
 }
 
 export type SocialChannelRuntimeProfileCreateOrConnectWithoutGenerationHistoriesInput = {
@@ -951,13 +951,6 @@ export type SocialChannelRuntimeProfileUpdateWithoutGenerationHistoriesInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -970,6 +963,13 @@ export type SocialChannelRuntimeProfileUpdateWithoutGenerationHistoriesInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.SocialChannelUpdateOneRequiredWithoutSocialChannelRuntimeProfileNestedInput
 }
 
@@ -980,13 +980,6 @@ export type SocialChannelRuntimeProfileUncheckedUpdateWithoutGenerationHistories
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -999,6 +992,13 @@ export type SocialChannelRuntimeProfileUncheckedUpdateWithoutGenerationHistories
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelRuntimeProfileCreateWithoutChannelInput = {
@@ -1007,13 +1007,6 @@ export type SocialChannelRuntimeProfileCreateWithoutChannelInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1026,6 +1019,13 @@ export type SocialChannelRuntimeProfileCreateWithoutChannelInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
   generationHistories?: Prisma.GenerationHistoryCreateNestedManyWithoutRuntimeProfileInput
 }
 
@@ -1035,13 +1035,6 @@ export type SocialChannelRuntimeProfileUncheckedCreateWithoutChannelInput = {
   browserProfileName: string
   locale?: string
   timezone?: string
-  browserEngine?: string
-  operatingSystem?: string
-  userAgent?: string | null
-  screenWidth?: number
-  screenHeight?: number
-  deviceScaleFactor?: number
-  identityLocked?: boolean
   proxyType?: $Enums.SocialProxyType
   proxyHost?: string | null
   proxyPort?: number | null
@@ -1054,6 +1047,13 @@ export type SocialChannelRuntimeProfileUncheckedCreateWithoutChannelInput = {
   lastConnectionTestAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  browserEngine?: string
+  deviceScaleFactor?: number
+  identityLocked?: boolean
+  operatingSystem?: string
+  screenHeight?: number
+  screenWidth?: number
+  userAgent?: string | null
   generationHistories?: Prisma.GenerationHistoryUncheckedCreateNestedManyWithoutRuntimeProfileInput
 }
 
@@ -1079,13 +1079,6 @@ export type SocialChannelRuntimeProfileUpdateWithoutChannelInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1098,6 +1091,13 @@ export type SocialChannelRuntimeProfileUpdateWithoutChannelInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generationHistories?: Prisma.GenerationHistoryUpdateManyWithoutRuntimeProfileNestedInput
 }
 
@@ -1107,13 +1107,6 @@ export type SocialChannelRuntimeProfileUncheckedUpdateWithoutChannelInput = {
   browserProfileName?: Prisma.StringFieldUpdateOperationsInput | string
   locale?: Prisma.StringFieldUpdateOperationsInput | string
   timezone?: Prisma.StringFieldUpdateOperationsInput | string
-  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
-  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
-  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
-  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
-  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
-  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
   proxyType?: Prisma.EnumSocialProxyTypeFieldUpdateOperationsInput | $Enums.SocialProxyType
   proxyHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   proxyPort?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -1126,6 +1119,13 @@ export type SocialChannelRuntimeProfileUncheckedUpdateWithoutChannelInput = {
   lastConnectionTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  browserEngine?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceScaleFactor?: Prisma.FloatFieldUpdateOperationsInput | number
+  identityLocked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  operatingSystem?: Prisma.StringFieldUpdateOperationsInput | string
+  screenHeight?: Prisma.IntFieldUpdateOperationsInput | number
+  screenWidth?: Prisma.IntFieldUpdateOperationsInput | number
+  userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generationHistories?: Prisma.GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileNestedInput
 }
 
@@ -1167,13 +1167,6 @@ export type SocialChannelRuntimeProfileSelect<ExtArgs extends runtime.Types.Exte
   browserProfileName?: boolean
   locale?: boolean
   timezone?: boolean
-  browserEngine?: boolean
-  operatingSystem?: boolean
-  userAgent?: boolean
-  screenWidth?: boolean
-  screenHeight?: boolean
-  deviceScaleFactor?: boolean
-  identityLocked?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1186,8 +1179,15 @@ export type SocialChannelRuntimeProfileSelect<ExtArgs extends runtime.Types.Exte
   lastConnectionTestAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
+  browserEngine?: boolean
+  deviceScaleFactor?: boolean
+  identityLocked?: boolean
+  operatingSystem?: boolean
+  screenHeight?: boolean
+  screenWidth?: boolean
+  userAgent?: boolean
   generationHistories?: boolean | Prisma.SocialChannelRuntimeProfile$generationHistoriesArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelRuntimeProfileCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannelRuntimeProfile"]>
 
@@ -1198,13 +1198,6 @@ export type SocialChannelRuntimeProfileSelectCreateManyAndReturn<ExtArgs extends
   browserProfileName?: boolean
   locale?: boolean
   timezone?: boolean
-  browserEngine?: boolean
-  operatingSystem?: boolean
-  userAgent?: boolean
-  screenWidth?: boolean
-  screenHeight?: boolean
-  deviceScaleFactor?: boolean
-  identityLocked?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1217,6 +1210,13 @@ export type SocialChannelRuntimeProfileSelectCreateManyAndReturn<ExtArgs extends
   lastConnectionTestAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  browserEngine?: boolean
+  deviceScaleFactor?: boolean
+  identityLocked?: boolean
+  operatingSystem?: boolean
+  screenHeight?: boolean
+  screenWidth?: boolean
+  userAgent?: boolean
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannelRuntimeProfile"]>
 
@@ -1227,13 +1227,6 @@ export type SocialChannelRuntimeProfileSelectUpdateManyAndReturn<ExtArgs extends
   browserProfileName?: boolean
   locale?: boolean
   timezone?: boolean
-  browserEngine?: boolean
-  operatingSystem?: boolean
-  userAgent?: boolean
-  screenWidth?: boolean
-  screenHeight?: boolean
-  deviceScaleFactor?: boolean
-  identityLocked?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1246,6 +1239,13 @@ export type SocialChannelRuntimeProfileSelectUpdateManyAndReturn<ExtArgs extends
   lastConnectionTestAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  browserEngine?: boolean
+  deviceScaleFactor?: boolean
+  identityLocked?: boolean
+  operatingSystem?: boolean
+  screenHeight?: boolean
+  screenWidth?: boolean
+  userAgent?: boolean
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannelRuntimeProfile"]>
 
@@ -1256,13 +1256,6 @@ export type SocialChannelRuntimeProfileSelectScalar = {
   browserProfileName?: boolean
   locale?: boolean
   timezone?: boolean
-  browserEngine?: boolean
-  operatingSystem?: boolean
-  userAgent?: boolean
-  screenWidth?: boolean
-  screenHeight?: boolean
-  deviceScaleFactor?: boolean
-  identityLocked?: boolean
   proxyType?: boolean
   proxyHost?: boolean
   proxyPort?: boolean
@@ -1275,12 +1268,19 @@ export type SocialChannelRuntimeProfileSelectScalar = {
   lastConnectionTestAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  browserEngine?: boolean
+  deviceScaleFactor?: boolean
+  identityLocked?: boolean
+  operatingSystem?: boolean
+  screenHeight?: boolean
+  screenWidth?: boolean
+  userAgent?: boolean
 }
 
-export type SocialChannelRuntimeProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "channelId" | "browserProfileKey" | "browserProfileName" | "locale" | "timezone" | "browserEngine" | "operatingSystem" | "userAgent" | "screenWidth" | "screenHeight" | "deviceScaleFactor" | "identityLocked" | "proxyType" | "proxyHost" | "proxyPort" | "proxyUsernameEncrypted" | "proxyPasswordEncrypted" | "proxyCountry" | "lastKnownIp" | "lastConnectionStatus" | "lastConnectionError" | "lastConnectionTestAt" | "createdAt" | "updatedAt", ExtArgs["result"]["socialChannelRuntimeProfile"]>
+export type SocialChannelRuntimeProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "channelId" | "browserProfileKey" | "browserProfileName" | "locale" | "timezone" | "proxyType" | "proxyHost" | "proxyPort" | "proxyUsernameEncrypted" | "proxyPasswordEncrypted" | "proxyCountry" | "lastKnownIp" | "lastConnectionStatus" | "lastConnectionError" | "lastConnectionTestAt" | "createdAt" | "updatedAt" | "browserEngine" | "deviceScaleFactor" | "identityLocked" | "operatingSystem" | "screenHeight" | "screenWidth" | "userAgent", ExtArgs["result"]["socialChannelRuntimeProfile"]>
 export type SocialChannelRuntimeProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   generationHistories?: boolean | Prisma.SocialChannelRuntimeProfile$generationHistoriesArgs<ExtArgs>
+  channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelRuntimeProfileCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SocialChannelRuntimeProfileIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1293,8 +1293,8 @@ export type SocialChannelRuntimeProfileIncludeUpdateManyAndReturn<ExtArgs extend
 export type $SocialChannelRuntimeProfilePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialChannelRuntimeProfile"
   objects: {
-    channel: Prisma.$SocialChannelPayload<ExtArgs>
     generationHistories: Prisma.$GenerationHistoryPayload<ExtArgs>[]
+    channel: Prisma.$SocialChannelPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1303,13 +1303,6 @@ export type $SocialChannelRuntimeProfilePayload<ExtArgs extends runtime.Types.Ex
     browserProfileName: string
     locale: string
     timezone: string
-    browserEngine: string
-    operatingSystem: string
-    userAgent: string | null
-    screenWidth: number
-    screenHeight: number
-    deviceScaleFactor: number
-    identityLocked: boolean
     proxyType: $Enums.SocialProxyType
     proxyHost: string | null
     proxyPort: number | null
@@ -1322,6 +1315,13 @@ export type $SocialChannelRuntimeProfilePayload<ExtArgs extends runtime.Types.Ex
     lastConnectionTestAt: Date | null
     createdAt: Date
     updatedAt: Date
+    browserEngine: string
+    deviceScaleFactor: number
+    identityLocked: boolean
+    operatingSystem: string
+    screenHeight: number
+    screenWidth: number
+    userAgent: string | null
   }, ExtArgs["result"]["socialChannelRuntimeProfile"]>
   composites: {}
 }
@@ -1716,8 +1716,8 @@ readonly fields: SocialChannelRuntimeProfileFieldRefs;
  */
 export interface Prisma__SocialChannelRuntimeProfileClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  channel<T extends Prisma.SocialChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   generationHistories<T extends Prisma.SocialChannelRuntimeProfile$generationHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannelRuntimeProfile$generationHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GenerationHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  channel<T extends Prisma.SocialChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1753,13 +1753,6 @@ export interface SocialChannelRuntimeProfileFieldRefs {
   readonly browserProfileName: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
   readonly locale: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
   readonly timezone: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
-  readonly browserEngine: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
-  readonly operatingSystem: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
-  readonly userAgent: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
-  readonly screenWidth: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Int'>
-  readonly screenHeight: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Int'>
-  readonly deviceScaleFactor: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Float'>
-  readonly identityLocked: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Boolean'>
   readonly proxyType: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'SocialProxyType'>
   readonly proxyHost: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
   readonly proxyPort: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Int'>
@@ -1772,6 +1765,13 @@ export interface SocialChannelRuntimeProfileFieldRefs {
   readonly lastConnectionTestAt: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'DateTime'>
+  readonly browserEngine: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
+  readonly deviceScaleFactor: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Float'>
+  readonly identityLocked: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Boolean'>
+  readonly operatingSystem: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
+  readonly screenHeight: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Int'>
+  readonly screenWidth: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'Int'>
+  readonly userAgent: Prisma.FieldRef<"SocialChannelRuntimeProfile", 'String'>
 }
     
 

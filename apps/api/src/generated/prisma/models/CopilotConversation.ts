@@ -208,8 +208,8 @@ export type CopilotConversationWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"CopilotConversation"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
-  messages?: Prisma.CopilotConversationMessageListRelationFilter
   copilotConversationEmbedding?: Prisma.XOR<Prisma.CopilotConversationEmbeddingNullableScalarRelationFilter, Prisma.CopilotConversationEmbeddingWhereInput> | null
+  messages?: Prisma.CopilotConversationMessageListRelationFilter
 }
 
 export type CopilotConversationOrderByWithRelationInput = {
@@ -223,8 +223,8 @@ export type CopilotConversationOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   brand?: Prisma.BrandOrderByWithRelationInput
   campaign?: Prisma.CampaignOrderByWithRelationInput
-  messages?: Prisma.CopilotConversationMessageOrderByRelationAggregateInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingOrderByWithRelationInput
+  messages?: Prisma.CopilotConversationMessageOrderByRelationAggregateInput
 }
 
 export type CopilotConversationWhereUniqueInput = Prisma.AtLeast<{
@@ -241,8 +241,8 @@ export type CopilotConversationWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"CopilotConversation"> | Date | string
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
-  messages?: Prisma.CopilotConversationMessageListRelationFilter
   copilotConversationEmbedding?: Prisma.XOR<Prisma.CopilotConversationEmbeddingNullableScalarRelationFilter, Prisma.CopilotConversationEmbeddingWhereInput> | null
+  messages?: Prisma.CopilotConversationMessageListRelationFilter
 }, "id">
 
 export type CopilotConversationOrderByWithAggregationInput = {
@@ -282,8 +282,8 @@ export type CopilotConversationCreateInput = {
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCopilotConversationsInput
   campaign?: Prisma.CampaignCreateNestedOneWithoutCopilotConversationsInput
-  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationUncheckedCreateInput = {
@@ -295,8 +295,8 @@ export type CopilotConversationUncheckedCreateInput = {
   isArchived?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationUpdateInput = {
@@ -308,8 +308,8 @@ export type CopilotConversationUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCopilotConversationsNestedInput
   campaign?: Prisma.CampaignUpdateOneWithoutCopilotConversationsNestedInput
-  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationUncheckedUpdateInput = {
@@ -321,8 +321,8 @@ export type CopilotConversationUncheckedUpdateInput = {
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationCreateManyInput = {
@@ -524,8 +524,8 @@ export type CopilotConversationCreateWithoutBrandInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   campaign?: Prisma.CampaignCreateNestedOneWithoutCopilotConversationsInput
-  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationUncheckedCreateWithoutBrandInput = {
@@ -536,8 +536,8 @@ export type CopilotConversationUncheckedCreateWithoutBrandInput = {
   isArchived?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationCreateOrConnectWithoutBrandInput = {
@@ -588,8 +588,8 @@ export type CopilotConversationCreateWithoutCampaignInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brand: Prisma.BrandCreateNestedOneWithoutCopilotConversationsInput
-  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationUncheckedCreateWithoutCampaignInput = {
@@ -600,8 +600,8 @@ export type CopilotConversationUncheckedCreateWithoutCampaignInput = {
   isArchived?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedCreateNestedOneWithoutConversationInput
+  messages?: Prisma.CopilotConversationMessageUncheckedCreateNestedManyWithoutConversationInput
 }
 
 export type CopilotConversationCreateOrConnectWithoutCampaignInput = {
@@ -776,8 +776,8 @@ export type CopilotConversationUpdateWithoutBrandInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   campaign?: Prisma.CampaignUpdateOneWithoutCopilotConversationsNestedInput
-  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationUncheckedUpdateWithoutBrandInput = {
@@ -788,8 +788,8 @@ export type CopilotConversationUncheckedUpdateWithoutBrandInput = {
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationUncheckedUpdateManyWithoutBrandInput = {
@@ -820,8 +820,8 @@ export type CopilotConversationUpdateWithoutCampaignInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brand?: Prisma.BrandUpdateOneRequiredWithoutCopilotConversationsNestedInput
-  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationUncheckedUpdateWithoutCampaignInput = {
@@ -832,8 +832,8 @@ export type CopilotConversationUncheckedUpdateWithoutCampaignInput = {
   isArchived?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
   copilotConversationEmbedding?: Prisma.CopilotConversationEmbeddingUncheckedUpdateOneWithoutConversationNestedInput
+  messages?: Prisma.CopilotConversationMessageUncheckedUpdateManyWithoutConversationNestedInput
 }
 
 export type CopilotConversationUncheckedUpdateManyWithoutCampaignInput = {
@@ -888,8 +888,8 @@ export type CopilotConversationSelect<ExtArgs extends runtime.Types.Extensions.I
   updatedAt?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.CopilotConversation$campaignArgs<ExtArgs>
-  messages?: boolean | Prisma.CopilotConversation$messagesArgs<ExtArgs>
   copilotConversationEmbedding?: boolean | Prisma.CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs>
+  messages?: boolean | Prisma.CopilotConversation$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.CopilotConversationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["copilotConversation"]>
 
@@ -934,8 +934,8 @@ export type CopilotConversationOmit<ExtArgs extends runtime.Types.Extensions.Int
 export type CopilotConversationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.CopilotConversation$campaignArgs<ExtArgs>
-  messages?: boolean | Prisma.CopilotConversation$messagesArgs<ExtArgs>
   copilotConversationEmbedding?: boolean | Prisma.CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs>
+  messages?: boolean | Prisma.CopilotConversation$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.CopilotConversationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CopilotConversationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -952,8 +952,8 @@ export type $CopilotConversationPayload<ExtArgs extends runtime.Types.Extensions
   objects: {
     brand: Prisma.$BrandPayload<ExtArgs>
     campaign: Prisma.$CampaignPayload<ExtArgs> | null
-    messages: Prisma.$CopilotConversationMessagePayload<ExtArgs>[]
     copilotConversationEmbedding: Prisma.$CopilotConversationEmbeddingPayload<ExtArgs> | null
+    messages: Prisma.$CopilotConversationMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1360,8 +1360,8 @@ export interface Prisma__CopilotConversationClient<T, Null = never, ExtArgs exte
   readonly [Symbol.toStringTag]: "PrismaPromise"
   brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   campaign<T extends Prisma.CopilotConversation$campaignArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CopilotConversation$campaignArgs<ExtArgs>>): Prisma.Prisma__CampaignClient<runtime.Types.Result.GetResult<Prisma.$CampaignPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  messages<T extends Prisma.CopilotConversation$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CopilotConversation$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CopilotConversationMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   copilotConversationEmbedding<T extends Prisma.CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs>>): Prisma.Prisma__CopilotConversationEmbeddingClient<runtime.Types.Result.GetResult<Prisma.$CopilotConversationEmbeddingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  messages<T extends Prisma.CopilotConversation$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CopilotConversation$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CopilotConversationMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1819,6 +1819,25 @@ export type CopilotConversation$campaignArgs<ExtArgs extends runtime.Types.Exten
 }
 
 /**
+ * CopilotConversation.copilotConversationEmbedding
+ */
+export type CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CopilotConversationEmbedding
+   */
+  select?: Prisma.CopilotConversationEmbeddingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CopilotConversationEmbedding
+   */
+  omit?: Prisma.CopilotConversationEmbeddingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CopilotConversationEmbeddingInclude<ExtArgs> | null
+  where?: Prisma.CopilotConversationEmbeddingWhereInput
+}
+
+/**
  * CopilotConversation.messages
  */
 export type CopilotConversation$messagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1840,25 +1859,6 @@ export type CopilotConversation$messagesArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.CopilotConversationMessageScalarFieldEnum | Prisma.CopilotConversationMessageScalarFieldEnum[]
-}
-
-/**
- * CopilotConversation.copilotConversationEmbedding
- */
-export type CopilotConversation$copilotConversationEmbeddingArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the CopilotConversationEmbedding
-   */
-  select?: Prisma.CopilotConversationEmbeddingSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the CopilotConversationEmbedding
-   */
-  omit?: Prisma.CopilotConversationEmbeddingOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.CopilotConversationEmbeddingInclude<ExtArgs> | null
-  where?: Prisma.CopilotConversationEmbeddingWhereInput
 }
 
 /**

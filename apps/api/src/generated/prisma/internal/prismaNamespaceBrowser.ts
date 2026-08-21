@@ -83,7 +83,8 @@ export const ModelName = {
   PromptTemplate: 'PromptTemplate',
   BrandMemoryFact: 'BrandMemoryFact',
   EngineeringSnapshot: 'EngineeringSnapshot',
-  EngineeringAudit: 'EngineeringAudit'
+  EngineeringAudit: 'EngineeringAudit',
+  ImageGenerationSetting: 'ImageGenerationSetting'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -147,14 +148,14 @@ export const BrandScalarFieldEnum = {
   forbiddenWords: 'forbiddenWords',
   brandRules: 'brandRules',
   examplePosts: 'examplePosts',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   primaryLogoAssetId: 'primaryLogoAssetId',
   brandBannerAssetId: 'brandBannerAssetId',
   mascotAssetId: 'mascotAssetId',
   referenceAssetIds: 'referenceAssetIds',
-  brandKit: 'brandKit',
-  status: 'status',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  brandKit: 'brandKit'
 } as const
 
 export type BrandScalarFieldEnum = (typeof BrandScalarFieldEnum)[keyof typeof BrandScalarFieldEnum]
@@ -169,9 +170,9 @@ export const CampaignScalarFieldEnum = {
   status: 'status',
   startDate: 'startDate',
   endDate: 'endDate',
-  brandRenderingSettings: 'brandRenderingSettings',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings'
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
@@ -198,8 +199,6 @@ export type CampaignIdeaScalarFieldEnum = (typeof CampaignIdeaScalarFieldEnum)[k
 export const GenerationHistoryScalarFieldEnum = {
   id: 'id',
   brandId: 'brandId',
-  campaignId: 'campaignId',
-  ideaId: 'ideaId',
   topic: 'topic',
   platforms: 'platforms',
   style: 'style',
@@ -210,14 +209,16 @@ export const GenerationHistoryScalarFieldEnum = {
   imagePrompt: 'imagePrompt',
   analysis: 'analysis',
   isFavorite: 'isFavorite',
-  status: 'status',
-  reviewNote: 'reviewNote',
-  reviewedBy: 'reviewedBy',
-  reviewedAt: 'reviewedAt',
-  approvedAt: 'approvedAt',
-  publishedAt: 'publishedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  campaignId: 'campaignId',
+  ideaId: 'ideaId',
+  approvedAt: 'approvedAt',
+  publishedAt: 'publishedAt',
+  reviewNote: 'reviewNote',
+  reviewedAt: 'reviewedAt',
+  reviewedBy: 'reviewedBy',
+  status: 'status',
   socialChannelRuntimeProfileId: 'socialChannelRuntimeProfileId'
 } as const
 
@@ -247,30 +248,30 @@ export const AssetScalarFieldEnum = {
   provider: 'provider',
   platform: 'platform',
   prompt: 'prompt',
-  revisedPrompt: 'revisedPrompt',
-  negativePrompt: 'negativePrompt',
-  generationModel: 'generationModel',
-  generationSize: 'generationSize',
-  generationQuality: 'generationQuality',
-  generationDurationMs: 'generationDurationMs',
   url: 'url',
   thumbnailUrl: 'thumbnailUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  fileSize: 'fileSize',
   mimeType: 'mimeType',
   width: 'width',
   height: 'height',
-  tags: 'tags',
-  collection: 'collection',
-  remark: 'remark',
-  aiEnabled: 'aiEnabled',
   isFavorite: 'isFavorite',
-  downloadCount: 'downloadCount',
-  usedCount: 'usedCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  collection: 'collection',
+  downloadCount: 'downloadCount',
+  fileSize: 'fileSize',
+  generationDurationMs: 'generationDurationMs',
+  generationModel: 'generationModel',
+  generationQuality: 'generationQuality',
+  generationSize: 'generationSize',
+  lastUsedAt: 'lastUsedAt',
+  negativePrompt: 'negativePrompt',
+  revisedPrompt: 'revisedPrompt',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider',
+  tags: 'tags',
+  usedCount: 'usedCount',
+  remark: 'remark',
+  aiEnabled: 'aiEnabled'
 } as const
 
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
@@ -283,16 +284,16 @@ export const KnowledgeDocumentScalarFieldEnum = {
   category: 'category',
   content: 'content',
   tags: 'tags',
-  sourceFileName: 'sourceFileName',
-  sourceMimeType: 'sourceMimeType',
-  sourceFileSize: 'sourceFileSize',
-  sourceUrl: 'sourceUrl',
-  storageProvider: 'storageProvider',
-  storagePath: 'storagePath',
-  usageCount: 'usageCount',
-  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  lastUsedAt: 'lastUsedAt',
+  usageCount: 'usageCount',
+  sourceFileName: 'sourceFileName',
+  sourceFileSize: 'sourceFileSize',
+  sourceMimeType: 'sourceMimeType',
+  sourceUrl: 'sourceUrl',
+  storagePath: 'storagePath',
+  storageProvider: 'storageProvider'
 } as const
 
 export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
@@ -302,16 +303,16 @@ export const KnowledgeEmbeddingScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
   brandId: 'brandId',
-  chunkIndex: 'chunkIndex',
-  chunkText: 'chunkText',
-  startOffset: 'startOffset',
-  endOffset: 'endOffset',
   vector: 'vector',
   model: 'model',
   dimensions: 'dimensions',
   contentHash: 'contentHash',
   embeddedAt: 'embeddedAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  chunkIndex: 'chunkIndex',
+  chunkText: 'chunkText',
+  endOffset: 'endOffset',
+  startOffset: 'startOffset'
 } as const
 
 export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalarFieldEnum)[keyof typeof KnowledgeEmbeddingScalarFieldEnum]
@@ -320,18 +321,18 @@ export type KnowledgeEmbeddingScalarFieldEnum = (typeof KnowledgeEmbeddingScalar
 export const AiUsageScalarFieldEnum = {
   id: 'id',
   historyId: 'historyId',
-  conversationId: 'conversationId',
-  feature: 'feature',
   model: 'model',
   promptTokens: 'promptTokens',
-  cachedInputTokens: 'cachedInputTokens',
   completionTokens: 'completionTokens',
-  reasoningTokens: 'reasoningTokens',
   totalTokens: 'totalTokens',
   estimatedCostUsd: 'estimatedCostUsd',
   estimatedCostMyr: 'estimatedCostMyr',
   durationMs: 'durationMs',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  cachedInputTokens: 'cachedInputTokens',
+  conversationId: 'conversationId',
+  feature: 'feature',
+  reasoningTokens: 'reasoningTokens'
 } as const
 
 export type AiUsageScalarFieldEnum = (typeof AiUsageScalarFieldEnum)[keyof typeof AiUsageScalarFieldEnum]
@@ -348,11 +349,11 @@ export const SocialChannelScalarFieldEnum = {
   status: 'status',
   accessTokenEncrypted: 'accessTokenEncrypted',
   tokenExpiresAt: 'tokenExpiresAt',
-  publishingPreference: 'publishingPreference',
   lastConnectedAt: 'lastConnectedAt',
   lastError: 'lastError',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  publishingPreference: 'publishingPreference'
 } as const
 
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
@@ -365,13 +366,6 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
   browserProfileName: 'browserProfileName',
   locale: 'locale',
   timezone: 'timezone',
-  browserEngine: 'browserEngine',
-  operatingSystem: 'operatingSystem',
-  userAgent: 'userAgent',
-  screenWidth: 'screenWidth',
-  screenHeight: 'screenHeight',
-  deviceScaleFactor: 'deviceScaleFactor',
-  identityLocked: 'identityLocked',
   proxyType: 'proxyType',
   proxyHost: 'proxyHost',
   proxyPort: 'proxyPort',
@@ -383,7 +377,14 @@ export const SocialChannelRuntimeProfileScalarFieldEnum = {
   lastConnectionError: 'lastConnectionError',
   lastConnectionTestAt: 'lastConnectionTestAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  deviceScaleFactor: 'deviceScaleFactor',
+  identityLocked: 'identityLocked',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent'
 } as const
 
 export type SocialChannelRuntimeProfileScalarFieldEnum = (typeof SocialChannelRuntimeProfileScalarFieldEnum)[keyof typeof SocialChannelRuntimeProfileScalarFieldEnum]
@@ -397,24 +398,8 @@ export const BrowserAccountScalarFieldEnum = {
   displayName: 'displayName',
   browserProfileKey: 'browserProfileKey',
   browserProfileName: 'browserProfileName',
-  facebookEmailEncrypted: 'facebookEmailEncrypted',
-  facebookPasswordEncrypted: 'facebookPasswordEncrypted',
-  facebookEmailHash: 'facebookEmailHash',
   locale: 'locale',
   timezone: 'timezone',
-  browserEngine: 'browserEngine',
-  operatingSystem: 'operatingSystem',
-  userAgent: 'userAgent',
-  screenWidth: 'screenWidth',
-  screenHeight: 'screenHeight',
-  deviceScaleFactor: 'deviceScaleFactor',
-  colorScheme: 'colorScheme',
-  hardwareConcurrency: 'hardwareConcurrency',
-  deviceMemory: 'deviceMemory',
-  webglVendor: 'webglVendor',
-  webglRenderer: 'webglRenderer',
-  identityLocked: 'identityLocked',
-  identityVersion: 'identityVersion',
   proxyType: 'proxyType',
   proxyHost: 'proxyHost',
   proxyPort: 'proxyPort',
@@ -426,17 +411,33 @@ export const BrowserAccountScalarFieldEnum = {
   loginStatus: 'loginStatus',
   cookieStatus: 'cookieStatus',
   lastKnownIp: 'lastKnownIp',
-  expectedIp: 'expectedIp',
-  lastIpCheckedAt: 'lastIpCheckedAt',
-  ipStatus: 'ipStatus',
   lastLoginAt: 'lastLoginAt',
   lastVerifiedAt: 'lastVerifiedAt',
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastLoginError: 'lastLoginError',
-  fingerprintStatus: 'fingerprintStatus',
-  identityError: 'identityError',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  browserEngine: 'browserEngine',
+  colorScheme: 'colorScheme',
+  deviceMemory: 'deviceMemory',
+  deviceScaleFactor: 'deviceScaleFactor',
+  expectedIp: 'expectedIp',
+  facebookEmailEncrypted: 'facebookEmailEncrypted',
+  facebookPasswordEncrypted: 'facebookPasswordEncrypted',
+  fingerprintStatus: 'fingerprintStatus',
+  hardwareConcurrency: 'hardwareConcurrency',
+  identityError: 'identityError',
+  identityLocked: 'identityLocked',
+  identityVersion: 'identityVersion',
+  ipStatus: 'ipStatus',
+  lastIpCheckedAt: 'lastIpCheckedAt',
+  operatingSystem: 'operatingSystem',
+  screenHeight: 'screenHeight',
+  screenWidth: 'screenWidth',
+  userAgent: 'userAgent',
+  webglRenderer: 'webglRenderer',
+  webglVendor: 'webglVendor',
+  facebookEmailHash: 'facebookEmailHash'
 } as const
 
 export type BrowserAccountScalarFieldEnum = (typeof BrowserAccountScalarFieldEnum)[keyof typeof BrowserAccountScalarFieldEnum]
@@ -510,10 +511,8 @@ export const ScheduledPostScalarFieldEnum = {
   historyId: 'historyId',
   platform: 'platform',
   title: 'title',
-  dedupeKey: 'dedupeKey',
   content: 'content',
   mediaUrls: 'mediaUrls',
-  brandRenderingSettings: 'brandRenderingSettings',
   scheduledAt: 'scheduledAt',
   timezone: 'timezone',
   status: 'status',
@@ -523,7 +522,9 @@ export const ScheduledPostScalarFieldEnum = {
   lastError: 'lastError',
   retryCount: 'retryCount',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  brandRenderingSettings: 'brandRenderingSettings',
+  dedupeKey: 'dedupeKey'
 } as const
 
 export type ScheduledPostScalarFieldEnum = (typeof ScheduledPostScalarFieldEnum)[keyof typeof ScheduledPostScalarFieldEnum]
@@ -550,7 +551,6 @@ export const BrowserActionHistoryScalarFieldEnum = {
   channelId: 'channelId',
   action: 'action',
   status: 'status',
-  flowId: 'flowId',
   browserProfileKey: 'browserProfileKey',
   caption: 'caption',
   imagePath: 'imagePath',
@@ -561,7 +561,8 @@ export const BrowserActionHistoryScalarFieldEnum = {
   startedAt: 'startedAt',
   completedAt: 'completedAt',
   durationMs: 'durationMs',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  flowId: 'flowId'
 } as const
 
 export type BrowserActionHistoryScalarFieldEnum = (typeof BrowserActionHistoryScalarFieldEnum)[keyof typeof BrowserActionHistoryScalarFieldEnum]
@@ -619,29 +620,18 @@ export const SportsNewsSettingScalarFieldEnum = {
   telegramChannelId: 'telegramChannelId',
   facebookEnabled: 'facebookEnabled',
   facebookChannelId: 'facebookChannelId',
-  morningTelegramEnabled: 'morningTelegramEnabled',
-  morningFacebookEnabled: 'morningFacebookEnabled',
-  eveningTelegramEnabled: 'eveningTelegramEnabled',
-  eveningFacebookEnabled: 'eveningFacebookEnabled',
   autoPublishEnabled: 'autoPublishEnabled',
   approvalRequired: 'approvalRequired',
   language: 'language',
   sportsKnowledgeEnabled: 'sportsKnowledgeEnabled',
   discussionQuestionEnabled: 'discussionQuestionEnabled',
   referenceLinksEnabled: 'referenceLinksEnabled',
-  sameDaySourcesOnly: 'sameDaySourcesOnly',
-  maxSourceAgeHours: 'maxSourceAgeHours',
-  requirePublishedAt: 'requirePublishedAt',
-  requireSourceUrl: 'requireSourceUrl',
-  minimumSources: 'minimumSources',
-  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
   customPromptEnabled: 'customPromptEnabled',
   systemPrompt: 'systemPrompt',
   morningPrompt: 'morningPrompt',
   eveningPrompt: 'eveningPrompt',
   knowledgePrompt: 'knowledgePrompt',
   customInstructions: 'customInstructions',
-  channelOverrides: 'channelOverrides',
   imageEnabled: 'imageEnabled',
   imagePrompt: 'imagePrompt',
   morningImagePrompt: 'morningImagePrompt',
@@ -653,6 +643,32 @@ export const SportsNewsSettingScalarFieldEnum = {
   logoPosition: 'logoPosition',
   brandFooterEnabled: 'brandFooterEnabled',
   brandFooterText: 'brandFooterText',
+  lastMorningRunAt: 'lastMorningRunAt',
+  lastEveningRunAt: 'lastEveningRunAt',
+  lastRunStatus: 'lastRunStatus',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  morningTelegramEnabled: 'morningTelegramEnabled',
+  morningFacebookEnabled: 'morningFacebookEnabled',
+  eveningTelegramEnabled: 'eveningTelegramEnabled',
+  eveningFacebookEnabled: 'eveningFacebookEnabled',
+  sameDaySourcesOnly: 'sameDaySourcesOnly',
+  maxSourceAgeHours: 'maxSourceAgeHours',
+  requirePublishedAt: 'requirePublishedAt',
+  requireSourceUrl: 'requireSourceUrl',
+  minimumSources: 'minimumSources',
+  freshnessFallbackEnabled: 'freshnessFallbackEnabled',
+  logoAssetId: 'logoAssetId',
+  logoSize: 'logoSize',
+  logoOpacity: 'logoOpacity',
+  logoMargin: 'logoMargin',
+  footerLogoEnabled: 'footerLogoEnabled',
+  footerLogoAssetId: 'footerLogoAssetId',
+  footerQrEnabled: 'footerQrEnabled',
+  footerQrAssetId: 'footerQrAssetId',
+  footerQrLink: 'footerQrLink',
+  footerPlacement: 'footerPlacement',
   storyMinimum: 'storyMinimum',
   storyMaximum: 'storyMaximum',
   sportsPriority: 'sportsPriority',
@@ -690,9 +706,6 @@ export const SportsNewsSettingScalarFieldEnum = {
   imageUpperSafeAreaPrompt: 'imageUpperSafeAreaPrompt',
   imageLowerSafeAreaPrompt: 'imageLowerSafeAreaPrompt',
   imageLayoutEnabled: 'imageLayoutEnabled',
-  storyPanelEnabled: 'storyPanelEnabled',
-  mastheadEnabled: 'mastheadEnabled',
-  headlineTextEnabled: 'headlineTextEnabled',
   mastheadScale: 'mastheadScale',
   mastheadTopPercent: 'mastheadTopPercent',
   highlightsPanelWidthPercent: 'highlightsPanelWidthPercent',
@@ -728,17 +741,6 @@ export const SportsNewsSettingScalarFieldEnum = {
   watermarkScale: 'watermarkScale',
   watermarkOpacity: 'watermarkOpacity',
   watermarkPosition: 'watermarkPosition',
-  logoAssetId: 'logoAssetId',
-  logoSize: 'logoSize',
-  logoOpacity: 'logoOpacity',
-  logoMargin: 'logoMargin',
-  footerLogoEnabled: 'footerLogoEnabled',
-  footerLogoAssetId: 'footerLogoAssetId',
-  footerQrEnabled: 'footerQrEnabled',
-  footerTextEnabled: 'footerTextEnabled',
-  footerQrAssetId: 'footerQrAssetId',
-  footerQrLink: 'footerQrLink',
-  footerPlacement: 'footerPlacement',
   qrSizePercent: 'qrSizePercent',
   qrMarginPercent: 'qrMarginPercent',
   footerDateEnabled: 'footerDateEnabled',
@@ -791,12 +793,11 @@ export const SportsNewsSettingScalarFieldEnum = {
   previewImagePromptEnabled: 'previewImagePromptEnabled',
   previewTelegramCaptionEnabled: 'previewTelegramCaptionEnabled',
   recommendedDefaultsVersion: 'recommendedDefaultsVersion',
-  lastMorningRunAt: 'lastMorningRunAt',
-  lastEveningRunAt: 'lastEveningRunAt',
-  lastRunStatus: 'lastRunStatus',
-  lastError: 'lastError',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  storyPanelEnabled: 'storyPanelEnabled',
+  mastheadEnabled: 'mastheadEnabled',
+  headlineTextEnabled: 'headlineTextEnabled',
+  footerTextEnabled: 'footerTextEnabled',
+  channelOverrides: 'channelOverrides'
 } as const
 
 export type SportsNewsSettingScalarFieldEnum = (typeof SportsNewsSettingScalarFieldEnum)[keyof typeof SportsNewsSettingScalarFieldEnum]
@@ -806,12 +807,10 @@ export const AiRuntimeSettingScalarFieldEnum = {
   id: 'id',
   textModel: 'textModel',
   imageModel: 'imageModel',
-  imageGenerationInstructions: 'imageGenerationInstructions',
-  imageNegativeInstructions: 'imageNegativeInstructions',
-  imageModelLogoEnabled: 'imageModelLogoEnabled',
-  imageAtlasLogoOverlayEnabled: 'imageAtlasLogoOverlayEnabled',
   embeddingModel: 'embeddingModel',
   sportsNewsModel: 'sportsNewsModel',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   aiStudioModel: 'aiStudioModel',
   aiStudioInstructions: 'aiStudioInstructions',
   aiStudioTimeoutMs: 'aiStudioTimeoutMs',
@@ -822,8 +821,10 @@ export const AiRuntimeSettingScalarFieldEnum = {
   copilotConversationRecallLimit: 'copilotConversationRecallLimit',
   copilotStudioHistoryLimit: 'copilotStudioHistoryLimit',
   copilotContextMaxChars: 'copilotContextMaxChars',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  imageGenerationInstructions: 'imageGenerationInstructions',
+  imageNegativeInstructions: 'imageNegativeInstructions',
+  imageModelLogoEnabled: 'imageModelLogoEnabled',
+  imageAtlasLogoOverlayEnabled: 'imageAtlasLogoOverlayEnabled'
 } as const
 
 export type AiRuntimeSettingScalarFieldEnum = (typeof AiRuntimeSettingScalarFieldEnum)[keyof typeof AiRuntimeSettingScalarFieldEnum]
@@ -948,6 +949,28 @@ export const EngineeringAuditScalarFieldEnum = {
 } as const
 
 export type EngineeringAuditScalarFieldEnum = (typeof EngineeringAuditScalarFieldEnum)[keyof typeof EngineeringAuditScalarFieldEnum]
+
+
+export const ImageGenerationSettingScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  pageId: 'pageId',
+  channelId: 'channelId',
+  textOverlayEnabled: 'textOverlayEnabled',
+  brandFooterEnabled: 'brandFooterEnabled',
+  footerText: 'footerText',
+  footerPosition: 'footerPosition',
+  footerStyle: 'footerStyle',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  footerLogoMode: 'footerLogoMode',
+  cornerLogoEnabled: 'cornerLogoEnabled',
+  cornerLogoPlacement: 'cornerLogoPlacement',
+  cornerLogoScale: 'cornerLogoScale',
+  cornerLogoOpacity: 'cornerLogoOpacity'
+} as const
+
+export type ImageGenerationSettingScalarFieldEnum = (typeof ImageGenerationSettingScalarFieldEnum)[keyof typeof ImageGenerationSettingScalarFieldEnum]
 
 
 export const SortOrder = {

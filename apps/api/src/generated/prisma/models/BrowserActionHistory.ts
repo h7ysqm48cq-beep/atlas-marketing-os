@@ -39,7 +39,6 @@ export type BrowserActionHistoryMinAggregateOutputType = {
   channelId: string | null
   action: $Enums.BrowserActionType | null
   status: $Enums.BrowserActionStatus | null
-  flowId: string | null
   browserProfileKey: string | null
   caption: string | null
   imagePath: string | null
@@ -49,6 +48,7 @@ export type BrowserActionHistoryMinAggregateOutputType = {
   completedAt: Date | null
   durationMs: number | null
   createdAt: Date | null
+  flowId: string | null
 }
 
 export type BrowserActionHistoryMaxAggregateOutputType = {
@@ -56,7 +56,6 @@ export type BrowserActionHistoryMaxAggregateOutputType = {
   channelId: string | null
   action: $Enums.BrowserActionType | null
   status: $Enums.BrowserActionStatus | null
-  flowId: string | null
   browserProfileKey: string | null
   caption: string | null
   imagePath: string | null
@@ -66,6 +65,7 @@ export type BrowserActionHistoryMaxAggregateOutputType = {
   completedAt: Date | null
   durationMs: number | null
   createdAt: Date | null
+  flowId: string | null
 }
 
 export type BrowserActionHistoryCountAggregateOutputType = {
@@ -73,7 +73,6 @@ export type BrowserActionHistoryCountAggregateOutputType = {
   channelId: number
   action: number
   status: number
-  flowId: number
   browserProfileKey: number
   caption: number
   imagePath: number
@@ -85,6 +84,7 @@ export type BrowserActionHistoryCountAggregateOutputType = {
   completedAt: number
   durationMs: number
   createdAt: number
+  flowId: number
   _all: number
 }
 
@@ -102,7 +102,6 @@ export type BrowserActionHistoryMinAggregateInputType = {
   channelId?: true
   action?: true
   status?: true
-  flowId?: true
   browserProfileKey?: true
   caption?: true
   imagePath?: true
@@ -112,6 +111,7 @@ export type BrowserActionHistoryMinAggregateInputType = {
   completedAt?: true
   durationMs?: true
   createdAt?: true
+  flowId?: true
 }
 
 export type BrowserActionHistoryMaxAggregateInputType = {
@@ -119,7 +119,6 @@ export type BrowserActionHistoryMaxAggregateInputType = {
   channelId?: true
   action?: true
   status?: true
-  flowId?: true
   browserProfileKey?: true
   caption?: true
   imagePath?: true
@@ -129,6 +128,7 @@ export type BrowserActionHistoryMaxAggregateInputType = {
   completedAt?: true
   durationMs?: true
   createdAt?: true
+  flowId?: true
 }
 
 export type BrowserActionHistoryCountAggregateInputType = {
@@ -136,7 +136,6 @@ export type BrowserActionHistoryCountAggregateInputType = {
   channelId?: true
   action?: true
   status?: true
-  flowId?: true
   browserProfileKey?: true
   caption?: true
   imagePath?: true
@@ -148,6 +147,7 @@ export type BrowserActionHistoryCountAggregateInputType = {
   completedAt?: true
   durationMs?: true
   createdAt?: true
+  flowId?: true
   _all?: true
 }
 
@@ -242,7 +242,6 @@ export type BrowserActionHistoryGroupByOutputType = {
   channelId: string
   action: $Enums.BrowserActionType
   status: $Enums.BrowserActionStatus
-  flowId: string | null
   browserProfileKey: string | null
   caption: string | null
   imagePath: string | null
@@ -254,6 +253,7 @@ export type BrowserActionHistoryGroupByOutputType = {
   completedAt: Date | null
   durationMs: number | null
   createdAt: Date
+  flowId: string | null
   _count: BrowserActionHistoryCountAggregateOutputType | null
   _avg: BrowserActionHistoryAvgAggregateOutputType | null
   _sum: BrowserActionHistorySumAggregateOutputType | null
@@ -284,7 +284,6 @@ export type BrowserActionHistoryWhereInput = {
   channelId?: Prisma.StringFilter<"BrowserActionHistory"> | string
   action?: Prisma.EnumBrowserActionTypeFilter<"BrowserActionHistory"> | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFilter<"BrowserActionHistory"> | $Enums.BrowserActionStatus
-  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   browserProfileKey?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   caption?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   imagePath?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
@@ -296,6 +295,7 @@ export type BrowserActionHistoryWhereInput = {
   completedAt?: Prisma.DateTimeNullableFilter<"BrowserActionHistory"> | Date | string | null
   durationMs?: Prisma.IntNullableFilter<"BrowserActionHistory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"BrowserActionHistory"> | Date | string
+  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
   traces?: Prisma.BrowserActionTraceListRelationFilter
 }
@@ -305,7 +305,6 @@ export type BrowserActionHistoryOrderByWithRelationInput = {
   channelId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  flowId?: Prisma.SortOrderInput | Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrderInput | Prisma.SortOrder
   caption?: Prisma.SortOrderInput | Prisma.SortOrder
   imagePath?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -317,6 +316,7 @@ export type BrowserActionHistoryOrderByWithRelationInput = {
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  flowId?: Prisma.SortOrderInput | Prisma.SortOrder
   channel?: Prisma.SocialChannelOrderByWithRelationInput
   traces?: Prisma.BrowserActionTraceOrderByRelationAggregateInput
 }
@@ -329,7 +329,6 @@ export type BrowserActionHistoryWhereUniqueInput = Prisma.AtLeast<{
   channelId?: Prisma.StringFilter<"BrowserActionHistory"> | string
   action?: Prisma.EnumBrowserActionTypeFilter<"BrowserActionHistory"> | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFilter<"BrowserActionHistory"> | $Enums.BrowserActionStatus
-  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   browserProfileKey?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   caption?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   imagePath?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
@@ -341,6 +340,7 @@ export type BrowserActionHistoryWhereUniqueInput = Prisma.AtLeast<{
   completedAt?: Prisma.DateTimeNullableFilter<"BrowserActionHistory"> | Date | string | null
   durationMs?: Prisma.IntNullableFilter<"BrowserActionHistory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"BrowserActionHistory"> | Date | string
+  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   channel?: Prisma.XOR<Prisma.SocialChannelScalarRelationFilter, Prisma.SocialChannelWhereInput>
   traces?: Prisma.BrowserActionTraceListRelationFilter
 }, "id">
@@ -350,7 +350,6 @@ export type BrowserActionHistoryOrderByWithAggregationInput = {
   channelId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  flowId?: Prisma.SortOrderInput | Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrderInput | Prisma.SortOrder
   caption?: Prisma.SortOrderInput | Prisma.SortOrder
   imagePath?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -362,6 +361,7 @@ export type BrowserActionHistoryOrderByWithAggregationInput = {
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  flowId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BrowserActionHistoryCountOrderByAggregateInput
   _avg?: Prisma.BrowserActionHistoryAvgOrderByAggregateInput
   _max?: Prisma.BrowserActionHistoryMaxOrderByAggregateInput
@@ -377,7 +377,6 @@ export type BrowserActionHistoryScalarWhereWithAggregatesInput = {
   channelId?: Prisma.StringWithAggregatesFilter<"BrowserActionHistory"> | string
   action?: Prisma.EnumBrowserActionTypeWithAggregatesFilter<"BrowserActionHistory"> | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusWithAggregatesFilter<"BrowserActionHistory"> | $Enums.BrowserActionStatus
-  flowId?: Prisma.StringNullableWithAggregatesFilter<"BrowserActionHistory"> | string | null
   browserProfileKey?: Prisma.StringNullableWithAggregatesFilter<"BrowserActionHistory"> | string | null
   caption?: Prisma.StringNullableWithAggregatesFilter<"BrowserActionHistory"> | string | null
   imagePath?: Prisma.StringNullableWithAggregatesFilter<"BrowserActionHistory"> | string | null
@@ -389,13 +388,13 @@ export type BrowserActionHistoryScalarWhereWithAggregatesInput = {
   completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrowserActionHistory"> | Date | string | null
   durationMs?: Prisma.IntNullableWithAggregatesFilter<"BrowserActionHistory"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BrowserActionHistory"> | Date | string
+  flowId?: Prisma.StringNullableWithAggregatesFilter<"BrowserActionHistory"> | string | null
 }
 
 export type BrowserActionHistoryCreateInput = {
   id?: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -407,6 +406,7 @@ export type BrowserActionHistoryCreateInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
   channel: Prisma.SocialChannelCreateNestedOneWithoutBrowserActionHistoryInput
   traces?: Prisma.BrowserActionTraceCreateNestedManyWithoutBrowserActionInput
 }
@@ -416,7 +416,6 @@ export type BrowserActionHistoryUncheckedCreateInput = {
   channelId: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -428,6 +427,7 @@ export type BrowserActionHistoryUncheckedCreateInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
   traces?: Prisma.BrowserActionTraceUncheckedCreateNestedManyWithoutBrowserActionInput
 }
 
@@ -435,7 +435,6 @@ export type BrowserActionHistoryUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -447,6 +446,7 @@ export type BrowserActionHistoryUpdateInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.SocialChannelUpdateOneRequiredWithoutBrowserActionHistoryNestedInput
   traces?: Prisma.BrowserActionTraceUpdateManyWithoutBrowserActionNestedInput
 }
@@ -456,7 +456,6 @@ export type BrowserActionHistoryUncheckedUpdateInput = {
   channelId?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -468,6 +467,7 @@ export type BrowserActionHistoryUncheckedUpdateInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   traces?: Prisma.BrowserActionTraceUncheckedUpdateManyWithoutBrowserActionNestedInput
 }
 
@@ -476,7 +476,6 @@ export type BrowserActionHistoryCreateManyInput = {
   channelId: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -488,13 +487,13 @@ export type BrowserActionHistoryCreateManyInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
 }
 
 export type BrowserActionHistoryUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -506,6 +505,7 @@ export type BrowserActionHistoryUpdateManyMutationInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrowserActionHistoryUncheckedUpdateManyInput = {
@@ -513,7 +513,6 @@ export type BrowserActionHistoryUncheckedUpdateManyInput = {
   channelId?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -525,6 +524,7 @@ export type BrowserActionHistoryUncheckedUpdateManyInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrowserActionHistoryListRelationFilter = {
@@ -542,7 +542,6 @@ export type BrowserActionHistoryCountOrderByAggregateInput = {
   channelId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  flowId?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   caption?: Prisma.SortOrder
   imagePath?: Prisma.SortOrder
@@ -554,6 +553,7 @@ export type BrowserActionHistoryCountOrderByAggregateInput = {
   completedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  flowId?: Prisma.SortOrder
 }
 
 export type BrowserActionHistoryAvgOrderByAggregateInput = {
@@ -565,7 +565,6 @@ export type BrowserActionHistoryMaxOrderByAggregateInput = {
   channelId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  flowId?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   caption?: Prisma.SortOrder
   imagePath?: Prisma.SortOrder
@@ -575,6 +574,7 @@ export type BrowserActionHistoryMaxOrderByAggregateInput = {
   completedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  flowId?: Prisma.SortOrder
 }
 
 export type BrowserActionHistoryMinOrderByAggregateInput = {
@@ -582,7 +582,6 @@ export type BrowserActionHistoryMinOrderByAggregateInput = {
   channelId?: Prisma.SortOrder
   action?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  flowId?: Prisma.SortOrder
   browserProfileKey?: Prisma.SortOrder
   caption?: Prisma.SortOrder
   imagePath?: Prisma.SortOrder
@@ -592,6 +591,7 @@ export type BrowserActionHistoryMinOrderByAggregateInput = {
   completedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  flowId?: Prisma.SortOrder
 }
 
 export type BrowserActionHistorySumOrderByAggregateInput = {
@@ -671,7 +671,6 @@ export type BrowserActionHistoryCreateWithoutChannelInput = {
   id?: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -683,6 +682,7 @@ export type BrowserActionHistoryCreateWithoutChannelInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
   traces?: Prisma.BrowserActionTraceCreateNestedManyWithoutBrowserActionInput
 }
 
@@ -690,7 +690,6 @@ export type BrowserActionHistoryUncheckedCreateWithoutChannelInput = {
   id?: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -702,6 +701,7 @@ export type BrowserActionHistoryUncheckedCreateWithoutChannelInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
   traces?: Prisma.BrowserActionTraceUncheckedCreateNestedManyWithoutBrowserActionInput
 }
 
@@ -739,7 +739,6 @@ export type BrowserActionHistoryScalarWhereInput = {
   channelId?: Prisma.StringFilter<"BrowserActionHistory"> | string
   action?: Prisma.EnumBrowserActionTypeFilter<"BrowserActionHistory"> | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFilter<"BrowserActionHistory"> | $Enums.BrowserActionStatus
-  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   browserProfileKey?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   caption?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
   imagePath?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
@@ -751,13 +750,13 @@ export type BrowserActionHistoryScalarWhereInput = {
   completedAt?: Prisma.DateTimeNullableFilter<"BrowserActionHistory"> | Date | string | null
   durationMs?: Prisma.IntNullableFilter<"BrowserActionHistory"> | number | null
   createdAt?: Prisma.DateTimeFilter<"BrowserActionHistory"> | Date | string
+  flowId?: Prisma.StringNullableFilter<"BrowserActionHistory"> | string | null
 }
 
 export type BrowserActionHistoryCreateWithoutTracesInput = {
   id?: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -769,6 +768,7 @@ export type BrowserActionHistoryCreateWithoutTracesInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
   channel: Prisma.SocialChannelCreateNestedOneWithoutBrowserActionHistoryInput
 }
 
@@ -777,7 +777,6 @@ export type BrowserActionHistoryUncheckedCreateWithoutTracesInput = {
   channelId: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -789,6 +788,7 @@ export type BrowserActionHistoryUncheckedCreateWithoutTracesInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
 }
 
 export type BrowserActionHistoryCreateOrConnectWithoutTracesInput = {
@@ -811,7 +811,6 @@ export type BrowserActionHistoryUpdateWithoutTracesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -823,6 +822,7 @@ export type BrowserActionHistoryUpdateWithoutTracesInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.SocialChannelUpdateOneRequiredWithoutBrowserActionHistoryNestedInput
 }
 
@@ -831,7 +831,6 @@ export type BrowserActionHistoryUncheckedUpdateWithoutTracesInput = {
   channelId?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -843,13 +842,13 @@ export type BrowserActionHistoryUncheckedUpdateWithoutTracesInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrowserActionHistoryCreateManyChannelInput = {
   id?: string
   action: $Enums.BrowserActionType
   status?: $Enums.BrowserActionStatus
-  flowId?: string | null
   browserProfileKey?: string | null
   caption?: string | null
   imagePath?: string | null
@@ -861,13 +860,13 @@ export type BrowserActionHistoryCreateManyChannelInput = {
   completedAt?: Date | string | null
   durationMs?: number | null
   createdAt?: Date | string
+  flowId?: string | null
 }
 
 export type BrowserActionHistoryUpdateWithoutChannelInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -879,6 +878,7 @@ export type BrowserActionHistoryUpdateWithoutChannelInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   traces?: Prisma.BrowserActionTraceUpdateManyWithoutBrowserActionNestedInput
 }
 
@@ -886,7 +886,6 @@ export type BrowserActionHistoryUncheckedUpdateWithoutChannelInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -898,6 +897,7 @@ export type BrowserActionHistoryUncheckedUpdateWithoutChannelInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   traces?: Prisma.BrowserActionTraceUncheckedUpdateManyWithoutBrowserActionNestedInput
 }
 
@@ -905,7 +905,6 @@ export type BrowserActionHistoryUncheckedUpdateManyWithoutChannelInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.EnumBrowserActionTypeFieldUpdateOperationsInput | $Enums.BrowserActionType
   status?: Prisma.EnumBrowserActionStatusFieldUpdateOperationsInput | $Enums.BrowserActionStatus
-  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserProfileKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -917,6 +916,7 @@ export type BrowserActionHistoryUncheckedUpdateManyWithoutChannelInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  flowId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -955,7 +955,6 @@ export type BrowserActionHistorySelect<ExtArgs extends runtime.Types.Extensions.
   channelId?: boolean
   action?: boolean
   status?: boolean
-  flowId?: boolean
   browserProfileKey?: boolean
   caption?: boolean
   imagePath?: boolean
@@ -967,6 +966,7 @@ export type BrowserActionHistorySelect<ExtArgs extends runtime.Types.Extensions.
   completedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
+  flowId?: boolean
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   traces?: boolean | Prisma.BrowserActionHistory$tracesArgs<ExtArgs>
   _count?: boolean | Prisma.BrowserActionHistoryCountOutputTypeDefaultArgs<ExtArgs>
@@ -977,7 +977,6 @@ export type BrowserActionHistorySelectCreateManyAndReturn<ExtArgs extends runtim
   channelId?: boolean
   action?: boolean
   status?: boolean
-  flowId?: boolean
   browserProfileKey?: boolean
   caption?: boolean
   imagePath?: boolean
@@ -989,6 +988,7 @@ export type BrowserActionHistorySelectCreateManyAndReturn<ExtArgs extends runtim
   completedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
+  flowId?: boolean
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["browserActionHistory"]>
 
@@ -997,7 +997,6 @@ export type BrowserActionHistorySelectUpdateManyAndReturn<ExtArgs extends runtim
   channelId?: boolean
   action?: boolean
   status?: boolean
-  flowId?: boolean
   browserProfileKey?: boolean
   caption?: boolean
   imagePath?: boolean
@@ -1009,6 +1008,7 @@ export type BrowserActionHistorySelectUpdateManyAndReturn<ExtArgs extends runtim
   completedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
+  flowId?: boolean
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["browserActionHistory"]>
 
@@ -1017,7 +1017,6 @@ export type BrowserActionHistorySelectScalar = {
   channelId?: boolean
   action?: boolean
   status?: boolean
-  flowId?: boolean
   browserProfileKey?: boolean
   caption?: boolean
   imagePath?: boolean
@@ -1029,9 +1028,10 @@ export type BrowserActionHistorySelectScalar = {
   completedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
+  flowId?: boolean
 }
 
-export type BrowserActionHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "channelId" | "action" | "status" | "flowId" | "browserProfileKey" | "caption" | "imagePath" | "screenshotPath" | "requestPayload" | "responsePayload" | "errorMessage" | "startedAt" | "completedAt" | "durationMs" | "createdAt", ExtArgs["result"]["browserActionHistory"]>
+export type BrowserActionHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "channelId" | "action" | "status" | "browserProfileKey" | "caption" | "imagePath" | "screenshotPath" | "requestPayload" | "responsePayload" | "errorMessage" | "startedAt" | "completedAt" | "durationMs" | "createdAt" | "flowId", ExtArgs["result"]["browserActionHistory"]>
 export type BrowserActionHistoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   channel?: boolean | Prisma.SocialChannelDefaultArgs<ExtArgs>
   traces?: boolean | Prisma.BrowserActionHistory$tracesArgs<ExtArgs>
@@ -1055,7 +1055,6 @@ export type $BrowserActionHistoryPayload<ExtArgs extends runtime.Types.Extension
     channelId: string
     action: $Enums.BrowserActionType
     status: $Enums.BrowserActionStatus
-    flowId: string | null
     browserProfileKey: string | null
     caption: string | null
     imagePath: string | null
@@ -1067,6 +1066,7 @@ export type $BrowserActionHistoryPayload<ExtArgs extends runtime.Types.Extension
     completedAt: Date | null
     durationMs: number | null
     createdAt: Date
+    flowId: string | null
   }, ExtArgs["result"]["browserActionHistory"]>
   composites: {}
 }
@@ -1496,7 +1496,6 @@ export interface BrowserActionHistoryFieldRefs {
   readonly channelId: Prisma.FieldRef<"BrowserActionHistory", 'String'>
   readonly action: Prisma.FieldRef<"BrowserActionHistory", 'BrowserActionType'>
   readonly status: Prisma.FieldRef<"BrowserActionHistory", 'BrowserActionStatus'>
-  readonly flowId: Prisma.FieldRef<"BrowserActionHistory", 'String'>
   readonly browserProfileKey: Prisma.FieldRef<"BrowserActionHistory", 'String'>
   readonly caption: Prisma.FieldRef<"BrowserActionHistory", 'String'>
   readonly imagePath: Prisma.FieldRef<"BrowserActionHistory", 'String'>
@@ -1508,6 +1507,7 @@ export interface BrowserActionHistoryFieldRefs {
   readonly completedAt: Prisma.FieldRef<"BrowserActionHistory", 'DateTime'>
   readonly durationMs: Prisma.FieldRef<"BrowserActionHistory", 'Int'>
   readonly createdAt: Prisma.FieldRef<"BrowserActionHistory", 'DateTime'>
+  readonly flowId: Prisma.FieldRef<"BrowserActionHistory", 'String'>
 }
     
 

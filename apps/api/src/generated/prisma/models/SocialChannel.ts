@@ -35,11 +35,11 @@ export type SocialChannelMinAggregateOutputType = {
   status: $Enums.SocialChannelStatus | null
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
-  publishingPreference: string | null
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  publishingPreference: string | null
 }
 
 export type SocialChannelMaxAggregateOutputType = {
@@ -53,11 +53,11 @@ export type SocialChannelMaxAggregateOutputType = {
   status: $Enums.SocialChannelStatus | null
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
-  publishingPreference: string | null
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  publishingPreference: string | null
 }
 
 export type SocialChannelCountAggregateOutputType = {
@@ -71,11 +71,11 @@ export type SocialChannelCountAggregateOutputType = {
   status: number
   accessTokenEncrypted: number
   tokenExpiresAt: number
-  publishingPreference: number
   lastConnectedAt: number
   lastError: number
   createdAt: number
   updatedAt: number
+  publishingPreference: number
   _all: number
 }
 
@@ -91,11 +91,11 @@ export type SocialChannelMinAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
-  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
+  publishingPreference?: true
 }
 
 export type SocialChannelMaxAggregateInputType = {
@@ -109,11 +109,11 @@ export type SocialChannelMaxAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
-  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
+  publishingPreference?: true
 }
 
 export type SocialChannelCountAggregateInputType = {
@@ -127,11 +127,11 @@ export type SocialChannelCountAggregateInputType = {
   status?: true
   accessTokenEncrypted?: true
   tokenExpiresAt?: true
-  publishingPreference?: true
   lastConnectedAt?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
+  publishingPreference?: true
   _all?: true
 }
 
@@ -218,11 +218,11 @@ export type SocialChannelGroupByOutputType = {
   status: $Enums.SocialChannelStatus
   accessTokenEncrypted: string | null
   tokenExpiresAt: Date | null
-  publishingPreference: string
   lastConnectedAt: Date | null
   lastError: string | null
   createdAt: Date
   updatedAt: Date
+  publishingPreference: string
   _count: SocialChannelCountAggregateOutputType | null
   _min: SocialChannelMinAggregateOutputType | null
   _max: SocialChannelMaxAggregateOutputType | null
@@ -257,19 +257,19 @@ export type SocialChannelWhereInput = {
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
-  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
-  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
-  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
-  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
-  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
-  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   browserAccountLinks?: Prisma.BrowserAccountChannelListRelationFilter
+  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
+  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
+  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
 }
 
 export type SocialChannelOrderByWithRelationInput = {
@@ -283,19 +283,19 @@ export type SocialChannelOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  workspace?: Prisma.WorkspaceOrderByWithRelationInput
-  brand?: Prisma.BrandOrderByWithRelationInput
-  scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
-  browserActionHistory?: Prisma.BrowserActionHistoryOrderByRelationAggregateInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOrderByWithRelationInput
+  publishingPreference?: Prisma.SortOrder
   browserAccountLinks?: Prisma.BrowserAccountChannelOrderByRelationAggregateInput
+  browserActionHistory?: Prisma.BrowserActionHistoryOrderByRelationAggregateInput
+  scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
+  brand?: Prisma.BrandOrderByWithRelationInput
+  workspace?: Prisma.WorkspaceOrderByWithRelationInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOrderByWithRelationInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
 }
 
 export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -313,19 +313,19 @@ export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
-  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
-  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
-  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
-  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
-  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
-  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   browserAccountLinks?: Prisma.BrowserAccountChannelListRelationFilter
+  browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
+  scheduledPosts?: Prisma.ScheduledPostListRelationFilter
+  brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
+  workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
+  socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
 }, "id" | "brandId_platform_externalId">
 
 export type SocialChannelOrderByWithAggregationInput = {
@@ -339,11 +339,11 @@ export type SocialChannelOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
   _count?: Prisma.SocialChannelCountOrderByAggregateInput
   _max?: Prisma.SocialChannelMaxOrderByAggregateInput
   _min?: Prisma.SocialChannelMinOrderByAggregateInput
@@ -363,11 +363,11 @@ export type SocialChannelScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumSocialChannelStatusWithAggregatesFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableWithAggregatesFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannel"> | Date | string | null
-  publishingPreference?: Prisma.StringWithAggregatesFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableWithAggregatesFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannel"> | Date | string
+  publishingPreference?: Prisma.StringWithAggregatesFilter<"SocialChannel"> | string
 }
 
 export type SocialChannelCreateInput = {
@@ -379,19 +379,19 @@ export type SocialChannelCreateInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateInput = {
@@ -405,17 +405,17 @@ export type SocialChannelUncheckedCreateInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUpdateInput = {
@@ -427,19 +427,19 @@ export type SocialChannelUpdateInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateInput = {
@@ -453,17 +453,17 @@ export type SocialChannelUncheckedUpdateInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateManyInput = {
@@ -477,11 +477,11 @@ export type SocialChannelCreateManyInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  publishingPreference?: string
 }
 
 export type SocialChannelUpdateManyMutationInput = {
@@ -493,11 +493,11 @@ export type SocialChannelUpdateManyMutationInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SocialChannelUncheckedUpdateManyInput = {
@@ -511,11 +511,11 @@ export type SocialChannelUncheckedUpdateManyInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SocialChannelListRelationFilter = {
@@ -545,11 +545,11 @@ export type SocialChannelCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
-  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
 }
 
 export type SocialChannelMaxOrderByAggregateInput = {
@@ -563,11 +563,11 @@ export type SocialChannelMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
-  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
 }
 
 export type SocialChannelMinOrderByAggregateInput = {
@@ -581,11 +581,11 @@ export type SocialChannelMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   accessTokenEncrypted?: Prisma.SortOrder
   tokenExpiresAt?: Prisma.SortOrder
-  publishingPreference?: Prisma.SortOrder
   lastConnectedAt?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  publishingPreference?: Prisma.SortOrder
 }
 
 export type SocialChannelScalarRelationFilter = {
@@ -746,26 +746,16 @@ export type SocialChannelUpdateOneRequiredWithoutBrowserActionHistoryNestedInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutBrowserActionHistoryInput, Prisma.SocialChannelUpdateWithoutBrowserActionHistoryInput>, Prisma.SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput>
 }
 
-export type SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput = {
-  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
-  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput
-  connect?: Prisma.SocialChannelWhereUniqueInput
-}
-
 export type SocialChannelCreateNestedOneWithoutSportsNewsFacebookSettingsInput = {
   create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsFacebookSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput>
   connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsFacebookSettingsInput
   connect?: Prisma.SocialChannelWhereUniqueInput
 }
 
-export type SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput = {
+export type SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput = {
   create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
   connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput
-  upsert?: Prisma.SocialChannelUpsertWithoutSportsNewsTelegramSettingsInput
-  disconnect?: Prisma.SocialChannelWhereInput | boolean
-  delete?: Prisma.SocialChannelWhereInput | boolean
   connect?: Prisma.SocialChannelWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput>, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
 }
 
 export type SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput = {
@@ -778,6 +768,16 @@ export type SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput =
   update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSportsNewsFacebookSettingsInput, Prisma.SocialChannelUpdateWithoutSportsNewsFacebookSettingsInput>, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput>
 }
 
+export type SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput
+  upsert?: Prisma.SocialChannelUpsertWithoutSportsNewsTelegramSettingsInput
+  disconnect?: Prisma.SocialChannelWhereInput | boolean
+  delete?: Prisma.SocialChannelWhereInput | boolean
+  connect?: Prisma.SocialChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput>, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
+}
+
 export type SocialChannelCreateWithoutWorkspaceInput = {
   id?: string
   platform: $Enums.SocialPlatform
@@ -787,18 +787,18 @@ export type SocialChannelCreateWithoutWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
@@ -811,17 +811,17 @@ export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutWorkspaceInput = {
@@ -864,11 +864,11 @@ export type SocialChannelScalarWhereInput = {
   status?: Prisma.EnumSocialChannelStatusFilter<"SocialChannel"> | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
-  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
   lastConnectedAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
   lastError?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
+  publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
 }
 
 export type SocialChannelCreateWithoutBrandInput = {
@@ -880,18 +880,18 @@ export type SocialChannelCreateWithoutBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrandInput = {
@@ -904,17 +904,17 @@ export type SocialChannelUncheckedCreateWithoutBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrandInput = {
@@ -952,18 +952,18 @@ export type SocialChannelCreateWithoutSocialChannelRuntimeProfileInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput = {
@@ -977,16 +977,16 @@ export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput 
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutSocialChannelRuntimeProfileInput = {
@@ -1014,18 +1014,18 @@ export type SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput = {
@@ -1039,16 +1039,16 @@ export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput 
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
@@ -1060,18 +1060,18 @@ export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  publishingPreference?: string
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrowserAccountLinksInput = {
@@ -1085,16 +1085,16 @@ export type SocialChannelUncheckedCreateWithoutBrowserAccountLinksInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  publishingPreference?: string
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrowserAccountLinksInput = {
@@ -1122,18 +1122,18 @@ export type SocialChannelUpdateWithoutBrowserAccountLinksInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrowserAccountLinksInput = {
@@ -1147,16 +1147,16 @@ export type SocialChannelUncheckedUpdateWithoutBrowserAccountLinksInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutScheduledPostsInput = {
@@ -1168,18 +1168,18 @@ export type SocialChannelCreateWithoutScheduledPostsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
@@ -1193,16 +1193,16 @@ export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutScheduledPostsInput = {
@@ -1230,18 +1230,18 @@ export type SocialChannelUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
@@ -1255,16 +1255,16 @@ export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
@@ -1276,18 +1276,18 @@ export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
@@ -1301,16 +1301,16 @@ export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrowserActionHistoryInput = {
@@ -1338,18 +1338,18 @@ export type SocialChannelUpdateWithoutBrowserActionHistoryInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
@@ -1363,67 +1363,16 @@ export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
-}
-
-export type SocialChannelCreateWithoutSportsNewsTelegramSettingsInput = {
-  id?: string
-  platform: $Enums.SocialPlatform
-  name: string
-  externalId?: string | null
-  username?: string | null
-  status?: $Enums.SocialChannelStatus
-  accessTokenEncrypted?: string | null
-  tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
-  lastConnectedAt?: Date | string | null
-  lastError?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
-  browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
-}
-
-export type SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput = {
-  id?: string
-  workspaceId: string
-  brandId: string
-  platform: $Enums.SocialPlatform
-  name: string
-  externalId?: string | null
-  username?: string | null
-  status?: $Enums.SocialChannelStatus
-  accessTokenEncrypted?: string | null
-  tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
-  lastConnectedAt?: Date | string | null
-  lastError?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
-  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
-}
-
-export type SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput = {
-  where: Prisma.SocialChannelWhereUniqueInput
-  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
@@ -1435,18 +1384,18 @@ export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
-  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
-  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput = {
@@ -1460,16 +1409,16 @@ export type SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput =
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  publishingPreference?: string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutSportsNewsFacebookSettingsInput = {
@@ -1477,61 +1426,55 @@ export type SocialChannelCreateOrConnectWithoutSportsNewsFacebookSettingsInput =
   create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsFacebookSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput>
 }
 
-export type SocialChannelUpsertWithoutSportsNewsTelegramSettingsInput = {
-  update: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
+export type SocialChannelCreateWithoutSportsNewsTelegramSettingsInput = {
+  id?: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  publishingPreference?: string
+  browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+}
+
+export type SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput = {
+  id?: string
+  workspaceId: string
+  brandId: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  publishingPreference?: string
+  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+}
+
+export type SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput = {
+  where: Prisma.SocialChannelWhereUniqueInput
   create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
-  where?: Prisma.SocialChannelWhereInput
-}
-
-export type SocialChannelUpdateToOneWithWhereWithoutSportsNewsTelegramSettingsInput = {
-  where?: Prisma.SocialChannelWhereInput
-  data: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
-}
-
-export type SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
-  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
-  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
-  browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
-}
-
-export type SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
-  brandId?: Prisma.StringFieldUpdateOperationsInput | string
-  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
-  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
-  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
-  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
 }
 
 export type SocialChannelUpsertWithoutSportsNewsFacebookSettingsInput = {
@@ -1554,18 +1497,18 @@ export type SocialChannelUpdateWithoutSportsNewsFacebookSettingsInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput = {
@@ -1579,16 +1522,73 @@ export type SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput =
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+}
+
+export type SocialChannelUpsertWithoutSportsNewsTelegramSettingsInput = {
+  update: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
+  where?: Prisma.SocialChannelWhereInput
+}
+
+export type SocialChannelUpdateToOneWithWhereWithoutSportsNewsTelegramSettingsInput = {
+  where?: Prisma.SocialChannelWhereInput
+  data: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
+}
+
+export type SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+}
+
+export type SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
 }
 
 export type SocialChannelCreateManyWorkspaceInput = {
@@ -1601,11 +1601,11 @@ export type SocialChannelCreateManyWorkspaceInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  publishingPreference?: string
 }
 
 export type SocialChannelUpdateWithoutWorkspaceInput = {
@@ -1617,18 +1617,18 @@ export type SocialChannelUpdateWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
@@ -1641,17 +1641,17 @@ export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1664,11 +1664,11 @@ export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type SocialChannelCreateManyBrandInput = {
@@ -1681,11 +1681,11 @@ export type SocialChannelCreateManyBrandInput = {
   status?: $Enums.SocialChannelStatus
   accessTokenEncrypted?: string | null
   tokenExpiresAt?: Date | string | null
-  publishingPreference?: string
   lastConnectedAt?: Date | string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  publishingPreference?: string
 }
 
 export type SocialChannelUpdateWithoutBrandInput = {
@@ -1697,18 +1697,18 @@ export type SocialChannelUpdateWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
-  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrandInput = {
@@ -1721,17 +1721,17 @@ export type SocialChannelUncheckedUpdateWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
-  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
-  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
-  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
-  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
@@ -1744,11 +1744,11 @@ export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
   status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
   accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
   lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -1757,19 +1757,19 @@ export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
  */
 
 export type SocialChannelCountOutputType = {
-  scheduledPosts: number
-  browserActionHistory: number
-  sportsNewsTelegramSettings: number
-  sportsNewsFacebookSettings: number
   browserAccountLinks: number
+  browserActionHistory: number
+  scheduledPosts: number
+  sportsNewsFacebookSettings: number
+  sportsNewsTelegramSettings: number
 }
 
 export type SocialChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  scheduledPosts?: boolean | SocialChannelCountOutputTypeCountScheduledPostsArgs
-  browserActionHistory?: boolean | SocialChannelCountOutputTypeCountBrowserActionHistoryArgs
-  sportsNewsTelegramSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs
-  sportsNewsFacebookSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsFacebookSettingsArgs
   browserAccountLinks?: boolean | SocialChannelCountOutputTypeCountBrowserAccountLinksArgs
+  browserActionHistory?: boolean | SocialChannelCountOutputTypeCountBrowserActionHistoryArgs
+  scheduledPosts?: boolean | SocialChannelCountOutputTypeCountScheduledPostsArgs
+  sportsNewsFacebookSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsFacebookSettingsArgs
+  sportsNewsTelegramSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs
 }
 
 /**
@@ -1785,8 +1785,8 @@ export type SocialChannelCountOutputTypeDefaultArgs<ExtArgs extends runtime.Type
 /**
  * SocialChannelCountOutputType without action
  */
-export type SocialChannelCountOutputTypeCountScheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ScheduledPostWhereInput
+export type SocialChannelCountOutputTypeCountBrowserAccountLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BrowserAccountChannelWhereInput
 }
 
 /**
@@ -1799,8 +1799,8 @@ export type SocialChannelCountOutputTypeCountBrowserActionHistoryArgs<ExtArgs ex
 /**
  * SocialChannelCountOutputType without action
  */
-export type SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SportsNewsSettingWhereInput
+export type SocialChannelCountOutputTypeCountScheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScheduledPostWhereInput
 }
 
 /**
@@ -1813,8 +1813,8 @@ export type SocialChannelCountOutputTypeCountSportsNewsFacebookSettingsArgs<ExtA
 /**
  * SocialChannelCountOutputType without action
  */
-export type SocialChannelCountOutputTypeCountBrowserAccountLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.BrowserAccountChannelWhereInput
+export type SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SportsNewsSettingWhereInput
 }
 
 
@@ -1829,19 +1829,19 @@ export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.Interna
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
-  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
-  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
-  sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
-  sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
-  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
+  publishingPreference?: boolean
   browserAccountLinks?: boolean | Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs>
+  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
+  scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
+  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
+  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
+  sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
+  sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
 
@@ -1856,13 +1856,13 @@ export type SocialChannelSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
-  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
+  publishingPreference?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
 
 export type SocialChannelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1876,13 +1876,13 @@ export type SocialChannelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
-  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
+  publishingPreference?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
 
 export type SocialChannelSelectScalar = {
@@ -1896,45 +1896,45 @@ export type SocialChannelSelectScalar = {
   status?: boolean
   accessTokenEncrypted?: boolean
   tokenExpiresAt?: boolean
-  publishingPreference?: boolean
   lastConnectedAt?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  publishingPreference?: boolean
 }
 
-export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "publishingPreference" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialChannel"]>
+export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt" | "publishingPreference", ExtArgs["result"]["socialChannel"]>
 export type SocialChannelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
-  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
-  scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
-  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
-  sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
-  sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
-  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
   browserAccountLinks?: boolean | Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs>
+  browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
+  scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
+  brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
+  socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
+  sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
+  sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SocialChannelIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
 export type SocialChannelIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
+  workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
 
 export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialChannel"
   objects: {
-    workspace: Prisma.$WorkspacePayload<ExtArgs>
-    brand: Prisma.$BrandPayload<ExtArgs>
-    scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
-    browserActionHistory: Prisma.$BrowserActionHistoryPayload<ExtArgs>[]
-    sportsNewsTelegramSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
-    sportsNewsFacebookSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
-    socialChannelRuntimeProfile: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs> | null
     browserAccountLinks: Prisma.$BrowserAccountChannelPayload<ExtArgs>[]
+    browserActionHistory: Prisma.$BrowserActionHistoryPayload<ExtArgs>[]
+    scheduledPosts: Prisma.$ScheduledPostPayload<ExtArgs>[]
+    brand: Prisma.$BrandPayload<ExtArgs>
+    workspace: Prisma.$WorkspacePayload<ExtArgs>
+    socialChannelRuntimeProfile: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs> | null
+    sportsNewsFacebookSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
+    sportsNewsTelegramSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1947,11 +1947,11 @@ export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.Inter
     status: $Enums.SocialChannelStatus
     accessTokenEncrypted: string | null
     tokenExpiresAt: Date | null
-    publishingPreference: string
     lastConnectedAt: Date | null
     lastError: string | null
     createdAt: Date
     updatedAt: Date
+    publishingPreference: string
   }, ExtArgs["result"]["socialChannel"]>
   composites: {}
 }
@@ -2346,14 +2346,14 @@ readonly fields: SocialChannelFieldRefs;
  */
 export interface Prisma__SocialChannelClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  scheduledPosts<T extends Prisma.SocialChannel$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  browserActionHistory<T extends Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserActionHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  sportsNewsTelegramSettings<T extends Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  sportsNewsFacebookSettings<T extends Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  socialChannelRuntimeProfile<T extends Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>>): Prisma.Prisma__SocialChannelRuntimeProfileClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   browserAccountLinks<T extends Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserAccountChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  browserActionHistory<T extends Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrowserActionHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  scheduledPosts<T extends Prisma.SocialChannel$scheduledPostsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScheduledPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  brand<T extends Prisma.BrandDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrandDefaultArgs<ExtArgs>>): Prisma.Prisma__BrandClient<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  socialChannelRuntimeProfile<T extends Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>>): Prisma.Prisma__SocialChannelRuntimeProfileClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  sportsNewsFacebookSettings<T extends Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sportsNewsTelegramSettings<T extends Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2393,11 +2393,11 @@ export interface SocialChannelFieldRefs {
   readonly status: Prisma.FieldRef<"SocialChannel", 'SocialChannelStatus'>
   readonly accessTokenEncrypted: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly tokenExpiresAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
-  readonly publishingPreference: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly lastConnectedAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
   readonly lastError: Prisma.FieldRef<"SocialChannel", 'String'>
   readonly createdAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
+  readonly publishingPreference: Prisma.FieldRef<"SocialChannel", 'String'>
 }
     
 
@@ -2799,27 +2799,27 @@ export type SocialChannelDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
- * SocialChannel.scheduledPosts
+ * SocialChannel.browserAccountLinks
  */
-export type SocialChannel$scheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type SocialChannel$browserAccountLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the ScheduledPost
+   * Select specific fields to fetch from the BrowserAccountChannel
    */
-  select?: Prisma.ScheduledPostSelect<ExtArgs> | null
+  select?: Prisma.BrowserAccountChannelSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the ScheduledPost
+   * Omit specific fields from the BrowserAccountChannel
    */
-  omit?: Prisma.ScheduledPostOmit<ExtArgs> | null
+  omit?: Prisma.BrowserAccountChannelOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ScheduledPostInclude<ExtArgs> | null
-  where?: Prisma.ScheduledPostWhereInput
-  orderBy?: Prisma.ScheduledPostOrderByWithRelationInput | Prisma.ScheduledPostOrderByWithRelationInput[]
-  cursor?: Prisma.ScheduledPostWhereUniqueInput
+  include?: Prisma.BrowserAccountChannelInclude<ExtArgs> | null
+  where?: Prisma.BrowserAccountChannelWhereInput
+  orderBy?: Prisma.BrowserAccountChannelOrderByWithRelationInput | Prisma.BrowserAccountChannelOrderByWithRelationInput[]
+  cursor?: Prisma.BrowserAccountChannelWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ScheduledPostScalarFieldEnum | Prisma.ScheduledPostScalarFieldEnum[]
+  distinct?: Prisma.BrowserAccountChannelScalarFieldEnum | Prisma.BrowserAccountChannelScalarFieldEnum[]
 }
 
 /**
@@ -2847,27 +2847,46 @@ export type SocialChannel$browserActionHistoryArgs<ExtArgs extends runtime.Types
 }
 
 /**
- * SocialChannel.sportsNewsTelegramSettings
+ * SocialChannel.scheduledPosts
  */
-export type SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type SocialChannel$scheduledPostsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the SportsNewsSetting
+   * Select specific fields to fetch from the ScheduledPost
    */
-  select?: Prisma.SportsNewsSettingSelect<ExtArgs> | null
+  select?: Prisma.ScheduledPostSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the SportsNewsSetting
+   * Omit specific fields from the ScheduledPost
    */
-  omit?: Prisma.SportsNewsSettingOmit<ExtArgs> | null
+  omit?: Prisma.ScheduledPostOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.SportsNewsSettingInclude<ExtArgs> | null
-  where?: Prisma.SportsNewsSettingWhereInput
-  orderBy?: Prisma.SportsNewsSettingOrderByWithRelationInput | Prisma.SportsNewsSettingOrderByWithRelationInput[]
-  cursor?: Prisma.SportsNewsSettingWhereUniqueInput
+  include?: Prisma.ScheduledPostInclude<ExtArgs> | null
+  where?: Prisma.ScheduledPostWhereInput
+  orderBy?: Prisma.ScheduledPostOrderByWithRelationInput | Prisma.ScheduledPostOrderByWithRelationInput[]
+  cursor?: Prisma.ScheduledPostWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.SportsNewsSettingScalarFieldEnum | Prisma.SportsNewsSettingScalarFieldEnum[]
+  distinct?: Prisma.ScheduledPostScalarFieldEnum | Prisma.ScheduledPostScalarFieldEnum[]
+}
+
+/**
+ * SocialChannel.socialChannelRuntimeProfile
+ */
+export type SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannelRuntimeProfile
+   */
+  select?: Prisma.SocialChannelRuntimeProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannelRuntimeProfile
+   */
+  omit?: Prisma.SocialChannelRuntimeProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelRuntimeProfileInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelRuntimeProfileWhereInput
 }
 
 /**
@@ -2895,46 +2914,27 @@ export type SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs extends runtime
 }
 
 /**
- * SocialChannel.socialChannelRuntimeProfile
+ * SocialChannel.sportsNewsTelegramSettings
  */
-export type SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the SocialChannelRuntimeProfile
+   * Select specific fields to fetch from the SportsNewsSetting
    */
-  select?: Prisma.SocialChannelRuntimeProfileSelect<ExtArgs> | null
+  select?: Prisma.SportsNewsSettingSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the SocialChannelRuntimeProfile
+   * Omit specific fields from the SportsNewsSetting
    */
-  omit?: Prisma.SocialChannelRuntimeProfileOmit<ExtArgs> | null
+  omit?: Prisma.SportsNewsSettingOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.SocialChannelRuntimeProfileInclude<ExtArgs> | null
-  where?: Prisma.SocialChannelRuntimeProfileWhereInput
-}
-
-/**
- * SocialChannel.browserAccountLinks
- */
-export type SocialChannel$browserAccountLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the BrowserAccountChannel
-   */
-  select?: Prisma.BrowserAccountChannelSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the BrowserAccountChannel
-   */
-  omit?: Prisma.BrowserAccountChannelOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.BrowserAccountChannelInclude<ExtArgs> | null
-  where?: Prisma.BrowserAccountChannelWhereInput
-  orderBy?: Prisma.BrowserAccountChannelOrderByWithRelationInput | Prisma.BrowserAccountChannelOrderByWithRelationInput[]
-  cursor?: Prisma.BrowserAccountChannelWhereUniqueInput
+  include?: Prisma.SportsNewsSettingInclude<ExtArgs> | null
+  where?: Prisma.SportsNewsSettingWhereInput
+  orderBy?: Prisma.SportsNewsSettingOrderByWithRelationInput | Prisma.SportsNewsSettingOrderByWithRelationInput[]
+  cursor?: Prisma.SportsNewsSettingWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.BrowserAccountChannelScalarFieldEnum | Prisma.BrowserAccountChannelScalarFieldEnum[]
+  distinct?: Prisma.SportsNewsSettingScalarFieldEnum | Prisma.SportsNewsSettingScalarFieldEnum[]
 }
 
 /**
