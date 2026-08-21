@@ -703,39 +703,48 @@ export function ContentCalendar() {
     }));
   }
 
-  async function uploadImage(file: File) {
+  async function uploadImages(files: File[]) {
+    if (!files.length) {
+      return;
+    }
+
     setUploadingImage(true);
     setError("");
 
     try {
-      const body = new FormData();
+      for (const file of files) {
+        const body = new FormData();
 
-      body.append("file", file);
+        body.append("file", file);
 
-      const response = await fetch(`${API_URL}/assets/upload`, {
-        method: "POST",
-        body,
-      });
+        const response = await fetch(`${API_URL}/assets/upload`, {
+          method: "POST",
+          body,
+        });
 
-      const uploaded = (await response.json()) as Asset & { message?: string };
+        const uploaded = (await response.json()) as Asset & {
+          message?: string;
+        };
 
-      if (!response.ok) {
-        throw new Error(
-          uploaded.message || ui("Unable to upload image.", "无法上传图片。"),
-        );
+        if (!response.ok) {
+          throw new Error(
+            uploaded.message ||
+              ui("Unable to upload image.", "无法上传图片。"),
+          );
+        }
+
+        setAssets((current) => [
+          uploaded,
+          ...current.filter((asset) => asset.id !== uploaded.id),
+        ]);
+
+        setForm((current) => ({
+          ...current,
+          mediaUrls: current.mediaUrls.includes(uploaded.url)
+            ? current.mediaUrls
+            : [...current.mediaUrls, uploaded.url],
+        }));
       }
-
-      setAssets((current) => [
-        uploaded,
-        ...current.filter((asset) => asset.id !== uploaded.id),
-      ]);
-
-      setForm((current) => ({
-        ...current,
-        mediaUrls: current.mediaUrls.includes(uploaded.url)
-          ? current.mediaUrls
-          : [...current.mediaUrls, uploaded.url],
-      }));
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -1631,12 +1640,13 @@ export function ContentCalendar() {
                       ref={fileInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
+                      multiple
                       hidden
                       onChange={(event) => {
-                        const file = event.target.files?.[0];
+                        const files = Array.from(event.target.files ?? []);
 
-                        if (file) {
-                          void uploadImage(file);
+                        if (files.length) {
+                          void uploadImages(files);
                         }
                       }}
                     />
@@ -1644,11 +1654,18 @@ export function ContentCalendar() {
                     <button
                       type="button"
                       disabled={uploadingImage}
+                      aria-label={ui(
+                        "Choose photos from phone or device",
+                        "从手机或设备选择照片",
+                      )}
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {uploadingImage
                         ? ui("Uploading...", "上传中……")
-                        : ui("Upload from device", "从设备上传")}
+                        : ui(
+                            "📱 Choose photos",
+                            "📱 手机 / 设备照片",
+                          )}
                     </button>
 
                     <button

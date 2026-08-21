@@ -1171,6 +1171,11 @@
   gap: 8px;
 }
 
+.mediaActions > button {
+  flex: 1 1 150px;
+  touch-action: manipulation;
+}
+
 .selectedMedia {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1323,6 +1328,11 @@
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .mediaActions > button {
+    min-height: 44px;
+    flex-basis: calc(50% - 4px);
   }
 
   .selectedMedia {
