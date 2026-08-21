@@ -365,14 +365,6 @@ const ENDPOINTS: EndpointDefinition[] = [
     required: false,
   },
   {
-    id: "browser-worker-health",
-    group: "automation",
-    label: "Browser Worker Health",
-    labelZh: "Browser Worker 健康状态",
-    path: "/automation/browser-worker/health",
-    required: false,
-  },
-  {
     id: "sports-automation-status",
     group: "automation",
     label: "Sports Automation Status",
@@ -707,8 +699,8 @@ function endpointHealth(
   );
 
   if (
-    average > 5000 ||
-    maximum > 10000 ||
+    average > 10000 ||
+    maximum > 15000 ||
     maxPayload >
       20 * 1024 * 1024
   ) {
@@ -717,7 +709,7 @@ function endpointHealth(
 
   if (
     average > 3000 ||
-    maximum > 5000 ||
+    maximum > 8000 ||
     maxPayload >
       5 * 1024 * 1024
   ) {
