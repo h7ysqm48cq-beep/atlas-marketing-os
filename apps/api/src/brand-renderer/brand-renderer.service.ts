@@ -13,6 +13,8 @@ import { BrandBrainRulesService } from './rules/brand-brain-rules.service';
 export type BrandRenderOptions = {
   logoEnabled?: boolean;
 
+  logoBuffer?: Buffer;
+
   primaryLogoAssetId?: string | null;
 
   footerEnabled?: boolean;
@@ -123,44 +125,30 @@ export class BrandRendererService {
       rules.imagePolicy?.logoEnabled &&
       options?.logoEnabled !== false
     ) {
-
-      output =
-        await this.applyPrimaryLogo({
-          brandId:
-            context.brandId,
-
+      const logoBuffer =
+        options?.logoBuffer ??
+        await this.loadPrimaryLogoBuffer({
+          brandId: context.brandId,
           primaryLogoAssetId:
+            options?.primaryLogoAssetId ??
             settings.primaryLogoAssetId,
-
-          imageBuffer:
-            output,
-
-          width:
-            context.imageWidth,
-
-          height:
-            context.imageHeight,
-
-          platform:
-            options?.platform,
-
-          placement:
-            options?.placement as LogoPlacement,
-
-          scale:
-            options?.scale ??
-            1,
-
-          opacity:
-            options?.opacity ??
-            1,
-
-          normalizedX:
-            options?.normalizedX,
-
-          normalizedY:
-            options?.normalizedY,
         });
+
+      if (logoBuffer) {
+        output =
+          await this.logoOverlayService.overlay({
+            image: output,
+            logo: logoBuffer,
+            width: context.imageWidth,
+            height: context.imageHeight,
+            platform: options?.platform,
+            placement: options?.placement,
+            scale: options?.scale ?? 1,
+            opacity: options?.opacity ?? 1,
+            normalizedX: options?.normalizedX,
+            normalizedY: options?.normalizedY,
+          });
+      }
     }
 
 
@@ -192,11 +180,38 @@ export class BrandRendererService {
         },
       });
 
-    if (!logoAsset?.url) {
+    if (
+      !logoAsset?.url ||
+      !logoAsset.url.startsWith('https://')
+    ) {
       return null;
     }
 
-    return null;
+    try {
+      const response = await fetch(logoAsset.url);
+
+      if (!response.ok) {
+        throw new Error(
+          `Logo download returned HTTP ${response.status}.`,
+        );
+      }
+
+      return Buffer.from(
+        await response.arrayBuffer(),
+      );
+    } catch (error) {
+      console.warn(
+        [
+          '[BrandRendererService]',
+          'Primary logo load skipped.',
+          error instanceof Error
+            ? error.message
+            : 'Unknown logo loading error.',
+        ].join(' '),
+      );
+
+      return null;
+    }
   }
 
   async applyPrimaryLogo(input: {
@@ -212,56 +227,26 @@ export class BrandRendererService {
     normalizedX?: number;
     normalizedY?: number;
   }): Promise<Buffer> {
-    const logoAssetId = input.primaryLogoAssetId?.trim();
-
-    if (!logoAssetId) return input.imageBuffer;
-
-    const logoAsset = await this.prisma.asset.findFirst({
-      where: {
-        id: logoAssetId,
+    const logoBuffer =
+      await this.loadPrimaryLogoBuffer({
         brandId: input.brandId,
-        type: 'IMAGE',
-      },
-      select: { id: true, name: true, url: true, mimeType: true },
-    });
-
-    if (!logoAsset?.url || !logoAsset.url.startsWith('https://')) {
-      return input.imageBuffer;
-    }
-
-    try {
-      const logoResponse = await fetch(logoAsset.url);
-
-      if (!logoResponse.ok) {
-        throw new Error(`Logo download returned HTTP ${logoResponse.status}.`);
-      }
-
-      const logoBuffer = Buffer.from(await logoResponse.arrayBuffer());
-
-      return await this.logoOverlayService.overlay({
-        image: input.imageBuffer,
-        logo: logoBuffer,
-        width: input.width,
-        height: input.height,
-        platform: input.platform,
-        placement: input.placement,
-        scale: input.scale,
-        opacity: input.opacity,
-        normalizedX: input.normalizedX,
-        normalizedY: input.normalizedY,
+        primaryLogoAssetId:
+          input.primaryLogoAssetId,
       });
-    } catch (error) {
-      console.warn(
-        [
-          '[AssetImageService]',
-          'Primary logo overlay skipped.',
-          error instanceof Error
-            ? error.message
-            : 'Unknown logo processing error.',
-        ].join(' '),
-      );
 
-      return input.imageBuffer;
-    }
+    if (!logoBuffer) return input.imageBuffer;
+
+    return this.logoOverlayService.overlay({
+      image: input.imageBuffer,
+      logo: logoBuffer,
+      width: input.width,
+      height: input.height,
+      platform: input.platform,
+      placement: input.placement,
+      scale: input.scale,
+      opacity: input.opacity,
+      normalizedX: input.normalizedX,
+      normalizedY: input.normalizedY,
+    });
   }
 }

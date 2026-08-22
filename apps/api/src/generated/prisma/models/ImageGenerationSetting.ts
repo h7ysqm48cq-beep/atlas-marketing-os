@@ -42,6 +42,7 @@ export type ImageGenerationSettingMinAggregateOutputType = {
   pageId: string | null
   channelId: string | null
   textOverlayEnabled: boolean | null
+  textOverlayText: string | null
   brandFooterEnabled: boolean | null
   footerText: string | null
   footerPosition: string | null
@@ -61,6 +62,7 @@ export type ImageGenerationSettingMaxAggregateOutputType = {
   pageId: string | null
   channelId: string | null
   textOverlayEnabled: boolean | null
+  textOverlayText: string | null
   brandFooterEnabled: boolean | null
   footerText: string | null
   footerPosition: string | null
@@ -80,6 +82,7 @@ export type ImageGenerationSettingCountAggregateOutputType = {
   pageId: number
   channelId: number
   textOverlayEnabled: number
+  textOverlayText: number
   brandFooterEnabled: number
   footerText: number
   footerPosition: number
@@ -111,6 +114,7 @@ export type ImageGenerationSettingMinAggregateInputType = {
   pageId?: true
   channelId?: true
   textOverlayEnabled?: true
+  textOverlayText?: true
   brandFooterEnabled?: true
   footerText?: true
   footerPosition?: true
@@ -130,6 +134,7 @@ export type ImageGenerationSettingMaxAggregateInputType = {
   pageId?: true
   channelId?: true
   textOverlayEnabled?: true
+  textOverlayText?: true
   brandFooterEnabled?: true
   footerText?: true
   footerPosition?: true
@@ -149,6 +154,7 @@ export type ImageGenerationSettingCountAggregateInputType = {
   pageId?: true
   channelId?: true
   textOverlayEnabled?: true
+  textOverlayText?: true
   brandFooterEnabled?: true
   footerText?: true
   footerPosition?: true
@@ -255,6 +261,7 @@ export type ImageGenerationSettingGroupByOutputType = {
   pageId: string | null
   channelId: string | null
   textOverlayEnabled: boolean
+  textOverlayText: string
   brandFooterEnabled: boolean
   footerText: string
   footerPosition: string
@@ -297,6 +304,7 @@ export type ImageGenerationSettingWhereInput = {
   pageId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   channelId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   textOverlayEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
+  textOverlayText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
   footerText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   footerPosition?: Prisma.StringFilter<"ImageGenerationSetting"> | string
@@ -317,6 +325,7 @@ export type ImageGenerationSettingOrderByWithRelationInput = {
   pageId?: Prisma.SortOrderInput | Prisma.SortOrder
   channelId?: Prisma.SortOrderInput | Prisma.SortOrder
   textOverlayEnabled?: Prisma.SortOrder
+  textOverlayText?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   footerText?: Prisma.SortOrder
   footerPosition?: Prisma.SortOrder
@@ -340,6 +349,7 @@ export type ImageGenerationSettingWhereUniqueInput = Prisma.AtLeast<{
   pageId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   channelId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   textOverlayEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
+  textOverlayText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
   footerText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   footerPosition?: Prisma.StringFilter<"ImageGenerationSetting"> | string
@@ -360,6 +370,7 @@ export type ImageGenerationSettingOrderByWithAggregationInput = {
   pageId?: Prisma.SortOrderInput | Prisma.SortOrder
   channelId?: Prisma.SortOrderInput | Prisma.SortOrder
   textOverlayEnabled?: Prisma.SortOrder
+  textOverlayText?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   footerText?: Prisma.SortOrder
   footerPosition?: Prisma.SortOrder
@@ -387,6 +398,7 @@ export type ImageGenerationSettingScalarWhereWithAggregatesInput = {
   pageId?: Prisma.StringNullableWithAggregatesFilter<"ImageGenerationSetting"> | string | null
   channelId?: Prisma.StringNullableWithAggregatesFilter<"ImageGenerationSetting"> | string | null
   textOverlayEnabled?: Prisma.BoolWithAggregatesFilter<"ImageGenerationSetting"> | boolean
+  textOverlayText?: Prisma.StringWithAggregatesFilter<"ImageGenerationSetting"> | string
   brandFooterEnabled?: Prisma.BoolWithAggregatesFilter<"ImageGenerationSetting"> | boolean
   footerText?: Prisma.StringWithAggregatesFilter<"ImageGenerationSetting"> | string
   footerPosition?: Prisma.StringWithAggregatesFilter<"ImageGenerationSetting"> | string
@@ -405,6 +417,7 @@ export type ImageGenerationSettingCreateInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -425,6 +438,7 @@ export type ImageGenerationSettingUncheckedCreateInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -443,6 +457,7 @@ export type ImageGenerationSettingUpdateInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -463,6 +478,7 @@ export type ImageGenerationSettingUncheckedUpdateInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -482,6 +498,7 @@ export type ImageGenerationSettingCreateManyInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -500,6 +517,7 @@ export type ImageGenerationSettingUpdateManyMutationInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -519,6 +537,7 @@ export type ImageGenerationSettingUncheckedUpdateManyInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -548,6 +567,7 @@ export type ImageGenerationSettingCountOrderByAggregateInput = {
   pageId?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
   textOverlayEnabled?: Prisma.SortOrder
+  textOverlayText?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   footerText?: Prisma.SortOrder
   footerPosition?: Prisma.SortOrder
@@ -572,6 +592,7 @@ export type ImageGenerationSettingMaxOrderByAggregateInput = {
   pageId?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
   textOverlayEnabled?: Prisma.SortOrder
+  textOverlayText?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   footerText?: Prisma.SortOrder
   footerPosition?: Prisma.SortOrder
@@ -591,6 +612,7 @@ export type ImageGenerationSettingMinOrderByAggregateInput = {
   pageId?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
   textOverlayEnabled?: Prisma.SortOrder
+  textOverlayText?: Prisma.SortOrder
   brandFooterEnabled?: Prisma.SortOrder
   footerText?: Prisma.SortOrder
   footerPosition?: Prisma.SortOrder
@@ -656,6 +678,7 @@ export type ImageGenerationSettingCreateWithoutWorkspaceInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -674,6 +697,7 @@ export type ImageGenerationSettingUncheckedCreateWithoutWorkspaceInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -722,6 +746,7 @@ export type ImageGenerationSettingScalarWhereInput = {
   pageId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   channelId?: Prisma.StringNullableFilter<"ImageGenerationSetting"> | string | null
   textOverlayEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
+  textOverlayText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   brandFooterEnabled?: Prisma.BoolFilter<"ImageGenerationSetting"> | boolean
   footerText?: Prisma.StringFilter<"ImageGenerationSetting"> | string
   footerPosition?: Prisma.StringFilter<"ImageGenerationSetting"> | string
@@ -740,6 +765,7 @@ export type ImageGenerationSettingCreateManyWorkspaceInput = {
   pageId?: string | null
   channelId?: string | null
   textOverlayEnabled?: boolean
+  textOverlayText?: string
   brandFooterEnabled?: boolean
   footerText?: string
   footerPosition?: string
@@ -758,6 +784,7 @@ export type ImageGenerationSettingUpdateWithoutWorkspaceInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -776,6 +803,7 @@ export type ImageGenerationSettingUncheckedUpdateWithoutWorkspaceInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -794,6 +822,7 @@ export type ImageGenerationSettingUncheckedUpdateManyWithoutWorkspaceInput = {
   pageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   textOverlayEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  textOverlayText?: Prisma.StringFieldUpdateOperationsInput | string
   brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   footerText?: Prisma.StringFieldUpdateOperationsInput | string
   footerPosition?: Prisma.StringFieldUpdateOperationsInput | string
@@ -815,6 +844,7 @@ export type ImageGenerationSettingSelect<ExtArgs extends runtime.Types.Extension
   pageId?: boolean
   channelId?: boolean
   textOverlayEnabled?: boolean
+  textOverlayText?: boolean
   brandFooterEnabled?: boolean
   footerText?: boolean
   footerPosition?: boolean
@@ -835,6 +865,7 @@ export type ImageGenerationSettingSelectCreateManyAndReturn<ExtArgs extends runt
   pageId?: boolean
   channelId?: boolean
   textOverlayEnabled?: boolean
+  textOverlayText?: boolean
   brandFooterEnabled?: boolean
   footerText?: boolean
   footerPosition?: boolean
@@ -855,6 +886,7 @@ export type ImageGenerationSettingSelectUpdateManyAndReturn<ExtArgs extends runt
   pageId?: boolean
   channelId?: boolean
   textOverlayEnabled?: boolean
+  textOverlayText?: boolean
   brandFooterEnabled?: boolean
   footerText?: boolean
   footerPosition?: boolean
@@ -875,6 +907,7 @@ export type ImageGenerationSettingSelectScalar = {
   pageId?: boolean
   channelId?: boolean
   textOverlayEnabled?: boolean
+  textOverlayText?: boolean
   brandFooterEnabled?: boolean
   footerText?: boolean
   footerPosition?: boolean
@@ -888,7 +921,7 @@ export type ImageGenerationSettingSelectScalar = {
   cornerLogoOpacity?: boolean
 }
 
-export type ImageGenerationSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "pageId" | "channelId" | "textOverlayEnabled" | "brandFooterEnabled" | "footerText" | "footerPosition" | "footerStyle" | "createdAt" | "updatedAt" | "footerLogoMode" | "cornerLogoEnabled" | "cornerLogoPlacement" | "cornerLogoScale" | "cornerLogoOpacity", ExtArgs["result"]["imageGenerationSetting"]>
+export type ImageGenerationSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "pageId" | "channelId" | "textOverlayEnabled" | "textOverlayText" | "brandFooterEnabled" | "footerText" | "footerPosition" | "footerStyle" | "createdAt" | "updatedAt" | "footerLogoMode" | "cornerLogoEnabled" | "cornerLogoPlacement" | "cornerLogoScale" | "cornerLogoOpacity", ExtArgs["result"]["imageGenerationSetting"]>
 export type ImageGenerationSettingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
@@ -910,6 +943,7 @@ export type $ImageGenerationSettingPayload<ExtArgs extends runtime.Types.Extensi
     pageId: string | null
     channelId: string | null
     textOverlayEnabled: boolean
+    textOverlayText: string
     brandFooterEnabled: boolean
     footerText: string
     footerPosition: string
@@ -1350,6 +1384,7 @@ export interface ImageGenerationSettingFieldRefs {
   readonly pageId: Prisma.FieldRef<"ImageGenerationSetting", 'String'>
   readonly channelId: Prisma.FieldRef<"ImageGenerationSetting", 'String'>
   readonly textOverlayEnabled: Prisma.FieldRef<"ImageGenerationSetting", 'Boolean'>
+  readonly textOverlayText: Prisma.FieldRef<"ImageGenerationSetting", 'String'>
   readonly brandFooterEnabled: Prisma.FieldRef<"ImageGenerationSetting", 'Boolean'>
   readonly footerText: Prisma.FieldRef<"ImageGenerationSetting", 'String'>
   readonly footerPosition: Prisma.FieldRef<"ImageGenerationSetting", 'String'>

@@ -153,6 +153,11 @@ export class CopilotController {
       prompt?: string;
       sourceMessageIndex?: number;
       sourceJobId?: string;
+      branding?: {
+        brandFooterEnabled?: boolean;
+        footerLogoEnabled?: boolean;
+        cornerLogoEnabled?: boolean;
+      };
     },
   ) {
     return this.conversations.appendGeneratedImage(id, {
@@ -161,6 +166,7 @@ export class CopilotController {
       prompt: body.prompt,
       sourceMessageIndex: body.sourceMessageIndex,
       sourceJobId: body.sourceJobId,
+      branding: body.branding,
     });
   }
 

@@ -985,6 +985,7 @@ model ImageGenerationSetting {
   pageId              String?
   channelId           String?
   textOverlayEnabled  Boolean   @default(true)
+  textOverlayText     String    @default("")
   brandFooterEnabled  Boolean   @default(true)
   footerText          String    @default("满贯门 mgmbetmyr.com")
   footerPosition      String    @default("bottom-center")

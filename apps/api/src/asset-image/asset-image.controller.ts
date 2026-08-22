@@ -7,6 +7,7 @@ import { CompositeExistingAssetDto } from './dto/composite-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 import { EraseExistingAssetDto } from './dto/erase-existing-asset.dto';
 import { AiEditExistingAssetDto } from './dto/ai-edit-existing-asset.dto';
+import { UpdateAssetBrandingDto } from './dto/update-asset-branding.dto';
 
 @Controller('asset-images')
 export class AssetImageController {
@@ -24,6 +25,11 @@ export class AssetImageController {
   @Post('brand-existing')
   brandExisting(@Body() dto: BrandExistingAssetDto) {
     return this.assetImageService.brandExistingAsset(dto);
+  }
+
+  @Post(':id/branding')
+  updateBranding(@Param('id') id: string, @Body() dto: UpdateAssetBrandingDto) {
+    return this.assetImageService.updateBranding(id, dto);
   }
 
   @Get('editor/latest')

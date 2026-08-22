@@ -51,4 +51,55 @@ describe('ConversationMemoryService generated images', () => {
     });
     expect(append).not.toHaveBeenCalled();
   });
+
+  it('persists the applied branding state with the generated image', async () => {
+    const prisma = {
+      copilotConversation: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'conversation-1',
+          campaignId: null,
+          title: 'Conversation',
+          mode: 'chat',
+          updatedAt: new Date(),
+          _count: { messages: 1 },
+        }),
+      },
+      copilotConversationMessage: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+    const service = new ConversationMemoryService(
+      prisma as never,
+      {
+        getActiveBrand: jest.fn().mockResolvedValue({ id: 'brand-1' }),
+      } as never,
+      {} as never,
+    );
+    const append = jest
+      .spyOn(service, 'appendAssistantMessage')
+      .mockResolvedValue({ id: 'message-2' } as never);
+
+    await service.appendGeneratedImage('conversation-1', {
+      imageUrl: 'https://example.com/branded.png',
+      assetId: 'asset-1',
+      sourceMessageIndex: 3,
+      branding: {
+        brandFooterEnabled: true,
+        footerLogoEnabled: false,
+        cornerLogoEnabled: true,
+      },
+    });
+
+    expect(append).toHaveBeenCalledWith(
+      'conversation-1',
+      'Generated image',
+      expect.objectContaining({
+        branding: {
+          brandFooterEnabled: true,
+          footerLogoEnabled: false,
+          cornerLogoEnabled: true,
+        },
+      }),
+    );
+  });
 });

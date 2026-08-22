@@ -486,6 +486,103 @@
   border-radius: 0;
 }
 
+.generatedImageBrandingControls {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(209, 163, 63, 0.2);
+  border-radius: 12px;
+  background: rgba(209, 163, 63, 0.045);
+}
+
+.generatedImageBrandingHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.generatedImageBrandingHeader > div {
+  display: grid;
+  gap: 2px;
+}
+
+.generatedImageBrandingHeader strong {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.generatedImageBrandingHeader span {
+  font-size: 9px;
+}
+
+.generatedImageBrandingHeader > div > span {
+  color: var(--muted);
+}
+
+.generatedImageBrandingApplied,
+.generatedImageBrandingPending {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.generatedImageBrandingApplied {
+  color: #8ed6a9;
+  background: rgba(65, 168, 103, 0.13);
+}
+
+.generatedImageBrandingPending {
+  color: var(--gold-light);
+  background: rgba(209, 163, 63, 0.13);
+}
+
+.generatedImageBrandingError {
+  margin: 0;
+  color: #ffadad;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.generatedImageBrandingSwitches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.generatedImageBrandingSwitches label {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.generatedImageBrandingSwitches input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--gold);
+}
+
+.generatedImageBrandingSwitches label:has(input:checked) {
+  border-color: rgba(209, 163, 63, 0.35);
+  color: var(--gold-light);
+  background: rgba(209, 163, 63, 0.07);
+}
+
+.generatedImageBrandingSwitches label:has(input:disabled) {
+  opacity: 0.48;
+  cursor: default;
+}
+
 .generatedImageToolbar {
   display: flex;
   align-items: center;
@@ -542,6 +639,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .generatedImageBrandingHeader {
+    display: grid;
+  }
+
+  .generatedImageBrandingHeader > span {
+    justify-self: start;
+  }
+
+  .generatedImageBrandingSwitches {
+    grid-template-columns: 1fr;
   }
 }
 

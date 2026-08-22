@@ -55,6 +55,7 @@ type ScopeResponse = {
 
 type SettingResponse = {
   textOverlayEnabled?: boolean;
+  textOverlayText?: string;
   brandFooterEnabled?: boolean;
   footerText?: string;
   footerPosition?: FooterPosition;
@@ -184,6 +185,9 @@ export default function ImageGenerationSettings() {
   const [textOverlay, setTextOverlay] =
     useState(true);
 
+  const [textOverlayText, setTextOverlayText] =
+    useState("");
+
   const [footer, setFooter] =
     useState(true);
 
@@ -248,6 +252,8 @@ export default function ImageGenerationSettings() {
 
   useEffect(() => {
     void initialize();
+    // Initialization intentionally runs once using persisted browser scope.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function initialize() {
@@ -355,6 +361,11 @@ export default function ImageGenerationSettings() {
     setTextOverlay(
       data.textOverlayEnabled ??
         true,
+    );
+
+    setTextOverlayText(
+      data.textOverlayText ??
+        "",
     );
 
     setFooter(
@@ -718,6 +729,36 @@ export default function ImageGenerationSettings() {
             />
             {" "}
             Text Overlay
+          </label>
+
+          <label>
+            Text Overlay Text
+            <input
+              value={textOverlayText}
+              disabled={!textOverlay}
+              placeholder="Example: 今晚全力出击"
+              maxLength={70}
+              onChange={(event) =>
+                setTextOverlayText(
+                  event.target.value,
+                )
+              }
+              onBlur={() =>
+                void save({
+                  textOverlayText,
+                })
+              }
+            />
+
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                opacity: 0.7,
+              }}
+            >
+              Only this explicit text is rendered. Asset names and internal labels are never used.
+            </div>
           </label>
 
           <label>

@@ -7,6 +7,45 @@ import { RuntimeImage } from "./RuntimeImage";
 import { API_URL } from "@/lib/api";
 import { saveRemoteFile } from "@/lib/save-file";
 
+const IMAGE_GENERATION_SCOPE_KEY = "atlas-image-generation-scope";
+
+function readCopilotImageGenerationScope(): {
+  pageId?: string;
+  channelId?: string;
+} {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(IMAGE_GENERATION_SCOPE_KEY);
+
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw) as {
+      scopeType?: string;
+      pageId?: string;
+      channelId?: string;
+    };
+
+    if (parsed.scopeType === "page" && parsed.pageId) {
+      return {
+        pageId: parsed.pageId,
+      };
+    }
+
+    if (parsed.scopeType === "channel" && parsed.channelId) {
+      return {
+        channelId: parsed.channelId,
+      };
+    }
+  } catch {
+    // Invalid scope falls back to workspace settings.
+  }
+
+  return {};
+}
+
 type Campaign = {
   id: string;
   name: string;
@@ -17,6 +56,15 @@ type CopilotStudioResult = {
   telegram: string;
   reels: string;
   imagePrompt: string;
+};
+
+type GeneratedImageBranding = {
+  brandFooterEnabled: boolean;
+  footerLogoEnabled: boolean;
+  cornerLogoEnabled: boolean;
+  dirty?: boolean;
+  applying?: boolean;
+  error?: string;
 };
 
 function getMessageContentSections(content: string) {
@@ -85,6 +133,7 @@ type Message = {
   content: string;
   imageUrl?: string;
   assetId?: string;
+  imageBranding?: GeneratedImageBranding;
   studioResult?: CopilotStudioResult;
   error?: boolean;
   retryText?: string;
@@ -142,6 +191,11 @@ type ImageBackgroundJob = {
       id?: string;
       url?: string;
       thumbnailUrl?: string;
+    };
+    generation?: {
+      brandFooterEnabled?: boolean;
+      footerLogoEnabled?: boolean;
+      cornerLogoEnabled?: boolean;
     };
   };
   error?: string | null;
@@ -209,6 +263,12 @@ type WorkspaceAction =
       type: "batch";
       actions: WorkspaceAtomicAction[];
     };
+
+type WorkspaceImageActionContext = {
+  messageIndex: number;
+  instructions: string;
+  fallbackContent: string;
+};
 
 function isAtomicWorkspaceAction(
   input: unknown,
@@ -388,6 +448,7 @@ export function BrandCopilot() {
 
   function selectConversationId(nextConversationId: string | null) {
     conversationIdRef.current = nextConversationId || null;
+    setGeneratingImageIndex(null);
     setConversationId(nextConversationId);
   }
 
@@ -723,8 +784,10 @@ export function BrandCopilot() {
   async function applyWorkspaceAction(
     action: WorkspaceAction,
     baseDraft?: CopilotStudioResult,
-  ) {
+    imageActionContext?: WorkspaceImageActionContext,
+  ): Promise<boolean> {
     const actions = action.type === "batch" ? action.actions : [action];
+    let imageGenerationStarted = false;
 
     let draftSnapshot: CopilotStudioResult = {
       ...(baseDraft ?? studioDraft),
@@ -764,11 +827,26 @@ export function BrandCopilot() {
       }
 
       if (item.type === "generate") {
-        setStatus(
-          item.target === "image"
-            ? "Generating image..."
-            : "Generating content...",
-        );
+        if (item.target === "image" && imageActionContext) {
+          const imageContent =
+            draftSnapshot.imagePrompt.trim() ||
+            draftSnapshot.facebook.trim() ||
+            draftSnapshot.telegram.trim() ||
+            imageActionContext.fallbackContent;
+
+          await generateImageFromMessage(
+            imageContent,
+            imageActionContext.messageIndex,
+            imageActionContext.instructions,
+          );
+          imageGenerationStarted = true;
+        } else {
+          setStatus(
+            item.target === "image"
+              ? "Generating image..."
+              : "Generating content...",
+          );
+        }
 
         continue;
       }
@@ -843,11 +921,19 @@ export function BrandCopilot() {
         continue;
       }
     }
+
+    return imageGenerationStarted;
   }
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [mode, setMode] = useState<CopilotMode>("chat");
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [defaultImageBranding, setDefaultImageBranding] =
+    useState<GeneratedImageBranding>({
+      brandFooterEnabled: true,
+      footerLogoEnabled: true,
+      cornerLogoEnabled: false,
+    });
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [input, setInput] = useState("");
@@ -865,6 +951,37 @@ export function BrandCopilot() {
       imagePollingTimersRef.current.forEach((timer) => clearInterval(timer));
       imagePollingTimersRef.current = [];
     };
+  }, []);
+
+  useEffect(() => {
+    const loadImageBrandingDefaults = async () => {
+      try {
+        const scope = readCopilotImageGenerationScope();
+        const params = new URLSearchParams();
+
+        if (scope.pageId) params.set("pageId", scope.pageId);
+        if (scope.channelId) params.set("channelId", scope.channelId);
+
+        const response = await fetch(
+          `${API_URL}/image-settings${params.size ? `?${params.toString()}` : ""}`,
+          { cache: "no-store" },
+        );
+        const data = await response.json();
+
+        if (!response.ok) return;
+
+        setDefaultImageBranding({
+          brandFooterEnabled: data.brandFooterEnabled !== false,
+          footerLogoEnabled:
+            data.brandFooterEnabled !== false && data.footerLogoMode !== "hide",
+          cornerLogoEnabled: data.cornerLogoEnabled === true,
+        });
+      } catch {
+        // The generated job result remains the authoritative fallback.
+      }
+    };
+
+    void loadImageBrandingDefaults();
   }, []);
 
   useEffect(() => {
@@ -913,6 +1030,8 @@ export function BrandCopilot() {
   }, []);
 
   useEffect(() => {
+    // Conversation refresh is an intentional mount-time external sync.
+    // eslint-disable-next-line react-hooks/immutability
     void refreshConversations();
   }, []);
 
@@ -923,6 +1042,8 @@ export function BrandCopilot() {
     imagePollingTimersRef.current = [];
 
     if (conversationId) {
+      // Resume the selected conversation's persisted background jobs.
+      // eslint-disable-next-line react-hooks/immutability
       void resumeImageJobs(conversationId);
     }
 
@@ -943,6 +1064,8 @@ export function BrandCopilot() {
       return;
     }
 
+    // Restore the persisted external conversation once on mount.
+    // eslint-disable-next-line react-hooks/immutability
     void openConversation(savedConversationId);
     // Restore exactly once from the persisted conversation id on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1055,6 +1178,23 @@ export function BrandCopilot() {
             ? String(metadata.assetId)
             : undefined;
 
+        const brandingCandidate =
+          metadata &&
+          "branding" in metadata &&
+          metadata.branding &&
+          typeof metadata.branding === "object"
+            ? (metadata.branding as Record<string, unknown>)
+            : null;
+        const imageBranding: GeneratedImageBranding | undefined =
+          brandingCandidate
+            ? {
+                brandFooterEnabled:
+                  brandingCandidate.brandFooterEnabled === true,
+                footerLogoEnabled: brandingCandidate.footerLogoEnabled === true,
+                cornerLogoEnabled: brandingCandidate.cornerLogoEnabled === true,
+              }
+            : undefined;
+
         const sourceMessageIndex =
           metadata &&
           "sourceMessageIndex" in metadata &&
@@ -1165,6 +1305,7 @@ export function BrandCopilot() {
               ...loadedMessages[targetIndex],
               imageUrl,
               assetId,
+              imageBranding,
             };
           } else {
             loadedMessages.push({
@@ -1172,6 +1313,7 @@ export function BrandCopilot() {
               content: "Generated image",
               imageUrl,
               assetId,
+              imageBranding,
             });
           }
 
@@ -1188,6 +1330,7 @@ export function BrandCopilot() {
           content: restoredContent,
           imageUrl,
           assetId,
+          imageBranding,
           studioResult:
             message.role === "ASSISTANT"
               ? effectiveRestoredStudioResult
@@ -1680,9 +1823,7 @@ export function BrandCopilot() {
         const queued = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            queued.message || "Unable to queue marketing plan.",
-          );
+          throw new Error(queued.message || "Unable to queue marketing plan.");
         }
 
         if (queued.conversationId) {
@@ -1868,15 +2009,10 @@ export function BrandCopilot() {
         const assistantStudioResult = parsedReply.action
           ? studioResultFromWorkspaceAction(parsedReply.action, executionDraft)
           : null;
+        const assistantMessageIndex = next.length;
 
-        if (parsedReply.action) {
-          await applyWorkspaceAction(parsedReply.action, executionDraft);
-
-          setStatus("Elena updated AI Workspace.");
-        }
-
-        setMessages((current) => [
-          ...current,
+        setMessages([
+          ...next,
           {
             role: "assistant",
             content: parsedReply.visibleReply || data.reply,
@@ -1884,13 +2020,34 @@ export function BrandCopilot() {
           },
         ]);
 
+        let imageGenerationStarted = false;
+
+        if (parsedReply.action) {
+          imageGenerationStarted = await applyWorkspaceAction(
+            parsedReply.action,
+            executionDraft,
+            {
+              messageIndex: assistantMessageIndex,
+              instructions: text,
+              fallbackContent:
+                studioTopic.trim() || parsedReply.visibleReply.trim() || text,
+            },
+          );
+
+          if (!imageGenerationStarted) {
+            setStatus("Elena updated AI Workspace.");
+          }
+        }
+
         await refreshConversations();
 
-        setStatus(
-          data.campaign
-            ? `Using ${data.campaign.name} · Chat`
-            : "Using Brand Brain · Chat",
-        );
+        if (!imageGenerationStarted) {
+          setStatus(
+            data.campaign
+              ? `Using ${data.campaign.name} · Chat`
+              : "Using Brand Brain · Chat",
+          );
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -2007,6 +2164,7 @@ export function BrandCopilot() {
     index: number,
     imageUrl: string,
     assetId?: string,
+    imageBranding?: GeneratedImageBranding,
   ) {
     if (conversationIdRef.current !== originConversationId) {
       return;
@@ -2019,6 +2177,19 @@ export function BrandCopilot() {
               ...message,
               imageUrl,
               assetId: assetId || message.assetId,
+              imageBranding: imageBranding
+                ? {
+                    ...imageBranding,
+                    dirty: false,
+                    applying: false,
+                  }
+                : message.imageBranding
+                  ? {
+                      ...message.imageBranding,
+                      dirty: false,
+                      applying: false,
+                    }
+                  : undefined,
             }
           : message,
       ),
@@ -2041,6 +2212,14 @@ export function BrandCopilot() {
       messageIndex,
       imageUrl,
       job.result?.asset?.id,
+      job.result?.generation
+        ? {
+            brandFooterEnabled:
+              job.result.generation.brandFooterEnabled === true,
+            footerLogoEnabled: job.result.generation.footerLogoEnabled === true,
+            cornerLogoEnabled: job.result.generation.cornerLogoEnabled === true,
+          }
+        : undefined,
     );
 
     const response = await fetch(
@@ -2056,6 +2235,16 @@ export function BrandCopilot() {
           prompt: job.payload?.prompt,
           sourceMessageIndex: messageIndex,
           sourceJobId: job.id,
+          branding: job.result?.generation
+            ? {
+                brandFooterEnabled:
+                  job.result.generation.brandFooterEnabled === true,
+                footerLogoEnabled:
+                  job.result.generation.footerLogoEnabled === true,
+                cornerLogoEnabled:
+                  job.result.generation.cornerLogoEnabled === true,
+              }
+            : undefined,
         }),
       },
     );
@@ -2136,6 +2325,25 @@ export function BrandCopilot() {
 
       setStatus("Resuming image generation...");
 
+      const activeTimerMessageIndexes = new Map<
+        ReturnType<typeof setInterval>,
+        number
+      >();
+
+      const finishResumedTimer = (timer: ReturnType<typeof setInterval>) => {
+        clearInterval(timer);
+        imagePollingTimersRef.current = imagePollingTimersRef.current.filter(
+          (currentTimer) => currentTimer !== timer,
+        );
+        activeTimerMessageIndexes.delete(timer);
+
+        if (conversationIdRef.current === originConversationId) {
+          setGeneratingImageIndex(
+            activeTimerMessageIndexes.values().next().value ?? null,
+          );
+        }
+      };
+
       activeJobs.forEach((job) => {
         const timer = setInterval(async () => {
           try {
@@ -2146,11 +2354,7 @@ export function BrandCopilot() {
             const result = await resultResponse.json();
 
             if (result.status === "SUCCEEDED") {
-              clearInterval(timer);
-              imagePollingTimersRef.current =
-                imagePollingTimersRef.current.filter(
-                  (currentTimer) => currentTimer !== timer,
-                );
+              finishResumedTimer(timer);
 
               if (await applyCompletedJob(result)) {
                 setStatus("Image generated.");
@@ -2158,27 +2362,46 @@ export function BrandCopilot() {
             }
 
             if (result.status === "FAILED") {
-              clearInterval(timer);
-              imagePollingTimersRef.current =
-                imagePollingTimersRef.current.filter(
-                  (currentTimer) => currentTimer !== timer,
-                );
+              finishResumedTimer(timer);
             }
           } catch {
-            clearInterval(timer);
+            finishResumedTimer(timer);
           }
         }, 3000);
 
+        const messageIndex =
+          typeof job.payload?.messageIndex === "number"
+            ? job.payload.messageIndex
+            : -1;
+
+        if (messageIndex >= 0) {
+          activeTimerMessageIndexes.set(timer, messageIndex);
+        }
+
         imagePollingTimersRef.current.push(timer);
       });
+
+      setGeneratingImageIndex(
+        activeTimerMessageIndexes.values().next().value ?? null,
+      );
     } catch {
       // ignore resume failure
     }
   }
 
-  const generateImageFromMessage = async (content: string, index: number) => {
+  const generateImageFromMessage = async (
+    content: string,
+    index: number,
+    explicitInstructions?: string,
+  ) => {
     let timer: ReturnType<typeof setInterval> | null = null;
     const originConversationId = conversationIdRef.current;
+    const instructions =
+      explicitInstructions?.trim() ||
+      messages
+        .slice(0, index)
+        .reverse()
+        .find((message) => message.role === "user")?.content;
 
     try {
       setGeneratingImageIndex(index);
@@ -2191,9 +2414,11 @@ export function BrandCopilot() {
         },
         body: JSON.stringify({
           content,
+          instructions: instructions || undefined,
           platform: "Facebook",
           conversationId: originConversationId || undefined,
           messageIndex: index,
+          ...readCopilotImageGenerationScope(),
         }),
       });
 
@@ -2201,6 +2426,64 @@ export function BrandCopilot() {
 
       if (!response.ok) {
         throw new Error(data.message || "Image generation failed.");
+      }
+
+      const completeSuccessfulImageJob = async (job: ImageBackgroundJob) => {
+        const imageUrl =
+          job.result?.asset?.url || job.result?.asset?.thumbnailUrl;
+
+        if (!imageUrl) {
+          throw new Error("Generated image URL missing.");
+        }
+
+        if (
+          conversationIdRef.current !== originConversationId ||
+          (originConversationId &&
+            job.payload?.conversationId !== originConversationId)
+        ) {
+          return;
+        }
+
+        if (originConversationId) {
+          await persistCompletedImageJob(originConversationId, job);
+        } else {
+          setMessages((current) =>
+            current.map((message, messageIndex) =>
+              messageIndex === index
+                ? {
+                    ...message,
+                    imageUrl,
+                    assetId: job.result?.asset?.id || message.assetId,
+                    imageBranding: job.result?.generation
+                      ? {
+                          brandFooterEnabled:
+                            job.result.generation.brandFooterEnabled === true,
+                          footerLogoEnabled:
+                            job.result.generation.footerLogoEnabled === true,
+                          cornerLogoEnabled:
+                            job.result.generation.cornerLogoEnabled === true,
+                        }
+                      : message.imageBranding
+                        ? {
+                            ...message.imageBranding,
+                            dirty: false,
+                            applying: false,
+                            error: undefined,
+                          }
+                        : undefined,
+                  }
+                : message,
+            ),
+          );
+        }
+
+        setStatus("Image generated.");
+        setGeneratingImageIndex(null);
+      };
+
+      if (data.status === "SUCCEEDED" && data.result?.asset) {
+        await completeSuccessfulImageJob(data as ImageBackgroundJob);
+        return;
       }
 
       const jobId = data.id;
@@ -2227,40 +2510,7 @@ export function BrandCopilot() {
                 );
             }
 
-            const imageUrl =
-              job.result?.asset?.url || job.result?.asset?.thumbnailUrl;
-
-            if (!imageUrl) {
-              throw new Error("Generated image URL missing.");
-            }
-
-            if (
-              conversationIdRef.current !== originConversationId ||
-              (originConversationId &&
-                job.payload?.conversationId !== originConversationId)
-            ) {
-              return;
-            }
-
-            if (originConversationId) {
-              await persistCompletedImageJob(originConversationId, job);
-            } else {
-              setMessages((current) =>
-                current.map((message, messageIndex) =>
-                  messageIndex === index
-                    ? {
-                        ...message,
-                        imageUrl,
-                        assetId: job.result?.asset?.id || message.assetId,
-                      }
-                    : message,
-                ),
-              );
-            }
-
-            setStatus("Image generated.");
-
-            setGeneratingImageIndex(null);
+            await completeSuccessfulImageJob(job as ImageBackgroundJob);
             return;
           }
 
@@ -2309,6 +2559,170 @@ export function BrandCopilot() {
       }
     }
   };
+
+  function updateGeneratedImageBranding(
+    index: number,
+    key: keyof Pick<
+      GeneratedImageBranding,
+      "brandFooterEnabled" | "footerLogoEnabled" | "cornerLogoEnabled"
+    >,
+    value: boolean,
+  ) {
+    const message = messages[index];
+
+    if (!message?.assetId) {
+      setStatus("This image has no linked Asset Library ID yet.");
+      return;
+    }
+
+    const nextBranding: GeneratedImageBranding = {
+      ...(message.imageBranding ?? defaultImageBranding),
+      [key]: value,
+      dirty: false,
+      applying: true,
+      error: undefined,
+    };
+
+    setMessages((current) =>
+      current.map((item, messageIndex) =>
+        messageIndex === index
+          ? {
+              ...item,
+              imageBranding: nextBranding,
+            }
+          : item,
+      ),
+    );
+
+    void applyGeneratedImageBranding(index, nextBranding);
+  }
+
+  async function applyGeneratedImageBranding(
+    index: number,
+    brandingOverride?: GeneratedImageBranding,
+  ) {
+    const message = messages[index];
+
+    if (!message?.assetId) {
+      setStatus("This image has no linked Asset Library ID yet.");
+      return;
+    }
+
+    const requestedBranding =
+      brandingOverride ?? message.imageBranding ?? defaultImageBranding;
+
+    setMessages((current) =>
+      current.map((item, messageIndex) =>
+        messageIndex === index
+          ? {
+              ...item,
+              imageBranding: {
+                ...requestedBranding,
+                applying: true,
+                dirty: false,
+                error: undefined,
+              },
+            }
+          : item,
+      ),
+    );
+    setStatus("Updating image preview...");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/asset-images/${message.assetId}/branding`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            brandFooterEnabled: requestedBranding.brandFooterEnabled,
+            footerLogoEnabled:
+              requestedBranding.brandFooterEnabled &&
+              requestedBranding.footerLogoEnabled,
+            cornerLogoEnabled: requestedBranding.cornerLogoEnabled,
+            ...readCopilotImageGenerationScope(),
+          }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.asset?.url) {
+        const responseMessage = Array.isArray(data.message)
+          ? data.message.join(" ")
+          : data.message;
+        throw new Error(responseMessage || "Unable to apply image branding.");
+      }
+
+      const appliedBranding: GeneratedImageBranding = {
+        brandFooterEnabled: data.branding?.brandFooterEnabled === true,
+        footerLogoEnabled: data.branding?.footerLogoEnabled === true,
+        cornerLogoEnabled: data.branding?.cornerLogoEnabled === true,
+        dirty: false,
+        applying: false,
+        error: undefined,
+      };
+      const separator = data.asset.url.includes("?") ? "&" : "?";
+      const imageUrl = `${data.asset.url}${separator}atlasVersion=${Date.now()}`;
+
+      setMessages((current) =>
+        current.map((item, messageIndex) =>
+          messageIndex === index
+            ? {
+                ...item,
+                imageUrl,
+                assetId: data.asset.id || item.assetId,
+                imageBranding: appliedBranding,
+              }
+            : item,
+        ),
+      );
+
+      if (conversationIdRef.current) {
+        await fetch(
+          `${API_URL}/copilot/conversations/${conversationIdRef.current}/image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageUrl,
+              assetId: data.asset.id || message.assetId,
+              prompt: message.content,
+              sourceMessageIndex: index,
+              branding: appliedBranding,
+            }),
+          },
+        );
+      }
+
+      setStatus("Preview updated. Save and Assets use this version.");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unable to apply image branding.";
+
+      setMessages((current) =>
+        current.map((item, messageIndex) =>
+          messageIndex === index
+            ? {
+                ...item,
+                imageBranding: {
+                  ...(item.imageBranding ?? requestedBranding),
+                  applying: false,
+                  dirty: true,
+                  error: errorMessage,
+                },
+              }
+            : item,
+        ),
+      );
+      setStatus(errorMessage);
+    }
+  }
 
   async function saveGeneratedImage(imageUrl: string, index: number) {
     try {
@@ -3047,10 +3461,111 @@ export function BrandCopilot() {
                       )}
                     </div>
 
+                    <div className={styles.generatedImageBrandingControls}>
+                      <div className={styles.generatedImageBrandingHeader}>
+                        <div>
+                          <strong>Branding before save</strong>
+                          <span>
+                            Switches update the preview automatically.
+                          </span>
+                        </div>
+
+                        <span
+                          className={
+                            message.imageBranding?.applying ||
+                            message.imageBranding?.dirty
+                              ? styles.generatedImageBrandingPending
+                              : styles.generatedImageBrandingApplied
+                          }
+                        >
+                          {message.imageBranding?.applying
+                            ? "Updating preview…"
+                            : message.imageBranding?.dirty
+                              ? "Update failed"
+                              : "Preview ready"}
+                        </span>
+                      </div>
+
+                      {message.imageBranding?.error && (
+                        <p className={styles.generatedImageBrandingError}>
+                          {message.imageBranding.error}
+                        </p>
+                      )}
+
+                      <div className={styles.generatedImageBrandingSwitches}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              (message.imageBranding ?? defaultImageBranding)
+                                .brandFooterEnabled
+                            }
+                            disabled={message.imageBranding?.applying}
+                            onChange={(event) =>
+                              updateGeneratedImageBranding(
+                                index,
+                                "brandFooterEnabled",
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Footer</span>
+                        </label>
+
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              (message.imageBranding ?? defaultImageBranding)
+                                .footerLogoEnabled
+                            }
+                            disabled={
+                              message.imageBranding?.applying ||
+                              !(message.imageBranding ?? defaultImageBranding)
+                                .brandFooterEnabled
+                            }
+                            onChange={(event) =>
+                              updateGeneratedImageBranding(
+                                index,
+                                "footerLogoEnabled",
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Footer Logo</span>
+                        </label>
+
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              (message.imageBranding ?? defaultImageBranding)
+                                .cornerLogoEnabled
+                            }
+                            disabled={message.imageBranding?.applying}
+                            onChange={(event) =>
+                              updateGeneratedImageBranding(
+                                index,
+                                "cornerLogoEnabled",
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Corner Logo</span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className={styles.generatedImageToolbar}>
                       <button
                         type="button"
-                        onClick={() => void saveGeneratedImage(message.imageUrl!, index)}
+                        disabled={
+                          message.imageBranding?.dirty ||
+                          message.imageBranding?.applying
+                        }
+                        onClick={() =>
+                          void saveGeneratedImage(message.imageUrl!, index)
+                        }
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                           <path d="M12 3v12" />
@@ -3062,6 +3577,10 @@ export function BrandCopilot() {
 
                       <button
                         type="button"
+                        disabled={
+                          message.imageBranding?.dirty ||
+                          message.imageBranding?.applying
+                        }
                         onClick={() => {
                           if (!message.assetId) {
                             setStatus(
@@ -3109,6 +3628,10 @@ export function BrandCopilot() {
 
                       <button
                         type="button"
+                        disabled={
+                          message.imageBranding?.dirty ||
+                          message.imageBranding?.applying
+                        }
                         onClick={() => {
                           const params = new URLSearchParams();
 

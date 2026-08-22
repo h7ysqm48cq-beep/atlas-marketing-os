@@ -69,24 +69,24 @@ export class ImagePostProcessorService {
     // [Official Logo] 满贯门 mgmbetmyr.com
     // ---------------------------------------------------
 
-    if (
-      settings.brandFooterEnabled &&
-      settings.footerText?.trim()
-    ) {
+    const footerText = settings.footerText?.trim() ?? '';
+    const footerLogo = settings.logoEnabled
+      ? settings.brandLogo
+      : undefined;
+
+    if (settings.brandFooterEnabled && (footerText || footerLogo)) {
       const signature =
         await this.createBrandSignature(
           width,
           height,
-          settings.footerText,
+          footerText,
           this.normalizePosition(
             settings.footerPosition,
           ),
           this.normalizeStyle(
             settings.footerStyle,
           ),
-          settings.logoEnabled
-            ? settings.brandLogo
-            : undefined,
+          footerLogo,
           settings.logoScale ?? 1,
           settings.logoOpacity ?? 1,
         );
@@ -252,23 +252,24 @@ export class ImagePostProcessorService {
         .trim()
         .slice(0, 100);
 
-    const estimatedTextWidth =
-      Math.min(
-        Math.round(width * 0.72),
-        Math.max(
-          fontSize * 4,
-          Math.round(
-            normalizedText.length *
-              fontSize *
-              0.58,
+    const estimatedTextWidth = normalizedText
+      ? Math.min(
+          Math.round(width * 0.72),
+          Math.max(
+            fontSize * 4,
+            Math.round(
+              normalizedText.length *
+                fontSize *
+                0.58,
+            ),
           ),
-        ),
-      );
+        )
+      : 0;
 
     const totalWidth =
       logoBuffer
         ? logoWidth +
-          gap +
+          (normalizedText ? gap : 0) +
           estimatedTextWidth
         : estimatedTextWidth;
 
@@ -302,7 +303,8 @@ export class ImagePostProcessorService {
     const textX =
       groupLeft +
       (logoBuffer
-        ? logoWidth + gap
+        ? logoWidth +
+          (normalizedText ? gap : 0)
         : 0);
 
     const textY =

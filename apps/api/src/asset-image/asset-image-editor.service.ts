@@ -110,7 +110,6 @@ export class AssetImageEditorService {
       buffer: Buffer;
       brandId: string;
       primaryLogoAssetId?: string | null;
-      name?: string;
       pageId?: string;
       channelId?: string;
     },
@@ -124,6 +123,9 @@ export class AssetImageEditorService {
     const footerLogoMode =
       setting.footerLogoMode ??
       'auto';
+    const textOverlayText =
+      setting.textOverlayText
+        ?.trim() ?? '';
 
     const logoBuffer =
       setting.brandFooterEnabled &&
@@ -138,7 +140,8 @@ export class AssetImageEditorService {
       input.buffer,
       {
         textOverlayEnabled:
-          setting.textOverlayEnabled,
+          setting.textOverlayEnabled &&
+          Boolean(textOverlayText),
 
         brandFooterEnabled:
           setting.brandFooterEnabled,
@@ -164,7 +167,7 @@ export class AssetImageEditorService {
         logoScale: 1,
         logoOpacity: 1,
       },
-      input.name,
+      textOverlayText,
     );
   }
 
@@ -256,7 +259,6 @@ export class AssetImageEditorService {
         brandId: brand.id,
         primaryLogoAssetId:
           brand.primaryLogoAssetId,
-        name: outputName,
       });
     const filename = `${Date.now()}-${this.slugify(outputName).slice(0, 40)}-${randomUUID()
       .replace(/-/g, '')
@@ -486,7 +488,6 @@ export class AssetImageEditorService {
         brandId: brand.id,
         primaryLogoAssetId:
           brand.primaryLogoAssetId,
-        name: outputName,
       });
 
     const finalMetadata = await sharp(editedBuffer).metadata();
@@ -784,7 +785,6 @@ export class AssetImageEditorService {
         brandId: brand.id,
         primaryLogoAssetId:
           brand.primaryLogoAssetId,
-        name: outputName,
       });
 
     const filename =

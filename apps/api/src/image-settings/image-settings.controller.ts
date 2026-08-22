@@ -43,6 +43,7 @@ export class ImageSettingsController {
       channelId?: string;
 
       textOverlayEnabled?: boolean;
+      textOverlayText?: string;
       brandFooterEnabled?: boolean;
       footerText?: string;
       footerPosition?: string;

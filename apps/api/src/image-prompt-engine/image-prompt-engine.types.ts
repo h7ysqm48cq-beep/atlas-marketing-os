@@ -1,9 +1,5 @@
-export type ImageAspectRatio =
-  | '1:1'
-  | '4:5'
-  | '9:16'
-  | '16:9'
-  | '1920:500';
+/** Provider-independent ratio text, validated by the calling boundary. */
+export type ImageAspectRatio = string;
 
 export interface BuildImagePromptInput {
   subject: string;

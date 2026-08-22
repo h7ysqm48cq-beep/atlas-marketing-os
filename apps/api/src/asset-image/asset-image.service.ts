@@ -20,6 +20,7 @@ import {
   ExistingAssetLogoPlacement,
 } from './dto/brand-existing-asset.dto';
 import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
+import { UpdateAssetBrandingDto } from './dto/update-asset-branding.dto';
 
 import { ImageSettingsService } from '../image-settings/image-settings.service';
 import { BrandRendererService } from '../brand-renderer/brand-renderer.service';
@@ -30,6 +31,7 @@ import {
 @Injectable()
 export class AssetImageService {
   private readonly client: OpenAI | null;
+  private readonly sourcePathTagPrefix = 'atlas-source-path:';
 
   constructor(
     private readonly brandRenderer: BrandRendererService,
@@ -57,7 +59,8 @@ export class AssetImageService {
     await this.validateRelations(brand.id, dto.campaignId, dto.historyId);
 
     const model = dto.model?.trim() || (await this.aiRuntime.getImageModel());
-    const size = dto.size || '1024x1536';
+    const requestedOutput = this.resolveOutputDimensions(dto);
+    const size = dto.size || this.resolveProviderSize(requestedOutput);
     const quality = dto.quality || 'medium';
     const generationStartedAt = Date.now();
 
@@ -83,14 +86,37 @@ export class AssetImageService {
       const shortName = this.slugify(dto.name).slice(0, 40);
       const uniqueId = randomUUID().replace(/-/g, '').slice(0, 8);
       const filename = `${Date.now()}-${shortName}-${uniqueId}.png`;
-      const imageBuffer = Buffer.from(base64, 'base64');
-      const [width, height] = size.split('x').map(Number);
+      const sourceImageBuffer = Buffer.from(base64, 'base64');
+      const sourceMetadata = await sharp(sourceImageBuffer).metadata();
+      const width = requestedOutput?.width ?? sourceMetadata.width ?? 1024;
+      const height = requestedOutput?.height ?? sourceMetadata.height ?? 1536;
+      const imageBuffer = requestedOutput
+        ? await sharp(sourceImageBuffer)
+            .resize({
+              width,
+              height,
+              fit: 'cover',
+              position: 'attention',
+            })
+            .png()
+            .toBuffer()
+        : sourceImageBuffer;
 
-      const imageSetting =
-        await this.imageSettings.get({
-          pageId: dto.pageId,
-          channelId: dto.channelId,
-        });
+      const imageSetting = await this.imageSettings.get({
+        pageId: dto.pageId,
+        channelId: dto.channelId,
+      });
+
+      const textOverlayText = (
+        dto.textOverlayText !== undefined
+          ? dto.textOverlayText
+          : (imageSetting.textOverlayText ?? '')
+      ).trim();
+
+      const textOverlayEnabled =
+        Boolean(textOverlayText) &&
+        dto.textOverlayMode !== 'NEVER' &&
+        (dto.textOverlayMode === 'ALWAYS' || imageSetting.textOverlayEnabled);
 
       // Independent Corner Logo.
       // Brand Signature logo is controlled separately
@@ -103,24 +129,44 @@ export class AssetImageService {
        * Workspace / Page / Channel inheritance.
        */
       const cornerLogoEnabled =
-        imageSetting.cornerLogoEnabled ??
-        false;
+        dto.logoMode === 'NEVER'
+          ? false
+          : dto.logoMode === 'ALWAYS'
+            ? true
+            : (imageSetting.cornerLogoEnabled ?? false);
 
-      const cornerLogoPlacement =
-        this.resolveLogoPlacement(
-          (
-            imageSetting.cornerLogoPlacement ??
-            'TOP_RIGHT'
-          ) as keyof typeof LogoPlacement,
-        );
+      const cornerLogoPlacement = this.resolveLogoPlacement(
+        (dto.logoPlacement ??
+          imageSetting.cornerLogoPlacement ??
+          'TOP_RIGHT') as keyof typeof LogoPlacement,
+      );
 
       const cornerLogoScale =
-        imageSetting.cornerLogoScale ??
-        1;
+        dto.logoScale ?? imageSetting.cornerLogoScale ?? 1;
 
       const cornerLogoOpacity =
-        imageSetting.cornerLogoOpacity ??
-        1;
+        dto.logoOpacity ?? imageSetting.cornerLogoOpacity ?? 1;
+
+      const brandFooterEnabled =
+        dto.brandFooterMode === 'NEVER'
+          ? false
+          : dto.brandFooterMode === 'ALWAYS'
+            ? true
+            : imageSetting.brandFooterEnabled;
+
+      const footerText = (
+        dto.footerText !== undefined
+          ? dto.footerText
+          : (imageSetting.footerText ?? '')
+      ).trim();
+
+      const footerLogoMode =
+        dto.footerLogoMode?.toLowerCase() ??
+        imageSetting.footerLogoMode ??
+        'auto';
+
+      const signatureLogoEnabled =
+        brandFooterEnabled && footerLogoMode !== 'hide';
 
       /*
        * Prevent Corner Logo from occupying
@@ -130,73 +176,46 @@ export class AssetImageService {
        * Conflicting Corner Logo moves to TOP_RIGHT.
        */
       const footerCornerConflict =
-        imageSetting.brandFooterEnabled &&
-        Boolean(
-          imageSetting.footerText?.trim(),
-        ) &&
-        (
-          (
-            imageSetting.footerPosition ===
-              'bottom-left' &&
-            cornerLogoPlacement ===
-              'BOTTOM_LEFT'
-          ) ||
-          (
-            imageSetting.footerPosition ===
-              'bottom-center' &&
-            cornerLogoPlacement ===
-              'BOTTOM_CENTER'
-          ) ||
-          (
-            imageSetting.footerPosition ===
-              'bottom-right' &&
-            cornerLogoPlacement ===
-              'BOTTOM_RIGHT'
-          )
-        );
+        brandFooterEnabled &&
+        (Boolean(footerText) || signatureLogoEnabled) &&
+        ((imageSetting.footerPosition === 'bottom-left' &&
+          cornerLogoPlacement === LogoPlacement.BOTTOM_LEFT) ||
+          (imageSetting.footerPosition === 'bottom-center' &&
+            cornerLogoPlacement === LogoPlacement.BOTTOM_CENTER) ||
+          (imageSetting.footerPosition === 'bottom-right' &&
+            cornerLogoPlacement === LogoPlacement.BOTTOM_RIGHT));
 
-      const effectiveCornerLogoPlacement =
-        footerCornerConflict
-          ? this.resolveLogoPlacement(
-              'TOP_RIGHT',
-            )
-          : cornerLogoPlacement;
+      const effectiveCornerLogoPlacement = footerCornerConflict
+        ? this.resolveLogoPlacement('TOP_RIGHT')
+        : cornerLogoPlacement;
 
-      const footerLogoMode =
-        imageSetting.footerLogoMode ??
-        'auto';
+      const primaryLogoBuffer =
+        signatureLogoEnabled || cornerLogoEnabled
+          ? await this.brandRenderer.loadPrimaryLogoBuffer({
+              brandId: brand.id,
+              primaryLogoAssetId: brand.primaryLogoAssetId,
+            })
+          : null;
 
-      const signatureLogoEnabled =
-        imageSetting.brandFooterEnabled &&
-        footerLogoMode !== 'hide';
+      const processedImageBuffer = await this.imagePostProcessor.process(
+        imageBuffer,
+        {
+          textOverlayEnabled: textOverlayEnabled,
 
-      const processedImageBuffer =
-        await this.imagePostProcessor.process(
-          imageBuffer,
-          {
-            textOverlayEnabled:
-              imageSetting.textOverlayEnabled,
+          brandFooterEnabled: brandFooterEnabled,
 
-            brandFooterEnabled:
-              false,
+          footerText: footerText,
 
-            footerText:
-              undefined,
+          footerPosition: imageSetting.footerPosition,
 
-            footerPosition:
-              undefined,
+          footerStyle: imageSetting.footerStyle,
 
-            footerStyle:
-              undefined,
+          brandLogo: primaryLogoBuffer ?? undefined,
 
-            brandLogo:
-              undefined,
-
-            logoEnabled:
-              false,
-          },
-          dto.name,
-        );
+          logoEnabled: signatureLogoEnabled && Boolean(primaryLogoBuffer),
+        },
+        textOverlayText,
+      );
 
       /*
        * Independent Corner Logo
@@ -205,60 +224,87 @@ export class AssetImageService {
        * NEVER  = OFF
        * AUTO   = backward-compatible conditional mode
        */
-      
 
-      const finalImageBuffer =
-        await this.brandRenderer.render(
-          {
-            brandId: brand.id,
-            pageId: dto.pageId,
-            channelId: dto.channelId,
+      const finalImageBuffer = await this.brandRenderer.render(
+        {
+          brandId: brand.id,
+          pageId: dto.pageId,
+          channelId: dto.channelId,
 
-            workspaceSetting:
-              imageSetting,
-
-            imageWidth: width,
-            imageHeight: height,
-            buffer: processedImageBuffer,
+          workspaceSetting: {
+            ...imageSetting,
+            brandFooterEnabled: false,
+            primaryLogoAssetId: brand.primaryLogoAssetId,
           },
-        );
+
+          imageWidth: width,
+          imageHeight: height,
+          buffer: processedImageBuffer,
+        },
+        {
+          logoEnabled: cornerLogoEnabled && Boolean(primaryLogoBuffer),
+          logoBuffer: primaryLogoBuffer ?? undefined,
+          placement: effectiveCornerLogoPlacement,
+          scale: cornerLogoScale,
+          opacity: cornerLogoOpacity,
+          platform: dto.platform,
+        },
+      );
 
       const now = new Date();
       const year = String(now.getUTCFullYear());
       const month = String(now.getUTCMonth() + 1).padStart(2, '0');
       const storagePath = ['brands', brand.id, year, month, filename].join('/');
+      const sourceStoragePath = [
+        'brands',
+        brand.id,
+        year,
+        month,
+        'sources',
+        filename,
+      ].join('/');
 
-      const uploaded = await this.storageService.uploadImage({
-        buffer: finalImageBuffer,
-        path: storagePath,
+      const sourceUploaded = await this.storageService.uploadImage({
+        buffer: imageBuffer,
+        path: sourceStoragePath,
         contentType: 'image/png',
       });
 
-      const thumbnailPath =
-        buildAssetThumbnailPath(
-          brand.id,
-          now,
-          filename,
-        );
-
-      let thumbnail;
+      let uploaded: Awaited<ReturnType<SupabaseStorageService['uploadImage']>>;
 
       try {
-        const thumbnailBuffer =
-          await createAssetThumbnail(
-            finalImageBuffer,
-          );
-
-        thumbnail =
-          await this.storageService.uploadImage({
-            buffer: thumbnailBuffer,
-            path: thumbnailPath,
-            contentType: 'image/webp',
-          });
+        uploaded = await this.storageService.uploadImage({
+          buffer: finalImageBuffer,
+          path: storagePath,
+          contentType: 'image/png',
+        });
       } catch (error) {
         await this.storageService
-          .remove(uploaded.path)
+          .remove(sourceUploaded.path)
           .catch(() => undefined);
+
+        throw error;
+      }
+
+      const thumbnailPath = buildAssetThumbnailPath(brand.id, now, filename);
+
+      let thumbnail: Awaited<ReturnType<SupabaseStorageService['uploadImage']>>;
+
+      try {
+        const thumbnailBuffer = await createAssetThumbnail(finalImageBuffer);
+
+        thumbnail = await this.storageService.uploadImage({
+          buffer: thumbnailBuffer,
+          path: thumbnailPath,
+          contentType: 'image/webp',
+        });
+      } catch (error) {
+        await Promise.all([
+          this.storageService.remove(uploaded.path).catch(() => undefined),
+          this.storageService
+            .remove(sourceUploaded.path)
+            .catch(() => undefined),
+        ]);
 
         throw error;
       }
@@ -291,11 +337,20 @@ export class AssetImageService {
           tags: [
             'ai-generated',
             dto.platform?.toLowerCase() ?? 'multi-platform',
-            cornerLogoEnabled ? 'corner-logo-overlay' : 'corner-logo-skipped',
+            `text-overlay-${textOverlayEnabled ? 'enabled' : 'disabled'}`,
+            cornerLogoEnabled && primaryLogoBuffer
+              ? 'corner-logo-overlay'
+              : 'corner-logo-skipped',
             `corner-logo-${cornerLogoEnabled ? 'enabled' : 'disabled'}`,
+            `brand-footer-${brandFooterEnabled ? 'enabled' : 'disabled'}`,
+            signatureLogoEnabled && primaryLogoBuffer
+              ? 'footer-logo-overlay'
+              : 'footer-logo-skipped',
+            `output-${width}x${height}`,
             `logo-placement-${effectiveCornerLogoPlacement.toLowerCase()}`,
             `corner-logo-scale-${cornerLogoScale}`,
             `corner-logo-opacity-${cornerLogoOpacity}`,
+            `${this.sourcePathTagPrefix}${sourceUploaded.path}`,
           ],
           url,
           thumbnailUrl: thumbnail.publicUrl,
@@ -316,12 +371,15 @@ export class AssetImageService {
           model,
           size,
           quality,
-          cornerLogoPlacement:
-            effectiveCornerLogoPlacement,
-          cornerLogoScale:
-            cornerLogoScale,
-          cornerLogoOpacity:
-            cornerLogoOpacity,
+          outputWidth: width,
+          outputHeight: height,
+          aspectRatio: dto.aspectRatio ?? `${width}:${height}`,
+          cornerLogoPlacement: effectiveCornerLogoPlacement,
+          cornerLogoScale: cornerLogoScale,
+          cornerLogoOpacity: cornerLogoOpacity,
+          brandFooterEnabled,
+          footerLogoEnabled: signatureLogoEnabled && Boolean(primaryLogoBuffer),
+          cornerLogoEnabled: cornerLogoEnabled && Boolean(primaryLogoBuffer),
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt
@@ -337,6 +395,215 @@ export class AssetImageService {
       throw new InternalServerErrorException(
         `Image generation failed: ${message}`,
       );
+    }
+  }
+
+  async updateBranding(assetId: string, dto: UpdateAssetBrandingDto) {
+    const brand = await this.brandsService.getActiveBrand();
+    const sourceAsset = await this.prisma.asset.findFirst({
+      where: {
+        id: assetId,
+        brandId: brand.id,
+        type: 'IMAGE',
+      },
+    });
+
+    if (!sourceAsset) {
+      throw new NotFoundException(
+        'Image asset was not found for the active brand.',
+      );
+    }
+
+    const sourcePathTag = sourceAsset.tags.find((tag) =>
+      tag.startsWith(this.sourcePathTagPrefix),
+    );
+    const sourcePath = sourcePathTag?.slice(this.sourcePathTagPrefix.length);
+
+    if (!sourcePath) {
+      throw new BadRequestException(
+        'This image predates save-time branding controls. Regenerate it once to create a clean source image.',
+      );
+    }
+
+    const sourceBuffer = await this.storageService.download(sourcePath);
+    const metadata = await sharp(sourceBuffer).metadata();
+    const width = metadata.width ?? sourceAsset.width;
+    const height = metadata.height ?? sourceAsset.height;
+
+    if (!width || !height) {
+      throw new BadRequestException(
+        'Unable to determine the selected image size.',
+      );
+    }
+
+    const imageSetting = await this.imageSettings.get({
+      pageId: dto.pageId,
+      channelId: dto.channelId,
+    });
+    const textOverlayText = imageSetting.textOverlayText?.trim() ?? '';
+    const textOverlayEnabled =
+      imageSetting.textOverlayEnabled && Boolean(textOverlayText);
+    const brandFooterEnabled = dto.brandFooterEnabled;
+    const footerText = imageSetting.footerText?.trim() ?? '';
+    const signatureLogoEnabled = brandFooterEnabled && dto.footerLogoEnabled;
+    const cornerLogoEnabled = dto.cornerLogoEnabled;
+    const cornerLogoPlacement = this.resolveLogoPlacement(
+      (imageSetting.cornerLogoPlacement ??
+        'TOP_RIGHT') as keyof typeof LogoPlacement,
+    );
+    const cornerLogoScale = imageSetting.cornerLogoScale ?? 1;
+    const cornerLogoOpacity = imageSetting.cornerLogoOpacity ?? 1;
+    const footerCornerConflict =
+      brandFooterEnabled &&
+      (Boolean(footerText) || signatureLogoEnabled) &&
+      ((imageSetting.footerPosition === 'bottom-left' &&
+        cornerLogoPlacement === LogoPlacement.BOTTOM_LEFT) ||
+        (imageSetting.footerPosition === 'bottom-center' &&
+          cornerLogoPlacement === LogoPlacement.BOTTOM_CENTER) ||
+        (imageSetting.footerPosition === 'bottom-right' &&
+          cornerLogoPlacement === LogoPlacement.BOTTOM_RIGHT));
+    const effectiveCornerLogoPlacement = footerCornerConflict
+      ? LogoPlacement.TOP_RIGHT
+      : cornerLogoPlacement;
+    const primaryLogoBuffer =
+      signatureLogoEnabled || cornerLogoEnabled
+        ? await this.brandRenderer.loadPrimaryLogoBuffer({
+            brandId: brand.id,
+            primaryLogoAssetId: brand.primaryLogoAssetId,
+          })
+        : null;
+
+    const processedImageBuffer = await this.imagePostProcessor.process(
+      sourceBuffer,
+      {
+        textOverlayEnabled,
+        brandFooterEnabled,
+        footerText,
+        footerPosition: imageSetting.footerPosition,
+        footerStyle: imageSetting.footerStyle,
+        brandLogo: primaryLogoBuffer ?? undefined,
+        logoEnabled: signatureLogoEnabled && Boolean(primaryLogoBuffer),
+      },
+      textOverlayText,
+    );
+
+    const finalImageBuffer = await this.brandRenderer.render(
+      {
+        brandId: brand.id,
+        pageId: dto.pageId,
+        channelId: dto.channelId,
+        workspaceSetting: {
+          ...imageSetting,
+          brandFooterEnabled: false,
+          primaryLogoAssetId: brand.primaryLogoAssetId,
+        },
+        imageWidth: width,
+        imageHeight: height,
+        buffer: processedImageBuffer,
+      },
+      {
+        logoEnabled: cornerLogoEnabled && Boolean(primaryLogoBuffer),
+        logoBuffer: primaryLogoBuffer ?? undefined,
+        placement: effectiveCornerLogoPlacement,
+        scale: cornerLogoScale,
+        opacity: cornerLogoOpacity,
+        platform: sourceAsset.platform ?? undefined,
+      },
+    );
+
+    const now = new Date();
+    const uniqueId = randomUUID().replace(/-/g, '').slice(0, 8);
+    const filename = `${Date.now()}-copilot-branding-${uniqueId}.png`;
+    const storagePath = [
+      'brands',
+      brand.id,
+      String(now.getUTCFullYear()),
+      String(now.getUTCMonth() + 1).padStart(2, '0'),
+      filename,
+    ].join('/');
+    const thumbnailPath = buildAssetThumbnailPath(brand.id, now, filename);
+    const uploaded = await this.storageService.uploadImage({
+      buffer: finalImageBuffer,
+      path: storagePath,
+      contentType: 'image/png',
+    });
+
+    let thumbnail: Awaited<ReturnType<SupabaseStorageService['uploadImage']>>;
+
+    try {
+      thumbnail = await this.storageService.uploadImage({
+        buffer: await createAssetThumbnail(finalImageBuffer),
+        path: thumbnailPath,
+        contentType: 'image/webp',
+      });
+    } catch (error) {
+      await this.storageService.remove(uploaded.path).catch(() => undefined);
+
+      throw error;
+    }
+
+    const controlledTagPrefixes = [
+      'text-overlay-',
+      'corner-logo-',
+      'brand-footer-',
+      'footer-logo-',
+      'logo-placement-',
+      'corner-logo-scale-',
+      'corner-logo-opacity-',
+    ];
+    const preservedTags = sourceAsset.tags.filter(
+      (tag) => !controlledTagPrefixes.some((prefix) => tag.startsWith(prefix)),
+    );
+    const footerLogoApplied =
+      signatureLogoEnabled && Boolean(primaryLogoBuffer);
+    const cornerLogoApplied = cornerLogoEnabled && Boolean(primaryLogoBuffer);
+
+    try {
+      const asset = await this.prisma.asset.update({
+        where: {
+          id: sourceAsset.id,
+        },
+        data: {
+          url: uploaded.publicUrl,
+          thumbnailUrl: thumbnail.publicUrl,
+          storageProvider: uploaded.provider,
+          storagePath: uploaded.path,
+          fileSize: uploaded.size,
+          updatedAt: now,
+          tags: [
+            ...preservedTags,
+            `text-overlay-${textOverlayEnabled ? 'enabled' : 'disabled'}`,
+            cornerLogoApplied ? 'corner-logo-overlay' : 'corner-logo-skipped',
+            `corner-logo-${cornerLogoEnabled ? 'enabled' : 'disabled'}`,
+            `brand-footer-${brandFooterEnabled ? 'enabled' : 'disabled'}`,
+            footerLogoApplied ? 'footer-logo-overlay' : 'footer-logo-skipped',
+            `logo-placement-${effectiveCornerLogoPlacement.toLowerCase()}`,
+            `corner-logo-scale-${cornerLogoScale}`,
+            `corner-logo-opacity-${cornerLogoOpacity}`,
+          ],
+        },
+        include: {
+          brand: { select: { id: true, name: true } },
+          campaign: { select: { id: true, name: true } },
+          history: { select: { id: true, topic: true } },
+        },
+      });
+
+      return {
+        asset,
+        branding: {
+          brandFooterEnabled,
+          footerLogoEnabled: footerLogoApplied,
+          cornerLogoEnabled: cornerLogoApplied,
+        },
+      };
+    } catch (error) {
+      await Promise.all([
+        this.storageService.remove(uploaded.path).catch(() => undefined),
+        this.storageService.remove(thumbnail.path).catch(() => undefined),
+      ]);
+
+      throw error;
     }
   }
 
@@ -389,39 +656,36 @@ export class AssetImageService {
     const hasCustomPosition =
       Number.isFinite(dto.logoX) && Number.isFinite(dto.logoY);
 
-    const finalBuffer = await this.brandRenderer.render({
-      brandId: brand.id,
+    const finalBuffer = await this.brandRenderer.render(
+      {
+        brandId: brand.id,
 
-      brandBrainRules: {
-        visualPolicy: {
-          visualStyle: brand.visualStyle,
+        brandBrainRules: {
+          visualPolicy: {
+            visualStyle: brand.visualStyle,
+          },
+          promptPolicy: {
+            negativePrompt: sourceAsset.negativePrompt ?? null,
+          },
+          brandRules: brand.brandRules,
+          brandKit: brand.brandKit,
         },
-        promptPolicy: {
-          negativePrompt:
-            sourceAsset.negativePrompt ?? null,
-        },
-        brandRules: brand.brandRules,
-        brandKit: brand.brandKit,
+
+        imageWidth: width,
+        imageHeight: height,
+        buffer: sourceBuffer,
       },
-
-      imageWidth: width,
-      imageHeight: height,
-      buffer: sourceBuffer,
-    }, {
-      logoEnabled: true,
-      placement,
-      scale,
-      opacity,
-      platform,
-      normalizedX:
-        hasCustomPosition
-          ? dto.logoX
-          : undefined,
-      normalizedY:
-        hasCustomPosition
-          ? dto.logoY
-          : undefined,
-    });
+      {
+        logoEnabled: true,
+        primaryLogoAssetId: brand.primaryLogoAssetId,
+        placement,
+        scale,
+        opacity,
+        platform,
+        normalizedX: hasCustomPosition ? dto.logoX : undefined,
+        normalizedY: hasCustomPosition ? dto.logoY : undefined,
+      },
+    );
 
     const outputName = dto.name?.trim() || `${sourceAsset.name} · Branded`;
     const shortName = this.slugify(outputName).slice(0, 40);
@@ -442,31 +706,20 @@ export class AssetImageService {
       contentType: 'image/png',
     });
 
-    const thumbnailPath =
-      buildAssetThumbnailPath(
-        brand.id,
-        now,
-        filename,
-      );
+    const thumbnailPath = buildAssetThumbnailPath(brand.id, now, filename);
 
-    let thumbnail;
+    let thumbnail: Awaited<ReturnType<SupabaseStorageService['uploadImage']>>;
 
     try {
-      const thumbnailBuffer =
-        await createAssetThumbnail(
-          finalBuffer,
-        );
+      const thumbnailBuffer = await createAssetThumbnail(finalBuffer);
 
-      thumbnail =
-        await this.storageService.uploadImage({
-          buffer: thumbnailBuffer,
-          path: thumbnailPath,
-          contentType: 'image/webp',
-        });
+      thumbnail = await this.storageService.uploadImage({
+        buffer: thumbnailBuffer,
+        path: thumbnailPath,
+        contentType: 'image/webp',
+      });
     } catch (error) {
-      await this.storageService
-        .remove(uploaded.path)
-        .catch(() => undefined);
+      await this.storageService.remove(uploaded.path).catch(() => undefined);
 
       throw error;
     }
@@ -533,7 +786,92 @@ export class AssetImageService {
     return placement ? LogoPlacement[placement] : LogoPlacement.AUTO;
   }
 
+  private resolveProviderSize(
+    output: {
+      width: number;
+      height: number;
+    } | null,
+  ): '1024x1024' | '1024x1536' | '1536x1024' {
+    if (!output) {
+      return '1024x1536';
+    }
 
+    const ratio = output.width / output.height;
+
+    if (ratio >= 0.9 && ratio <= 1.1) {
+      return '1024x1024';
+    }
+
+    return ratio > 1 ? '1536x1024' : '1024x1536';
+  }
+
+  private resolveOutputDimensions(dto: GenerateAssetImageDto): {
+    width: number;
+    height: number;
+  } | null {
+    if (dto.outputWidth !== undefined || dto.outputHeight !== undefined) {
+      if (dto.aspectRatio) {
+        throw new BadRequestException(
+          'Use either outputWidth/outputHeight or aspectRatio, not both.',
+        );
+      }
+
+      if (dto.outputWidth === undefined || dto.outputHeight === undefined) {
+        throw new BadRequestException(
+          'outputWidth and outputHeight must be provided together.',
+        );
+      }
+
+      return {
+        width: dto.outputWidth,
+        height: dto.outputHeight,
+      };
+    }
+
+    if (!dto.aspectRatio) {
+      return null;
+    }
+
+    const [ratioWidth, ratioHeight] = dto.aspectRatio.split(':').map(Number);
+
+    if (
+      !Number.isFinite(ratioWidth) ||
+      !Number.isFinite(ratioHeight) ||
+      ratioWidth <= 0 ||
+      ratioHeight <= 0
+    ) {
+      throw new BadRequestException(
+        'aspectRatio must contain two positive numbers.',
+      );
+    }
+
+    const longEdge = 1536;
+    const ratio = ratioWidth / ratioHeight;
+
+    if (ratio > 6 || ratio < 1 / 6) {
+      throw new BadRequestException(
+        'aspectRatio must be between 1:6 and 6:1 so the requested ratio can be preserved.',
+      );
+    }
+
+    if (ratio >= 1) {
+      return {
+        width: longEdge,
+        height: this.toEvenDimension(longEdge / ratio),
+      };
+    }
+
+    return {
+      width: this.toEvenDimension(longEdge * ratio),
+      height: longEdge,
+    };
+  }
+
+  private toEvenDimension(value: number) {
+    const bounded = Math.min(4096, Math.max(256, Math.round(value)));
+
+    return bounded % 2 === 0 ? bounded : bounded + 1;
+  }
 
   private async validateRelations(
     brandId: string,

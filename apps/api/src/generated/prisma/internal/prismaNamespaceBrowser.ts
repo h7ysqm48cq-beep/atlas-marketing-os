@@ -957,6 +957,7 @@ export const ImageGenerationSettingScalarFieldEnum = {
   pageId: 'pageId',
   channelId: 'channelId',
   textOverlayEnabled: 'textOverlayEnabled',
+  textOverlayText: 'textOverlayText',
   brandFooterEnabled: 'brandFooterEnabled',
   footerText: 'footerText',
   footerPosition: 'footerPosition',

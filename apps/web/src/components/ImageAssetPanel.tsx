@@ -96,13 +96,17 @@ type GenerateResponse = {
     model: string;
     size: string;
     quality: string;
+    outputWidth?: number;
+    outputHeight?: number;
     logoPlacement?: LogoPlacement;
     logoScale?: number;
     logoOpacity?: number;
   };
 };
 
-type CornerLogoSettings = {
+type ImageGenerationSettings = {
+  textOverlayEnabled?: boolean;
+  textOverlayText?: string;
   cornerLogoEnabled?: boolean;
   cornerLogoPlacement?: LogoPlacement;
   cornerLogoScale?: number;
@@ -171,8 +175,11 @@ export function ImageAssetPanel({
     },
   ) => void;
 }) {
-  const [size, setSize] = useState("1024x1536");
+  const [outputWidth, setOutputWidth] = useState(1024);
+  const [outputHeight, setOutputHeight] = useState(1536);
   const [quality, setQuality] = useState("medium");
+  const [textOverlayEnabled, setTextOverlayEnabled] = useState(false);
+  const [textOverlayText, setTextOverlayText] = useState("");
   const [cornerLogoMode, setCornerLogoMode] = useState<CornerLogoMode>("AUTO");
   const [logoPlacement, setLogoPlacement] =
     useState<LogoPlacement>("TOP_RIGHT");
@@ -195,6 +202,14 @@ export function ImageAssetPanel({
     versions.find((version) => version.number === selectedVersion)?.asset ??
     null;
 
+  const outputDimensionsValid =
+    Number.isInteger(outputWidth) &&
+    Number.isInteger(outputHeight) &&
+    outputWidth >= 256 &&
+    outputWidth <= 4096 &&
+    outputHeight >= 256 &&
+    outputHeight <= 4096;
+
   const latestVersionNumber = useMemo(
     () =>
       versions.reduce(
@@ -204,9 +219,19 @@ export function ImageAssetPanel({
     [versions],
   );
 
-  function applyCornerLogoSettings(
-    data: CornerLogoSettings,
+  function applyImageGenerationSettings(
+    data: ImageGenerationSettings,
   ) {
+    setTextOverlayEnabled(
+      data.textOverlayEnabled ??
+        false,
+    );
+
+    setTextOverlayText(
+      data.textOverlayText ??
+        "",
+    );
+
     setCornerLogoMode(
       data.cornerLogoEnabled === undefined
         ? "AUTO"
@@ -264,7 +289,7 @@ export function ImageAssetPanel({
       : "";
   }
 
-  async function loadCornerLogoSettings() {
+  async function loadImageGenerationSettings() {
     try {
       const response =
         await fetch(
@@ -279,9 +304,9 @@ export function ImageAssetPanel({
       }
 
       const data =
-        (await response.json()) as CornerLogoSettings;
+        (await response.json()) as ImageGenerationSettings;
 
-      applyCornerLogoSettings(
+      applyImageGenerationSettings(
         data,
       );
     } catch {
@@ -289,8 +314,8 @@ export function ImageAssetPanel({
     }
   }
 
-  async function saveCornerLogoSettings(
-    payload: CornerLogoSettings,
+  async function saveImageGenerationSettings(
+    payload: ImageGenerationSettings,
   ) {
     try {
       const response =
@@ -311,29 +336,30 @@ export function ImageAssetPanel({
 
       if (!response.ok) {
         setMessage(
-          "Unable to save Corner Logo settings.",
+          "Unable to save image generation settings.",
         );
         return;
       }
 
       const data =
-        (await response.json()) as CornerLogoSettings;
+        (await response.json()) as ImageGenerationSettings;
 
-      applyCornerLogoSettings(
+      applyImageGenerationSettings(
         data,
       );
     } catch {
       setMessage(
-        "Unable to save Corner Logo settings.",
+        "Unable to save image generation settings.",
       );
     }
   }
 
   useEffect(() => {
-    void loadCornerLogoSettings();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadImageGenerationSettings();
 
     const handleScopeChange = () => {
-      void loadCornerLogoSettings();
+      void loadImageGenerationSettings();
     };
 
     window.addEventListener(
@@ -347,6 +373,8 @@ export function ImageAssetPanel({
         handleScopeChange,
       );
     };
+    // The loader intentionally follows the persisted external scope event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function buildGenerationPrompt(revisionRequest?: string) {
@@ -457,8 +485,19 @@ export function ImageAssetPanel({
           campaignId: campaignId || undefined,
           historyId,
           platform: "Multi-platform",
-          size,
+          outputWidth,
+          outputHeight,
           quality,
+          textOverlayMode:
+            textOverlayEnabled
+              ? "ALWAYS"
+              : "NEVER",
+          textOverlayText:
+            textOverlayEnabled
+              ? textOverlayText.trim()
+              : "",
+          logoMode:
+            cornerLogoMode,
           ...readImageGenerationScope(),
         }),
       });
@@ -631,15 +670,85 @@ export function ImageAssetPanel({
 
       <div className={styles.controls}>
         <label>
-          <span>Size</span>
-          <select
-            value={size}
-            onChange={(event) => setSize(event.target.value)}
-          >
-            <option value="1024x1536">Portrait · 1024×1536</option>
-            <option value="1024x1024">Square · 1024×1024</option>
-            <option value="1536x1024">Landscape · 1536×1024</option>
-          </select>
+          <span>Text Overlay</span>
+
+          <input
+            type="checkbox"
+            checked={textOverlayEnabled}
+            onChange={(event) => {
+              const enabled =
+                event.target.checked;
+
+              setTextOverlayEnabled(
+                enabled,
+              );
+
+              void saveImageGenerationSettings({
+                textOverlayEnabled:
+                  enabled,
+              });
+            }}
+          />
+          {" "}
+          {textOverlayEnabled
+            ? "On"
+            : "Off"}
+        </label>
+
+        <label>
+          <span>Text Overlay Text</span>
+          <input
+            value={textOverlayText}
+            disabled={!textOverlayEnabled}
+            placeholder="Type the exact text to place on the image"
+            maxLength={70}
+            onChange={(event) =>
+              setTextOverlayText(
+                event.target.value,
+              )
+            }
+            onBlur={() =>
+              void saveImageGenerationSettings({
+                textOverlayText,
+              })
+            }
+          />
+        </label>
+
+        <label>
+          <span>Output width</span>
+          <input
+            type="number"
+            min={256}
+            max={4096}
+            step={2}
+            value={outputWidth}
+            onChange={(event) =>
+              setOutputWidth(
+                Number(
+                  event.target.value,
+                ),
+              )
+            }
+          />
+        </label>
+
+        <label>
+          <span>Output height</span>
+          <input
+            type="number"
+            min={256}
+            max={4096}
+            step={2}
+            value={outputHeight}
+            onChange={(event) =>
+              setOutputHeight(
+                Number(
+                  event.target.value,
+                ),
+              )
+            }
+          />
         </label>
 
         <label>
@@ -673,7 +782,7 @@ export function ImageAssetPanel({
                   : "NEVER",
               );
 
-              void saveCornerLogoSettings({
+              void saveImageGenerationSettings({
                 cornerLogoEnabled:
                   enabled,
               });
@@ -697,7 +806,7 @@ export function ImageAssetPanel({
                 value,
               );
 
-              void saveCornerLogoSettings({
+              void saveImageGenerationSettings({
                 cornerLogoPlacement:
                   value,
               });
@@ -731,7 +840,7 @@ export function ImageAssetPanel({
                 value,
               );
 
-              void saveCornerLogoSettings({
+              void saveImageGenerationSettings({
                 cornerLogoScale:
                   value,
               });
@@ -760,7 +869,7 @@ export function ImageAssetPanel({
                 value,
               );
 
-              void saveCornerLogoSettings({
+              void saveImageGenerationSettings({
                 cornerLogoOpacity:
                   value,
               });
@@ -778,7 +887,12 @@ export function ImageAssetPanel({
         <button
           type="button"
           onClick={() => void generateImage()}
-          disabled={isGenerating || !prompt || !historyId}
+          disabled={
+            isGenerating ||
+            !prompt ||
+            !historyId ||
+            !outputDimensionsValid
+          }
         >
           {isGenerating
             ? "Generating image..."

@@ -7,6 +7,7 @@ import { PrismaService } from '../database/prisma.service';
 
 type ImageSettingPatch = {
   textOverlayEnabled?: boolean;
+  textOverlayText?: string;
   brandFooterEnabled?: boolean;
   footerText?: string;
   footerPosition?: string;
@@ -99,6 +100,7 @@ export class ImageSettingsService {
             pageId: null,
             channelId: null,
             textOverlayEnabled: true,
+            textOverlayText: '',
             brandFooterEnabled: true,
             footerText:
               '满贯门 mgmbetmyr.com',
@@ -261,6 +263,16 @@ export class ImageSettingsService {
           }
         : {}),
 
+      ...(typeof data.textOverlayText ===
+      'string'
+        ? {
+            textOverlayText:
+              data.textOverlayText
+                .trim()
+                .slice(0, 70),
+          }
+        : {}),
+
       ...(typeof data.brandFooterEnabled ===
       'boolean'
         ? {
@@ -366,6 +378,12 @@ export class ImageSettingsService {
         textOverlayEnabled:
           data.textOverlayEnabled ??
           parent.textOverlayEnabled,
+
+        textOverlayText:
+          data.textOverlayText
+            ?.trim()
+            .slice(0, 70) ??
+          parent.textOverlayText,
 
         brandFooterEnabled:
           data.brandFooterEnabled ??

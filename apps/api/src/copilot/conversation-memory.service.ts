@@ -7,7 +7,7 @@ import {
 import { BrandsService } from '../brands/brands.service';
 import { PrismaService } from '../database/prisma.service';
 import { MemoryFactExtractorService } from '../memory/memory-fact-extractor.service';
-import { CopilotMessageRole } from '../generated/prisma/client';
+import { CopilotMessageRole, Prisma } from '../generated/prisma/client';
 
 type CreateConversationInput = {
   campaignId?: string;
@@ -259,6 +259,11 @@ export class ConversationMemoryService {
       prompt?: string;
       sourceMessageIndex?: number;
       sourceJobId?: string;
+      branding?: {
+        brandFooterEnabled?: boolean;
+        footerLogoEnabled?: boolean;
+        cornerLogoEnabled?: boolean;
+      };
     },
   ) {
     const imageUrl = input.imageUrl?.trim();
@@ -302,6 +307,7 @@ export class ConversationMemoryService {
             ? input.sourceMessageIndex
             : undefined,
         sourceJobId: sourceJobId || undefined,
+        branding: input.branding,
       },
     );
   }
@@ -429,7 +435,7 @@ ${JSON.stringify(message.metadata.plan, null, 2)}`
         conversationId,
         role,
         content: cleanContent,
-        metadata: metadata as any,
+        metadata: metadata as Prisma.InputJsonValue,
       },
       select: {
         id: true,

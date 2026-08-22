@@ -1,5 +1,10 @@
 import {
   IsIn,
+  IsInt,
+  MaxLength,
+  Max,
+  Matches,
+  Min,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -47,7 +52,19 @@ export class GenerateAssetImageDto {
   @IsOptional()
   quality?: 'low' | 'medium' | 'high' | 'auto';
 
+  /**
+   * Controls the optional main text overlay independently from asset metadata.
+   * AUTO follows the effective image-generation setting.
+   */
+  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
+  @IsOptional()
+  textOverlayMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
 
+  /** Explicit user copy for the main overlay. Never falls back to asset metadata. */
+  @IsString()
+  @IsOptional()
+  @MaxLength(70)
+  textOverlayText?: string;
 
   @IsOptional()
   @IsString()
@@ -57,13 +74,80 @@ export class GenerateAssetImageDto {
   @IsString()
   channelId?: string;
 
-
   /**
    * Controls logo rendering behavior.
    * AUTO    = follow brand settings
    * ALWAYS  = force logo rendering
    * NEVER   = disable logo rendering
    */
+  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
+  @IsOptional()
   logoMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
 
+  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
+  @IsOptional()
+  brandFooterMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
+
+  @IsIn(['AUTO', 'SHOW', 'HIDE'])
+  @IsOptional()
+  footerLogoMode?: 'AUTO' | 'SHOW' | 'HIDE';
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  footerText?: string;
+
+  @IsIn([
+    'AUTO',
+    'TOP_LEFT',
+    'TOP_CENTER',
+    'TOP_RIGHT',
+    'CENTER_LEFT',
+    'CENTER',
+    'CENTER_RIGHT',
+    'BOTTOM_LEFT',
+    'BOTTOM_CENTER',
+    'BOTTOM_RIGHT',
+  ])
+  @IsOptional()
+  logoPlacement?:
+    | 'AUTO'
+    | 'TOP_LEFT'
+    | 'TOP_CENTER'
+    | 'TOP_RIGHT'
+    | 'CENTER_LEFT'
+    | 'CENTER'
+    | 'CENTER_RIGHT'
+    | 'BOTTOM_LEFT'
+    | 'BOTTOM_CENTER'
+    | 'BOTTOM_RIGHT';
+
+  @IsNumber()
+  @Min(0.5)
+  @Max(1.5)
+  @IsOptional()
+  logoScale?: number;
+
+  @IsNumber()
+  @Min(0.2)
+  @Max(1)
+  @IsOptional()
+  logoOpacity?: number;
+
+  @IsInt()
+  @Min(256)
+  @Max(4096)
+  @IsOptional()
+  outputWidth?: number;
+
+  @IsInt()
+  @Min(256)
+  @Max(4096)
+  @IsOptional()
+  outputHeight?: number;
+
+  @IsString()
+  @Matches(/^\d{1,2}:\d{1,2}$/)
+  @IsOptional()
+  aspectRatio?: string;
 }

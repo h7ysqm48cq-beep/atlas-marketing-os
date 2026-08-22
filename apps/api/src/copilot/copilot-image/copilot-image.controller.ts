@@ -14,9 +14,12 @@ export class CopilotImageController {
     @Body()
     body: {
       content: string;
+      instructions?: string;
       platform?: string;
       conversationId?: string;
       messageIndex?: number;
+      pageId?: string;
+      channelId?: string;
     },
   ) {
     return this.service.generate(body);
