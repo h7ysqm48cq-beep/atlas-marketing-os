@@ -3860,6 +3860,8 @@ export const ImageGenerationSettingScalarFieldEnum = {
   channelId: 'channelId',
   textOverlayEnabled: 'textOverlayEnabled',
   textOverlayText: 'textOverlayText',
+  qrEnabled: 'qrEnabled',
+  qrLinks: 'qrLinks',
   brandFooterEnabled: 'brandFooterEnabled',
   footerText: 'footerText',
   footerPosition: 'footerPosition',

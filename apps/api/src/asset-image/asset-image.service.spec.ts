@@ -257,6 +257,8 @@ describe('AssetImageService image post-processing', () => {
       brandFooterEnabled: false,
       footerLogoEnabled: false,
       cornerLogoEnabled: false,
+      qrEnabled: false,
+      qrLinks: '',
     });
   });
 

@@ -66,6 +66,16 @@ export class GenerateAssetImageDto {
   @MaxLength(70)
   textOverlayText?: string;
 
+  /** Multiple QR destinations, one http(s) URL per line, maximum 3. */
+  @IsIn(['AUTO', 'ALWAYS', 'NEVER'])
+  @IsOptional()
+  qrMode?: 'AUTO' | 'ALWAYS' | 'NEVER';
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(600)
+  qrLinks?: string;
+
   @IsOptional()
   @IsString()
   pageId?: string;

@@ -118,6 +118,15 @@ export class AssetImageService {
         dto.textOverlayMode !== 'NEVER' &&
         (dto.textOverlayMode === 'ALWAYS' || imageSetting.textOverlayEnabled);
 
+      const qrLinks =
+        dto.qrLinks !== undefined ? dto.qrLinks : (imageSetting.qrLinks ?? '');
+      const qrEnabled =
+        dto.qrMode === 'NEVER'
+          ? false
+          : dto.qrMode === 'ALWAYS'
+            ? true
+            : (imageSetting.qrEnabled ?? false);
+
       // Independent Corner Logo.
       // Brand Signature logo is controlled separately
       // by footerLogoMode.
@@ -201,6 +210,8 @@ export class AssetImageService {
         imageBuffer,
         {
           textOverlayEnabled: textOverlayEnabled,
+          qrEnabled,
+          qrLinks,
 
           brandFooterEnabled: brandFooterEnabled,
 
@@ -343,6 +354,7 @@ export class AssetImageService {
               : 'corner-logo-skipped',
             `corner-logo-${cornerLogoEnabled ? 'enabled' : 'disabled'}`,
             `brand-footer-${brandFooterEnabled ? 'enabled' : 'disabled'}`,
+            `qr-${qrEnabled ? 'enabled' : 'disabled'}`,
             signatureLogoEnabled && primaryLogoBuffer
               ? 'footer-logo-overlay'
               : 'footer-logo-skipped',
@@ -380,6 +392,8 @@ export class AssetImageService {
           brandFooterEnabled,
           footerLogoEnabled: signatureLogoEnabled && Boolean(primaryLogoBuffer),
           cornerLogoEnabled: cornerLogoEnabled && Boolean(primaryLogoBuffer),
+          qrEnabled,
+          qrLinks,
           revisedPrompt:
             'revised_prompt' in imageData
               ? imageData.revised_prompt
@@ -443,6 +457,8 @@ export class AssetImageService {
     const textOverlayText = imageSetting.textOverlayText?.trim() ?? '';
     const textOverlayEnabled =
       imageSetting.textOverlayEnabled && Boolean(textOverlayText);
+    const qrLinks = dto.qrLinks ?? imageSetting.qrLinks ?? '';
+    const qrEnabled = dto.qrEnabled ?? imageSetting.qrEnabled ?? false;
     const brandFooterEnabled = dto.brandFooterEnabled;
     const footerText = imageSetting.footerText?.trim() ?? '';
     const signatureLogoEnabled = brandFooterEnabled && dto.footerLogoEnabled;
@@ -477,6 +493,8 @@ export class AssetImageService {
       sourceBuffer,
       {
         textOverlayEnabled,
+        qrEnabled,
+        qrLinks,
         brandFooterEnabled,
         footerText,
         footerPosition: imageSetting.footerPosition,
@@ -547,6 +565,7 @@ export class AssetImageService {
       'corner-logo-',
       'brand-footer-',
       'footer-logo-',
+      'qr-',
       'logo-placement-',
       'corner-logo-scale-',
       'corner-logo-opacity-',
@@ -576,6 +595,7 @@ export class AssetImageService {
             cornerLogoApplied ? 'corner-logo-overlay' : 'corner-logo-skipped',
             `corner-logo-${cornerLogoEnabled ? 'enabled' : 'disabled'}`,
             `brand-footer-${brandFooterEnabled ? 'enabled' : 'disabled'}`,
+            `qr-${qrEnabled ? 'enabled' : 'disabled'}`,
             footerLogoApplied ? 'footer-logo-overlay' : 'footer-logo-skipped',
             `logo-placement-${effectiveCornerLogoPlacement.toLowerCase()}`,
             `corner-logo-scale-${cornerLogoScale}`,
@@ -595,6 +615,8 @@ export class AssetImageService {
           brandFooterEnabled,
           footerLogoEnabled: footerLogoApplied,
           cornerLogoEnabled: cornerLogoApplied,
+          qrEnabled,
+          qrLinks,
         },
       };
     } catch (error) {

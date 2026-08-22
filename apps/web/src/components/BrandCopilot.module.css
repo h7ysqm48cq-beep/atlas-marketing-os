@@ -546,6 +546,28 @@
   line-height: 1.45;
 }
 
+.generatedImageQrLinks {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.generatedImageQrLinks textarea {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .generatedImageBrandingSwitches {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

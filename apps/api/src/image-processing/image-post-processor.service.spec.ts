@@ -152,4 +152,44 @@ describe('ImagePostProcessorService', () => {
 
     expect(redLogoPixels).toBeGreaterThan(0);
   });
+
+  it('renders up to three QR links with dynamic sizing', async () => {
+    const source = await sharp({
+      create: {
+        width: 800,
+        height: 600,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+
+    const output = await service.process(source, {
+      textOverlayEnabled: false,
+      brandFooterEnabled: false,
+      qrEnabled: true,
+      qrLinks: [
+        'https://mgmbetmyr.com',
+        'https://t.me/atlas',
+        'https://example.com/third',
+        'https://example.com/ignored',
+      ].join('\n'),
+    });
+
+    const pixels = await sharp(output).removeAlpha().raw().toBuffer();
+    let changedPixels = 0;
+
+    for (let index = 0; index < pixels.length; index += 3) {
+      if (pixels[index] > 0 || pixels[index + 1] > 0 || pixels[index + 2] > 0) {
+        changedPixels += 1;
+      }
+    }
+
+    expect(changedPixels).toBeGreaterThan(0);
+    expect(await sharp(output).metadata()).toMatchObject({
+      width: 800,
+      height: 600,
+    });
+  }, 15000);
 });

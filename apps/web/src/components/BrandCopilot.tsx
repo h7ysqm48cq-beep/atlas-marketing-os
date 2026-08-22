@@ -62,6 +62,8 @@ type GeneratedImageBranding = {
   brandFooterEnabled: boolean;
   footerLogoEnabled: boolean;
   cornerLogoEnabled: boolean;
+  qrEnabled: boolean;
+  qrLinks: string;
   dirty?: boolean;
   applying?: boolean;
   error?: string;
@@ -196,6 +198,8 @@ type ImageBackgroundJob = {
       brandFooterEnabled?: boolean;
       footerLogoEnabled?: boolean;
       cornerLogoEnabled?: boolean;
+      qrEnabled?: boolean;
+      qrLinks?: string;
     };
   };
   error?: string | null;
@@ -933,6 +937,8 @@ export function BrandCopilot() {
       brandFooterEnabled: true,
       footerLogoEnabled: true,
       cornerLogoEnabled: false,
+      qrEnabled: false,
+      qrLinks: "",
     });
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -975,6 +981,8 @@ export function BrandCopilot() {
           footerLogoEnabled:
             data.brandFooterEnabled !== false && data.footerLogoMode !== "hide",
           cornerLogoEnabled: data.cornerLogoEnabled === true,
+          qrEnabled: data.qrEnabled === true,
+          qrLinks: typeof data.qrLinks === "string" ? data.qrLinks : "",
         });
       } catch {
         // The generated job result remains the authoritative fallback.
@@ -1192,6 +1200,11 @@ export function BrandCopilot() {
                   brandingCandidate.brandFooterEnabled === true,
                 footerLogoEnabled: brandingCandidate.footerLogoEnabled === true,
                 cornerLogoEnabled: brandingCandidate.cornerLogoEnabled === true,
+                qrEnabled: brandingCandidate.qrEnabled === true,
+                qrLinks:
+                  typeof brandingCandidate.qrLinks === "string"
+                    ? brandingCandidate.qrLinks
+                    : "",
               }
             : undefined;
 
@@ -2218,6 +2231,8 @@ export function BrandCopilot() {
               job.result.generation.brandFooterEnabled === true,
             footerLogoEnabled: job.result.generation.footerLogoEnabled === true,
             cornerLogoEnabled: job.result.generation.cornerLogoEnabled === true,
+            qrEnabled: job.result.generation.qrEnabled === true,
+            qrLinks: job.result.generation.qrLinks ?? "",
           }
         : undefined,
     );
@@ -2243,6 +2258,8 @@ export function BrandCopilot() {
                   job.result.generation.footerLogoEnabled === true,
                 cornerLogoEnabled:
                   job.result.generation.cornerLogoEnabled === true,
+                qrEnabled: job.result.generation.qrEnabled === true,
+                qrLinks: job.result.generation.qrLinks ?? "",
               }
             : undefined,
         }),
@@ -2462,6 +2479,8 @@ export function BrandCopilot() {
                             job.result.generation.footerLogoEnabled === true,
                           cornerLogoEnabled:
                             job.result.generation.cornerLogoEnabled === true,
+                          qrEnabled: job.result.generation.qrEnabled === true,
+                          qrLinks: job.result.generation.qrLinks ?? "",
                         }
                       : message.imageBranding
                         ? {
@@ -2564,7 +2583,8 @@ export function BrandCopilot() {
     index: number,
     key: keyof Pick<
       GeneratedImageBranding,
-      "brandFooterEnabled" | "footerLogoEnabled" | "cornerLogoEnabled"
+      | "brandFooterEnabled" | "footerLogoEnabled" | "cornerLogoEnabled"
+      | "qrEnabled"
     >,
     value: boolean,
   ) {
@@ -2594,6 +2614,37 @@ export function BrandCopilot() {
       ),
     );
 
+    void applyGeneratedImageBranding(index, nextBranding);
+  }
+
+  function updateGeneratedImageQrLinks(index: number, qrLinks: string) {
+    const message = messages[index];
+
+    if (!message?.assetId) {
+      setStatus("This image has no linked Asset Library ID yet.");
+      return;
+    }
+
+    const nextBranding: GeneratedImageBranding = {
+      ...(message.imageBranding ?? defaultImageBranding),
+      qrLinks: qrLinks
+        .split(/\r?\n/)
+        .map((link) => link.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join("\n"),
+      dirty: false,
+      applying: true,
+      error: undefined,
+    };
+
+    setMessages((current) =>
+      current.map((item, messageIndex) =>
+        messageIndex === index
+          ? { ...item, imageBranding: nextBranding }
+          : item,
+      ),
+    );
     void applyGeneratedImageBranding(index, nextBranding);
   }
 
@@ -2642,6 +2693,8 @@ export function BrandCopilot() {
               requestedBranding.brandFooterEnabled &&
               requestedBranding.footerLogoEnabled,
             cornerLogoEnabled: requestedBranding.cornerLogoEnabled,
+            qrEnabled: requestedBranding.qrEnabled,
+            qrLinks: requestedBranding.qrLinks,
             ...readCopilotImageGenerationScope(),
           }),
         },
@@ -2659,6 +2712,8 @@ export function BrandCopilot() {
         brandFooterEnabled: data.branding?.brandFooterEnabled === true,
         footerLogoEnabled: data.branding?.footerLogoEnabled === true,
         cornerLogoEnabled: data.branding?.cornerLogoEnabled === true,
+        qrEnabled: data.branding?.qrEnabled === true,
+        qrLinks: data.branding?.qrLinks ?? requestedBranding.qrLinks,
         dirty: false,
         applying: false,
         error: undefined,
@@ -3553,7 +3608,63 @@ export function BrandCopilot() {
                           />
                           <span>Corner Logo</span>
                         </label>
+
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={
+                              (message.imageBranding ?? defaultImageBranding)
+                                .qrEnabled
+                            }
+                            disabled={message.imageBranding?.applying}
+                            onChange={(event) =>
+                              updateGeneratedImageBranding(
+                                index,
+                                "qrEnabled",
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>QR (multiple)</span>
+                        </label>
                       </div>
+
+                      <label className={styles.generatedImageQrLinks}>
+                        <span>QR links · one URL per line · max 3</span>
+                        <textarea
+                          rows={3}
+                          value={
+                            (message.imageBranding ?? defaultImageBranding)
+                              .qrLinks
+                          }
+                          disabled={message.imageBranding?.applying}
+                          placeholder={
+                            "https://mgmbetmyr.com\nhttps://t.me/yourchannel"
+                          }
+                          onChange={(event) =>
+                            setMessages((current) =>
+                              current.map((item, messageIndex) =>
+                                messageIndex === index
+                                  ? {
+                                      ...item,
+                                      imageBranding: {
+                                        ...(item.imageBranding ??
+                                          defaultImageBranding),
+                                        qrLinks: event.target.value,
+                                      },
+                                    }
+                                  : item,
+                              ),
+                            )
+                          }
+                          onBlur={(event) =>
+                            updateGeneratedImageQrLinks(
+                              index,
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
                     </div>
 
                     <div className={styles.generatedImageToolbar}>

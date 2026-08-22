@@ -1,20 +1,10 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Patch,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Query } from '@nestjs/common';
 
 import { ImageSettingsService } from './image-settings.service';
 
 @Controller('image-settings')
 export class ImageSettingsController {
-  constructor(
-    private readonly service:
-      ImageSettingsService,
-  ) {}
+  constructor(private readonly service: ImageSettingsService) {}
 
   @Get('scopes')
   listScopes() {
@@ -44,6 +34,8 @@ export class ImageSettingsController {
 
       textOverlayEnabled?: boolean;
       textOverlayText?: string;
+      qrEnabled?: boolean;
+      qrLinks?: string;
       brandFooterEnabled?: boolean;
       footerText?: string;
       footerPosition?: string;
@@ -56,19 +48,12 @@ export class ImageSettingsController {
       cornerLogoOpacity?: number;
     },
   ) {
-    const {
+    const { pageId, channelId, ...settings } = body;
+
+    return this.service.update(settings, {
       pageId,
       channelId,
-      ...settings
-    } = body;
-
-    return this.service.update(
-      settings,
-      {
-        pageId,
-        channelId,
-      },
-    );
+    });
   }
 
   @Delete()

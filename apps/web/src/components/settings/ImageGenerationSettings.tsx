@@ -56,6 +56,8 @@ type ScopeResponse = {
 type SettingResponse = {
   textOverlayEnabled?: boolean;
   textOverlayText?: string;
+  qrEnabled?: boolean;
+  qrLinks?: string;
   brandFooterEnabled?: boolean;
   footerText?: string;
   footerPosition?: FooterPosition;
@@ -187,6 +189,9 @@ export default function ImageGenerationSettings() {
 
   const [textOverlayText, setTextOverlayText] =
     useState("");
+
+  const [qrEnabled, setQrEnabled] = useState(false);
+  const [qrLinks, setQrLinks] = useState("");
 
   const [footer, setFooter] =
     useState(true);
@@ -367,6 +372,9 @@ export default function ImageGenerationSettings() {
       data.textOverlayText ??
         "",
     );
+
+    setQrEnabled(data.qrEnabled ?? false);
+    setQrLinks(data.qrLinks ?? "");
 
     setFooter(
       data.brandFooterEnabled ??
@@ -729,6 +737,42 @@ export default function ImageGenerationSettings() {
             />
             {" "}
             Text Overlay
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={qrEnabled}
+              onChange={(event) => {
+                const value = event.target.checked;
+                setQrEnabled(value);
+                void save({ qrEnabled: value });
+              }}
+            />{" "}
+            Multiple QR Codes
+          </label>
+
+          <label>
+            QR Links
+            <textarea
+              rows={3}
+              value={qrLinks}
+              disabled={!qrEnabled}
+              placeholder={
+                "https://mgmbetmyr.com\nhttps://t.me/yourchannel"
+              }
+              onChange={(event) => setQrLinks(event.target.value)}
+              onBlur={() => void save({ qrLinks })}
+            />
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                opacity: 0.7,
+              }}
+            >
+              One http(s) URL per line, maximum 3. QR size adapts to the image.
+            </div>
           </label>
 
           <label>
