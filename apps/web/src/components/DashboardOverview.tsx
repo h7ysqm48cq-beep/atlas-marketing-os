@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePreferences } from "@/components/preferences";
 import { API_URL } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./DashboardOverview.module.css";
 
 type AutomationDashboard = {
@@ -48,6 +49,37 @@ type DashboardData = {
   campaigns: Campaign[];
 };
 
+type AuthUserIdentity = {
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+};
+
+function resolveDisplayName(
+  user: AuthUserIdentity | null | undefined,
+) {
+  const metadata = user?.user_metadata ?? {};
+
+  const candidates = [
+    metadata.display_name,
+    metadata.full_name,
+    metadata.name,
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      typeof candidate === "string" &&
+      candidate.trim()
+    ) {
+      return candidate.trim();
+    }
+  }
+
+  return (
+    user?.email?.split("@")[0]?.trim() ||
+    "User"
+  );
+}
+
 export function DashboardOverview() {
   const { language, t } = usePreferences();
 
@@ -59,8 +91,46 @@ export function DashboardOverview() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [displayName, setDisplayName] =
+    useState("User");
 
   const locale = language === "zh" ? "zh-CN" : "en-MY";
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    const updateDisplayName = (
+      user: AuthUserIdentity | null | undefined,
+    ) => {
+      if (active) {
+        setDisplayName(
+          resolveDisplayName(user),
+        );
+      }
+    };
+
+    void supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        updateDisplayName(data.user);
+      });
+
+    const {
+      data: authStateListener,
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        updateDisplayName(
+          session?.user,
+        );
+      },
+    );
+
+    return () => {
+      active = false;
+      authStateListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const formatDate = useCallback(
     (value: string) =>
@@ -220,7 +290,7 @@ export function DashboardOverview() {
           <div>
             <p className={styles.eyebrow}>{t("marketingCommandCenter")}</p>
 
-            <h1>{greeting}，Loh。</h1>
+            <h1>{greeting}，{displayName}。</h1>
 
             <p className={styles.subtitle}>{t("attentionSummary")}</p>
           </div>
@@ -298,7 +368,7 @@ export function DashboardOverview() {
           <div>
             <p className={styles.mobileGreeting}>{greeting}</p>
 
-            <h1>Loh。</h1>
+            <h1>{displayName}。</h1>
 
             <p className={styles.mobileAttention}>
               {pendingReview > 0

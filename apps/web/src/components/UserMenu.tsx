@@ -20,6 +20,9 @@ export function UserMenu() {
   const [email, setEmail] =
     useState("");
 
+  const [displayName, setDisplayName] =
+    useState("User");
+
   const [signingOut, setSigningOut] =
     useState(false);
 
@@ -27,13 +30,47 @@ export function UserMenu() {
     const supabase =
       createClient();
 
+    const applyUser = (
+      user: {
+        email?: string | null;
+        user_metadata?: Record<string, unknown>;
+      } | null | undefined,
+    ) => {
+      const nextEmail = user?.email ?? "";
+      const metadata =
+        user?.user_metadata ?? {};
+
+      const metadataName = [
+        metadata.display_name,
+        metadata.full_name,
+        metadata.name,
+      ].find(
+        (value) =>
+          typeof value === "string" &&
+          value.trim(),
+      );
+
+      setEmail(nextEmail);
+      setDisplayName(
+        typeof metadataName === "string"
+          ? metadataName.trim()
+          : nextEmail.split("@")[0] || "User",
+      );
+    };
+
     void supabase.auth
       .getUser()
       .then(({ data }) => {
-        setEmail(
-          data.user?.email ?? "",
-        );
+        applyUser(data.user);
       });
+
+    const {
+      data: authStateListener,
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        applyUser(session?.user);
+      },
+    );
 
     function closeMenu(
       event: MouseEvent,
@@ -58,6 +95,8 @@ export function UserMenu() {
         "mousedown",
         closeMenu,
       );
+
+      authStateListener.subscription.unsubscribe();
     };
   }, []);
 
@@ -81,11 +120,6 @@ export function UserMenu() {
       setSigningOut(false);
     }
   }
-
-  const displayName =
-    email
-      ? email.split("@")[0]
-      : "Loh";
 
   return (
     <div
