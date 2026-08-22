@@ -10,6 +10,10 @@ import { PrismaService } from '../database/prisma.service';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
+import {
+  buildAssetThumbnailPath,
+  createAssetThumbnail,
+} from './asset-thumbnail.util';
 
 @Injectable()
 export class AssetsService {
@@ -24,64 +28,167 @@ export class AssetsService {
     name?: string;
     collection?: string;
     campaignId?: string;
+    aiEnabled?: boolean;
   }) {
     if (!input.file) {
-      throw new BadRequestException('Image file is required.');
+      throw new BadRequestException(
+        'Image file is required.',
+      );
     }
 
-    const brand = await this.brandsService.getActiveBrand();
+    const brand =
+      await this.brandsService
+        .getActiveBrand();
 
     if (input.campaignId) {
-      await this.validateRelations(brand.id, input.campaignId, undefined);
+      await this.validateRelations(
+        brand.id,
+        input.campaignId,
+        undefined,
+      );
     }
 
-    const originalExtension = extname(input.file.originalname).toLowerCase();
+    const originalExtension =
+      extname(
+        input.file.originalname,
+      ).toLowerCase();
 
     const safeExtension =
       originalExtension === '.jpeg'
         ? '.jpg'
-        : ['.jpg', '.png', '.webp'].includes(originalExtension)
+        : [
+              '.jpg',
+              '.png',
+              '.webp',
+            ].includes(
+              originalExtension,
+            )
           ? originalExtension
-          : this.extensionFromMimeType(input.file.mimetype);
+          : this.extensionFromMimeType(
+              input.file.mimetype,
+            );
+
+    const now = new Date();
+    const assetKey = randomUUID();
 
     const storagePath = [
       'brands',
       brand.id,
       'uploads',
-      new Date().getUTCFullYear().toString(),
-      String(new Date().getUTCMonth() + 1).padStart(2, '0'),
-      `${randomUUID()}${safeExtension}`,
+      String(
+        now.getUTCFullYear(),
+      ),
+      String(
+        now.getUTCMonth() + 1,
+      ).padStart(2, '0'),
+      `${assetKey}${safeExtension}`,
     ].join('/');
 
-    const uploaded = await this.storageService.uploadImage({
-      path: storagePath,
-      buffer: input.file.buffer,
-      contentType: input.file.mimetype,
-    });
+    const thumbnailPath =
+      buildAssetThumbnailPath(
+        brand.id,
+        now,
+        assetKey,
+      );
+
+    const uploaded =
+      await this.storageService
+        .uploadImage({
+          path: storagePath,
+          buffer:
+            input.file.buffer,
+          contentType:
+            input.file.mimetype,
+        });
+
+    let thumbnail:
+      Awaited<
+        ReturnType<
+          SupabaseStorageService[
+            'uploadImage'
+          ]
+        >
+      >;
 
     try {
-      return await this.prisma.asset.create({
-        data: {
-          brandId: brand.id,
-          campaignId: input.campaignId || undefined,
-          name: input.name?.trim() || input.file.originalname,
-          type: 'IMAGE',
-          provider: 'user-upload',
-          url: uploaded.publicUrl,
-          thumbnailUrl: uploaded.publicUrl,
-          storageProvider: uploaded.provider,
-          storagePath: uploaded.path,
-          fileSize: uploaded.size,
-          mimeType: uploaded.contentType,
-          collection: input.collection?.trim() || 'Uploads',
-          tags: ['uploaded'],
-          remark: null,
-          aiEnabled: false,
-        },
-        include: this.assetInclude,
-      });
+      const thumbnailBuffer =
+        await createAssetThumbnail(
+          input.file.buffer,
+        );
+
+      thumbnail =
+        await this.storageService
+          .uploadImage({
+            path: thumbnailPath,
+            buffer:
+              thumbnailBuffer,
+            contentType:
+              'image/webp',
+          });
     } catch (error) {
-      await this.storageService.remove(uploaded.path).catch(() => undefined);
+      await this.storageService
+        .remove(uploaded.path)
+        .catch(
+          () => undefined,
+        );
+
+      throw error;
+    }
+
+    try {
+      return await this.prisma
+        .asset.create({
+          data: {
+            brandId: brand.id,
+            campaignId:
+              input.campaignId ||
+              undefined,
+            name:
+              input.name?.trim() ||
+              input.file
+                .originalname,
+            type: 'IMAGE',
+            provider:
+              'user-upload',
+            url:
+              uploaded.publicUrl,
+            thumbnailUrl:
+              thumbnail.publicUrl,
+            storageProvider:
+              uploaded.provider,
+            storagePath:
+              uploaded.path,
+            fileSize:
+              uploaded.size,
+            mimeType:
+              uploaded.contentType,
+            collection:
+              input.collection?.trim() ||
+              'Uploads',
+            tags: ['uploaded'],
+            remark: null,
+            aiEnabled:
+              input.aiEnabled ??
+              false,
+          },
+          include:
+            this.assetInclude,
+        });
+    } catch (error) {
+      await Promise.all([
+        this.storageService
+          .remove(uploaded.path)
+          .catch(
+            () => undefined,
+          ),
+        this.storageService
+          .remove(
+            thumbnail.path,
+          )
+          .catch(
+            () => undefined,
+          ),
+      ]);
 
       throw error;
     }
@@ -151,99 +258,191 @@ export class AssetsService {
     provider?: string;
     generationModel?: string;
     storageProvider?: string;
+    aiEnabled?: string;
+    view?: string;
     sort?: string;
   }) {
-    const brand = await this.brandsService.getActiveBrand();
+    const brand =
+      await this.brandsService
+        .getActiveBrand();
 
-    const search = query?.search?.trim();
+    const search =
+      query?.search?.trim();
 
-    return this.prisma.asset.findMany({
-      where: {
-        brandId: brand.id,
-        campaignId: query?.campaignId || undefined,
-        type:
-          query?.type && query.type !== 'ALL'
-            ? (query.type as 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'TEMPLATE')
+    const where = {
+      brandId: brand.id,
+
+      campaignId:
+        query?.campaignId ||
+        undefined,
+
+      type:
+        query?.type &&
+        query.type !== 'ALL'
+          ? (
+              query.type as
+                | 'IMAGE'
+                | 'VIDEO'
+                | 'DOCUMENT'
+                | 'TEMPLATE'
+            )
+          : undefined,
+
+      isFavorite:
+        query?.favorite ===
+        'true'
+          ? true
+          : query?.favorite ===
+              'false'
+            ? false
             : undefined,
-        isFavorite:
-          query?.favorite === 'true'
-            ? true
-            : query?.favorite === 'false'
-              ? false
-              : undefined,
-        platform: query?.platform || undefined,
-        provider: query?.provider || undefined,
-        generationModel: query?.generationModel || undefined,
-        storageProvider: query?.storageProvider || undefined,
-        collection: query?.collection || undefined,
-        tags: query?.tag
+
+      aiEnabled:
+        query?.aiEnabled ===
+        'true'
+          ? true
+          : query?.aiEnabled ===
+              'false'
+            ? false
+            : undefined,
+
+      platform:
+        query?.platform ||
+        undefined,
+
+      provider:
+        query?.provider ||
+        undefined,
+
+      generationModel:
+        query?.generationModel ||
+        undefined,
+
+      storageProvider:
+        query?.storageProvider ||
+        undefined,
+
+      collection:
+        query?.collection ||
+        undefined,
+
+      tags: query?.tag
+        ? {
+            has: query.tag,
+          }
+        : undefined,
+
+      OR: search
+        ? [
+            {
+              name: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+            {
+              prompt: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+            {
+              revisedPrompt: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+            {
+              negativePrompt: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+            {
+              provider: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+            {
+              collection: {
+                contains: search,
+                mode:
+                  'insensitive' as const,
+              },
+            },
+          ]
+        : undefined,
+    };
+
+    const orderBy =
+      query?.sort ===
+      'downloads'
+        ? {
+            downloadCount:
+              'desc' as const,
+          }
+        : query?.sort ===
+            'used'
           ? {
-              has: query.tag,
+              usedCount:
+                'desc' as const,
             }
-          : undefined,
-        OR: search
-          ? [
-              {
-                name: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                prompt: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                revisedPrompt: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                negativePrompt: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                provider: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                collection: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-            ]
-          : undefined,
-      },
-      orderBy:
-        query?.sort === 'downloads'
-          ? {
-              downloadCount: 'desc',
-            }
-          : query?.sort === 'used'
+          : query?.sort ===
+              'oldest'
             ? {
-                usedCount: 'desc',
+                createdAt:
+                  'asc' as const,
               }
-            : query?.sort === 'oldest'
+            : query?.sort ===
+                'name'
               ? {
-                  createdAt: 'asc',
+                  name:
+                    'asc' as const,
                 }
-              : query?.sort === 'name'
-                ? {
-                    name: 'asc',
-                  }
-                : {
-                    createdAt: 'desc',
-                  },
-      include: this.assetInclude,
-    });
+              : {
+                  createdAt:
+                    'desc' as const,
+                };
+
+    if (
+      query?.view ===
+      'studio'
+    ) {
+      return this.prisma.asset
+        .findMany({
+          where,
+          orderBy,
+          select:
+            this.studioAssetSelect,
+        });
+    }
+
+    if (
+      query?.view ===
+      'library'
+    ) {
+      return this.prisma.asset
+        .findMany({
+          where,
+          orderBy,
+          select:
+            this.libraryAssetSelect,
+        });
+    }
+
+    return this.prisma.asset
+      .findMany({
+        where,
+        orderBy,
+        include:
+          this.assetInclude,
+      });
   }
 
   async findOne(id: string) {
@@ -359,6 +558,50 @@ export class AssetsService {
       }
     }
   }
+
+  private readonly studioAssetSelect = {
+    id: true,
+    name: true,
+    url: true,
+    thumbnailUrl: true,
+    mimeType: true,
+    collection: true,
+    remark: true,
+    aiEnabled: true,
+  } as const;
+
+  private readonly libraryAssetSelect = {
+    id: true,
+    name: true,
+    type: true,
+    provider: true,
+    platform: true,
+    prompt: true,
+    collection: true,
+    url: true,
+    thumbnailUrl: true,
+    storageProvider: true,
+    storagePath: true,
+    mimeType: true,
+    width: true,
+    height: true,
+    remark: true,
+    aiEnabled: true,
+    isFavorite: true,
+    createdAt: true,
+    campaign: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+    history: {
+      select: {
+        id: true,
+        topic: true,
+      },
+    },
+  } as const;
 
   private readonly assetInclude = {
     brand: {

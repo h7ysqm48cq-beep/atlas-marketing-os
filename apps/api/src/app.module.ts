@@ -40,8 +40,10 @@ import { JobsModule } from './jobs/jobs.module';
 import { EngineeringModule } from './engineering/engineering.module';
 import { ImageSettingsModule } from './image-settings/image-settings.module';
 import { ImageProcessingModule } from './image-processing/image-processing.module';
+import { SystemHealthModule } from './system-health/system-health.module';
 @Module({
   imports: [
+    SystemHealthModule,
     ImageProcessingModule,
     ImageSettingsModule,
     AiRuntimeModule,

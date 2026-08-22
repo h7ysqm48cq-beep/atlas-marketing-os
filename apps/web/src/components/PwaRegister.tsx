@@ -18,6 +18,14 @@ export function PwaRegister() {
      * PWA registration remains enabled in production.
      */
     if (process.env.NODE_ENV !== "production") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => {
+            void registration.unregister();
+          });
+        });
+      }
+
       return;
     }
 
@@ -45,6 +53,7 @@ export function PwaRegister() {
     const register = async () => {
       try {
         registration = await navigator.serviceWorker.register("/sw.js", {
+      updateViaCache: "none",
           scope: "/",
         });
 

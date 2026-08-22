@@ -79,6 +79,7 @@ type ImageAsset = {
   id: string;
   name: string;
   url: string;
+  thumbnailUrl: string | null;
   prompt: string | null;
   provider: string | null;
   width: number | null;
@@ -817,10 +818,11 @@ export function ImageAssetPanel({
         <>
           <div className={styles.result}>
             <RuntimeImage
-              src={asset.url}
+              src={asset.thumbnailUrl || asset.url}
               alt={asset.name}
               width={asset.width || undefined}
               height={asset.height || undefined}
+              sizes="(max-width: 760px) 100vw, 760px"
             />
 
             <div>

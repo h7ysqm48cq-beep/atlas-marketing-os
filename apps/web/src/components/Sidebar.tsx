@@ -27,16 +27,20 @@ const resourceItems: NavigationItem[] = [
   ["promptLibrary", "≡", "/prompts"],
   ["brandBrain", "◆", "/brand-brain"],
   ["knowledge", "◈", "/knowledge"],
+  ["systemHealth", "◌", "/system-health"],
   ["settings", "⚙", "/settings"],
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { t, language } = usePreferences();
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-
+  
   useEffect(() => {
+    setMounted(true);
+
     const timer = window.setTimeout(() => {
       const saved = window.localStorage.getItem(SIDEBAR_STATE_KEY);
 
@@ -103,6 +107,8 @@ export function Sidebar() {
   }, [mobileOpen]);
 
   useEffect(() => {
+    setMounted(true);
+
     const timer = window.setTimeout(() => {
       setMobileOpen(false);
     }, 0);
@@ -113,6 +119,10 @@ export function Sidebar() {
   }, [pathname]);
 
   function isActive(href: string) {
+    if (!mounted) {
+      return false;
+    }
+
     if (href === "/") {
       return pathname === "/";
     }

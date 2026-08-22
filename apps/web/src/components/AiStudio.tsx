@@ -374,6 +374,9 @@ export function AiStudio({
   const [assetSearch, setAssetSearch] = useState("");
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isUploadingStudioPhotos, setIsUploadingStudioPhotos] =
+    useState(false);
+  const studioPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const [imageGenerateRequestId, setImageGenerateRequestId] = useState<
@@ -668,7 +671,7 @@ export function AiStudio({
     setIsLoadingAssets(true);
 
     try {
-      const response = await fetch(`${API_URL}/assets?type=IMAGE`, {
+      const response = await fetch(`${API_URL}/assets?type=IMAGE&aiEnabled=true&view=studio`, {
         cache: "no-store",
       });
 
@@ -695,6 +698,228 @@ export function AiStudio({
       );
     } finally {
       setIsLoadingAssets(false);
+    }
+  }
+
+  async function uploadStudioPhotos(
+    files: File[],
+  ) {
+    const remainingSlots =
+      Math.max(
+        0,
+        4 -
+          selectedAssets.length,
+      );
+
+    if (!remainingSlots) {
+      setMessage(
+        ui(
+          "You already attached 4 assets.",
+          "已经附加 4 个素材。",
+        ),
+      );
+      return;
+    }
+
+    const validFiles =
+      files
+        .filter(
+          (file) =>
+            [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+            ].includes(
+              file.type,
+            ) &&
+            file.size <=
+              10 *
+                1024 *
+                1024,
+        )
+        .slice(
+          0,
+          remainingSlots,
+        );
+
+    if (!validFiles.length) {
+      setMessage(
+        ui(
+          "Choose JPG, PNG or WEBP photos up to 10MB each.",
+          "请选择每张不超过 10MB 的 JPG、PNG 或 WEBP 图片。",
+        ),
+      );
+      return;
+    }
+
+    setIsUploadingStudioPhotos(
+      true,
+    );
+
+    setMessage(
+      ui(
+        `Uploading ${validFiles.length} photo${validFiles.length === 1 ? "" : "s"}...`,
+        `正在上传 ${validFiles.length} 张照片……`,
+      ),
+    );
+
+    const uploaded:
+      StudioAsset[] = [];
+
+    try {
+      for (
+        const file
+        of validFiles
+      ) {
+        const formData =
+          new FormData();
+
+        formData.append(
+          "file",
+          file,
+        );
+
+        formData.append(
+          "name",
+          file.name,
+        );
+
+        formData.append(
+          "collection",
+          "Studio Uploads",
+        );
+
+        /*
+         * Studio reference images must be
+         * AI Ready or AssetContextService
+         * intentionally ignores them.
+         */
+        formData.append(
+          "aiEnabled",
+          "true",
+        );
+
+        const response =
+          await fetch(
+            `${API_URL}/assets/upload`,
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+        const data =
+          (await response.json()) as
+            | StudioAsset
+            | {
+                message?:
+                  | string
+                  | string[];
+              };
+
+        if (
+          !response.ok ||
+          !("id" in data)
+        ) {
+          const detail =
+            "message" in data
+              ? Array.isArray(
+                  data.message,
+                )
+                ? data.message.join(
+                    " ",
+                  )
+                : data.message
+              : undefined;
+
+          throw new Error(
+            detail ||
+              `Unable to upload ${file.name}.`,
+          );
+        }
+
+        uploaded.push(data);
+      }
+
+      setAvailableAssets(
+        (current) => {
+          const merged =
+            new Map(
+              current.map(
+                (asset) => [
+                  asset.id,
+                  asset,
+                ],
+              ),
+            );
+
+          for (
+            const asset
+            of uploaded
+          ) {
+            merged.set(
+              asset.id,
+              asset,
+            );
+          }
+
+          return Array.from(
+            merged.values(),
+          );
+        },
+      );
+
+      setSelectedAssets(
+        (current) => {
+          const merged =
+            [...current];
+
+          for (
+            const asset
+            of uploaded
+          ) {
+            if (
+              merged.length >= 4
+            ) {
+              break;
+            }
+
+            if (
+              !merged.some(
+                (item) =>
+                  item.id ===
+                  asset.id,
+              )
+            ) {
+              merged.push(
+                asset,
+              );
+            }
+          }
+
+          return merged;
+        },
+      );
+
+      setMessage(
+        ui(
+          `${uploaded.length} phone photo${uploaded.length === 1 ? "" : "s"} attached and AI Ready.`,
+          `已加入 ${uploaded.length} 张手机照片，并自动设为 AI Ready。`,
+        ),
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : ui(
+              "Unable to upload phone photos.",
+              "无法上传手机照片。",
+            ),
+      );
+    } finally {
+      setIsUploadingStudioPhotos(
+        false,
+      );
     }
   }
 
@@ -1116,9 +1341,49 @@ export function AiStudio({
                 </small>
               </div>
 
-              <button type="button" onClick={() => void openAssetPicker()}>
-                + Choose assets
-              </button>
+              <div className={styles.assetSectionActions}>
+                <input
+                  ref={studioPhotoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  hidden
+                  disabled={isUploadingStudioPhotos}
+                  onChange={(event) => {
+                    const files = Array.from(
+                      event.target.files ?? [],
+                    );
+
+                    if (files.length) {
+                      void uploadStudioPhotos(files);
+                    }
+
+                    event.target.value = "";
+                  }}
+                />
+
+                <button
+                  type="button"
+                  disabled={isUploadingStudioPhotos}
+                  onClick={() =>
+                    studioPhotoInputRef.current?.click()
+                  }
+                >
+                  {isUploadingStudioPhotos
+                    ? ui("Uploading...", "上传中...")
+                    : ui(
+                        "📱 Phone photos",
+                        "📱 手机 / 设备照片",
+                      )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void openAssetPicker()}
+                >
+                  + {ui("Choose assets", "选择素材")}
+                </button>
+              </div>
             </div>
 
             {selectedAssets.length ? (
@@ -1128,6 +1393,8 @@ export function AiStudio({
                     <RuntimeImage
                       src={asset.thumbnailUrl || asset.url}
                       alt={asset.name}
+                      loading="lazy"
+                      sizes="46px"
                     />
 
                     <div>
@@ -1316,6 +1583,8 @@ export function AiStudio({
                         <RuntimeImage
                           src={asset.thumbnailUrl || asset.url}
                           alt={asset.name}
+                          loading="lazy"
+                          sizes="(max-width: 560px) 100vw, (max-width: 820px) 50vw, 300px"
                         />
 
                         <div>

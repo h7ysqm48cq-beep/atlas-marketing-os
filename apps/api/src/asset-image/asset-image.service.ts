@@ -23,6 +23,10 @@ import { GenerateAssetImageDto } from './dto/generate-asset-image.dto';
 
 import { ImageSettingsService } from '../image-settings/image-settings.service';
 import { BrandRendererService } from '../brand-renderer/brand-renderer.service';
+import {
+  buildAssetThumbnailPath,
+  createAssetThumbnail,
+} from '../assets/asset-thumbnail.util';
 @Injectable()
 export class AssetImageService {
   private readonly client: OpenAI | null;
@@ -230,6 +234,35 @@ export class AssetImageService {
         contentType: 'image/png',
       });
 
+      const thumbnailPath =
+        buildAssetThumbnailPath(
+          brand.id,
+          now,
+          filename,
+        );
+
+      let thumbnail;
+
+      try {
+        const thumbnailBuffer =
+          await createAssetThumbnail(
+            finalImageBuffer,
+          );
+
+        thumbnail =
+          await this.storageService.uploadImage({
+            buffer: thumbnailBuffer,
+            path: thumbnailPath,
+            contentType: 'image/webp',
+          });
+      } catch (error) {
+        await this.storageService
+          .remove(uploaded.path)
+          .catch(() => undefined);
+
+        throw error;
+      }
+
       const url = uploaded.publicUrl;
 
       const asset = await this.prisma.asset.create({
@@ -265,7 +298,7 @@ export class AssetImageService {
             `corner-logo-opacity-${cornerLogoOpacity}`,
           ],
           url,
-          thumbnailUrl: url,
+          thumbnailUrl: thumbnail.publicUrl,
           mimeType: 'image/png',
           width,
           height,
@@ -409,6 +442,35 @@ export class AssetImageService {
       contentType: 'image/png',
     });
 
+    const thumbnailPath =
+      buildAssetThumbnailPath(
+        brand.id,
+        now,
+        filename,
+      );
+
+    let thumbnail;
+
+    try {
+      const thumbnailBuffer =
+        await createAssetThumbnail(
+          finalBuffer,
+        );
+
+      thumbnail =
+        await this.storageService.uploadImage({
+          buffer: thumbnailBuffer,
+          path: thumbnailPath,
+          contentType: 'image/webp',
+        });
+    } catch (error) {
+      await this.storageService
+        .remove(uploaded.path)
+        .catch(() => undefined);
+
+      throw error;
+    }
+
     return this.prisma.asset.create({
       data: {
         brandId: brand.id,
@@ -446,7 +508,7 @@ export class AssetImageService {
             : []),
         ],
         url: uploaded.publicUrl,
-        thumbnailUrl: uploaded.publicUrl,
+        thumbnailUrl: thumbnail.publicUrl,
         mimeType: 'image/png',
         width,
         height,

@@ -712,6 +712,18 @@
   gap: 4px;
 }
 
+.assetSectionActions {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px !important;
+}
+
+.assetSectionActions button {
+  white-space: nowrap;
+}
+
 .assetSectionHeader span {
   color: var(--muted);
   font-size: 9px;
@@ -970,8 +982,17 @@
     flex-direction: column;
   }
 
+  .assetSectionActions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
   .assetSectionHeader button {
-    align-self: flex-start;
+    width: 100%;
+    align-self: stretch;
+    min-height: 42px;
   }
 }
 

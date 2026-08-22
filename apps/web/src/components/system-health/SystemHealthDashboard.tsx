@@ -19,7 +19,8 @@ function HealthCard({
   title: string;
   value: unknown;
 }) {
-  return (
+  
+return (
     <section className="healthCard">
       <h3>{title}</h3>
       <pre>
@@ -611,7 +612,7 @@ function formatLatency(ms: number | null) {
     return "—";
   }
 
-  return `${(ms / 1000).toFixed(3)}s`;
+  return `${Math.round(ms / 100) / 10}s`;
 }
 
 function formatBytes(bytes: number | null) {
@@ -624,14 +625,14 @@ function formatBytes(bytes: number | null) {
   }
 
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${Math.round(bytes / 1024)} KB`;
   }
 
   return `${(
     bytes /
     1024 /
     1024
-  ).toFixed(2)} MB`;
+  ).toFixed(1)} MB`;
 }
 
 function formatCheckedAt(
@@ -727,37 +728,41 @@ export function SystemHealthDashboard() {
 const [healthSnapshot, setHealthSnapshot] =
   useState<HealthSnapshot | null>(null);
 
+const healthCards = useMemo(
+  () =>
+    healthSnapshot
+      ? [
+          {
+            title: "API",
+            value: healthSnapshot.api,
+          },
+          {
+            title: "Database",
+            value: healthSnapshot.database,
+          },
+          {
+            title: "Railway",
+            value: healthSnapshot.railway,
+          },
+          {
+            title: "Browser Worker",
+            value: healthSnapshot.browserWorker,
+          },
+          {
+            title: "Assets",
+            value: healthSnapshot.assets,
+          },
+          {
+            title: "Calendar",
+            value: healthSnapshot.calendar,
+          },
+        ]
+      : [],
+  [healthSnapshot],
+);
+
 
 /* HEALTH_RENDER_V2 */
-
-const healthCards = healthSnapshot
-  ? [
-      {
-        title: "API",
-        value: healthSnapshot.api,
-      },
-      {
-        title: "Database",
-        value: healthSnapshot.database,
-      },
-      {
-        title: "Railway",
-        value: healthSnapshot.railway,
-      },
-      {
-        title: "Browser Worker",
-        value: healthSnapshot.browserWorker,
-      },
-      {
-        title: "Assets",
-        value: healthSnapshot.assets,
-      },
-      {
-        title: "Calendar",
-        value: healthSnapshot.calendar,
-      },
-    ]
-  : [];
 
 
 const [healthLoading, setHealthLoading] =
@@ -1513,7 +1518,7 @@ useEffect(() => {
             )}
           </button>
 
-          <button
+          <button data-testid="system-health-check-button"
             type="button"
             className={
               styles.primaryButton

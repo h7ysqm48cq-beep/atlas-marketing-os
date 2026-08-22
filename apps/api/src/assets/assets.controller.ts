@@ -45,12 +45,19 @@ export class AssetsController {
     @Body('name') name?: string,
     @Body('collection') collection?: string,
     @Body('campaignId') campaignId?: string,
+    @Body('aiEnabled') aiEnabled?: string,
   ) {
     return this.assetsService.upload({
       file,
       name,
       collection,
       campaignId,
+      aiEnabled:
+        aiEnabled === 'true'
+          ? true
+          : aiEnabled === 'false'
+            ? false
+            : undefined,
     });
   }
 
@@ -73,6 +80,10 @@ export class AssetsController {
     generationModel?: string,
     @Query('storageProvider')
     storageProvider?: string,
+    @Query('aiEnabled')
+    aiEnabled?: string,
+    @Query('view')
+    view?: string,
     @Query('sort') sort?: string,
   ) {
     return this.assetsService.findAll({
@@ -86,6 +97,8 @@ export class AssetsController {
       provider,
       generationModel,
       storageProvider,
+      aiEnabled,
+      view,
       sort,
     });
   }

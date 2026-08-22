@@ -141,7 +141,7 @@ export function AssetLibrary() {
   async function load() {
     try {
       const [assetResponse, campaignResponse] = await Promise.all([
-        fetch(`${API_URL}/assets`, { cache: "no-store" }),
+        fetch(`${API_URL}/assets?view=library`, { cache: "no-store" }),
         fetch(`${API_URL}/campaigns`, { cache: "no-store" }),
       ]);
 
@@ -177,61 +177,137 @@ export function AssetLibrary() {
     }));
   }
 
-  async function uploadAsset(file: File) {
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  async function uploadAssets(
+    files: File[],
+  ) {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
-    if (!allowedTypes.includes(file.type)) {
-      setMessage("Only JPG, PNG and WEBP images are supported.");
-      return;
-    }
+    const validFiles =
+      files.filter(
+        (file) =>
+          allowedTypes.includes(
+            file.type,
+          ) &&
+          file.size <=
+            10 *
+              1024 *
+              1024,
+      );
 
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage("The selected image exceeds the 10MB limit.");
+    if (!validFiles.length) {
+      setMessage(
+        "Choose JPG, PNG or WEBP images up to 10MB each.",
+      );
       return;
     }
 
     setIsUploading(true);
-    setMessage(`Uploading ${file.name}...`);
+
+    setMessage(
+      validFiles.length === 1
+        ? `Uploading ${validFiles[0].name}...`
+        : `Uploading ${validFiles.length} photos...`,
+    );
+
+    const uploaded:
+      Asset[] = [];
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("name", file.name);
-      formData.append("collection", "Uploads");
+      for (
+        const file
+        of validFiles
+      ) {
+        const formData =
+          new FormData();
 
-      const response = await fetch(`${API_URL}/assets/upload`, {
-        method: "POST",
-        body: formData,
-      });
+        formData.append(
+          "file",
+          file,
+        );
 
-      const data = (await response.json()) as
-        | Asset
-        | {
-            message?: string | string[];
-          };
+        formData.append(
+          "name",
+          file.name,
+        );
 
-      if (!response.ok || !("id" in data)) {
-        const responseMessage =
-          "message" in data
-            ? Array.isArray(data.message)
-              ? data.message.join(" ")
-              : typeof data.message === "string"
-                ? data.message
-                : undefined
-            : undefined;
+        formData.append(
+          "collection",
+          "Uploads",
+        );
 
-        throw new Error(responseMessage ?? "Unable to upload image.");
+        const response =
+          await fetch(
+            `${API_URL}/assets/upload`,
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+        const data =
+          (await response.json()) as
+            | Asset
+            | {
+                message?:
+                  | string
+                  | string[];
+              };
+
+        if (
+          !response.ok ||
+          !("id" in data)
+        ) {
+          const responseMessage =
+            "message" in data
+              ? Array.isArray(
+                  data.message,
+                )
+                ? data.message.join(
+                    " ",
+                  )
+                : typeof data.message ===
+                    "string"
+                  ? data.message
+                  : undefined
+              : undefined;
+
+          throw new Error(
+            responseMessage ??
+              `Unable to upload ${file.name}.`,
+          );
+        }
+
+        uploaded.push(data);
       }
 
-      setAssets((current) => [
-        data,
-        ...current.filter((asset) => asset.id !== data.id),
-      ]);
+      setAssets(
+        (current) => [
+          ...uploaded,
+          ...current.filter(
+            (asset) =>
+              !uploaded.some(
+                (item) =>
+                  item.id ===
+                  asset.id,
+              ),
+          ),
+        ],
+      );
 
-      setMessage(`${file.name} uploaded successfully.`);
+      setMessage(
+        uploaded.length === 1
+          ? `${uploaded[0].name} uploaded successfully.`
+          : `${uploaded.length} photos uploaded successfully.`,
+      );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Unable to upload image.",
+        error instanceof Error
+          ? error.message
+          : "Unable to upload photos.",
       );
     } finally {
       setIsUploading(false);
@@ -429,12 +505,15 @@ export function AssetLibrary() {
             className={styles.fileInput}
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            multiple
             disabled={isUploading}
             onChange={(event) => {
-              const file = event.target.files?.[0];
+              const files = Array.from(
+                event.target.files ?? [],
+              );
 
-              if (file) {
-                void uploadAsset(file);
+              if (files.length) {
+                void uploadAssets(files);
               }
 
               event.target.value = "";
@@ -449,7 +528,9 @@ export function AssetLibrary() {
               document.getElementById("asset-upload-input")?.click()
             }
           >
-            {isUploading ? "Uploading..." : `↑ ${t("uploadImage")}`}
+            {isUploading
+              ? "Uploading..."
+              : "📱 Phone / Device Photos"}
           </button>
 
           <button
@@ -549,6 +630,8 @@ export function AssetLibrary() {
                       height={asset.height || undefined}
                       src={asset.thumbnailUrl || asset.url}
                       alt={asset.name}
+                      loading="lazy"
+                      sizes="(max-width: 760px) 50vw, (max-width: 1200px) 33vw, 280px"
                     />
                   )
                 ) : (
