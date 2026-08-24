@@ -2135,33 +2135,85 @@ app.post(
       const verifyPublishButtonStartedAt =
         Date.now();
 
-      const postButton =
-        composer
-          .getByRole(
-            "button",
-            {
-              name: /^Post$/i,
-            },
-          )
-          .last();
+      let postButton:
+        import("playwright-core").Locator
+        | null = null;
 
-      if (
-        !await postButton
-          .isVisible()
-          .catch(() => false)
+      let publishButtonVisible =
+        false;
+
+      for (
+        let attempt = 0;
+        attempt < 20 && !postButton;
+        attempt += 1
       ) {
-        throw new Error(
-          "Facebook Post button was not found.",
-        );
+        const scopes = [
+          composer,
+          page.locator("body"),
+        ];
+
+        for (const scope of scopes) {
+          const candidates =
+            scope.getByRole(
+              "button",
+              {
+                name: /^(post|publish)(?: now)?$/i,
+              },
+            );
+
+          const candidateCount =
+            await candidates
+              .count()
+              .catch(() => 0);
+
+          for (
+            let index =
+              candidateCount - 1;
+            index >= 0;
+            index -= 1
+          ) {
+            const candidate =
+              candidates.nth(index);
+
+            if (
+              !await candidate
+                .isVisible()
+                .catch(() => false)
+            ) {
+              continue;
+            }
+
+            publishButtonVisible =
+              true;
+
+            if (
+              await candidate
+                .isEnabled()
+                .catch(() => false)
+            ) {
+              postButton =
+                candidate;
+              break;
+            }
+          }
+
+          if (postButton) {
+            break;
+          }
+        }
+
+        if (!postButton) {
+          await page.waitForTimeout(
+            300,
+          );
+        }
       }
 
-      if (
-        !await postButton
-          .isEnabled()
-          .catch(() => false)
-      ) {
+      if (!postButton) {
         throw new Error(
-          "Facebook Post button is disabled.",
+          publishButtonVisible
+            ? "Facebook Post button is disabled."
+            : "Facebook Post button was not found.",
         );
       }
 
