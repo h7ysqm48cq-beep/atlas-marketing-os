@@ -2288,15 +2288,18 @@ app.post(
       }
 
       let publishMediaPreviewCount = mediaPreviewCount;
+      let mediaRecheckSkippedAfterNext = false;
 
-      if (expectedMediaCount > 0) {
+      if (
+        expectedMediaCount > 0 &&
+        !advancedViaNext
+      ) {
         /*
-         * Facebook can append another visible dialog after the Next step.
-         * A live `.last()` locator then follows that auxiliary dialog and
-         * reports zero images even though the prepared composer still owns
-         * every media preview. Count across the visible dialog set, matching
-         * the PREPARE verification scope, so this final guard observes the
-         * same prepared draft that VERIFY_DRAFT already accepted.
+         * When Facebook exposes Post directly in the composer, re-check the
+         * visible media previews immediately before clicking it. The separate
+         * Next flow intentionally replaces the composer with a final publish
+         * step that no longer renders those previews, so VERIFY_DRAFT is the
+         * authoritative media check for that path.
          */
         const visiblePublishDialogs =
           page.locator('[role="dialog"]:visible');
@@ -2313,6 +2316,11 @@ app.post(
             ].join(" "),
           );
         }
+      } else if (
+        expectedMediaCount > 0 &&
+        advancedViaNext
+      ) {
+        mediaRecheckSkippedAfterNext = true;
       }
 
       completeTraceStep({
@@ -2332,6 +2340,7 @@ app.post(
           advancedViaNext,
           expectedMediaCount,
           publishMediaPreviewCount,
+          mediaRecheckSkippedAfterNext,
         },
       });
 
