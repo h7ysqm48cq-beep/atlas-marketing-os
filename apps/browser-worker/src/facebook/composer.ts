@@ -474,7 +474,7 @@ export async function waitForFacebookComposerStable(
 
   for (
     let attempt = 0;
-    attempt < 12;
+    attempt < 30;
     attempt += 1
   ) {
     const dialogs =
@@ -530,6 +530,35 @@ export async function waitForFacebookComposerStable(
           .count()
           .catch(() => 0);
 
+      const postButtonVisible =
+        await dialog
+          .getByRole(
+            "button",
+            {
+              name: /^(post|publish)(?: now)?$/i,
+            },
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const mediaControlVisible =
+        await dialog
+          .getByText(
+            /photo\/video|add photo|add video|add reel/i,
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const editorTextLength =
+        normalizeText(
+          await editor
+            .first()
+            .innerText()
+            .catch(() => ""),
+        ).length;
+
       const text =
         (
           await dialog
@@ -549,16 +578,22 @@ export async function waitForFacebookComposerStable(
       const hasPostButton =
         text.includes(
           "Post",
-        );
+        ) ||
+        postButtonVisible;
 
       const hasComposer =
         text.includes(
           "Add to your post",
-        );
+        ) ||
+        mediaControlVisible;
 
       ready =
         !loading &&
-        hasComposer;
+        editorTextLength > 0 &&
+        (
+          hasComposer ||
+          hasPostButton
+        );
 
       signature =
         [
@@ -567,6 +602,7 @@ export async function waitForFacebookComposerStable(
           loading,
           hasComposer,
           hasPostButton,
+          editorTextLength,
         ].join(":");
 
       break;
