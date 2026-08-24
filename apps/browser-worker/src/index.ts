@@ -4397,11 +4397,26 @@ app.post(
       let attachedMediaCount = 0;
       let baselineMediaCount = 0;
 
+      /*
+       * FACEBOOK_VISIBLE_COMPOSER_MEDIA_SCOPE_V1
+       *
+       * Facebook can mount another role=dialog node while processing an
+       * upload. Because Playwright's `.last()` locator is resolved live, the
+       * original `dialog` locator may then point at that temporary dialog
+       * instead of the still-visible Create post composer. Count previews
+       * across the currently visible dialogs so the verification follows the
+       * real composer without weakening the visible-preview requirement.
+       */
+      const visibleComposerDialogs =
+        page.locator('[role="dialog"]:visible');
+
       if (imagePaths.length > 0) {
         const uploadImageStartedAt = Date.now();
 
         let fileInputFound = false;
-        baselineMediaCount = await countFacebookComposerImagePreviews(dialog);
+        baselineMediaCount = await countFacebookComposerImagePreviews(
+          visibleComposerDialogs,
+        );
 
         const setFacebookImageFiles = async (scope: Locator) => {
           const fileInputs = scope.locator('input[type="file"]');
@@ -4488,7 +4503,7 @@ app.post(
         const imageDialogHandling = await handleFacebookOnboarding(page);
 
         const previewResult = await waitForFacebookComposerImagePreviews(
-          dialog,
+          visibleComposerDialogs,
           {
             baselineCount: baselineMediaCount,
             expectedAddedCount: imagePaths.length,
@@ -4710,7 +4725,9 @@ app.post(
 
       if (imagePaths.length > 0) {
         const finalMediaPreviewCount =
-          await countFacebookComposerImagePreviews(dialog);
+          await countFacebookComposerImagePreviews(
+            visibleComposerDialogs,
+          );
 
         attachedMediaCount = Math.max(
           0,
