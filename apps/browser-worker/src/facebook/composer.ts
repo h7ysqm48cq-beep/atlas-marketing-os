@@ -106,66 +106,78 @@ export async function resetFacebookComposer(
 }
 
 
-async function findCreatePostDialog(
+export async function findFacebookCreatePostDialog(
   page: Page,
+  timeoutMs = 10000,
 ) {
-  const dialogs =
-    page.locator(
-      '[role="dialog"]',
-    );
+  const startedAt = Date.now();
 
-  const count =
-    await dialogs
-      .count()
-      .catch(() => 0);
-
-  for (
-    let index = count - 1;
-    index >= 0;
-    index -= 1
-  ) {
-    const dialog =
-      dialogs.nth(index);
-
-    if (
-      !await visible(dialog)
-    ) {
-      continue;
-    }
-
-    const text =
-      normalizeText(
-        await dialog
-          .innerText()
-          .catch(() => ""),
+  while (Date.now() - startedAt < timeoutMs) {
+    const dialogs =
+      page.locator(
+        '[role="dialog"]',
       );
 
-    const heading =
-      normalizeText(
-        await dialog
-          .getByRole("heading")
-          .first()
-          .innerText()
-          .catch(() => ""),
-      );
+    const count =
+      await dialogs
+        .count()
+        .catch(() => 0);
 
-    if (
-      /create post/i.test(
-        heading,
-      ) ||
-      /create post/i.test(
-        text,
-      ) ||
-      /what'?s on your mind/i.test(
-        text,
-      )
+    for (
+      let index = count - 1;
+      index >= 0;
+      index -= 1
     ) {
-      return dialog;
+      /*
+       * Keep the concrete nth(index) locator. Facebook can append hidden
+       * dialog nodes after the composer trigger; a live `.last()` locator
+       * would then silently retarget the new hidden node.
+       */
+      const dialog =
+        dialogs.nth(index);
+
+      if (
+        !await visible(dialog)
+      ) {
+        continue;
+      }
+
+      const text =
+        normalizeText(
+          await dialog
+            .innerText()
+            .catch(() => ""),
+        );
+
+      const heading =
+        normalizeText(
+          await dialog
+            .getByRole("heading")
+            .first()
+            .innerText()
+            .catch(() => ""),
+        );
+
+      if (
+        /create post/i.test(
+          heading,
+        ) ||
+        /create post/i.test(
+          text,
+        ) ||
+        /what'?s on your mind/i.test(
+          text,
+        )
+      ) {
+        return dialog;
+      }
     }
+
+    await page.waitForTimeout(250);
   }
 
   throw new Error(
-    "Facebook Create post dialog was not found.",
+    "Facebook Create post dialog was not found after the composer trigger opened.",
   );
 }
 

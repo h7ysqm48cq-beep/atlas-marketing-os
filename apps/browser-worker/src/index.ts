@@ -25,6 +25,7 @@ import {
 } from "./browser-core/dialog-engine.js";
 import {
   countFacebookComposerImagePreviews,
+  findFacebookCreatePostDialog,
   fillFacebookComposerCaption,
   resetFacebookComposer,
   waitForFacebookComposerImagePreviews,
@@ -4260,16 +4261,9 @@ app.post(
       );
 
       const dialog =
-        page
-          .getByRole(
-            "dialog",
-          )
-          .last();
-
-      await dialog.waitFor({
-        state: "visible",
-        timeout: 10000,
-      });
+        await findFacebookCreatePostDialog(
+          page,
+        );
 
       completeTraceStep({
         stepKey:
