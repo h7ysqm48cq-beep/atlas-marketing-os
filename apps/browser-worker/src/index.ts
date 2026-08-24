@@ -2142,6 +2142,9 @@ app.post(
       let publishButtonVisible =
         false;
 
+      let advancedViaNext =
+        false;
+
       for (
         let attempt = 0;
         attempt < 20 && !postButton;
@@ -2202,6 +2205,58 @@ app.post(
           }
         }
 
+        if (
+          !postButton &&
+          !advancedViaNext
+        ) {
+          const nextCandidates =
+            composer.getByRole(
+              "button",
+              {
+                name: /^Next$/i,
+              },
+            );
+
+          const nextCandidateCount =
+            await nextCandidates
+              .count()
+              .catch(() => 0);
+
+          for (
+            let index =
+              nextCandidateCount - 1;
+            index >= 0;
+            index -= 1
+          ) {
+            const candidate =
+              nextCandidates.nth(index);
+
+            if (
+              !await candidate
+                .isVisible()
+                .catch(() => false) ||
+              !await candidate
+                .isEnabled()
+                .catch(() => false)
+            ) {
+              continue;
+            }
+
+            await candidate.click({
+              timeout: 10000,
+            });
+
+            advancedViaNext =
+              true;
+
+            await page.waitForTimeout(
+              700,
+            );
+
+            break;
+          }
+        }
+
         if (!postButton) {
           await page.waitForTimeout(
             300,
@@ -2231,6 +2286,7 @@ app.post(
             true,
           enabled:
             true,
+          advancedViaNext,
         },
       });
 
