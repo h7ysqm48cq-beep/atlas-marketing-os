@@ -150,6 +150,7 @@ export class BrowserRuntimeBridgeService {
       caption: string;
       imagePath?: string | null;
       imageUrl?: string | null;
+      imageUrls?: string[] | null;
       targetUrl?: string | null;
     },
   ) {
@@ -187,6 +188,7 @@ export class BrowserRuntimeBridgeService {
       caption: string;
       imagePath?: string | null;
       imageUrl?: string | null;
+      imageUrls?: string[] | null;
     },
   ) {
     const [
@@ -404,16 +406,14 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
-  private normalizePrepareInput(
-    input: {
-      caption: string;
-      imagePath?: string | null;
-      imageUrl?: string | null;
-      targetUrl?: string | null;
-    },
-  ) {
-    const caption =
-      input.caption?.trim();
+  private normalizePrepareInput(input: {
+    caption: string;
+    imagePath?: string | null;
+    imageUrl?: string | null;
+    imageUrls?: string[] | null;
+    targetUrl?: string | null;
+  }) {
+    const caption = input.caption?.trim();
 
     if (!caption) {
       throw new BadRequestException(
@@ -434,11 +434,21 @@ export class BrowserRuntimeBridgeService {
       input.targetUrl?.trim() ||
       null;
 
-    const imageUrl =
-      input.imageUrl?.trim() ||
-      null;
+    const imageUrls = Array.from(
+      new Set(
+        [...(input.imageUrls ?? []), input.imageUrl]
+          .map((value) => value?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
 
-    if (imageUrl) {
+    if (imageUrls.length > 10) {
+      throw new BadRequestException(
+        'Facebook posts support at most 10 images.',
+      );
+    }
+
+    for (const imageUrl of imageUrls) {
       let parsedImageUrl: URL;
 
       try {
@@ -501,7 +511,9 @@ export class BrowserRuntimeBridgeService {
         input.imagePath?.trim() ||
         null,
 
-      imageUrl,
+      imageUrl: imageUrls[0] ?? null,
+
+      imageUrls,
 
       targetUrl,
     };

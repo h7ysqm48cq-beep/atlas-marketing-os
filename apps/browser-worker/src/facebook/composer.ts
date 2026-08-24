@@ -461,10 +461,70 @@ export async function fillFacebookComposerCaption(
   );
 }
 
+export async function countFacebookComposerImagePreviews(
+  dialog: Locator,
+): Promise<number> {
+  return dialog
+    .locator("img")
+    .evaluateAll(
+      (images) =>
+        images.filter((image) => {
+          const element = image as HTMLImageElement;
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
 
-export async function waitForFacebookComposerStable(
-  page: Page,
+          return (
+            Boolean(element.currentSrc || element.src) &&
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            Number(style.opacity || "1") > 0 &&
+            rect.width >= 100 &&
+            rect.height >= 100 &&
+            element.naturalWidth >= 100 &&
+            element.naturalHeight >= 100
+          );
+        }).length,
+    )
+    .catch(() => 0);
+}
+
+export async function waitForFacebookComposerImagePreviews(
+  dialog: Locator,
+  input: {
+    baselineCount: number;
+    expectedAddedCount: number;
+    timeoutMs?: number;
+  },
 ) {
+  const expectedCount = input.baselineCount + input.expectedAddedCount;
+  const timeoutMs = input.timeoutMs ?? 20000;
+  const startedAt = Date.now();
+  let previewCount = input.baselineCount;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    previewCount = await countFacebookComposerImagePreviews(dialog);
+
+    if (previewCount >= expectedCount) {
+      return {
+        attached: true,
+        previewCount,
+        addedCount: previewCount - input.baselineCount,
+        waitedMs: Date.now() - startedAt,
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  return {
+    attached: false,
+    previewCount,
+    addedCount: Math.max(0, previewCount - input.baselineCount),
+    waitedMs: Date.now() - startedAt,
+  };
+}
+
+export async function waitForFacebookComposerStable(page: Page) {
   let previousSignature = "";
 
   let stableChecks = 0;

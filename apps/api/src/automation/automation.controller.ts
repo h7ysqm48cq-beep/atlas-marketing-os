@@ -70,6 +70,21 @@ function imageUrlFromBrowserAction(value: unknown): string | null {
   return typeof imageUrl === 'string' ? imageUrl.trim() || null : null;
 }
 
+function imageUrlsFromBrowserAction(value: unknown): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [];
+  }
+
+  const imageUrls = (value as Record<string, unknown>).imageUrls;
+
+  return Array.isArray(imageUrls)
+    ? imageUrls
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
 type ScreenshotPayload = {
   absolutePath?: unknown;
 };
@@ -269,9 +284,7 @@ export class AutomationController {
 
     const caption = previous.caption?.trim() || '';
 
-    const imageUrl = imageUrlFromBrowserAction(
-      previous.requestPayload,
-    );
+    const imageUrl = imageUrlFromBrowserAction(previous.requestPayload);
 
     if (!caption) {
       throw new BadRequestException(
@@ -420,6 +433,7 @@ export class AutomationController {
       caption?: string;
       imagePath?: string | null;
       imageUrl?: string | null;
+      imageUrls?: string[] | null;
     },
   ) {
     const caption = body.caption?.trim() || '';
@@ -427,6 +441,8 @@ export class AutomationController {
     const imagePath = body.imagePath?.trim() || null;
 
     const imageUrl = body.imageUrl?.trim() || null;
+
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls : [];
 
     const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
@@ -441,6 +457,7 @@ export class AutomationController {
         caption,
         imagePath,
         imageUrl,
+        imageUrls,
       },
     });
 
@@ -462,6 +479,7 @@ export class AutomationController {
           caption,
           imagePath,
           imageUrl,
+          imageUrls,
         },
       );
 
@@ -531,9 +549,8 @@ export class AutomationController {
         replayOfActionId: previous.id,
         caption,
         imagePath: previous.imagePath,
-        imageUrl: imageUrlFromBrowserAction(
-          previous.requestPayload,
-        ),
+        imageUrl: imageUrlFromBrowserAction(previous.requestPayload),
+        imageUrls: imageUrlsFromBrowserAction(previous.requestPayload),
       },
     });
 
@@ -599,9 +616,8 @@ export class AutomationController {
         {
           caption,
           imagePath: previous.imagePath,
-          imageUrl: imageUrlFromBrowserAction(
-            previous.requestPayload,
-          ),
+          imageUrl: imageUrlFromBrowserAction(previous.requestPayload),
+          imageUrls: imageUrlsFromBrowserAction(previous.requestPayload),
         },
       );
 

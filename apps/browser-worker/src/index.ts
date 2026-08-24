@@ -24,8 +24,10 @@ import {
   handleDialogs,
 } from "./browser-core/dialog-engine.js";
 import {
+  countFacebookComposerImagePreviews,
   fillFacebookComposerCaption,
   resetFacebookComposer,
+  waitForFacebookComposerImagePreviews,
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
 import {
@@ -114,6 +116,7 @@ type BrowserSession = {
   identityVersion: number;
   headless: boolean;
   currentUrl: string | null;
+  preparedFacebookMediaCount: number;
 };
 
 const app = express();
@@ -1415,6 +1418,9 @@ app.post(
 
           currentUrl:
             page.url(),
+
+          preparedFacebookMediaCount:
+            0,
         };
 
       sessions.set(
@@ -2099,18 +2105,25 @@ app.post(
           )
           .trim();
 
-      const imageCount =
-        await composer
-          .locator("img")
-          .count()
-          .catch(() => 0);
+      const imageCount = await composer
+        .locator("img")
+        .count()
+        .catch(() => 0);
+      const mediaPreviewCount =
+        await countFacebookComposerImagePreviews(composer);
+      const expectedMediaCount = session.preparedFacebookMediaCount;
 
-      if (
-        !caption &&
-        imageCount === 0
-      ) {
+      if (!caption && mediaPreviewCount === 0) {
+        throw new Error("The Facebook draft is empty.");
+      }
+
+      if (expectedMediaCount > 0 && mediaPreviewCount < expectedMediaCount) {
         throw new Error(
-          "The Facebook draft is empty.",
+          [
+            "Facebook draft media verification failed before publishing.",
+            `Expected ${expectedMediaCount} image(s),`,
+            `found ${mediaPreviewCount}.`,
+          ].join(" "),
         );
       }
 
@@ -2127,8 +2140,9 @@ app.post(
           captionLength:
             caption.length,
           imageCount,
-          composerFound:
-            true,
+          mediaPreviewCount,
+          expectedMediaCount,
+          composerFound: true,
         },
       });
 
@@ -2272,6 +2286,25 @@ app.post(
         );
       }
 
+      let publishMediaPreviewCount = mediaPreviewCount;
+
+      if (expectedMediaCount > 0) {
+        const publishDialog = page.locator('[role="dialog"]:visible').last();
+
+        publishMediaPreviewCount =
+          await countFacebookComposerImagePreviews(publishDialog);
+
+        if (publishMediaPreviewCount < expectedMediaCount) {
+          throw new Error(
+            [
+              "Facebook draft media disappeared before the final Post action.",
+              `Expected ${expectedMediaCount} image(s),`,
+              `found ${publishMediaPreviewCount}.`,
+            ].join(" "),
+          );
+        }
+      }
+
       completeTraceStep({
         stepKey:
           "VERIFY_PUBLISH_BUTTON",
@@ -2287,6 +2320,8 @@ app.post(
           enabled:
             true,
           advancedViaNext,
+          expectedMediaCount,
+          publishMediaPreviewCount,
         },
       });
 
@@ -2661,8 +2696,9 @@ app.post(
         captionLength:
           caption.length,
         imageCount,
-        composerClosed:
-          !composerStillVisible,
+        mediaPreviewCount: publishMediaPreviewCount,
+        expectedMediaCount,
+        composerClosed: !composerStillVisible,
         verification: {
           status:
             verificationStatus,
@@ -3229,24 +3265,41 @@ app.post(
       return;
     }
 
-    const input =
-      request.body as {
-        caption?: string;
-        imagePath?: string | null;
-        imageUrl?: string | null;
-        targetUrl?: string | null;
-      };
+    session.preparedFacebookMediaCount = 0;
+
+    const input = request.body as {
+      caption?: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imageUrls?: string[] | null;
+      targetUrl?: string | null;
+    };
 
     const caption =
       input.caption?.trim();
 
-    let imagePath =
-      input.imagePath?.trim() ||
-      null;
+    const imagePath = input.imagePath?.trim() || null;
 
-    const imageUrl =
-      input.imageUrl?.trim() ||
-      null;
+    const imageUrls = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(input.imageUrls) ? input.imageUrls : []),
+          input.imageUrl,
+        ]
+          .map((value) => (typeof value === "string" ? value.trim() : ""))
+          .filter(Boolean),
+      ),
+    );
+
+    if (imageUrls.length > 10) {
+      response.status(400).json({
+        success: false,
+        message: "Facebook posts support at most 10 images.",
+      });
+      return;
+    }
+
+    const imagePaths = imagePath ? [imagePath] : [];
 
     const targetUrl =
       input.targetUrl?.trim() ||
@@ -3311,107 +3364,36 @@ app.post(
     let stagedImageCleanup:
       (() => Promise<void>) | null = null;
 
-    if (!imagePath && imageUrl) {
-      let parsedImageUrl: URL;
+    if (imagePaths.length === 0 && imageUrls.length > 0) {
+      const parsedImageUrls: URL[] = [];
 
-      try {
-        parsedImageUrl = new URL(imageUrl);
-      } catch {
-        response.status(400).json({
-          success: false,
-          message:
-            "Invalid image URL.",
-        });
-        return;
+      for (const imageUrl of imageUrls) {
+        let parsedImageUrl: URL;
+
+        try {
+          parsedImageUrl = new URL(imageUrl);
+        } catch {
+          response.status(400).json({
+            success: false,
+            message: "Invalid image URL.",
+          });
+          return;
+        }
+
+        if (!["http:", "https:"].includes(parsedImageUrl.protocol)) {
+          response.status(400).json({
+            success: false,
+            message: "Image URL must use http or https.",
+          });
+          return;
+        }
+
+        parsedImageUrls.push(parsedImageUrl);
       }
 
-      if (
-        !["http:", "https:"].includes(
-          parsedImageUrl.protocol,
-        )
-      ) {
-        response.status(400).json({
-          success: false,
-          message:
-            "Image URL must use http or https.",
-        });
-        return;
-      }
-
-      const imageResponse =
-        await fetch(imageUrl);
-
-      if (!imageResponse.ok) {
-        response.status(400).json({
-          success: false,
-          message:
-            `Unable to download image (HTTP ${imageResponse.status}).`,
-        });
-        return;
-      }
-
-      const contentType =
-        imageResponse.headers
-          .get("content-type")
-          ?.split(";", 1)[0]
-          .trim()
-          .toLowerCase() ||
-        "";
-
-      if (
-        contentType &&
-        !contentType.startsWith("image/")
-      ) {
-        response.status(400).json({
-          success: false,
-          message:
-            "Remote media is not an image.",
-        });
-        return;
-      }
-
-      const imageBytes = Buffer.from(
-        await imageResponse.arrayBuffer(),
+      const stagingDirectory = await mkdtemp(
+        path.join(tmpdir(), "atlas-facebook-images-"),
       );
-
-      if (imageBytes.length === 0) {
-        response.status(400).json({
-          success: false,
-          message:
-            "Remote image is empty.",
-        });
-        return;
-      }
-
-      const extensionByType: Record<string, string> = {
-        "image/jpeg": ".jpg",
-        "image/png": ".png",
-        "image/webp": ".webp",
-      };
-
-      const extensionFromUrl =
-        path.extname(
-          parsedImageUrl.pathname,
-        )
-          .toLowerCase();
-
-      const extension = [
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".webp",
-      ].includes(extensionFromUrl)
-        ? extensionFromUrl
-        : extensionByType[contentType] ||
-          ".jpg";
-
-      const stagingDirectory =
-        await mkdtemp(
-          path.join(
-            tmpdir(),
-            "atlas-facebook-image-",
-          ),
-        );
 
       stagedImageCleanup = async () => {
         await rm(
@@ -3423,33 +3405,74 @@ app.post(
         );
       };
 
-      imagePath = path.join(
-        stagingDirectory,
-        `upload${extension}`,
-      );
+      for (let index = 0; index < imageUrls.length; index += 1) {
+        const imageUrl = imageUrls[index];
+        const parsedImageUrl = parsedImageUrls[index];
+        const imageResponse = await fetch(imageUrl);
 
-      await writeFile(
-        imagePath,
-        imageBytes,
-      );
+        if (!imageResponse.ok) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Unable to download image ${index + 1} (HTTP ${imageResponse.status}).`,
+          });
+          return;
+        }
+
+        const contentType =
+          imageResponse.headers
+            .get("content-type")
+            ?.split(";", 1)[0]
+            .trim()
+            .toLowerCase() || "";
+
+        if (contentType && !contentType.startsWith("image/")) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Remote media ${index + 1} is not an image.`,
+          });
+          return;
+        }
+
+        const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
+
+        if (imageBytes.length === 0) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Remote image ${index + 1} is empty.`,
+          });
+          return;
+        }
+
+        const extensionByType: Record<string, string> = {
+          "image/jpeg": ".jpg",
+          "image/png": ".png",
+          "image/webp": ".webp",
+        };
+        const extensionFromUrl = path
+          .extname(parsedImageUrl.pathname)
+          .toLowerCase();
+        const extension = [".jpg", ".jpeg", ".png", ".webp"].includes(
+          extensionFromUrl,
+        )
+          ? extensionFromUrl
+          : extensionByType[contentType] || ".jpg";
+        const stagedImagePath = path.join(
+          stagingDirectory,
+          `upload-${index + 1}${extension}`,
+        );
+
+        await writeFile(stagedImagePath, imageBytes);
+        imagePaths.push(stagedImagePath);
+      }
     }
 
-    if (imagePath) {
-      const extension =
-        path.extname(
-          imagePath,
-        ).toLowerCase();
+    for (const imagePathToValidate of imagePaths) {
+      const extension = path.extname(imagePathToValidate).toLowerCase();
 
-      if (
-        ![
-          ".jpg",
-          ".jpeg",
-          ".png",
-          ".webp",
-        ].includes(
-          extension,
-        )
-      ) {
+      if (![".jpg", ".jpeg", ".png", ".webp"].includes(extension)) {
         response.status(400).json({
           success: false,
           message:
@@ -3459,10 +3482,9 @@ app.post(
       }
 
       try {
-        await access(
-          imagePath,
-        );
+        await access(imagePathToValidate);
       } catch {
+        await stagedImageCleanup?.();
         response.status(400).json({
           success: false,
           message:
@@ -4371,61 +4393,48 @@ app.post(
         },
       });
 
-      let imageAttached =
-        false;
+      let imageAttached = false;
+      let attachedMediaCount = 0;
+      let baselineMediaCount = 0;
 
-      if (imagePath) {
-        const uploadImageStartedAt =
-          Date.now();
+      if (imagePaths.length > 0) {
+        const uploadImageStartedAt = Date.now();
 
-        const fileInputs =
-          dialog.locator(
-            'input[type="file"]',
-          );
+        let fileInputFound = false;
+        baselineMediaCount = await countFacebookComposerImagePreviews(dialog);
 
-        let fileInputFound =
-          false;
+        const setFacebookImageFiles = async (scope: Locator) => {
+          const fileInputs = scope.locator('input[type="file"]');
+          const inputCount = await fileInputs.count().catch(() => 0);
 
-        const inputCount =
-          await fileInputs
-            .count()
-            .catch(() => 0);
+          for (let index = 0; index < inputCount; index += 1) {
+            const fileInput = fileInputs.nth(index);
+            const accept =
+              (
+                await fileInput.getAttribute("accept").catch(() => null)
+              )?.toLowerCase() || "";
 
-        for (
-          let index = 0;
-          index < inputCount;
-          index += 1
-        ) {
-          const fileInput =
-            fileInputs.nth(
-              index,
-            );
+            if (
+              !accept.includes("image") &&
+              !/\.(jpe?g|png|webp)/i.test(accept)
+            ) {
+              continue;
+            }
 
-          const accept =
-            await fileInput
-              .getAttribute(
-                "accept",
-              )
-              .catch(() => null);
+            const uploaded = await fileInput
+              .setInputFiles(imagePaths)
+              .then(() => true)
+              .catch(() => false);
 
-          if (
-            accept &&
-            !accept.includes(
-              "image",
-            )
-          ) {
-            continue;
+            if (uploaded) {
+              return true;
+            }
           }
 
-          await fileInput
-            .setInputFiles(
-              imagePath,
-            );
+          return false;
+        };
 
-          fileInputFound =
-            true;
-          break;
-        }
+        fileInputFound = await setFacebookImageFiles(dialog);
 
         if (!fileInputFound) {
           const photoButtonCandidates = [
@@ -4467,51 +4476,7 @@ app.post(
             }
           }
 
-          const pageFileInputs =
-            page.locator(
-              'input[type="file"]',
-            );
-
-          const pageInputCount =
-            await pageFileInputs
-              .count()
-              .catch(() => 0);
-
-          for (
-            let index = 0;
-            index < pageInputCount;
-            index += 1
-          ) {
-            const fileInput =
-              pageFileInputs.nth(
-                index,
-              );
-
-            const accept =
-              await fileInput
-                .getAttribute(
-                  "accept",
-                )
-                .catch(() => null);
-
-            if (
-              accept &&
-              !accept.includes(
-                "image",
-              )
-            ) {
-              continue;
-            }
-
-            await fileInput
-              .setInputFiles(
-                imagePath,
-              );
-
-            fileInputFound =
-              true;
-            break;
-          }
+          fileInputFound = await setFacebookImageFiles(page.locator("body"));
         }
 
         if (!fileInputFound) {
@@ -4520,62 +4485,53 @@ app.post(
           );
         }
 
-        await page.waitForTimeout(
-          2500,
+        const imageDialogHandling = await handleFacebookOnboarding(page);
+
+        const previewResult = await waitForFacebookComposerImagePreviews(
+          dialog,
+          {
+            baselineCount: baselineMediaCount,
+            expectedAddedCount: imagePaths.length,
+          },
         );
 
-        const imageDialogHandling =
-          await handleFacebookOnboarding(
-            page,
-          );
-
-        const previewCandidates = [
-          dialog.locator(
-            'img[src^="blob:"]',
-          ),
-          dialog.locator(
-            'img[src^="data:"]',
-          ),
-          dialog.locator(
-            'img',
-          ),
-        ];
-
-        for (
-          const previewCandidate
-          of previewCandidates
-        ) {
-          const count =
-            await previewCandidate
-              .count()
-              .catch(() => 0);
-
-          if (count > 0) {
-            imageAttached =
-              true;
-            break;
-          }
-        }
-
-        if (!imageAttached) {
-          imageAttached =
-            true;
-        }
+        imageAttached = previewResult.attached;
+        attachedMediaCount = previewResult.addedCount;
 
         completeTraceStep({
-          stepKey:
-            "UPLOAD_IMAGE",
-          stepName:
-            "Upload post image",
-          stepOrder:
-            6,
-          startedAtMs:
-            uploadImageStartedAt,
+          stepKey: "UPLOAD_IMAGE",
+          stepName: "Upload post image",
+          stepOrder: 6,
+          startedAtMs: uploadImageStartedAt,
+          status: imageAttached ? "SUCCESS" : "FAILED",
           metadata: {
             imageAttached,
-            imagePath,
+            expectedMediaCount: imagePaths.length,
+            attachedMediaCount,
+            baselineMediaCount,
+            previewCount: previewResult.previewCount,
+            waitedMs: previewResult.waitedMs,
+            imagePaths,
+            imageDialogHandling,
           },
+          errorMessage: imageAttached
+            ? null
+            : [
+                "Facebook image previews did not appear.",
+                `Expected ${imagePaths.length},`,
+                `attached ${attachedMediaCount}.`,
+              ].join(" "),
         });
+
+        if (!imageAttached) {
+          throw new Error(
+            [
+              "Facebook image upload could not be verified.",
+              `Expected ${imagePaths.length} image(s),`,
+              `attached ${attachedMediaCount}.`,
+            ].join(" "),
+          );
+        }
       } else {
         const skippedAt =
           Date.now();
@@ -4752,6 +4708,29 @@ app.post(
         );
       }
 
+      if (imagePaths.length > 0) {
+        const finalMediaPreviewCount =
+          await countFacebookComposerImagePreviews(dialog);
+
+        attachedMediaCount = Math.max(
+          0,
+          finalMediaPreviewCount - baselineMediaCount,
+        );
+        imageAttached = attachedMediaCount >= imagePaths.length;
+
+        if (!imageAttached) {
+          throw new Error(
+            [
+              "Facebook image previews disappeared before final verification.",
+              `Expected ${imagePaths.length} image(s),`,
+              `attached ${attachedMediaCount}.`,
+            ].join(" "),
+          );
+        }
+      }
+
+      session.preparedFacebookMediaCount = attachedMediaCount;
+
       completeTraceStep({
         stepKey:
           "WAIT_STABLE",
@@ -4767,10 +4746,10 @@ app.post(
             : "FAILED",
         metadata: {
           ...composerStability,
-          captionFilled:
-            captionResult.filled,
-          finalCaptionLength:
-            finalCaptionText.length,
+          captionFilled: captionResult.filled,
+          finalCaptionLength: finalCaptionText.length,
+          expectedMediaCount: imagePaths.length,
+          attachedMediaCount,
         },
         errorMessage:
           composerStability.stable
@@ -4833,6 +4812,8 @@ app.post(
         captionLength:
           captionResult.writtenLength,
         imageAttached,
+        expectedMediaCount: imagePaths.length,
+        attachedMediaCount,
         readyForReview: true,
         published: false,
         dialogHandling:

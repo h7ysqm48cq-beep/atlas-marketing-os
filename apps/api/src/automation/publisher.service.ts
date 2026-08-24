@@ -593,13 +593,11 @@ export class PublisherService {
               ].join(" "),
             );
 
-            if (
-              post.mediaUrls.length > 0
-            ) {
-              this.logger.warn(
+            if (post.mediaUrls.length > 0) {
+              this.logger.log(
                 [
-                  "Browser Runtime scheduled publishing",
-                  "will attach the first remote image.",
+                  'Browser Runtime scheduled publishing',
+                  'will attach remote images.',
                   `Post: ${post.id}.`,
                   `Remote media count: ${post.mediaUrls.length}.`,
                 ].join(" "),
@@ -607,33 +605,39 @@ export class PublisherService {
             }
 
             const prepareResult =
-              await this.browserRuntime
-                .prepareFacebookPostForChannel(
-                  post.channel.id,
-                  {
-                    caption:
-                      post.content,
-                    imagePath:
-                      null,
-                    imageUrl:
-                      post.mediaUrls[0] ??
-                      null,
-                  },
-                );
+              await this.browserRuntime.prepareFacebookPostForChannel(
+                post.channel.id,
+                {
+                  caption: post.content,
+                  imagePath: null,
+                  imageUrl: post.mediaUrls[0] ?? null,
+                  imageUrls: post.mediaUrls,
+                },
+              );
 
-            const prepared =
-              prepareResult as {
-                success?: boolean;
-                readyForReview?: boolean;
-                captionFilled?: boolean;
-              };
+            const prepared = prepareResult as {
+              success?: boolean;
+              readyForReview?: boolean;
+              captionFilled?: boolean;
+              imageAttached?: boolean;
+              attachedMediaCount?: number;
+            };
 
             if (
               prepared.success === false ||
-              prepared.readyForReview === false
+              prepared.readyForReview === false ||
+              (post.mediaUrls.length > 0 &&
+                (prepared.imageAttached !== true ||
+                  prepared.attachedMediaCount !== post.mediaUrls.length))
             ) {
               throw new Error(
-                "Facebook draft preparation failed.",
+                post.mediaUrls.length > 0
+                  ? [
+                      'Facebook draft preparation failed:',
+                      `expected ${post.mediaUrls.length} image(s),`,
+                      `attached ${prepared.attachedMediaCount ?? 0}.`,
+                    ].join(' ')
+                  : 'Facebook draft preparation failed.',
               );
             }
 
@@ -641,10 +645,9 @@ export class PublisherService {
               [
                 "Facebook draft prepared.",
                 `Post: ${post.id}.`,
-                `Caption filled: ${
-                  prepared.captionFilled !== false
-                }.`,
-              ].join(" "),
+                `Caption filled: ${prepared.captionFilled !== false}.`,
+                `Images attached: ${prepared.attachedMediaCount ?? 0}.`,
+              ].join(' '),
             );
 
             result =
