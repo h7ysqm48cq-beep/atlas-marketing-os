@@ -589,7 +589,6 @@ export async function waitForFacebookComposerStable(
 
       ready =
         !loading &&
-        editorTextLength > 0 &&
         (
           hasComposer ||
           hasPostButton
