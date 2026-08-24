@@ -1345,7 +1345,13 @@ export class AutomationService {
           input.campaignId === undefined ? undefined : input.campaignId || null,
         historyId:
           input.historyId === undefined ? undefined : input.historyId || null,
-        lastError: input.lastError === undefined ? undefined : input.lastError,
+        lastError:
+          input.lastError !== undefined
+            ? input.lastError
+            : input.status !== undefined &&
+                input.status !== ScheduledPostStatus.FAILED
+              ? null
+              : undefined,
       },
       include: {
         channel: true,

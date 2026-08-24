@@ -541,6 +541,9 @@ export function ContentCalendar() {
             scheduledAt: new Date(form.scheduledAt).toISOString(),
             timezone: "Asia/Kuala_Lumpur",
             status: form.status,
+            ...(editingPostId && form.status === "SCHEDULED"
+              ? { lastError: null }
+              : {}),
           }),
         },
       );
@@ -607,7 +610,7 @@ export function ContentCalendar() {
       title: post.title ?? "",
       content: post.content,
       scheduledAt: toLocalDateTimeInput(post.scheduledAt),
-      status: post.status,
+      status: post.status === "DRAFT" ? "DRAFT" : "SCHEDULED",
       mediaUrls: post.mediaUrls ?? [],
     });
 
@@ -629,7 +632,7 @@ export function ContentCalendar() {
       title: post.title ? `Copy of ${post.title}` : "",
       content: post.content,
       scheduledAt: toLocalDateTimeInput(copiedDate.toISOString()),
-      status: "DRAFT",
+      status: "SCHEDULED",
       mediaUrls: post.mediaUrls ?? [],
     });
 
@@ -1771,9 +1774,13 @@ export function ContentCalendar() {
               >
                 {saving
                   ? ui("Saving...", "保存中……")
-                  : editingPostId
-                    ? ui("Save changes", "保存修改")
-                    : ui("Create schedule", "创建排程")}
+                  : form.status === "DRAFT"
+                    ? editingPostId
+                      ? ui("Save draft changes", "保存草稿修改")
+                      : ui("Save draft", "保存草稿")
+                    : editingPostId
+                      ? ui("Save and schedule", "保存并排程")
+                      : ui("Schedule post", "排程帖子")}
               </button>
             </footer>
           </section>
@@ -1956,16 +1963,16 @@ export function ContentCalendar() {
                       </button>
                     ) : null}
 
-                    {["DRAFT", "SCHEDULED", "FAILED"].includes(
-                      selectedPost.status,
-                    ) ? (
+                    {["DRAFT", "FAILED"].includes(selectedPost.status) ? (
                       <button
                         type="button"
                         className={styles.primaryButton}
                         onClick={() => void postAction("queue")}
                         disabled={saving}
                       >
-                        Add to queue
+                        {selectedPost.status === "FAILED"
+                          ? ui("Retry post", "重试帖子")
+                          : ui("Add to queue", "加入队列")}
                       </button>
                     ) : null}
                   </>
