@@ -4553,56 +4553,90 @@ app.post(
         1000,
       );
 
-      const finalEditors =
-        page.locator(
-          '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
-        );
-
-      const finalEditorCount =
-        await finalEditors
-          .count()
-          .catch(() => 0);
-
+      const expectedCaptionText =
+        caption
+          .replace(/\s+/g, " ")
+          .trim();
       let finalCaptionText =
         "";
 
-      for (
-        let index =
-          finalEditorCount - 1;
-        index >= 0;
-        index -= 1
-      ) {
-        const editor =
-          finalEditors.nth(index);
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const finalEditors =
+          page.locator(
+            '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+          );
+
+        const finalEditorCount =
+          await finalEditors
+            .count()
+            .catch(() => 0);
+
+        for (
+          let index =
+            finalEditorCount - 1;
+          index >= 0;
+          index -= 1
+        ) {
+          const editor =
+            finalEditors.nth(index);
+
+          if (
+            !await editor
+              .isVisible()
+              .catch(() => false)
+          ) {
+            continue;
+          }
+
+          const editorText =
+            (
+              await editor
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+
+          const editorTextContent =
+            (
+              await editor
+                .textContent()
+                .catch(() => "")
+            ) || "";
+
+          const normalizedEditorTextContent =
+            editorTextContent
+              .replace(/\s+/g, " ")
+              .trim();
+
+          finalCaptionText =
+            editorText.length >= normalizedEditorTextContent.length
+              ? editorText
+              : normalizedEditorTextContent;
+
+          if (
+            finalCaptionText.includes(
+              expectedCaptionText,
+            )
+          ) {
+            break;
+          }
+        }
 
         if (
-          !await editor
-            .isVisible()
-            .catch(() => false)
-        ) {
-          continue;
-        }
-
-        finalCaptionText =
-          (
-            await editor
-              .innerText()
-              .catch(() => "")
+          finalCaptionText.includes(
+            expectedCaptionText,
           )
-            .replace(
-              /\s+/g,
-              " ",
-            )
-            .trim();
-
-        if (finalCaptionText) {
+        ) {
           break;
         }
+
+        await page.waitForTimeout(500);
       }
 
       if (
         !finalCaptionText.includes(
-          caption,
+          expectedCaptionText,
         )
       ) {
         throw new Error(
