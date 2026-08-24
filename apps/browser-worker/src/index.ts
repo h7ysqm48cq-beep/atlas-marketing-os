@@ -2290,10 +2290,19 @@ app.post(
       let publishMediaPreviewCount = mediaPreviewCount;
 
       if (expectedMediaCount > 0) {
-        const publishDialog = page.locator('[role="dialog"]:visible').last();
+        /*
+         * Facebook can append another visible dialog after the Next step.
+         * A live `.last()` locator then follows that auxiliary dialog and
+         * reports zero images even though the prepared composer still owns
+         * every media preview. Count across the visible dialog set, matching
+         * the PREPARE verification scope, so this final guard observes the
+         * same prepared draft that VERIFY_DRAFT already accepted.
+         */
+        const visiblePublishDialogs =
+          page.locator('[role="dialog"]:visible');
 
         publishMediaPreviewCount =
-          await countFacebookComposerImagePreviews(publishDialog);
+          await countFacebookComposerImagePreviews(visiblePublishDialogs);
 
         if (publishMediaPreviewCount < expectedMediaCount) {
           throw new Error(
