@@ -22,6 +22,10 @@ import {
   type SportsNewsRetryPolicy,
 } from "./publisher-retry-policy";
 import { resolvePublisherChannelIds } from "./publisher-scope";
+import {
+  resolveFacebookPostUrl,
+  resolvePublishExternalId,
+} from "./publisher-result";
 
 @Injectable()
 export class PublisherService {
@@ -40,37 +44,6 @@ export class PublisherService {
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
   ) {}
-
-  private buildFacebookPostUrl(
-    externalPostId?: string | null,
-  ) {
-    const cleanId =
-      externalPostId?.trim();
-
-    if (!cleanId) {
-      return null;
-    }
-
-    const separatorIndex =
-      cleanId.indexOf("_");
-
-    if (separatorIndex < 0) {
-      return null;
-    }
-
-    const pageId =
-      cleanId.slice(0, separatorIndex);
-
-    const postId =
-      cleanId.slice(separatorIndex + 1);
-
-    if (!pageId || !postId) {
-      return null;
-    }
-
-    return `https://www.facebook.com/${pageId}/posts/${postId}`;
-  }
-
 
   async run() {
     const allowedChannelIds =
@@ -811,6 +784,11 @@ export class PublisherService {
           },
         });
 
+        const externalPostId =
+          resolvePublishExternalId(
+            result,
+          );
+
         await this.prisma.scheduledPost.update({
           where: {
             id: post.id,
@@ -823,19 +801,12 @@ export class PublisherService {
             retryCount:
               post.retryCount + 1,
             externalPostId:
-              result?.postId ??
-              result?.post_id ??
-              result?.id ??
-              result?.messageId?.toString() ??
-              result?.message_id?.toString() ??
-              null,
+              externalPostId,
             externalPostUrl:
               post.platform === SocialPlatform.FACEBOOK
-                ? this.buildFacebookPostUrl(
-                    result?.postId ??
-                      result?.post_id ??
-                      result?.id ??
-                      null,
+                ? resolveFacebookPostUrl(
+                    result,
+                    externalPostId,
                   )
                 : null,
           },

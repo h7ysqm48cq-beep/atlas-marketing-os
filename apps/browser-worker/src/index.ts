@@ -32,6 +32,9 @@ import {
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
 import {
+  findFacebookPublishedPostReference,
+} from "./facebook/published-post.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -2094,12 +2097,13 @@ app.post(
           '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
         ).last();
 
+      const rawCaption =
+        await editor
+          .innerText()
+          .catch(() => "");
+
       const caption =
-        (
-          await editor
-            .innerText()
-            .catch(() => "")
-        )
+        rawCaption
           .replace(
             /\s+/g,
             " ",
@@ -2616,6 +2620,49 @@ app.post(
               : null,
       });
 
+      const resolvePostReferenceStartedAt =
+        Date.now();
+
+      const postReference =
+        verificationStatus ===
+            "CONFIRMED" ||
+          verificationStatus ===
+            "COMPOSER_CLOSED"
+          ? await findFacebookPublishedPostReference(
+              page,
+              rawCaption,
+            )
+          : null;
+
+      completeTraceStep({
+        stepKey:
+          "RESOLVE_POST_REFERENCE",
+        stepName:
+          "Resolve published Facebook post reference",
+        stepOrder:
+          6,
+        startedAtMs:
+          resolvePostReferenceStartedAt,
+        status:
+          postReference
+            ? "SUCCESS"
+            : "SKIPPED",
+        metadata: {
+          resolved:
+            Boolean(postReference),
+          externalPostId:
+            postReference
+              ?.externalPostId ||
+            null,
+          postUrl:
+            postReference
+              ?.postUrl || null,
+          matchedBy:
+            postReference
+              ?.matchedBy || null,
+        },
+      });
+
       const captureAfterStartedAt =
         Date.now();
 
@@ -2642,7 +2689,7 @@ app.post(
         stepName:
           "Capture post-publish screenshot",
         stepOrder:
-          6,
+          7,
         startedAtMs:
           captureAfterStartedAt,
         metadata: {
@@ -2662,7 +2709,7 @@ app.post(
         stepName:
           "Finalize Facebook publish result",
         stepOrder:
-          7,
+          8,
         startedAtMs:
           publishResultStartedAt,
         status:
@@ -2712,6 +2759,15 @@ app.post(
           !errorSignal,
         browserProfileKey:
           session.browserProfileKey,
+        postId:
+          postReference
+            ?.externalPostId || null,
+        facebookPostId:
+          postReference
+            ?.facebookPostId || null,
+        postUrl:
+          postReference
+            ?.postUrl || null,
         captionLength:
           caption.length,
         imageCount,
