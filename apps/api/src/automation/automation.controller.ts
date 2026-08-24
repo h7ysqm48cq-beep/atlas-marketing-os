@@ -60,6 +60,16 @@ function sanitizeBrowserActionResponse(value: unknown): unknown {
   return cloned;
 }
 
+function imageUrlFromBrowserAction(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const imageUrl = (value as Record<string, unknown>).imageUrl;
+
+  return typeof imageUrl === 'string' ? imageUrl.trim() || null : null;
+}
+
 type ScreenshotPayload = {
   absolutePath?: unknown;
 };
@@ -259,6 +269,10 @@ export class AutomationController {
 
     const caption = previous.caption?.trim() || '';
 
+    const imageUrl = imageUrlFromBrowserAction(
+      previous.requestPayload,
+    );
+
     if (!caption) {
       throw new BadRequestException(
         'The failed action does not contain a caption to retry.',
@@ -280,6 +294,7 @@ export class AutomationController {
         retryOfActionId: previous.id,
         caption,
         imagePath: previous.imagePath,
+        imageUrl,
       },
     });
 
@@ -289,6 +304,7 @@ export class AutomationController {
         {
           caption,
           imagePath: previous.imagePath,
+          imageUrl,
         },
       );
 
@@ -424,6 +440,7 @@ export class AutomationController {
       requestPayload: {
         caption,
         imagePath,
+        imageUrl,
       },
     });
 
@@ -514,6 +531,9 @@ export class AutomationController {
         replayOfActionId: previous.id,
         caption,
         imagePath: previous.imagePath,
+        imageUrl: imageUrlFromBrowserAction(
+          previous.requestPayload,
+        ),
       },
     });
 
@@ -579,6 +599,9 @@ export class AutomationController {
         {
           caption,
           imagePath: previous.imagePath,
+          imageUrl: imageUrlFromBrowserAction(
+            previous.requestPayload,
+          ),
         },
       );
 
