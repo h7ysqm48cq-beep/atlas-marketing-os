@@ -149,6 +149,7 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
       targetUrl?: string | null;
     },
   ) {
@@ -185,6 +186,7 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
     },
   ) {
     const [
@@ -406,6 +408,7 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
       targetUrl?: string | null;
     },
   ) {
@@ -430,6 +433,32 @@ export class BrowserRuntimeBridgeService {
     const targetUrl =
       input.targetUrl?.trim() ||
       null;
+
+    const imageUrl =
+      input.imageUrl?.trim() ||
+      null;
+
+    if (imageUrl) {
+      let parsedImageUrl: URL;
+
+      try {
+        parsedImageUrl = new URL(imageUrl);
+      } catch {
+        throw new BadRequestException(
+          'Invalid Facebook image URL.',
+        );
+      }
+
+      if (
+        !['http:', 'https:'].includes(
+          parsedImageUrl.protocol,
+        )
+      ) {
+        throw new BadRequestException(
+          'Facebook image URL must use http or https.',
+        );
+      }
+    }
 
     if (targetUrl) {
       let parsed:
@@ -471,6 +500,8 @@ export class BrowserRuntimeBridgeService {
       imagePath:
         input.imagePath?.trim() ||
         null,
+
+      imageUrl,
 
       targetUrl,
     };

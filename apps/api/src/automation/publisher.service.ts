@@ -578,7 +578,7 @@ export class PublisherService {
               this.logger.warn(
                 [
                   "Browser Runtime scheduled publishing",
-                  "currently prepares text only.",
+                  "will attach the first remote image.",
                   `Post: ${post.id}.`,
                   `Remote media count: ${post.mediaUrls.length}.`,
                 ].join(" "),
@@ -593,6 +593,9 @@ export class PublisherService {
                     caption:
                       post.content,
                     imagePath:
+                      null,
+                    imageUrl:
+                      post.mediaUrls[0] ??
                       null,
                   },
                 );

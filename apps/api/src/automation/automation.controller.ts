@@ -403,11 +403,14 @@ export class AutomationController {
     body: {
       caption?: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
     },
   ) {
     const caption = body.caption?.trim() || '';
 
     const imagePath = body.imagePath?.trim() || null;
+
+    const imageUrl = body.imageUrl?.trim() || null;
 
     const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
@@ -441,6 +444,7 @@ export class AutomationController {
         {
           caption,
           imagePath,
+          imageUrl,
         },
       );
 

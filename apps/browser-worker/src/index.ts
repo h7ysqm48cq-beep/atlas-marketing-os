@@ -13,8 +13,12 @@ import {
 import {
   access,
   mkdir,
+  mkdtemp,
   realpath,
+  rm,
+  writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   handleDialogs,
@@ -3121,14 +3125,19 @@ app.post(
       request.body as {
         caption?: string;
         imagePath?: string | null;
+        imageUrl?: string | null;
         targetUrl?: string | null;
       };
 
     const caption =
       input.caption?.trim();
 
-    const imagePath =
+    let imagePath =
       input.imagePath?.trim() ||
+      null;
+
+    const imageUrl =
+      input.imageUrl?.trim() ||
       null;
 
     const targetUrl =
@@ -3189,6 +3198,132 @@ app.post(
           "Caption is too long.",
       });
       return;
+    }
+
+    let stagedImageCleanup:
+      (() => Promise<void>) | null = null;
+
+    if (!imagePath && imageUrl) {
+      let parsedImageUrl: URL;
+
+      try {
+        parsedImageUrl = new URL(imageUrl);
+      } catch {
+        response.status(400).json({
+          success: false,
+          message:
+            "Invalid image URL.",
+        });
+        return;
+      }
+
+      if (
+        !["http:", "https:"].includes(
+          parsedImageUrl.protocol,
+        )
+      ) {
+        response.status(400).json({
+          success: false,
+          message:
+            "Image URL must use http or https.",
+        });
+        return;
+      }
+
+      const imageResponse =
+        await fetch(imageUrl);
+
+      if (!imageResponse.ok) {
+        response.status(400).json({
+          success: false,
+          message:
+            `Unable to download image (HTTP ${imageResponse.status}).`,
+        });
+        return;
+      }
+
+      const contentType =
+        imageResponse.headers
+          .get("content-type")
+          ?.split(";", 1)[0]
+          .trim()
+          .toLowerCase() ||
+        "";
+
+      if (
+        contentType &&
+        !contentType.startsWith("image/")
+      ) {
+        response.status(400).json({
+          success: false,
+          message:
+            "Remote media is not an image.",
+        });
+        return;
+      }
+
+      const imageBytes = Buffer.from(
+        await imageResponse.arrayBuffer(),
+      );
+
+      if (imageBytes.length === 0) {
+        response.status(400).json({
+          success: false,
+          message:
+            "Remote image is empty.",
+        });
+        return;
+      }
+
+      const extensionByType: Record<string, string> = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+      };
+
+      const extensionFromUrl =
+        path.extname(
+          parsedImageUrl.pathname,
+        )
+          .toLowerCase();
+
+      const extension = [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+      ].includes(extensionFromUrl)
+        ? extensionFromUrl
+        : extensionByType[contentType] ||
+          ".jpg";
+
+      const stagingDirectory =
+        await mkdtemp(
+          path.join(
+            tmpdir(),
+            "atlas-facebook-image-",
+          ),
+        );
+
+      stagedImageCleanup = async () => {
+        await rm(
+          stagingDirectory,
+          {
+            recursive: true,
+            force: true,
+          },
+        );
+      };
+
+      imagePath = path.join(
+        stagingDirectory,
+        `upload${extension}`,
+      );
+
+      await writeFile(
+        imagePath,
+        imageBytes,
+      );
     }
 
     if (imagePath) {
@@ -3447,14 +3582,57 @@ app.post(
       const normalizedText =
         pageText.toLowerCase();
 
-      if (
+      const facebookLoginUrl =
+        page
+          .url()
+          .toLowerCase()
+          .includes(
+            "/login",
+          );
+
+      const initialVisibleFacebookLoginForm =
+        await page
+          .locator(
+            'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+          )
+          .count()
+          .then((count) => count > 0)
+          .catch(() => false);
+
+      const visibleFacebookLoginText =
+        await page
+          .getByText(
+            /log in to facebook/i,
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const hasPageSwitchPrompt =
         normalizedText.includes(
-          "log in to facebook",
-        ) ||
+          "switch now",
+        ) &&
         normalizedText.includes(
-          "create new account",
-        )
-      ) {
+          "switch into",
+        );
+
+      const hasFacebookLoginPage =
+        facebookLoginUrl ||
+        initialVisibleFacebookLoginForm ||
+        visibleFacebookLoginText ||
+        (
+          normalizedText.includes(
+            "email or phone number",
+          ) &&
+          normalizedText.includes(
+            "password",
+          ) &&
+          normalizedText.includes(
+            "log in",
+          )
+        );
+
+      if (hasFacebookLoginPage && !hasPageSwitchPrompt) {
         response.status(400).json({
           success: false,
           loginRequired: true,
@@ -3517,6 +3695,115 @@ app.post(
             400,
           );
         }
+      }
+
+      /*
+       * FACEBOOK_PAGE_IDENTITY_SWITCH_V1
+       *
+       * A persistent session may show the Page identity on the home feed,
+       * while a direct Page URL still presents Facebook's "Switch Now"
+       * interstitial in the dedicated automation tab. Switch explicitly
+       * before looking for the Page composer.
+       */
+      const switchNowCandidates = [
+        page.getByRole(
+          "button",
+          {
+            name: /^switch now$/i,
+          },
+        ),
+        page.getByRole(
+          "link",
+          {
+            name: /^switch now$/i,
+          },
+        ),
+        page.getByText(
+          /^switch now$/i,
+          {
+            exact: true,
+          },
+        ),
+      ];
+
+      for (const candidateLocator of switchNowCandidates) {
+        const candidate = candidateLocator.first();
+
+        if (
+          !await candidate
+            .isVisible()
+            .catch(() => false)
+        ) {
+          continue;
+        }
+
+        const switched = await candidate
+          .click({
+            timeout: 5000,
+            force: true,
+          })
+          .then(() => true)
+          .catch(() => false);
+
+        if (switched) {
+          await page.waitForTimeout(1500);
+          break;
+        }
+      }
+
+      /*
+       * FACEBOOK_LOGIN_RECHECK_AFTER_IDENTITY_SWITCH_V1
+       *
+       * Facebook can render a Page identity switch interstitial first and
+       * only expose its login form after the switch interaction completes.
+       * The initial page check intentionally allows that interstitial, so
+       * re-check the live DOM here before entering composer retries.
+       */
+      const hasVisibleFacebookLoginForm =
+        await page
+          .locator(
+            'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+          )
+          .count()
+          .then((count) => count > 0)
+          .catch(() => false);
+
+      const postSwitchPageText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+
+      const postSwitchFacebookLoginPage =
+        hasVisibleFacebookLoginForm ||
+        postSwitchPageText.includes(
+          "log in to facebook",
+        ) ||
+        (
+          postSwitchPageText.includes(
+            "email or phone number",
+          ) &&
+          postSwitchPageText.includes(
+            "password",
+          ) &&
+          postSwitchPageText.includes(
+            "log in",
+          )
+        );
+
+      if (postSwitchFacebookLoginPage) {
+        response.status(400).json({
+          success: false,
+          loginRequired: true,
+          message:
+            "Facebook login is required.",
+        });
+        return;
       }
 
       const openComposerStartedAt =
@@ -3676,22 +3963,56 @@ app.post(
       }
 
       if (!composerOpened) {
-        const bodyPreview =
+        const loginFormAfterComposerFailure =
+          await page
+            .locator(
+              'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+            )
+            .count()
+            .then((count) => count > 0)
+            .catch(() => false);
+
+        const bodyTextAfterComposerFailure =
           (
             await page
               .locator("body")
               .innerText()
               .catch(() => "")
           )
-            .replace(
-              /\s+/g,
-              " ",
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const bodyPreview =
+          bodyTextAfterComposerFailure.slice(
+            0,
+            1200,
+          );
+
+        const loginTextAfterComposerFailure =
+          bodyTextAfterComposerFailure.toLowerCase();
+
+        if (
+          loginFormAfterComposerFailure ||
+          (
+            loginTextAfterComposerFailure.includes(
+              "email or phone number",
+            ) &&
+            loginTextAfterComposerFailure.includes(
+              "password",
+            ) &&
+            loginTextAfterComposerFailure.includes(
+              "log in",
             )
-            .trim()
-            .slice(
-              0,
-              1200,
-            );
+          )
+        ) {
+          response.status(400).json({
+            success: false,
+            loginRequired: true,
+            message:
+              "Facebook login is required.",
+          });
+          return;
+        }
 
         const visibleActions =
           await page
@@ -4458,6 +4779,10 @@ app.post(
               }
             : null,
       });
+    } finally {
+      await stagedImageCleanup?.().catch(
+        () => undefined,
+      );
     }
   },
 );
