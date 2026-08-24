@@ -21,6 +21,7 @@ import {
   resolveSportsNewsRetryDecision,
   type SportsNewsRetryPolicy,
 } from "./publisher-retry-policy";
+import { resolvePublisherChannelIds } from "./publisher-scope";
 
 @Injectable()
 export class PublisherService {
@@ -72,9 +73,29 @@ export class PublisherService {
 
 
   async run() {
+    const allowedChannelIds =
+      resolvePublisherChannelIds(
+        process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS,
+      );
+
+    if (allowedChannelIds) {
+      this.logger.log(
+        allowedChannelIds.length > 0
+          ? `Publisher channel allowlist is active for ${allowedChannelIds.length} channel(s).`
+          : "Publisher channel allowlist is empty; no posts will be selected.",
+      );
+    }
+
     const posts =
       await this.prisma.scheduledPost.findMany({
         where: {
+          ...(allowedChannelIds
+            ? {
+                channelId: {
+                  in: allowedChannelIds,
+                },
+              }
+            : {}),
           status: {
             in: [
               ScheduledPostStatus.SCHEDULED,
