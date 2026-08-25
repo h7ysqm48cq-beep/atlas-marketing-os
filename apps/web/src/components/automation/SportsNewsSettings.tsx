@@ -272,18 +272,23 @@ type Settings = {
 };
 const Toggle = ({
   checked,
+  disabled = false,
   onChange,
   label,
 }: {
   checked: boolean;
+  disabled?: boolean;
   onChange: (v: boolean) => void;
   label: string;
 }) => (
-  <label className={styles.toggleRow}>
+  <label
+    className={`${styles.toggleRow} ${disabled ? styles.toggleDisabled : ""}`}
+  >
     <span>{label}</span>
     <input
       type="checkbox"
       checked={checked}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.checked)}
     />
   </label>
@@ -824,6 +829,27 @@ export function SportsNewsSettings() {
             checked={s.enabled}
             onChange={(v) => patch("enabled", v)}
           />
+          <div className={styles.channelMasters}>
+            <h4>Publishing Channels</h4>
+            <Toggle
+              label="Telegram publishing enabled"
+              checked={s.telegramEnabled}
+              onChange={(v) => patch("telegramEnabled", v)}
+            />
+            <Toggle
+              label="Facebook publishing enabled"
+              checked={s.facebookEnabled}
+              onChange={(v) => patch("facebookEnabled", v)}
+            />
+            {!s.facebookEnabled &&
+              (s.morningFacebookEnabled || s.eveningFacebookEnabled) && (
+                <p className={styles.channelWarning}>
+                  Facebook publishing is paused globally. Morning and Evening
+                  Facebook choices are preserved but will not run until this
+                  switch is enabled.
+                </p>
+              )}
+          </div>
           <label>
             Timezone
             <input
@@ -849,11 +875,13 @@ export function SportsNewsSettings() {
             <Toggle
               label="Publish to Telegram"
               checked={s.morningTelegramEnabled}
+              disabled={!s.telegramEnabled}
               onChange={(v) => patch("morningTelegramEnabled", v)}
             />
             <Toggle
               label="Sync to Facebook"
               checked={s.morningFacebookEnabled}
+              disabled={!s.facebookEnabled}
               onChange={(v) => patch("morningFacebookEnabled", v)}
             />
           </div>
@@ -875,11 +903,13 @@ export function SportsNewsSettings() {
             <Toggle
               label="Publish to Telegram"
               checked={s.eveningTelegramEnabled}
+              disabled={!s.telegramEnabled}
               onChange={(v) => patch("eveningTelegramEnabled", v)}
             />
             <Toggle
               label="Sync to Facebook"
               checked={s.eveningFacebookEnabled}
+              disabled={!s.facebookEnabled}
               onChange={(v) => patch("eveningFacebookEnabled", v)}
             />
           </div>

@@ -90,6 +90,28 @@
   width: 18px;
   height: 18px;
 }
+.toggleDisabled {
+  opacity: 0.48;
+}
+.toggleDisabled input {
+  cursor: not-allowed;
+}
+.channelMasters {
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid rgba(120, 104, 255, 0.24);
+  border-radius: 13px;
+  background: rgba(120, 104, 255, 0.07);
+}
+.channelMasters h4 {
+  margin: 0 0 8px;
+}
+.channelWarning {
+  margin: 10px 0 0;
+  color: #ffc477;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .report {
   margin: 16px 0;
   padding: 15px;
