@@ -46,6 +46,7 @@ export type FacebookComposerMediaControlCandidate = {
 export type FacebookComposerMediaControlDiagnostics = {
   anchorFound: boolean;
   anchorText: string | null;
+  evaluationError: string | null;
   strategy:
     | "NAMED_CONTROL"
     | "ADD_TO_YOUR_POST_ROW"
@@ -147,6 +148,7 @@ async function locateAddToYourPostMediaControl(
           return {
             anchorFound: false,
             anchorText: null,
+            evaluationError: null,
             strategy: null,
             candidates,
             selected: null,
@@ -283,6 +285,7 @@ async function locateAddToYourPostMediaControl(
               anchorText: normalize(
                 anchor.textContent,
               ),
+              evaluationError: null,
               strategy:
                 "ADD_TO_YOUR_POST_ROW" as const,
               candidates,
@@ -304,18 +307,34 @@ async function locateAddToYourPostMediaControl(
           anchorText: normalize(
             anchor.textContent,
           ),
+          evaluationError: null,
           strategy: null,
           candidates,
           selected: null,
         };
       }, MEDIA_CONTROL_MARKER)
-      .catch(() => ({
-        anchorFound: false,
-        anchorText: null,
-        strategy: null,
-        candidates: [],
-        selected: null,
-      } as FacebookComposerMediaControlDiagnostics));
+      .catch((error) => {
+        const evaluationError =
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error);
+        const failedDiagnostics:
+          FacebookComposerMediaControlDiagnostics = {
+            anchorFound: false,
+            anchorText: null,
+            evaluationError,
+            strategy: null,
+            candidates: [],
+            selected: null,
+          };
+
+        console.error(
+          "[facebook/image-upload-control-evaluation-failure]",
+          failedDiagnostics,
+        );
+
+        return failedDiagnostics;
+      });
   const control = diagnostics.selected
     ? dialog.locator(
         `[${MEDIA_CONTROL_MARKER}="selected"]`,
@@ -739,64 +758,40 @@ export async function findFacebookCreatePostDialog(
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const dialogs =
+    /*
+     * Do not retain an nth(index) locator. Every Locator is live, including
+     * nth(), so Facebook inserting or removing another dialog after an editor
+     * click can silently retarget it. This semantic locator is intentionally
+     * re-resolved on every operation and continues to identify the visible
+     * Create post dialog after DOM reordering or React replacement.
+     */
+    const editor =
       page.locator(
-        '[role="dialog"]',
+        '[contenteditable="true"][role="textbox"]',
       );
-
-    const count =
-      await dialogs
+    const dialog =
+      page
+        .locator(
+          '[role="dialog"]:visible',
+        )
+        .filter({
+          has: editor,
+        })
+        .filter({
+          hasText:
+            /create post|what'?s on your mind/i,
+        })
+        .first();
+    const dialogCount =
+      await dialog
         .count()
         .catch(() => 0);
 
-    for (
-      let index = count - 1;
-      index >= 0;
-      index -= 1
+    if (
+      dialogCount > 0 &&
+      await visible(dialog)
     ) {
-      /*
-       * Keep the concrete nth(index) locator. Facebook can append hidden
-       * dialog nodes after the composer trigger; a live `.last()` locator
-       * would then silently retarget the new hidden node.
-       */
-      const dialog =
-        dialogs.nth(index);
-
-      if (
-        !await visible(dialog)
-      ) {
-        continue;
-      }
-
-      const text =
-        normalizeText(
-          await dialog
-            .innerText()
-            .catch(() => ""),
-        );
-
-      const heading =
-        normalizeText(
-          await dialog
-            .getByRole("heading")
-            .first()
-            .innerText()
-            .catch(() => ""),
-        );
-
-      if (
-        /create post/i.test(
-          heading,
-        ) ||
-        /create post/i.test(
-          text,
-        ) ||
-        /what'?s on your mind/i.test(
-          text,
-        )
-      ) {
-        return dialog;
-      }
+      return dialog;
     }
 
     await page.waitForTimeout(250);

@@ -6,6 +6,8 @@ import type {
 } from "playwright-core";
 import {
   countFacebookComposerImagePreviewCandidates,
+  FacebookComposerImageUploadError,
+  findFacebookCreatePostDialog,
   isFacebookComposerImagePreviewCandidate,
   normalizeFacebookComposerImagePreviewSource,
   uploadFacebookComposerImages,
@@ -188,15 +190,22 @@ const createUploadDialog = (input: {
   rowControl?: Locator;
   rowDiagnostics?:
     FacebookComposerMediaControlDiagnostics;
+  evaluationError?: Error;
 }) => ({
-  evaluate: async () =>
-    input.rowDiagnostics || {
+  evaluate: async () => {
+    if (input.evaluationError) {
+      throw input.evaluationError;
+    }
+
+    return input.rowDiagnostics || {
       anchorFound: false,
       anchorText: null,
+      evaluationError: null,
       strategy: null,
       candidates: [],
       selected: null,
-    },
+    };
+  },
   getByRole: () =>
     input.photoButton,
   locator: (selector: string) => {
@@ -289,6 +298,7 @@ test("uses the first interactive media control on the Add to your post row", asy
         anchorFound: true,
         anchorText:
           "Add to your post",
+        evaluationError: null,
         strategy:
           "ADD_TO_YOUR_POST_ROW",
         candidates: [
@@ -323,6 +333,94 @@ test("uses the first interactive media control on the Add to your post row", asy
   assert.deepEqual(
     selectedPaths,
     [["/tmp/one.jpg"]],
+  );
+});
+
+test("preserves the original media-control evaluation error", async () => {
+  const page = {
+    waitForEvent: async () => {
+      throw new Error(
+        "No file chooser",
+      );
+    },
+  } as unknown as Page;
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      evaluationError:
+        new Error(
+          "Target page, context or browser has been closed",
+        ),
+    });
+
+  await assert.rejects(
+    uploadFacebookComposerImages(
+      page,
+      dialog,
+      ["/tmp/one.jpg"],
+    ),
+    (error: unknown) => {
+      assert.ok(
+        error instanceof
+          FacebookComposerImageUploadError,
+      );
+      assert.match(
+        error.diagnostics
+          .evaluationError || "",
+        /Target page, context or browser has been closed/,
+      );
+      return true;
+    },
+  );
+});
+
+test("finds the active Create post dialog with a semantic locator", async () => {
+  const selectors: string[] = [];
+  let nthCalled = false;
+  const semanticDialog = {
+    filter: () =>
+      semanticDialog,
+    first: () =>
+      semanticDialog,
+    count: async () => 1,
+    isVisible: async () => true,
+    nth: () => {
+      nthCalled = true;
+      return semanticDialog;
+    },
+  } as unknown as Locator;
+  const page = {
+    locator: (selector: string) => {
+      selectors.push(selector);
+      return semanticDialog;
+    },
+    waitForTimeout: async () =>
+      undefined,
+  } as unknown as Page;
+
+  const result =
+    await findFacebookCreatePostDialog(
+      page,
+      100,
+    );
+
+  assert.equal(
+    result,
+    semanticDialog,
+  );
+  assert.equal(
+    nthCalled,
+    false,
+  );
+  assert.deepEqual(
+    selectors,
+    [
+      '[contenteditable="true"][role="textbox"]',
+      '[role="dialog"]:visible',
+    ],
   );
 });
 
