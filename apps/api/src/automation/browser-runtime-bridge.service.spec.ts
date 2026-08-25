@@ -25,6 +25,8 @@ describe('BrowserRuntimeBridgeService Facebook media input', () => {
   const browserAccounts = {
     markLoginRequired:
       jest.fn(),
+    markLoginVerified:
+      jest.fn(),
   };
 
   const service = new BrowserRuntimeBridgeService(
@@ -91,6 +93,10 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
   const createService = () => {
     const browserAccounts = {
       markLoginRequired:
+        jest.fn().mockResolvedValue(
+          undefined,
+        ),
+      markLoginVerified:
         jest.fn().mockResolvedValue(
           undefined,
         ),
@@ -285,5 +291,11 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
     expect(
       browserAccounts.markLoginRequired,
     ).not.toHaveBeenCalled();
+    expect(
+      browserAccounts.markLoginVerified,
+    ).toHaveBeenCalledWith(
+      'browser-account-1',
+      'Facebook Cloud Browser login is ready.',
+    );
   });
 });

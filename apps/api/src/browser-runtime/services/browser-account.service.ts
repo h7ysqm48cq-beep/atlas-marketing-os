@@ -2179,6 +2179,93 @@ export class BrowserAccountService {
     };
   }
 
+  async markLoginVerified(
+    id: string,
+    message = 'Facebook Cloud Browser login is ready.',
+  ) {
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          loginStatus: true,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    const observedAt =
+      new Date();
+
+    await this.prisma.$transaction(
+      async (transaction) => {
+        await transaction.browserAccount.update({
+          where: {
+            id,
+          },
+          data: {
+            loginStatus:
+              'LOGGED_IN',
+            cookieStatus:
+              'ACTIVE',
+            lastLoginAt:
+              observedAt,
+            lastVerifiedAt:
+              observedAt,
+            lastHeartbeatAt:
+              observedAt,
+            lastLoginError:
+              null,
+          },
+        });
+
+        if (
+          account.loginStatus !==
+          'LOGGED_IN'
+        ) {
+          await transaction.browserAccountEvent.create({
+            data: {
+              browserAccountId:
+                id,
+              eventType:
+                'LOGIN_VERIFIED',
+              status:
+                BrowserAccountEventStatus.SUCCESS,
+              title:
+                'Facebook login verified',
+              message:
+                message.trim() ||
+                'Facebook Cloud Browser login is ready.',
+              metadata: {
+                source:
+                  'FACEBOOK_PUBLISHER',
+                observedAt:
+                  observedAt.toISOString(),
+              },
+            },
+          });
+        }
+      },
+    );
+
+    return {
+      accountId:
+        id,
+      loginStatus:
+        'LOGGED_IN',
+      cookieStatus:
+        'ACTIVE',
+      observedAt:
+        observedAt.toISOString(),
+    };
+  }
+
   private sanitize(
     account: any,
   ) {

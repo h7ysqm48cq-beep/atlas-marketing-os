@@ -110,4 +110,30 @@ describe('BrowserAccountService login state', () => {
 
     expect(transaction.browserAccountEvent.create).not.toHaveBeenCalled();
   });
+
+  it('restores a live verified Facebook login and records the recovery', async () => {
+    const { service, transaction } = createService({
+      id: 'account-1',
+      loginStatus: 'LOGIN_REQUIRED',
+      lastLoginError: 'Facebook login is required.',
+    });
+
+    await service.markLoginVerified(
+      'account-1',
+      'Facebook Cloud Browser login is ready.',
+    );
+
+    const updateInput =
+      transaction.browserAccount.update.mock.calls[0]?.[0];
+
+    expect(updateInput?.data.loginStatus).toBe('LOGGED_IN');
+    expect(updateInput?.data.cookieStatus).toBe('ACTIVE');
+    expect(updateInput?.data.lastLoginError).toBeNull();
+
+    const eventInput =
+      transaction.browserAccountEvent.create.mock.calls[0]?.[0];
+
+    expect(eventInput?.data.eventType).toBe('LOGIN_VERIFIED');
+    expect(eventInput?.data.status).toBe(BrowserAccountEventStatus.SUCCESS);
+  });
 });

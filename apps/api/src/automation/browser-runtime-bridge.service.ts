@@ -371,6 +371,17 @@ export class BrowserRuntimeBridgeService {
         );
     }
 
+    if (
+      state.ready &&
+      profile.browserAccountId
+    ) {
+      await this.browserAccounts
+        .markLoginVerified(
+          profile.browserAccountId,
+          state.message,
+        );
+    }
+
     return {
       ...state,
       browserAccountId:

@@ -229,6 +229,9 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
     expect(
       runtimeProfiles.getPublishNetwork,
     ).not.toHaveBeenCalled();
+    expect(
+      runtimeProfiles.getBrowserPublishingSafety,
+    ).not.toHaveBeenCalled();
   });
 
   it('does not run the VNC preflight for a Native API channel', async () => {
