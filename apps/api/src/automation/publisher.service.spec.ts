@@ -1,4 +1,7 @@
-import { resolveSportsNewsRetryDecision } from './publisher-retry-policy';
+import {
+  resolvePublisherRetryDecision,
+  resolveSportsNewsRetryDecision,
+} from './publisher-retry-policy';
 import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
 import { PublisherService } from './publisher.service';
 
@@ -53,6 +56,45 @@ describe('resolveSportsNewsRetryDecision', () => {
     ).toEqual({
       shouldRetry: false,
       scheduledAt: null,
+    });
+  });
+});
+
+describe('resolvePublisherRetryDecision', () => {
+  const policy = {
+    publishRetryEnabled: true,
+    publishRetryLimit: 3,
+    publishRetryDelayMinutes: 10,
+  };
+  const failedAt =
+    new Date('2026-08-25T00:00:00.000Z');
+
+  it('keeps a Browser Runtime failure FAILED without automatic retry', () => {
+    expect(
+      resolvePublisherRetryDecision({
+        policy,
+        failedAttemptCount: 1,
+        failedAt,
+        usedBrowserRuntime: true,
+      }),
+    ).toEqual({
+      shouldRetry: false,
+      scheduledAt: null,
+    });
+  });
+
+  it('preserves the configured retry for Native API and other publishers', () => {
+    expect(
+      resolvePublisherRetryDecision({
+        policy,
+        failedAttemptCount: 1,
+        failedAt,
+        usedBrowserRuntime: false,
+      }),
+    ).toEqual({
+      shouldRetry: true,
+      scheduledAt:
+        new Date('2026-08-25T00:10:00.000Z'),
     });
   });
 });
@@ -160,6 +202,22 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
           browserProfileKey:
             'profile-1',
         }),
+      prepareFacebookPostForChannel:
+        jest.fn().mockResolvedValue({
+          success: true,
+          readyForReview: true,
+          captionFilled: true,
+          imageAttached: false,
+          attachedMediaCount: 0,
+        }),
+      publishFacebookPost:
+        jest.fn().mockResolvedValue({
+          success: true,
+          published: true,
+          verification: {
+            status: 'CONFIRMED',
+          },
+        }),
     };
     const service =
       new PublisherService(
@@ -257,6 +315,81 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
             ScheduledPostStatus.PUBLISHING,
         }),
       }),
+    );
+  });
+
+  it('keeps an actual Browser Runtime publishing failure FAILED without rescheduling it', async () => {
+    const {
+      browserRuntime,
+      prisma,
+      runtimeProfiles,
+      service,
+    } = createService();
+
+    prisma.scheduledPost.findMany.mockResolvedValue([
+      {
+        ...createPost(
+          'BROWSER_RUNTIME',
+        ),
+        brandRenderingSettings: {
+          sportsNews: {
+            publishRetryEnabled: true,
+            publishRetryLimit: 10,
+            publishRetryDelayMinutes: 10,
+          },
+        },
+      },
+    ]);
+    browserRuntime.preflightFacebookLoginForChannel.mockResolvedValue({
+      ready: true,
+      loginRequired: false,
+      message: 'Ready',
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+    });
+    runtimeProfiles.getPublishNetwork.mockResolvedValue({
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+      locale: 'en-MY',
+      timezone: 'Asia/Kuala_Lumpur',
+      proxyType: 'DIRECT',
+      proxyUrl: null,
+    });
+    browserRuntime.prepareFacebookPostForChannel.mockRejectedValue(
+      new Error(
+        'Facebook image upload could not be verified.',
+      ),
+    );
+
+    await expect(
+      service.run(),
+    ).resolves.toMatchObject({
+      found: 1,
+      published: 0,
+    });
+
+    expect(
+      prisma.scheduledPost.update,
+    ).toHaveBeenCalledWith({
+      where: {
+        id: 'post-1',
+      },
+      data: expect.objectContaining({
+        status:
+          ScheduledPostStatus.FAILED,
+        retryCount: 1,
+        lastError:
+          'Facebook image upload could not be verified.',
+      }),
+    });
+
+    const failureUpdate =
+      prisma.scheduledPost.update.mock.calls.at(-1)?.[0];
+
+    expect(
+      failureUpdate?.data,
+    ).not.toHaveProperty(
+      'scheduledAt',
     );
   });
 });

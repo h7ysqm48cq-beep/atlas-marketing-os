@@ -18,7 +18,7 @@ import { TelegramConnectorService } from "./telegram-connector.service";
 import { RuntimeProfileService } from "./runtime-profile.service";
 import { BrowserRuntimeBridgeService } from "./browser-runtime-bridge.service";
 import {
-  resolveSportsNewsRetryDecision,
+  resolvePublisherRetryDecision,
   type SportsNewsRetryPolicy,
 } from "./publisher-retry-policy";
 import { resolvePublisherChannelIds } from "./publisher-scope";
@@ -127,6 +127,9 @@ export class PublisherService {
           >
         > | null =
         null;
+
+      let usedFacebookBrowserRuntime =
+        false;
 
       if (
         post.platform ===
@@ -577,6 +580,12 @@ export class PublisherService {
                 post.channel.id,
               );
 
+          usedFacebookBrowserRuntime =
+            Boolean(
+              publishNetwork
+                .browserProfileKey,
+            );
+
           if (
             publishNetwork.proxyType ===
             'SOCKS5'
@@ -949,7 +958,7 @@ export class PublisherService {
           post.retryCount + 1;
 
         const retryDecision =
-          resolveSportsNewsRetryDecision({
+          resolvePublisherRetryDecision({
             policy:
               this.readSportsNewsRetryPolicy(
                 post.brandRenderingSettings,
@@ -957,7 +966,18 @@ export class PublisherService {
             failedAttemptCount,
             failedAt:
               new Date(),
+            usedBrowserRuntime:
+              usedFacebookBrowserRuntime,
           });
+
+        if (usedFacebookBrowserRuntime) {
+          this.logger.warn(
+            [
+              `Browser Runtime publish failed for post ${post.id}.`,
+              "Automatic retry is suppressed; the post remains FAILED until an explicit retry.",
+            ].join(" "),
+          );
+        }
 
         await this.prisma.scheduledPost.update({
           where: {

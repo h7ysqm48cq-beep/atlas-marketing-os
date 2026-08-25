@@ -26,3 +26,26 @@ export function resolveSportsNewsRetryDecision(input: {
         : null,
   };
 }
+
+export function resolvePublisherRetryDecision(input: {
+  policy: SportsNewsRetryPolicy | null;
+  failedAttemptCount: number;
+  failedAt: Date;
+  usedBrowserRuntime: boolean;
+}) {
+  if (input.usedBrowserRuntime) {
+    return {
+      shouldRetry: false,
+      scheduledAt: null,
+    };
+  }
+
+  return resolveSportsNewsRetryDecision({
+    policy:
+      input.policy,
+    failedAttemptCount:
+      input.failedAttemptCount,
+    failedAt:
+      input.failedAt,
+  });
+}

@@ -4667,6 +4667,8 @@ app.post(
             baselineMediaCount,
             previewCount: previewResult.previewCount,
             waitedMs: previewResult.waitedMs,
+            previewCandidates:
+              previewResult.previewCandidates,
             imagePaths,
             imageDialogHandling,
           },
@@ -4680,6 +4682,22 @@ app.post(
         });
 
         if (!imageAttached) {
+          console.error(
+            "[facebook/image-preview-verification]",
+            {
+              expectedMediaCount:
+                imagePaths.length,
+              attachedMediaCount,
+              baselineMediaCount,
+              previewCount:
+                previewResult.previewCount,
+              waitedMs:
+                previewResult.waitedMs,
+              previewCandidates:
+                previewResult.previewCandidates,
+            },
+          );
+
           throw new Error(
             [
               "Facebook image upload could not be verified.",

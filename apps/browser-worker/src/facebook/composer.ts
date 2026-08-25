@@ -476,28 +476,182 @@ export async function fillFacebookComposerCaption(
 export async function countFacebookComposerImagePreviews(
   dialog: Locator,
 ): Promise<number> {
-  return dialog
-    .locator("img")
+  const inspection =
+    await inspectFacebookComposerImagePreviews(
+      dialog,
+    );
+
+  return inspection.count;
+}
+
+export type FacebookComposerImagePreviewCandidate = {
+  tagName: string;
+  role: string | null;
+  sourceType:
+    | "IMG"
+    | "BACKGROUND"
+    | "NONE";
+  source: string;
+  display: string;
+  visibility: string;
+  opacity: number;
+  width: number;
+  height: number;
+  naturalWidth: number;
+  naturalHeight: number;
+};
+
+export function isFacebookComposerImagePreviewCandidate(
+  candidate: FacebookComposerImagePreviewCandidate,
+) {
+  const visible =
+    candidate.display !== "none" &&
+    candidate.visibility !== "hidden" &&
+    candidate.opacity > 0 &&
+    candidate.width >= 100 &&
+    candidate.height >= 100;
+
+  if (!visible || !candidate.source) {
+    return false;
+  }
+
+  if (candidate.sourceType === "BACKGROUND") {
+    return candidate.source !== "none";
+  }
+
+  return (
+    candidate.sourceType === "IMG" &&
+    candidate.naturalWidth >= 100 &&
+    candidate.naturalHeight >= 100
+  );
+}
+
+export function normalizeFacebookComposerImagePreviewSource(
+  value: string,
+) {
+  const normalized = value.trim();
+  const cssUrlMatch =
+    normalized.match(
+      /^url\((?:["']?)(.*?)(?:["']?)\)$/i,
+    );
+
+  return (
+    cssUrlMatch?.[1]?.trim() ||
+    normalized
+  );
+}
+
+export function countFacebookComposerImagePreviewCandidates(
+  candidates: FacebookComposerImagePreviewCandidate[],
+) {
+  const uniqueSources = new Set(
+    candidates
+      .filter(
+        isFacebookComposerImagePreviewCandidate,
+      )
+      .map(
+        (candidate) =>
+          normalizeFacebookComposerImagePreviewSource(
+            candidate.source,
+          ),
+      )
+      .filter(Boolean),
+  );
+
+  return uniqueSources.size;
+}
+
+export async function inspectFacebookComposerImagePreviews(
+  dialog: Locator,
+) {
+  const candidates =
+    await dialog
+      .locator(
+        [
+          "img",
+          '[role="img"]',
+          '[style*="background-image"]',
+          '[data-visualcompletion="media-vc-image"]',
+        ].join(","),
+      )
     .evaluateAll(
-      (images) =>
-        images.filter((image) => {
-          const element = image as HTMLImageElement;
+      (elements) =>
+        elements.map((element) => {
           const rect = element.getBoundingClientRect();
           const style = window.getComputedStyle(element);
+          const image =
+            element instanceof HTMLImageElement
+              ? element
+              : null;
+          const imageSource =
+            image?.currentSrc ||
+            image?.src ||
+            "";
+          const backgroundSource =
+            style.backgroundImage &&
+            style.backgroundImage !== "none"
+              ? style.backgroundImage
+              : "";
 
-          return (
-            Boolean(element.currentSrc || element.src) &&
-            style.display !== "none" &&
-            style.visibility !== "hidden" &&
-            Number(style.opacity || "1") > 0 &&
-            rect.width >= 100 &&
-            rect.height >= 100 &&
-            element.naturalWidth >= 100 &&
-            element.naturalHeight >= 100
-          );
-        }).length,
+          return {
+            tagName:
+              element.tagName,
+            role:
+              element.getAttribute("role"),
+            sourceType:
+              imageSource
+                ? "IMG"
+                : backgroundSource
+                  ? "BACKGROUND"
+                  : "NONE",
+            source:
+              imageSource || backgroundSource,
+            display:
+              style.display,
+            visibility:
+              style.visibility,
+            opacity:
+              Number(style.opacity || "1"),
+            width:
+              rect.width,
+            height:
+              rect.height,
+            naturalWidth:
+              image?.naturalWidth || 0,
+            naturalHeight:
+              image?.naturalHeight || 0,
+          };
+        }),
     )
-    .catch(() => 0);
+    .then(
+      (values) =>
+        values as FacebookComposerImagePreviewCandidate[],
+    )
+    .catch(
+      () => [] as FacebookComposerImagePreviewCandidate[],
+    );
+
+  return {
+    count:
+      countFacebookComposerImagePreviewCandidates(
+        candidates,
+      ),
+    candidates:
+      candidates
+        .slice(0, 20)
+        .map((candidate) => ({
+          ...candidate,
+          source:
+            candidate.source.slice(
+              0,
+              180,
+            ),
+          accepted:
+            isFacebookComposerImagePreviewCandidate(
+              candidate,
+            ),
+        })),
+  };
 }
 
 export async function waitForFacebookComposerImagePreviews(
@@ -512,9 +666,21 @@ export async function waitForFacebookComposerImagePreviews(
   const timeoutMs = input.timeoutMs ?? 20000;
   const startedAt = Date.now();
   let previewCount = input.baselineCount;
+  let previewCandidates:
+    Awaited<
+      ReturnType<
+        typeof inspectFacebookComposerImagePreviews
+      >
+    >["candidates"] = [];
 
   while (Date.now() - startedAt < timeoutMs) {
-    previewCount = await countFacebookComposerImagePreviews(dialog);
+    const inspection =
+      await inspectFacebookComposerImagePreviews(
+        dialog,
+      );
+
+    previewCount = inspection.count;
+    previewCandidates = inspection.candidates;
 
     if (previewCount >= expectedCount) {
       return {
@@ -522,6 +688,7 @@ export async function waitForFacebookComposerImagePreviews(
         previewCount,
         addedCount: previewCount - input.baselineCount,
         waitedMs: Date.now() - startedAt,
+        previewCandidates,
       };
     }
 
@@ -533,6 +700,7 @@ export async function waitForFacebookComposerImagePreviews(
     previewCount,
     addedCount: Math.max(0, previewCount - input.baselineCount),
     waitedMs: Date.now() - startedAt,
+    previewCandidates,
   };
 }
 
