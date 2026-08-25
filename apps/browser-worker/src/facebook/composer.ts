@@ -10,6 +10,17 @@ type CaptionFillResult = {
   strategy: string;
 };
 
+export type FacebookComposerImageUploadResult = {
+  strategy:
+    | "PHOTO_VIDEO_FILE_CHOOSER"
+    | "COMPOSER_FILE_INPUT";
+  expectedFileCount: number;
+  inputFileCount: number;
+  photoButtonClicked: boolean;
+  inputAccept: string | null;
+  multiple: boolean | null;
+};
+
 function normalizeText(
   value: string | null | undefined,
 ) {
@@ -24,6 +35,277 @@ async function visible(
   return locator
     .isVisible()
     .catch(() => false);
+}
+
+function acceptsFacebookImageFiles(
+  accept: string | null,
+) {
+  const normalized =
+    (accept || "")
+      .toLowerCase();
+
+  return (
+    normalized.includes("image") ||
+    /\.(jpe?g|png|webp)/i.test(
+      normalized,
+    )
+  );
+}
+
+async function inputFileCount(
+  input: Locator,
+) {
+  return input
+    .evaluate((element) => {
+      if (
+        !(element instanceof HTMLInputElement) ||
+        element.type !== "file"
+      ) {
+        return 0;
+      }
+
+      return element.files?.length || 0;
+    })
+    .catch(() => 0);
+}
+
+/**
+ * Upload images through the file chooser opened by the active Facebook
+ * composer. A composer-scoped input is retained as a fallback for Facebook
+ * variants that reveal an input without emitting a chooser event.
+ */
+export async function uploadFacebookComposerImages(
+  page: Page,
+  dialog: Locator,
+  imagePaths: string[],
+): Promise<FacebookComposerImageUploadResult> {
+  if (imagePaths.length === 0) {
+    throw new Error(
+      "Facebook image upload requires at least one image.",
+    );
+  }
+
+  const photoButtonCandidates = [
+    dialog.getByRole(
+      "button",
+      {
+        name:
+          /^(?:add\s+)?photos?\s*(?:\/|or)\s*videos?$/i,
+      },
+    ),
+    dialog.getByRole(
+      "button",
+      {
+        name:
+          /^(?:add\s+)?photos?$/i,
+      },
+    ),
+    dialog.locator(
+      '[aria-label*="Photo" i]',
+    ),
+  ];
+
+  let photoButtonClicked = false;
+
+  for (
+    const candidate
+    of photoButtonCandidates
+  ) {
+    const count =
+      await candidate
+        .count()
+        .catch(() => 0);
+
+    for (
+      let index = 0;
+      index < count;
+      index += 1
+    ) {
+      const button =
+        candidate.nth(index);
+
+      if (
+        !await visible(button)
+      ) {
+        continue;
+      }
+
+      const chooserPromise =
+        page
+          .waitForEvent(
+            "filechooser",
+            {
+              timeout: 5000,
+            },
+          )
+          .catch(() => null);
+
+      const clicked =
+        await button
+          .click({
+            force: true,
+          })
+          .then(() => true)
+          .catch(() => false);
+
+      if (!clicked) {
+        await chooserPromise;
+        continue;
+      }
+
+      photoButtonClicked = true;
+
+      const chooser =
+        await chooserPromise;
+
+      if (!chooser) {
+        break;
+      }
+
+      await chooser.setFiles(
+        imagePaths,
+      );
+
+      const chooserInput =
+        chooser.element();
+      const chooserFileCount =
+        await chooserInput
+          .evaluate((element) => {
+            if (
+              !(element instanceof HTMLInputElement) ||
+              element.type !== "file"
+            ) {
+              return 0;
+            }
+
+            return element.files?.length || 0;
+          })
+          .catch(() => 0);
+
+      if (
+        chooserFileCount !==
+        imagePaths.length
+      ) {
+        throw new Error(
+          [
+            "Facebook file chooser did not retain all selected images.",
+            `Expected ${imagePaths.length},`,
+            `input contains ${chooserFileCount}.`,
+          ].join(" "),
+        );
+      }
+
+      return {
+        strategy:
+          "PHOTO_VIDEO_FILE_CHOOSER",
+        expectedFileCount:
+          imagePaths.length,
+        inputFileCount:
+          chooserFileCount,
+        photoButtonClicked,
+        inputAccept:
+          await chooserInput
+            .getAttribute("accept")
+            .catch(() => null),
+        multiple:
+          chooser.isMultiple(),
+      };
+    }
+
+    if (photoButtonClicked) {
+      break;
+    }
+  }
+
+  /*
+   * Do not search the whole page. Facebook keeps unrelated upload inputs
+   * mounted outside the composer; accepting one of those makes
+   * setInputFiles succeed without attaching media to the post.
+   */
+  const fileInputs =
+    dialog.locator(
+      'input[type="file"]',
+    );
+  const inputCount =
+    await fileInputs
+      .count()
+      .catch(() => 0);
+
+  for (
+    let index = 0;
+    index < inputCount;
+    index += 1
+  ) {
+    const fileInput =
+      fileInputs.nth(index);
+    const accept =
+      await fileInput
+        .getAttribute("accept")
+        .catch(() => null);
+
+    if (
+      !acceptsFacebookImageFiles(
+        accept,
+      )
+    ) {
+      continue;
+    }
+
+    const uploaded =
+      await fileInput
+        .setInputFiles(
+          imagePaths,
+        )
+        .then(() => true)
+        .catch(() => false);
+
+    if (!uploaded) {
+      continue;
+    }
+
+    const retainedFileCount =
+      await inputFileCount(
+        fileInput,
+      );
+
+    if (
+      retainedFileCount !==
+      imagePaths.length
+    ) {
+      throw new Error(
+        [
+          "Facebook composer file input did not retain all selected images.",
+          `Expected ${imagePaths.length},`,
+          `input contains ${retainedFileCount}.`,
+        ].join(" "),
+      );
+    }
+
+    return {
+      strategy:
+        "COMPOSER_FILE_INPUT",
+      expectedFileCount:
+        imagePaths.length,
+      inputFileCount:
+        retainedFileCount,
+      photoButtonClicked,
+      inputAccept:
+        accept,
+      multiple:
+        await fileInput
+          .getAttribute("multiple")
+          .then((value) =>
+            value !== null,
+          )
+          .catch(() => null),
+    };
+  }
+
+  throw new Error(
+    photoButtonClicked
+      ? "Facebook Photo/video did not open a usable composer image input."
+      : "Facebook Photo/video control was not found in the active composer.",
+  );
 }
 
 export async function resetFacebookComposer(

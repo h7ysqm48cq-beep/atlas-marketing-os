@@ -28,6 +28,7 @@ import {
   findFacebookCreatePostDialog,
   fillFacebookComposerCaption,
   resetFacebookComposer,
+  uploadFacebookComposerImages,
   waitForFacebookComposerImagePreviews,
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
@@ -4554,92 +4555,16 @@ app.post(
       if (imagePaths.length > 0) {
         const uploadImageStartedAt = Date.now();
 
-        let fileInputFound = false;
         baselineMediaCount = await countFacebookComposerImagePreviews(
           visibleComposerDialogs,
         );
 
-        const setFacebookImageFiles = async (scope: Locator) => {
-          const fileInputs = scope.locator('input[type="file"]');
-          const inputCount = await fileInputs.count().catch(() => 0);
-
-          for (let index = 0; index < inputCount; index += 1) {
-            const fileInput = fileInputs.nth(index);
-            const accept =
-              (
-                await fileInput.getAttribute("accept").catch(() => null)
-              )?.toLowerCase() || "";
-
-            if (
-              !accept.includes("image") &&
-              !/\.(jpe?g|png|webp)/i.test(accept)
-            ) {
-              continue;
-            }
-
-            const uploaded = await fileInput
-              .setInputFiles(imagePaths)
-              .then(() => true)
-              .catch(() => false);
-
-            if (uploaded) {
-              return true;
-            }
-          }
-
-          return false;
-        };
-
-        fileInputFound = await setFacebookImageFiles(dialog);
-
-        if (!fileInputFound) {
-          const photoButtonCandidates = [
-            dialog.getByRole(
-              "button",
-              {
-                name:
-                  /photo|video/i,
-              },
-            ),
-            dialog.locator(
-              '[aria-label*="Photo"]',
-            ),
-            dialog.locator(
-              '[aria-label*="photo"]',
-            ),
-          ];
-
-          for (
-            const buttonCandidate
-            of photoButtonCandidates
-          ) {
-            const button =
-              buttonCandidate.first();
-
-            if (
-              await button
-                .isVisible()
-                .catch(() => false)
-            ) {
-              await button.click({
-                force: true,
-              });
-
-              await page.waitForTimeout(
-                500,
-              );
-              break;
-            }
-          }
-
-          fileInputFound = await setFacebookImageFiles(page.locator("body"));
-        }
-
-        if (!fileInputFound) {
-          throw new Error(
-            "Facebook image upload input was not found.",
+        const imageUpload =
+          await uploadFacebookComposerImages(
+            page,
+            dialog,
+            imagePaths,
           );
-        }
 
         const imageDialogHandling = await handleFacebookOnboarding(page);
 
@@ -4670,6 +4595,7 @@ app.post(
             previewCandidates:
               previewResult.previewCandidates,
             imagePaths,
+            imageUpload,
             imageDialogHandling,
           },
           errorMessage: imageAttached
