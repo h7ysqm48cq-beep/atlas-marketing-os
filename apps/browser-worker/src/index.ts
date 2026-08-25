@@ -35,6 +35,10 @@ import {
   findFacebookPublishedPostReference,
 } from "./facebook/published-post.js";
 import {
+  facebookPageSwitchActionPattern,
+  hasFacebookPageSwitchPrompt,
+} from "./facebook/page-identity.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -3814,11 +3818,8 @@ app.post(
           .catch(() => false);
 
       const hasPageSwitchPrompt =
-        normalizedText.includes(
-          "switch now",
-        ) &&
-        normalizedText.includes(
-          "switch into",
+        hasFacebookPageSwitchPrompt(
+          normalizedText,
         );
 
       const hasFacebookLoginPage =
@@ -3906,32 +3907,35 @@ app.post(
        * FACEBOOK_PAGE_IDENTITY_SWITCH_V1
        *
        * A persistent session may show the Page identity on the home feed,
-       * while a direct Page URL still presents Facebook's "Switch Now"
+       * while a direct Page URL still presents Facebook's "Switch" or
+       * "Switch now"
        * interstitial in the dedicated automation tab. Switch explicitly
        * before looking for the Page composer.
        */
-      const switchNowCandidates = [
+      const switchPageCandidates = [
         page.getByRole(
           "button",
           {
-            name: /^switch now$/i,
+            name:
+              facebookPageSwitchActionPattern,
           },
         ),
         page.getByRole(
           "link",
           {
-            name: /^switch now$/i,
+            name:
+              facebookPageSwitchActionPattern,
           },
         ),
         page.getByText(
-          /^switch now$/i,
+          facebookPageSwitchActionPattern,
           {
             exact: true,
           },
         ),
       ];
 
-      for (const candidateLocator of switchNowCandidates) {
+      for (const candidateLocator of switchPageCandidates) {
         const candidate = candidateLocator.first();
 
         if (
