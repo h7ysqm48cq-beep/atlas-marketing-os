@@ -252,6 +252,60 @@ export class PublisherService {
               continue;
             }
 
+            if (
+              publishingPreference ===
+                'BROWSER_RUNTIME'
+            ) {
+              const liveLogin =
+                await this.browserRuntime
+                  .preflightFacebookLoginForChannel(
+                    post.channel.id,
+                  );
+
+              if (!liveLogin.ready) {
+                blocked += 1;
+
+                const blockMessage =
+                  [
+                    liveLogin.message,
+                    `Channel: ${post.channel.name}.`,
+                    'Post remains queued until the Cloud Browser login is ready.',
+                  ]
+                    .join(' ')
+                    .slice(0, 1000);
+
+                this.logger.warn(
+                  [
+                    'Facebook live login preflight blocked publish.',
+                    `Post: ${post.id}.`,
+                    `Channel: ${post.channel.id}.`,
+                    `Profile: ${liveLogin.browserProfileKey}.`,
+                    blockMessage,
+                  ].join(' '),
+                );
+
+                await this.prisma
+                  .scheduledPost
+                  .updateMany({
+                    where: {
+                      id: post.id,
+                      status: {
+                        in: [
+                          ScheduledPostStatus.SCHEDULED,
+                          ScheduledPostStatus.QUEUED,
+                        ],
+                      },
+                    },
+                    data: {
+                      lastError:
+                        blockMessage,
+                    },
+                  });
+
+                continue;
+              }
+            }
+
             const useAutomaticNativeFallback =
               publishingPreference ===
                 'AUTOMATIC' &&

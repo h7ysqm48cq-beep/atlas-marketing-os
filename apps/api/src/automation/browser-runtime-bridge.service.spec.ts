@@ -197,4 +197,93 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
       browserAccounts.markLoginRequired,
     ).not.toHaveBeenCalled();
   });
+
+  it('blocks and synchronizes a live Facebook login page before publishing', async () => {
+    const {
+      browserAccounts,
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+      page: {
+        url: 'https://www.facebook.com/login/',
+        textPreview:
+          'Log in to Facebook Forgotten password?',
+        inputs: [
+          {
+            type: 'password',
+          },
+        ],
+      },
+    });
+
+    await expect(
+      service.preflightFacebookLoginForChannel(
+        'channel-1',
+      ),
+    ).resolves.toMatchObject({
+      ready: false,
+      loginRequired: true,
+      browserAccountId:
+        'browser-account-1',
+      browserProfileKey:
+        'profile-1',
+    });
+
+    expect(
+      browserAccounts.markLoginRequired,
+    ).toHaveBeenCalledWith(
+      'browser-account-1',
+      'Facebook login is required in the linked Cloud Browser.',
+    );
+  });
+
+  it('allows a live logged-in Facebook page', async () => {
+    const {
+      browserAccounts,
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+      page: {
+        url: 'https://www.facebook.com/',
+        textPreview:
+          'M Story Professional dashboard',
+        inputs: [],
+      },
+    });
+
+    await expect(
+      service.preflightFacebookLoginForChannel(
+        'channel-1',
+      ),
+    ).resolves.toMatchObject({
+      ready: true,
+      loginRequired: false,
+    });
+
+    expect(
+      browserAccounts.markLoginRequired,
+    ).not.toHaveBeenCalled();
+  });
 });

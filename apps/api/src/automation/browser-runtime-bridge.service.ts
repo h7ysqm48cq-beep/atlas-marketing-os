@@ -16,6 +16,33 @@ type WorkerResponse = {
   [key: string]: unknown;
 };
 
+type WorkerInspection = WorkerResponse & {
+  page?: {
+    url?: string;
+    textPreview?: string;
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+    }>;
+  };
+  frameInspections?: Array<{
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+    }>;
+  }>;
+};
+
+type FacebookLoginPreflight = {
+  ready: boolean;
+  loginRequired: boolean;
+  message: string;
+  browserAccountId: string | null;
+  browserProfileKey: string;
+};
+
 type BrowserLaunchProfile = Awaited<
   ReturnType<
     RuntimeProfileService[
@@ -299,6 +326,170 @@ export class BrowserRuntimeBridgeService {
           },
         ),
     );
+  }
+
+  /**
+   * Inspect the live persistent browser before the publisher claims a post.
+   * Persisted login/cookie status can become stale between scheduler runs.
+   */
+  async preflightFacebookLoginForChannel(
+    channelId: string,
+  ): Promise<FacebookLoginPreflight> {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    const inspection =
+      await this.request(
+        `/profiles/${encodeURIComponent(
+          profile.browserProfileKey,
+        )}/inspect`,
+        {
+          method: 'POST',
+        },
+      ) as WorkerInspection;
+
+    const state =
+      this.classifyFacebookLoginInspection(
+        inspection,
+      );
+
+    if (
+      state.loginRequired &&
+      profile.browserAccountId
+    ) {
+      await this.browserAccounts
+        .markLoginRequired(
+          profile.browserAccountId,
+          state.message,
+        );
+    }
+
+    return {
+      ...state,
+      browserAccountId:
+        profile.browserAccountId ??
+        null,
+      browserProfileKey:
+        profile.browserProfileKey,
+    };
+  }
+
+  private classifyFacebookLoginInspection(
+    inspection: WorkerInspection,
+  ): Pick<
+    FacebookLoginPreflight,
+    'ready' | 'loginRequired' | 'message'
+  > {
+    const page = inspection.page ?? {};
+    const currentUrl =
+      page.url?.trim() ?? '';
+    const normalizedUrl =
+      currentUrl.toLowerCase();
+    const textPreview =
+      page.textPreview
+        ?.trim()
+        .toLowerCase() ?? '';
+    const frameInputs =
+      Array.isArray(
+        inspection.frameInspections,
+      )
+        ? inspection.frameInspections
+            .flatMap(
+              (frame) =>
+                Array.isArray(
+                  frame.inputs,
+                )
+                  ? frame.inputs
+                  : [],
+            )
+        : [];
+    const allInputs = [
+      ...(Array.isArray(page.inputs)
+        ? page.inputs
+        : []),
+      ...frameInputs,
+    ];
+
+    const hasPasswordInput =
+      allInputs.some(
+        (input) =>
+          String(
+            input.type ?? '',
+          ).toLowerCase() ===
+          'password',
+      );
+    const hasEmailInput =
+      allInputs.some(
+        (input) => {
+          const name = String(
+            input.name ?? '',
+          ).toLowerCase();
+          const autocomplete = String(
+            input.autocomplete ?? '',
+          ).toLowerCase();
+
+          return (
+            name === 'email' ||
+            name.includes('email') ||
+            autocomplete.includes(
+              'username',
+            )
+          );
+        },
+      );
+    const hasLoginText = [
+      'log in to facebook',
+      'forgotten password',
+      'create new account',
+      'email address or mobile number',
+    ].some((value) =>
+      textPreview.includes(value),
+    );
+    const loginPageByUrl =
+      normalizedUrl.includes(
+        'facebook.com/login',
+      );
+    const loginRequired =
+      loginPageByUrl ||
+      hasPasswordInput ||
+      (hasEmailInput && hasLoginText);
+
+    if (loginRequired) {
+      return {
+        ready: false,
+        loginRequired: true,
+        message:
+          'Facebook login is required in the linked Cloud Browser.',
+      };
+    }
+
+    const onFacebook =
+      normalizedUrl.includes(
+        'facebook.com',
+      );
+
+    if (!onFacebook) {
+      return {
+        ready: false,
+        loginRequired: false,
+        message:
+          'Facebook Cloud Browser login could not be verified.',
+      };
+    }
+
+    return {
+      ready: true,
+      loginRequired: false,
+      message:
+        'Facebook Cloud Browser login is ready.',
+    };
   }
 
   private async withLoginStateSync<T>(
