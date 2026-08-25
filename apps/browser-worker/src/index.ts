@@ -35,6 +35,7 @@ import {
   findFacebookPublishedPostReference,
 } from "./facebook/published-post.js";
 import {
+  ensureFacebookPageIdentitySwitch,
   facebookPageSwitchActionPattern,
   hasFacebookPageSwitchPrompt,
 } from "./facebook/page-identity.js";
@@ -3912,52 +3913,120 @@ app.post(
        * interstitial in the dedicated automation tab. Switch explicitly
        * before looking for the Page composer.
        */
-      const switchPageCandidates = [
-        page.getByRole(
-          "button",
-          {
-            name:
-              facebookPageSwitchActionPattern,
-          },
-        ),
-        page.getByRole(
-          "link",
-          {
-            name:
-              facebookPageSwitchActionPattern,
-          },
-        ),
-        page.getByText(
-          facebookPageSwitchActionPattern,
-          {
-            exact: true,
-          },
-        ),
-      ];
+      const getVisibleSwitchAction = async () => {
+        const switchPageCandidates = [
+          page.getByRole(
+            "button",
+            {
+              name:
+                facebookPageSwitchActionPattern,
+            },
+          ),
+          page.getByRole(
+            "link",
+            {
+              name:
+                facebookPageSwitchActionPattern,
+            },
+          ),
+          page.getByText(
+            facebookPageSwitchActionPattern,
+            {
+              exact: true,
+            },
+          ),
+        ];
 
-      for (const candidateLocator of switchPageCandidates) {
-        const candidate = candidateLocator.first();
+        for (const candidateLocator of switchPageCandidates) {
+          const candidate = candidateLocator.first();
 
-        if (
-          !await candidate
-            .isVisible()
-            .catch(() => false)
-        ) {
-          continue;
+          if (
+            await candidate
+              .isVisible()
+              .catch(() => false)
+          ) {
+            return candidate;
+          }
         }
 
-        const switched = await candidate
-          .click({
-            timeout: 5000,
-            force: true,
-          })
-          .then(() => true)
-          .catch(() => false);
+        return null;
+      };
 
-        if (switched) {
-          await page.waitForTimeout(1500);
-          break;
-        }
+      const pageIdentitySwitch =
+        await ensureFacebookPageIdentitySwitch({
+          inspectState: async () => ({
+            bodyText:
+              await page
+                .locator("body")
+                .innerText()
+                .catch(() => ""),
+            hasVisibleSwitchAction:
+              Boolean(
+                await getVisibleSwitchAction(),
+              ),
+          }),
+          clickSwitchAction: async () => {
+            const candidate =
+              await getVisibleSwitchAction();
+
+            if (!candidate) {
+              return false;
+            }
+
+            return candidate
+              .click({
+                timeout: 5000,
+                force: true,
+              })
+              .then(() => true)
+              .catch(() => false);
+          },
+          waitForSettled: async () => {
+            await page.waitForTimeout(2500);
+            await page
+              .waitForLoadState(
+                "domcontentloaded",
+                {
+                  timeout: 5000,
+                },
+              )
+              .catch(() => undefined);
+          },
+          maxAttempts: 3,
+        });
+
+      console.log(
+        "[facebook/page-identity-switch]",
+        {
+          url:
+            page.url(),
+          required:
+            pageIdentitySwitch.required,
+          verified:
+            pageIdentitySwitch.verified,
+          attempts:
+            pageIdentitySwitch.attempts,
+          targetPageName:
+            pageIdentitySwitch.targetPageName,
+          reason:
+            pageIdentitySwitch.reason,
+        },
+      );
+
+      if (!pageIdentitySwitch.verified) {
+        throw new Error(
+          [
+            "Facebook Page identity switch did not complete.",
+            pageIdentitySwitch.targetPageName
+              ? `Target Page: ${pageIdentitySwitch.targetPageName}.`
+              : null,
+            `Attempts: ${pageIdentitySwitch.attempts}.`,
+            `Reason: ${pageIdentitySwitch.reason}.`,
+            `URL: ${page.url()}.`,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
       }
 
       /*
