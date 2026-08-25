@@ -1,6 +1,10 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
+import { BrowserAccountService } from './browser-account.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 
 jest.mock('./runtime-profile.service', () => ({
@@ -18,9 +22,15 @@ type NormalizePrepareInput = (input: {
 };
 
 describe('BrowserRuntimeBridgeService Facebook media input', () => {
+  const browserAccounts = {
+    markLoginRequired:
+      jest.fn(),
+  };
+
   const service = new BrowserRuntimeBridgeService(
     {} as ConfigService,
     {} as RuntimeProfileService,
+    browserAccounts as unknown as BrowserAccountService,
   );
   const normalizePrepareInput = (
     service as unknown as {
@@ -67,5 +77,124 @@ describe('BrowserRuntimeBridgeService Facebook media input', () => {
         ),
       }),
     ).toThrow('Facebook posts support at most 10 images.');
+  });
+});
+
+describe('BrowserRuntimeBridgeService Facebook login state', () => {
+  const profile = {
+    browserAccountId:
+      'browser-account-1',
+    browserProfileKey:
+      'profile-1',
+  };
+
+  const createService = () => {
+    const browserAccounts = {
+      markLoginRequired:
+        jest.fn().mockResolvedValue(
+          undefined,
+        ),
+    };
+
+    const service =
+      new BrowserRuntimeBridgeService(
+        {} as ConfigService,
+        {} as RuntimeProfileService,
+        browserAccounts as unknown as BrowserAccountService,
+      );
+
+    return {
+      browserAccounts,
+      service,
+    };
+  };
+
+  it('marks the Browser Account when the worker requires Facebook login', async () => {
+    const {
+      browserAccounts,
+      service,
+    } = createService();
+
+    const error =
+      new BadGatewayException({
+        message:
+          'Facebook login is required.',
+        workerStatus:
+          400,
+        workerResponse: {
+          success:
+            false,
+          loginRequired:
+            true,
+        },
+      });
+
+    await expect(
+      (
+        service as unknown as {
+          withLoginStateSync: <T>(
+            inputProfile: typeof profile,
+            operation: () => Promise<T>,
+          ) => Promise<T>;
+        }
+      ).withLoginStateSync(
+        profile,
+        async () =>
+          Promise.reject(
+            error,
+          ),
+      ),
+    ).rejects.toBe(
+      error,
+    );
+
+    expect(
+      browserAccounts.markLoginRequired,
+    ).toHaveBeenCalledWith(
+      'browser-account-1',
+      'Facebook login is required.',
+    );
+  });
+
+  it('does not change Browser Account state for unrelated worker errors', async () => {
+    const {
+      browserAccounts,
+      service,
+    } = createService();
+
+    const error =
+      new BadGatewayException({
+        message:
+          'Facebook composer was not found.',
+        workerStatus:
+          400,
+        workerResponse: {
+          success:
+            false,
+        },
+      });
+
+    await expect(
+      (
+        service as unknown as {
+          withLoginStateSync: <T>(
+            inputProfile: typeof profile,
+            operation: () => Promise<T>,
+          ) => Promise<T>;
+        }
+      ).withLoginStateSync(
+        profile,
+        async () =>
+          Promise.reject(
+            error,
+          ),
+      ),
+    ).rejects.toBe(
+      error,
+    );
+
+    expect(
+      browserAccounts.markLoginRequired,
+    ).not.toHaveBeenCalled();
   });
 });

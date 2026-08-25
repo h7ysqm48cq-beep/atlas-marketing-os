@@ -2,9 +2,11 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BrowserAccountService } from './browser-account.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 
 type WorkerResponse = {
@@ -24,6 +26,11 @@ type BrowserLaunchProfile = Awaited<
 
 @Injectable()
 export class BrowserRuntimeBridgeService {
+  private readonly logger =
+    new Logger(
+      BrowserRuntimeBridgeService.name,
+    );
+
   /**
    * Prevent two simultaneous requests from opening
    * the same browser profile more than once.
@@ -39,6 +46,8 @@ export class BrowserRuntimeBridgeService {
       ConfigService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
+    private readonly browserAccounts:
+      BrowserAccountService,
   ) {}
 
   async health() {
@@ -211,13 +220,17 @@ export class BrowserRuntimeBridgeService {
           ),
       ]);
 
-    return this.prepareFacebookPost(
-      profile.browserProfileKey,
-      {
-        ...input,
-        targetUrl:
-          target.targetUrl,
-      },
+    return this.withLoginStateSync(
+      profile,
+      () =>
+        this.prepareFacebookPost(
+          profile.browserProfileKey,
+          {
+            ...input,
+            targetUrl:
+              target.targetUrl,
+          },
+        ),
     );
   }
 
@@ -267,21 +280,148 @@ export class BrowserRuntimeBridgeService {
         },
       );
 
-    return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/facebook/publish-post`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-        body: JSON.stringify({
-          confirmation,
-        }),
-      },
+    return this.withLoginStateSync(
+      profile,
+      () =>
+        this.request(
+          `/profiles/${encodeURIComponent(
+            profile.browserProfileKey,
+          )}/facebook/publish-post`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              confirmation,
+            }),
+          },
+        ),
     );
+  }
+
+  private async withLoginStateSync<T>(
+    profile: BrowserLaunchProfile,
+    operation: () => Promise<T>,
+  ) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (
+        profile.browserAccountId &&
+        this.isLoginRequiredError(
+          error,
+        )
+      ) {
+        await this.browserAccounts
+          .markLoginRequired(
+            profile.browserAccountId,
+            this.getWorkerErrorMessage(
+              error,
+            ),
+          )
+          .catch(
+            (syncError) => {
+              this.logger.warn(
+                [
+                  'Unable to synchronize Browser Account login state.',
+                  `Account: ${profile.browserAccountId}.`,
+                  syncError instanceof Error
+                    ? syncError.message
+                    : String(
+                        syncError,
+                      ),
+                ].join(' '),
+              );
+            },
+          );
+      }
+
+      throw error;
+    }
+  }
+
+  private isLoginRequiredError(
+    error: unknown,
+  ) {
+    if (
+      !(
+        error instanceof
+        BadGatewayException
+      )
+    ) {
+      return false;
+    }
+
+    const response =
+      error.getResponse();
+
+    if (
+      typeof response ===
+      'object' &&
+      response !== null
+    ) {
+      const workerResponse =
+        (
+          response as {
+            workerResponse?: {
+              loginRequired?: unknown;
+            };
+          }
+        ).workerResponse;
+
+      if (
+        workerResponse
+          ?.loginRequired ===
+        true
+      ) {
+        return true;
+      }
+    }
+
+    return this
+      .getWorkerErrorMessage(
+        error,
+      )
+      .toLowerCase()
+      .includes(
+        'facebook login is required',
+      );
+  }
+
+  private getWorkerErrorMessage(
+    error: unknown,
+  ) {
+    if (
+      error instanceof
+      BadGatewayException
+    ) {
+      const response =
+        error.getResponse();
+
+      if (
+        typeof response ===
+        'object' &&
+        response !== null &&
+        typeof (
+          response as {
+            message?: unknown;
+          }
+        ).message ===
+          'string'
+      ) {
+        return (
+          response as {
+            message: string;
+          }
+        ).message;
+      }
+    }
+
+    return error instanceof Error
+      ? error.message
+      : 'Facebook login is required.';
   }
 
   async checkIp(

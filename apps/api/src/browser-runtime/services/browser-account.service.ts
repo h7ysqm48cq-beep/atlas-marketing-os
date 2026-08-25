@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BrowserAccountEventStatus,
   SocialChannelStatus,
   SocialPlatform,
   SocialProxyType,
@@ -2078,6 +2079,103 @@ export class BrowserAccountService {
               account.facebookPasswordEncrypted,
             )
           : null,
+    };
+  }
+
+  async markLoginRequired(
+    id: string,
+    message = 'Facebook login is required.',
+  ) {
+    const normalizedMessage =
+      message.trim() ||
+      'Facebook login is required.';
+
+    const boundedMessage =
+      normalizedMessage.slice(
+        0,
+        1000,
+      );
+
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          loginStatus: true,
+          lastLoginError: true,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    const observedAt =
+      new Date();
+
+    await this.prisma.$transaction(
+      async (transaction) => {
+        await transaction.browserAccount.update({
+          where: {
+            id,
+          },
+          data: {
+            loginStatus:
+              'LOGIN_REQUIRED',
+            cookieStatus:
+              'PROFILE_READY',
+            lastVerifiedAt:
+              observedAt,
+            lastHeartbeatAt:
+              observedAt,
+            lastLoginError:
+              boundedMessage,
+          },
+        });
+
+        if (
+          account.loginStatus !==
+            'LOGIN_REQUIRED' ||
+          account.lastLoginError !==
+            boundedMessage
+        ) {
+          await transaction.browserAccountEvent.create({
+            data: {
+              browserAccountId:
+                id,
+              eventType:
+                'LOGIN_ATTENTION_REQUIRED',
+              status:
+                BrowserAccountEventStatus.WARNING,
+              title:
+                'Facebook login requires attention',
+              message:
+                boundedMessage,
+              metadata: {
+                source:
+                  'FACEBOOK_PUBLISHER',
+                observedAt:
+                  observedAt.toISOString(),
+              },
+            },
+          });
+        }
+      },
+    );
+
+    return {
+      accountId:
+        id,
+      loginStatus:
+        'LOGIN_REQUIRED',
+      cookieStatus:
+        'PROFILE_READY',
+      observedAt:
+        observedAt.toISOString(),
     };
   }
 
