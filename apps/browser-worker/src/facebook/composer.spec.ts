@@ -418,9 +418,62 @@ test("finds the active Create post dialog with a semantic locator", async () => 
   assert.deepEqual(
     selectors,
     [
-      '[contenteditable="true"][role="textbox"]',
+      [
+        '[contenteditable="true"][role="textbox"]',
+        '[contenteditable="plaintext-only"][role="textbox"]',
+        '[contenteditable="true"][data-lexical-editor="true"]',
+        '[contenteditable="true"][aria-label]',
+        '[contenteditable="true"][aria-placeholder]',
+        '[role="textbox"][aria-label*="mind" i]',
+        '[contenteditable="true"]',
+      ].join(", "),
+      [
+        '[aria-label*="Photo" i]',
+        '[aria-label*="Video" i]',
+        'input[type="file"][accept*="image" i]',
+      ].join(", "),
       '[role="dialog"]:visible',
     ],
+  );
+});
+
+test("accepts one unambiguous localized dialog with an editor variant", async () => {
+  const uniqueDialog = {
+    isVisible: async () => true,
+  } as unknown as Locator;
+  const noMatch = {
+    first: () => noMatch,
+    count: async () => 0,
+    isVisible: async () => false,
+  } as unknown as Locator;
+  const editorDialogs = {
+    filter: () => noMatch,
+    first: () => uniqueDialog,
+    count: async () => 1,
+  } as unknown as Locator;
+  const visibleDialogs = {
+    filter: () => editorDialogs,
+  } as unknown as Locator;
+  const genericLocator = {} as Locator;
+  const page = {
+    locator: (selector: string) =>
+      selector ===
+      '[role="dialog"]:visible'
+        ? visibleDialogs
+        : genericLocator,
+    waitForTimeout: async () =>
+      undefined,
+  } as unknown as Page;
+
+  const result =
+    await findFacebookCreatePostDialog(
+      page,
+      100,
+    );
+
+  assert.equal(
+    result,
+    uniqueDialog,
   );
 });
 
@@ -554,7 +607,7 @@ test("falls back only to the active composer image input when no chooser opens",
   );
 });
 
-test("rejects a chooser that does not retain every selected image", async () => {
+test("defers a consumed chooser input to composer preview verification", async () => {
   const chooserInput =
     createMockLocator({
       accept: "image/*",
@@ -576,13 +629,66 @@ test("rejects a chooser that does not retain every selected image", async () => 
         createMockLocator(),
     });
 
-  await assert.rejects(
-    uploadFacebookComposerImages(
+  const result =
+    await uploadFacebookComposerImages(
       page,
       dialog,
       ["/tmp/one.jpg"],
-    ),
-    /file chooser did not retain all selected images/i,
+    );
+
+  assert.equal(
+    result.strategy,
+    "PHOTO_VIDEO_FILE_CHOOSER",
+  );
+  assert.equal(
+    result.expectedFileCount,
+    1,
+  );
+  assert.equal(
+    result.inputFileCount,
+    0,
+  );
+});
+
+test("defers a consumed composer-scoped input to preview verification", async () => {
+  const fileInput =
+    createMockLocator({
+      accept: "image/*",
+      retainedFileCount: 0,
+    });
+  const page = {
+    waitForEvent: async () => {
+      throw new Error(
+        "No file chooser",
+      );
+    },
+  } as unknown as Page;
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator(),
+      fileInputs:
+        fileInput,
+    });
+
+  const result =
+    await uploadFacebookComposerImages(
+      page,
+      dialog,
+      ["/tmp/one.jpg"],
+    );
+
+  assert.equal(
+    result.strategy,
+    "COMPOSER_FILE_INPUT",
+  );
+  assert.equal(
+    result.expectedFileCount,
+    1,
+  );
+  assert.equal(
+    result.inputFileCount,
+    0,
   );
 });
 

@@ -77,6 +77,22 @@ export class FacebookComposerImageUploadError
 const MEDIA_CONTROL_MARKER =
   "data-atlas-facebook-media-control";
 
+const FACEBOOK_COMPOSER_EDITOR_SELECTOR = [
+  '[contenteditable="true"][role="textbox"]',
+  '[contenteditable="plaintext-only"][role="textbox"]',
+  '[contenteditable="true"][data-lexical-editor="true"]',
+  '[contenteditable="true"][aria-label]',
+  '[contenteditable="true"][aria-placeholder]',
+  '[role="textbox"][aria-label*="mind" i]',
+  '[contenteditable="true"]',
+].join(", ");
+
+const FACEBOOK_COMPOSER_MEDIA_CUE_SELECTOR = [
+  '[aria-label*="Photo" i]',
+  '[aria-label*="Video" i]',
+  'input[type="file"][accept*="image" i]',
+].join(", ");
+
 async function locateAddToYourPostMediaControl(
   dialog: Locator,
 ): Promise<{
@@ -535,13 +551,21 @@ export async function uploadFacebookComposerImages(
         chooserFileCount !==
         imagePaths.length
       ) {
-        throw new FacebookComposerImageUploadError(
-          [
-            "Facebook file chooser did not retain all selected images.",
-            `Expected ${imagePaths.length},`,
-            `input contains ${chooserFileCount}.`,
-          ].join(" "),
-          controlDiagnostics,
+        /*
+         * Facebook can consume and replace its temporary chooser input as
+         * soon as setFiles() dispatches the upload. A zero count on that old
+         * input is therefore diagnostic evidence, not proof that the upload
+         * failed. The visible composer preview gate in the publishing flow is
+         * the authoritative attachment verification.
+         */
+        console.warn(
+          "[facebook/file-chooser-input-consumed]",
+          {
+            expectedFileCount:
+              imagePaths.length,
+            inputFileCount:
+              chooserFileCount,
+          },
         );
       }
 
@@ -627,13 +651,14 @@ export async function uploadFacebookComposerImages(
       retainedFileCount !==
       imagePaths.length
     ) {
-      throw new FacebookComposerImageUploadError(
-        [
-          "Facebook composer file input did not retain all selected images.",
-          `Expected ${imagePaths.length},`,
-          `input contains ${retainedFileCount}.`,
-        ].join(" "),
-        controlDiagnostics,
+      console.warn(
+        "[facebook/composer-input-consumed]",
+        {
+          expectedFileCount:
+            imagePaths.length,
+          inputFileCount:
+            retainedFileCount,
+        },
       );
     }
 
@@ -765,15 +790,25 @@ export async function findFacebookCreatePostDialog(
      * re-resolved on every operation and continues to identify the visible
      * Create post dialog after DOM reordering or React replacement.
      */
-    const editor =
-      page.locator(
-        '[contenteditable="true"][role="textbox"]',
-      );
-    const dialog =
-      page
-        .locator(
-          '[role="dialog"]:visible',
-        )
+    const editor = page.locator(
+      FACEBOOK_COMPOSER_EDITOR_SELECTOR,
+    );
+    const mediaCue = page.locator(
+      FACEBOOK_COMPOSER_MEDIA_CUE_SELECTOR,
+    );
+    const visibleDialogs = page.locator(
+      '[role="dialog"]:visible',
+    );
+    const candidates = [
+      visibleDialogs
+        .filter({
+          has: editor,
+        })
+        .filter({
+          has: mediaCue,
+        })
+        .first(),
+      visibleDialogs
         .filter({
           has: editor,
         })
@@ -781,17 +816,44 @@ export async function findFacebookCreatePostDialog(
           hasText:
             /create post|what'?s on your mind/i,
         })
-        .first();
-    const dialogCount =
-      await dialog
+        .first(),
+    ];
+
+    for (const dialog of candidates) {
+      const dialogCount =
+        await dialog
+          .count()
+          .catch(() => 0);
+
+      if (
+        dialogCount > 0 &&
+        await visible(dialog)
+      ) {
+        return dialog;
+      }
+    }
+
+    /*
+     * Localized Facebook variants may expose neither English composer copy
+     * nor an accessible Photo/video label. If exactly one visible dialog has
+     * a supported editor, it is still an unambiguous active composer.
+     */
+    const editorDialogs =
+      visibleDialogs.filter({
+        has: editor,
+      });
+    const editorDialogCount =
+      await editorDialogs
         .count()
         .catch(() => 0);
 
-    if (
-      dialogCount > 0 &&
-      await visible(dialog)
-    ) {
-      return dialog;
+    if (editorDialogCount === 1) {
+      const dialog =
+        editorDialogs.first();
+
+      if (await visible(dialog)) {
+        return dialog;
+      }
     }
 
     await page.waitForTimeout(250);
