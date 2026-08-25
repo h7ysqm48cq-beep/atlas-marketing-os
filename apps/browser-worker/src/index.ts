@@ -25,6 +25,7 @@ import {
 } from "./browser-core/dialog-engine.js";
 import {
   countFacebookComposerImagePreviews,
+  FacebookComposerImageUploadError,
   findFacebookCreatePostDialog,
   fillFacebookComposerCaption,
   resetFacebookComposer,
@@ -4559,12 +4560,54 @@ app.post(
           visibleComposerDialogs,
         );
 
-        const imageUpload =
-          await uploadFacebookComposerImages(
-            page,
-            dialog,
-            imagePaths,
+        let imageUpload;
+
+        try {
+          imageUpload =
+            await uploadFacebookComposerImages(
+              page,
+              dialog,
+              imagePaths,
+            );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : String(error);
+          const controlDiagnostics =
+            error instanceof
+            FacebookComposerImageUploadError
+              ? error.diagnostics
+              : null;
+
+          completeTraceStep({
+            stepKey: "UPLOAD_IMAGE",
+            stepName: "Upload post image",
+            stepOrder: 6,
+            startedAtMs: uploadImageStartedAt,
+            status: "FAILED",
+            metadata: {
+              imageAttached: false,
+              expectedMediaCount:
+                imagePaths.length,
+              attachedMediaCount: 0,
+              baselineMediaCount,
+              imagePaths,
+              controlDiagnostics,
+            },
+            errorMessage,
+          });
+
+          console.error(
+            "[facebook/image-upload-control-failure]",
+            {
+              errorMessage,
+              controlDiagnostics,
+            },
           );
+
+          throw error;
+        }
 
         const imageDialogHandling = await handleFacebookOnboarding(page);
 

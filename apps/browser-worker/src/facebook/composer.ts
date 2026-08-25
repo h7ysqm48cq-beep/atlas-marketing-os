@@ -19,7 +19,314 @@ export type FacebookComposerImageUploadResult = {
   photoButtonClicked: boolean;
   inputAccept: string | null;
   multiple: boolean | null;
+  controlDiagnostics:
+    FacebookComposerMediaControlDiagnostics;
 };
+
+export type FacebookComposerMediaControlCandidate = {
+  depth: number;
+  index: number;
+  tagName: string;
+  role: string | null;
+  ariaLabel: string | null;
+  text: string;
+  tabIndex: number;
+  disabled: boolean;
+  visible: boolean;
+  sameRow: boolean;
+  rightOfAnchor: boolean;
+  rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null;
+};
+
+export type FacebookComposerMediaControlDiagnostics = {
+  anchorFound: boolean;
+  anchorText: string | null;
+  strategy:
+    | "NAMED_CONTROL"
+    | "ADD_TO_YOUR_POST_ROW"
+    | null;
+  candidates:
+    FacebookComposerMediaControlCandidate[];
+  selected:
+    FacebookComposerMediaControlCandidate | null;
+};
+
+export class FacebookComposerImageUploadError
+  extends Error {
+  readonly diagnostics:
+    FacebookComposerMediaControlDiagnostics;
+
+  constructor(
+    message: string,
+    diagnostics:
+      FacebookComposerMediaControlDiagnostics,
+  ) {
+    super(message);
+    this.name =
+      "FacebookComposerImageUploadError";
+    this.diagnostics = diagnostics;
+  }
+}
+
+const MEDIA_CONTROL_MARKER =
+  "data-atlas-facebook-media-control";
+
+async function locateAddToYourPostMediaControl(
+  dialog: Locator,
+): Promise<{
+  control: Locator | null;
+  diagnostics:
+    FacebookComposerMediaControlDiagnostics;
+}> {
+  const diagnostics =
+    await dialog
+      .evaluate((root, marker) => {
+        const normalize = (
+          value: string | null,
+        ) =>
+          (value || "")
+            .replace(/\s+/g, " ")
+            .trim();
+        const rootElement =
+          root as HTMLElement;
+
+        rootElement
+          .querySelectorAll(
+            `[${marker}]`,
+          )
+          .forEach((element) =>
+            element.removeAttribute(
+              marker,
+            ),
+          );
+
+        const elements = Array.from(
+          rootElement.querySelectorAll(
+            "*",
+          ),
+        ) as HTMLElement[];
+        const anchors = elements
+          .filter((element) =>
+            normalize(
+              element.textContent,
+            ).toLowerCase() ===
+            "add to your post",
+          )
+          .filter((element) => {
+            const style =
+              window.getComputedStyle(
+                element,
+              );
+            const rect =
+              element.getBoundingClientRect();
+
+            return (
+              style.display !== "none" &&
+              style.visibility !==
+                "hidden" &&
+              Number(style.opacity) > 0 &&
+              rect.width > 0 &&
+              rect.height > 0
+            );
+          })
+          .sort((left, right) =>
+            left.children.length -
+            right.children.length,
+          );
+        const anchor = anchors[0];
+        const candidates:
+          FacebookComposerMediaControlCandidate[] =
+          [];
+
+        if (!anchor) {
+          return {
+            anchorFound: false,
+            anchorText: null,
+            strategy: null,
+            candidates,
+            selected: null,
+          };
+        }
+
+        const anchorRect =
+          anchor.getBoundingClientRect();
+        let container:
+          HTMLElement | null =
+          anchor.parentElement;
+
+        for (
+          let depth = 0;
+          container &&
+          rootElement.contains(container) &&
+          depth < 7;
+          depth += 1
+        ) {
+          const controls = Array.from(
+            container.querySelectorAll(
+              [
+                "button",
+                '[role="button"]',
+                '[tabindex]:not([tabindex="-1"])',
+              ].join(","),
+            ),
+          ) as HTMLElement[];
+          const depthCandidates =
+            controls.map(
+              (element, index) => {
+                const style =
+                  window.getComputedStyle(
+                    element,
+                  );
+                const rect =
+                  element.getBoundingClientRect();
+                const disabled =
+                  (element as HTMLButtonElement)
+                    .disabled === true ||
+                  element.getAttribute(
+                    "aria-disabled",
+                  ) === "true";
+                const visible =
+                  style.display !== "none" &&
+                  style.visibility !==
+                    "hidden" &&
+                  Number(style.opacity) > 0 &&
+                  rect.width >= 16 &&
+                  rect.height >= 16;
+                const centerY =
+                  rect.top +
+                  rect.height / 2;
+                const sameRow =
+                  centerY >=
+                    anchorRect.top - 20 &&
+                  centerY <=
+                    anchorRect.bottom + 20;
+                const rightOfAnchor =
+                  rect.left >=
+                  anchorRect.right - 8;
+
+                return {
+                  depth,
+                  index,
+                  tagName:
+                    element.tagName,
+                  role:
+                    element.getAttribute(
+                      "role",
+                    ),
+                  ariaLabel:
+                    element.getAttribute(
+                      "aria-label",
+                    ),
+                  text: normalize(
+                    element.textContent,
+                  ).slice(0, 160),
+                  tabIndex:
+                    element.tabIndex,
+                  disabled,
+                  visible,
+                  sameRow,
+                  rightOfAnchor,
+                  rect: {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                  },
+                  element,
+                };
+              },
+            );
+
+          candidates.push(
+            ...depthCandidates.map(
+              ({ element: _element, ...item }) =>
+                item,
+            ),
+          );
+
+          const selected =
+            depthCandidates
+              .filter((candidate) =>
+                candidate.visible &&
+                !candidate.disabled &&
+                candidate.sameRow &&
+                candidate.rightOfAnchor &&
+                !candidate.element.contains(
+                  anchor,
+                ) &&
+                !anchor.contains(
+                  candidate.element,
+                ),
+              )
+              .sort((left, right) =>
+                (left.rect?.x || 0) -
+                (right.rect?.x || 0),
+              )[0];
+
+          if (selected) {
+            selected.element.setAttribute(
+              marker,
+              "selected",
+            );
+            const {
+              element: _element,
+              ...selectedCandidate
+            } = selected;
+
+            return {
+              anchorFound: true,
+              anchorText: normalize(
+                anchor.textContent,
+              ),
+              strategy:
+                "ADD_TO_YOUR_POST_ROW" as const,
+              candidates,
+              selected:
+                selectedCandidate,
+            };
+          }
+
+          if (container === rootElement) {
+            break;
+          }
+
+          container =
+            container.parentElement;
+        }
+
+        return {
+          anchorFound: true,
+          anchorText: normalize(
+            anchor.textContent,
+          ),
+          strategy: null,
+          candidates,
+          selected: null,
+        };
+      }, MEDIA_CONTROL_MARKER)
+      .catch(() => ({
+        anchorFound: false,
+        anchorText: null,
+        strategy: null,
+        candidates: [],
+        selected: null,
+      } as FacebookComposerMediaControlDiagnostics));
+  const control = diagnostics.selected
+    ? dialog.locator(
+        `[${MEDIA_CONTROL_MARKER}="selected"]`,
+      )
+    : null;
+
+  return {
+    control,
+    diagnostics,
+  };
+}
 
 function normalizeText(
   value: string | null | undefined,
@@ -85,7 +392,7 @@ export async function uploadFacebookComposerImages(
     );
   }
 
-  const photoButtonCandidates = [
+  const namedPhotoButtonCandidates = [
     dialog.getByRole(
       "button",
       {
@@ -105,7 +412,25 @@ export async function uploadFacebookComposerImages(
     ),
   ];
 
+  const rowControl =
+    await locateAddToYourPostMediaControl(
+      dialog,
+    );
+  const controlDiagnostics =
+    rowControl.diagnostics;
+
+  const photoButtonCandidates = [
+    ...(rowControl.control
+      ? [rowControl.control]
+      : []),
+    ...namedPhotoButtonCandidates,
+  ];
+
   let photoButtonClicked = false;
+  let clickedControlStrategy:
+    | "NAMED_CONTROL"
+    | "ADD_TO_YOUR_POST_ROW"
+    | null = null;
 
   for (
     const candidate
@@ -154,6 +479,11 @@ export async function uploadFacebookComposerImages(
       }
 
       photoButtonClicked = true;
+      clickedControlStrategy =
+        rowControl.control &&
+        candidate === rowControl.control
+          ? "ADD_TO_YOUR_POST_ROW"
+          : "NAMED_CONTROL";
 
       const chooser =
         await chooserPromise;
@@ -186,12 +516,13 @@ export async function uploadFacebookComposerImages(
         chooserFileCount !==
         imagePaths.length
       ) {
-        throw new Error(
+        throw new FacebookComposerImageUploadError(
           [
             "Facebook file chooser did not retain all selected images.",
             `Expected ${imagePaths.length},`,
             `input contains ${chooserFileCount}.`,
           ].join(" "),
+          controlDiagnostics,
         );
       }
 
@@ -209,6 +540,11 @@ export async function uploadFacebookComposerImages(
             .catch(() => null),
         multiple:
           chooser.isMultiple(),
+        controlDiagnostics: {
+          ...controlDiagnostics,
+          strategy:
+            clickedControlStrategy,
+        },
       };
     }
 
@@ -272,12 +608,13 @@ export async function uploadFacebookComposerImages(
       retainedFileCount !==
       imagePaths.length
     ) {
-      throw new Error(
+      throw new FacebookComposerImageUploadError(
         [
           "Facebook composer file input did not retain all selected images.",
           `Expected ${imagePaths.length},`,
           `input contains ${retainedFileCount}.`,
         ].join(" "),
+        controlDiagnostics,
       );
     }
 
@@ -298,13 +635,20 @@ export async function uploadFacebookComposerImages(
             value !== null,
           )
           .catch(() => null),
+      controlDiagnostics,
     };
   }
 
-  throw new Error(
+  console.error(
+    "[facebook/image-upload-control-diagnostics]",
+    controlDiagnostics,
+  );
+
+  throw new FacebookComposerImageUploadError(
     photoButtonClicked
       ? "Facebook Photo/video did not open a usable composer image input."
       : "Facebook Photo/video control was not found in the active composer.",
+    controlDiagnostics,
   );
 }
 

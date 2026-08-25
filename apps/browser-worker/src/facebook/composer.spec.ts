@@ -10,6 +10,7 @@ import {
   normalizeFacebookComposerImagePreviewSource,
   uploadFacebookComposerImages,
   type FacebookComposerImagePreviewCandidate,
+  type FacebookComposerMediaControlDiagnostics,
 } from "./composer.js";
 
 const createCandidate = (
@@ -184,7 +185,18 @@ const createMockLocator = (
 const createUploadDialog = (input: {
   photoButton: Locator;
   fileInputs?: Locator;
+  rowControl?: Locator;
+  rowDiagnostics?:
+    FacebookComposerMediaControlDiagnostics;
 }) => ({
+  evaluate: async () =>
+    input.rowDiagnostics || {
+      anchorFound: false,
+      anchorText: null,
+      strategy: null,
+      candidates: [],
+      selected: null,
+    },
   getByRole: () =>
     input.photoButton,
   locator: (selector: string) => {
@@ -200,11 +212,119 @@ const createUploadDialog = (input: {
       );
     }
 
+    if (
+      selector ===
+      '[data-atlas-facebook-media-control="selected"]'
+    ) {
+      return (
+        input.rowControl ||
+        createMockLocator({
+          count: 0,
+        })
+      );
+    }
+
     return createMockLocator({
       count: 0,
     });
   },
 }) as unknown as Locator;
+
+test("uses the first interactive media control on the Add to your post row", async () => {
+  const selectedPaths:
+    string[][] = [];
+  let rowControlClicks = 0;
+  const selectedCandidate = {
+    depth: 2,
+    index: 0,
+    tagName: "DIV",
+    role: "button",
+    ariaLabel: null,
+    text: "",
+    tabIndex: 0,
+    disabled: false,
+    visible: true,
+    sameRow: true,
+    rightOfAnchor: true,
+    rect: {
+      x: 410,
+      y: 620,
+      width: 36,
+      height: 36,
+    },
+  };
+  const chooserInput =
+    createMockLocator({
+      accept: "image/*",
+      retainedFileCount: 1,
+    });
+  const page = {
+    waitForEvent: async () => ({
+      setFiles: async (
+        imagePaths: string[],
+      ) => {
+        selectedPaths.push(
+          imagePaths,
+        );
+      },
+      element: () =>
+        chooserInput,
+      isMultiple: () =>
+        true,
+    }),
+  } as unknown as Page;
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      rowControl:
+        createMockLocator({
+          onClick: () => {
+            rowControlClicks += 1;
+          },
+        }),
+      rowDiagnostics: {
+        anchorFound: true,
+        anchorText:
+          "Add to your post",
+        strategy:
+          "ADD_TO_YOUR_POST_ROW",
+        candidates: [
+          selectedCandidate,
+        ],
+        selected:
+          selectedCandidate,
+      },
+    });
+
+  const result =
+    await uploadFacebookComposerImages(
+      page,
+      dialog,
+      ["/tmp/one.jpg"],
+    );
+
+  assert.equal(
+    rowControlClicks,
+    1,
+  );
+  assert.equal(
+    result.controlDiagnostics
+      .strategy,
+    "ADD_TO_YOUR_POST_ROW",
+  );
+  assert.deepEqual(
+    result.controlDiagnostics
+      .selected,
+    selectedCandidate,
+  );
+  assert.deepEqual(
+    selectedPaths,
+    [["/tmp/one.jpg"]],
+  );
+});
 
 test("prefers the Photo/video file chooser and verifies the chooser input", async () => {
   const selectedPaths:
