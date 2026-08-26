@@ -8,6 +8,25 @@ export type FacebookPublishedPostReference = {
   matchedBy: string;
 };
 
+export function resolveFacebookPublishVerificationStatus(input: {
+  errorSignal: boolean;
+  successSignal: boolean;
+  composerStillVisible: boolean;
+  postReferenceFound: boolean;
+}) {
+  if (input.errorSignal) {
+    return "FAILED";
+  }
+
+  if (input.successSignal || input.postReferenceFound) {
+    return "CONFIRMED";
+  }
+
+  return input.composerStillVisible
+    ? "UNCONFIRMED"
+    : "COMPOSER_CLOSED";
+}
+
 function normalizeText(value: string | null | undefined) {
   return (value || "").replace(/\s+/g, " ").trim();
 }

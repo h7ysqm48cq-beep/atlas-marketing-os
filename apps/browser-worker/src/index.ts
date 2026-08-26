@@ -35,6 +35,7 @@ import {
 } from "./facebook/composer.js";
 import {
   findFacebookPublishedPostReference,
+  resolveFacebookPublishVerificationStatus,
 } from "./facebook/published-post.js";
 import {
   ensureFacebookPageIdentitySwitch,
@@ -2583,14 +2584,29 @@ app.post(
         );
       }
 
+      let postReference =
+        null;
+
+      if (
+        !errorSignal &&
+        !successSignal &&
+        composerStillVisible
+      ) {
+        postReference =
+          await findFacebookPublishedPostReference(
+            page,
+            rawCaption,
+          );
+      }
+
       const verificationStatus =
-        errorSignal
-          ? "FAILED"
-          : successSignal
-            ? "CONFIRMED"
-            : !composerStillVisible
-              ? "COMPOSER_CLOSED"
-              : "UNCONFIRMED";
+        resolveFacebookPublishVerificationStatus({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+        });
 
       completeTraceStep({
         stepKey:
@@ -2614,6 +2630,8 @@ app.post(
             !composerStillVisible,
           successSignal,
           errorSignal,
+          postReferenceFound:
+            Boolean(postReference),
           alertTexts,
           timeoutMs:
             verificationTimeoutMs,
@@ -2630,16 +2648,19 @@ app.post(
       const resolvePostReferenceStartedAt =
         Date.now();
 
-      const postReference =
-        verificationStatus ===
-            "CONFIRMED" ||
+      postReference =
+        postReference ??
+        (
           verificationStatus ===
-            "COMPOSER_CLOSED"
-          ? await findFacebookPublishedPostReference(
-              page,
-              rawCaption,
-            )
-          : null;
+              "CONFIRMED" ||
+            verificationStatus ===
+              "COMPOSER_CLOSED"
+            ? await findFacebookPublishedPostReference(
+                page,
+                rawCaption,
+              )
+            : null
+        );
 
       completeTraceStep({
         stepKey:

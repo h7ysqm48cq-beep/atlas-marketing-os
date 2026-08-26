@@ -4,6 +4,7 @@ import {
   buildFacebookPublishedPostReference,
   createFacebookCaptionFingerprint,
   extractFacebookPageId,
+  resolveFacebookPublishVerificationStatus,
 } from "./published-post.js";
 
 test("uses the first content line as the caption fingerprint", () => {
@@ -51,5 +52,41 @@ test("supports text-only post permalinks", () => {
       ["/61592884960509/posts/122112144501429498/"],
     )?.externalPostId,
     "61592884960509_122112144501429498",
+  );
+});
+
+test("confirms a publish when the new post reference is present", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    "CONFIRMED",
+  );
+});
+
+test("keeps an unresolved visible composer unconfirmed", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: false,
+    }),
+    "UNCONFIRMED",
+  );
+});
+
+test("does not let a post reference override an explicit publish error", () => {
+  assert.equal(
+    resolveFacebookPublishVerificationStatus({
+      errorSignal: true,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    "FAILED",
   );
 });
