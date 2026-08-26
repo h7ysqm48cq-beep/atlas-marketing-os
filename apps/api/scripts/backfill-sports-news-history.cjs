@@ -43,11 +43,9 @@ function groupPosts(posts) {
   const groups = new Map();
 
   for (const post of posts.filter(isSportsNewsPost)) {
-    const key = [
-      post.brandId,
-      post.title || "Sports News",
-      new Date(post.scheduledAt).toISOString(),
-    ].join("|");
+    const title = post.title && post.title.trim();
+    const fallbackDate = new Date(post.scheduledAt).toISOString().slice(0, 10);
+    const key = [post.brandId, title || `Sports News ${fallbackDate}`].join("|");
     const current = groups.get(key) || [];
     current.push(post);
     groups.set(key, current);
@@ -72,6 +70,8 @@ async function main() {
       title: true,
       content: true,
       scheduledAt: true,
+      status: true,
+      publishedAt: true,
       brandRenderingSettings: true,
     },
   });
@@ -87,6 +87,7 @@ async function main() {
         scheduledAt: group[0].scheduledAt,
         postIds: group.map((post) => post.id),
         platforms: [...new Set(group.map((post) => post.platform))],
+        statuses: group.map((post) => `${post.platform}=${post.status}`),
       }),
     );
   }
@@ -115,6 +116,8 @@ async function main() {
           title: true,
           content: true,
           scheduledAt: true,
+          status: true,
+          publishedAt: true,
         },
       });
 
@@ -123,6 +126,17 @@ async function main() {
       }
 
       const platforms = [...new Set(currentPosts.map((post) => post.platform))];
+      const activePosts = currentPosts.filter(
+        (post) => post.status !== "CANCELLED",
+      );
+      const allPublished =
+        activePosts.length > 0 &&
+        activePosts.every((post) => post.status === "PUBLISHED");
+      const publishedAt = allPublished
+        ? activePosts
+            .map((post) => post.publishedAt || post.scheduledAt)
+            .sort((left, right) => right.getTime() - left.getTime())[0]
+        : null;
       const history = await transaction.generationHistory.create({
         data: {
           brandId: currentPosts[0].brandId,
@@ -138,10 +152,16 @@ async function main() {
             : "",
           reels: "",
           imagePrompt: "",
+          status: allPublished ? "PUBLISHED" : "DRAFT",
+          publishedAt,
           analysis: {
             source: "SPORTS_NEWS_HISTORY_BACKFILL",
             scheduledPostIds: currentPosts.map((post) => post.id),
             scheduledAt: currentPosts[0].scheduledAt.toISOString(),
+            statuses: currentPosts.map((post) => ({
+              platform: post.platform,
+              status: post.status,
+            })),
           },
         },
       });
