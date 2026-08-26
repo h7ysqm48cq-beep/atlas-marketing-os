@@ -298,4 +298,59 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
       'Facebook Cloud Browser login is ready.',
     );
   });
+
+  it('ignores hidden login inputs on a live logged-in Facebook page', async () => {
+    const {
+      browserAccounts,
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+      page: {
+        url: 'https://www.facebook.com/pages/?category=your_pages',
+        textPreview:
+          'Pages that Dania Dani manages MGM满贯门SportsNews 专治你没瓜看 M Story Shiba MGM House',
+        inputs: [],
+      },
+      frameInspections: [
+        {
+          inputs: [
+            {
+              type: 'password',
+              visible: false,
+            },
+          ],
+        },
+      ],
+    });
+
+    await expect(
+      service.preflightFacebookLoginForChannel(
+        'channel-1',
+      ),
+    ).resolves.toMatchObject({
+      ready: true,
+      loginRequired: false,
+    });
+
+    expect(
+      browserAccounts.markLoginRequired,
+    ).not.toHaveBeenCalled();
+    expect(
+      browserAccounts.markLoginVerified,
+    ).toHaveBeenCalledWith(
+      'browser-account-1',
+      'Facebook Cloud Browser login is ready.',
+    );
+  });
 });

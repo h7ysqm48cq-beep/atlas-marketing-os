@@ -24,6 +24,7 @@ type WorkerInspection = WorkerResponse & {
       type?: string | null;
       name?: string | null;
       autocomplete?: string | null;
+      visible?: boolean;
     }>;
   };
   frameInspections?: Array<{
@@ -31,6 +32,7 @@ type WorkerInspection = WorkerResponse & {
       type?: string | null;
       name?: string | null;
       autocomplete?: string | null;
+      visible?: boolean;
     }>;
   }>;
 };
@@ -431,6 +433,7 @@ export class BrowserRuntimeBridgeService {
     const hasPasswordInput =
       allInputs.some(
         (input) =>
+          input.visible !== false &&
           String(
             input.type ?? '',
           ).toLowerCase() ===
@@ -439,6 +442,10 @@ export class BrowserRuntimeBridgeService {
     const hasEmailInput =
       allInputs.some(
         (input) => {
+          if (input.visible === false) {
+            return false;
+          }
+
           const name = String(
             input.name ?? '',
           ).toLowerCase();
