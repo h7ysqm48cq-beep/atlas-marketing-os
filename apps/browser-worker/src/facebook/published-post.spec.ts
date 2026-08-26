@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import * as publishedPost from "./published-post.js";
 import {
   buildFacebookPublishedPostReference,
   createFacebookCaptionFingerprint,
@@ -88,5 +89,29 @@ test("does not let a post reference override an explicit publish error", () => {
       postReferenceFound: true,
     }),
     "FAILED",
+  );
+});
+
+test("reports published when a real post reference confirms the publish", () => {
+  const resolveFacebookPublishedFlag =
+    (
+      publishedPost as typeof publishedPost & {
+        resolveFacebookPublishedFlag?: (input: {
+          errorSignal: boolean;
+          successSignal: boolean;
+          composerStillVisible: boolean;
+          postReferenceFound: boolean;
+        }) => boolean;
+      }
+    ).resolveFacebookPublishedFlag;
+
+  assert.equal(
+    resolveFacebookPublishedFlag?.({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    true,
   );
 });

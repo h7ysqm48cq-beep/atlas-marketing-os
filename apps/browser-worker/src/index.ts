@@ -35,6 +35,7 @@ import {
 } from "./facebook/composer.js";
 import {
   findFacebookPublishedPostReference,
+  resolveFacebookPublishedFlag,
   resolveFacebookPublishVerificationStatus,
 } from "./facebook/published-post.js";
 import {
@@ -2608,6 +2609,15 @@ app.post(
             Boolean(postReference),
         });
 
+      const published =
+        resolveFacebookPublishedFlag({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+        });
+
       completeTraceStep({
         stepKey:
           "WAIT_CONFIRMATION",
@@ -2748,12 +2758,7 @@ app.post(
             ? "FAILED"
             : "SUCCESS",
         metadata: {
-          published:
-            (
-              successSignal ||
-              !composerStillVisible
-            ) &&
-            !errorSignal,
+          published,
           verificationStatus,
           composerClosed:
             !composerStillVisible,
@@ -2775,16 +2780,7 @@ app.post(
           verificationStatus ===
             "COMPOSER_CLOSED",
         executionTrace,
-        published:
-          (
-            successSignal ||
-            (
-              !composerStillVisible &&
-              verificationStatus ===
-                "COMPOSER_CLOSED"
-            )
-          ) &&
-          !errorSignal,
+        published,
         browserProfileKey:
           session.browserProfileKey,
         postId:

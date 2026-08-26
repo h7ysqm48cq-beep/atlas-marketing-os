@@ -27,6 +27,19 @@ export function resolveFacebookPublishVerificationStatus(input: {
     : "COMPOSER_CLOSED";
 }
 
+export function resolveFacebookPublishedFlag(input: {
+  errorSignal: boolean;
+  successSignal: boolean;
+  composerStillVisible: boolean;
+  postReferenceFound: boolean;
+}) {
+  return (
+    input.successSignal ||
+    input.postReferenceFound ||
+    !input.composerStillVisible
+  ) && !input.errorSignal;
+}
+
 function normalizeText(value: string | null | undefined) {
   return (value || "").replace(/\s+/g, " ").trim();
 }
