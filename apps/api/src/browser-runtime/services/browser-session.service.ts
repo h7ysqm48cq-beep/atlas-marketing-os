@@ -31,6 +31,7 @@ type WorkerInspection = {
       type?: string | null;
       name?: string | null;
       autocomplete?: string | null;
+      visible?: boolean;
     }>;
   };
   frameInspections?: Array<{
@@ -274,6 +275,10 @@ export class BrowserSessionService {
     const hasEmailInput =
       allInputs.some(
         (input: any) => {
+          if (input?.visible === false) {
+            return false;
+          }
+
           const name =
             String(
               input?.name || '',
@@ -308,6 +313,7 @@ export class BrowserSessionService {
     const hasPasswordInput =
       allInputs.some(
         (input: any) =>
+          input?.visible !== false &&
           String(
             input?.type || '',
           ).toLowerCase() ===
