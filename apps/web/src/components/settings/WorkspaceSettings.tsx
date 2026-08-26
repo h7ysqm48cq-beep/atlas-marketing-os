@@ -615,7 +615,6 @@ export function WorkspaceSettings() {
   async function selectPublishingMethod(
     channel: Channel,
     publishingPreference:
-      | "AUTOMATIC"
       | "NATIVE_API"
       | "BROWSER_RUNTIME",
   ) {
@@ -807,11 +806,11 @@ export function WorkspaceSettings() {
     }
   }
 
-  async function disconnectChannel(
+  async function disconnectChannelApi(
     channel: Channel,
   ) {
     const confirmed = window.confirm(
-      `Disconnect ${channel.name}? Scheduled posts will remain, but publishing will stop until the Page is reconnected.`,
+      `Disconnect the Facebook API for ${channel.name}? Cloud Browser login and scheduled posts will remain unchanged.`,
     );
 
     if (!confirmed) {
@@ -819,14 +818,14 @@ export function WorkspaceSettings() {
     }
 
     setActiveChannelAction(
-      `${channel.id}:disconnect`,
+      `${channel.id}:disconnect-api`,
     );
     setMessage("");
     setError("");
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${channel.id}/disconnect`,
+        `${API_URL}/automation/channels/${channel.id}/api/disconnect`,
         {
           method: "POST",
         },
@@ -840,7 +839,7 @@ export function WorkspaceSettings() {
         throw new Error(
           "message" in body && body.message
             ? body.message
-            : "Unable to disconnect channel.",
+            : "Unable to disconnect Facebook API.",
         );
       }
 
@@ -856,13 +855,13 @@ export function WorkspaceSettings() {
       );
 
       setMessage(
-        `${channel.name} disconnected.`,
+        `${channel.name} Facebook API disconnected. Cloud Browser remains available.`,
       );
     } catch (channelError) {
       setError(
         channelError instanceof Error
           ? channelError.message
-          : "Unable to disconnect channel.",
+          : "Unable to disconnect Facebook API.",
       );
     } finally {
       setActiveChannelAction(null);
@@ -1543,42 +1542,39 @@ export function WorkspaceSettings() {
                       <span>Publishing method</span>
                       <select
                         value={
-                          channel.publishingPreference ||
-                          "AUTOMATIC"
+                          channel.publishingPreference ===
+                          "NATIVE_API"
+                            ? "NATIVE_API"
+                            : "BROWSER_RUNTIME"
                         }
                         disabled={channelBusy}
                         onChange={(event) =>
                           void selectPublishingMethod(
                             channel,
                             event.target.value as
-                              | "AUTOMATIC"
                               | "NATIVE_API"
                               | "BROWSER_RUNTIME",
                           )
                         }
                       >
-                        <option value="AUTOMATIC">
-                          Automatic fallback
-                        </option>
-                        <option
-                          value="NATIVE_API"
-                          disabled={!channel.hasAccessToken}
-                        >
-                          Facebook API
-                        </option>
                         <option
                           value="BROWSER_RUNTIME"
                           disabled={
                             !(channel.browserAccounts?.length || 0)
                           }
                         >
-                          Cloud Browser
+                          Cloud Browser (default)
+                        </option>
+                        <option
+                          value="NATIVE_API"
+                          disabled={!channel.hasAccessToken}
+                        >
+                          Facebook API (manual backup)
                         </option>
                       </select>
                       <small>
-                        Automatic uses Cloud Browser when connected,
-                        otherwise Facebook API. Select a fixed method to
-                        prevent automatic switching.
+                        Cloud Browser is always used by default. Facebook API
+                        runs only after you select it manually for this Page.
                       </small>
                     </label>
                   </section>
@@ -1865,18 +1861,20 @@ export function WorkspaceSettings() {
                         Reconnect
                       </button>
 
-                      {channel.status !==
-                      "DISCONNECTED" ? (
+                      {channel.hasAccessToken ? (
                         <button
                           type="button"
                           onClick={() =>
-                            void disconnectChannel(
+                            void disconnectChannelApi(
                               channel,
                             )
                           }
                           disabled={channelBusy}
                         >
-                          Disconnect
+                          {activeChannelAction ===
+                          `${channel.id}:disconnect-api`
+                            ? "Disconnecting API..."
+                            : "Disconnect API"}
                         </button>
                       ) : null}
                     </>

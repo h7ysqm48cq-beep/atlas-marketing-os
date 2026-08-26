@@ -757,9 +757,17 @@ export class BrowserAccountService {
             page.name?.trim() ||
             '';
 
+          const normalizedName =
+            name.toLowerCase();
+
           const url =
             page.url?.trim() ||
             null;
+
+          const composerUrl =
+            this.isFacebookComposerUrl(
+              url,
+            );
 
           const username =
             page.username?.trim() ||
@@ -781,11 +789,17 @@ export class BrowserAccountService {
           if (
             !pageId ||
             this.isReservedFacebookPath(pageId) ||
+            composerUrl ||
+            normalizedName ===
+              'create post' ||
+            normalizedName.startsWith(
+              'unread',
+            ) ||
             [
               'find friends',
               'meta business suite',
               'professional dashboard',
-            ].includes(name.toLowerCase())
+            ].includes(normalizedName)
           ) {
             return [];
           }
@@ -860,17 +874,90 @@ export class BrowserAccountService {
             let channelCreated =
               false;
 
-            let channel =
-              await transaction.socialChannel.findFirst({
+            const candidateChannels =
+              await transaction.socialChannel.findMany({
                 where: {
                   brandId:
                     requestedBrandId,
                   platform:
                     SocialPlatform.FACEBOOK,
-                  externalId:
-                    page.pageId,
+                  hiddenAt:
+                    null,
+                  OR: [
+                    {
+                      externalId:
+                        page.pageId,
+                    },
+                    ...(page.username
+                      ? [{
+                          username: {
+                            equals:
+                              page.username,
+                            mode:
+                              'insensitive' as const,
+                          },
+                        }]
+                      : []),
+                    {
+                      name: {
+                        equals:
+                          page.name,
+                        mode:
+                          'insensitive',
+                      },
+                    },
+                  ],
                 },
               });
+
+            const exactIdMatches =
+              candidateChannels.filter(
+                (candidate) =>
+                  candidate.externalId
+                    ?.trim() ===
+                  page.pageId,
+              );
+
+            const usernameMatches =
+              page.username
+                ? candidateChannels.filter(
+                    (candidate) =>
+                      candidate.username
+                        ?.trim()
+                        .toLowerCase() ===
+                      page.username
+                        ?.trim()
+                        .toLowerCase(),
+                  )
+                : [];
+
+            const nameMatches =
+              candidateChannels.filter(
+                (candidate) =>
+                  candidate.name
+                    .trim()
+                    .toLowerCase() ===
+                  page.name
+                    .trim()
+                    .toLowerCase(),
+              );
+
+            const matches =
+              exactIdMatches.length
+                ? exactIdMatches
+                : usernameMatches.length
+                  ? usernameMatches
+                  : nameMatches;
+
+            if (matches.length > 1) {
+              throw new BadRequestException(
+                `Facebook Page ${page.name} matches multiple existing channels. Hide or reconcile the duplicates before syncing again.`,
+              );
+            }
+
+            let channel =
+              matches[0] ||
+              null;
 
             if (channel) {
               reused += 1;
@@ -888,6 +975,8 @@ export class BrowserAccountService {
                     workspaceId,
                     status:
                       SocialChannelStatus.CONNECTED,
+                    publishingPreference:
+                      'BROWSER_RUNTIME',
                     lastConnectedAt:
                       new Date(),
                     lastError:
@@ -911,6 +1000,8 @@ export class BrowserAccountService {
                       page.username,
                     status:
                       SocialChannelStatus.CONNECTED,
+                    publishingPreference:
+                      'BROWSER_RUNTIME',
                     lastConnectedAt:
                       new Date(),
                     lastError:
@@ -1044,6 +1135,26 @@ export class BrowserAccountService {
       return candidate;
     } catch {
       return null;
+    }
+  }
+
+  private isFacebookComposerUrl(
+    value?: string | null,
+  ) {
+    if (!value) {
+      return false;
+    }
+
+    try {
+      const parsed =
+        new URL(value);
+
+      return parsed.searchParams
+        .get('modal')
+        ?.toLowerCase() ===
+        'composer';
+    } catch {
+      return false;
     }
   }
 

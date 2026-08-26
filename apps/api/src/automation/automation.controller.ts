@@ -157,8 +157,10 @@ export class AutomationController {
   }
 
   @Get('channels')
-  channels() {
-    return this.automationService.listChannels();
+  channels(@Query('includeHidden') includeHidden?: string) {
+    return this.automationService.listChannels(
+      includeHidden === 'true',
+    );
   }
 
   /*
@@ -845,6 +847,22 @@ export class AutomationController {
   @Post('channels/:id/disconnect')
   disconnectChannel(@Param('id') id: string) {
     return this.automationService.disconnectChannel(id);
+  }
+
+  @Post('channels/:id/api/disconnect')
+  disconnectChannelApi(@Param('id') id: string) {
+    return this.automationService.disconnectChannelApi(id);
+  }
+
+  @Post('facebook/api/disconnect-all')
+  disconnectAllFacebookApi(
+    @Body() body: {
+      confirmation?: string;
+    },
+  ) {
+    return this.automationService.disconnectAllFacebookApi(
+      body.confirmation || '',
+    );
   }
 
   @Delete('channels/:id')

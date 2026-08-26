@@ -312,7 +312,9 @@ model SocialChannel {
   lastError                   String?
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
-  publishingPreference        String                       @default("AUTOMATIC")
+  publishingPreference        String                       @default("BROWSER_RUNTIME")
+  hiddenAt                    DateTime?
+  hiddenReason                String?
   browserAccountLinks         BrowserAccountChannel[]
   browserActionHistory        BrowserActionHistory[]
   scheduledPosts              ScheduledPost[]
@@ -327,6 +329,7 @@ model SocialChannel {
   @@index([brandId])
   @@index([platform])
   @@index([status])
+  @@index([hiddenAt])
 }
 
 model SocialChannelRuntimeProfile {

@@ -62,6 +62,9 @@ export class PublisherService {
     const posts =
       await this.prisma.scheduledPost.findMany({
         where: {
+          channel: {
+            hiddenAt: null,
+          },
           ...(allowedChannelIds
             ? {
                 channelId: {
@@ -136,12 +139,18 @@ export class PublisherService {
         SocialPlatform.FACEBOOK
       ) {
         try {
-          const publishingPreference =
+          const configuredPublishingPreference =
             String(
               post.channel
                 .publishingPreference ||
               'AUTOMATIC',
             ).toUpperCase();
+
+          const publishingPreference =
+            configuredPublishingPreference ===
+            'NATIVE_API'
+              ? 'NATIVE_API'
+              : 'BROWSER_RUNTIME';
 
           const nativeApiOnly =
             publishingPreference ===
@@ -158,58 +167,53 @@ export class PublisherService {
                   },
                 );
           } else {
-            if (
-              publishingPreference ===
-                'BROWSER_RUNTIME'
-            ) {
-              const liveLogin =
-                await this.browserRuntime
-                  .preflightFacebookLoginForChannel(
-                    post.channel.id,
-                  );
-
-              if (!liveLogin.ready) {
-                blocked += 1;
-
-                const blockMessage =
-                  [
-                    liveLogin.message,
-                    `Channel: ${post.channel.name}.`,
-                    'Post remains queued until the Cloud Browser login is ready.',
-                  ]
-                    .join(' ')
-                    .slice(0, 1000);
-
-                this.logger.warn(
-                  [
-                    'Facebook live login preflight blocked publish.',
-                    `Post: ${post.id}.`,
-                    `Channel: ${post.channel.id}.`,
-                    `Profile: ${liveLogin.browserProfileKey}.`,
-                    blockMessage,
-                  ].join(' '),
+            const liveLogin =
+              await this.browserRuntime
+                .preflightFacebookLoginForChannel(
+                  post.channel.id,
                 );
 
-                await this.prisma
-                  .scheduledPost
-                  .updateMany({
-                    where: {
-                      id: post.id,
-                      status: {
-                        in: [
-                          ScheduledPostStatus.SCHEDULED,
-                          ScheduledPostStatus.QUEUED,
-                        ],
-                      },
-                    },
-                    data: {
-                      lastError:
-                        blockMessage,
-                    },
-                  });
+            if (!liveLogin.ready) {
+              blocked += 1;
 
-                continue;
-              }
+              const blockMessage =
+                [
+                  liveLogin.message,
+                  `Channel: ${post.channel.name}.`,
+                  'Post remains queued until the Cloud Browser login is ready.',
+                ]
+                  .join(' ')
+                  .slice(0, 1000);
+
+              this.logger.warn(
+                [
+                  'Facebook live login preflight blocked publish.',
+                  `Post: ${post.id}.`,
+                  `Channel: ${post.channel.id}.`,
+                  `Profile: ${liveLogin.browserProfileKey}.`,
+                  blockMessage,
+                ].join(' '),
+              );
+
+              await this.prisma
+                .scheduledPost
+                .updateMany({
+                  where: {
+                    id: post.id,
+                    status: {
+                      in: [
+                        ScheduledPostStatus.SCHEDULED,
+                        ScheduledPostStatus.QUEUED,
+                      ],
+                    },
+                  },
+                  data: {
+                    lastError:
+                      blockMessage,
+                  },
+                });
+
+              continue;
             }
 
             facebookSafetyGate =
@@ -226,25 +230,7 @@ export class PublisherService {
               !facebookSafetyGate
                 .selected;
 
-            const canUseNativeApi =
-              Boolean(
-                post.channel
-                  .accessTokenEncrypted,
-              );
-
-            if (
-              (
-                publishingPreference ===
-                  'BROWSER_RUNTIME' &&
-                browserUnavailable
-              ) ||
-              (
-                publishingPreference ===
-                  'AUTOMATIC' &&
-                browserUnavailable &&
-                !canUseNativeApi
-              )
-            ) {
+            if (browserUnavailable) {
             blocked += 1;
 
             const candidateSummary =
@@ -309,22 +295,10 @@ export class PublisherService {
               continue;
             }
 
-            const useAutomaticNativeFallback =
-              publishingPreference ===
-                'AUTOMATIC' &&
-              browserUnavailable &&
-              canUseNativeApi;
-
             facebookPublishNetwork =
               await this.runtimeProfiles
                 .getPublishNetwork(
                   post.channel.id,
-                  useAutomaticNativeFallback
-                    ? {
-                        nativeApiOnly:
-                          true,
-                      }
-                    : undefined,
                 );
 
             if (

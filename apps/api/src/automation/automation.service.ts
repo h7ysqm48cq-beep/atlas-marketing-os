@@ -58,6 +58,9 @@ export class AutomationService {
     const [channels, postsByStatus, upcoming, recentAttempts] =
       await Promise.all([
         this.prisma.socialChannel.findMany({
+          where: {
+            hiddenAt: null,
+          },
           orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
           include: {
             brand: {
@@ -225,8 +228,13 @@ export class AutomationService {
     };
   }
 
-  async listChannels() {
+  async listChannels(includeHidden = false) {
     const channels = await this.prisma.socialChannel.findMany({
+      where: includeHidden
+        ? undefined
+        : {
+            hiddenAt: null,
+          },
       orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
       include: {
         brand: {
@@ -353,6 +361,10 @@ export class AutomationService {
         lastConnectedAt:
           accessToken && input.externalId?.trim() ? new Date() : null,
         lastError: null,
+        publishingPreference:
+          input.platform === SocialPlatform.FACEBOOK
+            ? 'BROWSER_RUNTIME'
+            : undefined,
       },
     });
 
@@ -562,6 +574,144 @@ export class AutomationService {
     });
 
     return this.sanitizeChannel(channel);
+  }
+
+  async disconnectChannelApi(id: string) {
+    const existing =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          browserAccountLinks: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                createdAt: 'asc',
+              },
+            ],
+            include: {
+              browserAccount: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  browserProfileKey: true,
+                  browserProfileName: true,
+                  loginStatus: true,
+                  cookieStatus: true,
+                  proxyType: true,
+                  proxyCountry: true,
+                  lastKnownIp: true,
+                  lastLoginAt: true,
+                  lastVerifiedAt: true,
+                  lastHeartbeatAt: true,
+                  lastLoginError: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    if (!existing) {
+      throw new NotFoundException('Social channel not found.');
+    }
+
+    if (existing.platform !== SocialPlatform.FACEBOOK) {
+      throw new BadRequestException(
+        'Only Facebook channels have a Facebook API connection.',
+      );
+    }
+
+    const hasBrowserAccount =
+      existing.browserAccountLinks.length > 0;
+
+    const channel =
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          accessTokenEncrypted: null,
+          tokenExpiresAt: null,
+          publishingPreference: 'BROWSER_RUNTIME',
+          status: hasBrowserAccount
+            ? SocialChannelStatus.CONNECTED
+            : SocialChannelStatus.DISCONNECTED,
+          lastError: null,
+        },
+      });
+
+    return this.sanitizeChannel({
+      ...channel,
+      browserAccountLinks:
+        existing.browserAccountLinks,
+    });
+  }
+
+  async disconnectAllFacebookApi(
+    confirmation: string,
+  ) {
+    if (
+      confirmation !==
+      'DISCONNECT_ALL_FACEBOOK_API'
+    ) {
+      throw new BadRequestException(
+        'Explicit confirmation "DISCONNECT_ALL_FACEBOOK_API" is required.',
+      );
+    }
+
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const channels =
+          await transaction.socialChannel.findMany({
+            where: {
+              platform: SocialPlatform.FACEBOOK,
+              accessTokenEncrypted: {
+                not: null,
+              },
+            },
+            select: {
+              id: true,
+              browserAccountLinks: {
+                select: {
+                  browserAccountId: true,
+                },
+              },
+            },
+          });
+
+        const updated =
+          await Promise.all(
+            channels.map((channel) =>
+              transaction.socialChannel.update({
+              where: {
+                id: channel.id,
+              },
+              data: {
+                accessTokenEncrypted: null,
+                tokenExpiresAt: null,
+                publishingPreference: 'BROWSER_RUNTIME',
+                status:
+                  channel.browserAccountLinks.length > 0
+                    ? SocialChannelStatus.CONNECTED
+                    : SocialChannelStatus.DISCONNECTED,
+                lastError: null,
+              },
+              }),
+            ),
+          );
+
+        return {
+          disconnected: updated.length,
+          channels: updated.map((channel) =>
+            this.sanitizeChannel(channel),
+          ),
+        };
+      },
+    );
   }
 
   async removeChannel(id: string) {

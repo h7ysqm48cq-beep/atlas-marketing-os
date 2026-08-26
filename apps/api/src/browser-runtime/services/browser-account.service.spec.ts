@@ -1,4 +1,8 @@
-import { BrowserAccountEventStatus } from '../../generated/prisma/client';
+import {
+  BrowserAccountEventStatus,
+  SocialChannelStatus,
+  SocialPlatform,
+} from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { SocialTokenCryptoService } from '../../common/social-token-crypto.service';
 import { BrowserAccountService } from './browser-account.service';
@@ -135,5 +139,181 @@ describe('BrowserAccountService login state', () => {
 
     expect(eventInput?.data.eventType).toBe('LOGIN_VERIFIED');
     expect(eventInput?.data.status).toBe(BrowserAccountEventStatus.SUCCESS);
+  });
+});
+
+describe('BrowserAccountService Facebook Page sync', () => {
+  const createService = (
+    existingChannels: Array<{
+      id: string;
+      name: string;
+      externalId: string | null;
+      username: string | null;
+      accessTokenEncrypted: string | null;
+    }> = [],
+  ) => {
+    const account = {
+      id: 'account-1',
+      platform: SocialPlatform.FACEBOOK,
+      brandId: 'brand-1',
+      workspaceId: 'workspace-1',
+    };
+
+    const fullChannels = existingChannels.map((channel) => ({
+      ...channel,
+      workspaceId: 'workspace-1',
+      brandId: 'brand-1',
+      platform: SocialPlatform.FACEBOOK,
+      status: SocialChannelStatus.CONNECTED,
+      publishingPreference: 'AUTOMATIC',
+      tokenExpiresAt: null,
+      lastConnectedAt: null,
+      lastError: null,
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+    }));
+
+    const transaction = {
+      socialChannel: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue(fullChannels),
+        create: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            id: 'created-channel',
+            accessTokenEncrypted: null,
+            ...data,
+          }),
+        ),
+        update: jest.fn().mockImplementation(({ where, data }) => {
+          const channel = fullChannels.find((item) => item.id === where.id);
+
+          return Promise.resolve({
+            ...channel,
+            ...data,
+          });
+        }),
+      },
+      browserAccountChannel: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      browserAccount: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+
+    const prisma = {
+      browserAccount: {
+        findUnique: jest.fn().mockResolvedValue(account),
+      },
+      brand: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'brand-1',
+          workspaceId: 'workspace-1',
+        }),
+      },
+      $transaction: jest.fn(
+        async (callback: (input: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    };
+
+    return {
+      service: new BrowserAccountService(
+        prisma as unknown as PrismaService,
+        {} as SocialTokenCryptoService,
+      ),
+      transaction,
+    };
+  };
+
+  it('rejects composer and unread anchors even when they contain numeric IDs', async () => {
+    const { service, transaction } = createService();
+
+    await expect(
+      service.syncFacebookPages('account-1', {
+        pages: [
+          {
+            pageId: '1281719171682210',
+            name: 'Create Post',
+            url: 'https://www.facebook.com/profile.php?id=1281719171682210&modal=composer',
+          },
+          {
+            pageId: '1292937667230187',
+            name: 'UnreadWelcome to 大马吹水总会',
+            url: 'https://www.facebook.com/profile.php?id=1292937667230187',
+          },
+        ],
+      }),
+    ).rejects.toThrow('usable ID or username');
+
+    expect(transaction.socialChannel.create).not.toHaveBeenCalled();
+  });
+
+  it('reuses one same-name channel without preferring or overwriting its API identity', async () => {
+    const { service, transaction } = createService([
+      {
+        id: 'existing-channel',
+        name: '专治你没瓜看',
+        externalId: 'graph-page-id',
+        username: null,
+        accessTokenEncrypted: 'encrypted-api-token',
+      },
+    ]);
+
+    await service.syncFacebookPages('account-1', {
+      pages: [
+        {
+          pageId: 'browser-page-id',
+          name: '专治你没瓜看',
+          url: 'https://www.facebook.com/browser-page-id',
+          username: 'browser-page-id',
+        },
+      ],
+    });
+
+    expect(transaction.socialChannel.create).not.toHaveBeenCalled();
+    expect(transaction.socialChannel.update).toHaveBeenCalledWith({
+      where: {
+        id: 'existing-channel',
+      },
+      data: expect.not.objectContaining({
+        externalId: expect.anything(),
+        accessTokenEncrypted: expect.anything(),
+      }),
+    });
+  });
+
+  it('stops sync instead of creating a third channel when a same-name match is ambiguous', async () => {
+    const { service, transaction } = createService([
+      {
+        id: 'channel-1',
+        name: 'Duplicate Page',
+        externalId: 'graph-id-1',
+        username: null,
+        accessTokenEncrypted: null,
+      },
+      {
+        id: 'channel-2',
+        name: 'Duplicate Page',
+        externalId: 'graph-id-2',
+        username: null,
+        accessTokenEncrypted: 'encrypted-api-token',
+      },
+    ]);
+
+    await expect(
+      service.syncFacebookPages('account-1', {
+        pages: [
+          {
+            pageId: 'browser-page-id',
+            name: 'Duplicate Page',
+            url: 'https://www.facebook.com/browser-page-id',
+          },
+        ],
+      }),
+    ).rejects.toThrow('multiple existing channels');
+
+    expect(transaction.socialChannel.create).not.toHaveBeenCalled();
   });
 });
