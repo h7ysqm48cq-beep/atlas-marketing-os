@@ -219,15 +219,16 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
           },
         }),
     };
+    const facebook = {
+      publish:
+        jest.fn().mockResolvedValue({
+          id: 'external-post-1',
+        }),
+    };
     const service =
       new PublisherService(
         prisma as never,
-        {
-          publish:
-            jest.fn().mockResolvedValue({
-              id: 'external-post-1',
-            }),
-        } as never,
+        facebook as never,
         {} as never,
         {
           decrypt:
@@ -241,6 +242,7 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
 
     return {
       browserRuntime,
+      facebook,
       prisma,
       runtimeProfiles,
       service,
@@ -292,9 +294,74 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('excludes hidden channels from scheduled post selection', async () => {
+    const {
+      prisma,
+      service,
+    } = createService();
+
+    await service.run();
+
+    expect(
+      prisma.scheduledPost.findMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          channel: {
+            hiddenAt: null,
+          },
+        }),
+      }),
+    );
+  });
+
+  it('treats legacy AUTOMATIC as Browser-only even when an API token exists', async () => {
+    const {
+      browserRuntime,
+      facebook,
+      prisma,
+      service,
+    } = createService(
+      'AUTOMATIC',
+    );
+
+    prisma.scheduledPost.findMany.mockResolvedValue([
+      {
+        ...createPost(
+          'AUTOMATIC',
+        ),
+        channel: {
+          ...createPost(
+            'AUTOMATIC',
+          ).channel,
+          accessTokenEncrypted:
+            'encrypted-token',
+        },
+      },
+    ]);
+
+    await expect(
+      service.run(),
+    ).resolves.toMatchObject({
+      found: 1,
+      published: 0,
+      blocked: 1,
+    });
+
+    expect(
+      browserRuntime.preflightFacebookLoginForChannel,
+    ).toHaveBeenCalledWith(
+      'channel-1',
+    );
+    expect(
+      facebook.publish,
+    ).not.toHaveBeenCalled();
+  });
+
   it('does not run the VNC preflight for a Native API channel', async () => {
     const {
       browserRuntime,
+      facebook,
       prisma,
       service,
     } = createService(
@@ -316,6 +383,9 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
         }),
       }),
     );
+    expect(
+      facebook.publish,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('keeps an actual Browser Runtime publishing failure FAILED without rescheduling it', async () => {

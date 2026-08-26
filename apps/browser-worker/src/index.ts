@@ -44,6 +44,9 @@ import {
   hasFacebookPageSwitchPrompt,
 } from "./facebook/page-identity.js";
 import {
+  filterFacebookPageCandidates,
+} from "./facebook/page-discovery.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -6131,7 +6134,7 @@ app.post(
         return;
       }
 
-      const discovered =
+      const discoveredCandidates =
         await page.evaluate(() => {
           type PageCandidate = {
             pageId: string | null;
@@ -6375,6 +6378,11 @@ app.post(
             unique.values(),
           );
         });
+
+      const discovered =
+        filterFacebookPageCandidates(
+          discoveredCandidates,
+        );
 
       response.json({
         success: true,

@@ -353,7 +353,9 @@ export const SocialChannelScalarFieldEnum = {
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  publishingPreference: 'publishingPreference'
+  publishingPreference: 'publishingPreference',
+  hiddenAt: 'hiddenAt',
+  hiddenReason: 'hiddenReason'
 } as const
 
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]

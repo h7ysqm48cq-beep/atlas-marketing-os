@@ -68,6 +68,11 @@ type Channel = {
   status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
   lastConnectedAt: string | null;
   lastError: string | null;
+  hasAccessToken: boolean;
+  publishingPreference?:
+    | "AUTOMATIC"
+    | "NATIVE_API"
+    | "BROWSER_RUNTIME";
   _count: {
     scheduledPosts: number;
   };
@@ -427,6 +432,15 @@ export function AutomationDashboard() {
           failedHint: "需要处理",
           channels: "渠道",
           connectedPlatforms: "已连接平台",
+          manageAccounts: "管理账号与详情 →",
+          disconnectApi: "断开 API",
+          disconnectingApi: "正在断开……",
+          disconnectAllApi: "断开全部 Facebook API",
+          disconnectAllApiConfirm:
+            "确认断开所有 Facebook API token？Cloud Browser 登录和排程帖子不会受影响。",
+          apiDisconnected: "Facebook API 已断开，Cloud Browser 保持连接。",
+          allApiDisconnected: "所有 Facebook API 已断开。",
+          apiDisconnectFailed: "无法断开 Facebook API。",
           noUsername: "未设置用户名",
           posts: "个帖子",
           automation: "自动化",
@@ -562,6 +576,16 @@ export function AutomationDashboard() {
           failedHint: "Needs attention",
           channels: "Channels",
           connectedPlatforms: "Connected platforms",
+          manageAccounts: "Manage accounts & details →",
+          disconnectApi: "Disconnect API",
+          disconnectingApi: "Disconnecting...",
+          disconnectAllApi: "Disconnect All Facebook API",
+          disconnectAllApiConfirm:
+            "Disconnect every Facebook API token? Cloud Browser logins and scheduled posts will remain unchanged.",
+          apiDisconnected:
+            "Facebook API disconnected. Cloud Browser remains connected.",
+          allApiDisconnected: "All Facebook API connections were disconnected.",
+          apiDisconnectFailed: "Unable to disconnect Facebook API.",
           noUsername: "No username",
           posts: "posts",
           automation: "Automation",
@@ -693,6 +717,12 @@ export function AutomationDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [disconnectingApiChannelId, setDisconnectingApiChannelId] = useState<
+    string | null
+  >(null);
+
+  const [disconnectingAllApi, setDisconnectingAllApi] = useState(false);
+
   const [selectedFacebookChannelId, setSelectedFacebookChannelId] =
     useState("");
 
@@ -782,6 +812,90 @@ export function AutomationDashboard() {
       setLoading(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Dashboard loader identity is fixed for this mount; locale changes do not trigger network reloads.
+
+  async function disconnectChannelApi(channel: Channel) {
+    if (
+      !window.confirm(
+        `${copy.disconnectApi}: ${channel.name}? Cloud Browser will remain connected.`,
+      )
+    ) {
+      return;
+    }
+
+    setDisconnectingApiChannelId(channel.id);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/channels/${channel.id}/api/disconnect`,
+        {
+          method: "POST",
+        },
+      );
+
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.message || copy.apiDisconnectFailed);
+      }
+
+      await load();
+      window.alert(copy.apiDisconnected);
+    } catch (disconnectError) {
+      setError(
+        disconnectError instanceof Error
+          ? disconnectError.message
+          : copy.apiDisconnectFailed,
+      );
+    } finally {
+      setDisconnectingApiChannelId(null);
+    }
+  }
+
+  async function disconnectAllFacebookApi() {
+    if (!window.confirm(copy.disconnectAllApiConfirm)) {
+      return;
+    }
+
+    setDisconnectingAllApi(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/automation/facebook/api/disconnect-all`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            confirmation: "DISCONNECT_ALL_FACEBOOK_API",
+          }),
+        },
+      );
+
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.message || copy.apiDisconnectFailed);
+      }
+
+      await load();
+      window.alert(copy.allApiDisconnected);
+    } catch (disconnectError) {
+      setError(
+        disconnectError instanceof Error
+          ? disconnectError.message
+          : copy.apiDisconnectFailed,
+      );
+    } finally {
+      setDisconnectingAllApi(false);
+    }
+  }
 
   async function replayBrowserAction(actionId: string) {
     if (replayingBrowserActionId) {
@@ -1413,12 +1527,30 @@ export function AutomationDashboard() {
                 {dashboard.channels.length} {copy.channels}
               </span>
 
-              <a
-                className={styles.manageAccountsLink}
-                href="/automation/browser-accounts"
-              >
-                Manage accounts & details →
-              </a>
+              <div className={styles.channelToolbarActions}>
+                {dashboard.channels.some(
+                  (channel) =>
+                    channel.platform === "FACEBOOK" && channel.hasAccessToken,
+                ) ? (
+                  <button
+                    className={styles.disconnectAllApiButton}
+                    type="button"
+                    onClick={() => void disconnectAllFacebookApi()}
+                    disabled={disconnectingAllApi}
+                  >
+                    {disconnectingAllApi
+                      ? copy.disconnectingApi
+                      : copy.disconnectAllApi}
+                  </button>
+                ) : null}
+
+                <a
+                  className={styles.manageAccountsLink}
+                  href="/automation/browser-accounts"
+                >
+                  {copy.manageAccounts}
+                </a>
+              </div>
             </div>
 
             <div className={styles.channelTableWrap}>
@@ -1445,9 +1577,8 @@ export function AutomationDashboard() {
                       : `/settings?channelId=${encodeURIComponent(channel.id)}`;
 
                   return (
-                    <a
+                    <div
                       className={styles.channelTableRow}
-                      href={detailsHref}
                       key={channel.id}
                       role="row"
                     >
@@ -1492,9 +1623,22 @@ export function AutomationDashboard() {
                       </span>
 
                       <span className={styles.channelDetailsCell} role="cell">
-                        View →
+                        <a href={detailsHref}>View →</a>
+
+                        {channel.platform === "FACEBOOK" &&
+                        channel.hasAccessToken ? (
+                          <button
+                            type="button"
+                            onClick={() => void disconnectChannelApi(channel)}
+                            disabled={disconnectingApiChannelId === channel.id}
+                          >
+                            {disconnectingApiChannelId === channel.id
+                              ? copy.disconnectingApi
+                              : copy.disconnectApi}
+                          </button>
+                        ) : null}
                       </span>
-                    </a>
+                    </div>
                   );
                 })}
               </div>
