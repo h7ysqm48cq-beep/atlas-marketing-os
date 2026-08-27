@@ -2625,7 +2625,9 @@ app.post(
         Date.now();
 
       const verificationTimeoutMs =
-        30000;
+        90000;
+
+      let postReference = null;
 
       while (
         Date.now() -
@@ -2714,9 +2716,28 @@ app.post(
         }
 
         if (!composerStillVisible) {
-          await page.waitForTimeout(
-            3000,
+          const postingInProgress = /\bposting\b/i.test(
+            combinedFeedback,
           );
+
+          if (postingInProgress) {
+            const publishedCaptionFound =
+              await findFacebookPublishedCaption(
+                page,
+                rawCaption,
+                1200,
+              );
+
+            if (publishedCaptionFound) {
+              successSignal = true;
+              break;
+            }
+
+            await page.waitForTimeout(1500);
+            continue;
+          }
+
+          await page.waitForTimeout(3000);
           break;
         }
 
@@ -2745,9 +2766,6 @@ app.post(
           400,
         );
       }
-
-      let postReference =
-        null;
 
       if (!errorSignal && !successSignal) {
         postReference =
