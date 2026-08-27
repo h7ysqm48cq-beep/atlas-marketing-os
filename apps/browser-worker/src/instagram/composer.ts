@@ -26,6 +26,8 @@ export async function openInstagramComposer(page: Page) {
         if (await hasInstagramFileInput(page, 15000)) {
           return findInstagramDialog(page);
         }
+
+        throw new Error("Instagram upload control was not found after opening the Post composer.");
       }
     }
   }
@@ -46,6 +48,7 @@ async function clickInstagramPostOption(page: Page) {
   const choices = [
     page.getByRole("menuitem", { name: /^Post$/i }),
     page.getByRole("button", { name: /^Post$/i }),
+    page.getByRole("link", { name: /^Post$/i }),
     page.locator('[role="dialog"]').getByText(/^Post$/i),
   ];
 
