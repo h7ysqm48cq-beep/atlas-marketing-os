@@ -1,4 +1,5 @@
 import {
+  ScheduledPostStatus,
   SocialChannelStatus,
   SocialPlatform,
 } from '../generated/prisma/enums';
@@ -322,5 +323,72 @@ describe('AutomationService calendar visibility', () => {
         }),
       }),
     );
+  });
+});
+
+describe('AutomationService Instagram scheduling validation', () => {
+  it('rejects scheduling an Instagram post without an image asset', async () => {
+    const prisma = {
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'channel-1',
+          brandId: 'brand-1',
+          platform: SocialPlatform.INSTAGRAM,
+        }),
+      },
+      scheduledPost: {
+        create: jest.fn(),
+      },
+    };
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      service.createPost({
+        brandId: 'brand-1',
+        channelId: 'channel-1',
+        platform: SocialPlatform.INSTAGRAM,
+        content: 'Test',
+        mediaUrls: [],
+        scheduledAt: '2026-08-27T12:16:00.000Z',
+        status: ScheduledPostStatus.SCHEDULED,
+      }),
+    ).rejects.toThrow(
+      'Instagram posts require at least one image asset before scheduling.',
+    );
+    expect(prisma.scheduledPost.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects queueing an Instagram post without an image asset', async () => {
+    const prisma = {
+      scheduledPost: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'post-1',
+          platform: SocialPlatform.INSTAGRAM,
+          status: ScheduledPostStatus.FAILED,
+          mediaUrls: [],
+        }),
+        update: jest.fn(),
+      },
+    };
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(service.queuePost('post-1')).rejects.toThrow(
+      'Instagram posts require at least one image asset before queueing.',
+    );
+    expect(prisma.scheduledPost.update).not.toHaveBeenCalled();
   });
 });

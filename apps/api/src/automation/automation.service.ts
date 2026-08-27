@@ -1406,6 +1406,23 @@ export class AutomationService {
     return normalized;
   }
 
+  private validateScheduledPostMedia(
+    platform: SocialPlatform,
+    mediaUrls: string[] | undefined,
+    status: ScheduledPostStatus,
+    action: 'scheduling' | 'queueing',
+  ) {
+    if (
+      platform === SocialPlatform.INSTAGRAM &&
+      status !== ScheduledPostStatus.DRAFT &&
+      !mediaUrls?.length
+    ) {
+      throw new BadRequestException(
+        `Instagram posts require at least one image asset before ${action}.`,
+      );
+    }
+  }
+
   async createPost(input: CreatePostInput) {
     if (!input.content?.trim()) {
       throw new BadRequestException('Content is required.');
@@ -1437,6 +1454,17 @@ export class AutomationService {
       );
     }
 
+    const status = input.status ?? ScheduledPostStatus.DRAFT;
+    const mediaUrls =
+      this.normalizeScheduledPostMediaUrls(input.mediaUrls) ?? [];
+
+    this.validateScheduledPostMedia(
+      input.platform,
+      mediaUrls,
+      status,
+      'scheduling',
+    );
+
     return this.prisma.scheduledPost.create({
       data: {
         brandId: input.brandId,
@@ -1446,13 +1474,10 @@ export class AutomationService {
         platform: input.platform,
         title: input.title?.trim() || null,
         content: input.content.trim(),
-        mediaUrls:
-          this.normalizeScheduledPostMediaUrls(
-            input.mediaUrls,
-          ) ?? [],
+        mediaUrls,
         scheduledAt,
         timezone: input.timezone || 'Asia/Kuala_Lumpur',
-        status: input.status ?? ScheduledPostStatus.DRAFT,
+        status,
       },
       include: {
         channel: true,
@@ -1618,6 +1643,20 @@ export class AutomationService {
       throw new BadRequestException('Invalid scheduledAt value.');
     }
 
+    const platform = input.platform ?? current.platform;
+    const mediaUrls =
+      input.mediaUrls === undefined
+        ? current.mediaUrls
+        : this.normalizeScheduledPostMediaUrls(input.mediaUrls) ?? [];
+    const status = input.status ?? current.status;
+
+    this.validateScheduledPostMedia(
+      platform,
+      mediaUrls,
+      status,
+      'scheduling',
+    );
+
     return this.prisma.scheduledPost.update({
       where: {
         id,
@@ -1627,9 +1666,9 @@ export class AutomationService {
           input.title === undefined ? undefined : input.title.trim() || null,
         content: input.content === undefined ? undefined : input.content.trim(),
         mediaUrls:
-          this.normalizeScheduledPostMediaUrls(
-            input.mediaUrls,
-          ),
+          input.mediaUrls === undefined
+            ? undefined
+            : mediaUrls,
         scheduledAt,
         timezone: input.timezone,
         status: input.status,
@@ -1694,6 +1733,13 @@ export class AutomationService {
         'Only draft, scheduled or failed posts can be queued.',
       );
     }
+
+    this.validateScheduledPostMedia(
+      current.platform,
+      current.mediaUrls,
+      ScheduledPostStatus.QUEUED,
+      'queueing',
+    );
 
     return this.prisma.scheduledPost.update({
       where: {

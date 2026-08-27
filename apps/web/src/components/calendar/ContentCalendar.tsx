@@ -33,6 +33,7 @@ type ScheduledPost = {
     | "PUBLISHED"
     | "FAILED"
     | "CANCELLED";
+  lastError: string | null;
   channel: {
     id: string;
     name: string;
@@ -521,6 +522,11 @@ export function ContentCalendar() {
     (channel) => channel.brandId === form.brandId,
   );
 
+  const instagramNeedsImage =
+    form.platform === "INSTAGRAM" &&
+    form.status !== "DRAFT" &&
+    form.mediaUrls.length === 0;
+
   async function createPost() {
     setSaving(true);
     setError("");
@@ -553,9 +559,10 @@ export function ContentCalendar() {
         const body = await response.json();
 
         throw new Error(
-          body.message || editingPostId
-            ? ui("Unable to update scheduled post.", "无法更新已排程帖子。")
-            : ui("Unable to create scheduled post.", "无法创建排程帖子。"),
+          body.message ||
+            (editingPostId
+              ? ui("Unable to update scheduled post.", "无法更新已排程帖子。")
+              : ui("Unable to create scheduled post.", "无法创建排程帖子。")),
         );
       }
 
@@ -1732,6 +1739,14 @@ export function ContentCalendar() {
                 ) : (
                   <div className={styles.noMedia}>
                     {ui("No images selected.", "尚未选择图片。")}
+                    {instagramNeedsImage ? (
+                      <strong className={styles.mediaRequirement}>
+                        {ui(
+                          "Instagram requires at least one image before scheduling.",
+                          "Instagram 排程前必须至少选择一张图片。",
+                        )}
+                      </strong>
+                    ) : null}
                   </div>
                 )}
 
@@ -1797,7 +1812,8 @@ export function ContentCalendar() {
                   saving ||
                   !form.channelId ||
                   !form.content ||
-                  !form.scheduledAt
+                  !form.scheduledAt ||
+                  instagramNeedsImage
                 }
               >
                 {saving
@@ -1899,6 +1915,10 @@ export function ContentCalendar() {
                 <small>{selectedPost.timezone}</small>
               </div>
             </div>
+
+            {selectedPost.status === "FAILED" && selectedPost.lastError ? (
+              <div className={styles.error}>{selectedPost.lastError}</div>
+            ) : null}
 
             {selectedPost.mediaUrls.length ? (
               <section className={styles.postMediaPreview}>
