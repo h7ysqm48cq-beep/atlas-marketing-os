@@ -353,4 +353,41 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
       'Facebook Cloud Browser login is ready.',
     );
   });
+
+  it('uses an extended request timeout for Facebook publishing', async () => {
+    const {
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    const request = jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+      published: true,
+      verification: {
+        status: 'CONFIRMED',
+      },
+    });
+
+    await service.publishFacebookPost(
+      'channel-1',
+      'PUBLISH',
+    );
+
+    expect(request).toHaveBeenCalledWith(
+      '/profiles/profile-1/facebook/publish-post',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+      true,
+      90000,
+    );
+  });
 });
