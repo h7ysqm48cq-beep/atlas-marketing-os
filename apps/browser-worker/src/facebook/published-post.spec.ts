@@ -147,6 +147,18 @@ test("refreshes confirmation when Facebook leaves the composer unresolved", () =
   );
 });
 
+test("refreshes confirmation when the composer closes without evidence", () => {
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: false,
+      postReferenceFound: false,
+    }),
+    true,
+  );
+});
+
 test("does not treat a refresh-closed composer as publish confirmation", () => {
   const unresolvedAfterRefresh = {
     errorSignal: false,
