@@ -181,6 +181,19 @@ export function hasFacebookPublishNetworkError(
   events: FacebookPublishNetworkEvent[],
 ) {
   return events.some((event) => {
+    const path = event.path.replace(/\/$/, "").toLowerCase();
+    const postDataKeys = new Set(event.postDataKeys || []);
+    const isGraphqlPublishRequest =
+      path === "/api/graphql" &&
+      (postDataKeys.has("doc_id") ||
+        postDataKeys.has("fb_api_req_friendly_name"));
+    const isKnownPublishPath =
+      /\/(?:composer|publish|feed|photo|photos)(?:\/|$)/i.test(path);
+
+    if (!isGraphqlPublishRequest && !isKnownPublishPath) {
+      return false;
+    }
+
     const hint = event.errorHint || "";
 
     return (

@@ -98,6 +98,11 @@ test("treats a blocked Facebook response as a publish error", () => {
         status: 200,
         resourceType: "xhr",
         errorHint: "blocked",
+        postDataKeys: [
+          "doc_id",
+          "fb_api_req_friendly_name",
+          "variables",
+        ],
       },
     ]),
     true,
@@ -114,5 +119,55 @@ test("treats a blocked Facebook response as a publish error", () => {
       },
     ]),
     false,
+  );
+});
+
+test("ignores blocked background responses without publish metadata", () => {
+  assert.equal(
+    hasFacebookPublishNetworkError([
+      {
+        kind: "response",
+        method: "POST",
+        path: "/ajax/bulk-route-definitions/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: "error",
+        operationName: null,
+        postDataKeys: ["__a", "fb_dtsg"],
+      },
+      {
+        kind: "response",
+        method: "POST",
+        path: "/api/graphql/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: "blocked",
+        operationName: null,
+        postDataKeys: ["__a", "fb_dtsg", "variables"],
+      },
+    ]),
+    false,
+  );
+});
+
+test("treats a blocked GraphQL publish request as a publish error", () => {
+  assert.equal(
+    hasFacebookPublishNetworkError([
+      {
+        kind: "response",
+        method: "POST",
+        path: "/api/graphql/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: "blocked",
+        operationName: null,
+        postDataKeys: [
+          "doc_id",
+          "fb_api_req_friendly_name",
+          "variables",
+        ],
+      },
+    ]),
+    true,
   );
 });
