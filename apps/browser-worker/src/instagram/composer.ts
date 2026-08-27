@@ -21,6 +21,7 @@ export async function openInstagramComposer(page: Page) {
         // is present, then wait for the actual composer to be ready.
         if (!(await hasInstagramFileInput(page, 2500))) {
           await clickInstagramPostOption(page);
+          await clickInstagramUploadTrigger(page);
         }
 
         if (await hasInstagramFileInput(page, 15000)) {
@@ -50,6 +51,7 @@ async function clickInstagramPostOption(page: Page) {
     page.getByRole("button", { name: /^Post$/i }),
     page.getByRole("link", { name: /^Post$/i }),
     page.locator('[role="dialog"]').getByText(/^Post$/i),
+    page.getByText(/^Post$/i),
   ];
 
   for (const choice of choices) {
@@ -62,6 +64,31 @@ async function clickInstagramPostOption(page: Page) {
 
       if (await candidate.click({ timeout: 5000 }).then(() => true).catch(() => false)) {
         await page.waitForTimeout(800);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+async function clickInstagramUploadTrigger(page: Page) {
+  const triggers = [
+    page.getByRole("button", { name: /select from computer|choose from computer/i }),
+    page.getByText(/^Select from computer$/i),
+    page.getByText(/^Choose from computer$/i),
+  ];
+
+  for (const trigger of triggers) {
+    const count = await trigger.count().catch(() => 0);
+
+    for (let index = count - 1; index >= 0; index -= 1) {
+      const candidate = trigger.nth(index);
+
+      if (!(await candidate.isVisible().catch(() => false))) continue;
+
+      if (await candidate.click({ timeout: 5000 }).then(() => true).catch(() => false)) {
+        await page.waitForTimeout(500);
         return true;
       }
     }
