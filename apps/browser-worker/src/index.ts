@@ -2748,6 +2748,14 @@ app.post(
         }
       }
 
+      const publishNetworkEvents =
+        await facebookPublishNetworkCapture?.stop() || [];
+      const networkErrorSignal =
+        hasFacebookPublishNetworkError(publishNetworkEvents);
+
+      errorSignal =
+        errorSignal || networkErrorSignal;
+
       if (
         !errorSignal &&
         !successSignal &&
@@ -2782,14 +2790,6 @@ app.post(
           allowComposerClosed:
             !confirmationRefreshAttempted,
         });
-
-      const publishNetworkEvents =
-        await facebookPublishNetworkCapture?.stop() || [];
-      const networkErrorSignal =
-        hasFacebookPublishNetworkError(publishNetworkEvents);
-
-      errorSignal =
-        errorSignal || networkErrorSignal;
 
       console.log(
         "[facebook/publish-confirmation]",
