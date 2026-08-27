@@ -57,6 +57,9 @@ import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
+  startFacebookPublishNetworkCapture,
+} from "./facebook/publish-network.js";
+import {
   startSecureViewerServer,
 } from "./viewer-server.js";
 
@@ -2019,6 +2022,9 @@ app.post(
     const executionTrace:
       WorkerExecutionTraceStep[] = [];
 
+    let facebookPublishNetworkCapture:
+      ReturnType<typeof startFacebookPublishNetworkCapture> | null = null;
+
     const completeTraceStep = (
       input: {
         stepKey: string;
@@ -2446,6 +2452,9 @@ app.post(
       const clickPublishStartedAt =
         Date.now();
 
+      facebookPublishNetworkCapture =
+        startFacebookPublishNetworkCapture(page);
+
       await postButton.click({
         timeout: 10000,
       });
@@ -2756,6 +2765,9 @@ app.post(
             !confirmationRefreshAttempted,
         });
 
+      const publishNetworkEvents =
+        await facebookPublishNetworkCapture?.stop() || [];
+
       console.log(
         "[facebook/publish-confirmation]",
         {
@@ -2772,6 +2784,7 @@ app.post(
           alertCount:
             alertTexts.length,
           alertTexts,
+          publishNetworkEvents,
         },
       );
 
@@ -2801,6 +2814,7 @@ app.post(
             Boolean(postReference),
           confirmationRefreshAttempted,
           alertTexts,
+          publishNetworkEvents,
           timeoutMs:
             verificationTimeoutMs,
         },
@@ -2969,6 +2983,7 @@ app.post(
           successSignal,
           errorSignal,
           alertTexts,
+          publishNetworkEvents,
         },
         screenshots: {
           before: {
@@ -3005,6 +3020,7 @@ app.post(
             .toISOString(),
       });
     } catch (error) {
+      await facebookPublishNetworkCapture?.stop().catch(() => undefined);
       response.status(400).json({
         success: false,
         published: false,
