@@ -3496,24 +3496,23 @@ app.post(
           "button",
           {
             name:
-              /^Delete draft$/i,
+              /^(?:Delete draft|Delete post|Discard draft|Discard post|Discard)$/i,
           },
         ),
         page.getByRole(
           "button",
           {
-            name:
-              /^Discard$/i,
+            name: /delete draft|delete post|discard draft|discard post/i,
           },
         ),
         page.locator(
           '[role="button"]',
         ).filter({
           hasText:
-            /delete draft|discard/i,
+            /delete draft|delete post|discard draft|discard post|discard/i,
         }),
         page.getByText(
-          /delete draft|discard/i,
+          /delete draft|delete post|discard draft|discard post|discard/i,
           {
             exact: true,
           },
@@ -3551,10 +3550,19 @@ app.post(
         }
       }
 
-      if (!discardConfirmed) {
-        throw new Error(
-          "Facebook Delete draft confirmation button was not found.",
-        );
+      const composerStillVisibleAfterClose =
+        await composer
+          .isVisible()
+          .catch(() => false);
+      const confirmationButtonFound = discardConfirmed;
+
+      if (!discardConfirmed && !composerStillVisibleAfterClose) {
+        /*
+         * Some Facebook Page surfaces discard the draft immediately after
+         * the close button and do not render a second confirmation dialog.
+         * Treat the closed composer as a successful discard in that case.
+         */
+        discardConfirmed = true;
       }
 
       completeTraceStep({
@@ -3568,6 +3576,9 @@ app.post(
           confirmDiscardStartedAt,
         metadata: {
           discardConfirmed,
+          confirmationButtonFound,
+          composerClosedWithoutPrompt:
+            !composerStillVisibleAfterClose && !confirmationButtonFound,
         },
       });
 
