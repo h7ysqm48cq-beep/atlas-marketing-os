@@ -107,12 +107,14 @@ export async function POST() {
   }
 
   /*
-   * Five minutes is enough to establish
-   * the websocket. Once connected, the
-   * session can remain open.
+   * noVNC reuses this token for automatic
+   * reconnects. Keep it valid for a workday
+   * so a brief network interruption does not
+   * leave the viewer stuck on an undefined
+   * disconnect error.
    */
   const ttlSeconds =
-    5 * 60;
+    24 * 60 * 60;
 
   const expiresAtSeconds =
     Math.floor(
