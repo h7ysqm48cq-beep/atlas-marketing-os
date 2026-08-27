@@ -1,4 +1,5 @@
 import {
+  Optional,
   Injectable,
   Logger,
 } from "@nestjs/common";
@@ -15,6 +16,7 @@ import {
 
 import { FacebookConnectorService } from "./facebook-connector.service";
 import { TelegramConnectorService } from "./telegram-connector.service";
+import { InstagramConnectorService } from "./instagram-connector.service";
 import { RuntimeProfileService } from "./runtime-profile.service";
 import { BrowserRuntimeBridgeService } from "./browser-runtime-bridge.service";
 import {
@@ -43,6 +45,8 @@ export class PublisherService {
       RuntimeProfileService,
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
+    @Optional()
+    private readonly instagram?: InstagramConnectorService,
   ) {}
 
   async run() {
@@ -133,6 +137,13 @@ export class PublisherService {
 
       let usedFacebookBrowserRuntime =
         false;
+
+      let instagramLogin: {
+        ready: boolean;
+        loginRequired: boolean;
+        message: string;
+        browserProfileKey: string;
+      } | null = null;
 
       if (
         post.platform ===
@@ -364,6 +375,52 @@ export class PublisherService {
         }
       }
 
+      if (post.platform === SocialPlatform.INSTAGRAM) {
+        try {
+          instagramLogin =
+            await this.browserRuntime.preflightInstagramLoginForChannel(
+              post.channel.id,
+            );
+
+          if (!instagramLogin.ready) {
+            blocked += 1;
+            const blockMessage = [
+              instagramLogin.message,
+              `Channel: ${post.channel.name}.`,
+              'Post remains queued until the Instagram Browser login is ready.',
+            ].join(' ').slice(0, 1000);
+
+            await this.prisma.scheduledPost.updateMany({
+              where: {
+                id: post.id,
+                status: {
+                  in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
+                },
+              },
+              data: { lastError: blockMessage },
+            });
+            continue;
+          }
+        } catch (error) {
+          blocked += 1;
+          const message = (error instanceof Error
+            ? error.message
+            : 'Unable to evaluate Instagram Browser login.').slice(0, 1000);
+          await this.prisma.scheduledPost.updateMany({
+            where: {
+              id: post.id,
+              status: {
+                in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
+              },
+            },
+            data: {
+              lastError: `Instagram publishing paused: ${message}`,
+            },
+          });
+          continue;
+        }
+      }
+
 
       /*
        * Atomically claim this post before publishing.
@@ -444,6 +501,8 @@ export class PublisherService {
 
         browserProfileKey:
           facebookPublishNetwork
+            ?.browserProfileKey ??
+          instagramLogin
             ?.browserProfileKey ??
           runtimeProfile
             ?.browserProfileKey ??
@@ -775,6 +834,75 @@ export class PublisherService {
               post.mediaUrls,
               { botToken, chatId },
             );
+
+        } else if (post.platform === SocialPlatform.INSTAGRAM) {
+          const publishingPreference = String(
+            post.channel.publishingPreference || 'BROWSER_RUNTIME',
+          ).toUpperCase();
+
+          if (!['BROWSER_RUNTIME', 'AUTOMATIC', 'NATIVE_API'].includes(publishingPreference)) {
+            throw new Error('Instagram publishing method is invalid.');
+          }
+          if (post.mediaUrls.length === 0) {
+            throw new Error('Instagram publishing requires an image asset.');
+          }
+
+          if (publishingPreference === 'NATIVE_API') {
+            const encryptedToken = post.channel.accessTokenEncrypted?.trim();
+            const instagramUserId = post.channel.externalId?.trim();
+            if (!this.instagram || !encryptedToken || !instagramUserId) {
+              throw new Error(
+                'Instagram API fallback requires Business Account ID and access token.',
+              );
+            }
+            result = await this.instagram.publish({
+              instagramUserId,
+              accessToken: this.socialTokenCrypto.decrypt(encryptedToken),
+              caption: post.content,
+              mediaUrls: post.mediaUrls,
+            });
+          } else {
+            const prepared =
+              await this.browserRuntime.prepareInstagramPostForChannel(
+                post.channel.id,
+                {
+                  caption: post.content,
+                  imageUrls: post.mediaUrls,
+                },
+              ) as {
+                success?: boolean;
+                readyForReview?: boolean;
+                imageAttached?: boolean;
+                attachedMediaCount?: number;
+              };
+
+            if (
+              prepared.success === false ||
+              prepared.readyForReview === false ||
+              prepared.imageAttached !== true ||
+              prepared.attachedMediaCount !== post.mediaUrls.length
+            ) {
+              throw new Error(
+                `Instagram draft preparation failed: expected ${post.mediaUrls.length} image(s), attached ${prepared.attachedMediaCount ?? 0}.`,
+              );
+            }
+
+            result = await this.browserRuntime.publishInstagramPost(
+              post.channel.id,
+              'PUBLISH',
+            );
+
+            const browserPublishResult = result as {
+              published?: boolean;
+              verification?: { status?: string };
+            };
+            if (
+              browserPublishResult.published !== true ||
+              browserPublishResult.verification?.status !== 'CONFIRMED'
+            ) {
+              throw new Error('Browser Runtime Instagram publishing was not confirmed.');
+            }
+          }
 
         } else {
 

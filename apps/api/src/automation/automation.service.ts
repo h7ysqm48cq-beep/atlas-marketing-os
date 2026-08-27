@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   ScheduledPostStatus,
@@ -13,7 +14,9 @@ import { SocialTokenCryptoService } from '../common/social-token-crypto.service'
 import { PublisherService } from './publisher.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { TelegramConnectorService } from './telegram-connector.service';
+import { InstagramConnectorService } from './instagram-connector.service';
 import { RuntimeProfileService } from './runtime-profile.service';
+import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 
 type CreateChannelInput = {
   brandId: string;
@@ -23,6 +26,7 @@ type CreateChannelInput = {
   username?: string;
   accessToken?: string;
   tokenExpiresAt?: string | null;
+  publishingPreference?: string;
 };
 
 type CreatePostInput = {
@@ -52,6 +56,10 @@ export class AutomationService {
     private readonly facebookConnector: FacebookConnectorService,
     private readonly telegramConnector: TelegramConnectorService,
     private readonly runtimeProfiles: RuntimeProfileService,
+    @Optional()
+    private readonly instagramConnector?: InstagramConnectorService,
+    @Optional()
+    private readonly browserRuntime?: BrowserRuntimeBridgeService,
   ) {}
 
   async dashboard() {
@@ -320,6 +328,19 @@ export class AutomationService {
 
     const accessToken = input.accessToken?.trim();
 
+    const publishingPreference =
+      input.publishingPreference?.trim().toUpperCase() ||
+      (input.platform === SocialPlatform.FACEBOOK ||
+      input.platform === SocialPlatform.INSTAGRAM
+        ? 'BROWSER_RUNTIME'
+        : 'AUTOMATIC');
+    if (!['AUTOMATIC', 'NATIVE_API', 'BROWSER_RUNTIME'].includes(publishingPreference)) {
+      throw new BadRequestException('Invalid publishing preference.');
+    }
+    const browserInstagramConnection =
+      input.platform === SocialPlatform.INSTAGRAM &&
+      publishingPreference !== 'NATIVE_API';
+
     const externalId = input.externalId?.trim() || null;
 
     const existingChannel = externalId
@@ -342,12 +363,15 @@ export class AutomationService {
             ? this.socialTokenCrypto.encrypt(accessToken)
             : existingChannel.accessTokenEncrypted,
           tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+          publishingPreference,
           status:
-            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+            ((accessToken || existingChannel.accessTokenEncrypted) && externalId) ||
+            browserInstagramConnection
               ? SocialChannelStatus.CONNECTED
               : SocialChannelStatus.DISCONNECTED,
           lastConnectedAt:
-            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+            ((accessToken || existingChannel.accessTokenEncrypted) && externalId) ||
+            browserInstagramConnection
               ? new Date()
               : existingChannel.lastConnectedAt,
           lastError: null,
@@ -369,17 +393,17 @@ export class AutomationService {
           ? this.socialTokenCrypto.encrypt(accessToken)
           : null,
         tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+        publishingPreference,
         status:
-          accessToken && input.externalId?.trim()
+          (accessToken && input.externalId?.trim()) ||
+          browserInstagramConnection
             ? SocialChannelStatus.CONNECTED
             : SocialChannelStatus.DISCONNECTED,
         lastConnectedAt:
-          accessToken && input.externalId?.trim() ? new Date() : null,
+          (accessToken && input.externalId?.trim()) || browserInstagramConnection
+            ? new Date()
+            : null,
         lastError: null,
-        publishingPreference:
-          input.platform === SocialPlatform.FACEBOOK
-            ? 'BROWSER_RUNTIME'
-            : undefined,
       },
     });
 
@@ -422,6 +446,55 @@ export class AutomationService {
 
     if (!channel) {
       throw new NotFoundException('Social channel not found.');
+    }
+
+    if (channel.platform === SocialPlatform.INSTAGRAM) {
+      const preference = String(
+        channel.publishingPreference || 'BROWSER_RUNTIME',
+      ).toUpperCase();
+      try {
+        const connection =
+          preference === 'NATIVE_API'
+            ? await this.instagramConnector?.testConnection({
+                instagramUserId: channel.externalId ?? undefined,
+                accessToken: channel.accessTokenEncrypted
+                  ? this.socialTokenCrypto.decrypt(channel.accessTokenEncrypted)
+                  : undefined,
+              })
+            : await this.browserRuntime?.testInstagramSession(id);
+
+        if (!connection) {
+          throw new BadRequestException(
+            'Instagram Browser Runtime is not configured.',
+          );
+        }
+
+        const updated = await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            status: SocialChannelStatus.CONNECTED,
+            lastConnectedAt: new Date(),
+            lastError: null,
+          },
+        });
+        return {
+          channel: this.sanitizeChannel(updated),
+          connection,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Instagram Browser Runtime test failed.';
+        await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            status: SocialChannelStatus.ERROR,
+            lastError: message.slice(0, 500),
+          },
+        });
+        throw error;
+      }
     }
 
     if (channel.platform === SocialPlatform.TELEGRAM) {
@@ -569,6 +642,54 @@ export class AutomationService {
         },
       });
 
+      throw error;
+    }
+  }
+
+  async testInstagramApiChannel(id: string) {
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: { id },
+    });
+    if (!channel) {
+      throw new NotFoundException('Social channel not found.');
+    }
+    if (channel.platform !== SocialPlatform.INSTAGRAM) {
+      throw new BadRequestException(
+        'This channel is not an Instagram channel.',
+      );
+    }
+    if (!this.instagramConnector) {
+      throw new BadRequestException('Instagram API fallback is not configured.');
+    }
+
+    try {
+      const connection = await this.instagramConnector.testConnection({
+        instagramUserId: channel.externalId ?? undefined,
+        accessToken: channel.accessTokenEncrypted
+          ? this.socialTokenCrypto.decrypt(channel.accessTokenEncrypted)
+          : undefined,
+      });
+      const updated = await this.prisma.socialChannel.update({
+        where: { id },
+        data: {
+          status: SocialChannelStatus.CONNECTED,
+          lastConnectedAt: new Date(),
+          lastError: null,
+        },
+      });
+      return { channel: this.sanitizeChannel(updated), connection };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Instagram API connection test failed.';
+      await this.prisma.socialChannel.update({
+        where: { id },
+        data: {
+          status: SocialChannelStatus.ERROR,
+          lastError: message.slice(0, 500),
+        },
+      });
       throw error;
     }
   }

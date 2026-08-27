@@ -1070,6 +1070,7 @@ enum AiUsageFeature {
 enum SocialPlatform {
   FACEBOOK
   TELEGRAM
+  INSTAGRAM
 }
 
 enum SocialChannelStatus {

@@ -335,6 +335,106 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
+  async prepareInstagramPostForChannel(
+    channelId: string,
+    input: {
+      caption: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imagePaths?: string[];
+      imageUrls?: string[];
+    },
+  ) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/prepare-post`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  async publishInstagramPost(channelId: string, confirmation: string) {
+    if (confirmation !== 'PUBLISH') {
+      throw new BadRequestException('Explicit confirmation "PUBLISH" is required.');
+    }
+
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/publish-post`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation }),
+      },
+      true,
+      90_000,
+    );
+  }
+
+  async discardInstagramPost(channelId: string) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/discard-post`,
+      { method: 'POST' },
+    );
+  }
+
+  async testInstagramSession(channelId: string) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+    const inspection = await this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/inspect`,
+      { method: 'POST' },
+    ) as WorkerInspection;
+    const page = inspection.page ?? {};
+    const url = String(page.url ?? '').toLowerCase();
+    const text = String(page.textPreview ?? '').toLowerCase();
+    const inputs = Array.isArray(page.inputs) ? page.inputs : [];
+    const hasLoginInput = inputs.some((input) =>
+      /username|password/i.test(String(input.name ?? '')) ||
+      String(input.type ?? '').toLowerCase() === 'password',
+    );
+    if (
+      url.includes('/accounts/login') ||
+      hasLoginInput ||
+      (text.includes('log in') && text.includes('sign up'))
+    ) {
+      throw new BadGatewayException('Instagram login is required.');
+    }
+    return {
+      connected: true,
+      browserProfileKey: profile.browserProfileKey,
+      message: 'Instagram Browser Runtime session is ready on Railway.',
+    };
+  }
+
+  async preflightInstagramLoginForChannel(channelId: string) {
+    const result = await this.testInstagramSession(channelId);
+    return {
+      ready: true,
+      loginRequired: false,
+      message: result.message,
+      browserProfileKey: result.browserProfileKey,
+    };
+  }
+
   /**
    * Inspect the live persistent browser before the publisher claims a post.
    * Persisted login/cookie status can become stale between scheduler runs.

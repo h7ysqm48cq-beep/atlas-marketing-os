@@ -4,6 +4,7 @@ import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
+import { InstagramConnectorService } from './instagram-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 import { BrowserAccountService } from './browser-account.service';
@@ -32,6 +33,7 @@ import { SportsNewsSourceValidatorService } from './sports-news-source-validator
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,
+    InstagramConnectorService,
     FacebookOAuthService,
     RuntimeProfileService,
     BrowserAccountService,
@@ -45,6 +47,7 @@ import { SportsNewsSourceValidatorService } from './sports-news-source-validator
     AutomationService,
     TelegramConnectorService,
     FacebookConnectorService,
+    InstagramConnectorService,
     BrowserActionTraceService,
     PublisherService,
   ],

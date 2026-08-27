@@ -463,3 +463,111 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
     );
   });
 });
+
+describe('PublisherService Instagram Browser Runtime', () => {
+  it('prepares and publishes a queued Instagram post through the browser worker', async () => {
+    const prisma = {
+      scheduledPost: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'instagram-post-1',
+            platform: SocialPlatform.INSTAGRAM,
+            status: ScheduledPostStatus.QUEUED,
+            channelId: 'instagram-channel-1',
+            content: 'Instagram browser post',
+            mediaUrls: ['https://cdn.example.com/ig.jpg'],
+            scheduledAt: new Date('2026-08-25T00:00:00.000Z'),
+            timezone: 'Asia/Kuala_Lumpur',
+            retryCount: 0,
+            historyId: null,
+            brandRenderingSettings: null,
+            channel: {
+              id: 'instagram-channel-1',
+              name: 'Instagram Browser',
+              publishingPreference: 'BROWSER_RUNTIME',
+              accessTokenEncrypted: null,
+              externalId: null,
+              tokenExpiresAt: null,
+              socialChannelRuntimeProfile: {
+                id: 'runtime-profile-1',
+                browserProfileKey: 'channel-instagram-channel-1',
+                browserProfileName: 'Instagram Browser',
+                locale: 'en-MY',
+                timezone: 'Asia/Kuala_Lumpur',
+                proxyType: 'DIRECT',
+                proxyHost: null,
+                proxyPort: null,
+                proxyUsernameEncrypted: null,
+                proxyPasswordEncrypted: null,
+                proxyCountry: null,
+                lastKnownIp: null,
+              },
+            },
+          },
+        ]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      publishAttempt: {
+        create: jest.fn().mockResolvedValue({ id: 'attempt-instagram-1' }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const browserRuntime = {
+      preflightInstagramLoginForChannel: jest.fn().mockResolvedValue({
+        ready: true,
+        loginRequired: false,
+        message: 'Instagram Browser login is ready.',
+        browserProfileKey: 'channel-instagram-channel-1',
+      }),
+      prepareInstagramPostForChannel: jest.fn().mockResolvedValue({
+        success: true,
+        readyForReview: true,
+        imageAttached: true,
+        attachedMediaCount: 1,
+      }),
+      publishInstagramPost: jest.fn().mockResolvedValue({
+        success: true,
+        published: true,
+        verification: { status: 'CONFIRMED' },
+        id: 'instagram-media-1',
+      }),
+    };
+    const service = new PublisherService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      { decrypt: jest.fn() } as never,
+      {} as never,
+      browserRuntime as never,
+    );
+
+    await expect(service.run()).resolves.toMatchObject({
+      found: 1,
+      published: 1,
+      blocked: 0,
+    });
+
+    expect(browserRuntime.preflightInstagramLoginForChannel).toHaveBeenCalledWith(
+      'instagram-channel-1',
+    );
+    expect(browserRuntime.prepareInstagramPostForChannel).toHaveBeenCalledWith(
+      'instagram-channel-1',
+      expect.objectContaining({
+        caption: 'Instagram browser post',
+        imageUrls: ['https://cdn.example.com/ig.jpg'],
+      }),
+    );
+    expect(browserRuntime.publishInstagramPost).toHaveBeenCalledWith(
+      'instagram-channel-1',
+      'PUBLISH',
+    );
+    expect(prisma.scheduledPost.update).toHaveBeenCalledWith({
+      where: { id: 'instagram-post-1' },
+      data: expect.objectContaining({
+        status: ScheduledPostStatus.PUBLISHED,
+        externalPostId: 'instagram-media-1',
+      }),
+    });
+  });
+});
