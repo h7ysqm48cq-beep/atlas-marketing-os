@@ -47,6 +47,7 @@ export function shouldRefreshFacebookPublishConfirmation(input: {
   return (
     !input.errorSignal &&
     !input.successSignal &&
+    input.composerStillVisible &&
     !input.postReferenceFound
   );
 }

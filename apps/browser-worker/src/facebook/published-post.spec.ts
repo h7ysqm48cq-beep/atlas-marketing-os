@@ -126,7 +126,7 @@ test("recognizes Facebook publish error messages", () => {
   );
 });
 
-test("refreshes confirmation when Facebook leaves the composer unresolved", () => {
+test("refreshes confirmation when Facebook leaves the composer visible and unresolved", () => {
   assert.equal(
     shouldRefreshFacebookPublishConfirmation({
       errorSignal: false,
@@ -147,7 +147,7 @@ test("refreshes confirmation when Facebook leaves the composer unresolved", () =
   );
 });
 
-test("refreshes confirmation when the composer closes without evidence", () => {
+test("does not refresh after Facebook closes the composer without an error", () => {
   assert.equal(
     shouldRefreshFacebookPublishConfirmation({
       errorSignal: false,
@@ -155,7 +155,7 @@ test("refreshes confirmation when the composer closes without evidence", () => {
       composerStillVisible: false,
       postReferenceFound: false,
     }),
-    true,
+    false,
   );
 });
 
