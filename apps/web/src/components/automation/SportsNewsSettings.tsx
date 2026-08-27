@@ -4,7 +4,7 @@ import { API_URL } from "@/lib/api";
 import styles from "./SportsNewsSettings.module.css";
 type Channel = {
   id: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   username: string | null;
   status: string;
@@ -47,10 +47,14 @@ type Settings = {
   telegramChannelId: string | null;
   facebookEnabled: boolean;
   facebookChannelId: string | null;
+  instagramEnabled: boolean;
+  instagramChannelId: string | null;
   morningTelegramEnabled: boolean;
   morningFacebookEnabled: boolean;
+  morningInstagramEnabled: boolean;
   eveningTelegramEnabled: boolean;
   eveningFacebookEnabled: boolean;
+  eveningInstagramEnabled: boolean;
   autoPublishEnabled: boolean;
   approvalRequired: boolean;
   language: string;
@@ -272,23 +276,18 @@ type Settings = {
 };
 const Toggle = ({
   checked,
-  disabled = false,
   onChange,
   label,
 }: {
   checked: boolean;
-  disabled?: boolean;
   onChange: (v: boolean) => void;
   label: string;
 }) => (
-  <label
-    className={`${styles.toggleRow} ${disabled ? styles.toggleDisabled : ""}`}
-  >
+  <label className={styles.toggleRow}>
     <span>{label}</span>
     <input
       type="checkbox"
       checked={checked}
-      disabled={disabled}
       onChange={(e) => onChange(e.target.checked)}
     />
   </label>
@@ -829,27 +828,11 @@ export function SportsNewsSettings() {
             checked={s.enabled}
             onChange={(v) => patch("enabled", v)}
           />
-          <div className={styles.channelMasters}>
-            <h4>Publishing Channels</h4>
-            <Toggle
-              label="Telegram publishing enabled"
-              checked={s.telegramEnabled}
-              onChange={(v) => patch("telegramEnabled", v)}
-            />
-            <Toggle
-              label="Facebook publishing enabled"
-              checked={s.facebookEnabled}
-              onChange={(v) => patch("facebookEnabled", v)}
-            />
-            {!s.facebookEnabled &&
-              (s.morningFacebookEnabled || s.eveningFacebookEnabled) && (
-                <p className={styles.channelWarning}>
-                  Facebook publishing is paused globally. Morning and Evening
-                  Facebook choices are preserved but will not run until this
-                  switch is enabled.
-                </p>
-              )}
-          </div>
+          <Toggle
+            label="Instagram channel enabled"
+            checked={s.instagramEnabled}
+            onChange={(v) => patch("instagramEnabled", v)}
+          />
           <label>
             Timezone
             <input
@@ -875,14 +858,17 @@ export function SportsNewsSettings() {
             <Toggle
               label="Publish to Telegram"
               checked={s.morningTelegramEnabled}
-              disabled={!s.telegramEnabled}
               onChange={(v) => patch("morningTelegramEnabled", v)}
             />
             <Toggle
               label="Sync to Facebook"
               checked={s.morningFacebookEnabled}
-              disabled={!s.facebookEnabled}
               onChange={(v) => patch("morningFacebookEnabled", v)}
+            />
+            <Toggle
+              label="Sync to Instagram"
+              checked={s.morningInstagramEnabled}
+              onChange={(v) => patch("morningInstagramEnabled", v)}
             />
           </div>
           <div className={styles.report}>
@@ -903,14 +889,17 @@ export function SportsNewsSettings() {
             <Toggle
               label="Publish to Telegram"
               checked={s.eveningTelegramEnabled}
-              disabled={!s.telegramEnabled}
               onChange={(v) => patch("eveningTelegramEnabled", v)}
             />
             <Toggle
               label="Sync to Facebook"
               checked={s.eveningFacebookEnabled}
-              disabled={!s.facebookEnabled}
               onChange={(v) => patch("eveningFacebookEnabled", v)}
+            />
+            <Toggle
+              label="Sync to Instagram"
+              checked={s.eveningInstagramEnabled}
+              onChange={(v) => patch("eveningInstagramEnabled", v)}
             />
           </div>
           <label>
@@ -942,6 +931,18 @@ export function SportsNewsSettings() {
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.status}
                 </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Instagram account
+            <select
+              value={s.instagramChannelId ?? ""}
+              onChange={(e) => patch("instagramChannelId", e.target.value || null)}
+            >
+              <option value="">Select account</option>
+              {channels.filter((c) => c.platform === "INSTAGRAM").map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.status}</option>
               ))}
             </select>
           </label>

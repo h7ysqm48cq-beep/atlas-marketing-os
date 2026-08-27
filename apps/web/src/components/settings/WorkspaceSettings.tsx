@@ -5,6 +5,29 @@ import styles from "./WorkspaceSettings.module.css";
 import { RuntimeProfileEditor } from "./RuntimeProfileEditor";
 
 import { API_URL } from "@/lib/api";
+import { getBrowserRuntimeApiUrl } from "@/components/automation/browser-accounts/utils/browser-url";
+
+function buildInstagramViewerUrl(token: string, runtimeOrigin: string) {
+  const isLocalRuntime =
+    runtimeOrigin.includes("localhost") ||
+    runtimeOrigin.includes("127.0.0.1");
+  const configured =
+    process.env.NEXT_PUBLIC_BROWSER_VIEW_URL?.trim() ||
+    (isLocalRuntime
+      ? `${window.location.protocol}//${window.location.hostname}:6080/vnc.html`
+      : "https://browser-worker-production-536a.up.railway.app/vnc.html");
+
+  const url = new URL(configured);
+  url.searchParams.set("autoconnect", "1");
+  url.searchParams.set("resize", "scale");
+  url.searchParams.set(
+    "path",
+    `websockify?token=${encodeURIComponent(token)}`,
+  );
+  url.searchParams.set("reconnect", "1");
+  url.searchParams.set("reconnect_delay", "1000");
+  return url.toString();
+}
 type AutomationSettings = {
   id: string;
   workspaceId: string;
@@ -50,7 +73,7 @@ type BrowserAccountOption = {
 type Channel = {
   id: string;
   brandId?: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   externalId?: string | null;
   username: string | null;
@@ -142,6 +165,19 @@ export function WorkspaceSettings() {
   ] = useState(false);
 
   const [showTelegramForm, setShowTelegramForm] = useState(false);
+  const [showInstagramForm, setShowInstagramForm] = useState(false);
+  const [connectingInstagram, setConnectingInstagram] = useState(false);
+  const [instagramViewer, setInstagramViewer] = useState<{
+    channelId: string;
+    channelName: string;
+    url: string;
+  } | null>(null);
+  const [instagramForm, setInstagramForm] = useState({ brandId: "", name: "", username: "", apiUserId: "", apiAccessToken: "" });
+  const [instagramApiEditor, setInstagramApiEditor] = useState<{
+    channelId: string;
+    userId: string;
+    accessToken: string;
+  } | null>(null);
   const [connectingTelegram, setConnectingTelegram] = useState(false);
   const [verifyingTelegram, setVerifyingTelegram] = useState(false);
   const [verifiedTelegramBot, setVerifiedTelegramBot] = useState<{
@@ -265,7 +301,7 @@ export function WorkspaceSettings() {
 
     try {
       const response = await fetch(
-        `${API_URL}/browser-runtime/accounts/${accountId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -529,6 +565,198 @@ export function WorkspaceSettings() {
     }
   }
 
+  async function connectInstagram() {
+    const brandId = instagramForm.brandId || activeBrand?.id || "";
+    if (!brandId || !instagramForm.name.trim()) {
+      setError("Brand and Instagram account name are required.");
+      return;
+    }
+    setConnectingInstagram(true);
+    setMessage("");
+    setError("");
+    try {
+      const channelResult = await requestInstagramRuntime("/automation/channels", {
+        method: "POST",
+        body: JSON.stringify({
+          brandId,
+          platform: "INSTAGRAM",
+          name: instagramForm.name.trim() || "Instagram Business",
+          username: instagramForm.username.trim() || undefined,
+          externalId: instagramForm.apiUserId.trim() || undefined,
+          accessToken: instagramForm.apiAccessToken.trim() || undefined,
+          publishingPreference: "BROWSER_RUNTIME",
+        }),
+      });
+      const created = channelResult.body as Channel & { message?: string };
+      if (!created.id) throw new Error("Unable to add Instagram channel.");
+      const browserResult = await requestInstagramRuntime(
+        `/automation/channels/${created.id}/browser/open`,
+        {
+          method: "POST",
+          body: JSON.stringify({ headless: false, startUrl: "https://www.instagram.com/" }),
+        },
+      );
+      setChannels((current) => [created, ...current]);
+      setInstagramForm({ brandId: "", name: "", username: "", apiUserId: "", apiAccessToken: "" });
+      setShowInstagramForm(false);
+      await openInstagramViewer(created.id, created.name, browserResult.origin);
+    } catch (connectError) {
+      setError(connectError instanceof Error ? connectError.message : "Unable to connect Instagram.");
+    } finally {
+      setConnectingInstagram(false);
+    }
+  }
+
+  async function openInstagramBrowser(channel: Channel) {
+    setActiveChannelAction(`${channel.id}:open-browser`);
+    setMessage("");
+    setError("");
+    try {
+      const browserResult = await requestInstagramRuntime(
+        `/automation/channels/${channel.id}/browser/open`,
+        {
+          method: "POST",
+          body: JSON.stringify({ headless: false, startUrl: "https://www.instagram.com/" }),
+        },
+      );
+      await openInstagramViewer(channel.id, channel.name, browserResult.origin);
+    } catch (openError) {
+      setError(openError instanceof Error ? openError.message : "Unable to open Instagram browser.");
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function requestInstagramRuntime(
+    path: string,
+    init: RequestInit,
+  ): Promise<{ origin: string; body: Record<string, unknown> }> {
+    // Instagram browser actions are production-only. Keeping a single Railway
+    // origin here prevents a localhost API from silently handling a production
+    // channel with a different schema/runtime state.
+    const origins = [getBrowserRuntimeApiUrl().replace(/\/+$/, "")];
+    let lastMessage = "Instagram Browser Runtime is unavailable.";
+
+    for (const origin of origins) {
+      try {
+        const response = await fetch(`${origin}${path}`, {
+          ...init,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        if (response.ok) {
+          return { origin, body };
+        }
+        if (typeof body.message === "string" && body.message.trim()) {
+          lastMessage = body.message;
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.trim()) {
+          lastMessage = error.message;
+        }
+      }
+    }
+
+    throw new Error(lastMessage);
+  }
+
+  async function openInstagramViewer(
+    channelId: string,
+    channelName: string,
+    runtimeOrigin: string,
+  ) {
+    const response = await fetch("/api/browser-viewer/session", {
+      method: "POST",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      token?: string;
+      message?: string;
+    };
+
+    if (!response.ok || !body.token) {
+      throw new Error(body.message || "Unable to authorize Instagram Live Browser.");
+    }
+
+    setInstagramViewer({
+      channelId,
+      channelName,
+      url: buildInstagramViewerUrl(body.token, runtimeOrigin),
+    });
+  }
+
+  async function saveInstagramApiFallback(channel: Channel) {
+    if (!instagramApiEditor || instagramApiEditor.channelId !== channel.id) {
+      return;
+    }
+
+    setActiveChannelAction(`${channel.id}:api-save`);
+    setMessage("");
+    setError("");
+
+    try {
+      const apiUserId = instagramApiEditor.userId.trim() || channel.externalId?.trim();
+      if (!apiUserId) {
+        throw new Error("Instagram Business Account ID is required for API fallback.");
+      }
+
+      const payload: Record<string, string> = {};
+      payload.externalId = apiUserId;
+      if (instagramApiEditor.accessToken.trim()) {
+        payload.accessToken = instagramApiEditor.accessToken.trim();
+      }
+
+      const response = await fetch(`${API_URL}/automation/channels/${channel.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(body.message || "Unable to save Instagram API fallback.");
+      }
+
+      await load();
+      setInstagramApiEditor(null);
+      setMessage("Instagram API fallback credentials saved. Browser Runtime remains the preferred path.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save Instagram API fallback.");
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
+  async function testInstagramApi(channel: Channel) {
+    setActiveChannelAction(`${channel.id}:api-test`);
+    setMessage("");
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/automation/channels/${channel.id}/instagram/api-test`, {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        channel?: Channel;
+      };
+      if (!response.ok || !body.channel) {
+        throw new Error(body.message || "Unable to test Instagram API fallback.");
+      }
+      setChannels((current) => current.map((item) => item.id === channel.id ? { ...item, ...body.channel } : item));
+      setMessage("Instagram API fallback connection is healthy.");
+    } catch (testError) {
+      setError(testError instanceof Error ? testError.message : "Unable to test Instagram API fallback.");
+      await load();
+    } finally {
+      setActiveChannelAction(null);
+    }
+  }
+
   async function verifyTelegramBot() {
     if (!telegramForm.botToken.trim()) {
       setError("Paste the Bot Token first.");
@@ -615,6 +843,7 @@ export function WorkspaceSettings() {
   async function selectPublishingMethod(
     channel: Channel,
     publishingPreference:
+      | "AUTOMATIC"
       | "NATIVE_API"
       | "BROWSER_RUNTIME",
   ) {
@@ -806,11 +1035,11 @@ export function WorkspaceSettings() {
     }
   }
 
-  async function disconnectChannelApi(
+  async function disconnectChannel(
     channel: Channel,
   ) {
     const confirmed = window.confirm(
-      `Disconnect the Facebook API for ${channel.name}? Cloud Browser login and scheduled posts will remain unchanged.`,
+      `Disconnect ${channel.name}? Scheduled posts will remain, but publishing will stop until the Page is reconnected.`,
     );
 
     if (!confirmed) {
@@ -818,14 +1047,14 @@ export function WorkspaceSettings() {
     }
 
     setActiveChannelAction(
-      `${channel.id}:disconnect-api`,
+      `${channel.id}:disconnect`,
     );
     setMessage("");
     setError("");
 
     try {
       const response = await fetch(
-        `${API_URL}/automation/channels/${channel.id}/api/disconnect`,
+        `${API_URL}/automation/channels/${channel.id}/disconnect`,
         {
           method: "POST",
         },
@@ -839,7 +1068,7 @@ export function WorkspaceSettings() {
         throw new Error(
           "message" in body && body.message
             ? body.message
-            : "Unable to disconnect Facebook API.",
+            : "Unable to disconnect channel.",
         );
       }
 
@@ -855,13 +1084,13 @@ export function WorkspaceSettings() {
       );
 
       setMessage(
-        `${channel.name} Facebook API disconnected. Cloud Browser remains available.`,
+        `${channel.name} disconnected.`,
       );
     } catch (channelError) {
       setError(
         channelError instanceof Error
           ? channelError.message
-          : "Unable to disconnect Facebook API.",
+          : "Unable to disconnect channel.",
       );
     } finally {
       setActiveChannelAction(null);
@@ -1295,6 +1524,13 @@ export function WorkspaceSettings() {
               + Add Telegram
             </button>
 
+            <button
+              type="button"
+              onClick={() => setShowInstagramForm((current) => !current)}
+            >
+              + Add Instagram
+            </button>
+
             <a href="/automation">
               Open automation
             </a>
@@ -1426,6 +1662,41 @@ export function WorkspaceSettings() {
           </div>
         ) : null}
 
+        {showInstagramForm ? (
+          <div className={styles.telegramConnectForm}>
+            <p className={styles.telegramAdminHint}>Instagram uses Browser Runtime. Log in in the opened browser window; Atlas stores the persistent browser profile and reuses its session for scheduled posts.</p>
+            <div className={styles.formGrid}>
+              <label><span>Brand</span><select value={instagramForm.brandId || activeBrand?.id || ""} onChange={(event) => setInstagramForm((current) => ({ ...current, brandId: event.target.value }))}>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></label>
+              <label><span>Channel name</span><input value={instagramForm.name} placeholder="Instagram Business" onChange={(event) => setInstagramForm((current) => ({ ...current, name: event.target.value }))} /></label>
+              <label><span>Username (optional)</span><input value={instagramForm.username} placeholder="your_account" onChange={(event) => setInstagramForm((current) => ({ ...current, username: event.target.value }))} /></label>
+              <label><span>API Business Account ID (optional fallback)</span><input value={instagramForm.apiUserId} placeholder="1784..." onChange={(event) => setInstagramForm((current) => ({ ...current, apiUserId: event.target.value }))} /></label>
+              <label><span>API access token (optional fallback)</span><input type="password" value={instagramForm.apiAccessToken} placeholder="Only needed for API fallback" onChange={(event) => setInstagramForm((current) => ({ ...current, apiAccessToken: event.target.value }))} /></label>
+            </div>
+            <div className={styles.telegramFormActions}><button type="button" onClick={() => setShowInstagramForm(false)}>Cancel</button><button type="button" onClick={() => void connectInstagram()} disabled={connectingInstagram}>{connectingInstagram ? "Connecting..." : "Connect Instagram"}</button></div>
+          </div>
+        ) : null}
+
+        {instagramViewer ? (
+          <section className={styles.instagramBrowserViewer} aria-label="Instagram Live Browser">
+            <div className={styles.instagramBrowserViewerHeader}>
+              <div>
+                <strong>Atlas Instagram Live Browser</strong>
+                <span>{instagramViewer.channelName}</span>
+              </div>
+              <button type="button" onClick={() => setInstagramViewer(null)}>
+                Hide viewer
+              </button>
+            </div>
+            <iframe
+              className={styles.instagramBrowserViewerFrame}
+              src={instagramViewer.url}
+              title={`Atlas Instagram browser for ${instagramViewer.channelName}`}
+              allow="clipboard-read; clipboard-write; fullscreen"
+            />
+            <p>Log in to Instagram in this Atlas browser. The persistent Browser Runtime session will be reused for scheduled posts.</p>
+          </section>
+        ) : null}
+
         <div className={styles.channelGrid}>
           {channels.map((channel) => {
             const diagnostics =
@@ -1446,12 +1717,16 @@ export function WorkspaceSettings() {
                     className={`${styles.channelIcon} ${
                       channel.platform === "FACEBOOK"
                         ? styles.facebook
-                        : styles.telegram
+                        : channel.platform === "TELEGRAM"
+                          ? styles.telegram
+                          : styles.instagram
                     }`}
                   >
                     {channel.platform === "FACEBOOK"
                       ? "f"
-                      : "✈"}
+                      : channel.platform === "TELEGRAM"
+                        ? "✈"
+                        : "◎"}
                   </div>
 
                   <div className={styles.channelIdentity}>
@@ -1462,11 +1737,15 @@ export function WorkspaceSettings() {
                         ? `@${channel.username}`
                         : channel.externalId
                           ? `Page ID: ${channel.externalId}`
-                          : "No Page ID"}
+                          : channel.platform === "INSTAGRAM"
+                            ? "Browser login session"
+                            : "No Page ID"}
                     </span>
 
                     <small>
-                      {channel.hasAccessToken
+                      {channel.platform === "INSTAGRAM"
+                        ? "Browser Runtime"
+                        : channel.hasAccessToken
                         ? "Token configured"
                         : "Token not configured"}
                       {channel.brand?.name
@@ -1542,41 +1821,105 @@ export function WorkspaceSettings() {
                       <span>Publishing method</span>
                       <select
                         value={
-                          channel.publishingPreference ===
-                          "NATIVE_API"
-                            ? "NATIVE_API"
-                            : "BROWSER_RUNTIME"
+                          channel.publishingPreference ||
+                          "AUTOMATIC"
                         }
                         disabled={channelBusy}
                         onChange={(event) =>
                           void selectPublishingMethod(
                             channel,
                             event.target.value as
+                              | "AUTOMATIC"
                               | "NATIVE_API"
                               | "BROWSER_RUNTIME",
                           )
                         }
                       >
+                        <option value="AUTOMATIC">
+                          Automatic fallback
+                        </option>
+                        <option
+                          value="NATIVE_API"
+                          disabled={!channel.hasAccessToken}
+                        >
+                          Facebook API
+                        </option>
                         <option
                           value="BROWSER_RUNTIME"
                           disabled={
                             !(channel.browserAccounts?.length || 0)
                           }
                         >
-                          Cloud Browser (default)
-                        </option>
-                        <option
-                          value="NATIVE_API"
-                          disabled={!channel.hasAccessToken}
-                        >
-                          Facebook API (manual backup)
+                          Cloud Browser
                         </option>
                       </select>
                       <small>
-                        Cloud Browser is always used by default. Facebook API
-                        runs only after you select it manually for this Page.
+                        Automatic uses Cloud Browser when connected,
+                        otherwise Facebook API. Select a fixed method to
+                        prevent automatic switching.
                       </small>
                     </label>
+                  </section>
+                ) : null}
+
+                {channel.platform === "INSTAGRAM" ? (
+                  <section className={styles.browserRuntimeSummary}>
+                    <span className={styles.runtimeLabel}>Instagram Browser Runtime</span>
+                    <p>登录状态保存在此频道的持久化浏览器配置中，排程发布会复用同一会话。</p>
+                    <label>
+                      <span>Publishing method</span>
+                      <select value={channel.publishingPreference || "BROWSER_RUNTIME"} disabled={channelBusy} onChange={(event) => void selectPublishingMethod(channel, event.target.value as "AUTOMATIC" | "NATIVE_API" | "BROWSER_RUNTIME")}>
+                        <option value="BROWSER_RUNTIME">Browser Runtime</option>
+                        <option value="AUTOMATIC">Browser Runtime (default)</option>
+                        <option value="NATIVE_API" disabled={!channel.hasAccessToken}>API fallback only</option>
+                      </select>
+                      <small>Browser Runtime is preferred. Choose API fallback only when you want to publish manually through Graph API.</small>
+                    </label>
+                    {instagramApiEditor?.channelId === channel.id ? (
+                      <div className={styles.formGrid}>
+                        <label>
+                          <span>API Business Account ID</span>
+                          <input
+                            value={instagramApiEditor.userId}
+                            placeholder="1784..."
+                            onChange={(event) => setInstagramApiEditor((current) => current ? { ...current, userId: event.target.value } : current)}
+                          />
+                        </label>
+                        <label>
+                          <span>API access token</span>
+                          <input
+                            type="password"
+                            value={instagramApiEditor.accessToken}
+                            placeholder={channel.hasAccessToken ? "Leave blank to keep current token" : "Paste token"}
+                            onChange={(event) => setInstagramApiEditor((current) => current ? { ...current, accessToken: event.target.value } : current)}
+                          />
+                        </label>
+                        <div className={styles.telegramFormActions}>
+                          <button type="button" disabled={channelBusy} onClick={() => setInstagramApiEditor(null)}>Cancel</button>
+                          <button type="button" disabled={channelBusy} onClick={() => void saveInstagramApiFallback(channel)}>
+                            {activeChannelAction === `${channel.id}:api-save` ? "Saving..." : "Save API fallback"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className={styles.browserRuntimeActions}>
+                      <button type="button" disabled={channelBusy} onClick={() => void openInstagramBrowser(channel)}>
+                        {activeChannelAction === `${channel.id}:open-browser` ? "Opening..." : "Open Instagram Browser"}
+                      </button>
+                      <button type="button" disabled={channelBusy} onClick={() => void testChannel(channel)}>
+                        {activeChannelAction === `${channel.id}:test`
+                          ? "Testing..."
+                          : channel.publishingPreference === "NATIVE_API"
+                            ? "Check API"
+                            : "Check Login"}
+                      </button>
+                      <button type="button" disabled={channelBusy} onClick={() => setInstagramApiEditor({ channelId: channel.id, userId: channel.externalId || "", accessToken: "" })}>
+                        Configure API fallback
+                      </button>
+                      <button type="button" disabled={channelBusy || !channel.hasAccessToken} onClick={() => void testInstagramApi(channel)}>
+                        {activeChannelAction === `${channel.id}:api-test` ? "Testing API..." : "Test API fallback"}
+                      </button>
+                    </div>
                   </section>
                 ) : null}
 
@@ -1861,20 +2204,18 @@ export function WorkspaceSettings() {
                         Reconnect
                       </button>
 
-                      {channel.hasAccessToken ? (
+                      {channel.status !==
+                      "DISCONNECTED" ? (
                         <button
                           type="button"
                           onClick={() =>
-                            void disconnectChannelApi(
+                            void disconnectChannel(
                               channel,
                             )
                           }
                           disabled={channelBusy}
                         >
-                          {activeChannelAction ===
-                          `${channel.id}:disconnect-api`
-                            ? "Disconnecting API..."
-                            : "Disconnect API"}
+                          Disconnect
                         </button>
                       ) : null}
                     </>

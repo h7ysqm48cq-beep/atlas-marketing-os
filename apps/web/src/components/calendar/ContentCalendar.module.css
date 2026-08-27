@@ -195,6 +195,10 @@
   color: #88d8ff;
 }
 
+.instagram {
+  background: #e1306c;
+}
+
 .sidebarPanel {
   padding: 18px;
 }
@@ -373,42 +377,6 @@
   color: #cdd2dc;
   line-height: 1.65;
   white-space: pre-wrap;
-}
-
-.postError {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 16px;
-  padding: 13px 15px;
-  border: 1px solid rgba(255, 112, 112, 0.26);
-  border-radius: 10px;
-  background: rgba(255, 112, 112, 0.08);
-  color: #ffb1b1;
-}
-
-.postError strong {
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.publishedAt {
-  margin: 14px 0 0;
-  color: #8d94a7;
-  font-size: 12px;
-}
-
-.historyLink {
-  display: inline-block;
-  margin-top: 12px;
-  color: #a99fff;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.historyLink:hover {
-  text-decoration: underline;
 }
 
 @media (max-width: 1100px) {
@@ -1030,6 +998,11 @@
 
 .telegramIcon {
   background: linear-gradient(145deg, #31b5ef, #1687c1);
+}
+
+.instagramIcon {
+  background: #e1306c;
+  color: white;
 }
 
 .platformValue {

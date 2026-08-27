@@ -9,6 +9,7 @@ import {
 const publicRoutes = [
   "/login",
   "/auth",
+  "/manifest.webmanifest",
 ];
 
 function isPublicRoute(

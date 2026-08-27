@@ -4,7 +4,16 @@ import { AppLayout } from "@/components/AppLayout";
 
 import styles from "./AutomationPage.module.css";
 
-export default function AutomationPage() {
+export default async function AutomationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    browserChannelId?: string;
+    browserViewer?: string;
+  }>;
+}) {
+  const params = await searchParams;
+
   return (
     <AppLayout>
       <div className={styles.page}>
@@ -21,7 +30,10 @@ export default function AutomationPage() {
         </nav>
 
         <div id="automation-overview" className={styles.section}>
-          <AutomationDashboard />
+          <AutomationDashboard
+            requestedBrowserChannelId={params.browserChannelId || null}
+            requestedViewerOpen={params.browserViewer === "1"}
+          />
         </div>
 
         <div
