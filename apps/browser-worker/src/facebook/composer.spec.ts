@@ -477,6 +477,52 @@ test("accepts one unambiguous localized dialog with an editor variant", async ()
   );
 });
 
+test("accepts a full-page composer with one visible editor", async () => {
+  const editorSelector = [
+    '[contenteditable="true"][role="textbox"]',
+    '[contenteditable="plaintext-only"][role="textbox"]',
+    '[contenteditable="true"][data-lexical-editor="true"]',
+    '[contenteditable="true"][aria-label]',
+    '[contenteditable="true"][aria-placeholder]',
+    '[role="textbox"][aria-label*="mind" i]',
+    '[contenteditable="true"]',
+  ].join(", ");
+  const uniqueEditor = {
+    count: async () => 1,
+  } as unknown as Locator;
+  const noMatch = {
+    first: () => noMatch,
+    filter: () => noMatch,
+    count: async () => 0,
+    isVisible: async () => false,
+  } as unknown as Locator;
+  const body = {
+    isVisible: async () => true,
+  } as unknown as Locator;
+  const page = {
+    locator: (selector: string) => {
+      if (selector === editorSelector) {
+        return uniqueEditor;
+      }
+
+      if (selector === `${editorSelector}:visible`) {
+        return uniqueEditor;
+      }
+
+      if (selector === "body") {
+        return body;
+      }
+
+      return noMatch;
+    },
+    waitForTimeout: async () => undefined,
+  } as unknown as Page;
+
+  const result = await findFacebookCreatePostDialog(page, 100);
+
+  assert.equal(result, body);
+});
+
 test("prefers the Photo/video file chooser and verifies the chooser input", async () => {
   const selectedPaths:
     string[][] = [];

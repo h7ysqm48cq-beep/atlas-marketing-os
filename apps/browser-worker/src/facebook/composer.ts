@@ -856,6 +856,21 @@ export async function findFacebookCreatePostDialog(
       }
     }
 
+    const visibleEditors = page.locator(
+      `${FACEBOOK_COMPOSER_EDITOR_SELECTOR}:visible`,
+    );
+    const visibleEditorCount = await visibleEditors
+      .count()
+      .catch(() => 0);
+
+    if (visibleEditorCount === 1) {
+      const body = page.locator("body");
+
+      if (await visible(body)) {
+        return body;
+      }
+    }
+
     await page.waitForTimeout(250);
   }
 
