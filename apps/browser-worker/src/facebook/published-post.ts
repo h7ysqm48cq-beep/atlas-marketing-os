@@ -59,6 +59,7 @@ export function resolveFacebookPublishVerificationStatus(input: {
   successSignal: boolean;
   composerStillVisible: boolean;
   postReferenceFound: boolean;
+  captionMatched?: boolean;
   allowComposerClosed?: boolean;
 }) {
   if (input.errorSignal) {
@@ -66,6 +67,10 @@ export function resolveFacebookPublishVerificationStatus(input: {
   }
 
   if (input.successSignal || input.postReferenceFound) {
+    return "CONFIRMED";
+  }
+
+  if (input.captionMatched) {
     return "CONFIRMED";
   }
 
@@ -79,11 +84,13 @@ export function resolveFacebookPublishedFlag(input: {
   successSignal: boolean;
   composerStillVisible: boolean;
   postReferenceFound: boolean;
+  captionMatched?: boolean;
   allowComposerClosed?: boolean;
 }) {
   return (
     input.successSignal ||
     input.postReferenceFound ||
+    input.captionMatched ||
     (input.allowComposerClosed !== false && !input.composerStillVisible)
   ) && !input.errorSignal;
 }
@@ -254,4 +261,38 @@ export async function findFacebookPublishedPostReference(
   }
 
   return null;
+}
+
+export async function findFacebookPublishedCaption(
+  page: Page,
+  caption: string,
+  timeoutMs = 8000,
+) {
+  const fingerprint = createFacebookCaptionFingerprint(caption);
+
+  if (fingerprint.length < 6) {
+    return false;
+  }
+
+  const normalizedFingerprint = normalizeText(fingerprint).toLocaleLowerCase();
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const articles = page.locator('[role="article"]');
+    const articleCount = Math.min(await articles.count().catch(() => 0), 12);
+
+    for (let index = 0; index < articleCount; index += 1) {
+      const articleText = normalizeText(
+        await articles.nth(index).innerText().catch(() => ""),
+      ).toLocaleLowerCase();
+
+      if (articleText.includes(normalizedFingerprint)) {
+        return true;
+      }
+    }
+
+    await page.waitForTimeout(400);
+  }
+
+  return false;
 }

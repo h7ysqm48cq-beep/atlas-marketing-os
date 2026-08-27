@@ -35,6 +35,7 @@ import {
 } from "./facebook/composer.js";
 import {
   findFacebookPublishedPostReference,
+  findFacebookPublishedCaption,
   hasFacebookPublishErrorSignal,
   hasFacebookPublishSuccessSignal,
   resolveFacebookPublishedFlag,
@@ -2777,6 +2778,18 @@ app.post(
           );
       }
 
+      const captionMatched =
+        !errorSignal &&
+        !successSignal &&
+        !composerStillVisible &&
+        !postReference
+          ? await findFacebookPublishedCaption(
+              page,
+              rawCaption,
+              5000,
+            )
+          : false;
+
       const verificationStatus =
         resolveFacebookPublishVerificationStatus({
           errorSignal,
@@ -2784,8 +2797,9 @@ app.post(
           composerStillVisible,
           postReferenceFound:
             Boolean(postReference),
+          captionMatched,
           allowComposerClosed:
-            !composerStillVisible,
+            false,
         });
 
       const published =
@@ -2795,8 +2809,9 @@ app.post(
           composerStillVisible,
           postReferenceFound:
             Boolean(postReference),
+          captionMatched,
           allowComposerClosed:
-            !composerStillVisible,
+            false,
         });
 
       console.log(
@@ -2812,6 +2827,7 @@ app.post(
           networkErrorSignal,
           postReferenceFound:
             Boolean(postReference),
+          captionMatched,
           confirmationRefreshAttempted,
           alertCount:
             alertTexts.length,
@@ -2844,6 +2860,7 @@ app.post(
           errorSignal,
           postReferenceFound:
             Boolean(postReference),
+          captionMatched,
           confirmationRefreshAttempted,
           alertTexts,
           publishNetworkEvents,
@@ -2979,12 +2996,10 @@ app.post(
 
       response.json({
         success:
-          verificationStatus ===
-            "CONFIRMED" ||
-          verificationStatus ===
-            "COMPOSER_CLOSED",
+          verificationStatus === "CONFIRMED",
         executionTrace,
         published,
+        captionMatched,
         browserProfileKey:
           session.browserProfileKey,
         postId:
