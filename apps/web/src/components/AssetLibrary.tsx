@@ -471,6 +471,7 @@ export function AssetLibrary() {
     const params = new URLSearchParams({
       assetId: asset.id,
       source: "asset-library",
+      sourceUrl: asset.url,
     });
 
     return `/image-editor?${params.toString()}`;

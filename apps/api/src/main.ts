@@ -38,7 +38,7 @@ async function bootstrap() {
         process.env.NODE_ENV !== 'production' &&
         Boolean(
           origin &&
-            /^https?:\/\/(?:192\.168\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.)[^/]+(?::\d+)?$/.test(
+            /^https?:\/\/(?:localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.)[^/]+(?::\d+)?$/.test(
               origin,
             ),
         );
