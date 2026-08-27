@@ -153,6 +153,7 @@ type BrowserSession = {
   headless: boolean;
   currentUrl: string | null;
   preparedFacebookMediaCount: number;
+  preparedFacebookChannelId: string | null;
 };
 
 const app = express();
@@ -235,6 +236,78 @@ async function getPreferredFacebookPage(
     selectFacebookInspectionTab(tabs);
 
   return pages[selectedIndex] || pages.at(-1)!;
+}
+
+/**
+ * Facebook can put a post follow-up CTA in front of the final composer after
+ * the first Post click.  The CTA is not a publish confirmation; dismiss it
+ * and, when Facebook exposes the final Post button again, click that button
+ * once so the post flow can actually complete.
+ */
+async function handleFacebookPublishFollowupDialog(
+  page: Page,
+) {
+  const deadline = Date.now() + 5000;
+  let handled = false;
+  let postRetried = false;
+
+  while (Date.now() < deadline) {
+    const dialogs = page.locator('[role="dialog"]:visible');
+    const dialogCount = await dialogs.count().catch(() => 0);
+
+    for (let index = dialogCount - 1; index >= 0; index -= 1) {
+      const dialog = dialogs.nth(index);
+      const text = (await dialog.innerText().catch(() => ""))
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!/speak to people directly|call now/i.test(text)) {
+        continue;
+      }
+
+      const notNowCandidates = [
+        dialog.getByRole("button", { name: /^Not now$/i }),
+        dialog.locator('[role="button"]').filter({ hasText: /^Not now$/i }),
+        dialog.getByText(/^Not now$/i),
+      ];
+
+      for (const candidate of notNowCandidates) {
+        const button = candidate.last();
+        if (!await button.isVisible().catch(() => false)) {
+          continue;
+        }
+
+        await button.click({ force: true, timeout: 5000 });
+        handled = true;
+        await page.waitForTimeout(900);
+        break;
+      }
+
+      if (!handled) {
+        continue;
+      }
+
+      const postButtons = page.getByRole("button", { name: /^Post$/i });
+      const postButtonCount = await postButtons.count().catch(() => 0);
+      for (let postIndex = postButtonCount - 1; postIndex >= 0; postIndex -= 1) {
+        const postButton = postButtons.nth(postIndex);
+        if (
+          await postButton.isVisible().catch(() => false) &&
+          await postButton.isEnabled().catch(() => false)
+        ) {
+          await postButton.click({ force: true, timeout: 10000 });
+          postRetried = true;
+          break;
+        }
+      }
+
+      return { handled, postRetried };
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  return { handled, postRetried };
 }
 
 function normalizeInteger(
@@ -1501,6 +1574,8 @@ app.post(
 
           preparedFacebookMediaCount:
             0,
+          preparedFacebookChannelId:
+            null,
         };
 
       sessions.set(
@@ -1996,6 +2071,7 @@ app.post(
     const input =
       request.body as {
         confirmation?: string;
+        channelId?: string | null;
       };
 
     if (
@@ -2006,6 +2082,20 @@ app.post(
         success: false,
         message:
           'Explicit confirmation "PUBLISH" is required.',
+      });
+      return;
+    }
+
+    if (
+      session.preparedFacebookChannelId &&
+      input.channelId &&
+      session.preparedFacebookChannelId !== input.channelId
+    ) {
+      response.status(409).json({
+        success: false,
+        published: false,
+        message:
+          "The prepared Facebook draft belongs to a different channel.",
       });
       return;
     }
@@ -2495,6 +2585,19 @@ app.post(
         },
         startedAtMs:
           clickPublishStartedAt,
+      });
+
+      const followupDialogStartedAt = Date.now();
+      const followupDialog =
+        await handleFacebookPublishFollowupDialog(page);
+
+      completeTraceStep({
+        stepKey: "HANDLE_PUBLISH_FOLLOWUP",
+        stepName: "Dismiss Facebook publish follow-up CTA",
+        stepOrder: 4,
+        startedAtMs: followupDialogStartedAt,
+        status: followupDialog.handled ? "SUCCESS" : "SKIPPED",
+        metadata: followupDialog,
       });
 
       let composerStillVisible =
@@ -3585,6 +3688,7 @@ app.post(
     }
 
     session.preparedFacebookMediaCount = 0;
+    session.preparedFacebookChannelId = null;
 
     const input = request.body as {
       caption?: string;
@@ -3592,6 +3696,7 @@ app.post(
       imageUrl?: string | null;
       imageUrls?: string[] | null;
       targetUrl?: string | null;
+      channelId?: string | null;
     };
 
     const caption =
@@ -5133,6 +5238,7 @@ app.post(
       }
 
       session.preparedFacebookMediaCount = attachedMediaCount;
+      session.preparedFacebookChannelId = input.channelId?.trim() || null;
 
       completeTraceStep({
         stepKey:
