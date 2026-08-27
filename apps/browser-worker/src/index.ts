@@ -35,8 +35,11 @@ import {
 } from "./facebook/composer.js";
 import {
   findFacebookPublishedPostReference,
+  hasFacebookPublishErrorSignal,
+  hasFacebookPublishSuccessSignal,
   resolveFacebookPublishedFlag,
   resolveFacebookPublishVerificationStatus,
+  shouldRefreshFacebookPublishConfirmation,
 } from "./facebook/published-post.js";
 import {
   ensureFacebookPageIdentitySwitch,
@@ -2458,27 +2461,6 @@ app.post(
           clickPublishStartedAt,
       });
 
-      const successPatterns = [
-        /your post (?:is|was) (?:now )?published/i,
-        /post published/i,
-        /your post has been published/i,
-        /your post is successfully shared/i,
-        /post is successfully shared/i,
-        /帖子已发布/i,
-        /贴文已发布/i,
-        /siaran anda telah diterbitkan/i,
-      ];
-
-      const errorPatterns = [
-        /couldn't publish/i,
-        /unable to publish/i,
-        /something went wrong/i,
-        /try again later/i,
-        /无法发布/i,
-        /发布失败/i,
-        /tidak dapat menerbitkan/i,
-      ];
-
       let composerStillVisible =
         true;
 
@@ -2579,19 +2561,13 @@ app.post(
           ].join(" ");
 
         successSignal =
-          successPatterns.some(
-            (pattern) =>
-              pattern.test(
-                combinedFeedback,
-              ),
+          hasFacebookPublishSuccessSignal(
+            combinedFeedback,
           );
 
         errorSignal =
-          errorPatterns.some(
-            (pattern) =>
-              pattern.test(
-                combinedFeedback,
-              ),
+          hasFacebookPublishErrorSignal(
+            combinedFeedback,
           );
 
         if (errorSignal) {
@@ -2646,6 +2622,121 @@ app.post(
           );
       }
 
+      const confirmationRefreshAttempted =
+        shouldRefreshFacebookPublishConfirmation({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+        });
+
+      if (confirmationRefreshAttempted) {
+        try {
+          await page.reload({
+            waitUntil:
+              "domcontentloaded",
+            timeout: 15000,
+          });
+          await page.waitForTimeout(1500);
+        } catch (error) {
+          console.warn(
+            "[facebook/publish-confirmation-refresh-failed]",
+            {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            },
+          );
+        }
+
+        composerStillVisible =
+          await composer
+            .isVisible()
+            .catch(() => false);
+
+        const refreshedAlerts =
+          page.locator(
+            '[role="alert"]:visible, [role="status"]:visible',
+          );
+        const refreshedAlertCount =
+          await refreshedAlerts
+            .count()
+            .catch(() => 0);
+
+        alertTexts = [];
+
+        for (
+          let index = 0;
+          index < refreshedAlertCount;
+          index += 1
+        ) {
+          const alertText =
+            (
+              await refreshedAlerts
+                .nth(index)
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+
+          if (alertText) {
+            alertTexts.push(
+              alertText.slice(0, 500),
+            );
+          }
+        }
+
+        pageText =
+          (
+            await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const refreshedFeedback =
+          [
+            ...alertTexts,
+            pageText.slice(0, 12000),
+          ].join(" ");
+
+        successSignal =
+          hasFacebookPublishSuccessSignal(
+            refreshedFeedback,
+          );
+        errorSignal =
+          hasFacebookPublishErrorSignal(
+            refreshedFeedback,
+          );
+
+        if (!errorSignal && !successSignal) {
+          postReference =
+            await findFacebookPublishedPostReference(
+              page,
+              rawCaption,
+              12000,
+            );
+        }
+      }
+
+      if (
+        !errorSignal &&
+        !successSignal &&
+        composerStillVisible
+      ) {
+        postReference =
+          postReference ??
+          await findFacebookPublishedPostReference(
+            page,
+            rawCaption,
+          );
+      }
+
       const verificationStatus =
         resolveFacebookPublishVerificationStatus({
           errorSignal,
@@ -2653,6 +2744,8 @@ app.post(
           composerStillVisible,
           postReferenceFound:
             Boolean(postReference),
+          allowComposerClosed:
+            !confirmationRefreshAttempted,
         });
 
       const published =
@@ -2662,7 +2755,28 @@ app.post(
           composerStillVisible,
           postReferenceFound:
             Boolean(postReference),
+          allowComposerClosed:
+            !confirmationRefreshAttempted,
         });
+
+      console.log(
+        "[facebook/publish-confirmation]",
+        {
+          url:
+            page.url(),
+          verificationStatus,
+          published,
+          composerStillVisible,
+          successSignal,
+          errorSignal,
+          postReferenceFound:
+            Boolean(postReference),
+          confirmationRefreshAttempted,
+          alertCount:
+            alertTexts.length,
+          alertTexts,
+        },
+      );
 
       completeTraceStep({
         stepKey:
@@ -2688,6 +2802,7 @@ app.post(
           errorSignal,
           postReferenceFound:
             Boolean(postReference),
+          confirmationRefreshAttempted,
           alertTexts,
           timeoutMs:
             verificationTimeoutMs,

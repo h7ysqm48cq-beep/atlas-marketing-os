@@ -8,11 +8,56 @@ export type FacebookPublishedPostReference = {
   matchedBy: string;
 };
 
+const facebookPublishSuccessPatterns = [
+  /your post (?:is|was) (?:now )?(?:published|live|shared)/i,
+  /your post has been (?:successfully )?(?:published|shared)/i,
+  /post (?:published|shared|live) successfully/i,
+  /post published/i,
+  /帖子已发布/i,
+  /贴文已发布/i,
+  /siaran anda telah diterbitkan/i,
+];
+
+const facebookPublishErrorPatterns = [
+  /couldn't publish/i,
+  /couldn't be published/i,
+  /could not be published/i,
+  /unable to publish/i,
+  /something went wrong/i,
+  /try again later/i,
+  /无法发布/i,
+  /发布失败/i,
+  /tidak dapat menerbitkan/i,
+];
+
+export function hasFacebookPublishSuccessSignal(value: string) {
+  return facebookPublishSuccessPatterns.some((pattern) => pattern.test(value));
+}
+
+export function hasFacebookPublishErrorSignal(value: string) {
+  return facebookPublishErrorPatterns.some((pattern) => pattern.test(value));
+}
+
+export function shouldRefreshFacebookPublishConfirmation(input: {
+  errorSignal: boolean;
+  successSignal: boolean;
+  composerStillVisible: boolean;
+  postReferenceFound: boolean;
+}) {
+  return (
+    !input.errorSignal &&
+    !input.successSignal &&
+    input.composerStillVisible &&
+    !input.postReferenceFound
+  );
+}
+
 export function resolveFacebookPublishVerificationStatus(input: {
   errorSignal: boolean;
   successSignal: boolean;
   composerStillVisible: boolean;
   postReferenceFound: boolean;
+  allowComposerClosed?: boolean;
 }) {
   if (input.errorSignal) {
     return "FAILED";
@@ -22,7 +67,7 @@ export function resolveFacebookPublishVerificationStatus(input: {
     return "CONFIRMED";
   }
 
-  return input.composerStillVisible
+  return input.composerStillVisible || input.allowComposerClosed === false
     ? "UNCONFIRMED"
     : "COMPOSER_CLOSED";
 }
@@ -32,11 +77,12 @@ export function resolveFacebookPublishedFlag(input: {
   successSignal: boolean;
   composerStillVisible: boolean;
   postReferenceFound: boolean;
+  allowComposerClosed?: boolean;
 }) {
   return (
     input.successSignal ||
     input.postReferenceFound ||
-    !input.composerStillVisible
+    (input.allowComposerClosed !== false && !input.composerStillVisible)
   ) && !input.errorSignal;
 }
 
