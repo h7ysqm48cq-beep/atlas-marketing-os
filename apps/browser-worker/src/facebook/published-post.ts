@@ -44,6 +44,8 @@ export function shouldRefreshFacebookPublishConfirmation(input: {
   composerStillVisible: boolean;
   postReferenceFound: boolean;
 }) {
+  // A closed composer is the normal post-submit state; only refresh while the
+  // editor is still open and Facebook has not shown a definitive result.
   return (
     !input.errorSignal &&
     !input.successSignal &&
