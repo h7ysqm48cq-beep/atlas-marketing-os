@@ -57,6 +57,7 @@ import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
+  hasFacebookPublishNetworkError,
   startFacebookPublishNetworkCapture,
 } from "./facebook/publish-network.js";
 import {
@@ -2784,6 +2785,11 @@ app.post(
 
       const publishNetworkEvents =
         await facebookPublishNetworkCapture?.stop() || [];
+      const networkErrorSignal =
+        hasFacebookPublishNetworkError(publishNetworkEvents);
+
+      errorSignal =
+        errorSignal || networkErrorSignal;
 
       console.log(
         "[facebook/publish-confirmation]",
@@ -2795,6 +2801,7 @@ app.post(
           composerStillVisible,
           successSignal,
           errorSignal,
+          networkErrorSignal,
           postReferenceFound:
             Boolean(postReference),
           confirmationRefreshAttempted,

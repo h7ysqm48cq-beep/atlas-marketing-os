@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Page } from "playwright-core";
 import {
+  hasFacebookPublishNetworkError,
   startFacebookPublishNetworkCapture,
 } from "./publish-network.js";
 
@@ -85,4 +86,33 @@ test("ignores non-Facebook and non-POST requests", async () => {
   });
 
   assert.deepEqual(await capture.stop(), []);
+});
+
+test("treats a blocked Facebook response as a publish error", () => {
+  assert.equal(
+    hasFacebookPublishNetworkError([
+      {
+        kind: "response",
+        method: "POST",
+        path: "/api/graphql/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: "blocked",
+      },
+    ]),
+    true,
+  );
+  assert.equal(
+    hasFacebookPublishNetworkError([
+      {
+        kind: "response",
+        method: "POST",
+        path: "/api/graphql/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: null,
+      },
+    ]),
+    false,
+  );
 });
