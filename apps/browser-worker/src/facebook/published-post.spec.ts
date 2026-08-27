@@ -4,8 +4,12 @@ import * as publishedPost from "./published-post.js";
 import {
   buildFacebookPublishedPostReference,
   createFacebookCaptionFingerprint,
+  hasFacebookPublishErrorSignal,
+  hasFacebookPublishSuccessSignal,
   extractFacebookPageId,
+  resolveFacebookPublishedFlag,
   resolveFacebookPublishVerificationStatus,
+  shouldRefreshFacebookPublishConfirmation,
 } from "./published-post.js";
 
 test("uses the first content line as the caption fingerprint", () => {
@@ -89,6 +93,64 @@ test("does not let a post reference override an explicit publish error", () => {
       postReferenceFound: true,
     }),
     "FAILED",
+  );
+});
+
+test("recognizes Facebook live and shared confirmation messages", () => {
+  assert.equal(
+    hasFacebookPublishSuccessSignal("Your post is now live."),
+    true,
+  );
+  assert.equal(
+    hasFacebookPublishSuccessSignal("Your post has been shared."),
+    true,
+  );
+});
+
+test("recognizes Facebook publish error messages", () => {
+  assert.equal(
+    hasFacebookPublishErrorSignal("Your post couldn't be published."),
+    true,
+  );
+});
+
+test("refreshes confirmation when Facebook leaves the composer unresolved", () => {
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: false,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRefreshFacebookPublishConfirmation({
+      errorSignal: false,
+      successSignal: false,
+      composerStillVisible: true,
+      postReferenceFound: true,
+    }),
+    false,
+  );
+});
+
+test("does not treat a refresh-closed composer as publish confirmation", () => {
+  const unresolvedAfterRefresh = {
+    errorSignal: false,
+    successSignal: false,
+    composerStillVisible: false,
+    postReferenceFound: false,
+    allowComposerClosed: false,
+  };
+
+  assert.equal(
+    resolveFacebookPublishVerificationStatus(unresolvedAfterRefresh),
+    "UNCONFIRMED",
+  );
+  assert.equal(
+    resolveFacebookPublishedFlag(unresolvedAfterRefresh),
+    false,
   );
 });
 
