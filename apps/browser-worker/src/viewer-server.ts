@@ -6,6 +6,9 @@ import {
 import type { Duplex } from "node:stream";
 import net from "node:net";
 
+const MAX_VIEWER_TOKEN_TTL_SECONDS =
+  24 * 60 * 60;
+
 
 function normalizePort(
   value: string | undefined,
@@ -97,12 +100,13 @@ function verifyViewerToken(
 
   /*
    * Token must still be alive.
-   * Also reject absurdly long-lived tokens.
+   * Also reject tokens that exceed the
+   * issuance window used by the web app.
    */
   if (
     expiresAt <= now ||
     expiresAt >
-      now + 15 * 60
+      now + MAX_VIEWER_TOKEN_TTL_SECONDS
   ) {
     return false;
   }
