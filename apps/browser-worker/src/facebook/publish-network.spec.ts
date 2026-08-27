@@ -37,6 +37,7 @@ test("captures Facebook POST response status without query parameters", async ()
       method: () => "POST",
       url: () => "https://www.facebook.com/api/graphql/?token=secret",
       resourceType: () => "fetch",
+      postData: () => null,
     }),
   });
 
@@ -50,6 +51,8 @@ test("captures Facebook POST response status without query parameters", async ()
       status: 403,
       resourceType: "fetch",
       errorHint: "HTTP_403",
+      operationName: null,
+      postDataKeys: [],
     },
   ]);
 });
@@ -66,6 +69,7 @@ test("ignores non-Facebook and non-POST requests", async () => {
       method: () => "GET",
       url: () => "https://www.facebook.com/api/graphql/",
       resourceType: () => "fetch",
+      postData: () => null,
     }),
   });
   fake.emit("response", {
@@ -76,6 +80,7 @@ test("ignores non-Facebook and non-POST requests", async () => {
       method: () => "POST",
       url: () => "https://example.com/api/graphql/",
       resourceType: () => "fetch",
+      postData: () => null,
     }),
   });
 

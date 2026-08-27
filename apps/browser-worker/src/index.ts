@@ -2452,6 +2452,20 @@ app.post(
       const clickPublishStartedAt =
         Date.now();
 
+      const publishButtonDiagnostics =
+        await postButton
+          .evaluate((element) => ({
+            tagName: element.tagName,
+            text: (element.textContent || "").replace(/\s+/g, " ").trim(),
+            ariaLabel: element.getAttribute("aria-label"),
+            testId: element.getAttribute("data-testid"),
+            disabled:
+              element instanceof HTMLButtonElement
+                ? element.disabled
+                : element.getAttribute("aria-disabled") === "true",
+          }))
+          .catch(() => null);
+
       facebookPublishNetworkCapture =
         startFacebookPublishNetworkCapture(page);
 
@@ -2466,6 +2480,9 @@ app.post(
           "Click Facebook Post button",
         stepOrder:
           4,
+        metadata: {
+          publishButtonDiagnostics,
+        },
         startedAtMs:
           clickPublishStartedAt,
       });

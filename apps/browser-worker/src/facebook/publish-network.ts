@@ -11,6 +11,8 @@ export type FacebookPublishNetworkEvent = {
   status?: number;
   resourceType?: string;
   errorHint?: string | null;
+  operationName?: string | null;
+  postDataKeys?: string[];
 };
 
 const facebookPublishErrorHints = [
@@ -59,14 +61,47 @@ function findErrorHint(value: string) {
   return pattern?.source || null;
 }
 
+function requestMetadata(request: Request) {
+  const postData = request.postData() || "";
+
+  if (!postData) {
+    return {
+      operationName: null,
+      postDataKeys: [],
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(postData) as Record<string, unknown>;
+
+    return {
+      operationName:
+        typeof parsed.operationName === "string"
+          ? parsed.operationName
+          : null,
+      postDataKeys: Object.keys(parsed).sort().slice(0, 30),
+    };
+  } catch {
+    const parameters = new URLSearchParams(postData);
+
+    return {
+      operationName: parameters.get("operationName"),
+      postDataKeys: Array.from(parameters.keys()).sort().slice(0, 30),
+    };
+  }
+}
+
 async function inspectResponse(response: Response) {
+  const request = response.request();
+  const metadata = requestMetadata(request);
   const event: FacebookPublishNetworkEvent = {
     kind: "response",
-    method: response.request().method(),
+    method: request.method(),
     path: facebookPath(response.url()) || "/",
     status: response.status(),
-    resourceType: response.request().resourceType(),
+    resourceType: request.resourceType(),
     errorHint: response.status() >= 400 ? `HTTP_${response.status()}` : null,
+    ...metadata,
   };
 
   const body = await response.text().catch(() => "");
@@ -118,6 +153,7 @@ export function startFacebookPublishNetworkCapture(page: Page) {
       path: facebookPath(request.url()) || "/",
       resourceType: request.resourceType(),
       errorHint: request.failure()?.errorText || "REQUEST_FAILED",
+      ...requestMetadata(request),
     });
   };
 
