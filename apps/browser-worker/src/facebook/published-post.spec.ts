@@ -60,6 +60,18 @@ test("supports text-only post permalinks", () => {
   );
 });
 
+test("supports single-image photo links without a pcb set", () => {
+  assert.equal(
+    buildFacebookPublishedPostReference(
+      "https://www.facebook.com/profile.php?id=61592884960509",
+      [
+        "/photo/?fbid=122112144357429498",
+      ],
+    )?.externalPostId,
+    "61592884960509_122112144357429498",
+  );
+});
+
 test("confirms a publish when the new post reference is present", () => {
   assert.equal(
     resolveFacebookPublishVerificationStatus({

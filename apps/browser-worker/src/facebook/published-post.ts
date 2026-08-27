@@ -142,6 +142,19 @@ function extractFacebookPostId(href: string) {
       };
     }
 
+    const photoId = parsed.searchParams.get("fbid");
+
+    if (
+      photoId &&
+      /^\d+$/.test(photoId) &&
+      /\/photo(?:\.php)?\/?$/i.test(parsed.pathname)
+    ) {
+      return {
+        postId: photoId,
+        matchedBy: "photo-fbid",
+      };
+    }
+
     const pathMatch = parsed.pathname.match(
       /\/(?:posts|permalink)\/(\d+)(?:\/|$)/,
     );
