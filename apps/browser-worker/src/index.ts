@@ -2785,7 +2785,7 @@ app.post(
           postReferenceFound:
             Boolean(postReference),
           allowComposerClosed:
-            !confirmationRefreshAttempted,
+            !composerStillVisible,
         });
 
       const published =
@@ -2796,7 +2796,7 @@ app.post(
           postReferenceFound:
             Boolean(postReference),
           allowComposerClosed:
-            !confirmationRefreshAttempted,
+            !composerStillVisible,
         });
 
       console.log(
