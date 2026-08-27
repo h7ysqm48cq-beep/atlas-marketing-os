@@ -2716,29 +2716,26 @@ app.post(
         }
 
         if (!composerStillVisible) {
-          const postingInProgress = /\bposting\b/i.test(
-            combinedFeedback,
-          );
+          /*
+           * Facebook may close the composer and omit its "Posting" status
+           * while the Page feed is still catching up. Keep checking the
+           * actual Page article until the confirmation window expires;
+           * otherwise a successful delayed post is reported as unconfirmed.
+           */
+          const publishedCaptionFound =
+            await findFacebookPublishedCaption(
+              page,
+              rawCaption,
+              1200,
+            );
 
-          if (postingInProgress) {
-            const publishedCaptionFound =
-              await findFacebookPublishedCaption(
-                page,
-                rawCaption,
-                1200,
-              );
-
-            if (publishedCaptionFound) {
-              successSignal = true;
-              break;
-            }
-
-            await page.waitForTimeout(1500);
-            continue;
+          if (publishedCaptionFound) {
+            successSignal = true;
+            break;
           }
 
-          await page.waitForTimeout(3000);
-          break;
+          await page.waitForTimeout(1500);
+          continue;
         }
 
         if (successSignal) {
