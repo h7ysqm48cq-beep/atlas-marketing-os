@@ -103,6 +103,7 @@ export async function attachInstagramMedia(page: Page, imagePaths: string | stri
   const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
   await input.setInputFiles(paths);
   await page.waitForTimeout(1200);
+  return paths.length;
 }
 
 export async function fillInstagramCaption(page: Page, caption: string) {

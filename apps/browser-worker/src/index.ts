@@ -5346,14 +5346,14 @@ app.post(
       }
 
       await openInstagramComposer(page);
-      await attachInstagramMedia(page, imagePaths);
+      const attachedMediaCount = await attachInstagramMedia(page, imagePaths);
       await clickInstagramNext(page);
       await clickInstagramNext(page);
       await fillInstagramCaption(page, caption);
 
       const dialog = findInstagramDialog(page);
       await dialog.waitFor({ state: "visible", timeout: 10000 }).catch(() => undefined);
-      response.json({ success: true, readyForReview: true, published: false, browserProfileKey: session.browserProfileKey, page: { title: await page.title(), url: page.url() }, preparedAt: new Date().toISOString() });
+      response.json({ success: true, readyForReview: true, published: false, imageAttached: attachedMediaCount === imagePaths.length, attachedMediaCount, browserProfileKey: session.browserProfileKey, page: { title: await page.title(), url: page.url() }, preparedAt: new Date().toISOString() });
     } catch (error) {
       response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to prepare Instagram post." });
     } finally {
