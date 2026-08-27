@@ -193,6 +193,7 @@ export class BrowserRuntimeBridgeService {
       imageUrl?: string | null;
       imageUrls?: string[] | null;
       targetUrl?: string | null;
+      channelId?: string | null;
     },
   ) {
     const normalizedInput =
@@ -258,7 +259,8 @@ export class BrowserRuntimeBridgeService {
         this.prepareFacebookPost(
           profile.browserProfileKey,
           {
-            ...input,
+          ...input,
+            channelId,
             targetUrl:
               target.targetUrl,
           },
@@ -327,6 +329,7 @@ export class BrowserRuntimeBridgeService {
             },
             body: JSON.stringify({
               confirmation,
+              channelId,
             }),
           },
           true,
