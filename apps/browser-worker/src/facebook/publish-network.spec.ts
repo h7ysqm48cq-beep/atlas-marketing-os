@@ -98,6 +98,7 @@ test("treats a blocked Facebook response as a publish error", () => {
         status: 200,
         resourceType: "xhr",
         errorHint: "blocked",
+        friendlyName: "ComposerStoryCreateMutation",
         postDataKeys: [
           "doc_id",
           "fb_api_req_friendly_name",
@@ -160,6 +161,7 @@ test("treats a blocked GraphQL publish request as a publish error", () => {
         status: 200,
         resourceType: "xhr",
         errorHint: "blocked",
+        friendlyName: "ComposerStoryCreateMutation",
         operationName: null,
         postDataKeys: [
           "doc_id",
@@ -169,5 +171,24 @@ test("treats a blocked GraphQL publish request as a publish error", () => {
       },
     ]),
     true,
+  );
+});
+
+test("ignores blocked GraphQL background queries with doc ids", () => {
+  assert.equal(
+    hasFacebookPublishNetworkError([
+      {
+        kind: "response",
+        method: "POST",
+        path: "/api/graphql/",
+        status: 200,
+        resourceType: "xhr",
+        errorHint: "blocked",
+        friendlyName: "CometFeedStoriesQuery",
+        operationName: null,
+        postDataKeys: ["doc_id", "fb_api_req_friendly_name", "variables"],
+      },
+    ]),
+    false,
   );
 });
