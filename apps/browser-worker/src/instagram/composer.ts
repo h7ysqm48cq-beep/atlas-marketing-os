@@ -155,5 +155,17 @@ export async function clickInstagramShare(page: Page) {
     throw new Error("Instagram Share button was not found.");
   }
   await share.click({ timeout: 5000 });
-  await page.waitForTimeout(1200);
+
+  // Instagram can take several seconds to replace the composer with the
+  // confirmation state. Poll the rendered page so a successful post is not
+  // reported as a false failure during the transition.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
+    if (/post shared|your post has been shared|shared|posted/.test(bodyText)) {
+      return true;
+    }
+    await page.waitForTimeout(1000);
+  }
+
+  return false;
 }

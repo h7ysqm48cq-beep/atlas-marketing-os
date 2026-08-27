@@ -5381,9 +5381,9 @@ app.post(
       if (!page) throw new Error("No active browser page was found.");
       const dialog = findInstagramDialog(page);
       await dialog.waitFor({ state: "visible", timeout: 5000 });
-      await clickInstagramShare(page);
+      const shareConfirmed = await clickInstagramShare(page);
       const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
-      const confirmed = /shared|posted|your post/.test(bodyText);
+      const confirmed = shareConfirmed || /post shared|your post has been shared|shared|posted/.test(bodyText);
       if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
       response.json({ success: true, published: true, verification: { status: "CONFIRMED" }, page: { title: await page.title(), url: page.url() }, publishedAt: new Date().toISOString() });
     } catch (error) {
