@@ -4428,9 +4428,22 @@ app.post(
                 .catch(() => false);
 
             if (clicked) {
-              composerOpened =
-                true;
-              break;
+              /*
+               * Facebook exposes several similarly named composer surfaces
+               * on a Page. A successful DOM click is not enough: keep trying
+               * candidates until the actual Create post dialog is visible.
+               */
+              const dialogAfterClick =
+                await findFacebookCreatePostDialog(
+                  page,
+                  1800,
+                ).catch(() => null);
+
+              if (dialogAfterClick) {
+                composerOpened =
+                  true;
+                break;
+              }
             }
 
             const domClicked =
@@ -4446,9 +4459,17 @@ app.post(
                 .catch(() => false);
 
             if (domClicked) {
-              composerOpened =
-                true;
-              break;
+              const dialogAfterDomClick =
+                await findFacebookCreatePostDialog(
+                  page,
+                  1800,
+                ).catch(() => null);
+
+              if (dialogAfterDomClick) {
+                composerOpened =
+                  true;
+                break;
+              }
             }
           }
 
