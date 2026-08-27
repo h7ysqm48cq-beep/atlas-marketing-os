@@ -54,6 +54,14 @@ import {
   selectFacebookInspectionTab,
 } from "./facebook/inspection-page.js";
 import {
+  attachInstagramMedia,
+  clickInstagramNext,
+  clickInstagramShare,
+  fillInstagramCaption,
+  findInstagramDialog,
+  openInstagramComposer,
+} from "./instagram/composer.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -5265,6 +5273,146 @@ app.post(
       await stagedImageCleanup?.().catch(
         () => undefined,
       );
+    }
+  },
+);
+
+
+app.post(
+  "/profiles/:profileKey/instagram/prepare-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+
+    const input = request.body as {
+      caption?: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imagePaths?: string[];
+      imageUrls?: string[];
+    };
+    const caption = input.caption?.trim();
+    if (!caption) {
+      response.status(400).json({ success: false, message: "Instagram caption is required." });
+      return;
+    }
+
+    let imagePaths = (Array.isArray(input.imagePaths) ? input.imagePaths : [])
+      .map((value) => typeof value === "string" ? value.trim() : "")
+      .filter((value): value is string => Boolean(value));
+    if (!imagePaths.length && input.imagePath?.trim()) {
+      imagePaths = [input.imagePath.trim()];
+    }
+    const imageUrls = (Array.isArray(input.imageUrls) ? input.imageUrls : [])
+      .map((value) => typeof value === "string" ? value.trim() : "")
+      .filter((value): value is string => Boolean(value));
+    if (!imageUrls.length && input.imageUrl?.trim()) {
+      imageUrls.push(input.imageUrl.trim());
+    }
+    let stagingDirectory: string | null = null;
+    try {
+      if (imagePaths.length + imageUrls.length > 10) throw new Error("Instagram carousel supports up to 10 images.");
+      if (imageUrls.length) {
+        stagingDirectory = await mkdtemp(path.join(tmpdir(), "atlas-instagram-image-"));
+        for (const [index, imageUrl] of imageUrls.entries()) {
+          const parsed = new URL(imageUrl);
+          if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Image URL must use http or https.");
+          const imageResponse = await fetch(imageUrl);
+          if (!imageResponse.ok) throw new Error(`Unable to download image ${index + 1} (HTTP ${imageResponse.status}).`);
+          const bytes = Buffer.from(await imageResponse.arrayBuffer());
+          if (!bytes.length) throw new Error(`Remote image ${index + 1} is empty.`);
+          const imagePath = path.join(stagingDirectory, `upload-${index + 1}.jpg`);
+          await writeFile(imagePath, bytes);
+          imagePaths.push(imagePath);
+        }
+      }
+      if (!imagePaths.length) throw new Error("Instagram browser publishing requires an image asset.");
+      await Promise.all(imagePaths.map((imagePath) => access(imagePath)));
+
+      const page = await session.context.newPage();
+      await page.goto("https://www.instagram.com/", { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForTimeout(1200);
+      const url = page.url().toLowerCase();
+      const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
+      const loginRequired = url.includes("/accounts/login") || await page.locator('input[name="username"], input[name="password"]').count().then((count) => count > 0).catch(() => false) || bodyText.includes("log in") && bodyText.includes("sign up");
+      if (loginRequired) {
+        await page.close().catch(() => undefined);
+        response.status(400).json({ success: false, loginRequired: true, message: "Instagram login is required." });
+        return;
+      }
+
+      await openInstagramComposer(page);
+      await attachInstagramMedia(page, imagePaths);
+      await clickInstagramNext(page);
+      await clickInstagramNext(page);
+      await fillInstagramCaption(page, caption);
+
+      const dialog = findInstagramDialog(page);
+      await dialog.waitFor({ state: "visible", timeout: 10000 }).catch(() => undefined);
+      response.json({ success: true, readyForReview: true, published: false, browserProfileKey: session.browserProfileKey, page: { title: await page.title(), url: page.url() }, preparedAt: new Date().toISOString() });
+    } catch (error) {
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to prepare Instagram post." });
+    } finally {
+      if (stagingDirectory) await rm(stagingDirectory, { recursive: true, force: true }).catch(() => undefined);
+    }
+  },
+);
+
+app.post(
+  "/profiles/:profileKey/instagram/publish-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+    const input = request.body as { confirmation?: string };
+    if (input.confirmation !== "PUBLISH") {
+      response.status(400).json({ success: false, message: 'Explicit confirmation "PUBLISH" is required.' });
+      return;
+    }
+    try {
+      const page = session.context.pages().at(-1);
+      if (!page) throw new Error("No active browser page was found.");
+      const dialog = findInstagramDialog(page);
+      await dialog.waitFor({ state: "visible", timeout: 5000 });
+      await clickInstagramShare(page);
+      const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
+      const confirmed = /shared|posted|your post/.test(bodyText);
+      if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
+      response.json({ success: true, published: true, verification: { status: "CONFIRMED" }, page: { title: await page.title(), url: page.url() }, publishedAt: new Date().toISOString() });
+    } catch (error) {
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to publish Instagram post." });
+    }
+  },
+);
+
+app.post(
+  "/profiles/:profileKey/instagram/discard-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+
+    try {
+      const page = session.context.pages().at(-1);
+      if (!page) {
+        response.json({ success: true, discarded: false, alreadyClosed: true });
+        return;
+      }
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await page.close().catch(() => undefined);
+      response.json({ success: true, discarded: true, alreadyClosed: false });
+    } catch (error) {
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to discard Instagram post." });
     }
   },
 );

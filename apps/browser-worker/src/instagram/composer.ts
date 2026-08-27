@@ -1,0 +1,84 @@
+import type { Locator, Page } from "playwright-core";
+
+export async function openInstagramComposer(page: Page) {
+  const triggers = [
+    page.locator('a[href="/create/select/"]'),
+    page.locator('[aria-label="New post"]'),
+    page.locator('svg[aria-label="New post"]').locator(".."),
+    page.getByText(/^Create$/i),
+  ];
+
+  for (const trigger of triggers) {
+    const count = await trigger.count().catch(() => 0);
+    for (let index = 0; index < count; index += 1) {
+      const candidate = trigger.nth(index);
+      if (!(await candidate.isVisible().catch(() => false))) continue;
+      if (await candidate.click({ timeout: 5000 }).then(() => true).catch(() => false)) {
+        await page.waitForTimeout(800);
+        return findInstagramDialog(page);
+      }
+    }
+  }
+
+  throw new Error("Instagram create-post control was not found.");
+}
+
+export async function attachInstagramMedia(page: Page, imagePaths: string | string[]) {
+  const input = page.locator('input[type="file"]').last();
+  await input.waitFor({ state: "attached", timeout: 10000 });
+  const paths = Array.isArray(imagePaths) ? imagePaths : [imagePaths];
+  await input.setInputFiles(paths);
+  await page.waitForTimeout(1200);
+}
+
+export async function fillInstagramCaption(page: Page, caption: string) {
+  const expected = caption.trim();
+  if (!expected) throw new Error("Instagram caption cannot be empty.");
+
+  const editors = [
+    page.locator('textarea[aria-label*="caption" i]'),
+    page.locator('textarea[placeholder*="caption" i]'),
+    page.locator('[contenteditable="true"][role="textbox"]'),
+    page.locator('[contenteditable="true"]'),
+  ];
+
+  for (const locator of editors) {
+    const count = await locator.count().catch(() => 0);
+    for (let index = count - 1; index >= 0; index -= 1) {
+      const editor = locator.nth(index);
+      if (!(await editor.isVisible().catch(() => false))) continue;
+      if (await editor.getAttribute("aria-label").then((value) => /comment|reply/i.test(value || "")).catch(() => false)) continue;
+      await editor.fill(expected).catch(async () => {
+        await editor.click();
+        await page.keyboard.press("ControlOrMeta+A");
+        await page.keyboard.type(expected);
+      });
+      return editor;
+    }
+  }
+
+  throw new Error("Instagram caption editor was not found.");
+}
+
+export function findInstagramDialog(page: Page): Locator {
+  return page.locator('[role="dialog"]').last();
+}
+
+export async function clickInstagramNext(page: Page) {
+  const next = page.getByRole("button", { name: /^Next$/i }).last();
+  if (await next.isVisible().catch(() => false)) {
+    await next.click({ timeout: 5000 });
+    await page.waitForTimeout(900);
+    return true;
+  }
+  return false;
+}
+
+export async function clickInstagramShare(page: Page) {
+  const share = page.getByRole("button", { name: /^Share$/i }).last();
+  if (!(await share.isVisible().catch(() => false))) {
+    throw new Error("Instagram Share button was not found.");
+  }
+  await share.click({ timeout: 5000 });
+  await page.waitForTimeout(1200);
+}
