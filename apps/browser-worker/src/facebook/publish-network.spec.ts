@@ -58,6 +58,38 @@ test("captures Facebook POST response status without query parameters", async ()
   ]);
 });
 
+test("does not wait forever for a Facebook response body", async () => {
+  const fake = createFakePage();
+  const capture = startFacebookPublishNetworkCapture(fake.page, 10);
+
+  fake.emit("response", {
+    url: () => "https://www.facebook.com/api/graphql/",
+    status: () => 200,
+    text: () => new Promise<string>(() => undefined),
+    request: () => ({
+      method: () => "POST",
+      url: () => "https://www.facebook.com/api/graphql/",
+      resourceType: () => "xhr",
+      postData: () => null,
+    }),
+  });
+
+  const events = await capture.stop();
+
+  assert.deepEqual(events, [
+    {
+      kind: "response",
+      method: "POST",
+      path: "/api/graphql/",
+      status: 200,
+      resourceType: "xhr",
+      errorHint: null,
+      operationName: null,
+      postDataKeys: [],
+    },
+  ]);
+});
+
 test("ignores non-Facebook and non-POST requests", async () => {
   const fake = createFakePage();
   const capture = startFacebookPublishNetworkCapture(fake.page);
