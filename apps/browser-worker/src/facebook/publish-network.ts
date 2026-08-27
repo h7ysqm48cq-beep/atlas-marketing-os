@@ -12,6 +12,7 @@ export type FacebookPublishNetworkEvent = {
   resourceType?: string;
   errorHint?: string | null;
   operationName?: string | null;
+  friendlyName?: string | null;
   postDataKeys?: string[];
 };
 
@@ -79,6 +80,10 @@ function requestMetadata(request: Request) {
         typeof parsed.operationName === "string"
           ? parsed.operationName
           : null,
+      friendlyName:
+        typeof parsed.fb_api_req_friendly_name === "string"
+          ? parsed.fb_api_req_friendly_name
+          : null,
       postDataKeys: Object.keys(parsed).sort().slice(0, 30),
     };
   } catch {
@@ -86,6 +91,7 @@ function requestMetadata(request: Request) {
 
     return {
       operationName: parameters.get("operationName"),
+      friendlyName: parameters.get("fb_api_req_friendly_name"),
       postDataKeys: Array.from(parameters.keys()).sort().slice(0, 30),
     };
   }
@@ -182,11 +188,12 @@ export function hasFacebookPublishNetworkError(
 ) {
   return events.some((event) => {
     const path = event.path.replace(/\/$/, "").toLowerCase();
-    const postDataKeys = new Set(event.postDataKeys || []);
+    const requestName = event.friendlyName || event.operationName || "";
     const isGraphqlPublishRequest =
       path === "/api/graphql" &&
-      (postDataKeys.has("doc_id") ||
-        postDataKeys.has("fb_api_req_friendly_name"));
+      /(?:composer.*(?:create|publish)|(?:story|post).*create|publish)/i.test(
+        requestName,
+      );
     const isKnownPublishPath =
       /\/(?:composer|publish|feed|photo|photos)(?:\/|$)/i.test(path);
 
