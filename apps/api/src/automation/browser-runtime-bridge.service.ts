@@ -53,6 +53,9 @@ type BrowserLaunchProfile = Awaited<
   >
 >;
 
+const BROWSER_WORKER_REQUEST_TIMEOUT_MS = 45_000;
+const FACEBOOK_PUBLISH_REQUEST_TIMEOUT_MS = 90_000;
+
 @Injectable()
 export class BrowserRuntimeBridgeService {
   private readonly logger =
@@ -326,6 +329,8 @@ export class BrowserRuntimeBridgeService {
               confirmation,
             }),
           },
+          true,
+          FACEBOOK_PUBLISH_REQUEST_TIMEOUT_MS,
         ),
     );
   }
@@ -1014,6 +1019,7 @@ export class BrowserRuntimeBridgeService {
     path: string,
     init: RequestInit,
     authenticated = true,
+    timeoutMs = BROWSER_WORKER_REQUEST_TIMEOUT_MS,
   ) {
     const headers =
       new Headers(
@@ -1055,7 +1061,7 @@ export class BrowserRuntimeBridgeService {
       setTimeout(
         () =>
           controller.abort(),
-        45000,
+        timeoutMs,
       );
 
     try {
