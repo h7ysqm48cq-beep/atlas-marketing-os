@@ -66,6 +66,17 @@ type HistoryRecord = {
   }>;
 };
 type OutputKey = "facebook" | "telegram" | "reels" | "imagePrompt";
+
+function platformLabel(platform: string) {
+  const normalized = platform.trim().toUpperCase();
+
+  if (normalized === "FACEBOOK") return "Facebook";
+  if (normalized === "TELEGRAM") return "Telegram";
+  if (normalized === "REELS") return "Reels";
+
+  return platform;
+}
+
 const statuses: Array<"ALL" | ContentStatus> = [
   "ALL",
   "DRAFT",
@@ -573,6 +584,7 @@ export function ContentHistory() {
                       <span>{ui("Platforms", "平台")}</span>
                       <strong>
                         {selected.platforms
+                          .map(platformLabel)
                           .filter(
                             (platform) =>
                               platform === "Facebook" ||
@@ -808,6 +820,61 @@ export function ContentHistory() {
                   </div>
                 </section>
               )}
+              {selected.status !== "PUBLISHED" && selected.scheduledPosts?.length ? (
+                <section className={styles.workflowPanel}>
+                  <div className={styles.workflowTitle}>
+                    <div>
+                      <span>{ui("Publishing status", "发布状态")}</span>
+                      <strong>{ui("Partially complete", "部分完成")}</strong>
+                    </div>
+                    <small>
+                      {ui(
+                        "Each platform is shown separately.",
+                        "每个平台分别显示状态。",
+                      )}
+                    </small>
+                  </div>
+
+                  <div className={styles.publishedPostList}>
+                    {selected.scheduledPosts.map((post) => (
+                      <article key={post.id}>
+                        <div>
+                          <span className={styles.publishPlatform}>
+                            <span
+                              className={`${styles.publishPlatformIcon} ${
+                                post.platform === "FACEBOOK"
+                                  ? styles.facebookPublishIcon
+                                  : styles.telegramPublishIcon
+                              }`}
+                            >
+                              {post.platform === "FACEBOOK" ? "f" : "✈"}
+                            </span>
+                            {platformLabel(post.platform)}
+                          </span>
+                          <strong>{post.channel.name}</strong>
+                          <small>{publishingStatusLabel(post.status)}</small>
+                          {post.status === "FAILED" && post.lastError ? (
+                            <small className={styles.publishError}>
+                              {post.lastError}
+                            </small>
+                          ) : null}
+                        </div>
+                        <span
+                          className={`${styles.publishStatus} ${
+                            post.status === "PUBLISHED"
+                              ? styles.publishStatusSuccess
+                              : post.status === "FAILED"
+                                ? styles.publishStatusFailed
+                                : styles.publishStatusPending
+                          }`}
+                        >
+                          {publishingStatusLabel(post.status)}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               <div className={styles.scoreGrid}>
                 <Score
                   label={ui("Viral", "传播力")}

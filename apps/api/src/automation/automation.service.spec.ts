@@ -289,3 +289,38 @@ describe('AutomationService Facebook channel defaults', () => {
     });
   });
 });
+
+describe('AutomationService calendar visibility', () => {
+  it('excludes posts belonging to hidden channels and returns publish diagnostics', async () => {
+    const prisma = {
+      scheduledPost: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.listCalendarPosts();
+
+    expect(prisma.scheduledPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          channel: {
+            hiddenAt: null,
+          },
+        },
+        select: expect.objectContaining({
+          historyId: true,
+          publishedAt: true,
+          lastError: true,
+        }),
+      }),
+    );
+  });
+});

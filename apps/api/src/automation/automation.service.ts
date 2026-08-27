@@ -107,6 +107,11 @@ export class AutomationService {
         }),
 
         this.prisma.scheduledPost.groupBy({
+          where: {
+            channel: {
+              hiddenAt: null,
+            },
+          },
           by: ['status'],
           _count: {
             _all: true,
@@ -115,6 +120,9 @@ export class AutomationService {
 
         this.prisma.scheduledPost.findMany({
           where: {
+            channel: {
+              hiddenAt: null,
+            },
             status: {
               in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
             },
@@ -164,6 +172,13 @@ export class AutomationService {
         }),
 
         this.prisma.publishAttempt.findMany({
+          where: {
+            scheduledPost: {
+              channel: {
+                hiddenAt: null,
+              },
+            },
+          },
           take: 10,
           orderBy: {
             createdAt: 'desc',
@@ -1016,6 +1031,9 @@ export class AutomationService {
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
+        channel: {
+          hiddenAt: null,
+        },
         ...(status
           ? {
               status,
@@ -1036,6 +1054,7 @@ export class AutomationService {
         brandId: true,
         channelId: true,
         campaignId: true,
+        historyId: true,
         platform: true,
         title: true,
         content: true,
@@ -1043,8 +1062,10 @@ export class AutomationService {
         scheduledAt: true,
         timezone: true,
         status: true,
+        publishedAt: true,
         externalPostId: true,
         externalPostUrl: true,
+        lastError: true,
 
         channel: {
           select: {

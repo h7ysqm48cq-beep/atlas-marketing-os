@@ -19,6 +19,7 @@ type ScheduledPost = {
   id: string;
   brandId: string;
   channelId: string;
+  historyId: string | null;
   platform: "FACEBOOK" | "TELEGRAM";
   title: string | null;
   content: string;
@@ -33,6 +34,8 @@ type ScheduledPost = {
     | "PUBLISHED"
     | "FAILED"
     | "CANCELLED";
+  publishedAt: string | null;
+  lastError: string | null;
   channel: {
     id: string;
     name: string;
@@ -1899,6 +1902,30 @@ export function ContentCalendar() {
                 {selectedPost.content}
               </div>
             </section>
+
+            {selectedPost.lastError ? (
+              <section className={styles.postError}>
+                <p className={styles.eyebrow}>
+                  {ui("Publish diagnostic", "发布诊断")}
+                </p>
+                <strong>{selectedPost.lastError}</strong>
+              </section>
+            ) : null}
+
+            {selectedPost.publishedAt ? (
+              <p className={styles.publishedAt}>
+                {ui("Published", "发布时间")}: {dateTime(selectedPost.publishedAt)}
+              </p>
+            ) : null}
+
+            {selectedPost.historyId ? (
+              <a
+                className={styles.historyLink}
+                href={`/content-history?historyId=${encodeURIComponent(selectedPost.historyId)}`}
+              >
+                {ui("Open Content History", "打开内容历史")}
+              </a>
+            ) : null}
 
             <footer className={styles.postActions}>
               <div className={styles.secondaryActions}>
