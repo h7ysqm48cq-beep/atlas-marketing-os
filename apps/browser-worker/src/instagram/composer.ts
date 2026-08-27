@@ -15,12 +15,56 @@ export async function openInstagramComposer(page: Page) {
       if (!(await candidate.isVisible().catch(() => false))) continue;
       if (await candidate.click({ timeout: 5000 }).then(() => true).catch(() => false)) {
         await page.waitForTimeout(800);
-        return findInstagramDialog(page);
+
+        // Instagram can open a create-type menu before it mounts the upload
+        // input. Select the regular Post option when that intermediate menu
+        // is present, then wait for the actual composer to be ready.
+        if (!(await hasInstagramFileInput(page, 2500))) {
+          await clickInstagramPostOption(page);
+        }
+
+        if (await hasInstagramFileInput(page, 15000)) {
+          return findInstagramDialog(page);
+        }
       }
     }
   }
 
   throw new Error("Instagram create-post control was not found.");
+}
+
+async function hasInstagramFileInput(page: Page, timeout: number) {
+  const input = page.locator('input[type="file"]').last();
+
+  return input
+    .waitFor({ state: "attached", timeout })
+    .then(() => true)
+    .catch(() => false);
+}
+
+async function clickInstagramPostOption(page: Page) {
+  const choices = [
+    page.getByRole("menuitem", { name: /^Post$/i }),
+    page.getByRole("button", { name: /^Post$/i }),
+    page.locator('[role="dialog"]').getByText(/^Post$/i),
+  ];
+
+  for (const choice of choices) {
+    const count = await choice.count().catch(() => 0);
+
+    for (let index = count - 1; index >= 0; index -= 1) {
+      const candidate = choice.nth(index);
+
+      if (!(await candidate.isVisible().catch(() => false))) continue;
+
+      if (await candidate.click({ timeout: 5000 }).then(() => true).catch(() => false)) {
+        await page.waitForTimeout(800);
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 export async function attachInstagramMedia(page: Page, imagePaths: string | string[]) {
