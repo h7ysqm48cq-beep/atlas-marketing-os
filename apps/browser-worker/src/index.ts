@@ -47,6 +47,10 @@ import {
   filterFacebookPageCandidates,
 } from "./facebook/page-discovery.js";
 import {
+  classifyFacebookInspectionTab,
+  selectFacebookInspectionTab,
+} from "./facebook/inspection-page.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -172,6 +176,50 @@ const sessions =
 
 const openingProfiles =
   new Set<string>();
+
+async function getPreferredFacebookPage(
+  context: BrowserContext,
+) {
+  const pages = context.pages();
+
+  if (!pages.length) {
+    return context.newPage();
+  }
+
+  const tabs = await Promise.all(
+    pages.map(async (page) => {
+      const url = page.url();
+      const text = await page
+        .locator("body")
+        .innerText({ timeout: 3000 })
+        .catch(() => "");
+      const hasVisiblePassword =
+        (await page
+          .locator('input[type="password"]:visible')
+          .count()
+          .catch(() => 0)) > 0;
+      const classification =
+        classifyFacebookInspectionTab({
+          url,
+          text,
+          hasVisiblePassword,
+        });
+
+      return {
+        url,
+        loginRequired:
+          classification.loginRequired,
+        challenge:
+          classification.challenge,
+      };
+    }),
+  );
+
+  const selectedIndex =
+    selectFacebookInspectionTab(tabs);
+
+  return pages[selectedIndex] || pages.at(-1)!;
+}
 
 function normalizeInteger(
   value: unknown,
@@ -1515,12 +1563,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const editors =
         page.locator(
@@ -1673,12 +1719,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const dialogs =
         page.locator(
@@ -2029,11 +2073,10 @@ app.post(
     };
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1);
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       if (!page) {
         throw new Error(
@@ -2961,11 +3004,10 @@ app.post(
     };
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1);
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       if (!page) {
         throw new Error(
@@ -5697,12 +5739,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const title =
         await page.title();
@@ -6051,12 +6091,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const discoveryUrl =
         "https://www.facebook.com/pages/?category=your_pages";
