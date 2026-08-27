@@ -176,3 +176,18 @@ export function startFacebookPublishNetworkCapture(page: Page) {
     },
   };
 }
+
+export function hasFacebookPublishNetworkError(
+  events: FacebookPublishNetworkEvent[],
+) {
+  return events.some((event) => {
+    const hint = event.errorHint || "";
+
+    return (
+      /^HTTP_[45]\d\d$/i.test(hint) ||
+      /blocked|permission|not allowed|couldn['’]?t|could not|failed|try again|rate limit/i.test(
+        hint,
+      )
+    );
+  });
+}
