@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import type { Page } from "playwright-core";
+import {
+  startFacebookPublishNetworkCapture,
+} from "./publish-network.js";
+
+function createFakePage() {
+  const listeners = new Map<string, Set<(value: unknown) => void>>();
+
+  return {
+    page: {
+      on(event: string, listener: (value: unknown) => void) {
+        const eventListeners = listeners.get(event) || new Set();
+        eventListeners.add(listener);
+        listeners.set(event, eventListeners);
+      },
+      off(event: string, listener: (value: unknown) => void) {
+        listeners.get(event)?.delete(listener);
+      },
+    } as unknown as Page,
+    emit(event: string, value: unknown) {
+      listeners.get(event)?.forEach((listener) => listener(value));
+    },
+  };
+}
+
+test("captures Facebook POST response status without query parameters", async () => {
+  const fake = createFakePage();
+  const capture = startFacebookPublishNetworkCapture(fake.page);
+
+  fake.emit("response", {
+    url: () => "https://www.facebook.com/api/graphql/?token=secret",
+    status: () => 403,
+    text: async () => '{"error":"permission denied"}',
+    request: () => ({
+      method: () => "POST",
+      url: () => "https://www.facebook.com/api/graphql/?token=secret",
+      resourceType: () => "fetch",
+    }),
+  });
+
+  const events = await capture.stop();
+
+  assert.deepEqual(events, [
+    {
+      kind: "response",
+      method: "POST",
+      path: "/api/graphql/",
+      status: 403,
+      resourceType: "fetch",
+      errorHint: "HTTP_403",
+    },
+  ]);
+});
+
+test("ignores non-Facebook and non-POST requests", async () => {
+  const fake = createFakePage();
+  const capture = startFacebookPublishNetworkCapture(fake.page);
+
+  fake.emit("response", {
+    url: () => "https://www.facebook.com/api/graphql/",
+    status: () => 200,
+    text: async () => "ok",
+    request: () => ({
+      method: () => "GET",
+      url: () => "https://www.facebook.com/api/graphql/",
+      resourceType: () => "fetch",
+    }),
+  });
+  fake.emit("response", {
+    url: () => "https://example.com/api/graphql/",
+    status: () => 200,
+    text: async () => "ok",
+    request: () => ({
+      method: () => "POST",
+      url: () => "https://example.com/api/graphql/",
+      resourceType: () => "fetch",
+    }),
+  });
+
+  assert.deepEqual(await capture.stop(), []);
+});
