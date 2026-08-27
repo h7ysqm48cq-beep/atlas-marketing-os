@@ -2610,15 +2610,12 @@ app.post(
       let postReference =
         null;
 
-      if (
-        !errorSignal &&
-        !successSignal &&
-        composerStillVisible
-      ) {
+      if (!errorSignal && !successSignal) {
         postReference =
           await findFacebookPublishedPostReference(
             page,
             rawCaption,
+            12000,
           );
       }
 
