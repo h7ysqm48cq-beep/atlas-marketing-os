@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
+import { DatadogLogger } from './observability/datadog-logger';
 
 
 
@@ -25,7 +26,7 @@ if ((globalThis as any)[INSTANCE_LOCK_KEY]) {
 
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: new DatadogLogger() });
 
   app.enableCors({
     origin(origin, callback) {

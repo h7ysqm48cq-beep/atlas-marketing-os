@@ -71,6 +71,9 @@ import {
 import {
   startSecureViewerServer,
 } from "./viewer-server.js";
+import { installDatadogConsoleLogging } from "./datadog-log.js";
+
+installDatadogConsoleLogging();
 
 type ProxyType =
   | "DIRECT"
