@@ -403,7 +403,7 @@ export class AgentSupervisorService {
       throw new BadRequestException('objective_required');
     }
     if (!input.owner || !WORKER_ROLES.has(input.owner)) {
-      throw new BadRequestException('worker_owner_required');
+      throw new BadRequestException({ code: 'worker_owner_required' });
     }
     if (!Array.isArray(input.allowedPaths) || input.allowedPaths.length === 0) {
       throw new BadRequestException('allowed_paths_required');
