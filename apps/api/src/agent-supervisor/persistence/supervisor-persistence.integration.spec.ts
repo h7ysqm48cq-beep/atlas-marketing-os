@@ -7,6 +7,7 @@ import type { SupervisorTask } from '../agent-supervisor.types';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
 import { PrismaFileOwnershipStore } from './prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './prisma-supervisor-execution.store';
+import { PrismaSupervisorLifecycleStore } from './prisma-supervisor-lifecycle.store';
 import { PrismaSupervisorTaskStore } from './prisma-supervisor-task.store';
 
 const databaseUrl = process.env.SUPERVISOR_INTEGRATION_DATABASE_URL;
@@ -27,6 +28,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   let taskStore: PrismaSupervisorTaskStore;
   let executionStore: PrismaSupervisorExecutionStore;
   let fileStore: PrismaFileOwnershipStore;
+  let lifecycleStore: PrismaSupervisorLifecycleStore;
 
   beforeAll(async () => {
     const adapter = new PrismaPg({
@@ -38,6 +40,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     taskStore = new PrismaSupervisorTaskStore(prismaService);
     executionStore = new PrismaSupervisorExecutionStore(prismaService);
     fileStore = new PrismaFileOwnershipStore(prismaService);
+    lifecycleStore = new PrismaSupervisorLifecycleStore(prismaService);
     await prisma.$queryRaw`SELECT 1`;
   });
 
@@ -177,5 +180,66 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
 
     await fileStore.release(firstTask.id);
     expect(await fileStore.findOwner(path)).toBeNull();
+  });
+
+  it('commits task state and file locks together for lifecycle acquire', async () => {
+    const persistedTask = await taskStore.create(task());
+    const workingTask: SupervisorTask = {
+      ...persistedTask,
+      status: 'WORKING',
+      updatedAt: new Date(),
+    };
+
+    const saved = await lifecycleStore.saveWithLocks(workingTask, 'acquire');
+
+    expect(saved.status).toBe('WORKING');
+    expect((await taskStore.get(persistedTask.id))?.status).toBe('WORKING');
+    expect(await fileStore.findOwner('apps/api/src/example.ts')).toBe(
+      persistedTask.id,
+    );
+  });
+
+  it('rolls back task state when lifecycle lock acquisition conflicts', async () => {
+    const firstTask = await taskStore.create(
+      task({ allowedPaths: ['apps/api/src/shared.ts'] }),
+    );
+    const secondTask = await taskStore.create(
+      task({ allowedPaths: ['apps/api/src/shared.ts'] }),
+    );
+    await fileStore.acquire(firstTask.id, ['apps/api/src/shared.ts']);
+    const attemptedWorkingTask: SupervisorTask = {
+      ...secondTask,
+      status: 'WORKING',
+      updatedAt: new Date(),
+    };
+
+    await expect(
+      lifecycleStore.saveWithLocks(attemptedWorkingTask, 'acquire'),
+    ).rejects.toMatchObject({
+      response: { code: 'file_ownership_conflict' },
+    });
+
+    expect((await taskStore.get(secondTask.id))?.status).toBe('DRAFT');
+    expect(await fileStore.findOwner('apps/api/src/shared.ts')).toBe(firstTask.id);
+  });
+
+  it('commits task state and lock release together for lifecycle release', async () => {
+    const persistedTask = await taskStore.create(
+      task({ status: 'WORKING' }),
+    );
+    await fileStore.acquire(persistedTask.id, persistedTask.allowedPaths);
+    const readyTask: SupervisorTask = {
+      ...persistedTask,
+      status: 'READY_FOR_REVIEW',
+      updatedAt: new Date(),
+    };
+
+    const saved = await lifecycleStore.saveWithLocks(readyTask, 'release');
+
+    expect(saved.status).toBe('READY_FOR_REVIEW');
+    expect((await taskStore.get(persistedTask.id))?.status).toBe(
+      'READY_FOR_REVIEW',
+    );
+    expect(await fileStore.findOwner('apps/api/src/example.ts')).toBeNull();
   });
 });
