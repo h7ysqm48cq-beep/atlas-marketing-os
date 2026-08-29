@@ -1,11 +1,16 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
+import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
 
 describe('AgentSupervisorService', () => {
   let service: AgentSupervisorService;
 
   beforeEach(() => {
-    service = new AgentSupervisorService();
+    service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+    );
   });
 
   it('creates bounded tasks in DRAFT state', () => {
@@ -43,7 +48,7 @@ describe('AgentSupervisorService', () => {
 
     service.startTask(first.id);
 
-    expect(() => service.startTask(second.id)).toThrow(ConflictException);
+    expect(() => service.startTask(second.id)).toThrow(BadRequestException);
   });
 
   it('requires dependencies to be READY_FOR_REVIEW or APPROVED before starting', () => {
