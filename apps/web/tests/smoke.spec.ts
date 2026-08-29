@@ -62,3 +62,9 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
     page.getByTestId("background-queue-card"),
   ).toHaveClass(/criticalCard/);
 });
+
+test("Atlas API root proxy forwards the root request", async ({ page }) => {
+  const response = await page.request.get("/api/atlas/");
+
+  expect(response.status()).toBe(200);
+});
