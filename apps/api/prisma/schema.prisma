@@ -29,6 +29,7 @@ model Workspace {
   id                      String                   @id @default(cuid())
   name                    String
   slug                    String                   @unique
+  ownerUserId              String?                  @unique
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   automationSetting       AutomationSetting?

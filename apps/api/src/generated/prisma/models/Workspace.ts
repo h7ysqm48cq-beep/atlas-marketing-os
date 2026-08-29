@@ -28,6 +28,7 @@ export type WorkspaceMinAggregateOutputType = {
   id: string | null
   name: string | null
   slug: string | null
+  ownerUserId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -36,6 +37,7 @@ export type WorkspaceMaxAggregateOutputType = {
   id: string | null
   name: string | null
   slug: string | null
+  ownerUserId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -44,6 +46,7 @@ export type WorkspaceCountAggregateOutputType = {
   id: number
   name: number
   slug: number
+  ownerUserId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -54,6 +57,7 @@ export type WorkspaceMinAggregateInputType = {
   id?: true
   name?: true
   slug?: true
+  ownerUserId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -62,6 +66,7 @@ export type WorkspaceMaxAggregateInputType = {
   id?: true
   name?: true
   slug?: true
+  ownerUserId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -70,6 +75,7 @@ export type WorkspaceCountAggregateInputType = {
   id?: true
   name?: true
   slug?: true
+  ownerUserId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -151,6 +157,7 @@ export type WorkspaceGroupByOutputType = {
   id: string
   name: string
   slug: string
+  ownerUserId: string | null
   createdAt: Date
   updatedAt: Date
   _count: WorkspaceCountAggregateOutputType | null
@@ -180,6 +187,7 @@ export type WorkspaceWhereInput = {
   id?: Prisma.StringFilter<"Workspace"> | string
   name?: Prisma.StringFilter<"Workspace"> | string
   slug?: Prisma.StringFilter<"Workspace"> | string
+  ownerUserId?: Prisma.StringNullableFilter<"Workspace"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Workspace"> | Date | string
   automationSetting?: Prisma.XOR<Prisma.AutomationSettingNullableScalarRelationFilter, Prisma.AutomationSettingWhereInput> | null
@@ -194,6 +202,7 @@ export type WorkspaceOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   automationSetting?: Prisma.AutomationSettingOrderByWithRelationInput
@@ -207,6 +216,7 @@ export type WorkspaceOrderByWithRelationInput = {
 export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   slug?: string
+  ownerUserId?: string
   AND?: Prisma.WorkspaceWhereInput | Prisma.WorkspaceWhereInput[]
   OR?: Prisma.WorkspaceWhereInput[]
   NOT?: Prisma.WorkspaceWhereInput | Prisma.WorkspaceWhereInput[]
@@ -219,12 +229,13 @@ export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
   socialChannels?: Prisma.SocialChannelListRelationFilter
   sportsNewsRuns?: Prisma.SportsNewsRunListRelationFilter
   sportsNewsSetting?: Prisma.XOR<Prisma.SportsNewsSettingNullableScalarRelationFilter, Prisma.SportsNewsSettingWhereInput> | null
-}, "id" | "slug">
+}, "id" | "slug" | "ownerUserId">
 
 export type WorkspaceOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.WorkspaceCountOrderByAggregateInput
@@ -239,6 +250,7 @@ export type WorkspaceScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   name?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
   slug?: Prisma.StringWithAggregatesFilter<"Workspace"> | string
+  ownerUserId?: Prisma.StringNullableWithAggregatesFilter<"Workspace"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Workspace"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Workspace"> | Date | string
 }
@@ -247,6 +259,7 @@ export type WorkspaceCreateInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -261,6 +274,7 @@ export type WorkspaceUncheckedCreateInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -275,6 +289,7 @@ export type WorkspaceUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -289,6 +304,7 @@ export type WorkspaceUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -303,6 +319,7 @@ export type WorkspaceCreateManyInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -311,6 +328,7 @@ export type WorkspaceUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -319,6 +337,7 @@ export type WorkspaceUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -327,6 +346,7 @@ export type WorkspaceCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -335,6 +355,7 @@ export type WorkspaceMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -343,6 +364,7 @@ export type WorkspaceMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -440,6 +462,7 @@ export type WorkspaceCreateWithoutBrandsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -453,6 +476,7 @@ export type WorkspaceUncheckedCreateWithoutBrandsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -482,6 +506,7 @@ export type WorkspaceUpdateWithoutBrandsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -495,6 +520,7 @@ export type WorkspaceUncheckedUpdateWithoutBrandsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -508,6 +534,7 @@ export type WorkspaceCreateWithoutSocialChannelsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -521,6 +548,7 @@ export type WorkspaceUncheckedCreateWithoutSocialChannelsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -550,6 +578,7 @@ export type WorkspaceUpdateWithoutSocialChannelsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -563,6 +592,7 @@ export type WorkspaceUncheckedUpdateWithoutSocialChannelsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -576,6 +606,7 @@ export type WorkspaceCreateWithoutSportsNewsRunsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -589,6 +620,7 @@ export type WorkspaceUncheckedCreateWithoutSportsNewsRunsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -618,6 +650,7 @@ export type WorkspaceUpdateWithoutSportsNewsRunsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -631,6 +664,7 @@ export type WorkspaceUncheckedUpdateWithoutSportsNewsRunsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -644,6 +678,7 @@ export type WorkspaceCreateWithoutSportsNewsSettingInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -657,6 +692,7 @@ export type WorkspaceUncheckedCreateWithoutSportsNewsSettingInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -686,6 +722,7 @@ export type WorkspaceUpdateWithoutSportsNewsSettingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -699,6 +736,7 @@ export type WorkspaceUncheckedUpdateWithoutSportsNewsSettingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -712,6 +750,7 @@ export type WorkspaceCreateWithoutAutomationSettingInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandCreateNestedManyWithoutWorkspaceInput
@@ -725,6 +764,7 @@ export type WorkspaceUncheckedCreateWithoutAutomationSettingInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -754,6 +794,7 @@ export type WorkspaceUpdateWithoutAutomationSettingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUpdateManyWithoutWorkspaceNestedInput
@@ -767,6 +808,7 @@ export type WorkspaceUncheckedUpdateWithoutAutomationSettingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -780,6 +822,7 @@ export type WorkspaceCreateWithoutImageGenerationSettingsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingCreateNestedOneWithoutWorkspaceInput
@@ -793,6 +836,7 @@ export type WorkspaceUncheckedCreateWithoutImageGenerationSettingsInput = {
   id?: string
   name: string
   slug: string
+  ownerUserId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedCreateNestedOneWithoutWorkspaceInput
@@ -822,6 +866,7 @@ export type WorkspaceUpdateWithoutImageGenerationSettingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUpdateOneWithoutWorkspaceNestedInput
@@ -835,6 +880,7 @@ export type WorkspaceUncheckedUpdateWithoutImageGenerationSettingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   automationSetting?: Prisma.AutomationSettingUncheckedUpdateOneWithoutWorkspaceNestedInput
@@ -906,6 +952,7 @@ export type WorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   name?: boolean
   slug?: boolean
+  ownerUserId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
@@ -921,6 +968,7 @@ export type WorkspaceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   slug?: boolean
+  ownerUserId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["workspace"]>
@@ -929,6 +977,7 @@ export type WorkspaceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   slug?: boolean
+  ownerUserId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["workspace"]>
@@ -937,11 +986,12 @@ export type WorkspaceSelectScalar = {
   id?: boolean
   name?: boolean
   slug?: boolean
+  ownerUserId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
+export type WorkspaceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "ownerUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
 export type WorkspaceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   automationSetting?: boolean | Prisma.Workspace$automationSettingArgs<ExtArgs>
   brands?: boolean | Prisma.Workspace$brandsArgs<ExtArgs>
@@ -968,6 +1018,7 @@ export type $WorkspacePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     id: string
     name: string
     slug: string
+    ownerUserId: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["workspace"]>
@@ -1402,6 +1453,7 @@ export interface WorkspaceFieldRefs {
   readonly id: Prisma.FieldRef<"Workspace", 'String'>
   readonly name: Prisma.FieldRef<"Workspace", 'String'>
   readonly slug: Prisma.FieldRef<"Workspace", 'String'>
+  readonly ownerUserId: Prisma.FieldRef<"Workspace", 'String'>
   readonly createdAt: Prisma.FieldRef<"Workspace", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Workspace", 'DateTime'>
 }
