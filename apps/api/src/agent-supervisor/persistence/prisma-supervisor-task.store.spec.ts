@@ -1,4 +1,3 @@
-import { InternalServerErrorException } from '@nestjs/common';
 import type { SupervisorTask } from '../agent-supervisor.types';
 import { PrismaSupervisorTaskStore } from './prisma-supervisor-task.store';
 
@@ -134,7 +133,7 @@ describe('PrismaSupervisorTaskStore', () => {
     prisma.supervisorTask.findMany.mockRejectedValue(new Error('database down'));
     const store = new PrismaSupervisorTaskStore(prisma as never);
 
-    await expect(store.list()).rejects.toMatchObject<InternalServerErrorException>({
+    await expect(store.list()).rejects.toMatchObject({
       response: { code: 'supervisor_persistence_error' },
     });
   });
