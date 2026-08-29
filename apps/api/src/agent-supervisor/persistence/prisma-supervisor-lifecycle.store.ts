@@ -55,7 +55,17 @@ type PrismaWithTransaction = {
 
 type PrismaUniqueError = {
   code?: unknown;
-  meta?: { target?: unknown };
+  meta?: {
+    target?: unknown;
+    driverAdapterError?: {
+      cause?: {
+        originalMessage?: unknown;
+        constraint?: {
+          fields?: unknown;
+        };
+      };
+    };
+  };
 };
 
 function persistenceError(): InternalServerErrorException {
@@ -89,14 +99,42 @@ function taskUpdateData(task: SupervisorTask): TaskUpdateData {
   };
 }
 
+function normalizeConstraintField(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  return value.replace(/^"|"$/g, '');
+}
+
 function isPathUniqueError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const candidate = error as PrismaUniqueError;
   if (candidate.code !== 'P2002') return false;
+
   const target = candidate.meta?.target;
-  return (
+  if (
     (Array.isArray(target) && target.includes('path')) ||
     (typeof target === 'string' && target.includes('path'))
+  ) {
+    return true;
+  }
+
+  const adapterCause = candidate.meta?.driverAdapterError?.cause;
+  const constraintFields = adapterCause?.constraint?.fields;
+  if (Array.isArray(constraintFields)) {
+    const normalizedFields = constraintFields
+      .map(normalizeConstraintField)
+      .filter((field): field is string => Boolean(field));
+    if (normalizedFields.includes('path')) {
+      return true;
+    }
+  }
+
+  const originalMessage = adapterCause?.originalMessage;
+  return (
+    typeof originalMessage === 'string' &&
+    originalMessage.includes('SupervisorFileLock') &&
+    originalMessage.includes('path')
   );
 }
 
