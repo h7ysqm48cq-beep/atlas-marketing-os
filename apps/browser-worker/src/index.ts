@@ -886,6 +886,8 @@ function requireWorkerToken(
   if (
     request.path ===
       "/health" ||
+    request.path ===
+      "/viewer_health" ||
     !workerToken
   ) {
     next();
@@ -1144,6 +1146,17 @@ app.get(
         Boolean(workerToken),
       activeSessions:
         sessions.size,
+    });
+  },
+);
+
+app.get(
+  "/viewer_health",
+  (_request, response) => {
+    response.json({
+      ok: true,
+      service:
+        "atlas-browser-worker",
     });
   },
 );
