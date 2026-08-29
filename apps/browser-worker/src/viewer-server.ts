@@ -195,7 +195,10 @@ export function startSecureViewerServer() {
   );
 
   viewerApp.get(
-    "/viewer-health",
+    [
+      "/viewer-health",
+      "/viewer_health",
+    ],
     (_request, response) => {
       response.json({
         ok: true,
