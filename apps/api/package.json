@@ -65,7 +65,7 @@
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.4.2",
@@ -89,7 +89,7 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": "$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
