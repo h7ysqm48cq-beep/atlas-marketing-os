@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'node:crypto';
 import webpush from 'web-push';
 import { PrismaService } from '../database/prisma.service';
 
@@ -48,6 +49,7 @@ export class NotificationService implements OnModuleInit {
     try {
       await this.prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "PushSubscription" (
+          "id" TEXT,
           "endpoint" TEXT PRIMARY KEY,
           "p256dh" TEXT NOT NULL,
           "auth" TEXT NOT NULL,
@@ -60,6 +62,10 @@ export class NotificationService implements OnModuleInit {
       await this.prisma.$executeRawUnsafe(`
         ALTER TABLE "PushSubscription"
         ADD COLUMN IF NOT EXISTS "enabled" BOOLEAN NOT NULL DEFAULT TRUE
+      `);
+      await this.prisma.$executeRawUnsafe(`
+        ALTER TABLE "PushSubscription"
+        ADD COLUMN IF NOT EXISTS "id" TEXT
       `);
     } catch (error) {
       this.logger.error(`Push subscription table is unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -78,9 +84,10 @@ export class NotificationService implements OnModuleInit {
       throw new BadRequestException('A valid push subscription is required.');
     }
 
+    const id = randomUUID();
     await this.prisma.$executeRaw`
-      INSERT INTO "PushSubscription" ("endpoint", "p256dh", "auth", "userAgent", "enabled", "updatedAt")
-      VALUES (${endpoint}, ${p256dh}, ${auth}, ${userAgent?.slice(0, 500) || null}, TRUE, NOW())
+      INSERT INTO "PushSubscription" ("id", "endpoint", "p256dh", "auth", "userAgent", "enabled", "updatedAt")
+      VALUES (${id}, ${endpoint}, ${p256dh}, ${auth}, ${userAgent?.slice(0, 500) || null}, TRUE, NOW())
       ON CONFLICT ("endpoint") DO UPDATE SET
         "p256dh" = EXCLUDED."p256dh",
         "auth" = EXCLUDED."auth",
