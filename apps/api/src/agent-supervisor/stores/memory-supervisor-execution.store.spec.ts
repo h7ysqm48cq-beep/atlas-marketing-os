@@ -37,26 +37,39 @@ function executionFixture(id: string, taskId: string): SupervisorExecution {
 }
 
 describe('MemorySupervisorExecutionStore', () => {
-  it('keeps execution history per task in creation order', () => {
+  it('exposes asynchronous store operations', async () => {
     const store = new MemorySupervisorExecutionStore();
-    store.create(executionFixture('EXEC-1', 'ATLAS-1'));
-    store.create(executionFixture('EXEC-2', 'ATLAS-1'));
-    store.create(executionFixture('EXEC-3', 'ATLAS-2'));
+    const fixture = executionFixture('EXEC-1', 'ATLAS-1');
 
-    expect(store.listByTask('ATLAS-1').map((x) => x.id)).toEqual([
+    const createResult = store.create(fixture);
+    expect(createResult).toBeInstanceOf(Promise);
+    await createResult;
+
+    expect(store.get('EXEC-1')).toBeInstanceOf(Promise);
+    expect(store.listByTask('ATLAS-1')).toBeInstanceOf(Promise);
+    expect(store.save(fixture)).toBeInstanceOf(Promise);
+  });
+
+  it('keeps execution history per task in creation order', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    await store.create(executionFixture('EXEC-1', 'ATLAS-1'));
+    await store.create(executionFixture('EXEC-2', 'ATLAS-1'));
+    await store.create(executionFixture('EXEC-3', 'ATLAS-2'));
+
+    expect((await store.listByTask('ATLAS-1')).map((x) => x.id)).toEqual([
       'EXEC-1',
       'EXEC-2',
     ]);
   });
 
-  it('returns clones so callers cannot mutate stored execution state', () => {
+  it('returns clones so callers cannot mutate stored execution state', async () => {
     const store = new MemorySupervisorExecutionStore();
-    const created = store.create(executionFixture('EXEC-1', 'ATLAS-1'));
+    const created = await store.create(executionFixture('EXEC-1', 'ATLAS-1'));
 
     created.status = 'FAILED';
     created.assignment.allowedPaths.push('outside.ts');
 
-    const stored = store.get('EXEC-1');
+    const stored = await store.get('EXEC-1');
     expect(stored?.status).toBe('QUEUED');
     expect(stored?.assignment.allowedPaths).toEqual([
       'apps/api/src/example.ts',
