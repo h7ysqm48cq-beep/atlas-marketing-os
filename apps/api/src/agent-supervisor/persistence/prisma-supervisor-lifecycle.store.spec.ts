@@ -111,4 +111,28 @@ describe('PrismaSupervisorLifecycleStore', () => {
     expect(tx.supervisorTask.update).not.toHaveBeenCalled();
     expect(tx.supervisorFileLock.createMany).not.toHaveBeenCalled();
   });
+
+  it('translates Prisma 7 driver-adapter path uniqueness into file ownership conflict', async () => {
+    const { prisma, tx } = mockPrisma();
+    const input = task();
+    tx.supervisorFileLock.findMany.mockResolvedValue([]);
+    tx.supervisorFileLock.createMany.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        driverAdapterError: {
+          cause: {
+            originalMessage:
+              'duplicate key value violates unique constraint "SupervisorFileLock_pkey"',
+            constraint: { fields: ['"path"'] },
+          },
+        },
+      },
+    });
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    await expect(store.saveWithLocks(input, 'acquire')).rejects.toMatchObject({
+      response: { code: 'file_ownership_conflict' },
+    });
+    expect(tx.supervisorTask.update).not.toHaveBeenCalled();
+  });
 });
