@@ -41,12 +41,15 @@ describe('WorkerDispatcherService', () => {
     return supervisor.startTask(task.id);
   }
 
-  it('dispatches a WORKING task with owned files', async () => {
+  it('dispatches a WORKING task with owned files and a restart-safe execution id', async () => {
     const task = await createWorkingTask();
 
     const result = await dispatcher.dispatch(task.id);
 
     expect(result.execution.status).toBe('DISPATCHED');
+    expect(result.execution.id).toMatch(
+      /^ATLAS-EXEC-\d{8}-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(result.assignment.taskId).toBe(task.id);
     expect(result.assignment.workerRole).toBe('backend');
     expect(result.assignment.allowedPaths).toEqual(task.allowedPaths);
@@ -108,6 +111,21 @@ describe('WorkerDispatcherService', () => {
 
     expect(second.execution.id).not.toBe(first.execution.id);
     expect(await executionStore.listByTask(task.id)).toHaveLength(2);
+  });
+
+  it('generates different execution ids across fresh dispatcher instances', async () => {
+    const task = await createWorkingTask();
+    const first = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(first.execution.id);
+    await dispatcher.fail(first.execution.id, 'worker failed');
+
+    const restartedDispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+    );
+    const second = await restartedDispatcher.dispatch(task.id);
+
+    expect(second.execution.id).not.toBe(first.execution.id);
   });
 
   it('rejects malformed worker results with invalid_worker_result', async () => {
