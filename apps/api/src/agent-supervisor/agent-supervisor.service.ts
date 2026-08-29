@@ -53,16 +53,19 @@ export class AgentSupervisorService {
     private readonly fileOwnershipStore: FileOwnershipStore,
   ) {}
 
-  status() {
-    const tasks = this.taskStore.list();
+  async status() {
+    const tasks = await this.taskStore.list();
+    const workingPaths = tasks
+      .filter((task) => task.status === 'WORKING')
+      .flatMap((task) => task.allowedPaths.map((path) => ({ task, path })));
+    const ownership = await Promise.all(
+      workingPaths.map(async ({ task, path }) => ({
+        path,
+        owned: (await this.fileOwnershipStore.findOwner(path)) === task.id,
+      })),
+    );
     const lockedFiles = new Set(
-      tasks
-        .filter((task) => task.status === 'WORKING')
-        .flatMap((task) =>
-          task.allowedPaths.filter(
-            (path) => this.fileOwnershipStore.findOwner(path) === task.id,
-          ),
-        ),
+      ownership.filter((entry) => entry.owned).map((entry) => entry.path),
     ).size;
 
     return {
@@ -74,15 +77,15 @@ export class AgentSupervisorService {
     };
   }
 
-  listTasks(): SupervisorTask[] {
+  async listTasks(): Promise<SupervisorTask[]> {
     return this.taskStore.list();
   }
 
-  getTask(id: string): SupervisorTask {
+  async getTask(id: string): Promise<SupervisorTask> {
     return this.requireTask(id);
   }
 
-  createTask(input: CreateSupervisorTaskInput): SupervisorTask {
+  async createTask(input: CreateSupervisorTaskInput): Promise<SupervisorTask> {
     this.validateCreateInput(input);
 
     const now = new Date();
@@ -105,23 +108,23 @@ export class AgentSupervisorService {
     return this.taskStore.create(task);
   }
 
-  startTask(id: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async startTask(id: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['DRAFT', 'BLOCKED']);
-    this.assertDependenciesReady(task);
-    this.assertFilesAvailable(task);
+    await this.assertDependenciesReady(task);
+    await this.assertFilesAvailable(task);
 
     task.status = 'WORKING';
     task.blockingReason = null;
     task.failureReason = null;
     task.updatedAt = new Date();
-    this.acquireFileOwnership(task);
+    await this.acquireFileOwnership(task);
 
     return this.taskStore.save(task);
   }
 
-  blockTask(id: string, reason: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async blockTask(id: string, reason: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['DRAFT', 'WORKING', 'VERIFYING']);
     if (!reason.trim()) {
       throw new BadRequestException('blocking_reason_required');
@@ -130,13 +133,13 @@ export class AgentSupervisorService {
     task.status = 'BLOCKED';
     task.blockingReason = reason.trim();
     task.updatedAt = new Date();
-    this.releaseFileOwnership(task.id);
+    await this.releaseFileOwnership(task.id);
 
     return this.taskStore.save(task);
   }
 
-  failTask(id: string, reason: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async failTask(id: string, reason: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     if (task.status === 'APPROVED' || task.status === 'FAILED') {
       throw new BadRequestException(`invalid_transition:${task.status}->FAILED`);
     }
@@ -147,16 +150,16 @@ export class AgentSupervisorService {
     task.status = 'FAILED';
     task.failureReason = reason.trim();
     task.updatedAt = new Date();
-    this.releaseFileOwnership(task.id);
+    await this.releaseFileOwnership(task.id);
 
     return this.taskStore.save(task);
   }
 
-  submitImplementation(
+  async submitImplementation(
     id: string,
     evidence: SupervisorEvidence,
-  ): SupervisorTask {
-    const task = this.requireTask(id);
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['WORKING']);
     this.validateEvidence(task, evidence);
 
@@ -173,8 +176,8 @@ export class AgentSupervisorService {
     return this.taskStore.save(task);
   }
 
-  beginVerification(id: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async beginVerification(id: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['IMPLEMENTED']);
     if (!task.evidence) {
       throw new BadRequestException('implementation_evidence_required');
@@ -185,25 +188,25 @@ export class AgentSupervisorService {
     return this.taskStore.save(task);
   }
 
-  returnToWorking(id: string, reason: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async returnToWorking(id: string, reason: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['IMPLEMENTED', 'VERIFYING', 'READY_FOR_REVIEW']);
     if (!reason.trim()) {
       throw new BadRequestException('return_reason_required');
     }
 
-    this.assertDependenciesReady(task);
-    this.assertFilesAvailable(task);
+    await this.assertDependenciesReady(task);
+    await this.assertFilesAvailable(task);
     task.status = 'WORKING';
     task.blockingReason = reason.trim();
     task.updatedAt = new Date();
-    this.acquireFileOwnership(task);
+    await this.acquireFileOwnership(task);
 
     return this.taskStore.save(task);
   }
 
-  markReadyForReview(id: string): SupervisorTask {
-    const task = this.requireTask(id);
+  async markReadyForReview(id: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['VERIFYING']);
     if (!task.evidence) {
       throw new BadRequestException('verification_evidence_required');
@@ -211,13 +214,16 @@ export class AgentSupervisorService {
 
     task.status = 'READY_FOR_REVIEW';
     task.updatedAt = new Date();
-    this.releaseFileOwnership(task.id);
+    await this.releaseFileOwnership(task.id);
 
     return this.taskStore.save(task);
   }
 
-  approveTask(id: string, explicitUserApproval: boolean): SupervisorTask {
-    const task = this.requireTask(id);
+  async approveTask(
+    id: string,
+    explicitUserApproval: boolean,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
     this.requireStatus(task, ['READY_FOR_REVIEW']);
     if (!explicitUserApproval) {
       throw new BadRequestException('explicit_user_approval_required');
@@ -307,36 +313,44 @@ export class AgentSupervisorService {
     return { allowed: false, reason: 'default_deny' };
   }
 
-  dependenciesReady(id: string): boolean {
-    const task = this.requireTask(id);
-    return task.dependsOn.every((dependencyId) => {
-      const dependency = this.taskStore.get(dependencyId);
-      return Boolean(
-        dependency &&
-          (['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
-            dependency.status,
-          ),
-      );
-    });
-  }
-
-  ownsAllowedPaths(id: string): boolean {
-    const task = this.requireTask(id);
-    return task.allowedPaths.every(
-      (path) => this.fileOwnershipStore.findOwner(path) === task.id,
+  async dependenciesReady(id: string): Promise<boolean> {
+    const task = await this.requireTask(id);
+    const dependencies = await Promise.all(
+      task.dependsOn.map((dependencyId) => this.taskStore.get(dependencyId)),
+    );
+    return dependencies.every(
+      (dependency) =>
+        Boolean(dependency) &&
+        (['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
+          dependency!.status,
+        ),
     );
   }
 
-  private assertDependenciesReady(task: SupervisorTask) {
-    const unresolved = task.dependsOn.filter((dependencyId) => {
-      const dependency = this.taskStore.get(dependencyId);
-      return (
-        !dependency ||
-        !(['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
-          dependency.status,
-        )
-      );
-    });
+  async ownsAllowedPaths(id: string): Promise<boolean> {
+    const task = await this.requireTask(id);
+    const owners = await Promise.all(
+      task.allowedPaths.map((path) => this.fileOwnershipStore.findOwner(path)),
+    );
+    return owners.every((owner) => owner === task.id);
+  }
+
+  private async assertDependenciesReady(task: SupervisorTask) {
+    const dependencies = await Promise.all(
+      task.dependsOn.map(async (dependencyId) => ({
+        dependencyId,
+        dependency: await this.taskStore.get(dependencyId),
+      })),
+    );
+    const unresolved = dependencies
+      .filter(
+        ({ dependency }) =>
+          !dependency ||
+          !(['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
+            dependency.status,
+          ),
+      )
+      .map(({ dependencyId }) => dependencyId);
 
     if (unresolved.length > 0) {
       throw new BadRequestException({
@@ -346,13 +360,17 @@ export class AgentSupervisorService {
     }
   }
 
-  private assertFilesAvailable(task: SupervisorTask) {
-    const conflicts = task.allowedPaths
-      .map((path) => ({ path, owner: this.fileOwnershipStore.findOwner(path) }))
-      .filter(
-        (entry): entry is { path: string; owner: string } =>
-          Boolean(entry.owner && entry.owner !== task.id),
-      );
+  private async assertFilesAvailable(task: SupervisorTask) {
+    const ownership = await Promise.all(
+      task.allowedPaths.map(async (path) => ({
+        path,
+        owner: await this.fileOwnershipStore.findOwner(path),
+      })),
+    );
+    const conflicts = ownership.filter(
+      (entry): entry is { path: string; owner: string } =>
+        Boolean(entry.owner && entry.owner !== task.id),
+    );
 
     if (conflicts.length > 0) {
       throw new BadRequestException({
@@ -362,12 +380,12 @@ export class AgentSupervisorService {
     }
   }
 
-  private acquireFileOwnership(task: SupervisorTask) {
-    this.fileOwnershipStore.acquire(task.id, task.allowedPaths);
+  private async acquireFileOwnership(task: SupervisorTask) {
+    await this.fileOwnershipStore.acquire(task.id, task.allowedPaths);
   }
 
-  private releaseFileOwnership(taskId: string) {
-    this.fileOwnershipStore.release(taskId);
+  private async releaseFileOwnership(taskId: string) {
+    await this.fileOwnershipStore.release(taskId);
   }
 
   private validateCreateInput(input: CreateSupervisorTaskInput) {
@@ -417,8 +435,8 @@ export class AgentSupervisorService {
     }
   }
 
-  private requireTask(id: string): SupervisorTask {
-    const task = this.taskStore.get(id);
+  private async requireTask(id: string): Promise<SupervisorTask> {
+    const task = await this.taskStore.get(id);
     if (!task) {
       throw new NotFoundException(`supervisor_task_not_found:${id}`);
     }
