@@ -18,6 +18,11 @@ export class JobsController {
     return this.jobsService.findAll(query);
   }
 
+  @Get('stats')
+  getStats() {
+    return this.jobsService.getStats();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.jobsService.findOne(id);

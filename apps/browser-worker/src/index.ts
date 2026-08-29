@@ -68,6 +68,7 @@ import {
   hasFacebookPublishNetworkError,
   startFacebookPublishNetworkCapture,
 } from "./facebook/publish-network.js";
+import { releasePreparedPage } from "./facebook/prepared-page.js";
 import {
   startSecureViewerServer,
 } from "./viewer-server.js";
@@ -155,6 +156,7 @@ type BrowserSession = {
   headless: boolean;
   currentUrl: string | null;
   preparedFacebookMediaCount: number;
+  preparedPage?: Page | null;
 };
 
 const app = express();
@@ -1596,9 +1598,12 @@ app.post(
 
     try {
       const page =
-        await getPreferredFacebookPage(
-          session.context,
-        );
+        session.preparedPage &&
+        !session.preparedPage.isClosed()
+          ? session.preparedPage
+          : await getPreferredFacebookPage(
+              session.context,
+            );
 
       const editors =
         page.locator(
@@ -3064,6 +3069,15 @@ app.post(
           new Date()
             .toISOString(),
       });
+
+      if (
+        verificationStatus ===
+        "CONFIRMED"
+      ) {
+        await releasePreparedPage(
+          session,
+        );
+      }
     } catch (error) {
       await facebookPublishNetworkCapture?.stop().catch(() => undefined);
       response.status(400).json({
@@ -3178,9 +3192,12 @@ app.post(
 
     try {
       const page =
-        await getPreferredFacebookPage(
-          session.context,
-        );
+        session.preparedPage &&
+        !session.preparedPage.isClosed()
+          ? session.preparedPage
+          : await getPreferredFacebookPage(
+              session.context,
+            );
 
       if (!page) {
         throw new Error(
@@ -3547,6 +3564,15 @@ app.post(
           new Date()
             .toISOString(),
       });
+
+      if (
+        session.preparedPage ===
+        page
+      ) {
+        await releasePreparedPage(
+          session,
+        );
+      }
     } catch (error) {
       response.status(400).json({
         success: false,
@@ -3915,6 +3941,10 @@ app.post(
       null;
 
     try {
+      await releasePreparedPage(
+        session,
+      );
+
       /*
        * DEDICATED_FACEBOOK_AUTOMATION_PAGE_V2
        *
@@ -5328,6 +5358,9 @@ app.post(
           new Date()
             .toISOString(),
       });
+
+      session.preparedPage =
+        page;
     } catch (error) {
       const page =
         automationPage;
@@ -5436,6 +5469,10 @@ app.post(
     let page: Page | null = null;
     let keepPageOpen = false;
     try {
+      await releasePreparedPage(
+        session,
+      );
+
       if (imagePaths.length + imageUrls.length > 10) throw new Error("Instagram carousel supports up to 10 images.");
       if (imageUrls.length) {
         stagingDirectory = await mkdtemp(path.join(tmpdir(), "atlas-instagram-image-"));
@@ -5477,6 +5514,7 @@ app.post(
       await dialog.waitFor({ state: "visible", timeout: 10000 }).catch(() => undefined);
       keepPageOpen = true;
       response.json({ success: true, readyForReview: true, published: false, imageAttached: attachedMediaCount === imagePaths.length, attachedMediaCount, browserProfileKey: session.browserProfileKey, page: { title: await page.title(), url: page.url() }, preparedAt: new Date().toISOString() });
+      session.preparedPage = page;
     } catch (error) {
       if (page && !keepPageOpen) {
         await page.close().catch(() => undefined);
@@ -5503,7 +5541,11 @@ app.post(
       return;
     }
     try {
-      const page = session.context.pages().at(-1);
+      const page =
+        session.preparedPage &&
+        !session.preparedPage.isClosed()
+          ? session.preparedPage
+          : session.context.pages().at(-1);
       if (!page) throw new Error("No active browser page was found.");
       const dialog = findInstagramDialog(page);
       await dialog.waitFor({ state: "visible", timeout: 5000 });
@@ -5512,6 +5554,7 @@ app.post(
       const confirmed = shareConfirmed || /post shared|your post has been shared|shared|posted/.test(bodyText);
       if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
       response.json({ success: true, published: true, verification: { status: "CONFIRMED" }, page: { title: await page.title(), url: page.url() }, publishedAt: new Date().toISOString() });
+      await releasePreparedPage(session);
     } catch (error) {
       response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to publish Instagram post." });
     }
@@ -5529,13 +5572,20 @@ app.post(
     }
 
     try {
-      const page = session.context.pages().at(-1);
+      const page =
+        session.preparedPage &&
+        !session.preparedPage.isClosed()
+          ? session.preparedPage
+          : session.context.pages().at(-1);
       if (!page) {
         response.json({ success: true, discarded: false, alreadyClosed: true });
         return;
       }
       await page.keyboard.press("Escape").catch(() => undefined);
       await page.close().catch(() => undefined);
+      if (session.preparedPage === page) {
+        session.preparedPage = null;
+      }
       response.json({ success: true, discarded: true, alreadyClosed: false });
     } catch (error) {
       response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to discard Instagram post." });

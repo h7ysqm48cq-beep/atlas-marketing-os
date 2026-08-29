@@ -67,6 +67,22 @@ export class JobsService {
     };
   }
 
+  async getStats() {
+    const groups = await this.prisma.backgroundJob.groupBy({
+      by: ['type', 'status'],
+      _count: { _all: true },
+    });
+
+    return {
+      total: groups.reduce((sum, group) => sum + group._count._all, 0),
+      groups: groups.map((group) => ({
+        type: group.type,
+        status: group.status,
+        count: group._count._all,
+      })),
+    };
+  }
+
   async findOne(id: string) {
     const job = await this.prisma.backgroundJob.findUnique({
       where: {
