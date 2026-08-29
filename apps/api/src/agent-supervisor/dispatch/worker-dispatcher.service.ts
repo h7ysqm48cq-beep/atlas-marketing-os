@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -48,8 +49,6 @@ const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
 
 @Injectable()
 export class WorkerDispatcherService {
-  private sequence = 0;
-
   constructor(
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
@@ -261,8 +260,7 @@ export class WorkerDispatcherService {
   }
 
   private nextExecutionId(now: Date) {
-    this.sequence += 1;
     const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-    return `ATLAS-EXEC-${date}-${String(this.sequence).padStart(4, '0')}`;
+    return `ATLAS-EXEC-${date}-${randomUUID()}`;
   }
 }
