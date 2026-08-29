@@ -5,11 +5,11 @@ import type { FileOwnershipStore } from './file-ownership.store';
 export class MemoryFileOwnershipStore implements FileOwnershipStore {
   private readonly owners = new Map<string, string>();
 
-  findOwner(path: string): string | null {
+  async findOwner(path: string): Promise<string | null> {
     return this.owners.get(path) ?? null;
   }
 
-  acquire(taskId: string, paths: string[]): void {
+  async acquire(taskId: string, paths: string[]): Promise<void> {
     const conflicts = paths
       .map((path) => ({ path, owner: this.owners.get(path) }))
       .filter(
@@ -29,7 +29,7 @@ export class MemoryFileOwnershipStore implements FileOwnershipStore {
     }
   }
 
-  release(taskId: string): void {
+  async release(taskId: string): Promise<void> {
     for (const [path, owner] of this.owners.entries()) {
       if (owner === taskId) {
         this.owners.delete(path);
