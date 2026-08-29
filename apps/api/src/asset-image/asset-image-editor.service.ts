@@ -45,6 +45,20 @@ export class AssetImageEditorService {
       : null;
   }
 
+  private async persistUploadedAsset<T>(
+    uploaded: Awaited<
+      ReturnType<SupabaseStorageService['uploadImage']>
+    >,
+    create: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await create();
+    } catch (error) {
+      await this.storageService.remove(uploaded.path).catch(() => undefined);
+      throw error;
+    }
+  }
+
 
   private async loadBrandSignatureLogo(
     brandId: string,
@@ -280,7 +294,8 @@ export class AssetImageEditorService {
       contentType: 'image/png',
     });
 
-    return this.prisma.asset.create({
+    return this.persistUploadedAsset(uploaded, () =>
+      this.prisma.asset.create({
       data: {
         brandId: brand.id,
         campaignId: sourceAsset.campaignId,
@@ -326,7 +341,8 @@ export class AssetImageEditorService {
         campaign: { select: { id: true, name: true } },
         history: { select: { id: true, topic: true } },
       },
-    });
+      }),
+    );
   }
 
   async aiEditExistingAsset(dto: AiEditExistingAssetDto) {
@@ -522,7 +538,8 @@ export class AssetImageEditorService {
 
     const height = finalMetadata.height ?? originalHeight;
 
-    return this.prisma.asset.create({
+    return this.persistUploadedAsset(uploaded, () =>
+      this.prisma.asset.create({
       data: {
         brandId: brand.id,
         campaignId: sourceAsset.campaignId,
@@ -600,7 +617,8 @@ export class AssetImageEditorService {
           },
         },
       },
-    });
+      }),
+    );
   }
 
   async eraseExistingAsset(dto: EraseExistingAssetDto) {
@@ -1602,7 +1620,8 @@ export class AssetImageEditorService {
           editedBuffer,
         ).metadata();
 
-      return this.prisma.asset.create({
+      return this.persistUploadedAsset(uploaded, () =>
+        this.prisma.asset.create({
         data: {
           brandId: brand.id,
           campaignId:
@@ -1674,7 +1693,8 @@ export class AssetImageEditorService {
             },
           },
         },
-      });
+        }),
+      );
     }
 
     if (!this.client) {
@@ -1901,7 +1921,8 @@ export class AssetImageEditorService {
 
     const finalMetadata = await sharp(editedBuffer).metadata();
 
-    return this.prisma.asset.create({
+    return this.persistUploadedAsset(uploaded, () =>
+      this.prisma.asset.create({
       data: {
         brandId: brand.id,
         campaignId: sourceAsset.campaignId,
@@ -1953,7 +1974,8 @@ export class AssetImageEditorService {
           },
         },
       },
-    });
+      }),
+    );
   }
 
   private createTextOverlay(
@@ -2021,8 +2043,14 @@ export class AssetImageEditorService {
     const logoBuffer = Buffer.from(await response.arrayBuffer());
     const scale = Math.max(0.4, Math.min(layer.scale ?? 0.85, 2));
     const targetWidth = Math.max(48, Math.round(width * 0.16 * scale));
+    const targetHeight = Math.max(48, Math.round(height * 0.16 * scale));
     const resizedLogo = await sharp(logoBuffer)
-      .resize({ width: targetWidth, withoutEnlargement: true })
+      .resize({
+        width: targetWidth,
+        height: targetHeight,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
       .png()
       .toBuffer();
     const logoMeta = await sharp(resizedLogo).metadata();

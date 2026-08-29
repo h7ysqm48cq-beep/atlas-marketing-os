@@ -1462,7 +1462,9 @@ export function ContentCalendar() {
                 <button
                   type="button"
                   key={post.id}
-                  className={styles.dayPopoverPost}
+                  className={`${styles.dayPopoverPost} ${
+                    post.status === "FAILED" ? styles.statusCardFAILED : ""
+                  }`}
                   onClick={() => {
                     setSelectedPost(post);
                     setDayPopover(null);
@@ -1490,7 +1492,15 @@ export function ContentCalendar() {
                     <small>{post.channel.name}</small>
                   </div>
 
-                  <b>{calendarStatusLabel(post.status)}</b>
+                  <b
+                    className={
+                      post.status === "FAILED"
+                        ? `${styles.detailStatus} ${styles.detailStatusFAILED}`
+                        : ""
+                    }
+                  >
+                    {calendarStatusLabel(post.status)}
+                  </b>
                 </button>
               ))}
             </div>

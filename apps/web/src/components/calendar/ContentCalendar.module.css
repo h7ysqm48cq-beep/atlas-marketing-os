@@ -1472,6 +1472,7 @@
 
 .dayPopover {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(620px, 100%);
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
@@ -1521,6 +1522,7 @@
 
 .dayPopoverList {
   display: grid;
+  min-height: 0;
   gap: 9px;
   padding: 18px 20px;
   overflow-y: auto;
@@ -1568,6 +1570,10 @@
   color: #c4b5fd;
   font-size: 9px;
   text-transform: uppercase;
+}
+
+.dayPopoverPost b.detailStatusFAILED {
+  color: #ff929b;
 }
 
 .dayPopover > footer {
