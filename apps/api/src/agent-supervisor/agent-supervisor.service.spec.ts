@@ -39,7 +39,7 @@ describe('AgentSupervisorService', () => {
         acceptance: ['passes'],
       }),
     ).rejects.toMatchObject({
-      response: 'worker_owner_required',
+      response: { code: 'worker_owner_required' },
     });
   });
 
