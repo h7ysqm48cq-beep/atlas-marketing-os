@@ -9,7 +9,7 @@ export class MemorySupervisorExecutionStore
   private readonly executions = new Map<string, SupervisorExecution>();
   private readonly order: string[] = [];
 
-  listByTask(taskId: string): SupervisorExecution[] {
+  async listByTask(taskId: string): Promise<SupervisorExecution[]> {
     return this.order
       .map((id) => this.executions.get(id))
       .filter(
@@ -19,19 +19,19 @@ export class MemorySupervisorExecutionStore
       .map((execution) => this.cloneExecution(execution));
   }
 
-  get(id: string): SupervisorExecution | null {
+  async get(id: string): Promise<SupervisorExecution | null> {
     const execution = this.executions.get(id);
     return execution ? this.cloneExecution(execution) : null;
   }
 
-  create(execution: SupervisorExecution): SupervisorExecution {
+  async create(execution: SupervisorExecution): Promise<SupervisorExecution> {
     const stored = this.cloneExecution(execution);
     this.executions.set(stored.id, stored);
     this.order.push(stored.id);
     return this.cloneExecution(stored);
   }
 
-  save(execution: SupervisorExecution): SupervisorExecution {
+  async save(execution: SupervisorExecution): Promise<SupervisorExecution> {
     const stored = this.cloneExecution(execution);
     if (!this.executions.has(stored.id)) {
       this.order.push(stored.id);
