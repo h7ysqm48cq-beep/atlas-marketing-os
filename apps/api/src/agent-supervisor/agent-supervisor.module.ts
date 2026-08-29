@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import {
   FILE_OWNERSHIP_STORE,
 } from './stores/file-ownership.store';
@@ -18,6 +19,7 @@ import {
   controllers: [AgentSupervisorController],
   providers: [
     AgentSupervisorService,
+    WorkerDispatcherService,
     MemorySupervisorTaskStore,
     MemorySupervisorExecutionStore,
     MemoryFileOwnershipStore,
@@ -36,6 +38,7 @@ import {
   ],
   exports: [
     AgentSupervisorService,
+    WorkerDispatcherService,
     SUPERVISOR_TASK_STORE,
     SUPERVISOR_EXECUTION_STORE,
     FILE_OWNERSHIP_STORE,
