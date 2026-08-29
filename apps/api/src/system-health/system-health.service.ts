@@ -122,6 +122,44 @@ export class SystemHealthService {
     }
   }
 
+  private async checkQueues() {
+    try {
+      const counts = {
+        queued: 0,
+        running: 0,
+        succeeded: 0,
+        failed: 0,
+        cancelled: 0,
+      };
+
+      const rows = await this.prisma.backgroundJob.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      });
+
+      for (const row of rows) {
+        const key = row.status.toLowerCase() as keyof typeof counts;
+
+        if (key in counts) {
+          counts[key] = row._count._all;
+        }
+      }
+
+      return {
+        status: 'healthy',
+        backgroundJobs: {
+          ...counts,
+          total: Object.values(counts).reduce((sum, count) => sum + count, 0),
+        },
+      };
+    } catch {
+      return {
+        status: 'unknown',
+        backgroundJobs: null,
+      };
+    }
+  }
+
 
   private buildStatus(
     ok: boolean,
@@ -168,6 +206,8 @@ export class SystemHealthService {
         await this.checkAssets(),
 
       calendar: await this.checkCalendar(),
+
+      queues: await this.checkQueues(),
 
       issues: [],
     };
