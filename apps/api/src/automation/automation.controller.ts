@@ -14,9 +14,6 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import { readFile, realpath } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import path from 'node:path';
 import {
   BrowserActionType,
   ScheduledPostStatus,
@@ -220,45 +217,15 @@ export class AutomationController {
       );
     }
 
-    const screenshotRoot = path.resolve(
-      process.env.BROWSER_SCREENSHOT_ROOT ||
-        path.join(homedir(), '.atlas', 'browser-screenshots'),
-    );
-
-    let canonicalRoot: string;
-
-    let canonicalScreenshot: string;
-
-    try {
-      [canonicalRoot, canonicalScreenshot] = await Promise.all([
-        realpath(screenshotRoot),
-        realpath(screenshotPath),
-      ]);
-    } catch {
-      throw new NotFoundException(
-        'The archived screenshot file could not be found.',
+    const image =
+      await this.browserRuntime.requestBuffer(
+        `/screenshots?path=${encodeURIComponent(
+          screenshotPath,
+        )}`,
+        {
+          method: 'GET',
+        },
       );
-    }
-
-    const insideRoot =
-      canonicalScreenshot === canonicalRoot ||
-      canonicalScreenshot.startsWith(`${canonicalRoot}${path.sep}`);
-
-    if (!insideRoot) {
-      throw new BadRequestException(
-        'The screenshot path is outside the configured archive.',
-      );
-    }
-
-    let image: Buffer;
-
-    try {
-      image = await readFile(canonicalScreenshot);
-    } catch {
-      throw new NotFoundException(
-        'The archived screenshot file could not be read.',
-      );
-    }
 
     response
       ?.set({

@@ -1252,6 +1252,111 @@ export class BrowserRuntimeBridgeService {
     }
   }
 
+  async requestBuffer(
+    path: string,
+    init: RequestInit,
+    authenticated = true,
+    timeoutMs = BROWSER_WORKER_REQUEST_TIMEOUT_MS,
+  ) {
+    const headers =
+      new Headers(
+        init.headers,
+      );
+
+    headers.set(
+      'Accept',
+      'image/jpeg',
+    );
+
+    if (authenticated) {
+      const token =
+        this.getWorkerToken();
+
+      if (!token) {
+        throw new ServiceUnavailableException(
+          'Browser Worker token is not configured.',
+        );
+      }
+
+      headers.set(
+        'Authorization',
+        `Bearer ${token}`,
+      );
+    }
+
+    try {
+      const controller =
+        new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        timeoutMs,
+      );
+
+      let response:
+        Awaited<ReturnType<typeof fetch>>;
+
+      try {
+        response = await fetch(
+          `${this.getWorkerUrl()}${path}`,
+          {
+            ...init,
+            headers,
+            signal: controller.signal,
+          },
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if (!response.ok) {
+        const raw =
+          await response.text();
+        let body: WorkerResponse = {};
+
+        if (raw.trim()) {
+          try {
+            body = JSON.parse(raw) as WorkerResponse;
+          } catch {
+            body = { message: raw };
+          }
+        }
+
+        throw new BadGatewayException({
+          message:
+            body.message ||
+            'Browser Worker screenshot request failed.',
+          workerStatus: response.status,
+          workerResponse: body,
+        });
+      }
+
+      return Buffer.from(
+        await response.arrayBuffer(),
+      );
+    } catch (error) {
+      if (
+        error instanceof BadGatewayException
+      ) {
+        throw error;
+      }
+
+      if (
+        error instanceof Error &&
+        error.name === 'AbortError'
+      ) {
+        throw new ServiceUnavailableException(
+          'Browser Worker request timed out.',
+        );
+      }
+
+      throw new ServiceUnavailableException(
+        error instanceof Error
+          ? `Browser Worker unavailable: ${error.message}`
+          : 'Browser Worker unavailable.',
+      );
+    }
+  }
+
   private validateStartUrl(
     value: string,
   ) {

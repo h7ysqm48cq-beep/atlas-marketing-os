@@ -62,6 +62,7 @@ import {
   openInstagramComposer,
 } from "./instagram/composer.js";
 import {
+  readBrowserScreenshot,
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
 import {
@@ -1144,6 +1145,46 @@ app.get(
       activeSessions:
         sessions.size,
     });
+  },
+);
+
+app.get(
+  "/screenshots",
+  async (request, response) => {
+    const screenshotPath =
+      typeof request.query.path === "string"
+        ? request.query.path.trim()
+        : "";
+
+    if (!screenshotPath) {
+      response.status(400).json({
+        message:
+          "Screenshot path is required.",
+      });
+      return;
+    }
+
+    try {
+      const image =
+        await readBrowserScreenshot(
+          screenshotPath,
+        );
+
+      response
+        .set({
+          "Content-Type": "image/jpeg",
+          "Cache-Control": "private, no-store",
+          "Content-Length": String(
+            image.byteLength,
+          ),
+        })
+        .send(image);
+    } catch {
+      response.status(404).json({
+        message:
+          "Screenshot was not found.",
+      });
+    }
   },
 );
 

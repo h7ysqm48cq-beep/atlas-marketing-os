@@ -1,5 +1,7 @@
 import {
   mkdir,
+  readFile,
+  realpath,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
@@ -19,6 +21,8 @@ export type SavedBrowserScreenshot = {
 const screenshotRoot =
   process.env
     .BROWSER_SCREENSHOT_ROOT ||
+  process.env
+    .BROWSER_SCREENSHOTS_ROOT ||
   path.join(
     process.cwd(),
     ".browser-screenshots",
@@ -35,6 +39,42 @@ function safeSegment(
 
 export function getBrowserScreenshotRoot() {
   return screenshotRoot;
+}
+
+export function screenshotPathIsInsideRoot(
+  root: string,
+  candidate: string,
+) {
+  const resolvedRoot = path.resolve(root);
+  const resolvedCandidate = path.resolve(candidate);
+
+  return (
+    resolvedCandidate === resolvedRoot ||
+    resolvedCandidate.startsWith(`${resolvedRoot}${path.sep}`)
+  );
+}
+
+export async function readBrowserScreenshot(
+  absolutePath: string,
+) {
+  const [canonicalRoot, canonicalScreenshot] =
+    await Promise.all([
+      realpath(screenshotRoot),
+      realpath(absolutePath),
+    ]);
+
+  if (
+    !screenshotPathIsInsideRoot(
+      canonicalRoot,
+      canonicalScreenshot,
+    )
+  ) {
+    throw new Error(
+      "Screenshot path is outside the configured archive.",
+    );
+  }
+
+  return readFile(canonicalScreenshot);
 }
 
 export async function saveBrowserScreenshot(
