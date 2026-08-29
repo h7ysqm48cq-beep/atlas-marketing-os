@@ -39,11 +39,11 @@ export class WorkerDispatcherService {
     private readonly executionStore: SupervisorExecutionStore,
   ) {}
 
-  dispatch(taskId: string): {
+  async dispatch(taskId: string): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
-  } {
-    const task = this.supervisor.getTask(taskId);
+  }> {
+    const task = await this.supervisor.getTask(taskId);
     if (task.status !== 'WORKING') {
       throw new BadRequestException({
         code: 'task_not_dispatchable',
@@ -52,11 +52,11 @@ export class WorkerDispatcherService {
       });
     }
 
-    if (!this.supervisor.dependenciesReady(taskId)) {
+    if (!(await this.supervisor.dependenciesReady(taskId))) {
       throw new BadRequestException('dependencies_not_ready');
     }
 
-    if (!this.supervisor.ownsAllowedPaths(taskId)) {
+    if (!(await this.supervisor.ownsAllowedPaths(taskId))) {
       throw new ConflictException('file_ownership_missing');
     }
 
@@ -86,7 +86,7 @@ export class WorkerDispatcherService {
       requiredEvidence: [...REQUIRED_EVIDENCE],
     };
 
-    const queued = this.executionStore.create({
+    const queued = await this.executionStore.create({
       id: executionId,
       taskId: task.id,
       workerRole: task.owner,
@@ -100,7 +100,7 @@ export class WorkerDispatcherService {
     });
 
     queued.status = 'DISPATCHED';
-    const execution = this.executionStore.save(queued);
+    const execution = await this.executionStore.save(queued);
 
     return {
       execution,
@@ -108,17 +108,17 @@ export class WorkerDispatcherService {
     };
   }
 
-  listByTask(taskId: string): SupervisorExecution[] {
-    this.supervisor.getTask(taskId);
+  async listByTask(taskId: string): Promise<SupervisorExecution[]> {
+    await this.supervisor.getTask(taskId);
     return this.executionStore.listByTask(taskId);
   }
 
-  getExecution(executionId: string): SupervisorExecution {
+  async getExecution(executionId: string): Promise<SupervisorExecution> {
     return this.requireExecution(executionId);
   }
 
-  markRunning(executionId: string): SupervisorExecution {
-    const execution = this.requireExecution(executionId);
+  async markRunning(executionId: string): Promise<SupervisorExecution> {
+    const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED']);
 
     execution.status = 'RUNNING';
@@ -127,11 +127,11 @@ export class WorkerDispatcherService {
     return this.executionStore.save(execution);
   }
 
-  complete(
+  async complete(
     executionId: string,
     result: WorkerExecutionResult,
-  ): SupervisorExecution {
-    const execution = this.requireExecution(executionId);
+  ): Promise<SupervisorExecution> {
+    const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     if (!result.summary?.trim()) {
       throw new BadRequestException('worker_result_summary_required');
@@ -153,8 +153,8 @@ export class WorkerDispatcherService {
     return this.executionStore.save(execution);
   }
 
-  fail(executionId: string, error: string): SupervisorExecution {
-    const execution = this.requireExecution(executionId);
+  async fail(executionId: string, error: string): Promise<SupervisorExecution> {
+    const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     if (!error?.trim()) {
       throw new BadRequestException('worker_execution_error_required');
@@ -166,8 +166,11 @@ export class WorkerDispatcherService {
     return this.executionStore.save(execution);
   }
 
-  cancel(executionId: string, reason: string): SupervisorExecution {
-    const execution = this.requireExecution(executionId);
+  async cancel(
+    executionId: string,
+    reason: string,
+  ): Promise<SupervisorExecution> {
+    const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED', 'RUNNING']);
     if (!reason?.trim()) {
       throw new BadRequestException('worker_execution_cancel_reason_required');
@@ -179,8 +182,10 @@ export class WorkerDispatcherService {
     return this.executionStore.save(execution);
   }
 
-  private requireExecution(executionId: string): SupervisorExecution {
-    const execution = this.executionStore.get(executionId);
+  private async requireExecution(
+    executionId: string,
+  ): Promise<SupervisorExecution> {
+    const execution = await this.executionStore.get(executionId);
     if (!execution) {
       throw new NotFoundException(
         `supervisor_execution_not_found:${executionId}`,
