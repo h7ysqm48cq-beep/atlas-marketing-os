@@ -2,30 +2,42 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { AuthContextService } from '../auth/auth-context.service';
 
 @Injectable()
 export class BrandsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authContext: AuthContextService,
+  ) {}
 
   async list() {
-    await this.ensureDefaultBrand();
+    const workspace = await this.getUserWorkspace();
+    await this.ensureDefaultBrand(workspace.id);
     return this.prisma.brand.findMany({
-      where: { status: 'ACTIVE' },
+      where: { workspaceId: workspace.id, status: 'ACTIVE' },
       orderBy: { updatedAt: 'desc' },
       include: { workspace: { select: { id: true, name: true, slug: true } } },
     });
   }
 
   async get(id: string) {
-    const brand = await this.prisma.brand.findUnique({ where: { id }, include: { workspace: true } });
+    const userId = this.authContext.requireUserId();
+    const brand = await this.prisma.brand.findUnique({
+      where: { id, workspace: { ownerUserId: userId } },
+      include: { workspace: true },
+    });
     if (!brand) throw new NotFoundException('Brand not found.');
     return brand;
   }
 
   async getActiveBrand() {
-    await this.ensureDefaultBrand();
+    const workspace = this.authContext.getUserId()
+      ? await this.getUserWorkspace()
+      : await this.getSystemWorkspace();
+    await this.ensureDefaultBrand(workspace.id);
     const brand = await this.prisma.brand.findFirst({
-      where: { status: 'ACTIVE' },
+      where: { workspaceId: workspace.id, status: 'ACTIVE' },
       orderBy: { updatedAt: 'desc' },
       include: { workspace: true },
     });
@@ -34,7 +46,7 @@ export class BrandsService {
   }
 
   async create(dto: CreateBrandDto) {
-    const workspace = await this.getDefaultWorkspace();
+    const workspace = await this.getUserWorkspace();
     return this.prisma.brand.create({ data: { workspaceId: workspace.id, ...dto } });
   }
 
@@ -43,7 +55,20 @@ export class BrandsService {
     return this.prisma.brand.update({ where: { id }, data: dto });
   }
 
-  private async getDefaultWorkspace() {
+  private async getUserWorkspace() {
+    const userId = this.authContext.requireUserId();
+    return this.prisma.workspace.upsert({
+      where: { ownerUserId: userId },
+      update: {},
+      create: {
+        name: 'Atlas Workspace',
+        slug: `atlas-${userId}`,
+        ownerUserId: userId,
+      },
+    });
+  }
+
+  private async getSystemWorkspace() {
     return this.prisma.workspace.upsert({
       where: { slug: 'mgmbetmyr' },
       update: {},
@@ -51,13 +76,12 @@ export class BrandsService {
     });
   }
 
-  private async ensureDefaultBrand() {
-    const workspace = await this.getDefaultWorkspace();
-    const existing = await this.prisma.brand.findFirst({ where: { workspaceId: workspace.id, status: 'ACTIVE' } });
+  private async ensureDefaultBrand(workspaceId: string) {
+    const existing = await this.prisma.brand.findFirst({ where: { workspaceId, status: 'ACTIVE' } });
     if (existing) return existing;
     return this.prisma.brand.create({
       data: {
-        workspaceId: workspace.id,
+        workspaceId,
         name: 'MGMBETMYR', website: 'https://mgmbetmyr.com', industry: 'Entertainment',
         country: 'Malaysia', primaryLanguage: 'Chinese and English',
         targetAudience: 'Malaysian Chinese adults aged 21–45 interested in sports, entertainment, lifestyle and nostalgic content.',

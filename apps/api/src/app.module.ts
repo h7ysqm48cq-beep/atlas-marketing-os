@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AiRuntimeModule } from './ai-runtime/ai-runtime.module';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module';
@@ -44,6 +44,8 @@ import { ImageProcessingModule } from './image-processing/image-processing.modul
 import { SystemHealthModule } from './system-health/system-health.module';
 import { NotificationModule } from './notifications/notification.module';
 import { SupabaseAuthGuard } from './auth/supabase-auth.guard';
+import { AuthContextModule } from './auth/auth-context.module';
+import { AuthContextInterceptor } from './auth/auth-context.interceptor';
 @Module({
   imports: [
     SystemHealthModule,
@@ -67,6 +69,7 @@ import { SupabaseAuthGuard } from './auth/supabase-auth.guard';
     ScheduleModule.forRoot(), AutomationModule, WorkflowModule, AiUsageModule, 
     PromptChainModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    AuthContextModule,
     DatabaseModule,
     CommonModule,
     BrandsModule,
@@ -92,6 +95,10 @@ import { SupabaseAuthGuard } from './auth/supabase-auth.guard';
     {
       provide: APP_GUARD,
       useClass: SupabaseAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuthContextInterceptor,
     },
   ],
 })
