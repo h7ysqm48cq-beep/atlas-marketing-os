@@ -160,6 +160,36 @@ describe('PrismaSupervisorExecutionStore', () => {
     });
   });
 
+  it('translates Prisma 7 driver-adapter active execution unique metadata', async () => {
+    const prisma = mockPrisma();
+    prisma.supervisorExecution.create.mockRejectedValue({
+      code: 'P2002',
+      meta: {
+        modelName: 'SupervisorExecution',
+        driverAdapterError: {
+          name: 'DriverAdapterError',
+          cause: {
+            originalCode: '23505',
+            originalMessage:
+              'duplicate key value violates unique constraint "SupervisorExecution_one_active_per_task"',
+            kind: 'UniqueConstraintViolation',
+            constraint: {
+              fields: ['taskId'],
+            },
+          },
+        },
+      },
+    });
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(store.create(execution())).rejects.toMatchObject({
+      response: {
+        code: 'active_execution_exists',
+        taskId: 'ATLAS-1',
+      },
+    });
+  });
+
   it('does not misclassify unrelated unique conflicts as active execution conflicts', async () => {
     const prisma = mockPrisma();
     prisma.supervisorExecution.create.mockRejectedValue({
