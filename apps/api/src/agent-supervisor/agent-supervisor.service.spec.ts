@@ -13,8 +13,8 @@ describe('AgentSupervisorService', () => {
     );
   });
 
-  it('creates bounded tasks in DRAFT state', () => {
-    const task = service.createTask({
+  it('creates bounded tasks in DRAFT state', async () => {
+    const task = await service.createTask({
       objective: 'Fix calendar image save',
       owner: 'frontend',
       allowedPaths: ['apps/web/src/components/Calendar.tsx'],
@@ -28,8 +28,8 @@ describe('AgentSupervisorService', () => {
     expect(task.owner).toBe('frontend');
   });
 
-  it('blocks a second active task that wants the same mutable file', () => {
-    const first = service.createTask({
+  it('blocks a second active task that wants the same mutable file', async () => {
+    const first = await service.createTask({
       objective: 'First task',
       owner: 'frontend',
       allowedPaths: ['apps/web/src/components/ImageBrandEditor.tsx'],
@@ -37,7 +37,7 @@ describe('AgentSupervisorService', () => {
       dependsOn: [],
       acceptance: ['first'],
     });
-    const second = service.createTask({
+    const second = await service.createTask({
       objective: 'Second task',
       owner: 'frontend',
       allowedPaths: ['apps/web/src/components/ImageBrandEditor.tsx'],
@@ -46,13 +46,15 @@ describe('AgentSupervisorService', () => {
       acceptance: ['second'],
     });
 
-    service.startTask(first.id);
+    await service.startTask(first.id);
 
-    expect(() => service.startTask(second.id)).toThrow(BadRequestException);
+    await expect(service.startTask(second.id)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
-  it('requires dependencies to be READY_FOR_REVIEW or APPROVED before starting', () => {
-    const upstream = service.createTask({
+  it('requires dependencies to be READY_FOR_REVIEW or APPROVED before starting', async () => {
+    const upstream = await service.createTask({
       objective: 'Backend contract',
       owner: 'backend',
       allowedPaths: ['apps/api/src/example.ts'],
@@ -60,7 +62,7 @@ describe('AgentSupervisorService', () => {
       dependsOn: [],
       acceptance: ['contract exists'],
     });
-    const downstream = service.createTask({
+    const downstream = await service.createTask({
       objective: 'Frontend integration',
       owner: 'frontend',
       allowedPaths: ['apps/web/src/example.tsx'],
@@ -69,11 +71,13 @@ describe('AgentSupervisorService', () => {
       acceptance: ['integration works'],
     });
 
-    expect(() => service.startTask(downstream.id)).toThrow(BadRequestException);
+    await expect(service.startTask(downstream.id)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
-  it('enforces worker-to-supervisor verification progression', () => {
-    const task = service.createTask({
+  it('enforces worker-to-supervisor verification progression', async () => {
+    const task = await service.createTask({
       objective: 'State progression',
       owner: 'backend',
       allowedPaths: ['apps/api/src/example.ts'],
@@ -82,8 +86,8 @@ describe('AgentSupervisorService', () => {
       acceptance: ['passes'],
     });
 
-    service.startTask(task.id);
-    service.submitImplementation(task.id, {
+    await service.startTask(task.id);
+    await service.submitImplementation(task.id, {
       rootCause: 'Confirmed cause',
       changedFiles: ['apps/api/src/example.ts'],
       tests: ['focused test PASS'],
@@ -93,8 +97,8 @@ describe('AgentSupervisorService', () => {
       gitState: 'NO_INTEGRATION_PERFORMED',
       remainingRisk: [],
     });
-    service.beginVerification(task.id);
-    const ready = service.markReadyForReview(task.id);
+    await service.beginVerification(task.id);
+    const ready = await service.markReadyForReview(task.id);
 
     expect(ready.status).toBe('READY_FOR_REVIEW');
   });
