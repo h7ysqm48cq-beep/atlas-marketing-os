@@ -5,6 +5,16 @@ import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-exec
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
 import { WorkerDispatcherService } from './worker-dispatcher.service';
 
+const PROTECTED_ACTIONS = [
+  'merge',
+  'rebase',
+  'squash',
+  'cherry_pick',
+  'auto_merge',
+  'force_push',
+  'delete_branch_for_integration',
+];
+
 describe('WorkerDispatcherService', () => {
   let supervisor: AgentSupervisorService;
   let fileStore: MemoryFileOwnershipStore;
@@ -66,7 +76,29 @@ describe('WorkerDispatcherService', () => {
     );
   });
 
-  it('creates a new execution for each retry', async () => {
+  it('rejects a second active execution for the same task before persistence', async () => {
+    const task = await createWorkingTask();
+    await dispatcher.dispatch(task.id);
+
+    await expect(dispatcher.dispatch(task.id)).rejects.toMatchObject({
+      response: {
+        code: 'active_execution_exists',
+        taskId: task.id,
+      },
+    });
+  });
+
+  it('always includes protected integration actions in the assignment envelope', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(task.id);
+
+    expect(result.assignment.forbiddenActions).toEqual(
+      expect.arrayContaining(PROTECTED_ACTIONS),
+    );
+  });
+
+  it('creates a new execution for each retry after the previous execution is terminal', async () => {
     const task = await createWorkingTask();
 
     const first = await dispatcher.dispatch(task.id);
@@ -76,6 +108,20 @@ describe('WorkerDispatcherService', () => {
 
     expect(second.execution.id).not.toBe(first.execution.id);
     expect(await executionStore.listByTask(task.id)).toHaveLength(2);
+  });
+
+  it('rejects malformed worker results with invalid_worker_result', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    await expect(
+      dispatcher.complete(dispatched.execution.id, {
+        summary: 'Implemented',
+      } as never),
+    ).rejects.toMatchObject({
+      response: { code: 'invalid_worker_result' },
+    });
   });
 
   it('does not move the task to READY_FOR_REVIEW when execution completes', async () => {
