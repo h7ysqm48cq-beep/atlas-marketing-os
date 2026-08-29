@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "node scripts/check-background-job-regression.cjs",
+    "prebuild": "prisma generate --config ../../prisma.config.ts && node scripts/check-background-job-regression.cjs",
     "build": "nest build",
     "db:migrate": "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} prisma migrate deploy --schema prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -18,7 +18,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
@@ -65,7 +65,7 @@
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.2.2",
+    "eslint-plugin-prettier": "^5.5.4",
     "globals": "^17.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.4.2",
