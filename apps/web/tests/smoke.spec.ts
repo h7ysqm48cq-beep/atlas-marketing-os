@@ -30,3 +30,8 @@ test("Atlas system health page loads", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("Atlas API root proxy forwards the root request", async ({ page }) => {
+  const response = await page.request.get("/api/atlas/");
+
+  expect(response.status()).toBe(200);
+});
