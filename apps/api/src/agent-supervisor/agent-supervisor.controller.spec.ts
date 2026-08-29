@@ -53,4 +53,21 @@ describe('AgentSupervisorController', () => {
 
     expect(await controller.listExecutions(task.id)).toHaveLength(1);
   });
+
+  it('gets one execution by id', async () => {
+    const task = await supervisor.createTask({
+      objective: 'Backend task',
+      owner: 'backend',
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: [],
+      dependsOn: [],
+      acceptance: ['passes'],
+    });
+    await supervisor.startTask(task.id);
+    const dispatched = await dispatcher.dispatch(task.id);
+
+    await expect(controller.getExecution(dispatched.execution.id)).resolves.toEqual(
+      dispatched.execution,
+    );
+  });
 });
