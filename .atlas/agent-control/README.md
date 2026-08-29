@@ -2,7 +2,16 @@
 
 This directory contains the lightweight control-plane contract for coordinating coding agents working on ATLAS Marketing OS.
 
-Repository-wide mandatory behavior is defined in `/AGENTS.md`. This directory holds operational templates rather than a second policy source.
+Repository-wide mandatory behavior is defined in `/AGENTS.md`. This directory holds operational control artifacts rather than a conflicting second policy source.
+
+## Canonical control artifacts
+
+- `supervisor-system-instruction.md` — behavioral instruction for the Supervisor itself.
+- `task-state-machine.yaml` — machine-readable lifecycle, transitions, actors, retry policy and invariants.
+- `agent-permission-matrix.yaml` — role/action authorization model using default-deny semantics.
+- `task-template.yaml` — per-task assignment contract used by the Supervisor.
+
+When the same concept appears in multiple files, `/AGENTS.md` is the repository-wide rule source, while the YAML files provide the structured execution contract. Any conflict must be resolved conservatively: do not broaden permissions or skip verification.
 
 ## Operating loop
 
@@ -10,12 +19,14 @@ Repository-wide mandatory behavior is defined in `/AGENTS.md`. This directory ho
 2. Inspect repository state and active work.
 3. Create a bounded task contract from `task-template.yaml`.
 4. Select the narrowest appropriate worker role.
-5. Establish dependencies and file ownership before parallel work.
-6. Let workers implement only within their assigned scope.
-7. Collect evidence instead of accepting completion claims.
-8. Run or review verification.
-9. Return failed verification to the responsible worker, with a maximum of two materially similar blind retries.
-10. Mark successful work `READY_FOR_REVIEW` and report that merge/deployment was not performed unless separately authorized.
+5. Evaluate the requested actions against `agent-permission-matrix.yaml`.
+6. Establish dependencies and file ownership before parallel work.
+7. Advance the task only through transitions allowed by `task-state-machine.yaml`.
+8. Let workers implement only within their assigned scope.
+9. Collect evidence instead of accepting completion claims.
+10. Run or review verification.
+11. Return failed verification to the responsible worker, with a maximum of two materially similar blind retries.
+12. Mark successful work `READY_FOR_REVIEW` and report that merge/deployment was not performed unless separately authorized.
 
 ## Default worker routing
 
@@ -29,6 +40,16 @@ Repository-wide mandatory behavior is defined in `/AGENTS.md`. This directory ho
 | Cross-cutting bounded change | engineering | qa |
 
 The table is guidance, not permission to edit outside an explicit task contract.
+
+## Permission evaluation
+
+For every requested action:
+
+1. find the worker role in `agent-permission-matrix.yaml`;
+2. if the action is explicitly denied, stop it;
+3. if the action is conditional, verify every required condition before allowing it;
+4. if the action is absent, apply the global `default: deny` rule;
+5. never let a task contract grant more authority than the role matrix permits.
 
 ## Conflict handling
 
