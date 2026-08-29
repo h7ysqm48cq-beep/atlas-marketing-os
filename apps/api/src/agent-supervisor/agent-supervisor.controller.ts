@@ -1,5 +1,9 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import type {
+  WorkerExecutionResult,
+} from './execution/supervisor-execution.types';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -10,7 +14,10 @@ import type {
 
 @Controller('engineering/supervisor')
 export class AgentSupervisorController {
-  constructor(private readonly supervisor: AgentSupervisorService) {}
+  constructor(
+    private readonly supervisor: AgentSupervisorService,
+    private readonly dispatcher: WorkerDispatcherService,
+  ) {}
 
   @Get('status')
   status() {
@@ -79,6 +86,39 @@ export class AgentSupervisorController {
     @Body() body: { explicitUserApproval: boolean },
   ) {
     return this.supervisor.approveTask(id, body.explicitUserApproval === true);
+  }
+
+  @Post('tasks/:id/dispatch')
+  dispatchTask(@Param('id') id: string) {
+    return this.dispatcher.dispatch(id);
+  }
+
+  @Get('tasks/:id/executions')
+  listExecutions(@Param('id') id: string) {
+    return this.dispatcher.listByTask(id);
+  }
+
+  @Post('executions/:id/running')
+  markExecutionRunning(@Param('id') id: string) {
+    return this.dispatcher.markRunning(id);
+  }
+
+  @Post('executions/:id/complete')
+  completeExecution(
+    @Param('id') id: string,
+    @Body() result: WorkerExecutionResult,
+  ) {
+    return this.dispatcher.complete(id, result);
+  }
+
+  @Post('executions/:id/fail')
+  failExecution(@Param('id') id: string, @Body() body: { error: string }) {
+    return this.dispatcher.fail(id, body.error ?? '');
+  }
+
+  @Post('executions/:id/cancel')
+  cancelExecution(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.dispatcher.cancel(id, body.reason ?? '');
   }
 
   @Post('permissions/check')
