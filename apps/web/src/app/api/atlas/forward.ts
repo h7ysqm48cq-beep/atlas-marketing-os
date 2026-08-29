@@ -17,10 +17,7 @@ function getApiBaseUrl() {
   return configured.replace(/\/+$/, "");
 }
 
-export async function forward(
-  request: NextRequest,
-  context?: RouteContext,
-) {
+export async function forward(request: NextRequest, context: RouteContext) {
   const supabase = await createClient();
   const { data: sessionData } = await supabase.auth.getSession();
   const { data: claimsData } = await supabase.auth.getClaims();
@@ -32,9 +29,7 @@ export async function forward(
     );
   }
 
-  const { path = [] } = context
-    ? await context.params
-    : {};
+  const { path = [] } = await context.params;
   const target = new URL(
     path.length ? `/${path.join("/")}` : "/",
     getApiBaseUrl(),
