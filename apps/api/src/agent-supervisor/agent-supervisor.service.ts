@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -54,8 +55,6 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
 
 @Injectable()
 export class AgentSupervisorService {
-  private sequence = 0;
-
   constructor(
     @Inject(SUPERVISOR_TASK_STORE)
     private readonly taskStore: SupervisorTaskStore,
@@ -81,7 +80,7 @@ export class AgentSupervisorService {
     return {
       engine: 'agent-supervisor',
       status: 'ready',
-      persistence: 'memory',
+      persistence: 'prisma',
       tasks: tasks.length,
       lockedFiles,
     };
@@ -454,9 +453,8 @@ export class AgentSupervisorService {
   }
 
   private nextTaskId(now: Date) {
-    this.sequence += 1;
     const date = now.toISOString().slice(0, 10).replace(/-/g, '');
-    return `ATLAS-${date}-${String(this.sequence).padStart(4, '0')}`;
+    return `ATLAS-${date}-${randomUUID()}`;
   }
 
   private unique<T>(items: T[]): T[] {
