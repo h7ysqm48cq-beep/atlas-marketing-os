@@ -1,6 +1,6 @@
 import {
   BadRequestException,
-  ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +14,14 @@ import type {
   SupervisorTask,
   SupervisorTaskStatus,
 } from './agent-supervisor.types';
+import {
+  FILE_OWNERSHIP_STORE,
+  type FileOwnershipStore,
+} from './stores/file-ownership.store';
+import {
+  SUPERVISOR_TASK_STORE,
+  type SupervisorTaskStore,
+} from './stores/supervisor-task.store';
 
 const PROTECTED_INTEGRATION_ACTIONS = new Set<SupervisorAction>([
   'merge',
@@ -36,26 +44,42 @@ const BASE_ALLOWED_ACTIONS = new Set<SupervisorAction>([
 
 @Injectable()
 export class AgentSupervisorService {
-  private readonly tasks = new Map<string, SupervisorTask>();
-  private readonly fileOwners = new Map<string, string>();
   private sequence = 0;
 
+  constructor(
+    @Inject(SUPERVISOR_TASK_STORE)
+    private readonly taskStore: SupervisorTaskStore,
+    @Inject(FILE_OWNERSHIP_STORE)
+    private readonly fileOwnershipStore: FileOwnershipStore,
+  ) {}
+
   status() {
+    const tasks = this.taskStore.list();
+    const lockedFiles = new Set(
+      tasks
+        .filter((task) => task.status === 'WORKING')
+        .flatMap((task) =>
+          task.allowedPaths.filter(
+            (path) => this.fileOwnershipStore.findOwner(path) === task.id,
+          ),
+        ),
+    ).size;
+
     return {
       engine: 'agent-supervisor',
       status: 'ready',
       persistence: 'memory',
-      tasks: this.tasks.size,
-      lockedFiles: this.fileOwners.size,
+      tasks: tasks.length,
+      lockedFiles,
     };
   }
 
   listTasks(): SupervisorTask[] {
-    return Array.from(this.tasks.values()).map((task) => this.cloneTask(task));
+    return this.taskStore.list();
   }
 
   getTask(id: string): SupervisorTask {
-    return this.cloneTask(this.requireTask(id));
+    return this.requireTask(id);
   }
 
   createTask(input: CreateSupervisorTaskInput): SupervisorTask {
@@ -78,8 +102,7 @@ export class AgentSupervisorService {
       updatedAt: now,
     };
 
-    this.tasks.set(task.id, task);
-    return this.cloneTask(task);
+    return this.taskStore.create(task);
   }
 
   startTask(id: string): SupervisorTask {
@@ -94,7 +117,7 @@ export class AgentSupervisorService {
     task.updatedAt = new Date();
     this.acquireFileOwnership(task);
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   blockTask(id: string, reason: string): SupervisorTask {
@@ -109,7 +132,7 @@ export class AgentSupervisorService {
     task.updatedAt = new Date();
     this.releaseFileOwnership(task.id);
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   failTask(id: string, reason: string): SupervisorTask {
@@ -126,7 +149,7 @@ export class AgentSupervisorService {
     task.updatedAt = new Date();
     this.releaseFileOwnership(task.id);
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   submitImplementation(
@@ -147,7 +170,7 @@ export class AgentSupervisorService {
     task.status = 'IMPLEMENTED';
     task.updatedAt = new Date();
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   beginVerification(id: string): SupervisorTask {
@@ -159,7 +182,7 @@ export class AgentSupervisorService {
 
     task.status = 'VERIFYING';
     task.updatedAt = new Date();
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   returnToWorking(id: string, reason: string): SupervisorTask {
@@ -176,7 +199,7 @@ export class AgentSupervisorService {
     task.updatedAt = new Date();
     this.acquireFileOwnership(task);
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   markReadyForReview(id: string): SupervisorTask {
@@ -190,7 +213,7 @@ export class AgentSupervisorService {
     task.updatedAt = new Date();
     this.releaseFileOwnership(task.id);
 
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   approveTask(id: string, explicitUserApproval: boolean): SupervisorTask {
@@ -202,7 +225,7 @@ export class AgentSupervisorService {
 
     task.status = 'APPROVED';
     task.updatedAt = new Date();
-    return this.cloneTask(task);
+    return this.taskStore.save(task);
   }
 
   checkPermission(
@@ -284,9 +307,29 @@ export class AgentSupervisorService {
     return { allowed: false, reason: 'default_deny' };
   }
 
+  dependenciesReady(id: string): boolean {
+    const task = this.requireTask(id);
+    return task.dependsOn.every((dependencyId) => {
+      const dependency = this.taskStore.get(dependencyId);
+      return Boolean(
+        dependency &&
+          (['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
+            dependency.status,
+          ),
+      );
+    });
+  }
+
+  ownsAllowedPaths(id: string): boolean {
+    const task = this.requireTask(id);
+    return task.allowedPaths.every(
+      (path) => this.fileOwnershipStore.findOwner(path) === task.id,
+    );
+  }
+
   private assertDependenciesReady(task: SupervisorTask) {
     const unresolved = task.dependsOn.filter((dependencyId) => {
-      const dependency = this.tasks.get(dependencyId);
+      const dependency = this.taskStore.get(dependencyId);
       return (
         !dependency ||
         !(['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
@@ -305,14 +348,14 @@ export class AgentSupervisorService {
 
   private assertFilesAvailable(task: SupervisorTask) {
     const conflicts = task.allowedPaths
-      .map((path) => ({ path, owner: this.fileOwners.get(path) }))
+      .map((path) => ({ path, owner: this.fileOwnershipStore.findOwner(path) }))
       .filter(
         (entry): entry is { path: string; owner: string } =>
           Boolean(entry.owner && entry.owner !== task.id),
       );
 
     if (conflicts.length > 0) {
-      throw new ConflictException({
+      throw new BadRequestException({
         code: 'file_ownership_conflict',
         conflicts,
       });
@@ -320,17 +363,11 @@ export class AgentSupervisorService {
   }
 
   private acquireFileOwnership(task: SupervisorTask) {
-    for (const path of task.allowedPaths) {
-      this.fileOwners.set(path, task.id);
-    }
+    this.fileOwnershipStore.acquire(task.id, task.allowedPaths);
   }
 
   private releaseFileOwnership(taskId: string) {
-    for (const [path, owner] of this.fileOwners.entries()) {
-      if (owner === taskId) {
-        this.fileOwners.delete(path);
-      }
-    }
+    this.fileOwnershipStore.release(taskId);
   }
 
   private validateCreateInput(input: CreateSupervisorTaskInput) {
@@ -381,7 +418,7 @@ export class AgentSupervisorService {
   }
 
   private requireTask(id: string): SupervisorTask {
-    const task = this.tasks.get(id);
+    const task = this.taskStore.get(id);
     if (!task) {
       throw new NotFoundException(`supervisor_task_not_found:${id}`);
     }
@@ -396,26 +433,5 @@ export class AgentSupervisorService {
 
   private unique<T>(items: T[]): T[] {
     return Array.from(new Set(items));
-  }
-
-  private cloneTask(task: SupervisorTask): SupervisorTask {
-    return {
-      ...task,
-      allowedPaths: [...task.allowedPaths],
-      forbiddenActions: [...task.forbiddenActions],
-      dependsOn: [...task.dependsOn],
-      acceptance: [...task.acceptance],
-      evidence: task.evidence
-        ? {
-            ...task.evidence,
-            changedFiles: [...task.evidence.changedFiles],
-            tests: [...task.evidence.tests],
-            regression: [...task.evidence.regression],
-            remainingRisk: [...task.evidence.remainingRisk],
-          }
-        : null,
-      createdAt: new Date(task.createdAt),
-      updatedAt: new Date(task.updatedAt),
-    };
   }
 }
