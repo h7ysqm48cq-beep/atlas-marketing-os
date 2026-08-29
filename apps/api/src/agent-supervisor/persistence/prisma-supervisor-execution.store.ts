@@ -52,6 +52,15 @@ type PrismaUniqueError = {
   code?: unknown;
   meta?: {
     target?: unknown;
+    modelName?: unknown;
+    driverAdapterError?: {
+      cause?: {
+        originalMessage?: unknown;
+        constraint?: {
+          fields?: unknown;
+        };
+      };
+    };
   };
 };
 
@@ -66,6 +75,13 @@ function activeExecutionConflict(taskId: string): ConflictException {
     code: 'active_execution_exists',
     taskId,
   });
+}
+
+function normalizeConstraintField(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  return value.replace(/^"|"$/g, '');
 }
 
 function isActiveExecutionUniqueError(error: unknown): boolean {
@@ -83,9 +99,28 @@ function isActiveExecutionUniqueError(error: unknown): boolean {
     return target.length === 1 && target[0] === 'taskId';
   }
 
-  return (
+  if (
     typeof target === 'string' &&
     target === 'SupervisorExecution_one_active_per_task'
+  ) {
+    return true;
+  }
+
+  const adapterCause = candidate.meta?.driverAdapterError?.cause;
+  const constraintFields = adapterCause?.constraint?.fields;
+  if (Array.isArray(constraintFields)) {
+    const normalizedFields = constraintFields
+      .map(normalizeConstraintField)
+      .filter((field): field is string => Boolean(field));
+    if (normalizedFields.length === 1 && normalizedFields[0] === 'taskId') {
+      return true;
+    }
+  }
+
+  const originalMessage = adapterCause?.originalMessage;
+  return (
+    typeof originalMessage === 'string' &&
+    originalMessage.includes('SupervisorExecution_one_active_per_task')
   );
 }
 
