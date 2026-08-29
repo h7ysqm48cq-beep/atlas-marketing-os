@@ -12,6 +12,16 @@ import { PrismaSupervisorTaskStore } from './prisma-supervisor-task.store';
 const databaseUrl = process.env.SUPERVISOR_INTEGRATION_DATABASE_URL;
 const describeIntegration = databaseUrl ? describe : describe.skip;
 
+type DeleteManyDelegate = {
+  deleteMany(): Promise<unknown>;
+};
+
+type SupervisorCleanupPrisma = {
+  supervisorFileLock: DeleteManyDelegate;
+  supervisorExecution: DeleteManyDelegate;
+  supervisorTask: DeleteManyDelegate;
+};
+
 describeIntegration('Supervisor Prisma persistence integration', () => {
   let prisma: PrismaClient;
   let taskStore: PrismaSupervisorTaskStore;
@@ -32,9 +42,10 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   });
 
   beforeEach(async () => {
-    await prisma.supervisorFileLock.deleteMany();
-    await prisma.supervisorExecution.deleteMany();
-    await prisma.supervisorTask.deleteMany();
+    const cleanupPrisma = prisma as unknown as SupervisorCleanupPrisma;
+    await cleanupPrisma.supervisorFileLock.deleteMany();
+    await cleanupPrisma.supervisorExecution.deleteMany();
+    await cleanupPrisma.supervisorTask.deleteMany();
   });
 
   afterAll(async () => {
