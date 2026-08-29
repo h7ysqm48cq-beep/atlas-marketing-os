@@ -22,8 +22,8 @@ describe('AgentSupervisorController', () => {
     controller = new AgentSupervisorController(supervisor, dispatcher);
   });
 
-  it('dispatches a task without accepting role or permission overrides', () => {
-    const task = supervisor.createTask({
+  it('dispatches a task without accepting role or permission overrides', async () => {
+    const task = await supervisor.createTask({
       objective: 'Backend task',
       owner: 'backend',
       allowedPaths: ['apps/api/src/example.ts'],
@@ -31,16 +31,16 @@ describe('AgentSupervisorController', () => {
       dependsOn: [],
       acceptance: ['passes'],
     });
-    supervisor.startTask(task.id);
+    await supervisor.startTask(task.id);
 
-    const result = controller.dispatchTask(task.id);
+    const result = await controller.dispatchTask(task.id);
 
     expect(result.assignment.workerRole).toBe('backend');
     expect(result.assignment.forbiddenActions).toContain('merge');
   });
 
-  it('lists execution history for a task', () => {
-    const task = supervisor.createTask({
+  it('lists execution history for a task', async () => {
+    const task = await supervisor.createTask({
       objective: 'Backend task',
       owner: 'backend',
       allowedPaths: ['apps/api/src/example.ts'],
@@ -48,9 +48,9 @@ describe('AgentSupervisorController', () => {
       dependsOn: [],
       acceptance: ['passes'],
     });
-    supervisor.startTask(task.id);
-    dispatcher.dispatch(task.id);
+    await supervisor.startTask(task.id);
+    await dispatcher.dispatch(task.id);
 
-    expect(controller.listExecutions(task.id)).toHaveLength(1);
+    expect(await controller.listExecutions(task.id)).toHaveLength(1);
   });
 });
