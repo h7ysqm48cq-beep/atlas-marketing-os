@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import type {
   CreateSupervisorTaskInput,
@@ -20,6 +21,11 @@ import {
   FILE_OWNERSHIP_STORE,
   type FileOwnershipStore,
 } from './stores/file-ownership.store';
+import {
+  SUPERVISOR_LIFECYCLE_STORE,
+  type SupervisorLifecycleStore,
+  type SupervisorLockMode,
+} from './stores/supervisor-lifecycle.store';
 import {
   SUPERVISOR_TASK_STORE,
   type SupervisorTaskStore,
@@ -60,6 +66,9 @@ export class AgentSupervisorService {
     private readonly taskStore: SupervisorTaskStore,
     @Inject(FILE_OWNERSHIP_STORE)
     private readonly fileOwnershipStore: FileOwnershipStore,
+    @Optional()
+    @Inject(SUPERVISOR_LIFECYCLE_STORE)
+    private readonly lifecycleStore?: SupervisorLifecycleStore,
   ) {}
 
   async status() {
@@ -127,9 +136,8 @@ export class AgentSupervisorService {
     task.blockingReason = null;
     task.failureReason = null;
     task.updatedAt = new Date();
-    await this.acquireFileOwnership(task);
 
-    return this.taskStore.save(task);
+    return this.persistTaskWithLocks(task, 'acquire');
   }
 
   async blockTask(id: string, reason: string): Promise<SupervisorTask> {
@@ -142,9 +150,8 @@ export class AgentSupervisorService {
     task.status = 'BLOCKED';
     task.blockingReason = reason.trim();
     task.updatedAt = new Date();
-    await this.releaseFileOwnership(task.id);
 
-    return this.taskStore.save(task);
+    return this.persistTaskWithLocks(task, 'release');
   }
 
   async failTask(id: string, reason: string): Promise<SupervisorTask> {
@@ -159,9 +166,8 @@ export class AgentSupervisorService {
     task.status = 'FAILED';
     task.failureReason = reason.trim();
     task.updatedAt = new Date();
-    await this.releaseFileOwnership(task.id);
 
-    return this.taskStore.save(task);
+    return this.persistTaskWithLocks(task, 'release');
   }
 
   async submitImplementation(
@@ -209,9 +215,8 @@ export class AgentSupervisorService {
     task.status = 'WORKING';
     task.blockingReason = reason.trim();
     task.updatedAt = new Date();
-    await this.acquireFileOwnership(task);
 
-    return this.taskStore.save(task);
+    return this.persistTaskWithLocks(task, 'acquire');
   }
 
   async markReadyForReview(id: string): Promise<SupervisorTask> {
@@ -223,9 +228,8 @@ export class AgentSupervisorService {
 
     task.status = 'READY_FOR_REVIEW';
     task.updatedAt = new Date();
-    await this.releaseFileOwnership(task.id);
 
-    return this.taskStore.save(task);
+    return this.persistTaskWithLocks(task, 'release');
   }
 
   async approveTask(
@@ -387,6 +391,22 @@ export class AgentSupervisorService {
         conflicts,
       });
     }
+  }
+
+  private async persistTaskWithLocks(
+    task: SupervisorTask,
+    mode: SupervisorLockMode,
+  ): Promise<SupervisorTask> {
+    if (this.lifecycleStore) {
+      return this.lifecycleStore.saveWithLocks(task, mode);
+    }
+
+    if (mode === 'acquire') {
+      await this.acquireFileOwnership(task);
+    } else {
+      await this.releaseFileOwnership(task.id);
+    }
+    return this.taskStore.save(task);
   }
 
   private async acquireFileOwnership(task: SupervisorTask) {
