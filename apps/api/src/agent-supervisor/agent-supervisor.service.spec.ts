@@ -13,7 +13,13 @@ describe('AgentSupervisorService', () => {
     );
   });
 
-  it('creates bounded tasks in DRAFT state', async () => {
+  it('reports prisma persistence for the runtime supervisor', async () => {
+    await expect(service.status()).resolves.toMatchObject({
+      persistence: 'prisma',
+    });
+  });
+
+  it('creates bounded tasks in DRAFT state with restart-safe ids', async () => {
     const task = await service.createTask({
       objective: 'Fix calendar image save',
       owner: 'frontend',
@@ -23,9 +29,35 @@ describe('AgentSupervisorService', () => {
       acceptance: ['saved image survives reload'],
     });
 
-    expect(task.id).toMatch(/^ATLAS-/);
+    expect(task.id).toMatch(
+      /^ATLAS-\d{8}-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(task.status).toBe('DRAFT');
     expect(task.owner).toBe('frontend');
+  });
+
+  it('generates different task ids across fresh service instances', async () => {
+    const first = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+    );
+    const second = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+    );
+    const input = {
+      objective: 'Restart-safe task id',
+      owner: 'backend' as const,
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: [],
+      dependsOn: [],
+      acceptance: ['passes'],
+    };
+
+    const firstTask = await first.createTask(input);
+    const secondTask = await second.createTask(input);
+
+    expect(secondTask.id).not.toBe(firstTask.id);
   });
 
   it('rejects owners outside the worker role whitelist', async () => {
