@@ -6,22 +6,22 @@ import type { SupervisorTaskStore } from './supervisor-task.store';
 export class MemorySupervisorTaskStore implements SupervisorTaskStore {
   private readonly tasks = new Map<string, SupervisorTask>();
 
-  list(): SupervisorTask[] {
+  async list(): Promise<SupervisorTask[]> {
     return Array.from(this.tasks.values()).map((task) => this.cloneTask(task));
   }
 
-  get(id: string): SupervisorTask | null {
+  async get(id: string): Promise<SupervisorTask | null> {
     const task = this.tasks.get(id);
     return task ? this.cloneTask(task) : null;
   }
 
-  create(task: SupervisorTask): SupervisorTask {
+  async create(task: SupervisorTask): Promise<SupervisorTask> {
     const stored = this.cloneTask(task);
     this.tasks.set(stored.id, stored);
     return this.cloneTask(stored);
   }
 
-  save(task: SupervisorTask): SupervisorTask {
+  async save(task: SupervisorTask): Promise<SupervisorTask> {
     const stored = this.cloneTask(task);
     this.tasks.set(stored.id, stored);
     return this.cloneTask(stored);
