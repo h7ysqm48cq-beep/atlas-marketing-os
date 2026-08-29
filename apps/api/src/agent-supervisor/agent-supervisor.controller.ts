@@ -1,9 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
-import type {
-  WorkerExecutionResult,
-} from './execution/supervisor-execution.types';
+import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -96,6 +94,11 @@ export class AgentSupervisorController {
   @Get('tasks/:id/executions')
   listExecutions(@Param('id') id: string) {
     return this.dispatcher.listByTask(id);
+  }
+
+  @Get('executions/:id')
+  getExecution(@Param('id') id: string) {
+    return this.dispatcher.getExecution(id);
   }
 
   @Post('executions/:id/running')
