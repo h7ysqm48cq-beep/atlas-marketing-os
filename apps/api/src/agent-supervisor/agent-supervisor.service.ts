@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -40,6 +41,15 @@ const BASE_ALLOWED_ACTIONS = new Set<SupervisorAction>([
   'run_tests',
   'run_build',
   'commit_assigned_branch',
+]);
+
+const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
+  'engineering',
+  'frontend',
+  'backend',
+  'database',
+  'qa',
+  'infra',
 ]);
 
 @Injectable()
@@ -373,7 +383,7 @@ export class AgentSupervisorService {
     );
 
     if (conflicts.length > 0) {
-      throw new BadRequestException({
+      throw new ConflictException({
         code: 'file_ownership_conflict',
         conflicts,
       });
@@ -392,7 +402,7 @@ export class AgentSupervisorService {
     if (!input.objective?.trim()) {
       throw new BadRequestException('objective_required');
     }
-    if (!input.owner || input.owner === ('supervisor' as never)) {
+    if (!input.owner || !WORKER_ROLES.has(input.owner)) {
       throw new BadRequestException('worker_owner_required');
     }
     if (!Array.isArray(input.allowedPaths) || input.allowedPaths.length === 0) {
