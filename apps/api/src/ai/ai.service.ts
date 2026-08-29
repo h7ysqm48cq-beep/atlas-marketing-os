@@ -29,6 +29,7 @@ import {
 type GeneratedContent = {
   facebook: string;
   telegram: string;
+  instagram: string;
   reels: string;
   image: string;
   analysis: {
@@ -249,6 +250,8 @@ export class AiService {
 
     const wantsFacebook = selectedPlatforms.has('facebook');
     const wantsTelegram = selectedPlatforms.has('telegram');
+    const wantsInstagram =
+      selectedPlatforms.has('instagram') || selectedPlatforms.has('ig');
     const wantsReels =
       selectedPlatforms.has('reels') || selectedPlatforms.has('reel');
     const wantsImage =
@@ -265,6 +268,9 @@ export class AiService {
       wantsTelegram
         ? '- Generate Telegram content.'
         : '- Return telegram as an empty string.',
+      wantsInstagram
+        ? '- Generate Instagram content with a concise caption, a clear hook, and relevant hashtags.'
+        : '- Return instagram as an empty string.',
       wantsReels
         ? '- Generate Reels content.'
         : '- Return reels as an empty string.',
@@ -311,6 +317,7 @@ export class AiService {
     const schema = this.buildContentSchema({
       wantsFacebook,
       wantsTelegram,
+      wantsInstagram,
       wantsReels,
       wantsImage,
     });
@@ -378,6 +385,7 @@ export class AiService {
         content: {
           facebook: generated.facebook,
           telegram: generated.telegram,
+          instagram: generated.instagram,
           reels: generated.reels,
           image: generated.image,
         },
@@ -389,6 +397,7 @@ export class AiService {
         ...generated,
         facebook: inspected.content.facebook,
         telegram: inspected.content.telegram,
+        instagram: inspected.content.instagram ?? '',
         reels: inspected.content.reels,
         image: inspected.content.image,
       };
@@ -405,6 +414,7 @@ export class AiService {
         language: dto.language,
         facebook: finalGenerated.facebook,
         telegram: finalGenerated.telegram,
+        instagram: finalGenerated.instagram,
         reels: finalGenerated.reels,
         imagePrompt: finalGenerated.image,
         analysis: generated.analysis,
@@ -790,6 +800,7 @@ export class AiService {
   private buildContentSchema(input: {
     wantsFacebook: boolean;
     wantsTelegram: boolean;
+    wantsInstagram: boolean;
     wantsReels: boolean;
     wantsImage: boolean;
   }): Record<string, unknown> {
@@ -801,6 +812,9 @@ export class AiService {
           ? { type: 'string' }
           : { type: 'string', enum: [''] },
         telegram: input.wantsTelegram
+          ? { type: 'string' }
+          : { type: 'string', enum: [''] },
+        instagram: input.wantsInstagram
           ? { type: 'string' }
           : { type: 'string', enum: [''] },
         reels: input.wantsReels
@@ -846,7 +860,7 @@ export class AiService {
           ],
         },
       },
-      required: ['facebook', 'telegram', 'reels', 'image', 'analysis'],
+      required: ['facebook', 'telegram', 'instagram', 'reels', 'image', 'analysis'],
     };
   }
 

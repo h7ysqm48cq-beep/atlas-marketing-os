@@ -93,7 +93,8 @@ export type AiUsageFeature = (typeof AiUsageFeature)[keyof typeof AiUsageFeature
 
 export const SocialPlatform = {
   FACEBOOK: 'FACEBOOK',
-  TELEGRAM: 'TELEGRAM'
+  TELEGRAM: 'TELEGRAM',
+  INSTAGRAM: 'INSTAGRAM'
 } as const
 
 export type SocialPlatform = (typeof SocialPlatform)[keyof typeof SocialPlatform]

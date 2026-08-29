@@ -35,7 +35,7 @@ export const marketingCopilotPipeline: CopilotPipeline = {
       id: "platforms",
       label: "Planning Platforms",
       description:
-        "Structuring Facebook, Telegram, Reels and Image Prompt.",
+        "Structuring Facebook, Telegram, Instagram, Reels and Image Prompt.",
     },
     {
       id: "writing",

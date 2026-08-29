@@ -2,9 +2,11 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BrowserAccountService } from './browser-account.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 
 type WorkerResponse = {
@@ -12,6 +14,35 @@ type WorkerResponse = {
   running?: boolean;
   status?: string;
   [key: string]: unknown;
+};
+
+type WorkerInspection = WorkerResponse & {
+  page?: {
+    url?: string;
+    textPreview?: string;
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+      visible?: boolean;
+    }>;
+  };
+  frameInspections?: Array<{
+    inputs?: Array<{
+      type?: string | null;
+      name?: string | null;
+      autocomplete?: string | null;
+      visible?: boolean;
+    }>;
+  }>;
+};
+
+type FacebookLoginPreflight = {
+  ready: boolean;
+  loginRequired: boolean;
+  message: string;
+  browserAccountId: string | null;
+  browserProfileKey: string;
 };
 
 type BrowserLaunchProfile = Awaited<
@@ -22,8 +53,16 @@ type BrowserLaunchProfile = Awaited<
   >
 >;
 
+const BROWSER_WORKER_REQUEST_TIMEOUT_MS = 45_000;
+const FACEBOOK_PUBLISH_REQUEST_TIMEOUT_MS = 180_000;
+
 @Injectable()
 export class BrowserRuntimeBridgeService {
+  private readonly logger =
+    new Logger(
+      BrowserRuntimeBridgeService.name,
+    );
+
   /**
    * Prevent two simultaneous requests from opening
    * the same browser profile more than once.
@@ -39,6 +78,8 @@ export class BrowserRuntimeBridgeService {
       ConfigService,
     private readonly runtimeProfiles:
       RuntimeProfileService,
+    private readonly browserAccounts:
+      BrowserAccountService,
   ) {}
 
   async health() {
@@ -149,6 +190,8 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
+      imageUrls?: string[] | null;
       targetUrl?: string | null;
     },
   ) {
@@ -185,6 +228,8 @@ export class BrowserRuntimeBridgeService {
     input: {
       caption: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
+      imageUrls?: string[] | null;
     },
   ) {
     const [
@@ -207,13 +252,17 @@ export class BrowserRuntimeBridgeService {
           ),
       ]);
 
-    return this.prepareFacebookPost(
-      profile.browserProfileKey,
-      {
-        ...input,
-        targetUrl:
-          target.targetUrl,
-      },
+    return this.withLoginStateSync(
+      profile,
+      () =>
+        this.prepareFacebookPost(
+          profile.browserProfileKey,
+          {
+            ...input,
+            targetUrl:
+              target.targetUrl,
+          },
+        ),
     );
   }
 
@@ -263,21 +312,430 @@ export class BrowserRuntimeBridgeService {
         },
       );
 
+    return this.withLoginStateSync(
+      profile,
+      () =>
+        this.request(
+          `/profiles/${encodeURIComponent(
+            profile.browserProfileKey,
+          )}/facebook/publish-post`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              confirmation,
+            }),
+          },
+          true,
+          FACEBOOK_PUBLISH_REQUEST_TIMEOUT_MS,
+        ),
+    );
+  }
+
+  async prepareInstagramPostForChannel(
+    channelId: string,
+    input: {
+      caption: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imagePaths?: string[];
+      imageUrls?: string[];
+    },
+  ) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
     return this.request(
-      `/profiles/${encodeURIComponent(
-        profile.browserProfileKey,
-      )}/facebook/publish-post`,
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/prepare-post`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-        body: JSON.stringify({
-          confirmation,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
       },
     );
+  }
+
+  async publishInstagramPost(channelId: string, confirmation: string) {
+    if (confirmation !== 'PUBLISH') {
+      throw new BadRequestException('Explicit confirmation "PUBLISH" is required.');
+    }
+
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/publish-post`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation }),
+      },
+      true,
+      90_000,
+    );
+  }
+
+  async discardInstagramPost(channelId: string) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/discard-post`,
+      { method: 'POST' },
+    );
+  }
+
+  async testInstagramSession(channelId: string) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+    const inspection = await this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/inspect`,
+      { method: 'POST' },
+    ) as WorkerInspection;
+    const page = inspection.page ?? {};
+    const url = String(page.url ?? '').toLowerCase();
+    const text = String(page.textPreview ?? '').toLowerCase();
+    const inputs = Array.isArray(page.inputs) ? page.inputs : [];
+    const hasLoginInput = inputs.some((input) =>
+      /username|password/i.test(String(input.name ?? '')) ||
+      String(input.type ?? '').toLowerCase() === 'password',
+    );
+    if (
+      url.includes('/accounts/login') ||
+      hasLoginInput ||
+      (text.includes('log in') && text.includes('sign up'))
+    ) {
+      throw new BadGatewayException('Instagram login is required.');
+    }
+    return {
+      connected: true,
+      browserProfileKey: profile.browserProfileKey,
+      message: 'Instagram Browser Runtime session is ready on Railway.',
+    };
+  }
+
+  async preflightInstagramLoginForChannel(channelId: string) {
+    const result = await this.testInstagramSession(channelId);
+    return {
+      ready: true,
+      loginRequired: false,
+      message: result.message,
+      browserProfileKey: result.browserProfileKey,
+    };
+  }
+
+  /**
+   * Inspect the live persistent browser before the publisher claims a post.
+   * Persisted login/cookie status can become stale between scheduler runs.
+   */
+  async preflightFacebookLoginForChannel(
+    channelId: string,
+  ): Promise<FacebookLoginPreflight> {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    const inspection =
+      await this.request(
+        `/profiles/${encodeURIComponent(
+          profile.browserProfileKey,
+        )}/inspect`,
+        {
+          method: 'POST',
+        },
+      ) as WorkerInspection;
+
+    const state =
+      this.classifyFacebookLoginInspection(
+        inspection,
+      );
+
+    if (
+      state.loginRequired &&
+      profile.browserAccountId
+    ) {
+      await this.browserAccounts
+        .markLoginRequired(
+          profile.browserAccountId,
+          state.message,
+        );
+    }
+
+    if (
+      state.ready &&
+      profile.browserAccountId
+    ) {
+      await this.browserAccounts
+        .markLoginVerified(
+          profile.browserAccountId,
+          state.message,
+        );
+    }
+
+    return {
+      ...state,
+      browserAccountId:
+        profile.browserAccountId ??
+        null,
+      browserProfileKey:
+        profile.browserProfileKey,
+    };
+  }
+
+  private classifyFacebookLoginInspection(
+    inspection: WorkerInspection,
+  ): Pick<
+    FacebookLoginPreflight,
+    'ready' | 'loginRequired' | 'message'
+  > {
+    const page = inspection.page ?? {};
+    const currentUrl =
+      page.url?.trim() ?? '';
+    const normalizedUrl =
+      currentUrl.toLowerCase();
+    const textPreview =
+      page.textPreview
+        ?.trim()
+        .toLowerCase() ?? '';
+    const frameInputs =
+      Array.isArray(
+        inspection.frameInspections,
+      )
+        ? inspection.frameInspections
+            .flatMap(
+              (frame) =>
+                Array.isArray(
+                  frame.inputs,
+                )
+                  ? frame.inputs
+                  : [],
+            )
+        : [];
+    const allInputs = [
+      ...(Array.isArray(page.inputs)
+        ? page.inputs
+        : []),
+      ...frameInputs,
+    ];
+
+    const hasPasswordInput =
+      allInputs.some(
+        (input) =>
+          input.visible !== false &&
+          String(
+            input.type ?? '',
+          ).toLowerCase() ===
+          'password',
+      );
+    const hasEmailInput =
+      allInputs.some(
+        (input) => {
+          if (input.visible === false) {
+            return false;
+          }
+
+          const name = String(
+            input.name ?? '',
+          ).toLowerCase();
+          const autocomplete = String(
+            input.autocomplete ?? '',
+          ).toLowerCase();
+
+          return (
+            name === 'email' ||
+            name.includes('email') ||
+            autocomplete.includes(
+              'username',
+            )
+          );
+        },
+      );
+    const hasLoginText = [
+      'log in to facebook',
+      'forgotten password',
+      'create new account',
+      'email address or mobile number',
+    ].some((value) =>
+      textPreview.includes(value),
+    );
+    const loginPageByUrl =
+      normalizedUrl.includes(
+        'facebook.com/login',
+      );
+    const loginRequired =
+      loginPageByUrl ||
+      hasPasswordInput ||
+      (hasEmailInput && hasLoginText);
+
+    if (loginRequired) {
+      return {
+        ready: false,
+        loginRequired: true,
+        message:
+          'Facebook login is required in the linked Cloud Browser.',
+      };
+    }
+
+    const onFacebook =
+      normalizedUrl.includes(
+        'facebook.com',
+      );
+
+    if (!onFacebook) {
+      return {
+        ready: false,
+        loginRequired: false,
+        message:
+          'Facebook Cloud Browser login could not be verified.',
+      };
+    }
+
+    return {
+      ready: true,
+      loginRequired: false,
+      message:
+        'Facebook Cloud Browser login is ready.',
+    };
+  }
+
+  private async withLoginStateSync<T>(
+    profile: BrowserLaunchProfile,
+    operation: () => Promise<T>,
+  ) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (
+        profile.browserAccountId &&
+        this.isLoginRequiredError(
+          error,
+        )
+      ) {
+        await this.browserAccounts
+          .markLoginRequired(
+            profile.browserAccountId,
+            this.getWorkerErrorMessage(
+              error,
+            ),
+          )
+          .catch(
+            (syncError) => {
+              this.logger.warn(
+                [
+                  'Unable to synchronize Browser Account login state.',
+                  `Account: ${profile.browserAccountId}.`,
+                  syncError instanceof Error
+                    ? syncError.message
+                    : String(
+                        syncError,
+                      ),
+                ].join(' '),
+              );
+            },
+          );
+      }
+
+      throw error;
+    }
+  }
+
+  private isLoginRequiredError(
+    error: unknown,
+  ) {
+    if (
+      !(
+        error instanceof
+        BadGatewayException
+      )
+    ) {
+      return false;
+    }
+
+    const response =
+      error.getResponse();
+
+    if (
+      typeof response ===
+      'object' &&
+      response !== null
+    ) {
+      const workerResponse =
+        (
+          response as {
+            workerResponse?: {
+              loginRequired?: unknown;
+            };
+          }
+        ).workerResponse;
+
+      if (
+        workerResponse
+          ?.loginRequired ===
+        true
+      ) {
+        return true;
+      }
+    }
+
+    return this
+      .getWorkerErrorMessage(
+        error,
+      )
+      .toLowerCase()
+      .includes(
+        'facebook login is required',
+      );
+  }
+
+  private getWorkerErrorMessage(
+    error: unknown,
+  ) {
+    if (
+      error instanceof
+      BadGatewayException
+    ) {
+      const response =
+        error.getResponse();
+
+      if (
+        typeof response ===
+        'object' &&
+        response !== null &&
+        typeof (
+          response as {
+            message?: unknown;
+          }
+        ).message ===
+          'string'
+      ) {
+        return (
+          response as {
+            message: string;
+          }
+        ).message;
+      }
+    }
+
+    return error instanceof Error
+      ? error.message
+      : 'Facebook login is required.';
   }
 
   async checkIp(
@@ -402,15 +860,14 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
-  private normalizePrepareInput(
-    input: {
-      caption: string;
-      imagePath?: string | null;
-      targetUrl?: string | null;
-    },
-  ) {
-    const caption =
-      input.caption?.trim();
+  private normalizePrepareInput(input: {
+    caption: string;
+    imagePath?: string | null;
+    imageUrl?: string | null;
+    imageUrls?: string[] | null;
+    targetUrl?: string | null;
+  }) {
+    const caption = input.caption?.trim();
 
     if (!caption) {
       throw new BadRequestException(
@@ -430,6 +887,42 @@ export class BrowserRuntimeBridgeService {
     const targetUrl =
       input.targetUrl?.trim() ||
       null;
+
+    const imageUrls = Array.from(
+      new Set(
+        [...(input.imageUrls ?? []), input.imageUrl]
+          .map((value) => value?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+
+    if (imageUrls.length > 10) {
+      throw new BadRequestException(
+        'Facebook posts support at most 10 images.',
+      );
+    }
+
+    for (const imageUrl of imageUrls) {
+      let parsedImageUrl: URL;
+
+      try {
+        parsedImageUrl = new URL(imageUrl);
+      } catch {
+        throw new BadRequestException(
+          'Invalid Facebook image URL.',
+        );
+      }
+
+      if (
+        !['http:', 'https:'].includes(
+          parsedImageUrl.protocol,
+        )
+      ) {
+        throw new BadRequestException(
+          'Facebook image URL must use http or https.',
+        );
+      }
+    }
 
     if (targetUrl) {
       let parsed:
@@ -471,6 +964,10 @@ export class BrowserRuntimeBridgeService {
       imagePath:
         input.imagePath?.trim() ||
         null,
+
+      imageUrl: imageUrls[0] ?? null,
+
+      imageUrls,
 
       targetUrl,
     };
@@ -622,6 +1119,7 @@ export class BrowserRuntimeBridgeService {
     path: string,
     init: RequestInit,
     authenticated = true,
+    timeoutMs = BROWSER_WORKER_REQUEST_TIMEOUT_MS,
   ) {
     const headers =
       new Headers(
@@ -656,27 +1154,45 @@ export class BrowserRuntimeBridgeService {
       );
     }
 
-    const controller =
-      new AbortController();
-
-    const timeout =
-      setTimeout(
-        () =>
-          controller.abort(),
-        45000,
-      );
-
     try {
-      const response =
-        await fetch(
-          `${this.getWorkerUrl()}${path}`,
-          {
-            ...init,
-            headers,
-            signal:
-              controller.signal,
-          },
-        );
+      let response: Awaited<ReturnType<typeof fetch>> | undefined = undefined;
+      const method = (init.method || "GET").toUpperCase();
+      const retryableNetworkRequest =
+        method === "GET" || path === "/profiles/open" || path.endsWith("/prepare-post");
+      const maxAttempts = retryableNetworkRequest ? 3 : 1;
+      let lastError: unknown;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          response = await fetch(
+            `${this.getWorkerUrl()}${path}`,
+            {
+              ...init,
+              headers,
+              signal: controller.signal,
+            },
+          );
+          break;
+        } catch (error) {
+          lastError = error;
+          const retryableError =
+            error instanceof Error &&
+            (error.message === "fetch failed" || error.name === "AbortError");
+          if (!retryableNetworkRequest || !retryableError || attempt + 1 >= maxAttempts) {
+            throw error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 750 * (attempt + 1)));
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+
+      if (!response) {
+        throw lastError instanceof Error ? lastError : new Error("fetch failed");
+      }
 
       const raw =
         await response.text();
@@ -732,10 +1248,6 @@ export class BrowserRuntimeBridgeService {
         error instanceof Error
           ? `Browser Worker unavailable: ${error.message}`
           : 'Browser Worker unavailable.',
-      );
-    } finally {
-      clearTimeout(
-        timeout,
       );
     }
   }

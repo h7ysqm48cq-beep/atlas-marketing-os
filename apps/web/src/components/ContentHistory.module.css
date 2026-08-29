@@ -682,6 +682,11 @@
   background: #0ea5e9;
 }
 
+.instagramPublishIcon {
+  background: #e1306c;
+  color: #fff;
+}
+
 .noExternalLink {
   color: var(--muted);
   font-size: 8px;

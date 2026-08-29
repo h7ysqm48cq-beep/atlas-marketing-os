@@ -1,7 +1,7 @@
 import styles from "../CampaignStrategy.module.css";
 import { StrategyControlsProps } from "./campaign-strategy.types";
 
-const AVAILABLE_PLATFORMS = ["Facebook", "Telegram", "Reels"];
+const AVAILABLE_PLATFORMS = ["Facebook", "Telegram", "Instagram", "Reels"];
 
 export function StrategyControls({
   durationDays,

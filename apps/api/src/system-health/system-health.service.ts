@@ -111,6 +111,17 @@ export class SystemHealthService {
     }
   }
 
+  private async checkCalendar() {
+    try {
+      return {
+        status: 'healthy',
+        scheduledPosts: await this.prisma.scheduledPost.count(),
+      };
+    } catch {
+      return { status: 'critical' };
+    }
+  }
+
 
   private buildStatus(
     ok: boolean,
@@ -156,9 +167,7 @@ export class SystemHealthService {
       assets:
         await this.checkAssets(),
 
-      calendar: {
-        status: "pending",
-      },
+      calendar: await this.checkCalendar(),
 
       issues: [],
     };

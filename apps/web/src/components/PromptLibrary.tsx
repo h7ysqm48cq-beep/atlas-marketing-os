@@ -34,7 +34,7 @@ const starterPrompts: SavedPrompt[] = [
     title: "7-Day Marketing Campaign",
     category: "Strategy",
     content:
-      "为这个主题生成一个完整的7天营销方案，包括目标受众、内容支柱、Facebook、Telegram、Reels、图片提示词和发布排期。",
+      "为这个主题生成一个完整的7天营销方案，包括目标受众、内容支柱、Facebook、Telegram、Instagram、Reels、图片提示词和发布排期。",
     createdAt: new Date(0).toISOString(),
   },
   {

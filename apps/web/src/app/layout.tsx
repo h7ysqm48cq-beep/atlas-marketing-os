@@ -12,6 +12,7 @@ import { PwaAppearanceSync } from "@/components/PwaAppearanceSync";
 import { PwaStartupRedirect } from "@/components/PwaStartupRedirect";
 import { PwaRouteMemory } from "@/components/PwaRouteMemory";
 import { PwaSessionRestore } from "@/components/PwaSessionRestore";
+import { PwaNotifications } from "@/components/PwaNotifications";
 
 export const metadata: Metadata = {
   title: {
@@ -102,6 +103,7 @@ export default function RootLayout({
         <PwaRouteMemory />
         <PwaSessionRestore />
         <PwaNetworkStatus />
+        <PwaNotifications />
         <PreferencesProvider>{children}</PreferencesProvider>
       </body>
     </html>

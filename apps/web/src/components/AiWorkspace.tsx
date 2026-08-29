@@ -33,6 +33,7 @@ export type ApprovalState = {
 export type WorkspaceResult = {
   facebook: string;
   telegram: string;
+  instagram?: string;
   reels: string;
   image: string;
   analysis: {
@@ -126,7 +127,7 @@ export function AiWorkspace({
 }) {
   const [tab, setTab] = useState<WorkspaceTab>("content");
   const [copilotRequest, setCopilotRequest] = useState<{
-    platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
+    platform: "Facebook" | "Telegram" | "Instagram" | "Reels Script" | "Image Prompt";
     action: "improve" | "shorter" | "rewrite";
     nonce: number;
   } | null>(null);
@@ -184,7 +185,7 @@ export function AiWorkspace({
   type WorkspaceCard = readonly [
   title: string,
   description: string,
-  key: "facebook" | "telegram" | "reels" | "image",
+  key: "facebook" | "telegram" | "instagram" | "reels" | "image",
   score: number | undefined,
 ];
 
@@ -206,6 +207,12 @@ const cards = useMemo<WorkspaceCard[]>(
         "Shorter conversational community post.",
         "telegram",
         result.analysis.shareabilityScore,
+      ],
+      [
+        "Instagram",
+        "Visual-first caption with a concise hook and discovery hashtags.",
+        "instagram",
+        result.analysis.viralScore,
       ],
       [
         "Reels Script",
@@ -273,6 +280,8 @@ const hasContent = cards.some(([, , key]) => key !== "image");
           &&
           !result.telegram?.trim()
           &&
+          !result.instagram?.trim()
+          &&
           !result.reels?.trim(),
         );
 
@@ -290,13 +299,14 @@ const hasContent = cards.some(([, , key]) => key !== "image");
       result?.image,
       result?.facebook,
       result?.telegram,
+      result?.instagram,
       result?.reels,
       result,
     ],
   );
 
 
-  function replace(key: "facebook" | "telegram" | "reels" | "image", content: string) {
+  function replace(key: "facebook" | "telegram" | "instagram" | "reels" | "image", content: string) {
     if (!result) return;
     onResultChange({ ...result, [key]: content });
   }
@@ -321,6 +331,7 @@ const hasContent = cards.some(([, , key]) => key !== "image");
   const hasPublishableContent = Boolean(
     result?.facebook?.trim() ||
       result?.telegram?.trim() ||
+      result?.instagram?.trim() ||
       result?.reels?.trim(),
   );
 
@@ -328,6 +339,7 @@ const hasContent = cards.some(([, , key]) => key !== "image");
     result?.image?.trim() &&
       !result?.facebook?.trim() &&
       !result?.telegram?.trim() &&
+      !result?.instagram?.trim() &&
       !result?.reels?.trim(),
   );
 
@@ -418,7 +430,7 @@ const hasContent = cards.some(([, , key]) => key !== "image");
               key={key}
               title={title}
               description={description}
-              content={result[key]}
+              content={result[key] ?? ""}
               score={score}
               campaignId={result.campaignUsed?.id || campaignId}
               historyId={result.historyId}
@@ -511,12 +523,14 @@ const hasContent = cards.some(([, , key]) => key !== "image");
 
       {hasPublishableContent ? (
         <>
-          <AiAutoQueueCard
-            result={result}
-            campaignId={publishCampaignId}
-            topic={publishTopic}
-            onMessage={onMessage}
-          />
+          {result.facebook?.trim() || result.telegram?.trim() || result.instagram?.trim() ? (
+            <AiAutoQueueCard
+              result={result}
+              campaignId={publishCampaignId}
+              topic={publishTopic}
+              onMessage={onMessage}
+            />
+          ) : null}
           <AiPublishCard
             result={result}
             campaignId={publishCampaignId}

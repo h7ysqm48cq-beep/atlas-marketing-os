@@ -32,6 +32,7 @@ export type GenerationHistoryMinAggregateOutputType = {
   language: string | null
   facebook: string | null
   telegram: string | null
+  instagram: string | null
   reels: string | null
   imagePrompt: string | null
   isFavorite: boolean | null
@@ -56,6 +57,7 @@ export type GenerationHistoryMaxAggregateOutputType = {
   language: string | null
   facebook: string | null
   telegram: string | null
+  instagram: string | null
   reels: string | null
   imagePrompt: string | null
   isFavorite: boolean | null
@@ -81,6 +83,7 @@ export type GenerationHistoryCountAggregateOutputType = {
   language: number
   facebook: number
   telegram: number
+  instagram: number
   reels: number
   imagePrompt: number
   analysis: number
@@ -108,6 +111,7 @@ export type GenerationHistoryMinAggregateInputType = {
   language?: true
   facebook?: true
   telegram?: true
+  instagram?: true
   reels?: true
   imagePrompt?: true
   isFavorite?: true
@@ -132,6 +136,7 @@ export type GenerationHistoryMaxAggregateInputType = {
   language?: true
   facebook?: true
   telegram?: true
+  instagram?: true
   reels?: true
   imagePrompt?: true
   isFavorite?: true
@@ -157,6 +162,7 @@ export type GenerationHistoryCountAggregateInputType = {
   language?: true
   facebook?: true
   telegram?: true
+  instagram?: true
   reels?: true
   imagePrompt?: true
   analysis?: true
@@ -256,6 +262,7 @@ export type GenerationHistoryGroupByOutputType = {
   language: string
   facebook: string
   telegram: string
+  instagram: string
   reels: string
   imagePrompt: string
   analysis: runtime.JsonValue
@@ -303,6 +310,7 @@ export type GenerationHistoryWhereInput = {
   language?: Prisma.StringFilter<"GenerationHistory"> | string
   facebook?: Prisma.StringFilter<"GenerationHistory"> | string
   telegram?: Prisma.StringFilter<"GenerationHistory"> | string
+  instagram?: Prisma.StringFilter<"GenerationHistory"> | string
   reels?: Prisma.StringFilter<"GenerationHistory"> | string
   imagePrompt?: Prisma.StringFilter<"GenerationHistory"> | string
   analysis?: Prisma.JsonFilter<"GenerationHistory">
@@ -337,6 +345,7 @@ export type GenerationHistoryOrderByWithRelationInput = {
   language?: Prisma.SortOrder
   facebook?: Prisma.SortOrder
   telegram?: Prisma.SortOrder
+  instagram?: Prisma.SortOrder
   reels?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   analysis?: Prisma.SortOrder
@@ -374,6 +383,7 @@ export type GenerationHistoryWhereUniqueInput = Prisma.AtLeast<{
   language?: Prisma.StringFilter<"GenerationHistory"> | string
   facebook?: Prisma.StringFilter<"GenerationHistory"> | string
   telegram?: Prisma.StringFilter<"GenerationHistory"> | string
+  instagram?: Prisma.StringFilter<"GenerationHistory"> | string
   reels?: Prisma.StringFilter<"GenerationHistory"> | string
   imagePrompt?: Prisma.StringFilter<"GenerationHistory"> | string
   analysis?: Prisma.JsonFilter<"GenerationHistory">
@@ -408,6 +418,7 @@ export type GenerationHistoryOrderByWithAggregationInput = {
   language?: Prisma.SortOrder
   facebook?: Prisma.SortOrder
   telegram?: Prisma.SortOrder
+  instagram?: Prisma.SortOrder
   reels?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   analysis?: Prisma.SortOrder
@@ -440,6 +451,7 @@ export type GenerationHistoryScalarWhereWithAggregatesInput = {
   language?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
   facebook?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
   telegram?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
+  instagram?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
   reels?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
   imagePrompt?: Prisma.StringWithAggregatesFilter<"GenerationHistory"> | string
   analysis?: Prisma.JsonWithAggregatesFilter<"GenerationHistory">
@@ -465,6 +477,7 @@ export type GenerationHistoryCreateInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -496,6 +509,7 @@ export type GenerationHistoryUncheckedCreateInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -525,6 +539,7 @@ export type GenerationHistoryUpdateInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -556,6 +571,7 @@ export type GenerationHistoryUncheckedUpdateInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -586,6 +602,7 @@ export type GenerationHistoryCreateManyInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -611,6 +628,7 @@ export type GenerationHistoryUpdateManyMutationInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -634,6 +652,7 @@ export type GenerationHistoryUncheckedUpdateManyInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -670,6 +689,7 @@ export type GenerationHistoryCountOrderByAggregateInput = {
   language?: Prisma.SortOrder
   facebook?: Prisma.SortOrder
   telegram?: Prisma.SortOrder
+  instagram?: Prisma.SortOrder
   reels?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   analysis?: Prisma.SortOrder
@@ -695,6 +715,7 @@ export type GenerationHistoryMaxOrderByAggregateInput = {
   language?: Prisma.SortOrder
   facebook?: Prisma.SortOrder
   telegram?: Prisma.SortOrder
+  instagram?: Prisma.SortOrder
   reels?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
@@ -719,6 +740,7 @@ export type GenerationHistoryMinOrderByAggregateInput = {
   language?: Prisma.SortOrder
   facebook?: Prisma.SortOrder
   telegram?: Prisma.SortOrder
+  instagram?: Prisma.SortOrder
   reels?: Prisma.SortOrder
   imagePrompt?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
@@ -1000,6 +1022,7 @@ export type GenerationHistoryCreateWithoutBrandInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1029,6 +1052,7 @@ export type GenerationHistoryUncheckedCreateWithoutBrandInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1088,6 +1112,7 @@ export type GenerationHistoryScalarWhereInput = {
   language?: Prisma.StringFilter<"GenerationHistory"> | string
   facebook?: Prisma.StringFilter<"GenerationHistory"> | string
   telegram?: Prisma.StringFilter<"GenerationHistory"> | string
+  instagram?: Prisma.StringFilter<"GenerationHistory"> | string
   reels?: Prisma.StringFilter<"GenerationHistory"> | string
   imagePrompt?: Prisma.StringFilter<"GenerationHistory"> | string
   analysis?: Prisma.JsonFilter<"GenerationHistory">
@@ -1113,6 +1138,7 @@ export type GenerationHistoryCreateWithoutCampaignInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1143,6 +1169,7 @@ export type GenerationHistoryUncheckedCreateWithoutCampaignInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1197,6 +1224,7 @@ export type GenerationHistoryCreateWithoutIdeaInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1227,6 +1255,7 @@ export type GenerationHistoryUncheckedCreateWithoutIdeaInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1281,6 +1310,7 @@ export type GenerationHistoryCreateWithoutVersionsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1311,6 +1341,7 @@ export type GenerationHistoryUncheckedCreateWithoutVersionsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1355,6 +1386,7 @@ export type GenerationHistoryUpdateWithoutVersionsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1385,6 +1417,7 @@ export type GenerationHistoryUncheckedUpdateWithoutVersionsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1413,6 +1446,7 @@ export type GenerationHistoryCreateWithoutAssetsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1443,6 +1477,7 @@ export type GenerationHistoryUncheckedCreateWithoutAssetsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1487,6 +1522,7 @@ export type GenerationHistoryUpdateWithoutAssetsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1517,6 +1553,7 @@ export type GenerationHistoryUncheckedUpdateWithoutAssetsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1545,6 +1582,7 @@ export type GenerationHistoryCreateWithoutUsageLogsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1575,6 +1613,7 @@ export type GenerationHistoryUncheckedCreateWithoutUsageLogsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1619,6 +1658,7 @@ export type GenerationHistoryUpdateWithoutUsageLogsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1649,6 +1689,7 @@ export type GenerationHistoryUncheckedUpdateWithoutUsageLogsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1677,6 +1718,7 @@ export type GenerationHistoryCreateWithoutRuntimeProfileInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1707,6 +1749,7 @@ export type GenerationHistoryUncheckedCreateWithoutRuntimeProfileInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1761,6 +1804,7 @@ export type GenerationHistoryCreateWithoutScheduledPostsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1791,6 +1835,7 @@ export type GenerationHistoryUncheckedCreateWithoutScheduledPostsInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1835,6 +1880,7 @@ export type GenerationHistoryUpdateWithoutScheduledPostsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1865,6 +1911,7 @@ export type GenerationHistoryUncheckedUpdateWithoutScheduledPostsInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1893,6 +1940,7 @@ export type GenerationHistoryCreateManyBrandInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1918,6 +1966,7 @@ export type GenerationHistoryUpdateWithoutBrandInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1947,6 +1996,7 @@ export type GenerationHistoryUncheckedUpdateWithoutBrandInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1976,6 +2026,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutBrandInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2002,6 +2053,7 @@ export type GenerationHistoryCreateManyCampaignInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2026,6 +2078,7 @@ export type GenerationHistoryUpdateWithoutCampaignInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2056,6 +2109,7 @@ export type GenerationHistoryUncheckedUpdateWithoutCampaignInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2085,6 +2139,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutCampaignInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2110,6 +2165,7 @@ export type GenerationHistoryCreateManyIdeaInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2134,6 +2190,7 @@ export type GenerationHistoryUpdateWithoutIdeaInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2164,6 +2221,7 @@ export type GenerationHistoryUncheckedUpdateWithoutIdeaInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2193,6 +2251,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutIdeaInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2218,6 +2277,7 @@ export type GenerationHistoryCreateManyRuntimeProfileInput = {
   language: string
   facebook: string
   telegram: string
+  instagram?: string
   reels: string
   imagePrompt: string
   analysis: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2242,6 +2302,7 @@ export type GenerationHistoryUpdateWithoutRuntimeProfileInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2272,6 +2333,7 @@ export type GenerationHistoryUncheckedUpdateWithoutRuntimeProfileInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2301,6 +2363,7 @@ export type GenerationHistoryUncheckedUpdateManyWithoutRuntimeProfileInput = {
   language?: Prisma.StringFieldUpdateOperationsInput | string
   facebook?: Prisma.StringFieldUpdateOperationsInput | string
   telegram?: Prisma.StringFieldUpdateOperationsInput | string
+  instagram?: Prisma.StringFieldUpdateOperationsInput | string
   reels?: Prisma.StringFieldUpdateOperationsInput | string
   imagePrompt?: Prisma.StringFieldUpdateOperationsInput | string
   analysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -2384,6 +2447,7 @@ export type GenerationHistorySelect<ExtArgs extends runtime.Types.Extensions.Int
   language?: boolean
   facebook?: boolean
   telegram?: boolean
+  instagram?: boolean
   reels?: boolean
   imagePrompt?: boolean
   analysis?: boolean
@@ -2419,6 +2483,7 @@ export type GenerationHistorySelectCreateManyAndReturn<ExtArgs extends runtime.T
   language?: boolean
   facebook?: boolean
   telegram?: boolean
+  instagram?: boolean
   reels?: boolean
   imagePrompt?: boolean
   analysis?: boolean
@@ -2449,6 +2514,7 @@ export type GenerationHistorySelectUpdateManyAndReturn<ExtArgs extends runtime.T
   language?: boolean
   facebook?: boolean
   telegram?: boolean
+  instagram?: boolean
   reels?: boolean
   imagePrompt?: boolean
   analysis?: boolean
@@ -2479,6 +2545,7 @@ export type GenerationHistorySelectScalar = {
   language?: boolean
   facebook?: boolean
   telegram?: boolean
+  instagram?: boolean
   reels?: boolean
   imagePrompt?: boolean
   analysis?: boolean
@@ -2496,7 +2563,7 @@ export type GenerationHistorySelectScalar = {
   socialChannelRuntimeProfileId?: boolean
 }
 
-export type GenerationHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "topic" | "platforms" | "style" | "language" | "facebook" | "telegram" | "reels" | "imagePrompt" | "analysis" | "isFavorite" | "createdAt" | "updatedAt" | "campaignId" | "ideaId" | "approvedAt" | "publishedAt" | "reviewNote" | "reviewedAt" | "reviewedBy" | "status" | "socialChannelRuntimeProfileId", ExtArgs["result"]["generationHistory"]>
+export type GenerationHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "topic" | "platforms" | "style" | "language" | "facebook" | "telegram" | "instagram" | "reels" | "imagePrompt" | "analysis" | "isFavorite" | "createdAt" | "updatedAt" | "campaignId" | "ideaId" | "approvedAt" | "publishedAt" | "reviewNote" | "reviewedAt" | "reviewedBy" | "status" | "socialChannelRuntimeProfileId", ExtArgs["result"]["generationHistory"]>
 export type GenerationHistoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   usageLogs?: boolean | Prisma.GenerationHistory$usageLogsArgs<ExtArgs>
   assets?: boolean | Prisma.GenerationHistory$assetsArgs<ExtArgs>
@@ -2542,6 +2609,7 @@ export type $GenerationHistoryPayload<ExtArgs extends runtime.Types.Extensions.I
     language: string
     facebook: string
     telegram: string
+    instagram: string
     reels: string
     imagePrompt: string
     analysis: runtime.JsonValue
@@ -2996,6 +3064,7 @@ export interface GenerationHistoryFieldRefs {
   readonly language: Prisma.FieldRef<"GenerationHistory", 'String'>
   readonly facebook: Prisma.FieldRef<"GenerationHistory", 'String'>
   readonly telegram: Prisma.FieldRef<"GenerationHistory", 'String'>
+  readonly instagram: Prisma.FieldRef<"GenerationHistory", 'String'>
   readonly reels: Prisma.FieldRef<"GenerationHistory", 'String'>
   readonly imagePrompt: Prisma.FieldRef<"GenerationHistory", 'String'>
   readonly analysis: Prisma.FieldRef<"GenerationHistory", 'Json'>

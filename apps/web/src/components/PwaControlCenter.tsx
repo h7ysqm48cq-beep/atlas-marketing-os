@@ -26,19 +26,60 @@ import {
   PWA_STARTUP_CHANGE_EVENT,
   PWA_STARTUP_STORAGE_KEY,
 } from "@/components/pwaStartupConfig";
+import {
+  DEFAULT_NOTIFICATION_TYPES,
+  readNotificationTypes,
+  saveNotificationTypes,
+  type NotificationTypes,
+} from "@/components/notificationPreferences";
 
 const STARTUP_SESSION_KEY = "atlas.pwa.startup.applied";
 
 export function PwaControlCenter() {
   const [settings, setSettings] =
     useState<PwaControlSettings>(DEFAULT_PWA_CONTROL);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTypes, setNotificationTypes] = useState<NotificationTypes>(
+    DEFAULT_NOTIFICATION_TYPES,
+  );
 
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate client-only PWA controls from localStorage after mount.
     setSettings(readPwaControlSettings());
+    setNotificationsEnabled(
+      localStorage.getItem("atlas.notifications.enabled") === "true" &&
+        typeof Notification !== "undefined" &&
+      Notification.permission === "granted",
+    );
+    setNotificationTypes(readNotificationTypes());
   }, []);
+
+  async function toggleNotifications() {
+    if (notificationsEnabled) {
+      localStorage.setItem("atlas.notifications.enabled", "false");
+      setNotificationsEnabled(false);
+      window.dispatchEvent(new CustomEvent("atlas:notifications-changed"));
+      return;
+    }
+
+    if (typeof Notification === "undefined") return;
+    const permission = await Notification.requestPermission();
+    const enabled = permission === "granted";
+    localStorage.setItem("atlas.notifications.enabled", String(enabled));
+    setNotificationsEnabled(enabled);
+    window.dispatchEvent(new CustomEvent("atlas:notifications-changed"));
+  }
+
+  function updateNotificationType(
+    key: keyof NotificationTypes,
+    checked: boolean,
+  ) {
+    const next = { ...notificationTypes, [key]: checked };
+    setNotificationTypes(next);
+    saveNotificationTypes(next);
+  }
 
   function update(next: PwaControlSettings) {
     setSettings(next);
@@ -53,6 +94,8 @@ export function PwaControlCenter() {
     window.dispatchEvent(new CustomEvent(PWA_STARTUP_CHANGE_EVENT));
 
     window.dispatchEvent(new CustomEvent(PWA_CONTROL_CHANGE_EVENT));
+
+    window.dispatchEvent(new CustomEvent("atlas:notifications-changed"));
   }
 
   function clearLastPage() {
@@ -89,12 +132,15 @@ export function PwaControlCenter() {
 
       window.localStorage.removeItem(PWA_CONTROL_STORAGE_KEY);
 
+      window.localStorage.removeItem("atlas.notifications.types");
+
       window.sessionStorage.removeItem(STARTUP_SESSION_KEY);
     } catch {
       // Storage may be unavailable.
     }
 
     setSettings(DEFAULT_PWA_CONTROL);
+    setNotificationTypes(DEFAULT_NOTIFICATION_TYPES);
 
     broadcastReset();
 
@@ -143,6 +189,46 @@ export function PwaControlCenter() {
           default Atlas navigation and appearance and disables startup
           overrides.
         </p>
+      </div>
+
+      <div className="atlas-pwa-control__status">
+        <div>
+          <strong>通知类型</strong>
+          <span>选择要接收的 Atlas 通知。</span>
+        </div>
+        <div className="atlas-pwa-control__notification-types">
+          {([
+            ["published", "发布成功"],
+            ["failed", "发布失败（含自动重试）"],
+            ["system", "系统异常与部署状态"],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="atlas-pwa-control__toggle">
+              <input
+                type="checkbox"
+                checked={notificationTypes[key]}
+                onChange={(event) =>
+                  updateNotificationType(key, event.target.checked)
+                }
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="atlas-pwa-control__status">
+        <div>
+          <strong>发布通知</strong>
+          <span>发布成功、失败和自动重试都会通知。</span>
+        </div>
+        <label className="atlas-pwa-control__toggle">
+          <input
+            type="checkbox"
+            checked={notificationsEnabled}
+            onChange={() => void toggleNotifications()}
+          />
+          <span>{notificationsEnabled ? "已开启" : "未开启"}</span>
+        </label>
       </div>
 
       <div className="atlas-pwa-control__actions">

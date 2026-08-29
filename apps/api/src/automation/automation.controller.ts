@@ -33,6 +33,7 @@ import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 import { SportsNewsAutomationService } from './sports-news-automation.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
+import { Public } from '../auth/public.decorator';
 
 function sanitizeBrowserActionResponse(value: unknown): unknown {
   if (!value || typeof value !== 'object') {
@@ -58,6 +59,31 @@ function sanitizeBrowserActionResponse(value: unknown): unknown {
   }
 
   return cloned;
+}
+
+function imageUrlFromBrowserAction(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const imageUrl = (value as Record<string, unknown>).imageUrl;
+
+  return typeof imageUrl === 'string' ? imageUrl.trim() || null : null;
+}
+
+function imageUrlsFromBrowserAction(value: unknown): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [];
+  }
+
+  const imageUrls = (value as Record<string, unknown>).imageUrls;
+
+  return Array.isArray(imageUrls)
+    ? imageUrls
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 }
 
 type ScreenshotPayload = {
@@ -132,8 +158,10 @@ export class AutomationController {
   }
 
   @Get('channels')
-  channels() {
-    return this.automationService.listChannels();
+  channels(@Query('includeHidden') includeHidden?: string) {
+    return this.automationService.listChannels(
+      includeHidden === 'true',
+    );
   }
 
   /*
@@ -259,6 +287,8 @@ export class AutomationController {
 
     const caption = previous.caption?.trim() || '';
 
+    const imageUrl = imageUrlFromBrowserAction(previous.requestPayload);
+
     if (!caption) {
       throw new BadRequestException(
         'The failed action does not contain a caption to retry.',
@@ -280,6 +310,7 @@ export class AutomationController {
         retryOfActionId: previous.id,
         caption,
         imagePath: previous.imagePath,
+        imageUrl,
       },
     });
 
@@ -289,6 +320,7 @@ export class AutomationController {
         {
           caption,
           imagePath: previous.imagePath,
+          imageUrl,
         },
       );
 
@@ -311,6 +343,7 @@ export class AutomationController {
   }
 
   @Get('browser-worker/health')
+  @Public()
   browserWorkerHealth() {
     return this.browserRuntime.health();
   }
@@ -403,11 +436,17 @@ export class AutomationController {
     body: {
       caption?: string;
       imagePath?: string | null;
+      imageUrl?: string | null;
+      imageUrls?: string[] | null;
     },
   ) {
     const caption = body.caption?.trim() || '';
 
     const imagePath = body.imagePath?.trim() || null;
+
+    const imageUrl = body.imageUrl?.trim() || null;
+
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls : [];
 
     const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
 
@@ -421,6 +460,8 @@ export class AutomationController {
       requestPayload: {
         caption,
         imagePath,
+        imageUrl,
+        imageUrls,
       },
     });
 
@@ -441,6 +482,8 @@ export class AutomationController {
         {
           caption,
           imagePath,
+          imageUrl,
+          imageUrls,
         },
       );
 
@@ -470,6 +513,51 @@ export class AutomationController {
 
       await this.browserActionHistory.fail(action.id, error);
 
+      throw error;
+    }
+  }
+
+  @Post('channels/:id/browser/instagram/prepare-post')
+  async prepareInstagramBrowserPost(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      caption?: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imagePaths?: string[];
+      imageUrls?: string[];
+    },
+  ) {
+    const caption = body.caption?.trim() || '';
+    if (!caption) {
+      throw new BadRequestException('Instagram caption is required.');
+    }
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId: randomUUID(),
+      action: BrowserActionType.PREPARE,
+      browserProfileKey: profile.browserProfileKey,
+      caption,
+      imagePath: body.imagePath?.trim() || body.imagePaths?.[0] || null,
+      requestPayload: body,
+    });
+
+    try {
+      const result = await this.browserRuntime.prepareInstagramPostForChannel(id, {
+        caption,
+        imagePath: body.imagePath?.trim() || null,
+        imageUrl: body.imageUrl?.trim() || null,
+        imagePaths: body.imagePaths,
+        imageUrls: body.imageUrls,
+      });
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
+      return result;
+    } catch (error) {
+      await this.browserActionHistory.fail(action.id, error);
       throw error;
     }
   }
@@ -510,6 +598,8 @@ export class AutomationController {
         replayOfActionId: previous.id,
         caption,
         imagePath: previous.imagePath,
+        imageUrl: imageUrlFromBrowserAction(previous.requestPayload),
+        imageUrls: imageUrlsFromBrowserAction(previous.requestPayload),
       },
     });
 
@@ -575,6 +665,8 @@ export class AutomationController {
         {
           caption,
           imagePath: previous.imagePath,
+          imageUrl: imageUrlFromBrowserAction(previous.requestPayload),
+          imageUrls: imageUrlsFromBrowserAction(previous.requestPayload),
         },
       );
 
@@ -667,6 +759,28 @@ export class AutomationController {
     }
   }
 
+  @Post('channels/:id/browser/instagram/discard-post')
+  async discardInstagramBrowserPost(@Param('id') id: string) {
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId: await this.browserActionHistory.findOpenFlowId(id),
+      action: BrowserActionType.DISCARD,
+      browserProfileKey: profile.browserProfileKey,
+      requestPayload: { channelId: id },
+    });
+    try {
+      const result = await this.browserRuntime.discardInstagramPost(id);
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
+      return result;
+    } catch (error) {
+      await this.browserActionHistory.fail(action.id, error);
+      throw error;
+    }
+  }
+
   @Post('channels/:id/browser/facebook/publish-post')
   async publishFacebookBrowserPost(
     @Param('id') id: string,
@@ -717,8 +831,7 @@ export class AutomationController {
 
       const publishConfirmed =
         publishResult.published === true &&
-        (verificationStatus === 'CONFIRMED' ||
-          verificationStatus === 'COMPOSER_CLOSED');
+        verificationStatus === 'CONFIRMED';
 
       if (!publishConfirmed) {
         const publishError = new Error(
@@ -746,6 +859,46 @@ export class AutomationController {
     } catch (error) {
       await this.browserActionHistory.fail(action.id, error);
 
+      throw error;
+    }
+  }
+
+  @Post('channels/:id/browser/instagram/publish-post')
+  async publishInstagramBrowserPost(
+    @Param('id') id: string,
+    @Body() body: { confirmation?: string },
+  ) {
+    const profile = await this.runtimeProfiles.getBrowserLaunchProfile(id);
+    const action = await this.browserActionHistory.start({
+      channelId: id,
+      flowId: await this.browserActionHistory.findOpenFlowId(id),
+      action: BrowserActionType.PUBLISH,
+      browserProfileKey: profile.browserProfileKey,
+      requestPayload: { confirmation: body.confirmation || '' },
+    });
+    try {
+      const result = await this.browserRuntime.publishInstagramPost(
+        id,
+        body.confirmation || '',
+      );
+      const publishResult = result as {
+        published?: boolean;
+        verification?: { status?: string };
+      };
+      if (
+        publishResult.published !== true ||
+        publishResult.verification?.status !== 'CONFIRMED'
+      ) {
+        throw new BadRequestException(
+          'Instagram publishing could not be confirmed.',
+        );
+      }
+      await this.browserActionHistory.succeed(action.id, {
+        responsePayload: sanitizeBrowserActionResponse(result),
+      });
+      return result;
+    } catch (error) {
+      await this.browserActionHistory.fail(action.id, error);
       throw error;
     }
   }
@@ -799,9 +952,30 @@ export class AutomationController {
     return this.automationService.testChannel(id);
   }
 
+  @Post('channels/:id/instagram/api-test')
+  testInstagramApiChannel(@Param('id') id: string) {
+    return this.automationService.testInstagramApiChannel(id);
+  }
+
   @Post('channels/:id/disconnect')
   disconnectChannel(@Param('id') id: string) {
     return this.automationService.disconnectChannel(id);
+  }
+
+  @Post('channels/:id/api/disconnect')
+  disconnectChannelApi(@Param('id') id: string) {
+    return this.automationService.disconnectChannelApi(id);
+  }
+
+  @Post('facebook/api/disconnect-all')
+  disconnectAllFacebookApi(
+    @Body() body: {
+      confirmation?: string;
+    },
+  ) {
+    return this.automationService.disconnectAllFacebookApi(
+      body.confirmation || '',
+    );
   }
 
   @Delete('channels/:id')
@@ -820,6 +994,7 @@ export class AutomationController {
       username?: string;
       accessToken?: string;
       tokenExpiresAt?: string | null;
+      publishingPreference?: string;
     },
   ) {
     return this.automationService.createChannel(body);
@@ -978,6 +1153,7 @@ export class AutomationController {
   }
 
   @Get('facebook/callback')
+  @Public()
   async facebookCallback(
     @Query('code')
     code: string | undefined,

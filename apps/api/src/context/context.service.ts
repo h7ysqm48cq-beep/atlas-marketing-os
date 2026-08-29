@@ -23,7 +23,7 @@ export class ContextService {
     const platforms =
       input.platforms?.length
         ? input.platforms
-        : ['Facebook', 'Telegram', 'Reels'];
+        : ['Facebook', 'Telegram', 'Instagram', 'Reels'];
 
     const language =
       input.language ?? 'Chinese and English';

@@ -14,6 +14,7 @@ type SaveGenerationInput = {
   language: string;
   facebook: string;
   telegram: string;
+  instagram?: string;
   reels: string;
   imagePrompt: string;
   analysis: Record<string, unknown>;
@@ -118,6 +119,7 @@ export class HistoryService {
         language: input.language,
         facebook: input.facebook,
         telegram: input.telegram,
+        instagram: input.instagram ?? '',
         reels: input.reels,
         imagePrompt: input.imagePrompt,
         analysis: input.analysis as Prisma.InputJsonValue,

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   ScheduledPostStatus,
@@ -13,7 +14,9 @@ import { SocialTokenCryptoService } from '../common/social-token-crypto.service'
 import { PublisherService } from './publisher.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { TelegramConnectorService } from './telegram-connector.service';
+import { InstagramConnectorService } from './instagram-connector.service';
 import { RuntimeProfileService } from './runtime-profile.service';
+import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 
 type CreateChannelInput = {
   brandId: string;
@@ -23,6 +26,7 @@ type CreateChannelInput = {
   username?: string;
   accessToken?: string;
   tokenExpiresAt?: string | null;
+  publishingPreference?: string;
 };
 
 type CreatePostInput = {
@@ -52,12 +56,19 @@ export class AutomationService {
     private readonly facebookConnector: FacebookConnectorService,
     private readonly telegramConnector: TelegramConnectorService,
     private readonly runtimeProfiles: RuntimeProfileService,
+    @Optional()
+    private readonly instagramConnector?: InstagramConnectorService,
+    @Optional()
+    private readonly browserRuntime?: BrowserRuntimeBridgeService,
   ) {}
 
   async dashboard() {
     const [channels, postsByStatus, upcoming, recentAttempts] =
       await Promise.all([
         this.prisma.socialChannel.findMany({
+          where: {
+            hiddenAt: null,
+          },
           orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
           include: {
             brand: {
@@ -104,6 +115,11 @@ export class AutomationService {
         }),
 
         this.prisma.scheduledPost.groupBy({
+          where: {
+            channel: {
+              hiddenAt: null,
+            },
+          },
           by: ['status'],
           _count: {
             _all: true,
@@ -112,6 +128,9 @@ export class AutomationService {
 
         this.prisma.scheduledPost.findMany({
           where: {
+            channel: {
+              hiddenAt: null,
+            },
             status: {
               in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
             },
@@ -161,6 +180,13 @@ export class AutomationService {
         }),
 
         this.prisma.publishAttempt.findMany({
+          where: {
+            scheduledPost: {
+              channel: {
+                hiddenAt: null,
+              },
+            },
+          },
           take: 10,
           orderBy: {
             createdAt: 'desc',
@@ -225,8 +251,13 @@ export class AutomationService {
     };
   }
 
-  async listChannels() {
+  async listChannels(includeHidden = false) {
     const channels = await this.prisma.socialChannel.findMany({
+      where: includeHidden
+        ? undefined
+        : {
+            hiddenAt: null,
+          },
       orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
       include: {
         brand: {
@@ -297,6 +328,19 @@ export class AutomationService {
 
     const accessToken = input.accessToken?.trim();
 
+    const publishingPreference =
+      input.publishingPreference?.trim().toUpperCase() ||
+      (input.platform === SocialPlatform.FACEBOOK ||
+      input.platform === SocialPlatform.INSTAGRAM
+        ? 'BROWSER_RUNTIME'
+        : 'AUTOMATIC');
+    if (!['AUTOMATIC', 'NATIVE_API', 'BROWSER_RUNTIME'].includes(publishingPreference)) {
+      throw new BadRequestException('Invalid publishing preference.');
+    }
+    const browserInstagramConnection =
+      input.platform === SocialPlatform.INSTAGRAM &&
+      publishingPreference !== 'NATIVE_API';
+
     const externalId = input.externalId?.trim() || null;
 
     const existingChannel = externalId
@@ -319,12 +363,15 @@ export class AutomationService {
             ? this.socialTokenCrypto.encrypt(accessToken)
             : existingChannel.accessTokenEncrypted,
           tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+          publishingPreference,
           status:
-            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+            ((accessToken || existingChannel.accessTokenEncrypted) && externalId) ||
+            browserInstagramConnection
               ? SocialChannelStatus.CONNECTED
               : SocialChannelStatus.DISCONNECTED,
           lastConnectedAt:
-            (accessToken || existingChannel.accessTokenEncrypted) && externalId
+            ((accessToken || existingChannel.accessTokenEncrypted) && externalId) ||
+            browserInstagramConnection
               ? new Date()
               : existingChannel.lastConnectedAt,
           lastError: null,
@@ -346,12 +393,16 @@ export class AutomationService {
           ? this.socialTokenCrypto.encrypt(accessToken)
           : null,
         tokenExpiresAt: this.parseOptionalDate(input.tokenExpiresAt),
+        publishingPreference,
         status:
-          accessToken && input.externalId?.trim()
+          (accessToken && input.externalId?.trim()) ||
+          browserInstagramConnection
             ? SocialChannelStatus.CONNECTED
             : SocialChannelStatus.DISCONNECTED,
         lastConnectedAt:
-          accessToken && input.externalId?.trim() ? new Date() : null,
+          (accessToken && input.externalId?.trim()) || browserInstagramConnection
+            ? new Date()
+            : null,
         lastError: null,
       },
     });
@@ -395,6 +446,55 @@ export class AutomationService {
 
     if (!channel) {
       throw new NotFoundException('Social channel not found.');
+    }
+
+    if (channel.platform === SocialPlatform.INSTAGRAM) {
+      const preference = String(
+        channel.publishingPreference || 'BROWSER_RUNTIME',
+      ).toUpperCase();
+      try {
+        const connection =
+          preference === 'NATIVE_API'
+            ? await this.instagramConnector?.testConnection({
+                instagramUserId: channel.externalId ?? undefined,
+                accessToken: channel.accessTokenEncrypted
+                  ? this.socialTokenCrypto.decrypt(channel.accessTokenEncrypted)
+                  : undefined,
+              })
+            : await this.browserRuntime?.testInstagramSession(id);
+
+        if (!connection) {
+          throw new BadRequestException(
+            'Instagram Browser Runtime is not configured.',
+          );
+        }
+
+        const updated = await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            status: SocialChannelStatus.CONNECTED,
+            lastConnectedAt: new Date(),
+            lastError: null,
+          },
+        });
+        return {
+          channel: this.sanitizeChannel(updated),
+          connection,
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Instagram Browser Runtime test failed.';
+        await this.prisma.socialChannel.update({
+          where: { id },
+          data: {
+            status: SocialChannelStatus.ERROR,
+            lastError: message.slice(0, 500),
+          },
+        });
+        throw error;
+      }
     }
 
     if (channel.platform === SocialPlatform.TELEGRAM) {
@@ -546,6 +646,54 @@ export class AutomationService {
     }
   }
 
+  async testInstagramApiChannel(id: string) {
+    const channel = await this.prisma.socialChannel.findUnique({
+      where: { id },
+    });
+    if (!channel) {
+      throw new NotFoundException('Social channel not found.');
+    }
+    if (channel.platform !== SocialPlatform.INSTAGRAM) {
+      throw new BadRequestException(
+        'This channel is not an Instagram channel.',
+      );
+    }
+    if (!this.instagramConnector) {
+      throw new BadRequestException('Instagram API fallback is not configured.');
+    }
+
+    try {
+      const connection = await this.instagramConnector.testConnection({
+        instagramUserId: channel.externalId ?? undefined,
+        accessToken: channel.accessTokenEncrypted
+          ? this.socialTokenCrypto.decrypt(channel.accessTokenEncrypted)
+          : undefined,
+      });
+      const updated = await this.prisma.socialChannel.update({
+        where: { id },
+        data: {
+          status: SocialChannelStatus.CONNECTED,
+          lastConnectedAt: new Date(),
+          lastError: null,
+        },
+      });
+      return { channel: this.sanitizeChannel(updated), connection };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Instagram API connection test failed.';
+      await this.prisma.socialChannel.update({
+        where: { id },
+        data: {
+          status: SocialChannelStatus.ERROR,
+          lastError: message.slice(0, 500),
+        },
+      });
+      throw error;
+    }
+  }
+
   async disconnectChannel(id: string) {
     await this.ensureChannel(id);
 
@@ -562,6 +710,144 @@ export class AutomationService {
     });
 
     return this.sanitizeChannel(channel);
+  }
+
+  async disconnectChannelApi(id: string) {
+    const existing =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id,
+        },
+        include: {
+          browserAccountLinks: {
+            orderBy: [
+              {
+                isPrimary: 'desc',
+              },
+              {
+                createdAt: 'asc',
+              },
+            ],
+            include: {
+              browserAccount: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  browserProfileKey: true,
+                  browserProfileName: true,
+                  loginStatus: true,
+                  cookieStatus: true,
+                  proxyType: true,
+                  proxyCountry: true,
+                  lastKnownIp: true,
+                  lastLoginAt: true,
+                  lastVerifiedAt: true,
+                  lastHeartbeatAt: true,
+                  lastLoginError: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    if (!existing) {
+      throw new NotFoundException('Social channel not found.');
+    }
+
+    if (existing.platform !== SocialPlatform.FACEBOOK) {
+      throw new BadRequestException(
+        'Only Facebook channels have a Facebook API connection.',
+      );
+    }
+
+    const hasBrowserAccount =
+      existing.browserAccountLinks.length > 0;
+
+    const channel =
+      await this.prisma.socialChannel.update({
+        where: {
+          id,
+        },
+        data: {
+          accessTokenEncrypted: null,
+          tokenExpiresAt: null,
+          publishingPreference: 'BROWSER_RUNTIME',
+          status: hasBrowserAccount
+            ? SocialChannelStatus.CONNECTED
+            : SocialChannelStatus.DISCONNECTED,
+          lastError: null,
+        },
+      });
+
+    return this.sanitizeChannel({
+      ...channel,
+      browserAccountLinks:
+        existing.browserAccountLinks,
+    });
+  }
+
+  async disconnectAllFacebookApi(
+    confirmation: string,
+  ) {
+    if (
+      confirmation !==
+      'DISCONNECT_ALL_FACEBOOK_API'
+    ) {
+      throw new BadRequestException(
+        'Explicit confirmation "DISCONNECT_ALL_FACEBOOK_API" is required.',
+      );
+    }
+
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const channels =
+          await transaction.socialChannel.findMany({
+            where: {
+              platform: SocialPlatform.FACEBOOK,
+              accessTokenEncrypted: {
+                not: null,
+              },
+            },
+            select: {
+              id: true,
+              browserAccountLinks: {
+                select: {
+                  browserAccountId: true,
+                },
+              },
+            },
+          });
+
+        const updated =
+          await Promise.all(
+            channels.map((channel) =>
+              transaction.socialChannel.update({
+              where: {
+                id: channel.id,
+              },
+              data: {
+                accessTokenEncrypted: null,
+                tokenExpiresAt: null,
+                publishingPreference: 'BROWSER_RUNTIME',
+                status:
+                  channel.browserAccountLinks.length > 0
+                    ? SocialChannelStatus.CONNECTED
+                    : SocialChannelStatus.DISCONNECTED,
+                lastError: null,
+              },
+              }),
+            ),
+          );
+
+        return {
+          disconnected: updated.length,
+          channels: updated.map((channel) =>
+            this.sanitizeChannel(channel),
+          ),
+        };
+      },
+    );
   }
 
   async removeChannel(id: string) {
@@ -866,6 +1152,9 @@ export class AutomationService {
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
+        channel: {
+          hiddenAt: null,
+        },
         ...(status
           ? {
               status,
@@ -886,6 +1175,7 @@ export class AutomationService {
         brandId: true,
         channelId: true,
         campaignId: true,
+        historyId: true,
         platform: true,
         title: true,
         content: true,
@@ -893,8 +1183,10 @@ export class AutomationService {
         scheduledAt: true,
         timezone: true,
         status: true,
+        publishedAt: true,
         externalPostId: true,
         externalPostUrl: true,
+        lastError: true,
 
         channel: {
           select: {
@@ -1114,6 +1406,23 @@ export class AutomationService {
     return normalized;
   }
 
+  private validateScheduledPostMedia(
+    platform: SocialPlatform,
+    mediaUrls: string[] | undefined,
+    status: ScheduledPostStatus,
+    action: 'scheduling' | 'queueing',
+  ) {
+    if (
+      platform === SocialPlatform.INSTAGRAM &&
+      status !== ScheduledPostStatus.DRAFT &&
+      !mediaUrls?.length
+    ) {
+      throw new BadRequestException(
+        `Instagram posts require at least one image asset before ${action}.`,
+      );
+    }
+  }
+
   async createPost(input: CreatePostInput) {
     if (!input.content?.trim()) {
       throw new BadRequestException('Content is required.');
@@ -1145,6 +1454,17 @@ export class AutomationService {
       );
     }
 
+    const status = input.status ?? ScheduledPostStatus.DRAFT;
+    const mediaUrls =
+      this.normalizeScheduledPostMediaUrls(input.mediaUrls) ?? [];
+
+    this.validateScheduledPostMedia(
+      input.platform,
+      mediaUrls,
+      status,
+      'scheduling',
+    );
+
     return this.prisma.scheduledPost.create({
       data: {
         brandId: input.brandId,
@@ -1154,13 +1474,10 @@ export class AutomationService {
         platform: input.platform,
         title: input.title?.trim() || null,
         content: input.content.trim(),
-        mediaUrls:
-          this.normalizeScheduledPostMediaUrls(
-            input.mediaUrls,
-          ) ?? [],
+        mediaUrls,
         scheduledAt,
         timezone: input.timezone || 'Asia/Kuala_Lumpur',
-        status: input.status ?? ScheduledPostStatus.DRAFT,
+        status,
       },
       include: {
         channel: true,
@@ -1326,6 +1643,20 @@ export class AutomationService {
       throw new BadRequestException('Invalid scheduledAt value.');
     }
 
+    const platform = input.platform ?? current.platform;
+    const mediaUrls =
+      input.mediaUrls === undefined
+        ? current.mediaUrls
+        : this.normalizeScheduledPostMediaUrls(input.mediaUrls) ?? [];
+    const status = input.status ?? current.status;
+
+    this.validateScheduledPostMedia(
+      platform,
+      mediaUrls,
+      status,
+      'scheduling',
+    );
+
     return this.prisma.scheduledPost.update({
       where: {
         id,
@@ -1335,9 +1666,9 @@ export class AutomationService {
           input.title === undefined ? undefined : input.title.trim() || null,
         content: input.content === undefined ? undefined : input.content.trim(),
         mediaUrls:
-          this.normalizeScheduledPostMediaUrls(
-            input.mediaUrls,
-          ),
+          input.mediaUrls === undefined
+            ? undefined
+            : mediaUrls,
         scheduledAt,
         timezone: input.timezone,
         status: input.status,
@@ -1345,7 +1676,13 @@ export class AutomationService {
           input.campaignId === undefined ? undefined : input.campaignId || null,
         historyId:
           input.historyId === undefined ? undefined : input.historyId || null,
-        lastError: input.lastError === undefined ? undefined : input.lastError,
+        lastError:
+          input.lastError !== undefined
+            ? input.lastError
+            : input.status !== undefined &&
+                input.status !== ScheduledPostStatus.FAILED
+              ? null
+              : undefined,
       },
       include: {
         channel: true,
@@ -1396,6 +1733,13 @@ export class AutomationService {
         'Only draft, scheduled or failed posts can be queued.',
       );
     }
+
+    this.validateScheduledPostMedia(
+      current.platform,
+      current.mediaUrls,
+      ScheduledPostStatus.QUEUED,
+      'queueing',
+    );
 
     return this.prisma.scheduledPost.update({
       where: {

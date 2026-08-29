@@ -13,6 +13,7 @@ import { AiService } from './ai.service';
 export class AiBackgroundJobService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AiBackgroundJobService.name);
   private processing = false;
+  private readonly staleRunningJobAgeMs = 30 * 60 * 1000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -20,10 +21,15 @@ export class AiBackgroundJobService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    const staleBefore = new Date(Date.now() - this.staleRunningJobAgeMs);
     await this.prisma.backgroundJob.updateMany({
       where: {
         type: BackgroundJobType.AI_STUDIO,
         status: BackgroundJobStatus.RUNNING,
+        OR: [
+          { startedAt: null },
+          { startedAt: { lt: staleBefore } },
+        ],
       },
       data: { status: BackgroundJobStatus.QUEUED },
     });

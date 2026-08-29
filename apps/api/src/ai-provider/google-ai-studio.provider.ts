@@ -85,6 +85,7 @@ export class GoogleAiStudioProvider
                       'hook',
                       'facebook',
                       'telegram',
+                      'instagram',
                       'reels',
                       'imagePrompt',
                       'hashtags',
@@ -114,6 +115,18 @@ export class GoogleAiStudioProvider
                         properties: {
                           message: { type: 'string' },
                           callToAction: { type: 'string' },
+                        },
+                      },
+                      instagram: {
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['caption', 'hashtags'],
+                        properties: {
+                          caption: { type: 'string' },
+                          hashtags: {
+                            type: 'array',
+                            items: { type: 'string' },
+                          },
                         },
                       },
                       reels: {

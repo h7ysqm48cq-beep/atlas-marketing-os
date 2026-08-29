@@ -132,6 +132,7 @@ model GenerationHistory {
   language                      String
   facebook                      String
   telegram                      String
+  instagram                     String                       @default("")
   reels                         String
   imagePrompt                   String
   analysis                      Json
@@ -312,7 +313,9 @@ model SocialChannel {
   lastError                   String?
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
-  publishingPreference        String                       @default("AUTOMATIC")
+  publishingPreference        String                       @default("BROWSER_RUNTIME")
+  hiddenAt                    DateTime?
+  hiddenReason                String?
   browserAccountLinks         BrowserAccountChannel[]
   browserActionHistory        BrowserActionHistory[]
   scheduledPosts              ScheduledPost[]
@@ -321,12 +324,14 @@ model SocialChannel {
   socialChannelRuntimeProfile SocialChannelRuntimeProfile?
   sportsNewsFacebookSettings  SportsNewsSetting[]          @relation("SportsNewsFacebookChannel")
   sportsNewsTelegramSettings  SportsNewsSetting[]          @relation("SportsNewsTelegramChannel")
+  sportsNewsInstagramSettings SportsNewsSetting[]          @relation("SportsNewsInstagramChannel")
 
   @@unique([brandId, platform, externalId])
   @@index([workspaceId])
   @@index([brandId])
   @@index([platform])
   @@index([status])
+  @@index([hiddenAt])
 }
 
 model SocialChannelRuntimeProfile {
@@ -635,6 +640,10 @@ model SportsNewsSetting {
   telegramChannelId             String?
   facebookEnabled               Boolean        @default(false)
   facebookChannelId             String?
+  instagramEnabled              Boolean        @default(false)
+  instagramChannelId            String?
+  morningInstagramEnabled       Boolean        @default(false)
+  eveningInstagramEnabled       Boolean        @default(false)
   autoPublishEnabled            Boolean        @default(true)
   approvalRequired              Boolean        @default(false)
   language                      String         @default("zh-en")
@@ -815,10 +824,12 @@ model SportsNewsSetting {
   channelOverrides              Json           @default("{}")
   facebookChannel               SocialChannel? @relation("SportsNewsFacebookChannel", fields: [facebookChannelId], references: [id])
   telegramChannel               SocialChannel? @relation("SportsNewsTelegramChannel", fields: [telegramChannelId], references: [id])
+  instagramChannel              SocialChannel? @relation("SportsNewsInstagramChannel", fields: [instagramChannelId], references: [id])
   workspace                     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([telegramChannelId])
   @@index([facebookChannelId])
+  @@index([instagramChannelId])
 }
 
 model AiRuntimeSetting {
@@ -1064,6 +1075,7 @@ enum AiUsageFeature {
 enum SocialPlatform {
   FACEBOOK
   TELEGRAM
+  INSTAGRAM
 }
 
 enum SocialChannelStatus {

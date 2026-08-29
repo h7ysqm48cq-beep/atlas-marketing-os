@@ -5,6 +5,7 @@ import styles from "./BrandCopilot.module.css";
 export type CopilotStudioDraft = {
   facebook: string;
   telegram: string;
+  instagram: string;
   reels: string;
   imagePrompt: string;
 };
@@ -33,6 +34,7 @@ export function CopilotStudioResultCard({
   const hasResult = Boolean(
     draft.facebook.trim() ||
     draft.telegram.trim() ||
+    draft.instagram.trim() ||
     draft.reels.trim() ||
     draft.imagePrompt.trim(),
   );
@@ -55,6 +57,11 @@ export function CopilotStudioResultCard({
       key: "telegram",
       label: "Telegram",
       content: draft.telegram,
+    },
+    {
+      key: "instagram",
+      label: "Instagram",
+      content: draft.instagram,
     },
     {
       key: "reels",

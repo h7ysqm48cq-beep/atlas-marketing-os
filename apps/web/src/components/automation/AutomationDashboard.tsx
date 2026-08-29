@@ -62,7 +62,7 @@ function buildBrowserViewUrl(viewerToken: string) {
 
 type Channel = {
   id: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   username: string | null;
   status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
@@ -75,7 +75,7 @@ type Channel = {
 
 type ScheduledPost = {
   id: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   title: string | null;
   content: string;
   status: string;
@@ -311,7 +311,7 @@ function formatTraceDuration(durationMs: number | null) {
 }
 
 function platformLabel(platform: string) {
-  return platform === "FACEBOOK" ? "Facebook" : "Telegram";
+  return platform === "FACEBOOK" ? "Facebook" : platform === "TELEGRAM" ? "Telegram" : "Instagram";
 }
 
 function browserActionScreenshotUrl(
@@ -414,7 +414,7 @@ export function AutomationDashboard() {
           loadFailed: "无法加载自动化仪表板。",
           publishing: "发布管理",
           title: "社交平台自动化",
-          description: "管理 Facebook 与 Telegram 渠道、发布队列和排程帖子。",
+          description: "管理 Facebook、Telegram 与 Instagram 渠道、发布队列和排程帖子。",
           refreshing: "刷新中……",
           refresh: "刷新",
           scheduled: "已排程",
@@ -454,9 +454,9 @@ export function AutomationDashboard() {
           noScheduled: "尚未排程任何帖子。",
           connected: "已连接",
           disconnected: "未连接",
-          browserDraft: "Facebook 浏览器草稿",
+          browserDraft: "社交平台浏览器草稿",
           browserDraftDescription:
-            "在你的 Mac 浏览器中准备文案与图片，停在发布前供人工确认。",
+            "在你的 Mac 浏览器中准备 Facebook 或 Instagram 文案与图片，停在发布前供人工确认。",
           facebookChannel: "Facebook 渠道",
           captionLabel: "文案",
           captionPlaceholder: "输入要放入 Facebook 帖子的文案……",
@@ -474,7 +474,7 @@ export function AutomationDashboard() {
           browserStopped: "浏览器未运行",
           draftReady: "草稿已准备完成，请在浏览器中检查。",
           browserDraftFailed: "无法准备浏览器草稿。",
-          noFacebookChannel: "没有可用的 Facebook 渠道。",
+          noFacebookChannel: "没有可用的 Facebook 或 Instagram 渠道。",
           screenshotPreview: "草稿预览",
           localPathHint:
             "当前版本使用 Browser Worker 所在 Mac 的本地文件路径。",
@@ -549,7 +549,7 @@ export function AutomationDashboard() {
           publishing: "Publishing",
           title: "Social Automation",
           description:
-            "Manage Facebook and Telegram channels, publishing queue and scheduled posts.",
+            "Manage Facebook, Telegram and Instagram channels, publishing queue and scheduled posts.",
           refreshing: "Refreshing...",
           refresh: "Refresh",
           scheduled: "Scheduled",
@@ -589,9 +589,9 @@ export function AutomationDashboard() {
           noScheduled: "No posts scheduled yet.",
           connected: "Connected",
           disconnected: "Disconnected",
-          browserDraft: "Facebook Browser Draft",
+          browserDraft: "Social Browser Draft",
           browserDraftDescription:
-            "Prepare a caption and image in your Mac browser, then stop before publishing for manual review.",
+            "Prepare Facebook or Instagram content in your Mac browser, then stop before publishing for manual review.",
           facebookChannel: "Facebook channel",
           captionLabel: "Caption",
           captionPlaceholder: "Enter the Facebook post caption...",
@@ -609,7 +609,7 @@ export function AutomationDashboard() {
           browserStopped: "Browser stopped",
           draftReady: "Draft is ready. Review it in the browser.",
           browserDraftFailed: "Unable to prepare browser draft.",
-          noFacebookChannel: "No Facebook channel is available.",
+          noFacebookChannel: "No Facebook or Instagram channel is available.",
           screenshotPreview: "Draft preview",
           localPathHint:
             "This version uses a local file path on the Mac running Browser Worker.",
@@ -693,7 +693,7 @@ export function AutomationDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedFacebookChannelId, setSelectedFacebookChannelId] =
+  const [selectedBrowserChannelId, setSelectedBrowserChannelId] =
     useState("");
 
   const [browserCaption, setBrowserCaption] = useState("");
@@ -728,6 +728,12 @@ export function AutomationDashboard() {
   const [draftReady, setDraftReady] = useState(false);
 
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+
+  const selectedBrowserChannel = dashboard?.channels.find(
+    (channel) => channel.id === selectedBrowserChannelId,
+  );
+  const selectedBrowserPlatform = selectedBrowserChannel?.platform ?? "FACEBOOK";
+  const isInstagramBrowser = selectedBrowserPlatform === "INSTAGRAM";
 
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
@@ -876,19 +882,19 @@ export function AutomationDashboard() {
   }, [load]); // eslint-disable-line react-hooks/exhaustive-deps -- Browser actions are already loaded by the dashboard loader.
 
   useEffect(() => {
-    if (selectedFacebookChannelId || !dashboard) {
+    if (selectedBrowserChannelId || !dashboard) {
       return;
     }
 
-    const facebookChannel = dashboard.channels.find(
-      (channel) => channel.platform === "FACEBOOK",
+    const browserChannel = dashboard.channels.find(
+      (channel) => channel.platform === "FACEBOOK" || channel.platform === "INSTAGRAM",
     );
 
-    if (facebookChannel) {
+    if (browserChannel) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Select the first available Facebook channel after remote data arrives.
-      setSelectedFacebookChannelId(facebookChannel.id);
+      setSelectedBrowserChannelId(browserChannel.id);
     }
-  }, [dashboard, selectedFacebookChannelId]);
+  }, [dashboard, selectedBrowserChannelId]);
 
   async function connectSecureBrowserViewer() {
     const response = await fetch("/api/browser-viewer/session", {
@@ -930,7 +936,7 @@ export function AutomationDashboard() {
   }
 
   async function openBrowser() {
-    if (!selectedFacebookChannelId) {
+    if (!selectedBrowserChannelId) {
       setBrowserError(copy.noFacebookChannel);
       return;
     }
@@ -941,7 +947,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/open`,
         {
           method: "POST",
           headers: {
@@ -949,7 +955,7 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             headless: false,
-            startUrl: "https://www.facebook.com/",
+            startUrl: isInstagramBrowser ? "https://www.instagram.com/" : "https://www.facebook.com/",
           }),
         },
       );
@@ -983,7 +989,7 @@ export function AutomationDashboard() {
   }
 
   async function checkBrowserStatus() {
-    if (!selectedFacebookChannelId) {
+    if (!selectedBrowserChannelId) {
       return;
     }
 
@@ -992,7 +998,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/status`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/status`,
         {
           cache: "no-store",
         },
@@ -1028,7 +1034,7 @@ export function AutomationDashboard() {
   }
 
   async function closeBrowser() {
-    if (!selectedFacebookChannelId) {
+    if (!selectedBrowserChannelId) {
       return;
     }
 
@@ -1038,7 +1044,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/close`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/close`,
         {
           method: "POST",
         },
@@ -1110,7 +1116,7 @@ export function AutomationDashboard() {
         );
       }
 
-      setSelectedFacebookChannelId(item.channel.id);
+      setSelectedBrowserChannelId(item.channel.id);
 
       setBrowserCaption(item.caption || "");
 
@@ -1132,7 +1138,7 @@ export function AutomationDashboard() {
   }
 
   async function prepareBrowserDraft() {
-    if (!selectedFacebookChannelId || !browserCaption.trim()) {
+    if (!selectedBrowserChannelId || !browserCaption.trim()) {
       setBrowserError(copy.browserDraftFailed);
       return;
     }
@@ -1145,7 +1151,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/prepare-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/${isInstagramBrowser ? "instagram" : "facebook"}/prepare-post`,
         {
           method: "POST",
           headers: {
@@ -1153,7 +1159,9 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             caption: browserCaption.trim(),
-            imagePath: browserImagePath.trim() || null,
+            ...(isInstagramBrowser && /^https?:\/\//i.test(browserImagePath.trim())
+              ? { imageUrl: browserImagePath.trim() }
+              : { imagePath: browserImagePath.trim() || null }),
           }),
         },
       );
@@ -1189,7 +1197,7 @@ export function AutomationDashboard() {
   }
 
   async function discardBrowserDraft() {
-    if (!selectedFacebookChannelId || !draftReady) {
+    if (!selectedBrowserChannelId || !draftReady) {
       return;
     }
 
@@ -1200,7 +1208,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/discard-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/${isInstagramBrowser ? "instagram" : "facebook"}/discard-post`,
         {
           method: "POST",
         },
@@ -1242,7 +1250,7 @@ export function AutomationDashboard() {
   }
 
   async function publishBrowserDraft() {
-    if (!selectedFacebookChannelId || !draftReady) {
+    if (!selectedBrowserChannelId || !draftReady) {
       return;
     }
 
@@ -1253,7 +1261,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedFacebookChannelId}/browser/facebook/publish-post`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/${isInstagramBrowser ? "instagram" : "facebook"}/publish-post`,
         {
           method: "POST",
           headers: {
@@ -1456,10 +1464,12 @@ export function AutomationDashboard() {
                           className={`${styles.channelTableIcon} ${
                             channel.platform === "FACEBOOK"
                               ? styles.facebook
-                              : styles.telegram
+                              : channel.platform === "TELEGRAM"
+                                ? styles.telegram
+                                : styles.instagram
                           }`}
                         >
-                          {channel.platform === "FACEBOOK" ? "f" : "✈"}
+                          {channel.platform === "FACEBOOK" ? "f" : channel.platform === "TELEGRAM" ? "✈" : "◎"}
                         </span>
 
                         <small>{channel.platform}</small>
@@ -1580,19 +1590,22 @@ export function AutomationDashboard() {
         <div className={styles.browserDraftGrid}>
           <div className={styles.browserDraftForm}>
             <label>
-              <span>{copy.facebookChannel}</span>
+              <span>{isInstagramBrowser ? "Instagram channel" : copy.facebookChannel}</span>
 
               <select
-                value={selectedFacebookChannelId}
+                value={selectedBrowserChannelId}
                 onChange={(event) => {
-                  setSelectedFacebookChannelId(event.target.value);
+                  setSelectedBrowserChannelId(event.target.value);
+                  setBrowserRunning(false);
+                  setBrowserViewerUrl(null);
+                  setBrowserViewerKey((current) => current + 1);
                   setBrowserMessage("");
                   setBrowserError("");
                   setDraftScreenshot(null);
                 }}
               >
                 {dashboard.channels
-                  .filter((channel) => channel.platform === "FACEBOOK")
+                  .filter((channel) => channel.platform === "FACEBOOK" || channel.platform === "INSTAGRAM")
                   .map((channel) => (
                     <option key={channel.id} value={channel.id}>
                       {channel.name}
@@ -1615,23 +1628,23 @@ export function AutomationDashboard() {
             </label>
 
             <label>
-              <span>{copy.imagePathLabel}</span>
+              <span>{isInstagramBrowser ? "Image path or URL" : copy.imagePathLabel}</span>
 
               <input
                 type="text"
                 value={browserImagePath}
                 onChange={(event) => setBrowserImagePath(event.target.value)}
-                placeholder={copy.imagePathPlaceholder}
+                placeholder={isInstagramBrowser ? "https://... or /path/to/image.jpg" : copy.imagePathPlaceholder}
               />
 
-              <small>{copy.localPathHint}</small>
+              <small>{isInstagramBrowser ? "Instagram supports a local path or one remote image URL." : copy.localPathHint}</small>
             </label>
 
             <div className={styles.browserActions}>
               <button
                 type="button"
                 onClick={() => void openBrowser()}
-                disabled={browserAction !== null || !selectedFacebookChannelId}
+                disabled={browserAction !== null || !selectedBrowserChannelId}
               >
                 {browserAction === "open"
                   ? copy.openingBrowser
@@ -1642,7 +1655,7 @@ export function AutomationDashboard() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => void checkBrowserStatus()}
-                disabled={browserAction !== null || !selectedFacebookChannelId}
+                disabled={browserAction !== null || !selectedBrowserChannelId}
               >
                 {browserAction === "status"
                   ? copy.checkingStatus
@@ -1653,7 +1666,7 @@ export function AutomationDashboard() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => void closeBrowser()}
-                disabled={browserAction !== null || !selectedFacebookChannelId}
+                disabled={browserAction !== null || !selectedBrowserChannelId}
               >
                 {browserAction === "close"
                   ? copy.closingBrowser
@@ -1667,7 +1680,7 @@ export function AutomationDashboard() {
               onClick={() => void prepareBrowserDraft()}
               disabled={
                 browserAction !== null ||
-                !selectedFacebookChannelId ||
+                !selectedBrowserChannelId ||
                 !browserCaption.trim()
               }
             >
@@ -1734,7 +1747,7 @@ export function AutomationDashboard() {
               />
             ) : (
               <div className={styles.previewEmpty}>
-                <span>Facebook</span>
+                <span>{selectedBrowserPlatform === "INSTAGRAM" ? "Instagram" : "Facebook"}</span>
                 <small>{copy.browserDraftDescription}</small>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { AiRuntimeModule } from './ai-runtime/ai-runtime.module';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from './ai/ai.module';
@@ -41,9 +42,12 @@ import { EngineeringModule } from './engineering/engineering.module';
 import { ImageSettingsModule } from './image-settings/image-settings.module';
 import { ImageProcessingModule } from './image-processing/image-processing.module';
 import { SystemHealthModule } from './system-health/system-health.module';
+import { NotificationModule } from './notifications/notification.module';
+import { SupabaseAuthGuard } from './auth/supabase-auth.guard';
 @Module({
   imports: [
     SystemHealthModule,
+    NotificationModule,
     ImageProcessingModule,
     ImageSettingsModule,
     AiRuntimeModule,
@@ -83,6 +87,12 @@ import { SystemHealthModule } from './system-health/system-health.module';
   controllers: [
     AppController,
   ],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: SupabaseAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

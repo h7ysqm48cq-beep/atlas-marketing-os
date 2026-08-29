@@ -101,7 +101,7 @@ export function PlatformCard({
   approval: ApprovalState;
   onApprovalChange: (approval: ApprovalState) => void;
   copilotRequest?: {
-    platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
+    platform: "Facebook" | "Telegram" | "Instagram" | "Reels Script" | "Image Prompt";
     action: "improve" | "shorter" | "rewrite";
     nonce: number;
   } | null;

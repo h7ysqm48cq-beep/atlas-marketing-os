@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 export type QualityContent = {
   facebook: string;
   telegram: string;
+  instagram?: string;
   reels: string;
   image: string;
 };
@@ -219,12 +220,13 @@ export class ContentQualityService {
     return {
       facebook: this.cleanText(content.facebook),
       telegram: this.cleanText(content.telegram),
+      instagram: this.cleanText(content.instagram),
       reels: this.cleanText(content.reels),
       image: this.cleanText(content.image),
     };
   }
 
-  private cleanText(value: string): string {
+  private cleanText(value?: string): string {
     return (value || '')
       .replace(/[ \t]+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
@@ -276,6 +278,7 @@ export class ContentQualityService {
     return {
       facebook: clean(content.facebook),
       telegram: clean(content.telegram),
+      instagram: clean(content.instagram ?? ''),
       reels: clean(content.reels),
       image: clean(content.image),
     };
@@ -307,6 +310,7 @@ export class ContentQualityService {
     const text = [
       content.facebook,
       content.telegram,
+      content.instagram ?? '',
       content.reels,
     ].join('\n');
 
@@ -359,6 +363,10 @@ export class ContentQualityService {
     }
 
     if (content.telegram.length > 1800) {
+      score -= 10;
+    }
+
+    if ((content.instagram ?? '').length > 2200) {
       score -= 10;
     }
 

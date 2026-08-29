@@ -8,6 +8,7 @@
     "start:dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@novnc/novnc": "^1.7.0",
     "express": "^5.1.0",
     "playwright-core": "^1.54.2"
   },

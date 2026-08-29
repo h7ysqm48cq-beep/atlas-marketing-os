@@ -53,7 +53,20 @@ export class ContentValidatorService {
       ['reels.title', output.reels?.title],
       ['reels.caption', output.reels?.caption],
       ['imagePrompt', output.imagePrompt],
-    ] as const;
+    ] as Array<readonly [string, unknown]>;
+
+    if (
+      context.request.platforms.some(
+        (platform) =>
+          platform.toLowerCase() === 'instagram' ||
+          platform.toLowerCase() === 'ig',
+      )
+    ) {
+      requiredTextFields.push([
+        'instagram.caption',
+        output.instagram?.caption,
+      ]);
+    }
 
     for (const [field, value] of requiredTextFields) {
       if (
@@ -105,6 +118,8 @@ export class ContentValidatorService {
       output.facebook?.discussionQuestion,
       output.telegram?.message,
       output.telegram?.callToAction,
+      output.instagram?.caption,
+      ...(output.instagram?.hashtags ?? []),
       output.reels?.title,
       output.reels?.caption,
       ...(output.reels?.scenes ?? []).flatMap(

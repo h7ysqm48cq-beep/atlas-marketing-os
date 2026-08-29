@@ -28,6 +28,7 @@ export type MarketingPlan = {
   contentIdeas: string[];
   facebook: string[];
   telegram: string[];
+  instagram: string[];
   reels: string[];
   imagePrompts: string[];
   schedule: MarketingPlanScheduleItem[];
@@ -79,6 +80,12 @@ const MARKETING_PLAN_SCHEMA = {
         type: 'string',
       },
     },
+    instagram: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+    },
     reels: {
       type: 'array',
       items: {
@@ -124,6 +131,7 @@ const MARKETING_PLAN_SCHEMA = {
     'contentIdeas',
     'facebook',
     'telegram',
+    'instagram',
     'reels',
     'imagePrompts',
     'schedule',
@@ -201,7 +209,7 @@ export class MarketingPlannerService {
     const relevantKnowledge = await this.knowledgeService
       .findRelevant({
         topic: prompt,
-        platform: 'Facebook Telegram Reels',
+        platform: 'Facebook Telegram Instagram Reels',
         style: this.toText(brand.brandVoice),
         language: this.toText(brand.primaryLanguage),
         limit: 3,
@@ -318,6 +326,7 @@ export class MarketingPlannerService {
       ),
       facebook: this.stringArray(source.facebook, fallback.facebook),
       telegram: this.stringArray(source.telegram, fallback.telegram),
+      instagram: this.stringArray(source.instagram, fallback.instagram),
       reels: this.stringArray(source.reels, fallback.reels),
       imagePrompts: this.stringArray(
         source.imagePrompts,
@@ -359,6 +368,11 @@ export class MarketingPlannerService {
         `一句话分享你对「${topic}」最深的回忆。`,
         `今天的话题：${topic}。你会选哪一个经典瞬间？`,
       ],
+      instagram: [
+        `「${topic}」的画面感，值得被记录下来。你最先想到哪一个瞬间？ #满贯门`,
+        `一张图，一段回忆。关于「${topic}」，哪一个细节最让你难忘？ #满贯门`,
+        `如果用一个词形容「${topic}」，你会选什么？留言告诉我们。 #满贯门`,
+      ],
       reels: [
         `Hook：看到这个画面，你的回忆回来了吗？画面快速呈现3个代表性瞬间，结尾邀请观众留言。`,
         `Hook：只有经历过那个年代的人才懂。用三段递进画面建立情绪，最后提出互动问题。`,
@@ -390,8 +404,8 @@ export class MarketingPlannerService {
         },
         {
           day: 4,
-          platform: 'Facebook',
-          contentType: 'Poll',
+          platform: 'Instagram',
+          contentType: 'Visual caption',
           topic,
         },
         {
@@ -544,6 +558,7 @@ export class MarketingPlannerService {
       contentIdeas: cleanArray(plan.contentIdeas),
       facebook: cleanArray(plan.facebook),
       telegram: cleanArray(plan.telegram),
+      instagram: cleanArray(plan.instagram),
       reels: cleanArray(plan.reels),
       imagePrompts: cleanArray(plan.imagePrompts, true),
       schedule: plan.schedule

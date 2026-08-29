@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 export type ReviewableContent = {
   facebook: string;
   telegram: string;
+  instagram: string;
   reels: string;
   image: string;
 };
@@ -105,6 +106,8 @@ export class ContentReviewService {
             '',
             `Telegram:\n${input.content.telegram}`,
             '',
+            `Instagram:\n${input.content.instagram}`,
+            '',
             `Reels:\n${input.content.reels}`,
             '',
             `Image prompt:\n${input.content.image}`,
@@ -120,6 +123,7 @@ export class ContentReviewService {
                 properties: {
                   facebook: { type: 'string' },
                   telegram: { type: 'string' },
+                  instagram: { type: 'string' },
                   reels: { type: 'string' },
                   image: { type: 'string' },
                   passed: { type: 'boolean' },
@@ -166,6 +170,7 @@ export class ContentReviewService {
                 required: [
                   'facebook',
                   'telegram',
+                  'instagram',
                   'reels',
                   'image',
                   'passed',
@@ -193,6 +198,7 @@ export class ContentReviewService {
         content: {
           facebook: result.facebook,
           telegram: result.telegram,
+          instagram: result.instagram,
           reels: result.reels,
           image: result.image,
         },

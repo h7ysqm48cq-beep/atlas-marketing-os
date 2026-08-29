@@ -121,6 +121,10 @@ export type SportsNewsSettingMinAggregateOutputType = {
   telegramChannelId: string | null
   facebookEnabled: boolean | null
   facebookChannelId: string | null
+  instagramEnabled: boolean | null
+  instagramChannelId: string | null
+  morningInstagramEnabled: boolean | null
+  eveningInstagramEnabled: boolean | null
   autoPublishEnabled: boolean | null
   approvalRequired: boolean | null
   language: string | null
@@ -313,6 +317,10 @@ export type SportsNewsSettingMaxAggregateOutputType = {
   telegramChannelId: string | null
   facebookEnabled: boolean | null
   facebookChannelId: string | null
+  instagramEnabled: boolean | null
+  instagramChannelId: string | null
+  morningInstagramEnabled: boolean | null
+  eveningInstagramEnabled: boolean | null
   autoPublishEnabled: boolean | null
   approvalRequired: boolean | null
   language: string | null
@@ -505,6 +513,10 @@ export type SportsNewsSettingCountAggregateOutputType = {
   telegramChannelId: number
   facebookEnabled: number
   facebookChannelId: number
+  instagramEnabled: number
+  instagramChannelId: number
+  morningInstagramEnabled: number
+  eveningInstagramEnabled: number
   autoPublishEnabled: number
   approvalRequired: number
   language: number
@@ -782,6 +794,10 @@ export type SportsNewsSettingMinAggregateInputType = {
   telegramChannelId?: true
   facebookEnabled?: true
   facebookChannelId?: true
+  instagramEnabled?: true
+  instagramChannelId?: true
+  morningInstagramEnabled?: true
+  eveningInstagramEnabled?: true
   autoPublishEnabled?: true
   approvalRequired?: true
   language?: true
@@ -974,6 +990,10 @@ export type SportsNewsSettingMaxAggregateInputType = {
   telegramChannelId?: true
   facebookEnabled?: true
   facebookChannelId?: true
+  instagramEnabled?: true
+  instagramChannelId?: true
+  morningInstagramEnabled?: true
+  eveningInstagramEnabled?: true
   autoPublishEnabled?: true
   approvalRequired?: true
   language?: true
@@ -1166,6 +1186,10 @@ export type SportsNewsSettingCountAggregateInputType = {
   telegramChannelId?: true
   facebookEnabled?: true
   facebookChannelId?: true
+  instagramEnabled?: true
+  instagramChannelId?: true
+  morningInstagramEnabled?: true
+  eveningInstagramEnabled?: true
   autoPublishEnabled?: true
   approvalRequired?: true
   language?: true
@@ -1446,6 +1470,10 @@ export type SportsNewsSettingGroupByOutputType = {
   telegramChannelId: string | null
   facebookEnabled: boolean
   facebookChannelId: string | null
+  instagramEnabled: boolean
+  instagramChannelId: string | null
+  morningInstagramEnabled: boolean
+  eveningInstagramEnabled: boolean
   autoPublishEnabled: boolean
   approvalRequired: boolean
   language: string
@@ -1662,6 +1690,10 @@ export type SportsNewsSettingWhereInput = {
   telegramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   facebookEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   facebookChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  instagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  instagramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  morningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  eveningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   autoPublishEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   approvalRequired?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   language?: Prisma.StringFilter<"SportsNewsSetting"> | string
@@ -1842,6 +1874,7 @@ export type SportsNewsSettingWhereInput = {
   channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   facebookChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
   telegramChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
+  instagramChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
 }
 
@@ -1858,6 +1891,10 @@ export type SportsNewsSettingOrderByWithRelationInput = {
   telegramChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
   facebookEnabled?: Prisma.SortOrder
   facebookChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  instagramEnabled?: Prisma.SortOrder
+  instagramChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  morningInstagramEnabled?: Prisma.SortOrder
+  eveningInstagramEnabled?: Prisma.SortOrder
   autoPublishEnabled?: Prisma.SortOrder
   approvalRequired?: Prisma.SortOrder
   language?: Prisma.SortOrder
@@ -2038,6 +2075,7 @@ export type SportsNewsSettingOrderByWithRelationInput = {
   channelOverrides?: Prisma.SortOrder
   facebookChannel?: Prisma.SocialChannelOrderByWithRelationInput
   telegramChannel?: Prisma.SocialChannelOrderByWithRelationInput
+  instagramChannel?: Prisma.SocialChannelOrderByWithRelationInput
   workspace?: Prisma.WorkspaceOrderByWithRelationInput
 }
 
@@ -2057,6 +2095,10 @@ export type SportsNewsSettingWhereUniqueInput = Prisma.AtLeast<{
   telegramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   facebookEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   facebookChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  instagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  instagramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  morningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  eveningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   autoPublishEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   approvalRequired?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   language?: Prisma.StringFilter<"SportsNewsSetting"> | string
@@ -2237,6 +2279,7 @@ export type SportsNewsSettingWhereUniqueInput = Prisma.AtLeast<{
   channelOverrides?: Prisma.JsonFilter<"SportsNewsSetting">
   facebookChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
   telegramChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
+  instagramChannel?: Prisma.XOR<Prisma.SocialChannelNullableScalarRelationFilter, Prisma.SocialChannelWhereInput> | null
   workspace?: Prisma.XOR<Prisma.WorkspaceScalarRelationFilter, Prisma.WorkspaceWhereInput>
 }, "id" | "workspaceId">
 
@@ -2253,6 +2296,10 @@ export type SportsNewsSettingOrderByWithAggregationInput = {
   telegramChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
   facebookEnabled?: Prisma.SortOrder
   facebookChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  instagramEnabled?: Prisma.SortOrder
+  instagramChannelId?: Prisma.SortOrderInput | Prisma.SortOrder
+  morningInstagramEnabled?: Prisma.SortOrder
+  eveningInstagramEnabled?: Prisma.SortOrder
   autoPublishEnabled?: Prisma.SortOrder
   approvalRequired?: Prisma.SortOrder
   language?: Prisma.SortOrder
@@ -2454,6 +2501,10 @@ export type SportsNewsSettingScalarWhereWithAggregatesInput = {
   telegramChannelId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
   facebookEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   facebookChannelId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  instagramEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
+  instagramChannelId?: Prisma.StringNullableWithAggregatesFilter<"SportsNewsSetting"> | string | null
+  morningInstagramEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
+  eveningInstagramEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   autoPublishEnabled?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   approvalRequired?: Prisma.BoolWithAggregatesFilter<"SportsNewsSetting"> | boolean
   language?: Prisma.StringWithAggregatesFilter<"SportsNewsSetting"> | string
@@ -2644,6 +2695,9 @@ export type SportsNewsSettingCreateInput = {
   eveningTime?: string
   telegramEnabled?: boolean
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -2824,6 +2878,7 @@ export type SportsNewsSettingCreateInput = {
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsFacebookSettingsInput
   telegramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput
+  instagramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsInstagramSettingsInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSportsNewsSettingInput
 }
 
@@ -2840,6 +2895,10 @@ export type SportsNewsSettingUncheckedCreateInput = {
   telegramChannelId?: string | null
   facebookEnabled?: boolean
   facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -3030,6 +3089,9 @@ export type SportsNewsSettingUpdateInput = {
   eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3210,6 +3272,7 @@ export type SportsNewsSettingUpdateInput = {
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput
   telegramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput
+  instagramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsInstagramSettingsNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSportsNewsSettingNestedInput
 }
 
@@ -3226,6 +3289,10 @@ export type SportsNewsSettingUncheckedUpdateInput = {
   telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3419,6 +3486,10 @@ export type SportsNewsSettingCreateManyInput = {
   telegramChannelId?: string | null
   facebookEnabled?: boolean
   facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -3609,6 +3680,9 @@ export type SportsNewsSettingUpdateManyMutationInput = {
   eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3802,6 +3876,10 @@ export type SportsNewsSettingUncheckedUpdateManyInput = {
   telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -4010,6 +4088,10 @@ export type SportsNewsSettingCountOrderByAggregateInput = {
   telegramChannelId?: Prisma.SortOrder
   facebookEnabled?: Prisma.SortOrder
   facebookChannelId?: Prisma.SortOrder
+  instagramEnabled?: Prisma.SortOrder
+  instagramChannelId?: Prisma.SortOrder
+  morningInstagramEnabled?: Prisma.SortOrder
+  eveningInstagramEnabled?: Prisma.SortOrder
   autoPublishEnabled?: Prisma.SortOrder
   approvalRequired?: Prisma.SortOrder
   language?: Prisma.SortOrder
@@ -4244,6 +4326,10 @@ export type SportsNewsSettingMaxOrderByAggregateInput = {
   telegramChannelId?: Prisma.SortOrder
   facebookEnabled?: Prisma.SortOrder
   facebookChannelId?: Prisma.SortOrder
+  instagramEnabled?: Prisma.SortOrder
+  instagramChannelId?: Prisma.SortOrder
+  morningInstagramEnabled?: Prisma.SortOrder
+  eveningInstagramEnabled?: Prisma.SortOrder
   autoPublishEnabled?: Prisma.SortOrder
   approvalRequired?: Prisma.SortOrder
   language?: Prisma.SortOrder
@@ -4436,6 +4522,10 @@ export type SportsNewsSettingMinOrderByAggregateInput = {
   telegramChannelId?: Prisma.SortOrder
   facebookEnabled?: Prisma.SortOrder
   facebookChannelId?: Prisma.SortOrder
+  instagramEnabled?: Prisma.SortOrder
+  instagramChannelId?: Prisma.SortOrder
+  morningInstagramEnabled?: Prisma.SortOrder
+  eveningInstagramEnabled?: Prisma.SortOrder
   autoPublishEnabled?: Prisma.SortOrder
   approvalRequired?: Prisma.SortOrder
   language?: Prisma.SortOrder
@@ -4702,6 +4792,13 @@ export type SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput = {
   connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
 }
 
+export type SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput = {
+  create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput> | Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput[]
+  connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput[]
+  createMany?: Prisma.SportsNewsSettingCreateManyInstagramChannelInputEnvelope
+  connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+}
+
 export type SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput = {
   create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutFacebookChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput> | Prisma.SportsNewsSettingCreateWithoutFacebookChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput[]
   connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutFacebookChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutFacebookChannelInput[]
@@ -4713,6 +4810,13 @@ export type SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInpu
   create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutTelegramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput> | Prisma.SportsNewsSettingCreateWithoutTelegramChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput[]
   connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutTelegramChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutTelegramChannelInput[]
   createMany?: Prisma.SportsNewsSettingCreateManyTelegramChannelInputEnvelope
+  connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+}
+
+export type SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput = {
+  create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput> | Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput[]
+  connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput[]
+  createMany?: Prisma.SportsNewsSettingCreateManyInstagramChannelInputEnvelope
   connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
 }
 
@@ -4744,6 +4848,20 @@ export type SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput = {
   deleteMany?: Prisma.SportsNewsSettingScalarWhereInput | Prisma.SportsNewsSettingScalarWhereInput[]
 }
 
+export type SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput = {
+  create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput> | Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput[]
+  connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput[]
+  upsert?: Prisma.SportsNewsSettingUpsertWithWhereUniqueWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpsertWithWhereUniqueWithoutInstagramChannelInput[]
+  createMany?: Prisma.SportsNewsSettingCreateManyInstagramChannelInputEnvelope
+  set?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  disconnect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  delete?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  update?: Prisma.SportsNewsSettingUpdateWithWhereUniqueWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpdateWithWhereUniqueWithoutInstagramChannelInput[]
+  updateMany?: Prisma.SportsNewsSettingUpdateManyWithWhereWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpdateManyWithWhereWithoutInstagramChannelInput[]
+  deleteMany?: Prisma.SportsNewsSettingScalarWhereInput | Prisma.SportsNewsSettingScalarWhereInput[]
+}
+
 export type SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput = {
   create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutFacebookChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput> | Prisma.SportsNewsSettingCreateWithoutFacebookChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput[]
   connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutFacebookChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutFacebookChannelInput[]
@@ -4772,6 +4890,20 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInpu
   deleteMany?: Prisma.SportsNewsSettingScalarWhereInput | Prisma.SportsNewsSettingScalarWhereInput[]
 }
 
+export type SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput = {
+  create?: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput> | Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput[] | Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput[]
+  connectOrCreate?: Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput | Prisma.SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput[]
+  upsert?: Prisma.SportsNewsSettingUpsertWithWhereUniqueWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpsertWithWhereUniqueWithoutInstagramChannelInput[]
+  createMany?: Prisma.SportsNewsSettingCreateManyInstagramChannelInputEnvelope
+  set?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  disconnect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  delete?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  connect?: Prisma.SportsNewsSettingWhereUniqueInput | Prisma.SportsNewsSettingWhereUniqueInput[]
+  update?: Prisma.SportsNewsSettingUpdateWithWhereUniqueWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpdateWithWhereUniqueWithoutInstagramChannelInput[]
+  updateMany?: Prisma.SportsNewsSettingUpdateManyWithWhereWithoutInstagramChannelInput | Prisma.SportsNewsSettingUpdateManyWithWhereWithoutInstagramChannelInput[]
+  deleteMany?: Prisma.SportsNewsSettingScalarWhereInput | Prisma.SportsNewsSettingScalarWhereInput[]
+}
+
 export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   id?: string
   enabled?: boolean
@@ -4782,6 +4914,9 @@ export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   eveningTime?: string
   telegramEnabled?: boolean
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -4962,6 +5097,7 @@ export type SportsNewsSettingCreateWithoutWorkspaceInput = {
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsFacebookSettingsInput
   telegramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput
+  instagramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsInstagramSettingsInput
 }
 
 export type SportsNewsSettingUncheckedCreateWithoutWorkspaceInput = {
@@ -4976,6 +5112,10 @@ export type SportsNewsSettingUncheckedCreateWithoutWorkspaceInput = {
   telegramChannelId?: string | null
   facebookEnabled?: boolean
   facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -5182,6 +5322,9 @@ export type SportsNewsSettingUpdateWithoutWorkspaceInput = {
   eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -5362,6 +5505,7 @@ export type SportsNewsSettingUpdateWithoutWorkspaceInput = {
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput
   telegramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput
+  instagramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsInstagramSettingsNestedInput
 }
 
 export type SportsNewsSettingUncheckedUpdateWithoutWorkspaceInput = {
@@ -5376,6 +5520,10 @@ export type SportsNewsSettingUncheckedUpdateWithoutWorkspaceInput = {
   telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -5566,6 +5714,9 @@ export type SportsNewsSettingCreateWithoutFacebookChannelInput = {
   eveningTime?: string
   telegramEnabled?: boolean
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -5745,6 +5896,7 @@ export type SportsNewsSettingCreateWithoutFacebookChannelInput = {
   footerTextEnabled?: boolean
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   telegramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput
+  instagramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsInstagramSettingsInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSportsNewsSettingInput
 }
 
@@ -5760,6 +5912,10 @@ export type SportsNewsSettingUncheckedCreateWithoutFacebookChannelInput = {
   telegramEnabled?: boolean
   telegramChannelId?: string | null
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -5960,6 +6116,9 @@ export type SportsNewsSettingCreateWithoutTelegramChannelInput = {
   eveningTime?: string
   telegramEnabled?: boolean
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -6139,6 +6298,7 @@ export type SportsNewsSettingCreateWithoutTelegramChannelInput = {
   footerTextEnabled?: boolean
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsFacebookSettingsInput
+  instagramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsInstagramSettingsInput
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSportsNewsSettingInput
 }
 
@@ -6154,6 +6314,10 @@ export type SportsNewsSettingUncheckedCreateWithoutTelegramChannelInput = {
   telegramEnabled?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -6344,6 +6508,408 @@ export type SportsNewsSettingCreateManyTelegramChannelInputEnvelope = {
   skipDuplicates?: boolean
 }
 
+export type SportsNewsSettingCreateWithoutInstagramChannelInput = {
+  id?: string
+  enabled?: boolean
+  timezone?: string
+  morningEnabled?: boolean
+  morningTime?: string
+  eveningEnabled?: boolean
+  eveningTime?: string
+  telegramEnabled?: boolean
+  facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
+  autoPublishEnabled?: boolean
+  approvalRequired?: boolean
+  language?: string
+  sportsKnowledgeEnabled?: boolean
+  discussionQuestionEnabled?: boolean
+  referenceLinksEnabled?: boolean
+  customPromptEnabled?: boolean
+  systemPrompt?: string | null
+  morningPrompt?: string | null
+  eveningPrompt?: string | null
+  knowledgePrompt?: string | null
+  customInstructions?: string | null
+  imageEnabled?: boolean
+  imagePrompt?: string | null
+  morningImagePrompt?: string | null
+  eveningImagePrompt?: string | null
+  imageAspectRatio?: string
+  imageTextMode?: string
+  imageVisualStyle?: string | null
+  logoEnabled?: boolean
+  logoPosition?: string
+  brandFooterEnabled?: boolean
+  brandFooterText?: string
+  lastMorningRunAt?: Date | string | null
+  lastEveningRunAt?: Date | string | null
+  lastRunStatus?: string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  morningTelegramEnabled?: boolean
+  morningFacebookEnabled?: boolean
+  eveningTelegramEnabled?: boolean
+  eveningFacebookEnabled?: boolean
+  sameDaySourcesOnly?: boolean
+  maxSourceAgeHours?: number
+  requirePublishedAt?: boolean
+  requireSourceUrl?: boolean
+  minimumSources?: number
+  freshnessFallbackEnabled?: boolean
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
+  storyMinimum?: number
+  storyMaximum?: number
+  sportsPriority?: string
+  verificationInstructions?: string | null
+  imageHeadlineInstructions?: string | null
+  visibleCopyInstructions?: string | null
+  telegramMorningHeader?: string
+  telegramEveningHeader?: string
+  telegramSectionLabel?: string
+  telegramCtaEnabled?: boolean
+  telegramCtaText?: string
+  telegramCtaUrl?: string
+  telegramShowSummaries?: boolean
+  telegramCaptionTarget?: number
+  telegramSummaryZhLong?: number
+  telegramSummaryEnLong?: number
+  telegramSummaryZhMedium?: number
+  telegramSummaryEnMedium?: number
+  telegramSummaryZhShort?: number
+  telegramSummaryEnShort?: number
+  telegramSummaryZhCompact?: number
+  telegramSummaryEnCompact?: number
+  visualDirectorEnabled?: boolean
+  visualDirectorPrompt?: string | null
+  heroStoryWeight?: number
+  singleSportVisualPrompt?: string | null
+  multiSportVisualPrompt?: string | null
+  completedEventVisualPrompt?: string | null
+  upcomingEventVisualPrompt?: string | null
+  developmentVisualPrompt?: string | null
+  morningVisualDirection?: string | null
+  eveningVisualDirection?: string | null
+  imagePhotographyPrompt?: string | null
+  imageNegativePrompt?: string | null
+  imageUpperSafeAreaPrompt?: string | null
+  imageLowerSafeAreaPrompt?: string | null
+  imageLayoutEnabled?: boolean
+  mastheadScale?: number
+  mastheadTopPercent?: number
+  highlightsPanelWidthPercent?: number
+  highlightsPanelHeightPercent?: number
+  highlightsPanelTopPercent?: number
+  highlightsPanelOpacityStart?: number
+  highlightsPanelOpacityMiddle?: number
+  highlightsPanelOpacityEnd?: number
+  highlightsPanelRadius?: number
+  heroHeadlineScale?: number
+  secondaryHeadlineScale?: number
+  story02PositionPercent?: number
+  story03PositionPercent?: number
+  footerHeightPercent?: number
+  qrEnabled?: boolean
+  qrLink?: string
+  mastheadBrandText?: string
+  morningEditionZh?: string
+  eveningEditionZh?: string
+  morningEditionEn?: string
+  eveningEditionEn?: string
+  imageSectionLabel?: string
+  morningAccentColor?: string
+  eveningAccentColor?: string
+  morningSecondaryColor?: string
+  eveningSecondaryColor?: string
+  mastheadPrimaryColor?: string
+  mastheadEnglishColor?: string
+  headlinePrimaryColor?: string
+  headlineSecondaryColor?: string
+  panelBaseColor?: string
+  watermarkEnabled?: boolean
+  watermarkScale?: number
+  watermarkOpacity?: number
+  watermarkPosition?: string
+  qrSizePercent?: number
+  qrMarginPercent?: number
+  footerDateEnabled?: boolean
+  footerDateSeparator?: string
+  footerBackgroundColor?: string
+  footerSeparatorColor?: string
+  imageGenerationSize?: string
+  imageGenerationQuality?: string
+  footballKeywords?: string
+  basketballKeywords?: string
+  motorsportKeywords?: string
+  motorcycleKeywords?: string
+  tennisKeywords?: string
+  badmintonKeywords?: string
+  baseballKeywords?: string
+  combatKeywords?: string
+  completedScoreRequired?: boolean
+  invalidStoryPolicy?: string
+  morningSameDaySourcesOnly?: boolean
+  newsAiModel?: string
+  newsWebSearchEnabled?: boolean
+  imageAiModel?: string | null
+  imageGenerationEnabled?: boolean
+  duplicateEditionPolicy?: string
+  forceRunExistingPolicy?: string
+  queueStatusOnCreate?: string
+  publishRetryEnabled?: boolean
+  publishRetryLimit?: number
+  publishRetryDelayMinutes?: number
+  generationFailurePolicy?: string
+  imageFailurePolicy?: string
+  brandingFailurePolicy?: string
+  minimumSourcesPerStory?: number
+  minimumStoriesPerEdition?: number
+  completedEventPolicy?: string
+  upcomingEventPolicy?: string
+  developmentStoryPolicy?: string
+  sourceDeduplicationEnabled?: boolean
+  imageRulesEnabled?: boolean
+  imageRulesPrompt?: string | null
+  imageBrandRulesEnabled?: boolean
+  imageBrandRulesPrompt?: string | null
+  forceRunEnabled?: boolean
+  forceMorningEnabled?: boolean
+  forceEveningEnabled?: boolean
+  morningPostTitleTemplate?: string
+  eveningPostTitleTemplate?: string
+  imageModelOverrideEnabled?: boolean
+  previewNewsPromptEnabled?: boolean
+  previewImagePromptEnabled?: boolean
+  previewTelegramCaptionEnabled?: boolean
+  recommendedDefaultsVersion?: string
+  storyPanelEnabled?: boolean
+  mastheadEnabled?: boolean
+  headlineTextEnabled?: boolean
+  footerTextEnabled?: boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  facebookChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsFacebookSettingsInput
+  telegramChannel?: Prisma.SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSportsNewsSettingInput
+}
+
+export type SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput = {
+  id?: string
+  workspaceId: string
+  enabled?: boolean
+  timezone?: string
+  morningEnabled?: boolean
+  morningTime?: string
+  eveningEnabled?: boolean
+  eveningTime?: string
+  telegramEnabled?: boolean
+  telegramChannelId?: string | null
+  facebookEnabled?: boolean
+  facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
+  autoPublishEnabled?: boolean
+  approvalRequired?: boolean
+  language?: string
+  sportsKnowledgeEnabled?: boolean
+  discussionQuestionEnabled?: boolean
+  referenceLinksEnabled?: boolean
+  customPromptEnabled?: boolean
+  systemPrompt?: string | null
+  morningPrompt?: string | null
+  eveningPrompt?: string | null
+  knowledgePrompt?: string | null
+  customInstructions?: string | null
+  imageEnabled?: boolean
+  imagePrompt?: string | null
+  morningImagePrompt?: string | null
+  eveningImagePrompt?: string | null
+  imageAspectRatio?: string
+  imageTextMode?: string
+  imageVisualStyle?: string | null
+  logoEnabled?: boolean
+  logoPosition?: string
+  brandFooterEnabled?: boolean
+  brandFooterText?: string
+  lastMorningRunAt?: Date | string | null
+  lastEveningRunAt?: Date | string | null
+  lastRunStatus?: string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  morningTelegramEnabled?: boolean
+  morningFacebookEnabled?: boolean
+  eveningTelegramEnabled?: boolean
+  eveningFacebookEnabled?: boolean
+  sameDaySourcesOnly?: boolean
+  maxSourceAgeHours?: number
+  requirePublishedAt?: boolean
+  requireSourceUrl?: boolean
+  minimumSources?: number
+  freshnessFallbackEnabled?: boolean
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
+  storyMinimum?: number
+  storyMaximum?: number
+  sportsPriority?: string
+  verificationInstructions?: string | null
+  imageHeadlineInstructions?: string | null
+  visibleCopyInstructions?: string | null
+  telegramMorningHeader?: string
+  telegramEveningHeader?: string
+  telegramSectionLabel?: string
+  telegramCtaEnabled?: boolean
+  telegramCtaText?: string
+  telegramCtaUrl?: string
+  telegramShowSummaries?: boolean
+  telegramCaptionTarget?: number
+  telegramSummaryZhLong?: number
+  telegramSummaryEnLong?: number
+  telegramSummaryZhMedium?: number
+  telegramSummaryEnMedium?: number
+  telegramSummaryZhShort?: number
+  telegramSummaryEnShort?: number
+  telegramSummaryZhCompact?: number
+  telegramSummaryEnCompact?: number
+  visualDirectorEnabled?: boolean
+  visualDirectorPrompt?: string | null
+  heroStoryWeight?: number
+  singleSportVisualPrompt?: string | null
+  multiSportVisualPrompt?: string | null
+  completedEventVisualPrompt?: string | null
+  upcomingEventVisualPrompt?: string | null
+  developmentVisualPrompt?: string | null
+  morningVisualDirection?: string | null
+  eveningVisualDirection?: string | null
+  imagePhotographyPrompt?: string | null
+  imageNegativePrompt?: string | null
+  imageUpperSafeAreaPrompt?: string | null
+  imageLowerSafeAreaPrompt?: string | null
+  imageLayoutEnabled?: boolean
+  mastheadScale?: number
+  mastheadTopPercent?: number
+  highlightsPanelWidthPercent?: number
+  highlightsPanelHeightPercent?: number
+  highlightsPanelTopPercent?: number
+  highlightsPanelOpacityStart?: number
+  highlightsPanelOpacityMiddle?: number
+  highlightsPanelOpacityEnd?: number
+  highlightsPanelRadius?: number
+  heroHeadlineScale?: number
+  secondaryHeadlineScale?: number
+  story02PositionPercent?: number
+  story03PositionPercent?: number
+  footerHeightPercent?: number
+  qrEnabled?: boolean
+  qrLink?: string
+  mastheadBrandText?: string
+  morningEditionZh?: string
+  eveningEditionZh?: string
+  morningEditionEn?: string
+  eveningEditionEn?: string
+  imageSectionLabel?: string
+  morningAccentColor?: string
+  eveningAccentColor?: string
+  morningSecondaryColor?: string
+  eveningSecondaryColor?: string
+  mastheadPrimaryColor?: string
+  mastheadEnglishColor?: string
+  headlinePrimaryColor?: string
+  headlineSecondaryColor?: string
+  panelBaseColor?: string
+  watermarkEnabled?: boolean
+  watermarkScale?: number
+  watermarkOpacity?: number
+  watermarkPosition?: string
+  qrSizePercent?: number
+  qrMarginPercent?: number
+  footerDateEnabled?: boolean
+  footerDateSeparator?: string
+  footerBackgroundColor?: string
+  footerSeparatorColor?: string
+  imageGenerationSize?: string
+  imageGenerationQuality?: string
+  footballKeywords?: string
+  basketballKeywords?: string
+  motorsportKeywords?: string
+  motorcycleKeywords?: string
+  tennisKeywords?: string
+  badmintonKeywords?: string
+  baseballKeywords?: string
+  combatKeywords?: string
+  completedScoreRequired?: boolean
+  invalidStoryPolicy?: string
+  morningSameDaySourcesOnly?: boolean
+  newsAiModel?: string
+  newsWebSearchEnabled?: boolean
+  imageAiModel?: string | null
+  imageGenerationEnabled?: boolean
+  duplicateEditionPolicy?: string
+  forceRunExistingPolicy?: string
+  queueStatusOnCreate?: string
+  publishRetryEnabled?: boolean
+  publishRetryLimit?: number
+  publishRetryDelayMinutes?: number
+  generationFailurePolicy?: string
+  imageFailurePolicy?: string
+  brandingFailurePolicy?: string
+  minimumSourcesPerStory?: number
+  minimumStoriesPerEdition?: number
+  completedEventPolicy?: string
+  upcomingEventPolicy?: string
+  developmentStoryPolicy?: string
+  sourceDeduplicationEnabled?: boolean
+  imageRulesEnabled?: boolean
+  imageRulesPrompt?: string | null
+  imageBrandRulesEnabled?: boolean
+  imageBrandRulesPrompt?: string | null
+  forceRunEnabled?: boolean
+  forceMorningEnabled?: boolean
+  forceEveningEnabled?: boolean
+  morningPostTitleTemplate?: string
+  eveningPostTitleTemplate?: string
+  imageModelOverrideEnabled?: boolean
+  previewNewsPromptEnabled?: boolean
+  previewImagePromptEnabled?: boolean
+  previewTelegramCaptionEnabled?: boolean
+  recommendedDefaultsVersion?: string
+  storyPanelEnabled?: boolean
+  mastheadEnabled?: boolean
+  headlineTextEnabled?: boolean
+  footerTextEnabled?: boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+}
+
+export type SportsNewsSettingCreateOrConnectWithoutInstagramChannelInput = {
+  where: Prisma.SportsNewsSettingWhereUniqueInput
+  create: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput>
+}
+
+export type SportsNewsSettingCreateManyInstagramChannelInputEnvelope = {
+  data: Prisma.SportsNewsSettingCreateManyInstagramChannelInput | Prisma.SportsNewsSettingCreateManyInstagramChannelInput[]
+  skipDuplicates?: boolean
+}
+
 export type SportsNewsSettingUpsertWithWhereUniqueWithoutFacebookChannelInput = {
   where: Prisma.SportsNewsSettingWhereUniqueInput
   update: Prisma.XOR<Prisma.SportsNewsSettingUpdateWithoutFacebookChannelInput, Prisma.SportsNewsSettingUncheckedUpdateWithoutFacebookChannelInput>
@@ -6376,6 +6942,10 @@ export type SportsNewsSettingScalarWhereInput = {
   telegramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
   facebookEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   facebookChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  instagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  instagramChannelId?: Prisma.StringNullableFilter<"SportsNewsSetting"> | string | null
+  morningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
+  eveningInstagramEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   autoPublishEnabled?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   approvalRequired?: Prisma.BoolFilter<"SportsNewsSetting"> | boolean
   language?: Prisma.StringFilter<"SportsNewsSetting"> | string
@@ -6572,6 +7142,22 @@ export type SportsNewsSettingUpdateManyWithWhereWithoutTelegramChannelInput = {
   data: Prisma.XOR<Prisma.SportsNewsSettingUpdateManyMutationInput, Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelInput>
 }
 
+export type SportsNewsSettingUpsertWithWhereUniqueWithoutInstagramChannelInput = {
+  where: Prisma.SportsNewsSettingWhereUniqueInput
+  update: Prisma.XOR<Prisma.SportsNewsSettingUpdateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedUpdateWithoutInstagramChannelInput>
+  create: Prisma.XOR<Prisma.SportsNewsSettingCreateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedCreateWithoutInstagramChannelInput>
+}
+
+export type SportsNewsSettingUpdateWithWhereUniqueWithoutInstagramChannelInput = {
+  where: Prisma.SportsNewsSettingWhereUniqueInput
+  data: Prisma.XOR<Prisma.SportsNewsSettingUpdateWithoutInstagramChannelInput, Prisma.SportsNewsSettingUncheckedUpdateWithoutInstagramChannelInput>
+}
+
+export type SportsNewsSettingUpdateManyWithWhereWithoutInstagramChannelInput = {
+  where: Prisma.SportsNewsSettingScalarWhereInput
+  data: Prisma.XOR<Prisma.SportsNewsSettingUpdateManyMutationInput, Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelInput>
+}
+
 export type SportsNewsSettingCreateManyFacebookChannelInput = {
   id?: string
   workspaceId: string
@@ -6584,6 +7170,10 @@ export type SportsNewsSettingCreateManyFacebookChannelInput = {
   telegramEnabled?: boolean
   telegramChannelId?: string | null
   facebookEnabled?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -6776,6 +7366,206 @@ export type SportsNewsSettingCreateManyTelegramChannelInput = {
   telegramEnabled?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  instagramChannelId?: string | null
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
+  autoPublishEnabled?: boolean
+  approvalRequired?: boolean
+  language?: string
+  sportsKnowledgeEnabled?: boolean
+  discussionQuestionEnabled?: boolean
+  referenceLinksEnabled?: boolean
+  customPromptEnabled?: boolean
+  systemPrompt?: string | null
+  morningPrompt?: string | null
+  eveningPrompt?: string | null
+  knowledgePrompt?: string | null
+  customInstructions?: string | null
+  imageEnabled?: boolean
+  imagePrompt?: string | null
+  morningImagePrompt?: string | null
+  eveningImagePrompt?: string | null
+  imageAspectRatio?: string
+  imageTextMode?: string
+  imageVisualStyle?: string | null
+  logoEnabled?: boolean
+  logoPosition?: string
+  brandFooterEnabled?: boolean
+  brandFooterText?: string
+  lastMorningRunAt?: Date | string | null
+  lastEveningRunAt?: Date | string | null
+  lastRunStatus?: string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  morningTelegramEnabled?: boolean
+  morningFacebookEnabled?: boolean
+  eveningTelegramEnabled?: boolean
+  eveningFacebookEnabled?: boolean
+  sameDaySourcesOnly?: boolean
+  maxSourceAgeHours?: number
+  requirePublishedAt?: boolean
+  requireSourceUrl?: boolean
+  minimumSources?: number
+  freshnessFallbackEnabled?: boolean
+  logoAssetId?: string | null
+  logoSize?: string
+  logoOpacity?: number
+  logoMargin?: number
+  footerLogoEnabled?: boolean
+  footerLogoAssetId?: string | null
+  footerQrEnabled?: boolean
+  footerQrAssetId?: string | null
+  footerQrLink?: string | null
+  footerPlacement?: string
+  storyMinimum?: number
+  storyMaximum?: number
+  sportsPriority?: string
+  verificationInstructions?: string | null
+  imageHeadlineInstructions?: string | null
+  visibleCopyInstructions?: string | null
+  telegramMorningHeader?: string
+  telegramEveningHeader?: string
+  telegramSectionLabel?: string
+  telegramCtaEnabled?: boolean
+  telegramCtaText?: string
+  telegramCtaUrl?: string
+  telegramShowSummaries?: boolean
+  telegramCaptionTarget?: number
+  telegramSummaryZhLong?: number
+  telegramSummaryEnLong?: number
+  telegramSummaryZhMedium?: number
+  telegramSummaryEnMedium?: number
+  telegramSummaryZhShort?: number
+  telegramSummaryEnShort?: number
+  telegramSummaryZhCompact?: number
+  telegramSummaryEnCompact?: number
+  visualDirectorEnabled?: boolean
+  visualDirectorPrompt?: string | null
+  heroStoryWeight?: number
+  singleSportVisualPrompt?: string | null
+  multiSportVisualPrompt?: string | null
+  completedEventVisualPrompt?: string | null
+  upcomingEventVisualPrompt?: string | null
+  developmentVisualPrompt?: string | null
+  morningVisualDirection?: string | null
+  eveningVisualDirection?: string | null
+  imagePhotographyPrompt?: string | null
+  imageNegativePrompt?: string | null
+  imageUpperSafeAreaPrompt?: string | null
+  imageLowerSafeAreaPrompt?: string | null
+  imageLayoutEnabled?: boolean
+  mastheadScale?: number
+  mastheadTopPercent?: number
+  highlightsPanelWidthPercent?: number
+  highlightsPanelHeightPercent?: number
+  highlightsPanelTopPercent?: number
+  highlightsPanelOpacityStart?: number
+  highlightsPanelOpacityMiddle?: number
+  highlightsPanelOpacityEnd?: number
+  highlightsPanelRadius?: number
+  heroHeadlineScale?: number
+  secondaryHeadlineScale?: number
+  story02PositionPercent?: number
+  story03PositionPercent?: number
+  footerHeightPercent?: number
+  qrEnabled?: boolean
+  qrLink?: string
+  mastheadBrandText?: string
+  morningEditionZh?: string
+  eveningEditionZh?: string
+  morningEditionEn?: string
+  eveningEditionEn?: string
+  imageSectionLabel?: string
+  morningAccentColor?: string
+  eveningAccentColor?: string
+  morningSecondaryColor?: string
+  eveningSecondaryColor?: string
+  mastheadPrimaryColor?: string
+  mastheadEnglishColor?: string
+  headlinePrimaryColor?: string
+  headlineSecondaryColor?: string
+  panelBaseColor?: string
+  watermarkEnabled?: boolean
+  watermarkScale?: number
+  watermarkOpacity?: number
+  watermarkPosition?: string
+  qrSizePercent?: number
+  qrMarginPercent?: number
+  footerDateEnabled?: boolean
+  footerDateSeparator?: string
+  footerBackgroundColor?: string
+  footerSeparatorColor?: string
+  imageGenerationSize?: string
+  imageGenerationQuality?: string
+  footballKeywords?: string
+  basketballKeywords?: string
+  motorsportKeywords?: string
+  motorcycleKeywords?: string
+  tennisKeywords?: string
+  badmintonKeywords?: string
+  baseballKeywords?: string
+  combatKeywords?: string
+  completedScoreRequired?: boolean
+  invalidStoryPolicy?: string
+  morningSameDaySourcesOnly?: boolean
+  newsAiModel?: string
+  newsWebSearchEnabled?: boolean
+  imageAiModel?: string | null
+  imageGenerationEnabled?: boolean
+  duplicateEditionPolicy?: string
+  forceRunExistingPolicy?: string
+  queueStatusOnCreate?: string
+  publishRetryEnabled?: boolean
+  publishRetryLimit?: number
+  publishRetryDelayMinutes?: number
+  generationFailurePolicy?: string
+  imageFailurePolicy?: string
+  brandingFailurePolicy?: string
+  minimumSourcesPerStory?: number
+  minimumStoriesPerEdition?: number
+  completedEventPolicy?: string
+  upcomingEventPolicy?: string
+  developmentStoryPolicy?: string
+  sourceDeduplicationEnabled?: boolean
+  imageRulesEnabled?: boolean
+  imageRulesPrompt?: string | null
+  imageBrandRulesEnabled?: boolean
+  imageBrandRulesPrompt?: string | null
+  forceRunEnabled?: boolean
+  forceMorningEnabled?: boolean
+  forceEveningEnabled?: boolean
+  morningPostTitleTemplate?: string
+  eveningPostTitleTemplate?: string
+  imageModelOverrideEnabled?: boolean
+  previewNewsPromptEnabled?: boolean
+  previewImagePromptEnabled?: boolean
+  previewTelegramCaptionEnabled?: boolean
+  recommendedDefaultsVersion?: string
+  storyPanelEnabled?: boolean
+  mastheadEnabled?: boolean
+  headlineTextEnabled?: boolean
+  footerTextEnabled?: boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+}
+
+export type SportsNewsSettingCreateManyInstagramChannelInput = {
+  id?: string
+  workspaceId: string
+  enabled?: boolean
+  timezone?: string
+  morningEnabled?: boolean
+  morningTime?: string
+  eveningEnabled?: boolean
+  eveningTime?: string
+  telegramEnabled?: boolean
+  telegramChannelId?: string | null
+  facebookEnabled?: boolean
+  facebookChannelId?: string | null
+  instagramEnabled?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: string
@@ -6966,6 +7756,9 @@ export type SportsNewsSettingUpdateWithoutFacebookChannelInput = {
   eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -7145,6 +7938,7 @@ export type SportsNewsSettingUpdateWithoutFacebookChannelInput = {
   footerTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   telegramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput
+  instagramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsInstagramSettingsNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSportsNewsSettingNestedInput
 }
 
@@ -7160,6 +7954,10 @@ export type SportsNewsSettingUncheckedUpdateWithoutFacebookChannelInput = {
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -7352,6 +8150,10 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelInput = {
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -7542,6 +8344,9 @@ export type SportsNewsSettingUpdateWithoutTelegramChannelInput = {
   eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -7721,6 +8526,7 @@ export type SportsNewsSettingUpdateWithoutTelegramChannelInput = {
   footerTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   facebookChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput
+  instagramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsInstagramSettingsNestedInput
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSportsNewsSettingNestedInput
 }
 
@@ -7736,6 +8542,10 @@ export type SportsNewsSettingUncheckedUpdateWithoutTelegramChannelInput = {
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -7928,6 +8738,598 @@ export type SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelInput = {
   telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  sportsKnowledgeEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  discussionQuestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  referenceLinksEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  customPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  systemPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageAspectRatio?: Prisma.StringFieldUpdateOperationsInput | string
+  imageTextMode?: Prisma.StringFieldUpdateOperationsInput | string
+  imageVisualStyle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  morningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  maxSourceAgeHours?: Prisma.IntFieldUpdateOperationsInput | number
+  requirePublishedAt?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  requireSourceUrl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minimumSources?: Prisma.IntFieldUpdateOperationsInput | number
+  freshnessFallbackEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
+  storyMinimum?: Prisma.IntFieldUpdateOperationsInput | number
+  storyMaximum?: Prisma.IntFieldUpdateOperationsInput | number
+  sportsPriority?: Prisma.StringFieldUpdateOperationsInput | string
+  verificationInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageHeadlineInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibleCopyInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramMorningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEveningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCtaText?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramShowSummaries?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCaptionTarget?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  visualDirectorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  visualDirectorPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  heroStoryWeight?: Prisma.IntFieldUpdateOperationsInput | number
+  singleSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  multiSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  upcomingEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  developmentVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePhotographyPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageNegativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUpperSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLowerSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLayoutEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  mastheadTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelWidthPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityStart?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityMiddle?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityEnd?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelRadius?: Prisma.IntFieldUpdateOperationsInput | number
+  heroHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  secondaryHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  story02PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  story03PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  qrLink?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadBrandText?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  imageSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  morningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadPrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadEnglishColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlinePrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlineSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  panelBaseColor?: Prisma.StringFieldUpdateOperationsInput | string
+  watermarkEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerDateSeparator?: Prisma.StringFieldUpdateOperationsInput | string
+  footerBackgroundColor?: Prisma.StringFieldUpdateOperationsInput | string
+  footerSeparatorColor?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationSize?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationQuality?: Prisma.StringFieldUpdateOperationsInput | string
+  footballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  basketballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorsportKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorcycleKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  tennisKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  badmintonKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  baseballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  combatKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  completedScoreRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invalidStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  newsAiModel?: Prisma.StringFieldUpdateOperationsInput | string
+  newsWebSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageAiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageGenerationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  duplicateEditionPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  forceRunExistingPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  queueStatusOnCreate?: Prisma.StringFieldUpdateOperationsInput | string
+  publishRetryEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  publishRetryLimit?: Prisma.IntFieldUpdateOperationsInput | number
+  publishRetryDelayMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  generationFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  imageFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  brandingFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  minimumSourcesPerStory?: Prisma.IntFieldUpdateOperationsInput | number
+  minimumStoriesPerEdition?: Prisma.IntFieldUpdateOperationsInput | number
+  completedEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  upcomingEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  developmentStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceDeduplicationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageBrandRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageBrandRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  forceRunEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceMorningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceEveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  imageModelOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewNewsPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewImagePromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewTelegramCaptionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recommendedDefaultsVersion?: Prisma.StringFieldUpdateOperationsInput | string
+  storyPanelEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  headlineTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+}
+
+export type SportsNewsSettingUpdateWithoutInstagramChannelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  sportsKnowledgeEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  discussionQuestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  referenceLinksEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  customPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  systemPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageAspectRatio?: Prisma.StringFieldUpdateOperationsInput | string
+  imageTextMode?: Prisma.StringFieldUpdateOperationsInput | string
+  imageVisualStyle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  morningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  maxSourceAgeHours?: Prisma.IntFieldUpdateOperationsInput | number
+  requirePublishedAt?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  requireSourceUrl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minimumSources?: Prisma.IntFieldUpdateOperationsInput | number
+  freshnessFallbackEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
+  storyMinimum?: Prisma.IntFieldUpdateOperationsInput | number
+  storyMaximum?: Prisma.IntFieldUpdateOperationsInput | number
+  sportsPriority?: Prisma.StringFieldUpdateOperationsInput | string
+  verificationInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageHeadlineInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibleCopyInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramMorningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEveningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCtaText?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramShowSummaries?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCaptionTarget?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  visualDirectorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  visualDirectorPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  heroStoryWeight?: Prisma.IntFieldUpdateOperationsInput | number
+  singleSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  multiSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  upcomingEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  developmentVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePhotographyPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageNegativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUpperSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLowerSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLayoutEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  mastheadTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelWidthPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityStart?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityMiddle?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityEnd?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelRadius?: Prisma.IntFieldUpdateOperationsInput | number
+  heroHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  secondaryHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  story02PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  story03PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  qrLink?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadBrandText?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  imageSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  morningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadPrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadEnglishColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlinePrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlineSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  panelBaseColor?: Prisma.StringFieldUpdateOperationsInput | string
+  watermarkEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerDateSeparator?: Prisma.StringFieldUpdateOperationsInput | string
+  footerBackgroundColor?: Prisma.StringFieldUpdateOperationsInput | string
+  footerSeparatorColor?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationSize?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationQuality?: Prisma.StringFieldUpdateOperationsInput | string
+  footballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  basketballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorsportKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorcycleKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  tennisKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  badmintonKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  baseballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  combatKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  completedScoreRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invalidStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  newsAiModel?: Prisma.StringFieldUpdateOperationsInput | string
+  newsWebSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageAiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageGenerationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  duplicateEditionPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  forceRunExistingPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  queueStatusOnCreate?: Prisma.StringFieldUpdateOperationsInput | string
+  publishRetryEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  publishRetryLimit?: Prisma.IntFieldUpdateOperationsInput | number
+  publishRetryDelayMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  generationFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  imageFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  brandingFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  minimumSourcesPerStory?: Prisma.IntFieldUpdateOperationsInput | number
+  minimumStoriesPerEdition?: Prisma.IntFieldUpdateOperationsInput | number
+  completedEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  upcomingEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  developmentStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceDeduplicationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageBrandRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageBrandRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  forceRunEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceMorningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceEveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  imageModelOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewNewsPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewImagePromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewTelegramCaptionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recommendedDefaultsVersion?: Prisma.StringFieldUpdateOperationsInput | string
+  storyPanelEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  headlineTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  facebookChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput
+  telegramChannel?: Prisma.SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSportsNewsSettingNestedInput
+}
+
+export type SportsNewsSettingUncheckedUpdateWithoutInstagramChannelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  sportsKnowledgeEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  discussionQuestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  referenceLinksEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  customPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  systemPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  knowledgePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningImagePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageAspectRatio?: Prisma.StringFieldUpdateOperationsInput | string
+  imageTextMode?: Prisma.StringFieldUpdateOperationsInput | string
+  imageVisualStyle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  brandFooterEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  brandFooterText?: Prisma.StringFieldUpdateOperationsInput | string
+  lastMorningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEveningRunAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastRunStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  morningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTelegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningFacebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  sameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  maxSourceAgeHours?: Prisma.IntFieldUpdateOperationsInput | number
+  requirePublishedAt?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  requireSourceUrl?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  minimumSources?: Prisma.IntFieldUpdateOperationsInput | number
+  freshnessFallbackEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  logoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoSize?: Prisma.StringFieldUpdateOperationsInput | string
+  logoOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  logoMargin?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerLogoEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerLogoAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerQrAssetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerQrLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  footerPlacement?: Prisma.StringFieldUpdateOperationsInput | string
+  storyMinimum?: Prisma.IntFieldUpdateOperationsInput | number
+  storyMaximum?: Prisma.IntFieldUpdateOperationsInput | number
+  sportsPriority?: Prisma.StringFieldUpdateOperationsInput | string
+  verificationInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageHeadlineInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibleCopyInstructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  telegramMorningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEveningHeader?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCtaText?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramCtaUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramShowSummaries?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramCaptionTarget?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnLong?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnMedium?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnShort?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryZhCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  telegramSummaryEnCompact?: Prisma.IntFieldUpdateOperationsInput | number
+  visualDirectorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  visualDirectorPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  heroStoryWeight?: Prisma.IntFieldUpdateOperationsInput | number
+  singleSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  multiSportVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  upcomingEventVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  developmentVisualPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  morningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  eveningVisualDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imagePhotographyPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageNegativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUpperSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLowerSafeAreaPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageLayoutEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  mastheadTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelWidthPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelTopPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityStart?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityMiddle?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelOpacityEnd?: Prisma.FloatFieldUpdateOperationsInput | number
+  highlightsPanelRadius?: Prisma.IntFieldUpdateOperationsInput | number
+  heroHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  secondaryHeadlineScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  story02PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  story03PositionPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerHeightPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  qrLink?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadBrandText?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionZh?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEditionEn?: Prisma.StringFieldUpdateOperationsInput | string
+  imageSectionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  morningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningAccentColor?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadPrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  mastheadEnglishColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlinePrimaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  headlineSecondaryColor?: Prisma.StringFieldUpdateOperationsInput | string
+  panelBaseColor?: Prisma.StringFieldUpdateOperationsInput | string
+  watermarkEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  watermarkScale?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkOpacity?: Prisma.FloatFieldUpdateOperationsInput | number
+  watermarkPosition?: Prisma.StringFieldUpdateOperationsInput | string
+  qrSizePercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  qrMarginPercent?: Prisma.FloatFieldUpdateOperationsInput | number
+  footerDateEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerDateSeparator?: Prisma.StringFieldUpdateOperationsInput | string
+  footerBackgroundColor?: Prisma.StringFieldUpdateOperationsInput | string
+  footerSeparatorColor?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationSize?: Prisma.StringFieldUpdateOperationsInput | string
+  imageGenerationQuality?: Prisma.StringFieldUpdateOperationsInput | string
+  footballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  basketballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorsportKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  motorcycleKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  tennisKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  badmintonKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  baseballKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  combatKeywords?: Prisma.StringFieldUpdateOperationsInput | string
+  completedScoreRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  invalidStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  morningSameDaySourcesOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  newsAiModel?: Prisma.StringFieldUpdateOperationsInput | string
+  newsWebSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageAiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageGenerationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  duplicateEditionPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  forceRunExistingPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  queueStatusOnCreate?: Prisma.StringFieldUpdateOperationsInput | string
+  publishRetryEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  publishRetryLimit?: Prisma.IntFieldUpdateOperationsInput | number
+  publishRetryDelayMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  generationFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  imageFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  brandingFailurePolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  minimumSourcesPerStory?: Prisma.IntFieldUpdateOperationsInput | number
+  minimumStoriesPerEdition?: Prisma.IntFieldUpdateOperationsInput | number
+  completedEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  upcomingEventPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  developmentStoryPolicy?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceDeduplicationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageBrandRulesEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  imageBrandRulesPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  forceRunEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceMorningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  forceEveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningPostTitleTemplate?: Prisma.StringFieldUpdateOperationsInput | string
+  imageModelOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewNewsPromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewImagePromptEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  previewTelegramCaptionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  recommendedDefaultsVersion?: Prisma.StringFieldUpdateOperationsInput | string
+  storyPanelEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mastheadEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  headlineTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  footerTextEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channelOverrides?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+}
+
+export type SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  morningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  eveningEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningTime?: Prisma.StringFieldUpdateOperationsInput | string
+  telegramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  facebookEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  facebookChannelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  morningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  eveningInstagramEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   autoPublishEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   approvalRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
   language?: Prisma.StringFieldUpdateOperationsInput | string
@@ -8123,6 +9525,10 @@ export type SportsNewsSettingSelect<ExtArgs extends runtime.Types.Extensions.Int
   telegramChannelId?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: boolean
@@ -8303,6 +9709,7 @@ export type SportsNewsSettingSelect<ExtArgs extends runtime.Types.Extensions.Int
   channelOverrides?: boolean
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sportsNewsSetting"]>
 
@@ -8319,6 +9726,10 @@ export type SportsNewsSettingSelectCreateManyAndReturn<ExtArgs extends runtime.T
   telegramChannelId?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: boolean
@@ -8499,6 +9910,7 @@ export type SportsNewsSettingSelectCreateManyAndReturn<ExtArgs extends runtime.T
   channelOverrides?: boolean
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sportsNewsSetting"]>
 
@@ -8515,6 +9927,10 @@ export type SportsNewsSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   telegramChannelId?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: boolean
@@ -8695,6 +10111,7 @@ export type SportsNewsSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   channelOverrides?: boolean
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sportsNewsSetting"]>
 
@@ -8711,6 +10128,10 @@ export type SportsNewsSettingSelectScalar = {
   telegramChannelId?: boolean
   facebookEnabled?: boolean
   facebookChannelId?: boolean
+  instagramEnabled?: boolean
+  instagramChannelId?: boolean
+  morningInstagramEnabled?: boolean
+  eveningInstagramEnabled?: boolean
   autoPublishEnabled?: boolean
   approvalRequired?: boolean
   language?: boolean
@@ -8891,20 +10312,23 @@ export type SportsNewsSettingSelectScalar = {
   channelOverrides?: boolean
 }
 
-export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "logoAssetId" | "logoSize" | "logoOpacity" | "logoMargin" | "footerLogoEnabled" | "footerLogoAssetId" | "footerQrEnabled" | "footerQrAssetId" | "footerQrLink" | "footerPlacement" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "storyPanelEnabled" | "mastheadEnabled" | "headlineTextEnabled" | "footerTextEnabled" | "channelOverrides", ExtArgs["result"]["sportsNewsSetting"]>
+export type SportsNewsSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "enabled" | "timezone" | "morningEnabled" | "morningTime" | "eveningEnabled" | "eveningTime" | "telegramEnabled" | "telegramChannelId" | "facebookEnabled" | "facebookChannelId" | "instagramEnabled" | "instagramChannelId" | "morningInstagramEnabled" | "eveningInstagramEnabled" | "autoPublishEnabled" | "approvalRequired" | "language" | "sportsKnowledgeEnabled" | "discussionQuestionEnabled" | "referenceLinksEnabled" | "customPromptEnabled" | "systemPrompt" | "morningPrompt" | "eveningPrompt" | "knowledgePrompt" | "customInstructions" | "imageEnabled" | "imagePrompt" | "morningImagePrompt" | "eveningImagePrompt" | "imageAspectRatio" | "imageTextMode" | "imageVisualStyle" | "logoEnabled" | "logoPosition" | "brandFooterEnabled" | "brandFooterText" | "lastMorningRunAt" | "lastEveningRunAt" | "lastRunStatus" | "lastError" | "createdAt" | "updatedAt" | "morningTelegramEnabled" | "morningFacebookEnabled" | "eveningTelegramEnabled" | "eveningFacebookEnabled" | "sameDaySourcesOnly" | "maxSourceAgeHours" | "requirePublishedAt" | "requireSourceUrl" | "minimumSources" | "freshnessFallbackEnabled" | "logoAssetId" | "logoSize" | "logoOpacity" | "logoMargin" | "footerLogoEnabled" | "footerLogoAssetId" | "footerQrEnabled" | "footerQrAssetId" | "footerQrLink" | "footerPlacement" | "storyMinimum" | "storyMaximum" | "sportsPriority" | "verificationInstructions" | "imageHeadlineInstructions" | "visibleCopyInstructions" | "telegramMorningHeader" | "telegramEveningHeader" | "telegramSectionLabel" | "telegramCtaEnabled" | "telegramCtaText" | "telegramCtaUrl" | "telegramShowSummaries" | "telegramCaptionTarget" | "telegramSummaryZhLong" | "telegramSummaryEnLong" | "telegramSummaryZhMedium" | "telegramSummaryEnMedium" | "telegramSummaryZhShort" | "telegramSummaryEnShort" | "telegramSummaryZhCompact" | "telegramSummaryEnCompact" | "visualDirectorEnabled" | "visualDirectorPrompt" | "heroStoryWeight" | "singleSportVisualPrompt" | "multiSportVisualPrompt" | "completedEventVisualPrompt" | "upcomingEventVisualPrompt" | "developmentVisualPrompt" | "morningVisualDirection" | "eveningVisualDirection" | "imagePhotographyPrompt" | "imageNegativePrompt" | "imageUpperSafeAreaPrompt" | "imageLowerSafeAreaPrompt" | "imageLayoutEnabled" | "mastheadScale" | "mastheadTopPercent" | "highlightsPanelWidthPercent" | "highlightsPanelHeightPercent" | "highlightsPanelTopPercent" | "highlightsPanelOpacityStart" | "highlightsPanelOpacityMiddle" | "highlightsPanelOpacityEnd" | "highlightsPanelRadius" | "heroHeadlineScale" | "secondaryHeadlineScale" | "story02PositionPercent" | "story03PositionPercent" | "footerHeightPercent" | "qrEnabled" | "qrLink" | "mastheadBrandText" | "morningEditionZh" | "eveningEditionZh" | "morningEditionEn" | "eveningEditionEn" | "imageSectionLabel" | "morningAccentColor" | "eveningAccentColor" | "morningSecondaryColor" | "eveningSecondaryColor" | "mastheadPrimaryColor" | "mastheadEnglishColor" | "headlinePrimaryColor" | "headlineSecondaryColor" | "panelBaseColor" | "watermarkEnabled" | "watermarkScale" | "watermarkOpacity" | "watermarkPosition" | "qrSizePercent" | "qrMarginPercent" | "footerDateEnabled" | "footerDateSeparator" | "footerBackgroundColor" | "footerSeparatorColor" | "imageGenerationSize" | "imageGenerationQuality" | "footballKeywords" | "basketballKeywords" | "motorsportKeywords" | "motorcycleKeywords" | "tennisKeywords" | "badmintonKeywords" | "baseballKeywords" | "combatKeywords" | "completedScoreRequired" | "invalidStoryPolicy" | "morningSameDaySourcesOnly" | "newsAiModel" | "newsWebSearchEnabled" | "imageAiModel" | "imageGenerationEnabled" | "duplicateEditionPolicy" | "forceRunExistingPolicy" | "queueStatusOnCreate" | "publishRetryEnabled" | "publishRetryLimit" | "publishRetryDelayMinutes" | "generationFailurePolicy" | "imageFailurePolicy" | "brandingFailurePolicy" | "minimumSourcesPerStory" | "minimumStoriesPerEdition" | "completedEventPolicy" | "upcomingEventPolicy" | "developmentStoryPolicy" | "sourceDeduplicationEnabled" | "imageRulesEnabled" | "imageRulesPrompt" | "imageBrandRulesEnabled" | "imageBrandRulesPrompt" | "forceRunEnabled" | "forceMorningEnabled" | "forceEveningEnabled" | "morningPostTitleTemplate" | "eveningPostTitleTemplate" | "imageModelOverrideEnabled" | "previewNewsPromptEnabled" | "previewImagePromptEnabled" | "previewTelegramCaptionEnabled" | "recommendedDefaultsVersion" | "storyPanelEnabled" | "mastheadEnabled" | "headlineTextEnabled" | "footerTextEnabled" | "channelOverrides", ExtArgs["result"]["sportsNewsSetting"]>
 export type SportsNewsSettingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
 export type SportsNewsSettingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
 export type SportsNewsSettingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   facebookChannel?: boolean | Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>
   telegramChannel?: boolean | Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>
+  instagramChannel?: boolean | Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }
 
@@ -8913,6 +10337,7 @@ export type $SportsNewsSettingPayload<ExtArgs extends runtime.Types.Extensions.I
   objects: {
     facebookChannel: Prisma.$SocialChannelPayload<ExtArgs> | null
     telegramChannel: Prisma.$SocialChannelPayload<ExtArgs> | null
+    instagramChannel: Prisma.$SocialChannelPayload<ExtArgs> | null
     workspace: Prisma.$WorkspacePayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -8928,6 +10353,10 @@ export type $SportsNewsSettingPayload<ExtArgs extends runtime.Types.Extensions.I
     telegramChannelId: string | null
     facebookEnabled: boolean
     facebookChannelId: string | null
+    instagramEnabled: boolean
+    instagramChannelId: string | null
+    morningInstagramEnabled: boolean
+    eveningInstagramEnabled: boolean
     autoPublishEnabled: boolean
     approvalRequired: boolean
     language: string
@@ -9502,6 +10931,7 @@ export interface Prisma__SportsNewsSettingClient<T, Null = never, ExtArgs extend
   readonly [Symbol.toStringTag]: "PrismaPromise"
   facebookChannel<T extends Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SportsNewsSetting$facebookChannelArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   telegramChannel<T extends Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SportsNewsSetting$telegramChannelArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  instagramChannel<T extends Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SportsNewsSetting$instagramChannelArgs<ExtArgs>>): Prisma.Prisma__SocialChannelClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   workspace<T extends Prisma.WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkspaceDefaultArgs<ExtArgs>>): Prisma.Prisma__WorkspaceClient<runtime.Types.Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -9544,6 +10974,10 @@ export interface SportsNewsSettingFieldRefs {
   readonly telegramChannelId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
   readonly facebookEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly facebookChannelId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly instagramEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
+  readonly instagramChannelId: Prisma.FieldRef<"SportsNewsSetting", 'String'>
+  readonly morningInstagramEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
+  readonly eveningInstagramEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly autoPublishEnabled: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly approvalRequired: Prisma.FieldRef<"SportsNewsSetting", 'Boolean'>
   readonly language: Prisma.FieldRef<"SportsNewsSetting", 'String'>
@@ -10145,6 +11579,25 @@ export type SportsNewsSetting$facebookChannelArgs<ExtArgs extends runtime.Types.
  * SportsNewsSetting.telegramChannel
  */
 export type SportsNewsSetting$telegramChannelArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SocialChannel
+   */
+  select?: Prisma.SocialChannelSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SocialChannel
+   */
+  omit?: Prisma.SocialChannelOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SocialChannelInclude<ExtArgs> | null
+  where?: Prisma.SocialChannelWhereInput
+}
+
+/**
+ * SportsNewsSetting.instagramChannel
+ */
+export type SportsNewsSetting$instagramChannelArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the SocialChannel
    */

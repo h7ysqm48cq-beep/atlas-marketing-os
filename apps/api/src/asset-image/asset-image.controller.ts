@@ -36,6 +36,18 @@ export class AssetImageController {
     return this.imageEditor.compositeExistingAsset(dto);
   }
 
+  @Post('editor/qr-preview')
+  qrPreview(
+    @Body()
+    body: {
+      value?: string;
+    },
+  ) {
+    return this.imageEditor.qrPreview(
+      body.value,
+    );
+  }
+
   @Post('editor/erase')
   eraseExisting(@Body() dto: EraseExistingAssetDto) {
     return this.imageEditor.eraseExistingAsset(dto);

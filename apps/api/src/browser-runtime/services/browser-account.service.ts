@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BrowserAccountEventStatus,
   SocialChannelStatus,
   SocialPlatform,
   SocialProxyType,
@@ -756,9 +757,17 @@ export class BrowserAccountService {
             page.name?.trim() ||
             '';
 
+          const normalizedName =
+            name.toLowerCase();
+
           const url =
             page.url?.trim() ||
             null;
+
+          const composerUrl =
+            this.isFacebookComposerUrl(
+              url,
+            );
 
           const username =
             page.username?.trim() ||
@@ -780,11 +789,17 @@ export class BrowserAccountService {
           if (
             !pageId ||
             this.isReservedFacebookPath(pageId) ||
+            composerUrl ||
+            normalizedName ===
+              'create post' ||
+            normalizedName.startsWith(
+              'unread',
+            ) ||
             [
               'find friends',
               'meta business suite',
               'professional dashboard',
-            ].includes(name.toLowerCase())
+            ].includes(normalizedName)
           ) {
             return [];
           }
@@ -859,17 +874,90 @@ export class BrowserAccountService {
             let channelCreated =
               false;
 
-            let channel =
-              await transaction.socialChannel.findFirst({
+            const candidateChannels =
+              await transaction.socialChannel.findMany({
                 where: {
                   brandId:
                     requestedBrandId,
                   platform:
                     SocialPlatform.FACEBOOK,
-                  externalId:
-                    page.pageId,
+                  hiddenAt:
+                    null,
+                  OR: [
+                    {
+                      externalId:
+                        page.pageId,
+                    },
+                    ...(page.username
+                      ? [{
+                          username: {
+                            equals:
+                              page.username,
+                            mode:
+                              'insensitive' as const,
+                          },
+                        }]
+                      : []),
+                    {
+                      name: {
+                        equals:
+                          page.name,
+                        mode:
+                          'insensitive',
+                      },
+                    },
+                  ],
                 },
               });
+
+            const exactIdMatches =
+              candidateChannels.filter(
+                (candidate) =>
+                  candidate.externalId
+                    ?.trim() ===
+                  page.pageId,
+              );
+
+            const usernameMatches =
+              page.username
+                ? candidateChannels.filter(
+                    (candidate) =>
+                      candidate.username
+                        ?.trim()
+                        .toLowerCase() ===
+                      page.username
+                        ?.trim()
+                        .toLowerCase(),
+                  )
+                : [];
+
+            const nameMatches =
+              candidateChannels.filter(
+                (candidate) =>
+                  candidate.name
+                    .trim()
+                    .toLowerCase() ===
+                  page.name
+                    .trim()
+                    .toLowerCase(),
+              );
+
+            const matches =
+              exactIdMatches.length
+                ? exactIdMatches
+                : usernameMatches.length
+                  ? usernameMatches
+                  : nameMatches;
+
+            if (matches.length > 1) {
+              throw new BadRequestException(
+                `Facebook Page ${page.name} matches multiple existing channels. Hide or reconcile the duplicates before syncing again.`,
+              );
+            }
+
+            let channel =
+              matches[0] ||
+              null;
 
             if (channel) {
               reused += 1;
@@ -887,6 +975,8 @@ export class BrowserAccountService {
                     workspaceId,
                     status:
                       SocialChannelStatus.CONNECTED,
+                    publishingPreference:
+                      'BROWSER_RUNTIME',
                     lastConnectedAt:
                       new Date(),
                     lastError:
@@ -910,6 +1000,8 @@ export class BrowserAccountService {
                       page.username,
                     status:
                       SocialChannelStatus.CONNECTED,
+                    publishingPreference:
+                      'BROWSER_RUNTIME',
                     lastConnectedAt:
                       new Date(),
                     lastError:
@@ -1043,6 +1135,26 @@ export class BrowserAccountService {
       return candidate;
     } catch {
       return null;
+    }
+  }
+
+  private isFacebookComposerUrl(
+    value?: string | null,
+  ) {
+    if (!value) {
+      return false;
+    }
+
+    try {
+      const parsed =
+        new URL(value);
+
+      return parsed.searchParams
+        .get('modal')
+        ?.toLowerCase() ===
+        'composer';
+    } catch {
+      return false;
     }
   }
 
@@ -2078,6 +2190,190 @@ export class BrowserAccountService {
               account.facebookPasswordEncrypted,
             )
           : null,
+    };
+  }
+
+  async markLoginRequired(
+    id: string,
+    message = 'Facebook login is required.',
+  ) {
+    const normalizedMessage =
+      message.trim() ||
+      'Facebook login is required.';
+
+    const boundedMessage =
+      normalizedMessage.slice(
+        0,
+        1000,
+      );
+
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          loginStatus: true,
+          lastLoginError: true,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    const observedAt =
+      new Date();
+
+    await this.prisma.$transaction(
+      async (transaction) => {
+        await transaction.browserAccount.update({
+          where: {
+            id,
+          },
+          data: {
+            loginStatus:
+              'LOGIN_REQUIRED',
+            cookieStatus:
+              'PROFILE_READY',
+            lastVerifiedAt:
+              observedAt,
+            lastHeartbeatAt:
+              observedAt,
+            lastLoginError:
+              boundedMessage,
+          },
+        });
+
+        if (
+          account.loginStatus !==
+            'LOGIN_REQUIRED' ||
+          account.lastLoginError !==
+            boundedMessage
+        ) {
+          await transaction.browserAccountEvent.create({
+            data: {
+              browserAccountId:
+                id,
+              eventType:
+                'LOGIN_ATTENTION_REQUIRED',
+              status:
+                BrowserAccountEventStatus.WARNING,
+              title:
+                'Facebook login requires attention',
+              message:
+                boundedMessage,
+              metadata: {
+                source:
+                  'FACEBOOK_PUBLISHER',
+                observedAt:
+                  observedAt.toISOString(),
+              },
+            },
+          });
+        }
+      },
+    );
+
+    return {
+      accountId:
+        id,
+      loginStatus:
+        'LOGIN_REQUIRED',
+      cookieStatus:
+        'PROFILE_READY',
+      observedAt:
+        observedAt.toISOString(),
+    };
+  }
+
+  async markLoginVerified(
+    id: string,
+    message = 'Facebook Cloud Browser login is ready.',
+  ) {
+    const account =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          loginStatus: true,
+        },
+      });
+
+    if (!account) {
+      throw new NotFoundException(
+        'Browser account was not found.',
+      );
+    }
+
+    const observedAt =
+      new Date();
+
+    await this.prisma.$transaction(
+      async (transaction) => {
+        await transaction.browserAccount.update({
+          where: {
+            id,
+          },
+          data: {
+            loginStatus:
+              'LOGGED_IN',
+            cookieStatus:
+              'ACTIVE',
+            lastLoginAt:
+              observedAt,
+            lastVerifiedAt:
+              observedAt,
+            lastHeartbeatAt:
+              observedAt,
+            lastLoginError:
+              null,
+          },
+        });
+
+        if (
+          account.loginStatus !==
+          'LOGGED_IN'
+        ) {
+          await transaction.browserAccountEvent.create({
+            data: {
+              browserAccountId:
+                id,
+              eventType:
+                'LOGIN_VERIFIED',
+              status:
+                BrowserAccountEventStatus.SUCCESS,
+              title:
+                'Facebook login verified',
+              message:
+                message.trim() ||
+                'Facebook Cloud Browser login is ready.',
+              metadata: {
+                source:
+                  'FACEBOOK_PUBLISHER',
+                observedAt:
+                  observedAt.toISOString(),
+              },
+            },
+          });
+        }
+      },
+    );
+
+    return {
+      accountId:
+        id,
+      loginStatus:
+        'LOGGED_IN',
+      cookieStatus:
+        'ACTIVE',
+      observedAt:
+        observedAt.toISOString(),
     };
   }
 

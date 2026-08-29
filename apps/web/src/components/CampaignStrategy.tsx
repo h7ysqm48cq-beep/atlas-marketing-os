@@ -26,6 +26,7 @@ export function CampaignStrategy({
   const [platforms, setPlatforms] = useState([
     "Facebook",
     "Telegram",
+    "Instagram",
     "Reels",
   ]);
 

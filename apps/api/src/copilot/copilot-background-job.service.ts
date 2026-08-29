@@ -20,6 +20,7 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CopilotBackgroundJobService.name);
   private processing = false;
   private wakeupRequested = false;
+  private readonly staleRunningJobAgeMs = 30 * 60 * 1000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -29,6 +30,7 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    const staleBefore = new Date(Date.now() - this.staleRunningJobAgeMs);
     await this.prisma.backgroundJob.updateMany({
       where: {
         type: {
@@ -38,6 +40,10 @@ export class CopilotBackgroundJobService implements OnApplicationBootstrap {
           ],
         },
         status: BackgroundJobStatus.RUNNING,
+        OR: [
+          { startedAt: null },
+          { startedAt: { lt: staleBefore } },
+        ],
       },
       data: { status: BackgroundJobStatus.QUEUED },
     });

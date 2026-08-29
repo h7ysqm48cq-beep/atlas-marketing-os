@@ -9,6 +9,7 @@ import type {
   AutoQueueInput,
   ScheduleContentInput,
 } from './workflow.types';
+import { Public } from '../auth/public.decorator';
 
 @Controller('workflow')
 export class WorkflowController {
@@ -18,6 +19,7 @@ export class WorkflowController {
   ) {}
 
   @Get('health')
+  @Public()
   health() {
     return {
       connected: true,

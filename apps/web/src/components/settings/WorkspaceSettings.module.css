@@ -203,6 +203,11 @@
   background: #229ed9;
 }
 
+.instagram {
+  background: #e1306c;
+  color: #fff;
+}
+
 .connected,
 .disconnected {
   padding: 5px 8px;

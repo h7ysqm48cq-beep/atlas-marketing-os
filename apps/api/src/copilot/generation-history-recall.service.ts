@@ -9,6 +9,7 @@ type StudioRecallItem = {
   platforms: string[];
   facebook: string;
   telegram: string;
+  instagram: string;
   reels: string;
   imagePrompt: string;
   createdAt: Date;
@@ -130,6 +131,12 @@ export class GenerationHistoryRecallService {
             },
           },
           {
+            instagram: {
+              contains: keyword,
+              mode: 'insensitive' as const,
+            },
+          },
+          {
             reels: {
               contains: keyword,
               mode: 'insensitive' as const,
@@ -152,6 +159,7 @@ export class GenerationHistoryRecallService {
         platforms: true,
         facebook: true,
         telegram: true,
+        instagram: true,
         reels: true,
         imagePrompt: true,
         createdAt: true,
@@ -172,6 +180,7 @@ export class GenerationHistoryRecallService {
           history.topic,
           history.facebook,
           history.telegram,
+          history.instagram,
           history.reels,
           history.imagePrompt,
         ]
@@ -238,6 +247,7 @@ export class GenerationHistoryRecallService {
         '',
         item.facebook ? `Facebook:\n${item.facebook}` : '',
         item.telegram ? `Telegram:\n${item.telegram}` : '',
+        item.instagram ? `Instagram:\n${item.instagram}` : '',
         item.reels ? `Reels:\n${item.reels}` : '',
         item.imagePrompt ? `Image Prompt:\n${item.imagePrompt}` : '',
       ]

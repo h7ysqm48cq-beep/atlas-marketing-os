@@ -67,6 +67,7 @@ export class OpenAiProvider implements AiProvider {
                     'hook',
                     'facebook',
                     'telegram',
+                    'instagram',
                     'reels',
                     'imagePrompt',
                     'hashtags',
@@ -101,6 +102,22 @@ export class OpenAiProvider implements AiProvider {
                         },
                         callToAction: {
                           type: 'string',
+                        },
+                      },
+                    },
+                    instagram: {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['caption', 'hashtags'],
+                      properties: {
+                        caption: {
+                          type: 'string',
+                        },
+                        hashtags: {
+                          type: 'array',
+                          items: {
+                            type: 'string',
+                          },
                         },
                       },
                     },

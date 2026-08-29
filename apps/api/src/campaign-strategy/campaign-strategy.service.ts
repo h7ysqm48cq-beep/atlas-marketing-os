@@ -107,7 +107,7 @@ export class CampaignStrategyService {
     const platforms =
       dto.platforms?.length
         ? dto.platforms
-        : ['Facebook', 'Telegram', 'Reels'];
+        : ['Facebook', 'Telegram', 'Instagram', 'Reels'];
 
     const prompt = [
       'You are Atlas, a senior marketing strategist.',

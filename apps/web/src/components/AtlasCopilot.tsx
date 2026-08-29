@@ -13,7 +13,7 @@ import {
 import styles from "./AtlasCopilot.module.css";
 
 type CopilotAction = CopilotSuggestion & {
-  platform?: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt";
+  platform?: "Facebook" | "Telegram" | "Instagram" | "Reels Script" | "Image Prompt";
   action?: "improve" | "shorter" | "rewrite";
 };
 
@@ -39,7 +39,7 @@ export function AtlasCopilot({
     actionId: string,
   ) => void | Promise<void>;
   onAction?: (
-    platform: "Facebook" | "Telegram" | "Reels Script" | "Image Prompt",
+    platform: "Facebook" | "Telegram" | "Instagram" | "Reels Script" | "Image Prompt",
     action: "improve" | "shorter" | "rewrite",
   ) => void;
   onRestoreSnapshot?: (
@@ -266,6 +266,22 @@ export function AtlasCopilot({
             detail: "Shorten the opening and make the CTA more conversational.",
             platform: "Telegram",
             action: "shorter",
+      },
+    );
+
+    items.push(
+      result.instagram?.trim()
+        ? {
+            id: "instagram-ready",
+            label: "Instagram caption is ready for visual publishing",
+            detail: "The caption can be paired with an image asset and scheduled from the calendar.",
+          }
+        : {
+            id: "instagram-improve",
+            label: "Create an Instagram caption",
+            detail: "Atlas can shape a concise visual-first caption with relevant hashtags.",
+            platform: "Instagram",
+            action: "improve",
           },
     );
 

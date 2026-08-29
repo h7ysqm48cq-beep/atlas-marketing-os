@@ -105,6 +105,13 @@ export class AiProviderController {
               ]
                 .filter(Boolean)
                 .join('\n\n'),
+            instagram:
+              [
+                structuredResult.instagram?.caption,
+                ...(structuredResult.instagram?.hashtags ?? []),
+              ]
+                .filter(Boolean)
+                .join('\n\n'),
             reels:
               JSON.stringify(
                 structuredResult.reels,

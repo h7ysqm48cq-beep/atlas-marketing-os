@@ -8,6 +8,7 @@
   "scripts": {
     "prebuild": "node scripts/check-background-job-regression.cjs",
     "build": "nest build",
+    "db:migrate": "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} prisma migrate deploy --schema prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -33,6 +34,7 @@
     "@types/qrcode": "^1.5.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dd-trace": "6.12.0",
     "https-proxy-agent": "^9.1.0",
     "jose": "^6.2.4",
     "mammoth": "^1.12.0",
@@ -46,6 +48,7 @@
     "sharp": "^0.35.3",
     "socks-proxy-agent": "^10.1.0",
     "undici": "^8.10.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

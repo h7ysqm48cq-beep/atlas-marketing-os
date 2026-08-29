@@ -217,6 +217,7 @@ export class CopilotService {
     const hasIncomingDraft = Boolean(
       draftValue('facebook') ||
       draftValue('telegram') ||
+      draftValue('instagram') ||
       draftValue('reels') ||
       draftValue('imagePrompt'),
     );
@@ -256,6 +257,10 @@ export class CopilotService {
                 typeof candidate.telegram === 'string'
                   ? candidate.telegram
                   : '',
+              instagram:
+                typeof candidate.instagram === 'string'
+                  ? candidate.instagram
+                  : '',
               reels: typeof candidate.reels === 'string' ? candidate.reels : '',
               imagePrompt:
                 typeof candidate.imagePrompt === 'string'
@@ -268,6 +273,7 @@ export class CopilotService {
               candidate &&
               (candidate.facebook.trim() ||
                 candidate.telegram.trim() ||
+                candidate.instagram.trim() ||
                 candidate.reels.trim() ||
                 candidate.imagePrompt.trim()),
           );
@@ -284,6 +290,7 @@ export class CopilotService {
               conversationId: conversation.id,
               facebookLength: latestPersistedStudioResult.facebook.length,
               telegramLength: latestPersistedStudioResult.telegram.length,
+              instagramLength: latestPersistedStudioResult.instagram.length,
               reelsLength: latestPersistedStudioResult.reels.length,
               imagePromptLength: latestPersistedStudioResult.imagePrompt.length,
             }),
@@ -379,7 +386,7 @@ Description: ${campaign.description || 'Not set'}`
       'ATLAS ACTIVE VIEW RULES:',
       'CURRENT ATLAS AI STUDIO WORKSPACE may contain activeView.',
       'activeView=create means the user is currently working with Studio inputs such as topic, style, language, campaign and assets.',
-      'activeView=results means the user is currently viewing the generated Facebook, Telegram, Reels, Image Prompt or generated visual.',
+      'activeView=results means the user is currently viewing the generated Facebook, Telegram, Instagram, Reels, Image Prompt or generated visual.',
       'activeView=elena means the user is currently focused on this conversation, but the current Studio drafts still remain available as context.',
       'When activeView=results and the user says "this", "this post", "this draft", "the current one", "刚才那篇", "这篇", "这个文案", or similar references, prefer the current Studio result unless the conversation clearly indicates another item.',
       'When activeView=create and the user asks to change the topic, style, language or direction, treat it as a current Studio input change.',
@@ -415,7 +422,7 @@ Description: ${campaign.description || 'Not set'}`
       'Supported executable actions are: replace, set, generate, restore, schedule, and batch.',
       '',
       'REPLACE: modify an existing Studio draft.',
-      'Targets: facebook, telegram, reels, imagePrompt.',
+      'Targets: facebook, telegram, instagram, reels, imagePrompt.',
       '',
       'SET: change Studio settings.',
       'Targets: topic, style, language.',
@@ -423,8 +430,8 @@ Description: ${campaign.description || 'Not set'}`
       'GENERATE: trigger Studio generation.',
       'Targets: content, image.',
       '',
-      'SCHEDULE: add the current Facebook and/or Telegram draft into the existing Atlas Auto Queue.',
-      'Schedule platforms must use FACEBOOK and/or TELEGRAM.',
+      'SCHEDULE: add the current Facebook, Telegram and/or Instagram draft into the existing Atlas Auto Queue.',
+      'Schedule platforms must use FACEBOOK, TELEGRAM and/or INSTAGRAM.',
       'Schedule date must use YYYY-MM-DD.',
       'Schedule time must use HH:MM in 24-hour format.',
       'Default timezone is Asia/Kuala_Lumpur.',
@@ -458,14 +465,14 @@ Description: ${campaign.description || 'Not set'}`
       'Important execution rules:',
       '',
       'MANDATORY SCHEDULE INTENT RULES:',
-      '- When the user explicitly asks to schedule, arrange, queue, 排程, 安排, 定时, or specifies that Facebook or Telegram content should be posted at a particular future date/time, you MUST emit a schedule action when platform, date and time are sufficiently clear.',
+      '- When the user explicitly asks to schedule, arrange, queue, 排程, 安排, 定时, or specifies that Facebook, Telegram or Instagram content should be posted at a particular future date/time, you MUST emit a schedule action when platform, date and time are sufficiently clear.',
       '- Never merely say that content is ready to schedule when the user explicitly asked you to schedule it.',
       '- Never omit the schedule action just because the same response also needs to create or replace the draft.',
       '- If the same user instruction asks you to create, rewrite, restore or replace content AND schedule it, emit ONE batch action in execution order: draft-changing actions first, schedule LAST.',
       '- A draft created or replaced earlier in the same batch is valid for the schedule action later in that batch.',
       '- Example: replace Facebook copy and schedule it => batch [replace facebook, schedule FACEBOOK].',
-      '- If the user says 刚才那篇, 这篇, current draft, that post, or equivalent and the relevant current Facebook/Telegram draft exists in CURRENT ATLAS AI STUDIO WORKSPACE, schedule that draft directly instead of asking the user to paste it again.',
-      '- If platform is unambiguous from the current draft or the user explicitly names Facebook/Telegram, do not ask for platform again.',
+      '- If the user says 刚才那篇, 这篇, current draft, that post, or equivalent and the relevant current Facebook/Telegram/Instagram draft exists in CURRENT ATLAS AI STUDIO WORKSPACE, schedule that draft directly instead of asking the user to paste it again.',
+      '- If platform is unambiguous from the current draft or the user explicitly names Facebook/Telegram/Instagram, do not ask for platform again.',
       '- If date or time is genuinely missing or ambiguous, ask only for the missing scheduling detail and do not invent it.',
       '- Resolve relative dates such as today/tomorrow using the supplied current server time and Asia/Kuala_Lumpur as the operational timezone.',
       '- Do not schedule empty platform drafts unless the required draft is created or replaced earlier in the SAME batch.',
@@ -725,6 +732,8 @@ Description: ${campaign.description || 'Not set'}`
         typeof draftRecord?.facebook === 'string' ? draftRecord.facebook : '',
       telegram:
         typeof draftRecord?.telegram === 'string' ? draftRecord.telegram : '',
+      instagram:
+        typeof draftRecord?.instagram === 'string' ? draftRecord.instagram : '',
       reels: typeof draftRecord?.reels === 'string' ? draftRecord.reels : '',
       imagePrompt:
         typeof draftRecord?.imagePrompt === 'string'
@@ -771,6 +780,7 @@ Description: ${campaign.description || 'Not set'}`
         if (
           item.target === 'facebook' ||
           item.target === 'telegram' ||
+          item.target === 'instagram' ||
           item.target === 'reels' ||
           item.target === 'imagePrompt'
         ) {

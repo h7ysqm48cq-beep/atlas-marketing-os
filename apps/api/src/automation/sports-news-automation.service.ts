@@ -709,41 +709,77 @@ export class SportsNewsAutomationService {
 
       const initialStatus = resolveSportsNewsInitialStatus(settings);
       const scheduledAt = new Date();
-      const posts: Array<{
-        id: string;
-        status: ScheduledPostStatus;
-        channelId: string;
-        mediaUrls: string[];
-      }> = [];
-
-      for (const target of publishTargets) {
-        const post = await this.prisma.scheduledPost.create({
-          data: {
-            brandId: target.channel.brandId,
-            channelId: target.channel.id,
-            platform: target.platform,
-            title,
-            dedupeKey: target.dedupeKey,
-            content,
-            mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
-            scheduledAt,
-            timezone: settings.timezone,
-            status: initialStatus,
-            brandRenderingSettings: {
-              sportsNews: {
-                publishRetryEnabled: settings.publishRetryEnabled,
-                publishRetryLimit: settings.publishRetryLimit,
-                publishRetryDelayMinutes: settings.publishRetryDelayMinutes,
+      const { history, posts } = await this.prisma.$transaction(
+        async (transaction) => {
+          const history = await transaction.generationHistory.create({
+            data: {
+              brandId: primaryChannel.brandId,
+              topic: title,
+              platforms: publishTargets.map((target) => target.platform),
+              style: 'M-SPORTS_NEWS',
+              language: settings.language,
+              facebook: publishTargets.some(
+                (target) => target.platform === SocialPlatform.FACEBOOK,
+              )
+                ? content
+                : '',
+              telegram: publishTargets.some(
+                (target) => target.platform === SocialPlatform.TELEGRAM,
+              )
+                ? content
+                : '',
+              reels: '',
+              imagePrompt: generatedNews.visualDirection ?? '',
+              analysis: {
+                source: 'SPORTS_NEWS_AUTOMATION',
+                edition,
+                dateKey,
+                visualContext: generatedNews.visualContext,
+                imageHighlights: generatedNews.imageHighlights,
               },
             },
-          },
-        });
+          });
 
-        posts.push(post);
-        this.logger.log(
-          `Created ${title} for ${target.channel.name} with status ${post.status}.`,
-        );
-      }
+          const posts: Array<{
+            id: string;
+            status: ScheduledPostStatus;
+            channelId: string;
+            mediaUrls: string[];
+          }> = [];
+
+          for (const target of publishTargets) {
+            const post = await transaction.scheduledPost.create({
+              data: {
+                brandId: target.channel.brandId,
+                channelId: target.channel.id,
+                historyId: history.id,
+                platform: target.platform,
+                title,
+                dedupeKey: target.dedupeKey,
+                content,
+                mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
+                scheduledAt,
+                timezone: settings.timezone,
+                status: initialStatus,
+                brandRenderingSettings: {
+                  sportsNews: {
+                    publishRetryEnabled: settings.publishRetryEnabled,
+                    publishRetryLimit: settings.publishRetryLimit,
+                    publishRetryDelayMinutes: settings.publishRetryDelayMinutes,
+                  },
+                },
+              },
+            });
+
+            posts.push(post);
+            this.logger.log(
+              `Created ${title} for ${target.channel.name} with status ${post.status}.`,
+            );
+          }
+
+          return { history, posts };
+        },
+      );
 
       const post = posts[0];
 
@@ -854,6 +890,7 @@ export class SportsNewsAutomationService {
     const connectedWhere = {
       platform,
       status: SocialChannelStatus.CONNECTED,
+      hiddenAt: null,
     } as const;
 
     if (configuredId) {

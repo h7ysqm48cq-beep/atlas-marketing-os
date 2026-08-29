@@ -17,6 +17,7 @@ type GenerateMode = "prompt" | "image" | null;
 type OutputPlatforms = {
   facebook: boolean;
   telegram: boolean;
+  instagram: boolean;
   reels: boolean;
   imagePrompt: boolean;
 };
@@ -24,6 +25,7 @@ type OutputPlatforms = {
 const EMPTY_OUTPUTS: OutputPlatforms = {
   facebook: true,
   telegram: false,
+  instagram: false,
   reels: false,
   imagePrompt: false,
 };
@@ -69,6 +71,7 @@ export function AiStudioMobileShell() {
     return {
       facebook: labels.some((label) => label.includes("facebook")),
       telegram: labels.some((label) => label.includes("telegram")),
+      instagram: labels.some((label) => label.includes("instagram") || label.includes("ig")),
       reels: labels.some((label) => label.includes("reels")),
       imagePrompt: labels.some(
         (label) =>
@@ -118,6 +121,7 @@ export function AiStudioMobileShell() {
       facebook: false,
 
       telegram: false,
+      instagram: false,
 
       reels: false,
 
@@ -373,6 +377,7 @@ export function AiStudioMobileShell() {
       data-running={isRunning ? "true" : "false"}
       data-output-facebook={outputPlatforms.facebook ? "true" : "false"}
       data-output-telegram={outputPlatforms.telegram ? "true" : "false"}
+      data-output-instagram={outputPlatforms.instagram ? "true" : "false"}
       data-output-reels={outputPlatforms.reels ? "true" : "false"}
       data-output-image-prompt={outputPlatforms.imagePrompt ? "true" : "false"}
     >

@@ -783,7 +783,9 @@ body.mobile-nav-open {
   }
 
   .icon-button {
-    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .user-chip {
@@ -3632,6 +3634,80 @@ html[data-pwa="standalone"] [contenteditable="true"] {
 .atlas-pwa-settings__toggle input {
   width: 18px;
   height: 18px;
+}
+
+.atlas-pwa-control {
+  display: grid;
+  gap: 12px;
+}
+
+.atlas-pwa-control__heading,
+.atlas-pwa-control__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.atlas-pwa-control__heading > div,
+.atlas-pwa-control__status > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.atlas-pwa-control__heading strong,
+.atlas-pwa-control__status strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.atlas-pwa-control__heading span,
+.atlas-pwa-control__status span,
+.atlas-pwa-control__status p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.atlas-pwa-control__notification-types {
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+}
+
+.atlas-pwa-control__toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.atlas-pwa-control__toggle input {
+  width: 17px;
+  height: 17px;
+}
+
+.atlas-pwa-control__status p {
+  margin: 0;
+  text-align: right;
+}
+
+@media (max-width: 620px) {
+  .atlas-pwa-control__heading,
+  .atlas-pwa-control__status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .atlas-pwa-control__status p {
+    text-align: left;
+  }
 }
 
 .atlas-pwa-settings__slots {

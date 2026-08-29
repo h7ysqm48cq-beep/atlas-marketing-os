@@ -15,6 +15,7 @@ type Campaign = {
 type CopilotStudioResult = {
   facebook: string;
   telegram: string;
+  instagram: string;
   reels: string;
   imagePrompt: string;
 };
@@ -158,6 +159,7 @@ type MarketingPlan = {
   contentIdeas: string[];
   facebook: string[];
   telegram: string[];
+  instagram: string[];
   reels: string[];
   imagePrompts: string[];
   schedule: Array<{
@@ -170,11 +172,11 @@ type MarketingPlan = {
 
 type CopilotMode = "chat" | "marketing-plan";
 
-type WorkspaceDraftTarget = "facebook" | "telegram" | "reels" | "imagePrompt";
+type WorkspaceDraftTarget = "facebook" | "telegram" | "instagram" | "reels" | "imagePrompt";
 
 type WorkspaceSettingTarget = "topic" | "style" | "language";
 
-type SchedulePlatform = "FACEBOOK" | "TELEGRAM";
+type SchedulePlatform = "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
 
 type WorkspaceAtomicAction =
   | {
@@ -221,7 +223,7 @@ function isAtomicWorkspaceAction(
 
   if (value.type === "replace") {
     return (
-      ["facebook", "telegram", "reels", "imagePrompt"].includes(
+      ["facebook", "telegram", "instagram", "reels", "imagePrompt"].includes(
         String(value.target),
       ) &&
       typeof value.content === "string" &&
@@ -247,7 +249,7 @@ function isAtomicWorkspaceAction(
     }
 
     const validPlatforms = value.platforms.every(
-      (platform) => platform === "FACEBOOK" || platform === "TELEGRAM",
+      (platform) => platform === "FACEBOOK" || platform === "TELEGRAM" || platform === "INSTAGRAM",
     );
 
     return (
@@ -365,6 +367,7 @@ export function BrandCopilot() {
   const [studioDraft, setStudioDraft] = useState({
     facebook: "",
     telegram: "",
+    instagram: "",
     reels: "",
     imagePrompt: "",
   });
@@ -519,7 +522,11 @@ export function BrandCopilot() {
 
     const selection = window.prompt(
       `请选择要发布到哪个 ${
-        platform === "FACEBOOK" ? "Facebook Page" : "Telegram Channel"
+        platform === "FACEBOOK"
+          ? "Facebook Page"
+          : platform === "TELEGRAM"
+            ? "Telegram Channel"
+            : "Instagram account"
       }：\n\n${options}\n\n请输入编号：`,
     );
 
@@ -563,7 +570,11 @@ export function BrandCopilot() {
       action.platforms.includes("TELEGRAM") &&
       !draftForSchedule.telegram?.trim();
 
-    if ((facebookMissing || telegramMissing) && conversationId) {
+    const instagramMissing =
+      action.platforms.includes("INSTAGRAM") &&
+      !draftForSchedule.instagram?.trim();
+
+    if ((facebookMissing || telegramMissing || instagramMissing) && conversationId) {
       const conversationResponse = await fetch(
         `${API_URL}/copilot/conversations/${conversationId}`,
         {
@@ -610,6 +621,10 @@ export function BrandCopilot() {
                 typeof candidate.telegram === "string"
                   ? candidate.telegram
                   : "",
+              instagram:
+                typeof candidate.instagram === "string"
+                  ? candidate.instagram
+                  : "",
               reels: typeof candidate.reels === "string" ? candidate.reels : "",
               imagePrompt:
                 typeof candidate.imagePrompt === "string"
@@ -622,6 +637,7 @@ export function BrandCopilot() {
               candidate &&
               (candidate.facebook.trim() ||
                 candidate.telegram.trim() ||
+                candidate.instagram.trim() ||
                 candidate.reels.trim() ||
                 candidate.imagePrompt.trim()),
           );
@@ -632,6 +648,8 @@ export function BrandCopilot() {
               draftForSchedule.facebook?.trim() || persistedDraft.facebook,
             telegram:
               draftForSchedule.telegram?.trim() || persistedDraft.telegram,
+            instagram:
+              draftForSchedule.instagram?.trim() || persistedDraft.instagram,
             reels: draftForSchedule.reels?.trim() || persistedDraft.reels,
             imagePrompt:
               draftForSchedule.imagePrompt?.trim() ||
@@ -671,6 +689,16 @@ export function BrandCopilot() {
       }
 
       contents.TELEGRAM = draftForSchedule.telegram;
+    }
+
+    if (action.platforms.includes("INSTAGRAM")) {
+      if (!draftForSchedule.instagram?.trim()) {
+        throw new Error(
+          "Instagram draft is unavailable even after conversation recovery.",
+        );
+      }
+
+      contents.INSTAGRAM = draftForSchedule.instagram;
     }
 
     const response = await fetch(`${API_URL}/workflow/auto-queue`, {
@@ -986,6 +1014,7 @@ export function BrandCopilot() {
     setStudioDraft({
       facebook: "",
       telegram: "",
+      instagram: "",
       reels: "",
       imagePrompt: "",
     });
@@ -1031,6 +1060,7 @@ export function BrandCopilot() {
       let restoredDraftSnapshot: CopilotStudioResult = {
         facebook: "",
         telegram: "",
+        instagram: "",
         reels: "",
         imagePrompt: "",
       };
@@ -1080,6 +1110,10 @@ export function BrandCopilot() {
                 telegram:
                   typeof studioResultCandidate.telegram === "string"
                     ? studioResultCandidate.telegram
+                    : "",
+                instagram:
+                  typeof studioResultCandidate.instagram === "string"
+                    ? studioResultCandidate.instagram
                     : "",
                 reels:
                   typeof studioResultCandidate.reels === "string"
@@ -1219,6 +1253,7 @@ export function BrandCopilot() {
         setStudioDraft({
           facebook: latestRestoredStudioResult.facebook || "",
           telegram: latestRestoredStudioResult.telegram || "",
+          instagram: latestRestoredStudioResult.instagram || "",
           reels: latestRestoredStudioResult.reels || "",
           imagePrompt: latestRestoredStudioResult.imagePrompt || "",
         });
@@ -1226,6 +1261,7 @@ export function BrandCopilot() {
         setStudioDraft({
           facebook: "",
           telegram: "",
+          instagram: "",
           reels: "",
           imagePrompt: "",
         });
@@ -1730,6 +1766,10 @@ export function BrandCopilot() {
             studioDraft.telegram.trim() ||
             latestMessageStudioResult?.telegram?.trim() ||
             "",
+          instagram:
+            studioDraft.instagram.trim() ||
+            latestMessageStudioResult?.instagram?.trim() ||
+            "",
           reels:
             studioDraft.reels.trim() ||
             latestMessageStudioResult?.reels?.trim() ||
@@ -1842,6 +1882,12 @@ export function BrandCopilot() {
             recoveredWorkspaceDraft.telegram.trim()
               ? recoveredWorkspaceDraft.telegram
               : effectiveStudioDraft.telegram,
+
+          instagram:
+            typeof recoveredWorkspaceDraft?.instagram === "string" &&
+            recoveredWorkspaceDraft.instagram.trim()
+              ? recoveredWorkspaceDraft.instagram
+              : effectiveStudioDraft.instagram,
 
           reels:
             typeof recoveredWorkspaceDraft?.reels === "string" &&
@@ -2335,6 +2381,7 @@ export function BrandCopilot() {
     const sections = [
       source.facebook.trim() ? `Facebook:\n${source.facebook.trim()}` : "",
       source.telegram.trim() ? `Telegram:\n${source.telegram.trim()}` : "",
+      source.instagram.trim() ? `Instagram:\n${source.instagram.trim()}` : "",
       source.reels.trim() ? `Reels:\n${source.reels.trim()}` : "",
       source.imagePrompt.trim()
         ? `Image Prompt:\n${source.imagePrompt.trim()}`
@@ -2354,7 +2401,7 @@ export function BrandCopilot() {
         "",
         sections,
         "",
-        "请直接更新 Facebook、Telegram、Reels 和 Image Prompt。",
+        "请直接更新 Facebook、Telegram、Instagram、Reels 和 Image Prompt。",
       ]
         .filter(Boolean)
         .join("\n"),
@@ -2376,8 +2423,12 @@ export function BrandCopilot() {
       platforms.push("TELEGRAM");
     }
 
+    if (source.instagram.trim()) {
+      platforms.push("INSTAGRAM");
+    }
+
     if (!platforms.length) {
-      setStatus("Facebook or Telegram content is required before scheduling.");
+      setStatus("Facebook, Telegram or Instagram content is required before scheduling.");
       return;
     }
 
@@ -3233,6 +3284,7 @@ export function BrandCopilot() {
                         {[
                           ["Facebook", marketingPlan.facebook],
                           ["Telegram", marketingPlan.telegram],
+                          ["Instagram", marketingPlan.instagram ?? []],
                           ["Reels", marketingPlan.reels],
                         ].map(([platform, items]) => (
                           <article

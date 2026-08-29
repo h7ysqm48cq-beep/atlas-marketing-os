@@ -167,6 +167,10 @@
   background: #229ed9;
 }
 
+.instagram {
+  background: #e1306c;
+}
+
 .channelMain,
 .channelMeta {
   display: flex;

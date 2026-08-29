@@ -40,6 +40,8 @@ export type SocialChannelMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   publishingPreference: string | null
+  hiddenAt: Date | null
+  hiddenReason: string | null
 }
 
 export type SocialChannelMaxAggregateOutputType = {
@@ -58,6 +60,8 @@ export type SocialChannelMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   publishingPreference: string | null
+  hiddenAt: Date | null
+  hiddenReason: string | null
 }
 
 export type SocialChannelCountAggregateOutputType = {
@@ -76,6 +80,8 @@ export type SocialChannelCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   publishingPreference: number
+  hiddenAt: number
+  hiddenReason: number
   _all: number
 }
 
@@ -96,6 +102,8 @@ export type SocialChannelMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   publishingPreference?: true
+  hiddenAt?: true
+  hiddenReason?: true
 }
 
 export type SocialChannelMaxAggregateInputType = {
@@ -114,6 +122,8 @@ export type SocialChannelMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   publishingPreference?: true
+  hiddenAt?: true
+  hiddenReason?: true
 }
 
 export type SocialChannelCountAggregateInputType = {
@@ -132,6 +142,8 @@ export type SocialChannelCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   publishingPreference?: true
+  hiddenAt?: true
+  hiddenReason?: true
   _all?: true
 }
 
@@ -223,6 +235,8 @@ export type SocialChannelGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   publishingPreference: string
+  hiddenAt: Date | null
+  hiddenReason: string | null
   _count: SocialChannelCountAggregateOutputType | null
   _min: SocialChannelMinAggregateOutputType | null
   _max: SocialChannelMaxAggregateOutputType | null
@@ -262,6 +276,8 @@ export type SocialChannelWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
+  hiddenAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  hiddenReason?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelListRelationFilter
   browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
@@ -270,6 +286,7 @@ export type SocialChannelWhereInput = {
   socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingListRelationFilter
 }
 
 export type SocialChannelOrderByWithRelationInput = {
@@ -288,6 +305,8 @@ export type SocialChannelOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   publishingPreference?: Prisma.SortOrder
+  hiddenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  hiddenReason?: Prisma.SortOrderInput | Prisma.SortOrder
   browserAccountLinks?: Prisma.BrowserAccountChannelOrderByRelationAggregateInput
   browserActionHistory?: Prisma.BrowserActionHistoryOrderByRelationAggregateInput
   scheduledPosts?: Prisma.ScheduledPostOrderByRelationAggregateInput
@@ -296,6 +315,7 @@ export type SocialChannelOrderByWithRelationInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileOrderByWithRelationInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingOrderByRelationAggregateInput
 }
 
 export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -318,6 +338,8 @@ export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
+  hiddenAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  hiddenReason?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelListRelationFilter
   browserActionHistory?: Prisma.BrowserActionHistoryListRelationFilter
   scheduledPosts?: Prisma.ScheduledPostListRelationFilter
@@ -326,6 +348,7 @@ export type SocialChannelWhereUniqueInput = Prisma.AtLeast<{
   socialChannelRuntimeProfile?: Prisma.XOR<Prisma.SocialChannelRuntimeProfileNullableScalarRelationFilter, Prisma.SocialChannelRuntimeProfileWhereInput> | null
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingListRelationFilter
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingListRelationFilter
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingListRelationFilter
 }, "id" | "brandId_platform_externalId">
 
 export type SocialChannelOrderByWithAggregationInput = {
@@ -344,6 +367,8 @@ export type SocialChannelOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   publishingPreference?: Prisma.SortOrder
+  hiddenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  hiddenReason?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SocialChannelCountOrderByAggregateInput
   _max?: Prisma.SocialChannelMaxOrderByAggregateInput
   _min?: Prisma.SocialChannelMinOrderByAggregateInput
@@ -368,6 +393,8 @@ export type SocialChannelScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SocialChannel"> | Date | string
   publishingPreference?: Prisma.StringWithAggregatesFilter<"SocialChannel"> | string
+  hiddenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialChannel"> | Date | string | null
+  hiddenReason?: Prisma.StringNullableWithAggregatesFilter<"SocialChannel"> | string | null
 }
 
 export type SocialChannelCreateInput = {
@@ -384,6 +411,8 @@ export type SocialChannelCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -392,6 +421,7 @@ export type SocialChannelCreateInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateInput = {
@@ -410,12 +440,15 @@ export type SocialChannelUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUpdateInput = {
@@ -432,6 +465,8 @@ export type SocialChannelUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -440,6 +475,7 @@ export type SocialChannelUpdateInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateInput = {
@@ -458,12 +494,15 @@ export type SocialChannelUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelCreateManyInput = {
@@ -482,6 +521,8 @@ export type SocialChannelCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
 }
 
 export type SocialChannelUpdateManyMutationInput = {
@@ -498,6 +539,8 @@ export type SocialChannelUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelUncheckedUpdateManyInput = {
@@ -516,6 +559,8 @@ export type SocialChannelUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelListRelationFilter = {
@@ -550,6 +595,8 @@ export type SocialChannelCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   publishingPreference?: Prisma.SortOrder
+  hiddenAt?: Prisma.SortOrder
+  hiddenReason?: Prisma.SortOrder
 }
 
 export type SocialChannelMaxOrderByAggregateInput = {
@@ -568,6 +615,8 @@ export type SocialChannelMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   publishingPreference?: Prisma.SortOrder
+  hiddenAt?: Prisma.SortOrder
+  hiddenReason?: Prisma.SortOrder
 }
 
 export type SocialChannelMinOrderByAggregateInput = {
@@ -586,6 +635,8 @@ export type SocialChannelMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   publishingPreference?: Prisma.SortOrder
+  hiddenAt?: Prisma.SortOrder
+  hiddenReason?: Prisma.SortOrder
 }
 
 export type SocialChannelScalarRelationFilter = {
@@ -758,6 +809,12 @@ export type SocialChannelCreateNestedOneWithoutSportsNewsTelegramSettingsInput =
   connect?: Prisma.SocialChannelWhereUniqueInput
 }
 
+export type SocialChannelCreateNestedOneWithoutSportsNewsInstagramSettingsInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsInstagramSettingsInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsInstagramSettingsInput
+  connect?: Prisma.SocialChannelWhereUniqueInput
+}
+
 export type SocialChannelUpdateOneWithoutSportsNewsFacebookSettingsNestedInput = {
   create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsFacebookSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput>
   connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsFacebookSettingsInput
@@ -778,6 +835,16 @@ export type SocialChannelUpdateOneWithoutSportsNewsTelegramSettingsNestedInput =
   update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput>, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput>
 }
 
+export type SocialChannelUpdateOneWithoutSportsNewsInstagramSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsInstagramSettingsInput>
+  connectOrCreate?: Prisma.SocialChannelCreateOrConnectWithoutSportsNewsInstagramSettingsInput
+  upsert?: Prisma.SocialChannelUpsertWithoutSportsNewsInstagramSettingsInput
+  disconnect?: Prisma.SocialChannelWhereInput | boolean
+  delete?: Prisma.SocialChannelWhereInput | boolean
+  connect?: Prisma.SocialChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SocialChannelUpdateToOneWithWhereWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUpdateWithoutSportsNewsInstagramSettingsInput>, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsInstagramSettingsInput>
+}
+
 export type SocialChannelCreateWithoutWorkspaceInput = {
   id?: string
   platform: $Enums.SocialPlatform
@@ -792,6 +859,8 @@ export type SocialChannelCreateWithoutWorkspaceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -799,6 +868,7 @@ export type SocialChannelCreateWithoutWorkspaceInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
@@ -816,12 +886,15 @@ export type SocialChannelUncheckedCreateWithoutWorkspaceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutWorkspaceInput = {
@@ -869,6 +942,8 @@ export type SocialChannelScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialChannel"> | Date | string
   publishingPreference?: Prisma.StringFilter<"SocialChannel"> | string
+  hiddenAt?: Prisma.DateTimeNullableFilter<"SocialChannel"> | Date | string | null
+  hiddenReason?: Prisma.StringNullableFilter<"SocialChannel"> | string | null
 }
 
 export type SocialChannelCreateWithoutBrandInput = {
@@ -885,6 +960,8 @@ export type SocialChannelCreateWithoutBrandInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -892,6 +969,7 @@ export type SocialChannelCreateWithoutBrandInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrandInput = {
@@ -909,12 +987,15 @@ export type SocialChannelUncheckedCreateWithoutBrandInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrandInput = {
@@ -957,6 +1038,8 @@ export type SocialChannelCreateWithoutSocialChannelRuntimeProfileInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -964,6 +1047,7 @@ export type SocialChannelCreateWithoutSocialChannelRuntimeProfileInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput = {
@@ -982,11 +1066,14 @@ export type SocialChannelUncheckedCreateWithoutSocialChannelRuntimeProfileInput 
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutSocialChannelRuntimeProfileInput = {
@@ -1019,6 +1106,8 @@ export type SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -1026,6 +1115,7 @@ export type SocialChannelUpdateWithoutSocialChannelRuntimeProfileInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput = {
@@ -1044,11 +1134,14 @@ export type SocialChannelUncheckedUpdateWithoutSocialChannelRuntimeProfileInput 
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
@@ -1065,6 +1158,8 @@ export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
@@ -1072,6 +1167,7 @@ export type SocialChannelCreateWithoutBrowserAccountLinksInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrowserAccountLinksInput = {
@@ -1090,11 +1186,14 @@ export type SocialChannelUncheckedCreateWithoutBrowserAccountLinksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrowserAccountLinksInput = {
@@ -1127,6 +1226,8 @@ export type SocialChannelUpdateWithoutBrowserAccountLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
@@ -1134,6 +1235,7 @@ export type SocialChannelUpdateWithoutBrowserAccountLinksInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrowserAccountLinksInput = {
@@ -1152,11 +1254,14 @@ export type SocialChannelUncheckedUpdateWithoutBrowserAccountLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutScheduledPostsInput = {
@@ -1173,6 +1278,8 @@ export type SocialChannelCreateWithoutScheduledPostsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
@@ -1180,6 +1287,7 @@ export type SocialChannelCreateWithoutScheduledPostsInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
@@ -1198,11 +1306,14 @@ export type SocialChannelUncheckedCreateWithoutScheduledPostsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutScheduledPostsInput = {
@@ -1235,6 +1346,8 @@ export type SocialChannelUpdateWithoutScheduledPostsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
@@ -1242,6 +1355,7 @@ export type SocialChannelUpdateWithoutScheduledPostsInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
@@ -1260,11 +1374,14 @@ export type SocialChannelUncheckedUpdateWithoutScheduledPostsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
@@ -1281,6 +1398,8 @@ export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
   brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
@@ -1288,6 +1407,7 @@ export type SocialChannelCreateWithoutBrowserActionHistoryInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
@@ -1306,11 +1426,14 @@ export type SocialChannelUncheckedCreateWithoutBrowserActionHistoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutBrowserActionHistoryInput = {
@@ -1343,6 +1466,8 @@ export type SocialChannelUpdateWithoutBrowserActionHistoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
   brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
@@ -1350,6 +1475,7 @@ export type SocialChannelUpdateWithoutBrowserActionHistoryInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
@@ -1368,11 +1494,14 @@ export type SocialChannelUncheckedUpdateWithoutBrowserActionHistoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
@@ -1389,6 +1518,8 @@ export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -1396,6 +1527,7 @@ export type SocialChannelCreateWithoutSportsNewsFacebookSettingsInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput = {
@@ -1414,11 +1546,14 @@ export type SocialChannelUncheckedCreateWithoutSportsNewsFacebookSettingsInput =
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutSportsNewsFacebookSettingsInput = {
@@ -1440,6 +1575,8 @@ export type SocialChannelCreateWithoutSportsNewsTelegramSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
@@ -1447,6 +1584,7 @@ export type SocialChannelCreateWithoutSportsNewsTelegramSettingsInput = {
   workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput = {
@@ -1465,16 +1603,76 @@ export type SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput =
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutInstagramChannelInput
 }
 
 export type SocialChannelCreateOrConnectWithoutSportsNewsTelegramSettingsInput = {
   where: Prisma.SocialChannelWhereUniqueInput
   create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsTelegramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsTelegramSettingsInput>
+}
+
+export type SocialChannelCreateWithoutSportsNewsInstagramSettingsInput = {
+  id?: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
+  browserAccountLinks?: Prisma.BrowserAccountChannelCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostCreateNestedManyWithoutChannelInput
+  brand: Prisma.BrandCreateNestedOneWithoutSocialChannelsInput
+  workspace: Prisma.WorkspaceCreateNestedOneWithoutSocialChannelsInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingCreateNestedManyWithoutTelegramChannelInput
+}
+
+export type SocialChannelUncheckedCreateWithoutSportsNewsInstagramSettingsInput = {
+  id?: string
+  workspaceId: string
+  brandId: string
+  platform: $Enums.SocialPlatform
+  name: string
+  externalId?: string | null
+  username?: string | null
+  status?: $Enums.SocialChannelStatus
+  accessTokenEncrypted?: string | null
+  tokenExpiresAt?: Date | string | null
+  lastConnectedAt?: Date | string | null
+  lastError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
+  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedCreateNestedManyWithoutChannelInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedCreateNestedManyWithoutChannelInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedCreateNestedManyWithoutChannelInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedCreateNestedOneWithoutChannelInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutFacebookChannelInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedCreateNestedManyWithoutTelegramChannelInput
+}
+
+export type SocialChannelCreateOrConnectWithoutSportsNewsInstagramSettingsInput = {
+  where: Prisma.SocialChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsInstagramSettingsInput>
 }
 
 export type SocialChannelUpsertWithoutSportsNewsFacebookSettingsInput = {
@@ -1502,6 +1700,8 @@ export type SocialChannelUpdateWithoutSportsNewsFacebookSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -1509,6 +1709,7 @@ export type SocialChannelUpdateWithoutSportsNewsFacebookSettingsInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput = {
@@ -1527,11 +1728,14 @@ export type SocialChannelUncheckedUpdateWithoutSportsNewsFacebookSettingsInput =
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUpsertWithoutSportsNewsTelegramSettingsInput = {
@@ -1559,6 +1763,8 @@ export type SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -1566,6 +1772,7 @@ export type SocialChannelUpdateWithoutSportsNewsTelegramSettingsInput = {
   workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput = {
@@ -1584,11 +1791,77 @@ export type SocialChannelUncheckedUpdateWithoutSportsNewsTelegramSettingsInput =
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
+}
+
+export type SocialChannelUpsertWithoutSportsNewsInstagramSettingsInput = {
+  update: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsInstagramSettingsInput>
+  create: Prisma.XOR<Prisma.SocialChannelCreateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedCreateWithoutSportsNewsInstagramSettingsInput>
+  where?: Prisma.SocialChannelWhereInput
+}
+
+export type SocialChannelUpdateToOneWithWhereWithoutSportsNewsInstagramSettingsInput = {
+  where?: Prisma.SocialChannelWhereInput
+  data: Prisma.XOR<Prisma.SocialChannelUpdateWithoutSportsNewsInstagramSettingsInput, Prisma.SocialChannelUncheckedUpdateWithoutSportsNewsInstagramSettingsInput>
+}
+
+export type SocialChannelUpdateWithoutSportsNewsInstagramSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
+  brand?: Prisma.BrandUpdateOneRequiredWithoutSocialChannelsNestedInput
+  workspace?: Prisma.WorkspaceUpdateOneRequiredWithoutSocialChannelsNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+}
+
+export type SocialChannelUncheckedUpdateWithoutSportsNewsInstagramSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  brandId?: Prisma.StringFieldUpdateOperationsInput | string
+  platform?: Prisma.EnumSocialPlatformFieldUpdateOperationsInput | $Enums.SocialPlatform
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumSocialChannelStatusFieldUpdateOperationsInput | $Enums.SocialChannelStatus
+  accessTokenEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastConnectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
+  browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
+  scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
+  socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
+  sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
+  sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
 }
 
 export type SocialChannelCreateManyWorkspaceInput = {
@@ -1606,6 +1879,8 @@ export type SocialChannelCreateManyWorkspaceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
 }
 
 export type SocialChannelUpdateWithoutWorkspaceInput = {
@@ -1622,6 +1897,8 @@ export type SocialChannelUpdateWithoutWorkspaceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -1629,6 +1906,7 @@ export type SocialChannelUpdateWithoutWorkspaceInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
@@ -1646,12 +1924,15 @@ export type SocialChannelUncheckedUpdateWithoutWorkspaceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1669,6 +1950,8 @@ export type SocialChannelUncheckedUpdateManyWithoutWorkspaceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type SocialChannelCreateManyBrandInput = {
@@ -1686,6 +1969,8 @@ export type SocialChannelCreateManyBrandInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   publishingPreference?: string
+  hiddenAt?: Date | string | null
+  hiddenReason?: string | null
 }
 
 export type SocialChannelUpdateWithoutBrandInput = {
@@ -1702,6 +1987,8 @@ export type SocialChannelUpdateWithoutBrandInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUpdateManyWithoutChannelNestedInput
@@ -1709,6 +1996,7 @@ export type SocialChannelUpdateWithoutBrandInput = {
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateWithoutBrandInput = {
@@ -1726,12 +2014,15 @@ export type SocialChannelUncheckedUpdateWithoutBrandInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   browserAccountLinks?: Prisma.BrowserAccountChannelUncheckedUpdateManyWithoutChannelNestedInput
   browserActionHistory?: Prisma.BrowserActionHistoryUncheckedUpdateManyWithoutChannelNestedInput
   scheduledPosts?: Prisma.ScheduledPostUncheckedUpdateManyWithoutChannelNestedInput
   socialChannelRuntimeProfile?: Prisma.SocialChannelRuntimeProfileUncheckedUpdateOneWithoutChannelNestedInput
   sportsNewsFacebookSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutFacebookChannelNestedInput
   sportsNewsTelegramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutTelegramChannelNestedInput
+  sportsNewsInstagramSettings?: Prisma.SportsNewsSettingUncheckedUpdateManyWithoutInstagramChannelNestedInput
 }
 
 export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
@@ -1749,6 +2040,8 @@ export type SocialChannelUncheckedUpdateManyWithoutBrandInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishingPreference?: Prisma.StringFieldUpdateOperationsInput | string
+  hiddenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  hiddenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1762,6 +2055,7 @@ export type SocialChannelCountOutputType = {
   scheduledPosts: number
   sportsNewsFacebookSettings: number
   sportsNewsTelegramSettings: number
+  sportsNewsInstagramSettings: number
 }
 
 export type SocialChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1770,6 +2064,7 @@ export type SocialChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Ext
   scheduledPosts?: boolean | SocialChannelCountOutputTypeCountScheduledPostsArgs
   sportsNewsFacebookSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsFacebookSettingsArgs
   sportsNewsTelegramSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs
+  sportsNewsInstagramSettings?: boolean | SocialChannelCountOutputTypeCountSportsNewsInstagramSettingsArgs
 }
 
 /**
@@ -1817,6 +2112,13 @@ export type SocialChannelCountOutputTypeCountSportsNewsTelegramSettingsArgs<ExtA
   where?: Prisma.SportsNewsSettingWhereInput
 }
 
+/**
+ * SocialChannelCountOutputType without action
+ */
+export type SocialChannelCountOutputTypeCountSportsNewsInstagramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SportsNewsSettingWhereInput
+}
+
 
 export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1834,6 +2136,8 @@ export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.Interna
   createdAt?: boolean
   updatedAt?: boolean
   publishingPreference?: boolean
+  hiddenAt?: boolean
+  hiddenReason?: boolean
   browserAccountLinks?: boolean | Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs>
   browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
   scheduledPosts?: boolean | Prisma.SocialChannel$scheduledPostsArgs<ExtArgs>
@@ -1842,6 +2146,7 @@ export type SocialChannelSelect<ExtArgs extends runtime.Types.Extensions.Interna
   socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
   sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
   sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
+  sportsNewsInstagramSettings?: boolean | Prisma.SocialChannel$sportsNewsInstagramSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
 
@@ -1861,6 +2166,8 @@ export type SocialChannelSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   createdAt?: boolean
   updatedAt?: boolean
   publishingPreference?: boolean
+  hiddenAt?: boolean
+  hiddenReason?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
@@ -1881,6 +2188,8 @@ export type SocialChannelSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   createdAt?: boolean
   updatedAt?: boolean
   publishingPreference?: boolean
+  hiddenAt?: boolean
+  hiddenReason?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   workspace?: boolean | Prisma.WorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["socialChannel"]>
@@ -1901,9 +2210,11 @@ export type SocialChannelSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   publishingPreference?: boolean
+  hiddenAt?: boolean
+  hiddenReason?: boolean
 }
 
-export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt" | "publishingPreference", ExtArgs["result"]["socialChannel"]>
+export type SocialChannelOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "brandId" | "platform" | "name" | "externalId" | "username" | "status" | "accessTokenEncrypted" | "tokenExpiresAt" | "lastConnectedAt" | "lastError" | "createdAt" | "updatedAt" | "publishingPreference" | "hiddenAt" | "hiddenReason", ExtArgs["result"]["socialChannel"]>
 export type SocialChannelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   browserAccountLinks?: boolean | Prisma.SocialChannel$browserAccountLinksArgs<ExtArgs>
   browserActionHistory?: boolean | Prisma.SocialChannel$browserActionHistoryArgs<ExtArgs>
@@ -1913,6 +2224,7 @@ export type SocialChannelInclude<ExtArgs extends runtime.Types.Extensions.Intern
   socialChannelRuntimeProfile?: boolean | Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>
   sportsNewsFacebookSettings?: boolean | Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>
   sportsNewsTelegramSettings?: boolean | Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>
+  sportsNewsInstagramSettings?: boolean | Prisma.SocialChannel$sportsNewsInstagramSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.SocialChannelCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SocialChannelIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1935,6 +2247,7 @@ export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.Inter
     socialChannelRuntimeProfile: Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs> | null
     sportsNewsFacebookSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
     sportsNewsTelegramSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
+    sportsNewsInstagramSettings: Prisma.$SportsNewsSettingPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1952,6 +2265,8 @@ export type $SocialChannelPayload<ExtArgs extends runtime.Types.Extensions.Inter
     createdAt: Date
     updatedAt: Date
     publishingPreference: string
+    hiddenAt: Date | null
+    hiddenReason: string | null
   }, ExtArgs["result"]["socialChannel"]>
   composites: {}
 }
@@ -2354,6 +2669,7 @@ export interface Prisma__SocialChannelClient<T, Null = never, ExtArgs extends ru
   socialChannelRuntimeProfile<T extends Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$socialChannelRuntimeProfileArgs<ExtArgs>>): Prisma.Prisma__SocialChannelRuntimeProfileClient<runtime.Types.Result.GetResult<Prisma.$SocialChannelRuntimeProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sportsNewsFacebookSettings<T extends Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sportsNewsTelegramSettings<T extends Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sportsNewsInstagramSettings<T extends Prisma.SocialChannel$sportsNewsInstagramSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SocialChannel$sportsNewsInstagramSettingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SportsNewsSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2398,6 +2714,8 @@ export interface SocialChannelFieldRefs {
   readonly createdAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
   readonly publishingPreference: Prisma.FieldRef<"SocialChannel", 'String'>
+  readonly hiddenAt: Prisma.FieldRef<"SocialChannel", 'DateTime'>
+  readonly hiddenReason: Prisma.FieldRef<"SocialChannel", 'String'>
 }
     
 
@@ -2917,6 +3235,30 @@ export type SocialChannel$sportsNewsFacebookSettingsArgs<ExtArgs extends runtime
  * SocialChannel.sportsNewsTelegramSettings
  */
 export type SocialChannel$sportsNewsTelegramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SportsNewsSetting
+   */
+  select?: Prisma.SportsNewsSettingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SportsNewsSetting
+   */
+  omit?: Prisma.SportsNewsSettingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SportsNewsSettingInclude<ExtArgs> | null
+  where?: Prisma.SportsNewsSettingWhereInput
+  orderBy?: Prisma.SportsNewsSettingOrderByWithRelationInput | Prisma.SportsNewsSettingOrderByWithRelationInput[]
+  cursor?: Prisma.SportsNewsSettingWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SportsNewsSettingScalarFieldEnum | Prisma.SportsNewsSettingScalarFieldEnum[]
+}
+
+/**
+ * SocialChannel.sportsNewsInstagramSettings
+ */
+export type SocialChannel$sportsNewsInstagramSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the SportsNewsSetting
    */

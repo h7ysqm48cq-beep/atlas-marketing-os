@@ -2,6 +2,7 @@ import {
   getEditionPlatforms,
   resolveSportsNewsInitialStatus,
   shouldRunScheduledEdition,
+  SportsNewsAutomationService,
 } from './sports-news-automation.service';
 import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
 
@@ -104,5 +105,130 @@ describe('shouldRunScheduledEdition', () => {
         queueStatusOnCreate: 'SCHEDULED',
       }),
     ).toBe(ScheduledPostStatus.SCHEDULED);
+  });
+});
+
+describe('SportsNewsAutomationService history linkage', () => {
+  it('links every platform post from one edition to one generation history record', async () => {
+    const settings = {
+      id: 'sports-settings-1',
+      enabled: true,
+      timezone: 'Asia/Kuala_Lumpur',
+      telegramEnabled: true,
+      facebookEnabled: true,
+      morningTelegramEnabled: true,
+      morningFacebookEnabled: true,
+      eveningTelegramEnabled: true,
+      eveningFacebookEnabled: true,
+      telegramChannelId: 'telegram-channel-1',
+      facebookChannelId: 'facebook-channel-1',
+      channelOverrides: {},
+      duplicateEditionPolicy: 'SKIP',
+      autoPublishEnabled: true,
+      approvalRequired: false,
+      queueStatusOnCreate: 'QUEUED',
+      imageGenerationEnabled: false,
+      language: 'zh-en',
+      publishRetryEnabled: true,
+      publishRetryLimit: 3,
+      publishRetryDelayMinutes: 10,
+      morningSameDaySourcesOnly: false,
+      sameDaySourcesOnly: false,
+      maxSourceAgeHours: 24,
+      requirePublishedAt: false,
+      requireSourceUrl: false,
+      minimumSources: 1,
+      freshnessFallbackEnabled: false,
+      morningPostTitleTemplate: 'M-Sports Morning {date}',
+      eveningPostTitleTemplate: 'M-Sports Evening {date}',
+    } as never;
+    const channels = {
+      [SocialPlatform.TELEGRAM]: {
+        id: 'telegram-channel-1',
+        brandId: 'brand-1',
+        name: 'Sports Telegram',
+      },
+      [SocialPlatform.FACEBOOK]: {
+        id: 'facebook-channel-1',
+        brandId: 'brand-1',
+        name: 'Sports Facebook',
+      },
+    } as const;
+    const prisma = {
+      scheduledPost: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            id: `${data.channelId}-post`,
+            ...data,
+          }),
+        ),
+      },
+      generationHistory: {
+        create: jest.fn().mockResolvedValue({ id: 'history-1' }),
+      },
+      sportsNewsSetting: {
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      $transaction: jest.fn(
+        async (callback: (transaction: unknown) => Promise<unknown>) =>
+          callback(prisma),
+      ),
+    };
+    const service = new SportsNewsAutomationService(
+      { get: jest.fn().mockReturnValue('test-key') } as never,
+      prisma as never,
+      {} as never,
+      {} as never,
+      { get: jest.fn().mockResolvedValue(settings) } as never,
+      {} as never,
+      {} as never,
+    );
+
+    const serviceInternals = service as any;
+
+    jest
+      .spyOn(serviceInternals, 'resolveChannel')
+      .mockImplementation(async (platform: SocialPlatform) =>
+        channels[platform],
+      );
+    jest
+      .spyOn(serviceInternals, 'generateNews')
+      .mockResolvedValue({
+        content: 'Verified sports report',
+        imageHighlights: [],
+        visualContext: '',
+        visualDirection: '',
+      } as never);
+
+    await serviceInternals.createEdition('EVENING');
+
+    expect(prisma.generationHistory.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        brandId: 'brand-1',
+        platforms: [SocialPlatform.TELEGRAM, SocialPlatform.FACEBOOK],
+        telegram: 'Verified sports report',
+        facebook: 'Verified sports report',
+        language: 'zh-en',
+        analysis: expect.objectContaining({
+          source: 'SPORTS_NEWS_AUTOMATION',
+          edition: 'EVENING',
+        }),
+      }),
+    });
+
+    expect(prisma.scheduledPost.create).toHaveBeenCalledTimes(2);
+    expect(prisma.scheduledPost.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ historyId: 'history-1' }),
+      }),
+    );
+    expect(prisma.scheduledPost.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ historyId: 'history-1' }),
+      }),
+    );
   });
 });

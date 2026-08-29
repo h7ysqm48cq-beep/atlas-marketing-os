@@ -1,4 +1,5 @@
 import {
+  Optional,
   Injectable,
   Logger,
 } from "@nestjs/common";
@@ -15,12 +16,19 @@ import {
 
 import { FacebookConnectorService } from "./facebook-connector.service";
 import { TelegramConnectorService } from "./telegram-connector.service";
+import { InstagramConnectorService } from "./instagram-connector.service";
 import { RuntimeProfileService } from "./runtime-profile.service";
 import { BrowserRuntimeBridgeService } from "./browser-runtime-bridge.service";
 import {
-  resolveSportsNewsRetryDecision,
+  resolvePublisherRetryDecision,
   type SportsNewsRetryPolicy,
 } from "./publisher-retry-policy";
+import { resolvePublisherChannelIds } from "./publisher-scope";
+import {
+  resolveFacebookPostUrl,
+  resolvePublishExternalId,
+} from "./publisher-result";
+import { NotificationService } from "../notifications/notification.service";
 
 @Injectable()
 export class PublisherService {
@@ -38,43 +46,39 @@ export class PublisherService {
       RuntimeProfileService,
     private readonly browserRuntime:
       BrowserRuntimeBridgeService,
+    @Optional()
+    private readonly instagram?: InstagramConnectorService,
+    @Optional()
+    private readonly notifications?: NotificationService,
   ) {}
 
-  private buildFacebookPostUrl(
-    externalPostId?: string | null,
-  ) {
-    const cleanId =
-      externalPostId?.trim();
-
-    if (!cleanId) {
-      return null;
-    }
-
-    const separatorIndex =
-      cleanId.indexOf("_");
-
-    if (separatorIndex < 0) {
-      return null;
-    }
-
-    const pageId =
-      cleanId.slice(0, separatorIndex);
-
-    const postId =
-      cleanId.slice(separatorIndex + 1);
-
-    if (!pageId || !postId) {
-      return null;
-    }
-
-    return `https://www.facebook.com/${pageId}/posts/${postId}`;
-  }
-
-
   async run() {
+    const allowedChannelIds =
+      resolvePublisherChannelIds(
+        process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS,
+      );
+
+    if (allowedChannelIds) {
+      this.logger.log(
+        allowedChannelIds.length > 0
+          ? `Publisher channel allowlist is active for ${allowedChannelIds.length} channel(s).`
+          : "Publisher channel allowlist is empty; no posts will be selected.",
+      );
+    }
+
     const posts =
       await this.prisma.scheduledPost.findMany({
         where: {
+          channel: {
+            hiddenAt: null,
+          },
+          ...(allowedChannelIds
+            ? {
+                channelId: {
+                  in: allowedChannelIds,
+                },
+              }
+            : {}),
           status: {
             in: [
               ScheduledPostStatus.SCHEDULED,
@@ -134,17 +138,34 @@ export class PublisherService {
         > | null =
         null;
 
+      let usedFacebookBrowserRuntime =
+        false;
+      let facebookBrowserPublishStarted = false;
+
+      let instagramLogin: {
+        ready: boolean;
+        loginRequired: boolean;
+        message: string;
+        browserProfileKey: string;
+      } | null = null;
+
       if (
         post.platform ===
         SocialPlatform.FACEBOOK
       ) {
         try {
-          const publishingPreference =
+          const configuredPublishingPreference =
             String(
               post.channel
                 .publishingPreference ||
               'AUTOMATIC',
             ).toUpperCase();
+
+          const publishingPreference =
+            configuredPublishingPreference ===
+            'NATIVE_API'
+              ? 'NATIVE_API'
+              : 'BROWSER_RUNTIME';
 
           const nativeApiOnly =
             publishingPreference ===
@@ -161,6 +182,55 @@ export class PublisherService {
                   },
                 );
           } else {
+            const liveLogin =
+              await this.browserRuntime
+                .preflightFacebookLoginForChannel(
+                  post.channel.id,
+                );
+
+            if (!liveLogin.ready) {
+              blocked += 1;
+
+              const blockMessage =
+                [
+                  liveLogin.message,
+                  `Channel: ${post.channel.name}.`,
+                  'Post remains queued until the Cloud Browser login is ready.',
+                ]
+                  .join(' ')
+                  .slice(0, 1000);
+
+              this.logger.warn(
+                [
+                  'Facebook live login preflight blocked publish.',
+                  `Post: ${post.id}.`,
+                  `Channel: ${post.channel.id}.`,
+                  `Profile: ${liveLogin.browserProfileKey}.`,
+                  blockMessage,
+                ].join(' '),
+              );
+
+              await this.prisma
+                .scheduledPost
+                .updateMany({
+                  where: {
+                    id: post.id,
+                    status: {
+                      in: [
+                        ScheduledPostStatus.SCHEDULED,
+                        ScheduledPostStatus.QUEUED,
+                      ],
+                    },
+                  },
+                  data: {
+                    lastError:
+                      blockMessage,
+                  },
+                });
+
+              continue;
+            }
+
             facebookSafetyGate =
               await this.runtimeProfiles
                 .getBrowserPublishingSafety(
@@ -175,25 +245,7 @@ export class PublisherService {
               !facebookSafetyGate
                 .selected;
 
-            const canUseNativeApi =
-              Boolean(
-                post.channel
-                  .accessTokenEncrypted,
-              );
-
-            if (
-              (
-                publishingPreference ===
-                  'BROWSER_RUNTIME' &&
-                browserUnavailable
-              ) ||
-              (
-                publishingPreference ===
-                  'AUTOMATIC' &&
-                browserUnavailable &&
-                !canUseNativeApi
-              )
-            ) {
+            if (browserUnavailable) {
             blocked += 1;
 
             const candidateSummary =
@@ -258,22 +310,10 @@ export class PublisherService {
               continue;
             }
 
-            const useAutomaticNativeFallback =
-              publishingPreference ===
-                'AUTOMATIC' &&
-              browserUnavailable &&
-              canUseNativeApi;
-
             facebookPublishNetwork =
               await this.runtimeProfiles
                 .getPublishNetwork(
                   post.channel.id,
-                  useAutomaticNativeFallback
-                    ? {
-                        nativeApiOnly:
-                          true,
-                      }
-                    : undefined,
                 );
 
             if (
@@ -335,6 +375,52 @@ export class PublisherService {
               },
             });
 
+          continue;
+        }
+      }
+
+      if (post.platform === SocialPlatform.INSTAGRAM) {
+        try {
+          instagramLogin =
+            await this.browserRuntime.preflightInstagramLoginForChannel(
+              post.channel.id,
+            );
+
+          if (!instagramLogin.ready) {
+            blocked += 1;
+            const blockMessage = [
+              instagramLogin.message,
+              `Channel: ${post.channel.name}.`,
+              'Post remains queued until the Instagram Browser login is ready.',
+            ].join(' ').slice(0, 1000);
+
+            await this.prisma.scheduledPost.updateMany({
+              where: {
+                id: post.id,
+                status: {
+                  in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
+                },
+              },
+              data: { lastError: blockMessage },
+            });
+            continue;
+          }
+        } catch (error) {
+          blocked += 1;
+          const message = (error instanceof Error
+            ? error.message
+            : 'Unable to evaluate Instagram Browser login.').slice(0, 1000);
+          await this.prisma.scheduledPost.updateMany({
+            where: {
+              id: post.id,
+              status: {
+                in: [ScheduledPostStatus.SCHEDULED, ScheduledPostStatus.QUEUED],
+              },
+            },
+            data: {
+              lastError: `Instagram publishing paused: ${message}`,
+            },
+          });
           continue;
         }
       }
@@ -419,6 +505,8 @@ export class PublisherService {
 
         browserProfileKey:
           facebookPublishNetwork
+            ?.browserProfileKey ??
+          instagramLogin
             ?.browserProfileKey ??
           runtimeProfile
             ?.browserProfileKey ??
@@ -529,6 +617,12 @@ export class PublisherService {
                 post.channel.id,
               );
 
+          usedFacebookBrowserRuntime =
+            Boolean(
+              publishNetwork
+                .browserProfileKey,
+            );
+
           if (
             publishNetwork.proxyType ===
             'SOCKS5'
@@ -572,13 +666,11 @@ export class PublisherService {
               ].join(" "),
             );
 
-            if (
-              post.mediaUrls.length > 0
-            ) {
-              this.logger.warn(
+            if (post.mediaUrls.length > 0) {
+              this.logger.log(
                 [
-                  "Browser Runtime scheduled publishing",
-                  "currently prepares text only.",
+                  'Browser Runtime scheduled publishing',
+                  'will attach the first remote image.',
                   `Post: ${post.id}.`,
                   `Remote media count: ${post.mediaUrls.length}.`,
                 ].join(" "),
@@ -586,30 +678,38 @@ export class PublisherService {
             }
 
             const prepareResult =
-              await this.browserRuntime
-                .prepareFacebookPostForChannel(
-                  post.channel.id,
-                  {
-                    caption:
-                      post.content,
-                    imagePath:
-                      null,
-                  },
-                );
+              await this.browserRuntime.prepareFacebookPostForChannel(
+                post.channel.id,
+                {
+                  caption: post.content,
+                  imagePath: null,
+                  imageUrl: post.mediaUrls[0] ?? null,
+                },
+              );
 
-            const prepared =
-              prepareResult as {
-                success?: boolean;
-                readyForReview?: boolean;
-                captionFilled?: boolean;
-              };
+            const prepared = prepareResult as {
+              success?: boolean;
+              readyForReview?: boolean;
+              captionFilled?: boolean;
+              imageAttached?: boolean;
+              attachedMediaCount?: number;
+            };
 
             if (
               prepared.success === false ||
-              prepared.readyForReview === false
+              prepared.readyForReview === false ||
+              (post.mediaUrls.length > 0 &&
+                (prepared.imageAttached !== true ||
+                  prepared.attachedMediaCount !== 1))
             ) {
               throw new Error(
-                "Facebook draft preparation failed.",
+                post.mediaUrls.length > 0
+                  ? [
+                      'Facebook draft preparation failed:',
+                      'expected 1 image (Facebook Browser Runtime),',
+                      `attached ${prepared.attachedMediaCount ?? 0}.`,
+                    ].join(' ')
+                  : 'Facebook draft preparation failed.',
               );
             }
 
@@ -617,15 +717,14 @@ export class PublisherService {
               [
                 "Facebook draft prepared.",
                 `Post: ${post.id}.`,
-                `Caption filled: ${
-                  prepared.captionFilled !== false
-                }.`,
-              ].join(" "),
+                `Caption filled: ${prepared.captionFilled !== false}.`,
+                `Images attached: ${prepared.attachedMediaCount ?? 0}.`,
+              ].join(' '),
             );
 
+            facebookBrowserPublishStarted = true;
             result =
-              await this.browserRuntime
-                .publishFacebookPost(
+              await this.browserRuntime.publishFacebookPost(
                   post.channel.id,
                   "PUBLISH",
                 );
@@ -649,9 +748,7 @@ export class PublisherService {
                 .published === true &&
               (
                 verificationStatus ===
-                  "CONFIRMED" ||
-                verificationStatus ===
-                  "COMPOSER_CLOSED"
+                  "CONFIRMED"
               );
 
             if (!publishConfirmed) {
@@ -739,6 +836,75 @@ export class PublisherService {
               { botToken, chatId },
             );
 
+        } else if (post.platform === SocialPlatform.INSTAGRAM) {
+          const publishingPreference = String(
+            post.channel.publishingPreference || 'BROWSER_RUNTIME',
+          ).toUpperCase();
+
+          if (!['BROWSER_RUNTIME', 'AUTOMATIC', 'NATIVE_API'].includes(publishingPreference)) {
+            throw new Error('Instagram publishing method is invalid.');
+          }
+          if (post.mediaUrls.length === 0) {
+            throw new Error('Instagram publishing requires an image asset.');
+          }
+
+          if (publishingPreference === 'NATIVE_API') {
+            const encryptedToken = post.channel.accessTokenEncrypted?.trim();
+            const instagramUserId = post.channel.externalId?.trim();
+            if (!this.instagram || !encryptedToken || !instagramUserId) {
+              throw new Error(
+                'Instagram API fallback requires Business Account ID and access token.',
+              );
+            }
+            result = await this.instagram.publish({
+              instagramUserId,
+              accessToken: this.socialTokenCrypto.decrypt(encryptedToken),
+              caption: post.content,
+              mediaUrls: post.mediaUrls,
+            });
+          } else {
+            const prepared =
+              await this.browserRuntime.prepareInstagramPostForChannel(
+                post.channel.id,
+                {
+                  caption: post.content,
+                  imageUrls: post.mediaUrls,
+                },
+              ) as {
+                success?: boolean;
+                readyForReview?: boolean;
+                imageAttached?: boolean;
+                attachedMediaCount?: number;
+              };
+
+            if (
+              prepared.success === false ||
+              prepared.readyForReview === false ||
+              prepared.imageAttached !== true ||
+              prepared.attachedMediaCount !== post.mediaUrls.length
+            ) {
+              throw new Error(
+                `Instagram draft preparation failed: expected ${post.mediaUrls.length} image(s), attached ${prepared.attachedMediaCount ?? 0}.`,
+              );
+            }
+
+            result = await this.browserRuntime.publishInstagramPost(
+              post.channel.id,
+              'PUBLISH',
+            );
+
+            const browserPublishResult = result as {
+              published?: boolean;
+              verification?: { status?: string };
+            };
+            if (
+              browserPublishResult.published !== true ||
+              browserPublishResult.verification?.status !== 'CONFIRMED'
+            ) {
+              throw new Error('Browser Runtime Instagram publishing was not confirmed.');
+            }
+          }
+
         } else {
 
           throw new Error(
@@ -784,6 +950,11 @@ export class PublisherService {
           },
         });
 
+        const externalPostId =
+          resolvePublishExternalId(
+            result,
+          );
+
         await this.prisma.scheduledPost.update({
           where: {
             id: post.id,
@@ -796,23 +967,26 @@ export class PublisherService {
             retryCount:
               post.retryCount + 1,
             externalPostId:
-              result?.postId ??
-              result?.post_id ??
-              result?.id ??
-              result?.messageId?.toString() ??
-              result?.message_id?.toString() ??
-              null,
+              externalPostId,
             externalPostUrl:
               post.platform === SocialPlatform.FACEBOOK
-                ? this.buildFacebookPostUrl(
-                    result?.postId ??
-                      result?.post_id ??
-                      result?.id ??
-                      null,
+                ? resolveFacebookPostUrl(
+                    result,
+                    externalPostId,
                   )
                 : null,
           },
         });
+
+        void this.notifications?.notify({
+          category: 'published',
+          title: `${post.platform} 发布成功`,
+          body: `${post.channel.name}\n${post.title}\n已发布${externalPostId ? ` · ${externalPostId}` : ''}`,
+          tag: `atlas-post-${post.id}-published`,
+          url: post.platform === SocialPlatform.FACEBOOK
+            ? resolveFacebookPostUrl(result, externalPostId)
+            : `/calendar?post=${encodeURIComponent(post.id)}`,
+        }).catch((error) => this.logger.warn(`Success notification skipped: ${error instanceof Error ? error.message : 'unknown error'}`));
 
         if (post.historyId) {
           await this.syncHistoryPublishedStatus(
@@ -897,15 +1071,72 @@ export class PublisherService {
           post.retryCount + 1;
 
         const retryDecision =
-          resolveSportsNewsRetryDecision({
-            policy:
+          (() => {
+            const safeBrowserRetry =
+              usedFacebookBrowserRuntime &&
+              !facebookBrowserPublishStarted &&
+              (/^Browser Worker unavailable:/.test(errorMessage) ||
+                errorMessage === 'Browser Worker request timed out.');
+            const unconfirmedBrowserRetry =
+              usedFacebookBrowserRuntime &&
+              /Browser Runtime Facebook publishing was not confirmed\./.test(
+                errorMessage,
+              );
+            const configuredPolicy =
               this.readSportsNewsRetryPolicy(
                 post.brandRenderingSettings,
-              ),
-            failedAttemptCount,
-            failedAt:
-              new Date(),
-          });
+              );
+            const policy = safeBrowserRetry
+              ? {
+                  publishRetryEnabled:
+                    configuredPolicy?.publishRetryEnabled ?? true,
+                  // Keep a bounded browser transport retry budget even when
+                  // an older post already exhausted the Sports News limit.
+                  publishRetryLimit: Math.max(
+                    configuredPolicy?.publishRetryLimit ?? 0,
+                    10,
+                  ),
+                  publishRetryDelayMinutes:
+                    configuredPolicy?.publishRetryDelayMinutes ?? 5,
+                }
+              : unconfirmedBrowserRetry
+                ? {
+                    publishRetryEnabled:
+                      configuredPolicy?.publishRetryEnabled ?? true,
+                    // ponytail: bounded same-record retry; external platforms
+                    // have no idempotency key for browser publishing.
+                    publishRetryLimit: Math.max(
+                      configuredPolicy?.publishRetryLimit ?? 0,
+                      2,
+                    ),
+                    publishRetryDelayMinutes:
+                      configuredPolicy?.publishRetryDelayMinutes ?? 5,
+                  }
+              : configuredPolicy;
+            return resolvePublisherRetryDecision({
+              policy,
+              failedAttemptCount,
+              failedAt: new Date(),
+              usedBrowserRuntime:
+                usedFacebookBrowserRuntime &&
+                !safeBrowserRetry &&
+                !unconfirmedBrowserRetry,
+              failureKind: safeBrowserRetry
+                ? 'TRANSPORT'
+                : unconfirmedBrowserRetry
+                  ? 'UNCONFIRMED'
+                  : 'OTHER',
+            });
+          })();
+
+        if (usedFacebookBrowserRuntime && !retryDecision.shouldRetry) {
+          this.logger.warn(
+            [
+              `Browser Runtime publish failed for post ${post.id}.`,
+              "Automatic retry is suppressed; the post remains FAILED until an explicit retry.",
+            ].join(" "),
+          );
+        }
 
         await this.prisma.scheduledPost.update({
           where: {
@@ -928,6 +1159,14 @@ export class PublisherService {
               : {}),
           },
         });
+
+        void this.notifications?.notify({
+          category: 'failed',
+          title: `${post.platform} 发布失败`,
+          body: `${post.channel.name}\n${post.title}\n原因：${errorMessage}\n${retryDecision.scheduledAt ? `将在 ${retryDecision.scheduledAt.toISOString()} 自动重试。` : '自动重试已停止，请检查。'}`,
+          tag: `atlas-post-${post.id}-failed-${failedAttemptCount}`,
+          url: `/calendar?post=${encodeURIComponent(post.id)}`,
+        }).catch((error) => this.logger.warn(`Failure notification skipped: ${error instanceof Error ? error.message : 'unknown error'}`));
 
         if (retryDecision.scheduledAt) {
           this.logger.warn(

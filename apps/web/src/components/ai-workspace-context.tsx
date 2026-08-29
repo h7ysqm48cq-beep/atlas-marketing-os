@@ -15,6 +15,7 @@ export type AtlasWorkspaceMobileTab = "create" | "results" | "elena";
 export type AtlasWorkspaceDraft = {
   facebook?: string;
   telegram?: string;
+  instagram?: string;
   reels?: string;
   imagePrompt?: string;
 };

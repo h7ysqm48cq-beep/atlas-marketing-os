@@ -195,6 +195,10 @@
   color: #88d8ff;
 }
 
+.instagram {
+  background: #e1306c;
+}
+
 .sidebarPanel {
   padding: 18px;
 }
@@ -994,6 +998,11 @@
 
 .telegramIcon {
   background: linear-gradient(145deg, #31b5ef, #1687c1);
+}
+
+.instagramIcon {
+  background: #e1306c;
+  color: white;
 }
 
 .platformValue {

@@ -20,6 +20,11 @@ export interface StructuredMarketingOutput {
     callToAction: string;
   };
 
+  instagram?: {
+    caption: string;
+    hashtags: string[];
+  };
+
   reels: {
     title: string;
     caption: string;

@@ -3107,6 +3107,7 @@ export const GenerationHistoryScalarFieldEnum = {
   language: 'language',
   facebook: 'facebook',
   telegram: 'telegram',
+  instagram: 'instagram',
   reels: 'reels',
   imagePrompt: 'imagePrompt',
   analysis: 'analysis',
@@ -3255,7 +3256,9 @@ export const SocialChannelScalarFieldEnum = {
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  publishingPreference: 'publishingPreference'
+  publishingPreference: 'publishingPreference',
+  hiddenAt: 'hiddenAt',
+  hiddenReason: 'hiddenReason'
 } as const
 
 export type SocialChannelScalarFieldEnum = (typeof SocialChannelScalarFieldEnum)[keyof typeof SocialChannelScalarFieldEnum]
@@ -3522,6 +3525,10 @@ export const SportsNewsSettingScalarFieldEnum = {
   telegramChannelId: 'telegramChannelId',
   facebookEnabled: 'facebookEnabled',
   facebookChannelId: 'facebookChannelId',
+  instagramEnabled: 'instagramEnabled',
+  instagramChannelId: 'instagramChannelId',
+  morningInstagramEnabled: 'morningInstagramEnabled',
+  eveningInstagramEnabled: 'eveningInstagramEnabled',
   autoPublishEnabled: 'autoPublishEnabled',
   approvalRequired: 'approvalRequired',
   language: 'language',

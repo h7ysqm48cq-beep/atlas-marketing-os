@@ -1,4 +1,9 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class EraseExistingAssetDto {
   @IsString()
@@ -6,6 +11,10 @@ export class EraseExistingAssetDto {
 
   @IsString()
   maskDataUrl!: string;
+
+  @IsOptional()
+  @IsIn(['quick', 'ai'])
+  mode?: 'quick' | 'ai';
 
   @IsOptional()
   @IsString()

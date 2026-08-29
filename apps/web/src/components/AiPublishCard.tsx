@@ -7,7 +7,7 @@ import styles from "./AiPublishCard.module.css";
 import { usePreferences } from "@/components/preferences";
 
 import { API_URL } from "@/lib/api";
-type Platform = "FACEBOOK" | "TELEGRAM";
+type Platform = "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
 
 type PublishAsset = {
   id: string;
@@ -51,7 +51,11 @@ function defaultDateTime() {
 }
 
 function platformLabel(platform: Platform) {
-  return platform === "FACEBOOK" ? "Facebook" : "Telegram";
+  return platform === "FACEBOOK"
+    ? "Facebook"
+    : platform === "TELEGRAM"
+      ? "Telegram"
+      : "Instagram";
 }
 
 export function AiPublishCard({
@@ -65,6 +69,7 @@ export function AiPublishCard({
   const [brandId, setBrandId] = useState("");
   const [facebook, setFacebook] = useState(true);
   const [telegram, setTelegram] = useState(true);
+  const [instagram, setInstagram] = useState(Boolean(result.instagram?.trim()));
   const [mode, setMode] = useState<"NOW" | "SCHEDULE">("SCHEDULE");
   const [scheduledAt, setScheduledAt] = useState(defaultDateTime);
   const [publishing, setPublishing] = useState(false);
@@ -80,17 +85,21 @@ export function AiPublishCard({
 
   const [originalFacebook, setOriginalFacebook] = useState(result.facebook);
   const [originalTelegram, setOriginalTelegram] = useState(result.telegram);
+  const [originalInstagram, setOriginalInstagram] = useState(result.instagram ?? "");
   const [savedFacebook, setSavedFacebook] = useState(result.facebook);
   const [savedTelegram, setSavedTelegram] = useState(result.telegram);
+  const [savedInstagram, setSavedInstagram] = useState(result.instagram ?? "");
   const [savingDraft, setSavingDraft] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset editor snapshots when a different generated result is selected.
     setOriginalFacebook(result.facebook);
     setOriginalTelegram(result.telegram);
+    setOriginalInstagram(result.instagram ?? "");
     setSavedFacebook(result.facebook);
     setSavedTelegram(result.telegram);
-  }, [result.historyId, result.facebook, result.telegram]);
+    setSavedInstagram(result.instagram ?? "");
+  }, [result.historyId, result.facebook, result.telegram, result.instagram]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +140,10 @@ export function AiPublishCard({
 
     if (facebook) platforms.push("FACEBOOK");
     if (telegram) platforms.push("TELEGRAM");
+    if (instagram) platforms.push("INSTAGRAM");
 
     return platforms;
-  }, [facebook, telegram]);
+  }, [facebook, telegram, instagram]);
 
   const confidence = Math.round(
     (result.analysis.brandFitScore +
@@ -145,9 +155,11 @@ export function AiPublishCard({
   const facebookEdited = result.facebook !== originalFacebook;
 
   const telegramEdited = result.telegram !== originalTelegram;
+  const instagramEdited = (result.instagram ?? "") !== originalInstagram;
 
   const hasUnsavedDraft =
-    result.facebook !== savedFacebook || result.telegram !== savedTelegram;
+    result.facebook !== savedFacebook || result.telegram !== savedTelegram ||
+    (result.instagram ?? "") !== savedInstagram;
 
   function updateFacebookDraft(content: string) {
     onResultChange({
@@ -163,15 +175,21 @@ export function AiPublishCard({
     });
   }
 
+  function updateInstagramDraft(content: string) {
+    onResultChange({ ...result, instagram: content });
+  }
+
   function resetDraft() {
     onResultChange({
       ...result,
       facebook: originalFacebook,
       telegram: originalTelegram,
+      instagram: originalInstagram,
     });
 
     setSavedFacebook(originalFacebook);
     setSavedTelegram(originalTelegram);
+    setSavedInstagram(originalInstagram);
     setError("");
     onMessage?.("Draft reset to the original AI version.");
   }
@@ -186,7 +204,7 @@ export function AiPublishCard({
       return;
     }
 
-    if (!result.facebook.trim() && !result.telegram.trim()) {
+    if (!result.facebook.trim() && !result.telegram.trim() && !(result.instagram ?? "").trim()) {
       setError("Draft content cannot be empty.");
       return;
     }
@@ -196,7 +214,7 @@ export function AiPublishCard({
 
     try {
       const versions: Array<{
-        platform: "Facebook" | "Telegram";
+        platform: "Facebook" | "Telegram" | "Instagram";
         content: string;
       }> = [];
 
@@ -211,6 +229,13 @@ export function AiPublishCard({
         versions.push({
           platform: "Telegram",
           content: result.telegram,
+        });
+      }
+
+      if ((result.instagram ?? "") !== savedInstagram) {
+        versions.push({
+          platform: "Instagram",
+          content: result.instagram ?? "",
         });
       }
 
@@ -248,6 +273,7 @@ export function AiPublishCard({
 
       setSavedFacebook(result.facebook);
       setSavedTelegram(result.telegram);
+      setSavedInstagram(result.instagram ?? "");
 
       onMessage?.(
         `${versions.length} edited draft version${
@@ -336,6 +362,16 @@ export function AiPublishCard({
       return;
     }
 
+    if (instagram && !(result.instagram ?? "").trim()) {
+      setError("Instagram draft cannot be empty.");
+      return;
+    }
+
+    if (instagram && !selectedAsset) {
+      setError("Select an image asset for Instagram publishing.");
+      return;
+    }
+
     if (hasUnsavedDraft) {
       setError("Save the edited draft before publishing or scheduling.");
       return;
@@ -362,6 +398,10 @@ export function AiPublishCard({
       if (telegram) {
         mediaUrls.TELEGRAM = [selectedAsset.url];
       }
+
+      if (instagram) {
+        mediaUrls.INSTAGRAM = [selectedAsset.url];
+      }
     }
 
     if (facebook) {
@@ -370,6 +410,10 @@ export function AiPublishCard({
 
     if (telegram) {
       contents.TELEGRAM = result.telegram;
+    }
+
+    if (instagram) {
+      contents.INSTAGRAM = result.instagram ?? "";
     }
 
     setPublishing(true);
@@ -438,7 +482,7 @@ export function AiPublishCard({
           {publishResult.posts.map((post) => (
             <article key={post.id}>
               <div className={styles.platformIcon}>
-                {post.platform === "FACEBOOK" ? "f" : "✈"}
+                {post.platform === "FACEBOOK" ? "f" : post.platform === "TELEGRAM" ? "✈" : "◎"}
               </div>
 
               <div>
@@ -508,7 +552,7 @@ export function AiPublishCard({
           >
             {hasUnsavedDraft
               ? t("unsavedChanges")
-              : facebookEdited || telegramEdited
+              : facebookEdited || telegramEdited || instagramEdited
                 ? t("editedDraftSaved")
                 : t("aiDraftSaved")}
           </span>
@@ -527,6 +571,20 @@ export function AiPublishCard({
               value={result.facebook}
               onChange={(event) => updateFacebookDraft(event.target.value)}
               placeholder={`${t("facebookPost")}...`}
+            />
+          </label>
+
+          <label className={styles.draftField}>
+            <div>
+              <strong>Instagram post</strong>
+              <span>
+                {(result.instagram ?? "").length.toLocaleString()} {t("characters")}
+              </span>
+            </div>
+            <textarea
+              value={result.instagram ?? ""}
+              onChange={(event) => updateInstagramDraft(event.target.value)}
+              placeholder="Instagram post..."
             />
           </label>
 
@@ -551,13 +609,14 @@ export function AiPublishCard({
             <span>Facebook: {facebookEdited ? "Edited" : "Original"}</span>
 
             <span>Telegram: {telegramEdited ? "Edited" : "Original"}</span>
+            <span>Instagram: {instagramEdited ? "Edited" : "Original"}</span>
           </div>
 
           <div>
             <button
               type="button"
               onClick={resetDraft}
-              disabled={savingDraft || (!facebookEdited && !telegramEdited)}
+              disabled={savingDraft || (!facebookEdited && !telegramEdited && !instagramEdited)}
             >
               {t("resetAiVersion")}
             </button>
@@ -590,6 +649,19 @@ export function AiPublishCard({
             <span>
               <strong>Facebook</strong>
               <small>Shiba MGM House</small>
+            </span>
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={instagram}
+              onChange={(event) => setInstagram(event.target.checked)}
+            />
+            <span className={styles.platformIcon}>◎</span>
+            <span>
+              <strong>Instagram</strong>
+              <small>Instagram Business</small>
             </span>
           </label>
 

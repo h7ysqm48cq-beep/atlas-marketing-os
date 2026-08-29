@@ -4,7 +4,7 @@ import { API_URL } from "@/lib/api";
 import styles from "./SportsNewsSettings.module.css";
 type Channel = {
   id: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   username: string | null;
   status: string;
@@ -47,10 +47,14 @@ type Settings = {
   telegramChannelId: string | null;
   facebookEnabled: boolean;
   facebookChannelId: string | null;
+  instagramEnabled: boolean;
+  instagramChannelId: string | null;
   morningTelegramEnabled: boolean;
   morningFacebookEnabled: boolean;
+  morningInstagramEnabled: boolean;
   eveningTelegramEnabled: boolean;
   eveningFacebookEnabled: boolean;
+  eveningInstagramEnabled: boolean;
   autoPublishEnabled: boolean;
   approvalRequired: boolean;
   language: string;
@@ -824,6 +828,11 @@ export function SportsNewsSettings() {
             checked={s.enabled}
             onChange={(v) => patch("enabled", v)}
           />
+          <Toggle
+            label="Instagram channel enabled"
+            checked={s.instagramEnabled}
+            onChange={(v) => patch("instagramEnabled", v)}
+          />
           <label>
             Timezone
             <input
@@ -856,6 +865,11 @@ export function SportsNewsSettings() {
               checked={s.morningFacebookEnabled}
               onChange={(v) => patch("morningFacebookEnabled", v)}
             />
+            <Toggle
+              label="Sync to Instagram"
+              checked={s.morningInstagramEnabled}
+              onChange={(v) => patch("morningInstagramEnabled", v)}
+            />
           </div>
           <div className={styles.report}>
             <h4>Evening Report</h4>
@@ -881,6 +895,11 @@ export function SportsNewsSettings() {
               label="Sync to Facebook"
               checked={s.eveningFacebookEnabled}
               onChange={(v) => patch("eveningFacebookEnabled", v)}
+            />
+            <Toggle
+              label="Sync to Instagram"
+              checked={s.eveningInstagramEnabled}
+              onChange={(v) => patch("eveningInstagramEnabled", v)}
             />
           </div>
           <label>
@@ -912,6 +931,18 @@ export function SportsNewsSettings() {
                 <option key={c.id} value={c.id}>
                   {c.name} · {c.status}
                 </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Instagram account
+            <select
+              value={s.instagramChannelId ?? ""}
+              onChange={(e) => patch("instagramChannelId", e.target.value || null)}
+            >
+              <option value="">Select account</option>
+              {channels.filter((c) => c.platform === "INSTAGRAM").map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.status}</option>
               ))}
             </select>
           </label>

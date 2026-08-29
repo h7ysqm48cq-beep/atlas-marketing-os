@@ -118,6 +118,8 @@ export class ContentGuardService {
             '',
             `Telegram:\n${input.content.telegram}`,
             '',
+            `Instagram:\n${input.content.instagram}`,
+            '',
             `Reels:\n${input.content.reels}`,
             '',
             `Image prompt:\n${input.content.image}`,
@@ -133,6 +135,7 @@ export class ContentGuardService {
                 properties: {
                   facebook: { type: 'string' },
                   telegram: { type: 'string' },
+                  instagram: { type: 'string' },
                   reels: { type: 'string' },
                   image: { type: 'string' },
                   passed: { type: 'boolean' },
@@ -164,6 +167,7 @@ export class ContentGuardService {
                 required: [
                   'facebook',
                   'telegram',
+                  'instagram',
                   'reels',
                   'image',
                   'passed',
@@ -195,6 +199,7 @@ export class ContentGuardService {
         content: {
           facebook: parsed.facebook,
           telegram: parsed.telegram,
+          instagram: parsed.instagram,
           reels: parsed.reels,
           image: parsed.image,
         },

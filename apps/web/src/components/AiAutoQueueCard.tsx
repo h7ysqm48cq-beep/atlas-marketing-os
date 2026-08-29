@@ -13,7 +13,8 @@ import styles from "./AiAutoQueueCard.module.css";
 import { API_URL } from '@/lib/api';
 type Platform =
   | "FACEBOOK"
-  | "TELEGRAM";
+  | "TELEGRAM"
+  | "INSTAGRAM";
 
 type PostingDay =
   | "SUN"
@@ -44,6 +45,13 @@ type AutoQueueResponse = {
       };
     }>;
   }>;
+};
+
+type QueueAsset = {
+  id: string;
+  name: string;
+  url: string;
+  aiEnabled?: boolean;
 };
 
 type Props = {
@@ -90,10 +98,18 @@ export function AiAutoQueueCard({
     useState("");
 
   const [facebook, setFacebook] =
-    useState(true);
+    useState(Boolean(result.facebook?.trim()));
 
   const [telegram, setTelegram] =
-    useState(true);
+    useState(Boolean(result.telegram?.trim()));
+
+  const [instagram, setInstagram] =
+    useState(Boolean(result.instagram?.trim()));
+
+  const [instagramImageUrl, setInstagramImageUrl] =
+    useState("");
+
+  const [assets, setAssets] = useState<QueueAsset[]>([]);
 
   const [startDate, setStartDate] =
     useState(defaultStartDate);
@@ -165,6 +181,30 @@ export function AiAutoQueueCard({
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAssets() {
+      try {
+        const response = await fetch(`${API_URL}/assets?type=IMAGE`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as QueueAsset[];
+        if (!cancelled) {
+          setAssets(data.filter((asset) => asset.url && asset.aiEnabled !== false));
+        }
+      } catch {
+        // The URL input remains available when Asset Library is unavailable.
+      }
+    }
+
+    void loadAssets();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const selectedPlatforms =
     useMemo(() => {
       const values: Platform[] = [];
@@ -177,8 +217,12 @@ export function AiAutoQueueCard({
         values.push("TELEGRAM");
       }
 
+      if (instagram) {
+        values.push("INSTAGRAM");
+      }
+
       return values;
-    }, [facebook, telegram]);
+    }, [facebook, telegram, instagram]);
 
   function toggleDay(
     day: PostingDay,
@@ -216,6 +260,16 @@ export function AiAutoQueueCard({
       return;
     }
 
+    if (instagram && !instagramImageUrl.trim()) {
+      setError("Instagram Auto Queue requires an image URL.");
+      return;
+    }
+
+    if (instagram && !result.instagram?.trim()) {
+      setError("Instagram Auto Queue requires generated Instagram copy.");
+      return;
+    }
+
     const contents: Partial<
       Record<Platform, string>
     > = {};
@@ -228,6 +282,12 @@ export function AiAutoQueueCard({
     if (telegram) {
       contents.TELEGRAM =
         result.telegram;
+    }
+
+    const mediaUrls: Partial<Record<Platform, string[]>> = {};
+    if (instagram) {
+      contents.INSTAGRAM = result.instagram || "";
+      mediaUrls.INSTAGRAM = [instagramImageUrl.trim()];
     }
 
     setSubmitting(true);
@@ -261,6 +321,7 @@ export function AiAutoQueueCard({
                   result.historyId ||
                   undefined,
                 contents,
+                mediaUrls,
               },
             ],
             startDate,
@@ -344,7 +405,9 @@ export function AiAutoQueueCard({
                   {post.platform ===
                   "FACEBOOK"
                     ? "Facebook"
-                    : "Telegram"}
+                    : post.platform === "TELEGRAM"
+                      ? "Telegram"
+                      : "Instagram"}
                 </strong>
 
                 <small>
@@ -437,7 +500,46 @@ export function AiAutoQueueCard({
             </small>
           </span>
         </label>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={instagram}
+            onChange={(event) =>
+              setInstagram(event.target.checked)
+            }
+          />
+
+          <span>
+            <strong>Instagram</strong>
+            <small>Generated Instagram caption + image required</small>
+          </span>
+        </label>
       </div>
+
+      {instagram ? (
+        <label className={styles.instagramImageField}>
+          <span>Instagram image URL</span>
+          {assets.length ? (
+            <select
+              value={assets.some((asset) => asset.url === instagramImageUrl) ? instagramImageUrl : ""}
+              onChange={(event) => setInstagramImageUrl(event.target.value)}
+            >
+              <option value="">Choose from Asset Library</option>
+              {assets.map((asset) => (
+                <option key={asset.id} value={asset.url}>{asset.name}</option>
+              ))}
+            </select>
+          ) : null}
+          <input
+            type="url"
+            value={instagramImageUrl}
+            onChange={(event) => setInstagramImageUrl(event.target.value)}
+            placeholder="https://..."
+          />
+          <small>Use an uploaded Asset Library URL for Browser Runtime publishing.</small>
+        </label>
+      ) : null}
 
       <div className={styles.scheduleGrid}>
         <label>

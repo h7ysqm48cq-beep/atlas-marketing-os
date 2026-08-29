@@ -14,6 +14,7 @@ const AI_STUDIO_JOB_KEY = "atlas-ai-studio-background-job";
 const platformOptions = [
   "Facebook",
   "Telegram",
+  "Instagram",
   "Reels",
   "Image Prompt",
 ] as const;
@@ -134,6 +135,7 @@ export function AiStudio({
     const nextFacebook = workspace.draft.facebook ?? result.facebook;
 
     const nextTelegram = workspace.draft.telegram ?? result.telegram;
+    const nextInstagram = workspace.draft.instagram ?? result.instagram ?? "";
 
     const nextReels = workspace.draft.reels ?? result.reels;
 
@@ -142,6 +144,7 @@ export function AiStudio({
     const changed =
       nextFacebook !== result.facebook ||
       nextTelegram !== result.telegram ||
+      nextInstagram !== (result.instagram ?? "") ||
       nextReels !== result.reels ||
       nextImage !== result.image;
 
@@ -161,6 +164,7 @@ export function AiStudio({
         facebook: workspace.draft.facebook ?? current.facebook,
 
         telegram: workspace.draft.telegram ?? current.telegram,
+        instagram: workspace.draft.instagram ?? current.instagram ?? "",
 
         reels: workspace.draft.reels ?? current.reels,
 
@@ -170,6 +174,7 @@ export function AiStudio({
   }, [
     workspace.draft.facebook,
     workspace.draft.telegram,
+    workspace.draft.instagram,
     workspace.draft.reels,
     workspace.draft.imagePrompt,
     result,
@@ -200,6 +205,7 @@ export function AiStudio({
       facebook: result.facebook || undefined,
 
       telegram: result.telegram || undefined,
+      instagram: result.instagram || undefined,
 
       reels: result.reels || undefined,
 
@@ -280,6 +286,8 @@ export function AiStudio({
 
           telegram: record.telegram || "",
 
+          instagram: record.instagram || "",
+
           reels: record.reels || "",
 
           image: record.imagePrompt || "",
@@ -319,6 +327,8 @@ export function AiStudio({
           facebook: record.facebook || undefined,
 
           telegram: record.telegram || undefined,
+
+          instagram: record.instagram || undefined,
 
           reels: record.reels || undefined,
 
@@ -476,6 +486,7 @@ export function AiStudio({
           language: string;
           facebook: string;
           telegram: string;
+          instagram?: string;
           reels: string;
           imagePrompt: string;
           analysis: WorkspaceResult["analysis"];
@@ -516,6 +527,7 @@ export function AiStudio({
         const restoredResult: WorkspaceResult = {
           facebook: record.facebook,
           telegram: record.telegram,
+          instagram: record.instagram || "",
           reels: record.reels,
           image: record.imagePrompt,
           analysis: record.analysis,
@@ -699,6 +711,18 @@ export function AiStudio({
     } finally {
       setIsLoadingAssets(false);
     }
+  }
+
+
+
+  function openMobileImageEditor(asset: StudioAsset) {
+    const params = new URLSearchParams();
+
+    params.set("assetId", asset.id);
+    params.set("source", "mobile-upload");
+    params.set("sourceUrl", asset.url);
+
+    window.location.href = `/image-editor?${params.toString()}`;
   }
 
   async function uploadStudioPhotos(
@@ -1399,6 +1423,13 @@ export function AiStudio({
 
                     <div>
                       <strong>{asset.name}</strong>
+
+                    <button
+                      type="button"
+                      onClick={() => openMobileImageEditor(asset)}
+                    >
+                      ✨ Edit in Mage Editor
+                    </button>
                       <small>
                         {asset.collection || ui("No collection", "未分类")}
                       </small>

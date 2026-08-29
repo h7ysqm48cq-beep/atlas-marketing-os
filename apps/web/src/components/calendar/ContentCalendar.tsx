@@ -10,7 +10,7 @@ import { API_URL } from "@/lib/api";
 type Channel = {
   id: string;
   brandId: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   status: string;
 };
@@ -19,7 +19,7 @@ type ScheduledPost = {
   id: string;
   brandId: string;
   channelId: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   title: string | null;
   content: string;
   mediaUrls: string[];
@@ -123,8 +123,12 @@ function dateOnly(value: string) {
   }).format(new Date(value));
 }
 
-function platformIcon(platform: "FACEBOOK" | "TELEGRAM") {
-  return platform === "FACEBOOK" ? "f" : "✈";
+function platformIcon(platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM") {
+  return platform === "FACEBOOK" ? "f" : platform === "TELEGRAM" ? "✈" : "◎";
+}
+
+function platformLabel(platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM") {
+  return platform === "FACEBOOK" ? "Facebook" : platform === "TELEGRAM" ? "Telegram" : "Instagram";
 }
 
 function statusLabel(status: string) {
@@ -785,10 +789,19 @@ export function ContentCalendar() {
         },
       );
 
-      if (!response.ok) {
-        const body = await response.json();
+      const body = (await response.json().catch(() => null)) as {
+        message?: string | string[];
+      } | null;
 
-        throw new Error(body.message || `Unable to ${action} post.`);
+      if (!response.ok) {
+        const message = Array.isArray(body?.message)
+          ? body.message.join(", ")
+          : body?.message;
+
+        throw new Error(
+          message ||
+            `${ui("Request failed", "请求失败")} (HTTP ${response.status}).`,
+        );
       }
 
       setSelectedPost(null);
@@ -976,8 +989,8 @@ export function ContentCalendar() {
 
           <p>
             {ui(
-              "Plan, schedule and manage Facebook and Telegram content.",
-              "规划、排程并管理 Facebook 与 Telegram 内容。",
+              "Plan, schedule and manage Facebook, Telegram and Instagram content.",
+              "规划、排程并管理 Facebook、Telegram 与 Instagram 内容。",
             )}
           </p>
         </div>
@@ -1105,6 +1118,7 @@ export function ContentCalendar() {
               ["ALL", ui("All", "全部")],
               ["FACEBOOK", "f Facebook"],
               ["TELEGRAM", "✈ Telegram"],
+              ["INSTAGRAM", "◎ Instagram"],
             ].map(([value, label]) => (
               <button
                 className={platformFilter === value ? styles.activeToggle : ""}
@@ -1206,7 +1220,9 @@ export function ContentCalendar() {
                         className={`${styles.event} ${
                           post.platform === "FACEBOOK"
                             ? styles.facebook
-                            : styles.telegram
+                            : post.platform === "TELEGRAM"
+                              ? styles.telegram
+                              : styles.instagram
                         } ${styles[`status${post.status}`] ?? ""} ${
                           draggingPostId === post.id ? styles.draggingEvent : ""
                         } ${!canDragPost(post) ? styles.lockedEvent : ""}`}
@@ -1254,9 +1270,7 @@ export function ContentCalendar() {
                             </strong>
 
                             <small>
-                              {post.platform === "FACEBOOK"
-                                ? "Facebook"
-                                : "Telegram"}
+                              {platformLabel(post.platform)}
                               {" · "}
                               {calendarStatusLabel(post.status)}
                             </small>
@@ -1333,7 +1347,9 @@ export function ContentCalendar() {
                   className={`${styles.platformDot} ${
                     post.platform === "FACEBOOK"
                       ? styles.facebook
-                      : styles.telegram
+                      : post.platform === "TELEGRAM"
+                        ? styles.telegram
+                        : styles.instagram
                   }`}
                 />
 
@@ -1379,6 +1395,19 @@ export function ContentCalendar() {
                       {channels.some(
                         (channel) =>
                           channel.platform === "TELEGRAM" &&
+                          channel.status === "CONNECTED",
+                      )
+                        ? ui("Connected", "已连接")
+                        : ui("Disconnected", "未连接")}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Instagram</dt>
+                    <dd>
+                      {channels.some(
+                        (channel) =>
+                          channel.platform === "INSTAGRAM" &&
                           channel.status === "CONNECTED",
                       )
                         ? ui("Connected", "已连接")
@@ -1443,7 +1472,9 @@ export function ContentCalendar() {
                     className={`${styles.platformDot} ${
                       post.platform === "FACEBOOK"
                         ? styles.facebook
-                        : styles.telegram
+                        : post.platform === "TELEGRAM"
+                          ? styles.telegram
+                          : styles.instagram
                     }`}
                   />
 
@@ -1451,7 +1482,7 @@ export function ContentCalendar() {
                     <strong>{post.title || post.content.slice(0, 70)}</strong>
 
                     <small>
-                      {post.platform === "FACEBOOK" ? "Facebook" : "Telegram"}
+                      {platformLabel(post.platform)}
                       {" · "}
                       {timeOnly(post.scheduledAt)}
                     </small>
@@ -1617,8 +1648,8 @@ export function ContentCalendar() {
                     }))
                   }
                   placeholder={ui(
-                    "Write Facebook or Telegram content...",
-                    "撰写 Facebook 或 Telegram 内容……",
+                    "Write Facebook, Telegram or Instagram content...",
+                    "撰写 Facebook、Telegram 或 Instagram 内容……",
                   )}
                 />
               </label>
@@ -1790,7 +1821,9 @@ export function ContentCalendar() {
                     className={`${styles.modalPlatformIcon} ${
                       selectedPost.platform === "FACEBOOK"
                         ? styles.facebookIcon
-                        : styles.telegramIcon
+                        : selectedPost.platform === "TELEGRAM"
+                          ? styles.telegramIcon
+                          : styles.instagramIcon
                     }`}
                   >
                     {platformIcon(selectedPost.platform)}
@@ -1800,7 +1833,9 @@ export function ContentCalendar() {
                     <p className={styles.eyebrow}>
                       {selectedPost.platform === "FACEBOOK"
                         ? ui("Facebook post", "Facebook 帖子")
-                        : ui("Telegram post", "Telegram 帖子")}
+                        : selectedPost.platform === "TELEGRAM"
+                          ? ui("Telegram post", "Telegram 帖子")
+                          : ui("Instagram post", "Instagram 帖子")}
                     </p>
 
                     <h2>
@@ -1822,15 +1857,15 @@ export function ContentCalendar() {
                     className={`${styles.detailPlatformIcon} ${
                       selectedPost.platform === "FACEBOOK"
                         ? styles.facebookIcon
-                        : styles.telegramIcon
+                        : selectedPost.platform === "TELEGRAM"
+                          ? styles.telegramIcon
+                          : styles.instagramIcon
                     }`}
                   >
                     {platformIcon(selectedPost.platform)}
                   </span>
 
-                  {selectedPost.platform === "FACEBOOK"
-                    ? "Facebook"
-                    : "Telegram"}
+                  {platformLabel(selectedPost.platform)}
                 </strong>
               </div>
 
@@ -1928,20 +1963,26 @@ export function ContentCalendar() {
 
               <div className={styles.primaryActions}>
                 {selectedPost.status === "PUBLISHED" &&
-                selectedPost.externalPostId ? (
+                (selectedPost.platform === "INSTAGRAM" ||
+                  (selectedPost.platform === "FACEBOOK" &&
+                    selectedPost.externalPostId)) ? (
                   <a
                     className={styles.primaryButton}
                     href={
                       selectedPost.externalPostUrl ??
-                      `https://www.facebook.com/${selectedPost.externalPostId.replace(
-                        "_",
-                        "/posts/",
-                      )}`
+                      (selectedPost.platform === "INSTAGRAM"
+                        ? "https://www.instagram.com/"
+                        : `https://www.facebook.com/${selectedPost.externalPostId!.replace(
+                            "_",
+                            "/posts/",
+                          )}`)
                     }
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {ui("Open on Facebook", "在 Facebook 打开")}
+                    {selectedPost.platform === "INSTAGRAM"
+                      ? ui("Open on Instagram", "在 Instagram 打开")
+                      : ui("Open on Facebook", "在 Facebook 打开")}
                   </a>
                 ) : (
                   <>
@@ -1956,7 +1997,7 @@ export function ContentCalendar() {
                       </button>
                     ) : null}
 
-                    {["DRAFT", "SCHEDULED", "FAILED"].includes(
+                    {["DRAFT", "SCHEDULED"].includes(
                       selectedPost.status,
                     ) ? (
                       <button

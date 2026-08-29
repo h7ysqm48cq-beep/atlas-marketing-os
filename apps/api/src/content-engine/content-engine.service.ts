@@ -175,6 +175,13 @@ export class ContentEngineService {
               ]
                 .filter(Boolean)
                 .join('\n\n'),
+            instagram:
+              [
+                output.instagram?.caption,
+                ...(output.instagram?.hashtags ?? []),
+              ]
+                .filter(Boolean)
+                .join('\n\n'),
             reels:
               JSON.stringify(output.reels),
             imagePrompt:

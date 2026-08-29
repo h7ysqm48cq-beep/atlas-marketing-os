@@ -1,4 +1,5 @@
-const CACHE_NAME = "atlas-pwa-v6";
+const CACHE_NAME = "atlas-pwa-v8";
+const NOTIFICATION_PREFERENCES_URL = "/__atlas_notification_preferences";
 
 const STATIC_ASSETS = [
   "/",
@@ -40,9 +41,54 @@ self.addEventListener("activate", (event) => {
 
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "notification-preferences") {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.put(
+          NOTIFICATION_PREFERENCES_URL,
+          new Response(JSON.stringify(event.data.preferences || {}), {
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      ),
+    );
+    return;
+  }
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch {
+    data = { body: event.data?.text() || "Atlas 有新的自动化状态。" };
+  }
+
+  event.waitUntil(
+    (async () => {
+      try {
+        const response = await caches.match(NOTIFICATION_PREFERENCES_URL);
+        const preferences = response ? await response.json() : {};
+        if (data.category && preferences[data.category] === false) return;
+      } catch {
+        // Keep notifications enabled if preferences cannot be read.
+      }
+      await self.registration.showNotification(data.title || "Atlas 自动化通知", {
+        body: data.body || "请打开 Atlas 查看详情。",
+        tag: data.tag || "atlas-automation",
+        data: { url: data.url || "/calendar" },
+      });
+    })(),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || "/calendar";
+  event.waitUntil(clients.openWindow(target));
 });
 
 

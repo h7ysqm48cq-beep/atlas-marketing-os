@@ -28,6 +28,7 @@ type HistoryRecord = {
   language: string;
   facebook: string;
   telegram: string;
+  instagram?: string;
   reels: string;
   imagePrompt: string;
   analysis: Analysis;
@@ -49,7 +50,7 @@ type HistoryRecord = {
   idea: { id: string; title: string; sortOrder: number } | null;
   scheduledPosts?: Array<{
     id: string;
-    platform: "FACEBOOK" | "TELEGRAM";
+    platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
     status: string;
     scheduledAt?: string;
     publishedAt?: string | null;
@@ -65,7 +66,7 @@ type HistoryRecord = {
     };
   }>;
 };
-type OutputKey = "facebook" | "telegram" | "reels" | "imagePrompt";
+type OutputKey = "facebook" | "telegram" | "instagram" | "reels" | "imagePrompt";
 const statuses: Array<"ALL" | ContentStatus> = [
   "ALL",
   "DRAFT",
@@ -302,7 +303,7 @@ export function ContentHistory() {
     if (selected?.id === record.id) setSelected(remaining[0] || null);
   }
   function getOutput(record: HistoryRecord) {
-    return record[activeOutput];
+    return record[activeOutput] ?? "";
   }
   async function copySelected() {
     if (selected) await navigator.clipboard.writeText(getOutput(selected));
@@ -576,7 +577,8 @@ export function ContentHistory() {
                           .filter(
                             (platform) =>
                               platform === "Facebook" ||
-                              platform === "Telegram",
+                              platform === "Telegram" ||
+                              platform === "Instagram",
                           )
                           .join(" · ") || ui("Not specified", "未指定")}
                       </strong>
@@ -617,15 +619,15 @@ export function ContentHistory() {
                                 className={`${styles.publishPlatformIcon} ${
                                   post.platform === "FACEBOOK"
                                     ? styles.facebookPublishIcon
-                                    : styles.telegramPublishIcon
+                                    : post.platform === "TELEGRAM"
+                                      ? styles.telegramPublishIcon
+                                      : styles.instagramPublishIcon
                                 }`}
                               >
-                                {post.platform === "FACEBOOK" ? "f" : "✈"}
+                                {post.platform === "FACEBOOK" ? "f" : post.platform === "TELEGRAM" ? "✈" : "◎"}
                               </span>
 
-                              {post.platform === "FACEBOOK"
-                                ? "Facebook"
-                                : "Telegram"}
+                              {post.platform === "FACEBOOK" ? "Facebook" : post.platform === "TELEGRAM" ? "Telegram" : "Instagram"}
                             </span>
 
                             <strong>{post.channel.name}</strong>
@@ -830,6 +832,7 @@ export function ContentHistory() {
                 {[
                   ["facebook", "Facebook"],
                   ["telegram", "Telegram"],
+                  ["instagram", "Instagram"],
                   ["reels", "Reels"],
                   ["imagePrompt", ui("Image Prompt", "图片提示词")],
                 ].map(([key, label]) => (

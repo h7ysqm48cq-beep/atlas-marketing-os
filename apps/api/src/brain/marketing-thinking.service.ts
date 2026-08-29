@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
 export type MarketingPlatform =
-  'FACEBOOK' | 'TELEGRAM' | 'REELS' | 'IMAGE' | 'MULTI_PLATFORM';
+  | 'FACEBOOK'
+  | 'TELEGRAM'
+  | 'INSTAGRAM'
+  | 'REELS'
+  | 'IMAGE'
+  | 'MULTI_PLATFORM';
 
 export type MarketingObjective =
   | 'DISCUSSION'
@@ -124,6 +129,10 @@ export class MarketingThinkingService {
 
     if (normalized.includes('telegram')) {
       return 'TELEGRAM';
+    }
+
+    if (normalized.includes('instagram') || normalized.includes('ig')) {
+      return 'INSTAGRAM';
     }
 
     if (normalized.includes('reels') || normalized.includes('reel')) {
@@ -353,6 +362,8 @@ export class MarketingThinkingService {
         'Use a strong feed-first composition with an immediately readable focal subject.',
       TELEGRAM:
         'Use a clean visual that remains understandable in compact mobile preview.',
+      INSTAGRAM:
+        'Use a visually led composition with a concise caption and discovery-friendly hashtags.',
       REELS:
         'Use vertical framing, clear subject hierarchy and strong first-frame impact.',
       IMAGE:
@@ -445,6 +456,8 @@ export class MarketingThinkingService {
         'Prioritise a strong opening, readable paragraph length and one discussion trigger.',
       TELEGRAM:
         'Keep the structure concise, direct and easy to scan on mobile.',
+      INSTAGRAM:
+        'Lead with a strong visual hook, concise caption and relevant hashtags for discovery.',
       REELS:
         'Build around a first-second hook, short progression and memorable ending.',
       IMAGE:

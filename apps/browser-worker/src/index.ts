@@ -13,20 +13,61 @@ import {
 import {
   access,
   mkdir,
+  mkdtemp,
   realpath,
+  rm,
+  writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   handleDialogs,
 } from "./browser-core/dialog-engine.js";
 import {
+  countFacebookComposerImagePreviews,
+  FacebookComposerImageUploadError,
+  findFacebookCreatePostDialog,
   fillFacebookComposerCaption,
   resetFacebookComposer,
+  uploadFacebookComposerImages,
+  waitForFacebookComposerImagePreviews,
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
 import {
+  findFacebookPublishedPostReference,
+  hasFacebookPublishErrorSignal,
+  hasFacebookPublishSuccessSignal,
+  resolveFacebookPublishedFlag,
+  resolveFacebookPublishVerificationStatus,
+  shouldRefreshFacebookPublishConfirmation,
+} from "./facebook/published-post.js";
+import {
+  ensureFacebookPageIdentitySwitch,
+  facebookPageSwitchActionPattern,
+  hasFacebookPageSwitchPrompt,
+} from "./facebook/page-identity.js";
+import {
+  filterFacebookPageCandidates,
+} from "./facebook/page-discovery.js";
+import {
+  classifyFacebookInspectionTab,
+  selectFacebookInspectionTab,
+} from "./facebook/inspection-page.js";
+import {
+  attachInstagramMedia,
+  clickInstagramNext,
+  clickInstagramShare,
+  fillInstagramCaption,
+  findInstagramDialog,
+  openInstagramComposer,
+} from "./instagram/composer.js";
+import {
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
+import {
+  hasFacebookPublishNetworkError,
+  startFacebookPublishNetworkCapture,
+} from "./facebook/publish-network.js";
 import {
   startSecureViewerServer,
 } from "./viewer-server.js";
@@ -113,6 +154,7 @@ type BrowserSession = {
   identityVersion: number;
   headless: boolean;
   currentUrl: string | null;
+  preparedFacebookMediaCount: number;
 };
 
 const app = express();
@@ -152,6 +194,50 @@ const sessions =
 
 const openingProfiles =
   new Set<string>();
+
+async function getPreferredFacebookPage(
+  context: BrowserContext,
+) {
+  const pages = context.pages();
+
+  if (!pages.length) {
+    return context.newPage();
+  }
+
+  const tabs = await Promise.all(
+    pages.map(async (page) => {
+      const url = page.url();
+      const text = await page
+        .locator("body")
+        .innerText({ timeout: 3000 })
+        .catch(() => "");
+      const hasVisiblePassword =
+        (await page
+          .locator('input[type="password"]:visible')
+          .count()
+          .catch(() => 0)) > 0;
+      const classification =
+        classifyFacebookInspectionTab({
+          url,
+          text,
+          hasVisiblePassword,
+        });
+
+      return {
+        url,
+        loginRequired:
+          classification.loginRequired,
+        challenge:
+          classification.challenge,
+      };
+    }),
+  );
+
+  const selectedIndex =
+    selectFacebookInspectionTab(tabs);
+
+  return pages[selectedIndex] || pages.at(-1)!;
+}
 
 function normalizeInteger(
   value: unknown,
@@ -1171,10 +1257,6 @@ app.post(
       return;
     }
 
-    openingProfiles.add(
-      profileKey,
-    );
-
     const locale =
       input.locale?.trim() ||
       "en-MY";
@@ -1207,6 +1289,10 @@ app.post(
       });
       return;
     }
+
+    openingProfiles.add(
+      profileKey,
+    );
 
     const operatingSystem =
       input.operatingSystem
@@ -1263,6 +1349,10 @@ app.post(
       input.startUrl?.trim() ||
       "https://www.facebook.com/";
 
+    let context:
+      BrowserContext | null =
+      null;
+
     try {
       const profileDirectory =
         await resolveProfileDirectory(
@@ -1300,9 +1390,6 @@ app.post(
             input,
           ),
       };
-
-      let context:
-        BrowserContext;
 
       let lockRecovery:
         {
@@ -1414,6 +1501,9 @@ app.post(
 
           currentUrl:
             page.url(),
+
+          preparedFacebookMediaCount:
+            0,
         };
 
       sessions.set(
@@ -1441,6 +1531,19 @@ app.post(
           ),
       });
     } catch (error) {
+      if (
+        context &&
+        !sessions.has(
+          profileKey,
+        )
+      ) {
+        await context
+          .close()
+          .catch(
+            () => undefined,
+          );
+      }
+
       response.status(400).json({
         opened: false,
         message:
@@ -1492,12 +1595,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const editors =
         page.locator(
@@ -1650,12 +1751,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const dialogs =
         page.locator(
@@ -1949,6 +2048,9 @@ app.post(
     const executionTrace:
       WorkerExecutionTraceStep[] = [];
 
+    let facebookPublishNetworkCapture:
+      ReturnType<typeof startFacebookPublishNetworkCapture> | null = null;
+
     const completeTraceStep = (
       input: {
         stepKey: string;
@@ -2006,11 +2108,10 @@ app.post(
     };
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1);
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       if (!page) {
         throw new Error(
@@ -2086,30 +2187,38 @@ app.post(
           '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
         ).last();
 
+      const rawCaption =
+        await editor
+          .innerText()
+          .catch(() => "");
+
       const caption =
-        (
-          await editor
-            .innerText()
-            .catch(() => "")
-        )
+        rawCaption
           .replace(
             /\s+/g,
             " ",
           )
           .trim();
 
-      const imageCount =
-        await composer
-          .locator("img")
-          .count()
-          .catch(() => 0);
+      const imageCount = await composer
+        .locator("img")
+        .count()
+        .catch(() => 0);
+      const mediaPreviewCount =
+        await countFacebookComposerImagePreviews(composer);
+      const expectedMediaCount = session.preparedFacebookMediaCount;
 
-      if (
-        !caption &&
-        imageCount === 0
-      ) {
+      if (!caption && mediaPreviewCount === 0) {
+        throw new Error("The Facebook draft is empty.");
+      }
+
+      if (expectedMediaCount > 0 && mediaPreviewCount < expectedMediaCount) {
         throw new Error(
-          "The Facebook draft is empty.",
+          [
+            "Facebook draft media verification failed before publishing.",
+            `Expected ${expectedMediaCount} image(s),`,
+            `found ${mediaPreviewCount}.`,
+          ].join(" "),
         );
       }
 
@@ -2126,42 +2235,186 @@ app.post(
           captionLength:
             caption.length,
           imageCount,
-          composerFound:
-            true,
+          mediaPreviewCount,
+          expectedMediaCount,
+          composerFound: true,
         },
       });
 
       const verifyPublishButtonStartedAt =
         Date.now();
 
-      const postButton =
-        composer
-          .getByRole(
-            "button",
-            {
-              name: /^Post$/i,
-            },
-          )
-          .last();
+      let postButton:
+        import("playwright-core").Locator
+        | null = null;
 
-      if (
-        !await postButton
-          .isVisible()
-          .catch(() => false)
+      let publishButtonVisible =
+        false;
+
+      let advancedViaNext =
+        false;
+
+      for (
+        let attempt = 0;
+        attempt < 20 && !postButton;
+        attempt += 1
       ) {
+        const scopes = [
+          composer,
+          page.locator("body"),
+        ];
+
+        for (const scope of scopes) {
+          const candidates =
+            scope.getByRole(
+              "button",
+              {
+                name: /^(post|publish)(?: now)?$/i,
+              },
+            );
+
+          const candidateCount =
+            await candidates
+              .count()
+              .catch(() => 0);
+
+          for (
+            let index =
+              candidateCount - 1;
+            index >= 0;
+            index -= 1
+          ) {
+            const candidate =
+              candidates.nth(index);
+
+            if (
+              !await candidate
+                .isVisible()
+                .catch(() => false)
+            ) {
+              continue;
+            }
+
+            publishButtonVisible =
+              true;
+
+            if (
+              await candidate
+                .isEnabled()
+                .catch(() => false)
+            ) {
+              postButton =
+                candidate;
+              break;
+            }
+          }
+
+          if (postButton) {
+            break;
+          }
+        }
+
+        if (
+          !postButton &&
+          !advancedViaNext
+        ) {
+          const nextCandidates =
+            composer.getByRole(
+              "button",
+              {
+                name: /^Next$/i,
+              },
+            );
+
+          const nextCandidateCount =
+            await nextCandidates
+              .count()
+              .catch(() => 0);
+
+          for (
+            let index =
+              nextCandidateCount - 1;
+            index >= 0;
+            index -= 1
+          ) {
+            const candidate =
+              nextCandidates.nth(index);
+
+            if (
+              !await candidate
+                .isVisible()
+                .catch(() => false) ||
+              !await candidate
+                .isEnabled()
+                .catch(() => false)
+            ) {
+              continue;
+            }
+
+            await candidate.click({
+              timeout: 10000,
+            });
+
+            advancedViaNext =
+              true;
+
+            await page.waitForTimeout(
+              700,
+            );
+
+            break;
+          }
+        }
+
+        if (!postButton) {
+          await page.waitForTimeout(
+            300,
+          );
+        }
+      }
+
+      if (!postButton) {
         throw new Error(
-          "Facebook Post button was not found.",
+          publishButtonVisible
+            ? "Facebook Post button is disabled."
+            : "Facebook Post button was not found.",
         );
       }
 
+      let publishMediaPreviewCount = mediaPreviewCount;
+      let mediaRecheckSkippedAfterNext = false;
+
       if (
-        !await postButton
-          .isEnabled()
-          .catch(() => false)
+        expectedMediaCount > 0 &&
+        !advancedViaNext
       ) {
-        throw new Error(
-          "Facebook Post button is disabled.",
-        );
+        /*
+         * When Facebook exposes Post directly in the composer, re-check the
+         * visible media previews immediately before clicking it. The separate
+         * Next flow intentionally replaces the composer with a final publish
+         * step that no longer renders those previews, so VERIFY_DRAFT is the
+         * authoritative media check for that path.
+         */
+        const visiblePublishDialogs =
+          page.locator('[role="dialog"]:visible');
+
+        publishMediaPreviewCount =
+          await countFacebookComposerImagePreviews(visiblePublishDialogs);
+
+        if (publishMediaPreviewCount < expectedMediaCount) {
+          throw new Error(
+            [
+              "Facebook draft media disappeared before the final Post action.",
+              `Expected ${expectedMediaCount} image(s),`,
+              `found ${publishMediaPreviewCount}.`,
+            ].join(" "),
+          );
+        }
+      } else if (
+        expectedMediaCount > 0 &&
+        advancedViaNext
+      ) {
+        mediaRecheckSkippedAfterNext = true;
       }
 
       completeTraceStep({
@@ -2178,6 +2431,10 @@ app.post(
             true,
           enabled:
             true,
+          advancedViaNext,
+          expectedMediaCount,
+          publishMediaPreviewCount,
+          mediaRecheckSkippedAfterNext,
         },
       });
 
@@ -2221,6 +2478,23 @@ app.post(
       const clickPublishStartedAt =
         Date.now();
 
+      const publishButtonDiagnostics =
+        await postButton
+          .evaluate((element) => ({
+            tagName: element.tagName,
+            text: (element.textContent || "").replace(/\s+/g, " ").trim(),
+            ariaLabel: element.getAttribute("aria-label"),
+            testId: element.getAttribute("data-testid"),
+            disabled:
+              element instanceof HTMLButtonElement
+                ? element.disabled
+                : element.getAttribute("aria-disabled") === "true",
+          }))
+          .catch(() => null);
+
+      facebookPublishNetworkCapture =
+        startFacebookPublishNetworkCapture(page);
+
       await postButton.click({
         timeout: 10000,
       });
@@ -2232,30 +2506,12 @@ app.post(
           "Click Facebook Post button",
         stepOrder:
           4,
+        metadata: {
+          publishButtonDiagnostics,
+        },
         startedAtMs:
           clickPublishStartedAt,
       });
-
-      const successPatterns = [
-        /your post (?:is|was) (?:now )?published/i,
-        /post published/i,
-        /your post has been published/i,
-        /your post is successfully shared/i,
-        /post is successfully shared/i,
-        /帖子已发布/i,
-        /贴文已发布/i,
-        /siaran anda telah diterbitkan/i,
-      ];
-
-      const errorPatterns = [
-        /couldn't publish/i,
-        /unable to publish/i,
-        /something went wrong/i,
-        /try again later/i,
-        /无法发布/i,
-        /发布失败/i,
-        /tidak dapat menerbitkan/i,
-      ];
 
       let composerStillVisible =
         true;
@@ -2357,19 +2613,13 @@ app.post(
           ].join(" ");
 
         successSignal =
-          successPatterns.some(
-            (pattern) =>
-              pattern.test(
-                combinedFeedback,
-              ),
+          hasFacebookPublishSuccessSignal(
+            combinedFeedback,
           );
 
         errorSignal =
-          errorPatterns.some(
-            (pattern) =>
-              pattern.test(
-                combinedFeedback,
-              ),
+          hasFacebookPublishErrorSignal(
+            combinedFeedback,
           );
 
         if (errorSignal) {
@@ -2409,14 +2659,181 @@ app.post(
         );
       }
 
+      let postReference =
+        null;
+
+      if (!errorSignal && !successSignal) {
+        postReference =
+          await findFacebookPublishedPostReference(
+            page,
+            rawCaption,
+            12000,
+          );
+      }
+
+      const confirmationRefreshAttempted =
+        shouldRefreshFacebookPublishConfirmation({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+        });
+
+      if (confirmationRefreshAttempted) {
+        try {
+          await page.reload({
+            waitUntil:
+              "domcontentloaded",
+            timeout: 15000,
+          });
+          await page.waitForTimeout(1500);
+        } catch (error) {
+          console.warn(
+            "[facebook/publish-confirmation-refresh-failed]",
+            {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : String(error),
+            },
+          );
+        }
+
+        composerStillVisible =
+          await composer
+            .isVisible()
+            .catch(() => false);
+
+        const refreshedAlerts =
+          page.locator(
+            '[role="alert"]:visible, [role="status"]:visible',
+          );
+        const refreshedAlertCount =
+          await refreshedAlerts
+            .count()
+            .catch(() => 0);
+
+        alertTexts = [];
+
+        for (
+          let index = 0;
+          index < refreshedAlertCount;
+          index += 1
+        ) {
+          const alertText =
+            (
+              await refreshedAlerts
+                .nth(index)
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+
+          if (alertText) {
+            alertTexts.push(
+              alertText.slice(0, 500),
+            );
+          }
+        }
+
+        pageText =
+          (
+            await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          )
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const refreshedFeedback =
+          [
+            ...alertTexts,
+            pageText.slice(0, 12000),
+          ].join(" ");
+
+        successSignal =
+          hasFacebookPublishSuccessSignal(
+            refreshedFeedback,
+          );
+        errorSignal =
+          hasFacebookPublishErrorSignal(
+            refreshedFeedback,
+          );
+
+        if (!errorSignal && !successSignal) {
+          postReference =
+            await findFacebookPublishedPostReference(
+              page,
+              rawCaption,
+              12000,
+            );
+        }
+      }
+
+      const publishNetworkEvents =
+        await facebookPublishNetworkCapture?.stop() || [];
+      const networkErrorSignal =
+        hasFacebookPublishNetworkError(publishNetworkEvents);
+
+      errorSignal =
+        errorSignal || networkErrorSignal;
+
+      if (
+        !errorSignal &&
+        !successSignal &&
+        composerStillVisible
+      ) {
+        postReference =
+          postReference ??
+          await findFacebookPublishedPostReference(
+            page,
+            rawCaption,
+          );
+      }
+
       const verificationStatus =
-        errorSignal
-          ? "FAILED"
-          : successSignal
-            ? "CONFIRMED"
-            : !composerStillVisible
-              ? "COMPOSER_CLOSED"
-              : "UNCONFIRMED";
+        resolveFacebookPublishVerificationStatus({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+          allowComposerClosed: false,
+        });
+
+      const published =
+        resolveFacebookPublishedFlag({
+          errorSignal,
+          successSignal,
+          composerStillVisible,
+          postReferenceFound:
+            Boolean(postReference),
+          allowComposerClosed: false,
+        });
+
+      console.log(
+        "[facebook/publish-confirmation]",
+        {
+          url:
+            page.url(),
+          verificationStatus,
+          published,
+          composerStillVisible,
+          successSignal,
+          errorSignal,
+          networkErrorSignal,
+          postReferenceFound:
+            Boolean(postReference),
+          confirmationRefreshAttempted,
+          alertCount:
+            alertTexts.length,
+          alertTexts,
+          publishNetworkEvents,
+        },
+      );
 
       completeTraceStep({
         stepKey:
@@ -2440,7 +2857,11 @@ app.post(
             !composerStillVisible,
           successSignal,
           errorSignal,
+          postReferenceFound:
+            Boolean(postReference),
+          confirmationRefreshAttempted,
           alertTexts,
+          publishNetworkEvents,
           timeoutMs:
             verificationTimeoutMs,
         },
@@ -2451,6 +2872,52 @@ app.post(
                 "UNCONFIRMED"
               ? "Facebook publishing could not be confirmed."
               : null,
+      });
+
+      const resolvePostReferenceStartedAt =
+        Date.now();
+
+      postReference =
+        postReference ??
+        (
+          verificationStatus ===
+              "CONFIRMED" ||
+            verificationStatus ===
+              "COMPOSER_CLOSED"
+            ? await findFacebookPublishedPostReference(
+                page,
+                rawCaption,
+              )
+            : null
+        );
+
+      completeTraceStep({
+        stepKey:
+          "RESOLVE_POST_REFERENCE",
+        stepName:
+          "Resolve published Facebook post reference",
+        stepOrder:
+          6,
+        startedAtMs:
+          resolvePostReferenceStartedAt,
+        status:
+          postReference
+            ? "SUCCESS"
+            : "SKIPPED",
+        metadata: {
+          resolved:
+            Boolean(postReference),
+          externalPostId:
+            postReference
+              ?.externalPostId ||
+            null,
+          postUrl:
+            postReference
+              ?.postUrl || null,
+          matchedBy:
+            postReference
+              ?.matchedBy || null,
+        },
       });
 
       const captureAfterStartedAt =
@@ -2479,7 +2946,7 @@ app.post(
         stepName:
           "Capture post-publish screenshot",
         stepOrder:
-          6,
+          7,
         startedAtMs:
           captureAfterStartedAt,
         metadata: {
@@ -2499,7 +2966,7 @@ app.post(
         stepName:
           "Finalize Facebook publish result",
         stepOrder:
-          7,
+          8,
         startedAtMs:
           publishResultStartedAt,
         status:
@@ -2510,12 +2977,7 @@ app.post(
             ? "FAILED"
             : "SUCCESS",
         metadata: {
-          published:
-            (
-              successSignal ||
-              !composerStillVisible
-            ) &&
-            !errorSignal,
+          published,
           verificationStatus,
           composerClosed:
             !composerStillVisible,
@@ -2533,27 +2995,26 @@ app.post(
       response.json({
         success:
           verificationStatus ===
-            "CONFIRMED" ||
-          verificationStatus ===
-            "COMPOSER_CLOSED",
+            "CONFIRMED",
         executionTrace,
-        published:
-          (
-            successSignal ||
-            (
-              !composerStillVisible &&
-              verificationStatus ===
-                "COMPOSER_CLOSED"
-            )
-          ) &&
-          !errorSignal,
+        published,
         browserProfileKey:
           session.browserProfileKey,
+        postId:
+          postReference
+            ?.externalPostId || null,
+        facebookPostId:
+          postReference
+            ?.facebookPostId || null,
+        postUrl:
+          postReference
+            ?.postUrl || null,
         captionLength:
           caption.length,
         imageCount,
-        composerClosed:
-          !composerStillVisible,
+        mediaPreviewCount: publishMediaPreviewCount,
+        expectedMediaCount,
+        composerClosed: !composerStillVisible,
         verification: {
           status:
             verificationStatus,
@@ -2567,6 +3028,7 @@ app.post(
           successSignal,
           errorSignal,
           alertTexts,
+          publishNetworkEvents,
         },
         screenshots: {
           before: {
@@ -2603,6 +3065,7 @@ app.post(
             .toISOString(),
       });
     } catch (error) {
+      await facebookPublishNetworkCapture?.stop().catch(() => undefined);
       response.status(400).json({
         success: false,
         published: false,
@@ -2714,11 +3177,10 @@ app.post(
     };
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1);
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       if (!page) {
         throw new Error(
@@ -3120,19 +3582,41 @@ app.post(
       return;
     }
 
-    const input =
-      request.body as {
-        caption?: string;
-        imagePath?: string | null;
-        targetUrl?: string | null;
-      };
+    session.preparedFacebookMediaCount = 0;
+
+    const input = request.body as {
+      caption?: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imageUrls?: string[] | null;
+      targetUrl?: string | null;
+    };
 
     const caption =
       input.caption?.trim();
 
-    const imagePath =
-      input.imagePath?.trim() ||
-      null;
+    const imagePath = input.imagePath?.trim() || null;
+
+    const imageUrls = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(input.imageUrls) ? input.imageUrls : []),
+          input.imageUrl,
+        ]
+          .map((value) => (typeof value === "string" ? value.trim() : ""))
+          .filter(Boolean),
+      ),
+    );
+
+    if (imageUrls.length > 10) {
+      response.status(400).json({
+        success: false,
+        message: "Facebook posts support at most 10 images.",
+      });
+      return;
+    }
+
+    const imagePaths = imagePath ? [imagePath] : [];
 
     const targetUrl =
       input.targetUrl?.trim() ||
@@ -3194,22 +3678,144 @@ app.post(
       return;
     }
 
-    if (imagePath) {
-      const extension =
-        path.extname(
-          imagePath,
-        ).toLowerCase();
+    let stagedImageCleanup:
+      (() => Promise<void>) | null = null;
 
-      if (
-        ![
-          ".jpg",
-          ".jpeg",
-          ".png",
-          ".webp",
-        ].includes(
-          extension,
+    if (imagePaths.length === 0 && imageUrls.length > 0) {
+      const parsedImageUrls: URL[] = [];
+
+      for (const imageUrl of imageUrls) {
+        let parsedImageUrl: URL;
+
+        try {
+          parsedImageUrl = new URL(imageUrl);
+        } catch {
+          response.status(400).json({
+            success: false,
+            message: "Invalid image URL.",
+          });
+          return;
+        }
+
+        if (!["http:", "https:"].includes(parsedImageUrl.protocol)) {
+          response.status(400).json({
+            success: false,
+            message: "Image URL must use http or https.",
+          });
+          return;
+        }
+
+        parsedImageUrls.push(parsedImageUrl);
+      }
+
+      const stagingDirectory = await mkdtemp(
+        path.join(tmpdir(), "atlas-facebook-images-"),
+      );
+
+      stagedImageCleanup = async () => {
+        await rm(
+          stagingDirectory,
+          {
+            recursive: true,
+            force: true,
+          },
+        );
+      };
+
+      for (let index = 0; index < imageUrls.length; index += 1) {
+        const imageUrl = imageUrls[index];
+        const parsedImageUrl = parsedImageUrls[index];
+        let imageResponse: Awaited<ReturnType<typeof fetch>>;
+
+        try {
+          imageResponse = await fetch(imageUrl);
+        } catch (error) {
+          await stagedImageCleanup();
+          response.status(502).json({
+            success: false,
+            message: `Unable to download image ${index + 1}: ${
+              error instanceof Error ? error.message : "remote fetch failed"
+            }.`,
+          });
+          return;
+        }
+
+        if (!imageResponse.ok) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Unable to download image ${index + 1} (HTTP ${imageResponse.status}).`,
+          });
+          return;
+        }
+
+        const contentType =
+          imageResponse.headers
+            .get("content-type")
+            ?.split(";", 1)[0]
+            .trim()
+            .toLowerCase() || "";
+
+        if (contentType && !contentType.startsWith("image/")) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Remote media ${index + 1} is not an image.`,
+          });
+          return;
+        }
+
+        let imageBytes: Buffer;
+
+        try {
+          imageBytes = Buffer.from(await imageResponse.arrayBuffer());
+        } catch (error) {
+          await stagedImageCleanup();
+          response.status(502).json({
+            success: false,
+            message: `Unable to read image ${index + 1}: ${
+              error instanceof Error ? error.message : "remote response failed"
+            }.`,
+          });
+          return;
+        }
+
+        if (imageBytes.length === 0) {
+          await stagedImageCleanup();
+          response.status(400).json({
+            success: false,
+            message: `Remote image ${index + 1} is empty.`,
+          });
+          return;
+        }
+
+        const extensionByType: Record<string, string> = {
+          "image/jpeg": ".jpg",
+          "image/png": ".png",
+          "image/webp": ".webp",
+        };
+        const extensionFromUrl = path
+          .extname(parsedImageUrl.pathname)
+          .toLowerCase();
+        const extension = [".jpg", ".jpeg", ".png", ".webp"].includes(
+          extensionFromUrl,
         )
-      ) {
+          ? extensionFromUrl
+          : extensionByType[contentType] || ".jpg";
+        const stagedImagePath = path.join(
+          stagingDirectory,
+          `upload-${index + 1}${extension}`,
+        );
+
+        await writeFile(stagedImagePath, imageBytes);
+        imagePaths.push(stagedImagePath);
+      }
+    }
+
+    for (const imagePathToValidate of imagePaths) {
+      const extension = path.extname(imagePathToValidate).toLowerCase();
+
+      if (![".jpg", ".jpeg", ".png", ".webp"].includes(extension)) {
         response.status(400).json({
           success: false,
           message:
@@ -3219,10 +3825,9 @@ app.post(
       }
 
       try {
-        await access(
-          imagePath,
-        );
+        await access(imagePathToValidate);
       } catch {
+        await stagedImageCleanup?.();
         response.status(400).json({
           success: false,
           message:
@@ -3320,7 +3925,7 @@ app.post(
        * but prevents automation from depending on
        * whichever tab the user is currently viewing.
        */
-      const page =
+      let page =
         await session.context.newPage();
 
       automationPage =
@@ -3439,6 +4044,59 @@ app.post(
         },
       );
 
+      const targetPageId = (() => {
+        try {
+          const parsed = new URL(targetUrl);
+          return parsed.searchParams.get("id") ||
+            parsed.pathname.match(/^\/(\d+)(?:\/|$)/)?.[1] ||
+            null;
+        } catch {
+          return null;
+        }
+      })();
+
+      const currentPageId = (() => {
+        try {
+          const parsed = new URL(page.url());
+          return parsed.searchParams.get("id") ||
+            parsed.pathname.match(/^\/(\d+)(?:\/|$)/)?.[1] ||
+            null;
+        } catch {
+          return null;
+        }
+      })();
+
+      if (targetPageId && currentPageId && targetPageId !== currentPageId) {
+        console.warn("[facebook/page-target-mismatch]", {
+          targetUrl,
+          targetPageId,
+          currentUrl: page.url(),
+          currentPageId,
+        });
+
+        await page.goto(
+          "https://www.facebook.com/pages/?category=your_pages",
+          {
+            waitUntil: "domcontentloaded",
+            timeout: 30000,
+          },
+        );
+        await page.waitForTimeout(2500);
+
+        const targetPageLink = page.locator(
+          `a[href*="id=${targetPageId}"], a[href*="/${targetPageId}"]`,
+        ).first();
+
+        if (!await targetPageLink.isVisible().catch(() => false)) {
+          throw new Error(
+            `Facebook target Page ${targetPageId} was not available in the Page switcher.`,
+          );
+        }
+
+        await targetPageLink.click({ timeout: 10000 });
+        await page.waitForTimeout(2500);
+      }
+
       const pageText =
         await page
           .locator("body")
@@ -3450,14 +4108,54 @@ app.post(
       const normalizedText =
         pageText.toLowerCase();
 
-      if (
-        normalizedText.includes(
-          "log in to facebook",
-        ) ||
-        normalizedText.includes(
-          "create new account",
-        )
-      ) {
+      const facebookLoginUrl =
+        page
+          .url()
+          .toLowerCase()
+          .includes(
+            "/login",
+          );
+
+      const initialVisibleFacebookLoginForm =
+        await page
+          .locator(
+            'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+          )
+          .count()
+          .then((count) => count > 0)
+          .catch(() => false);
+
+      const visibleFacebookLoginText =
+        await page
+          .getByText(
+            /log in to facebook/i,
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+      const hasPageSwitchPrompt =
+        hasFacebookPageSwitchPrompt(
+          normalizedText,
+        );
+
+      const hasFacebookLoginPage =
+        facebookLoginUrl ||
+        initialVisibleFacebookLoginForm ||
+        visibleFacebookLoginText ||
+        (
+          normalizedText.includes(
+            "email or phone number",
+          ) &&
+          normalizedText.includes(
+            "password",
+          ) &&
+          normalizedText.includes(
+            "log in",
+          )
+        );
+
+      if (hasFacebookLoginPage && !hasPageSwitchPrompt) {
         response.status(400).json({
           success: false,
           loginRequired: true,
@@ -3520,6 +4218,186 @@ app.post(
             400,
           );
         }
+      }
+
+      /*
+       * FACEBOOK_PAGE_IDENTITY_SWITCH_V1
+       *
+       * A persistent session may show the Page identity on the home feed,
+       * while a direct Page URL still presents Facebook's "Switch" or
+       * "Switch now"
+       * interstitial in the dedicated automation tab. Switch explicitly
+       * before looking for the Page composer.
+       */
+      const getVisibleSwitchAction = async () => {
+        const switchPageCandidates = [
+          page.getByRole(
+            "button",
+            {
+              name:
+                facebookPageSwitchActionPattern,
+            },
+          ),
+          page.getByRole(
+            "link",
+            {
+              name:
+                facebookPageSwitchActionPattern,
+            },
+          ),
+          page.getByText(
+            facebookPageSwitchActionPattern,
+            {
+              exact: true,
+            },
+          ),
+        ];
+
+        for (const candidateLocator of switchPageCandidates) {
+          const candidate = candidateLocator.first();
+
+          if (
+            await candidate
+              .isVisible()
+              .catch(() => false)
+          ) {
+            return candidate;
+          }
+        }
+
+        return null;
+      };
+
+      const pageIdentitySwitch =
+        await ensureFacebookPageIdentitySwitch({
+          inspectState: async () => ({
+            bodyText:
+              await page
+                .locator("body")
+                .innerText()
+                .catch(() => ""),
+            hasVisibleSwitchAction:
+              Boolean(
+                await getVisibleSwitchAction(),
+              ),
+          }),
+          clickSwitchAction: async () => {
+            const candidate =
+              await getVisibleSwitchAction();
+
+            if (!candidate) {
+              return false;
+            }
+
+            return candidate
+              .click({
+                timeout: 5000,
+                force: true,
+              })
+              .then(() => true)
+              .catch(() => false);
+          },
+          waitForSettled: async () => {
+            await page.waitForTimeout(2500);
+            await page
+              .waitForLoadState(
+                "domcontentloaded",
+                {
+                  timeout: 5000,
+                },
+              )
+              .catch(() => undefined);
+          },
+          maxAttempts: 3,
+        });
+
+      console.log(
+        "[facebook/page-identity-switch]",
+        {
+          url:
+            page.url(),
+          required:
+            pageIdentitySwitch.required,
+          verified:
+            pageIdentitySwitch.verified,
+          attempts:
+            pageIdentitySwitch.attempts,
+          targetPageName:
+            pageIdentitySwitch.targetPageName,
+          reason:
+            pageIdentitySwitch.reason,
+        },
+      );
+
+      if (!pageIdentitySwitch.verified) {
+        throw new Error(
+          [
+            "Facebook Page identity switch did not complete.",
+            pageIdentitySwitch.targetPageName
+              ? `Target Page: ${pageIdentitySwitch.targetPageName}.`
+              : null,
+            `Attempts: ${pageIdentitySwitch.attempts}.`,
+            `Reason: ${pageIdentitySwitch.reason}.`,
+            `URL: ${page.url()}.`,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
+      }
+
+      /*
+       * FACEBOOK_LOGIN_RECHECK_AFTER_IDENTITY_SWITCH_V1
+       *
+       * Facebook can render a Page identity switch interstitial first and
+       * only expose its login form after the switch interaction completes.
+       * The initial page check intentionally allows that interstitial, so
+       * re-check the live DOM here before entering composer retries.
+       */
+      const hasVisibleFacebookLoginForm =
+        await page
+          .locator(
+            'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+          )
+          .count()
+          .then((count) => count > 0)
+          .catch(() => false);
+
+      const postSwitchPageText =
+        (
+          await page
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        )
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+
+      const postSwitchFacebookLoginPage =
+        hasVisibleFacebookLoginForm ||
+        postSwitchPageText.includes(
+          "log in to facebook",
+        ) ||
+        (
+          postSwitchPageText.includes(
+            "email or phone number",
+          ) &&
+          postSwitchPageText.includes(
+            "password",
+          ) &&
+          postSwitchPageText.includes(
+            "log in",
+          )
+        );
+
+      if (postSwitchFacebookLoginPage) {
+        response.status(400).json({
+          success: false,
+          loginRequired: true,
+          message:
+            "Facebook login is required.",
+        });
+        return;
       }
 
       const openComposerStartedAt =
@@ -3679,22 +4557,56 @@ app.post(
       }
 
       if (!composerOpened) {
-        const bodyPreview =
+        const loginFormAfterComposerFailure =
+          await page
+            .locator(
+              'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+            )
+            .count()
+            .then((count) => count > 0)
+            .catch(() => false);
+
+        const bodyTextAfterComposerFailure =
           (
             await page
               .locator("body")
               .innerText()
               .catch(() => "")
           )
-            .replace(
-              /\s+/g,
-              " ",
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const bodyPreview =
+          bodyTextAfterComposerFailure.slice(
+            0,
+            1200,
+          );
+
+        const loginTextAfterComposerFailure =
+          bodyTextAfterComposerFailure.toLowerCase();
+
+        if (
+          loginFormAfterComposerFailure ||
+          (
+            loginTextAfterComposerFailure.includes(
+              "email or phone number",
+            ) &&
+            loginTextAfterComposerFailure.includes(
+              "password",
+            ) &&
+            loginTextAfterComposerFailure.includes(
+              "log in",
             )
-            .trim()
-            .slice(
-              0,
-              1200,
-            );
+          )
+        ) {
+          response.status(400).json({
+            success: false,
+            loginRequired: true,
+            message:
+              "Facebook login is required.",
+          });
+          return;
+        }
 
         const visibleActions =
           await page
@@ -3811,17 +4723,37 @@ app.post(
         1200,
       );
 
-      const dialog =
-        page
-          .getByRole(
-            "dialog",
-          )
-          .last();
+      let dialog;
+      let dialogPage = page;
+      try {
+        dialog = await findFacebookCreatePostDialog(page, 20000);
+      } catch (firstError) {
+        const candidatePages = session.context
+          .pages()
+          .filter((candidate) => candidate !== page && !candidate.isClosed())
+          .reverse();
 
-      await dialog.waitFor({
-        state: "visible",
-        timeout: 10000,
-      });
+        for (const candidate of candidatePages) {
+          try {
+            dialog = await findFacebookCreatePostDialog(candidate, 8000);
+            dialogPage = candidate;
+            break;
+          } catch {
+            // Keep searching other pages opened by Facebook.
+          }
+        }
+
+        if (!dialog) {
+          throw firstError;
+        }
+      }
+
+      if (dialogPage !== page) {
+        const previousPage = page;
+        page = dialogPage;
+        automationPage = page;
+        await previousPage.close().catch(() => undefined);
+      }
 
       completeTraceStep({
         stepKey:
@@ -3945,211 +4877,145 @@ app.post(
         },
       });
 
-      let imageAttached =
-        false;
+      let imageAttached = false;
+      let attachedMediaCount = 0;
+      let baselineMediaCount = 0;
 
-      if (imagePath) {
-        const uploadImageStartedAt =
-          Date.now();
+      /*
+       * FACEBOOK_VISIBLE_COMPOSER_MEDIA_SCOPE_V1
+       *
+       * Facebook can mount another role=dialog node while processing an
+       * upload. Because Playwright's `.last()` locator is resolved live, the
+       * original `dialog` locator may then point at that temporary dialog
+       * instead of the still-visible Create post composer. Count previews
+       * across the currently visible dialogs so the verification follows the
+       * real composer without weakening the visible-preview requirement.
+       */
+      const visibleComposerDialogs =
+        page.locator('[role="dialog"]:visible');
 
-        const fileInputs =
-          dialog.locator(
-            'input[type="file"]',
-          );
+      if (imagePaths.length > 0) {
+        const uploadImageStartedAt = Date.now();
 
-        let fileInputFound =
-          false;
-
-        const inputCount =
-          await fileInputs
-            .count()
-            .catch(() => 0);
-
-        for (
-          let index = 0;
-          index < inputCount;
-          index += 1
-        ) {
-          const fileInput =
-            fileInputs.nth(
-              index,
-            );
-
-          const accept =
-            await fileInput
-              .getAttribute(
-                "accept",
-              )
-              .catch(() => null);
-
-          if (
-            accept &&
-            !accept.includes(
-              "image",
-            )
-          ) {
-            continue;
-          }
-
-          await fileInput
-            .setInputFiles(
-              imagePath,
-            );
-
-          fileInputFound =
-            true;
-          break;
-        }
-
-        if (!fileInputFound) {
-          const photoButtonCandidates = [
-            dialog.getByRole(
-              "button",
-              {
-                name:
-                  /photo|video/i,
-              },
-            ),
-            dialog.locator(
-              '[aria-label*="Photo"]',
-            ),
-            dialog.locator(
-              '[aria-label*="photo"]',
-            ),
-          ];
-
-          for (
-            const buttonCandidate
-            of photoButtonCandidates
-          ) {
-            const button =
-              buttonCandidate.first();
-
-            if (
-              await button
-                .isVisible()
-                .catch(() => false)
-            ) {
-              await button.click({
-                force: true,
-              });
-
-              await page.waitForTimeout(
-                500,
-              );
-              break;
-            }
-          }
-
-          const pageFileInputs =
-            page.locator(
-              'input[type="file"]',
-            );
-
-          const pageInputCount =
-            await pageFileInputs
-              .count()
-              .catch(() => 0);
-
-          for (
-            let index = 0;
-            index < pageInputCount;
-            index += 1
-          ) {
-            const fileInput =
-              pageFileInputs.nth(
-                index,
-              );
-
-            const accept =
-              await fileInput
-                .getAttribute(
-                  "accept",
-                )
-                .catch(() => null);
-
-            if (
-              accept &&
-              !accept.includes(
-                "image",
-              )
-            ) {
-              continue;
-            }
-
-            await fileInput
-              .setInputFiles(
-                imagePath,
-              );
-
-            fileInputFound =
-              true;
-            break;
-          }
-        }
-
-        if (!fileInputFound) {
-          throw new Error(
-            "Facebook image upload input was not found.",
-          );
-        }
-
-        await page.waitForTimeout(
-          2500,
+        baselineMediaCount = await countFacebookComposerImagePreviews(
+          visibleComposerDialogs,
         );
 
-        const imageDialogHandling =
-          await handleFacebookOnboarding(
-            page,
+        let imageUpload;
+
+        try {
+          imageUpload =
+            await uploadFacebookComposerImages(
+              page,
+              dialog,
+              imagePaths,
+            );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : String(error);
+          const controlDiagnostics =
+            error instanceof
+            FacebookComposerImageUploadError
+              ? error.diagnostics
+              : null;
+
+          completeTraceStep({
+            stepKey: "UPLOAD_IMAGE",
+            stepName: "Upload post image",
+            stepOrder: 6,
+            startedAtMs: uploadImageStartedAt,
+            status: "FAILED",
+            metadata: {
+              imageAttached: false,
+              expectedMediaCount:
+                imagePaths.length,
+              attachedMediaCount: 0,
+              baselineMediaCount,
+              imagePaths,
+              controlDiagnostics,
+            },
+            errorMessage,
+          });
+
+          console.error(
+            "[facebook/image-upload-control-failure]",
+            {
+              errorMessage,
+              controlDiagnostics,
+            },
           );
 
-        const previewCandidates = [
-          dialog.locator(
-            'img[src^="blob:"]',
-          ),
-          dialog.locator(
-            'img[src^="data:"]',
-          ),
-          dialog.locator(
-            'img',
-          ),
-        ];
-
-        for (
-          const previewCandidate
-          of previewCandidates
-        ) {
-          const count =
-            await previewCandidate
-              .count()
-              .catch(() => 0);
-
-          if (count > 0) {
-            imageAttached =
-              true;
-            break;
-          }
+          throw error;
         }
 
-        if (!imageAttached) {
-          imageAttached =
-            true;
-        }
+        const imageDialogHandling = await handleFacebookOnboarding(page);
+
+        const previewResult = await waitForFacebookComposerImagePreviews(
+          visibleComposerDialogs,
+          {
+            baselineCount: baselineMediaCount,
+            expectedAddedCount: imagePaths.length,
+          },
+        );
+
+        imageAttached = previewResult.attached;
+        attachedMediaCount = previewResult.addedCount;
 
         completeTraceStep({
-          stepKey:
-            "UPLOAD_IMAGE",
-          stepName:
-            "Upload post image",
-          stepOrder:
-            6,
-          startedAtMs:
-            uploadImageStartedAt,
+          stepKey: "UPLOAD_IMAGE",
+          stepName: "Upload post image",
+          stepOrder: 6,
+          startedAtMs: uploadImageStartedAt,
+          status: imageAttached ? "SUCCESS" : "FAILED",
           metadata: {
             imageAttached,
-            imagePath,
+            expectedMediaCount: imagePaths.length,
+            attachedMediaCount,
+            baselineMediaCount,
+            previewCount: previewResult.previewCount,
+            waitedMs: previewResult.waitedMs,
+            previewCandidates:
+              previewResult.previewCandidates,
+            imagePaths,
+            imageUpload,
+            imageDialogHandling,
           },
+          errorMessage: imageAttached
+            ? null
+            : [
+                "Facebook image previews did not appear.",
+                `Expected ${imagePaths.length},`,
+                `attached ${attachedMediaCount}.`,
+              ].join(" "),
         });
+
+        if (!imageAttached) {
+          console.error(
+            "[facebook/image-preview-verification]",
+            {
+              expectedMediaCount:
+                imagePaths.length,
+              attachedMediaCount,
+              baselineMediaCount,
+              previewCount:
+                previewResult.previewCount,
+              waitedMs:
+                previewResult.waitedMs,
+              previewCandidates:
+                previewResult.previewCandidates,
+            },
+          );
+
+          throw new Error(
+            [
+              "Facebook image upload could not be verified.",
+              `Expected ${imagePaths.length} image(s),`,
+              `attached ${attachedMediaCount}.`,
+            ].join(" "),
+          );
+        }
       } else {
         const skippedAt =
           Date.now();
@@ -4235,62 +5101,121 @@ app.post(
         1000,
       );
 
-      const finalEditors =
-        page.locator(
-          '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
-        );
-
-      const finalEditorCount =
-        await finalEditors
-          .count()
-          .catch(() => 0);
-
+      const expectedCaptionText =
+        caption
+          .replace(/\s+/g, " ")
+          .trim();
       let finalCaptionText =
         "";
 
-      for (
-        let index =
-          finalEditorCount - 1;
-        index >= 0;
-        index -= 1
-      ) {
-        const editor =
-          finalEditors.nth(index);
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const finalEditors =
+          page.locator(
+            '[role="dialog"] [contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+          );
+
+        const finalEditorCount =
+          await finalEditors
+            .count()
+            .catch(() => 0);
+
+        for (
+          let index =
+            finalEditorCount - 1;
+          index >= 0;
+          index -= 1
+        ) {
+          const editor =
+            finalEditors.nth(index);
+
+          if (
+            !await editor
+              .isVisible()
+              .catch(() => false)
+          ) {
+            continue;
+          }
+
+          const editorText =
+            (
+              await editor
+                .innerText()
+                .catch(() => "")
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+
+          const editorTextContent =
+            (
+              await editor
+                .textContent()
+                .catch(() => "")
+            ) || "";
+
+          const normalizedEditorTextContent =
+            editorTextContent
+              .replace(/\s+/g, " ")
+              .trim();
+
+          finalCaptionText =
+            editorText.length >= normalizedEditorTextContent.length
+              ? editorText
+              : normalizedEditorTextContent;
+
+          if (
+            finalCaptionText.includes(
+              expectedCaptionText,
+            )
+          ) {
+            break;
+          }
+        }
 
         if (
-          !await editor
-            .isVisible()
-            .catch(() => false)
-        ) {
-          continue;
-        }
-
-        finalCaptionText =
-          (
-            await editor
-              .innerText()
-              .catch(() => "")
+          finalCaptionText.includes(
+            expectedCaptionText,
           )
-            .replace(
-              /\s+/g,
-              " ",
-            )
-            .trim();
-
-        if (finalCaptionText) {
+        ) {
           break;
         }
+
+        await page.waitForTimeout(500);
       }
 
       if (
         !finalCaptionText.includes(
-          caption,
+          expectedCaptionText,
         )
       ) {
         throw new Error(
           "Facebook caption disappeared after final verification.",
         );
       }
+
+      if (imagePaths.length > 0) {
+        const finalMediaPreviewCount =
+          await countFacebookComposerImagePreviews(
+            visibleComposerDialogs,
+          );
+
+        attachedMediaCount = Math.max(
+          0,
+          finalMediaPreviewCount - baselineMediaCount,
+        );
+        imageAttached = attachedMediaCount >= imagePaths.length;
+
+        if (!imageAttached) {
+          throw new Error(
+            [
+              "Facebook image previews disappeared before final verification.",
+              `Expected ${imagePaths.length} image(s),`,
+              `attached ${attachedMediaCount}.`,
+            ].join(" "),
+          );
+        }
+      }
+
+      session.preparedFacebookMediaCount = attachedMediaCount;
 
       completeTraceStep({
         stepKey:
@@ -4307,10 +5232,10 @@ app.post(
             : "FAILED",
         metadata: {
           ...composerStability,
-          captionFilled:
-            captionResult.filled,
-          finalCaptionLength:
-            finalCaptionText.length,
+          captionFilled: captionResult.filled,
+          finalCaptionLength: finalCaptionText.length,
+          expectedMediaCount: imagePaths.length,
+          attachedMediaCount,
         },
         errorMessage:
           composerStability.stable
@@ -4373,6 +5298,8 @@ app.post(
         captionLength:
           captionResult.writtenLength,
         imageAttached,
+        expectedMediaCount: imagePaths.length,
+        attachedMediaCount,
         readyForReview: true,
         published: false,
         dialogHandling:
@@ -4461,6 +5388,157 @@ app.post(
               }
             : null,
       });
+    } finally {
+      await stagedImageCleanup?.().catch(
+        () => undefined,
+      );
+    }
+  },
+);
+
+
+app.post(
+  "/profiles/:profileKey/instagram/prepare-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+
+    const input = request.body as {
+      caption?: string;
+      imagePath?: string | null;
+      imageUrl?: string | null;
+      imagePaths?: string[];
+      imageUrls?: string[];
+    };
+    const caption = input.caption?.trim();
+    if (!caption) {
+      response.status(400).json({ success: false, message: "Instagram caption is required." });
+      return;
+    }
+
+    let imagePaths = (Array.isArray(input.imagePaths) ? input.imagePaths : [])
+      .map((value) => typeof value === "string" ? value.trim() : "")
+      .filter((value): value is string => Boolean(value));
+    if (!imagePaths.length && input.imagePath?.trim()) {
+      imagePaths = [input.imagePath.trim()];
+    }
+    const imageUrls = (Array.isArray(input.imageUrls) ? input.imageUrls : [])
+      .map((value) => typeof value === "string" ? value.trim() : "")
+      .filter((value): value is string => Boolean(value));
+    if (!imageUrls.length && input.imageUrl?.trim()) {
+      imageUrls.push(input.imageUrl.trim());
+    }
+    let stagingDirectory: string | null = null;
+    let page: Page | null = null;
+    let keepPageOpen = false;
+    try {
+      if (imagePaths.length + imageUrls.length > 10) throw new Error("Instagram carousel supports up to 10 images.");
+      if (imageUrls.length) {
+        stagingDirectory = await mkdtemp(path.join(tmpdir(), "atlas-instagram-image-"));
+        for (const [index, imageUrl] of imageUrls.entries()) {
+          const parsed = new URL(imageUrl);
+          if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Image URL must use http or https.");
+          const imageResponse = await fetch(imageUrl);
+          if (!imageResponse.ok) throw new Error(`Unable to download image ${index + 1} (HTTP ${imageResponse.status}).`);
+          const bytes = Buffer.from(await imageResponse.arrayBuffer());
+          if (!bytes.length) throw new Error(`Remote image ${index + 1} is empty.`);
+          const imagePath = path.join(stagingDirectory, `upload-${index + 1}.jpg`);
+          await writeFile(imagePath, bytes);
+          imagePaths.push(imagePath);
+        }
+      }
+      if (!imagePaths.length) throw new Error("Instagram browser publishing requires an image asset.");
+      await Promise.all(imagePaths.map((imagePath) => access(imagePath)));
+
+      page = await session.context.newPage();
+      await page.goto("https://www.instagram.com/", { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForTimeout(1200);
+      const url = page.url().toLowerCase();
+      const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
+      const loginRequired = url.includes("/accounts/login") || await page.locator('input[name="username"], input[name="password"]').count().then((count) => count > 0).catch(() => false) || bodyText.includes("log in") && bodyText.includes("sign up");
+      if (loginRequired) {
+        await page.close().catch(() => undefined);
+        page = null;
+        response.status(400).json({ success: false, loginRequired: true, message: "Instagram login is required." });
+        return;
+      }
+
+      await openInstagramComposer(page);
+      const attachedMediaCount = await attachInstagramMedia(page, imagePaths);
+      await clickInstagramNext(page);
+      await clickInstagramNext(page);
+      await fillInstagramCaption(page, caption);
+
+      const dialog = findInstagramDialog(page);
+      await dialog.waitFor({ state: "visible", timeout: 10000 }).catch(() => undefined);
+      keepPageOpen = true;
+      response.json({ success: true, readyForReview: true, published: false, imageAttached: attachedMediaCount === imagePaths.length, attachedMediaCount, browserProfileKey: session.browserProfileKey, page: { title: await page.title(), url: page.url() }, preparedAt: new Date().toISOString() });
+    } catch (error) {
+      if (page && !keepPageOpen) {
+        await page.close().catch(() => undefined);
+      }
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to prepare Instagram post." });
+    } finally {
+      if (stagingDirectory) await rm(stagingDirectory, { recursive: true, force: true }).catch(() => undefined);
+    }
+  },
+);
+
+app.post(
+  "/profiles/:profileKey/instagram/publish-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+    const input = request.body as { confirmation?: string };
+    if (input.confirmation !== "PUBLISH") {
+      response.status(400).json({ success: false, message: 'Explicit confirmation "PUBLISH" is required.' });
+      return;
+    }
+    try {
+      const page = session.context.pages().at(-1);
+      if (!page) throw new Error("No active browser page was found.");
+      const dialog = findInstagramDialog(page);
+      await dialog.waitFor({ state: "visible", timeout: 5000 });
+      const shareConfirmed = await clickInstagramShare(page);
+      const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
+      const confirmed = shareConfirmed || /post shared|your post has been shared|shared|posted/.test(bodyText);
+      if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
+      response.json({ success: true, published: true, verification: { status: "CONFIRMED" }, page: { title: await page.title(), url: page.url() }, publishedAt: new Date().toISOString() });
+    } catch (error) {
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to publish Instagram post." });
+    }
+  },
+);
+
+app.post(
+  "/profiles/:profileKey/instagram/discard-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+
+    try {
+      const page = session.context.pages().at(-1);
+      if (!page) {
+        response.json({ success: true, discarded: false, alreadyClosed: true });
+        return;
+      }
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await page.close().catch(() => undefined);
+      response.json({ success: true, discarded: true, alreadyClosed: false });
+    } catch (error) {
+      response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to discard Instagram post." });
     }
   },
 );
@@ -5087,12 +6165,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const title =
         await page.title();
@@ -5441,12 +6517,10 @@ app.post(
     }
 
     try {
-      const pages =
-        session.context.pages();
-
       const page =
-        pages.at(-1) ||
-        (await session.context.newPage());
+        await getPreferredFacebookPage(
+          session.context,
+        );
 
       const discoveryUrl =
         "https://www.facebook.com/pages/?category=your_pages";
@@ -5524,7 +6598,7 @@ app.post(
         return;
       }
 
-      const discovered =
+      const discoveredCandidates =
         await page.evaluate(() => {
           type PageCandidate = {
             pageId: string | null;
@@ -5768,6 +6842,11 @@ app.post(
             unique.values(),
           );
         });
+
+      const discovered =
+        filterFacebookPageCandidates(
+          discoveredCandidates,
+        );
 
       response.json({
         success: true,

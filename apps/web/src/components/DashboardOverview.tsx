@@ -479,7 +479,7 @@ export function DashboardOverview() {
             {upcoming.map((post) => (
               <div className={styles.listItem} key={post.id}>
                 <div className={styles.platformIcon}>
-                  {post.platform === "FACEBOOK" ? "f" : "✈"}
+                  {post.platform === "FACEBOOK" ? "f" : post.platform === "TELEGRAM" ? "✈" : "◎"}
                 </div>
 
                 <div className={styles.listContent}>
