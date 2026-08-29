@@ -21,25 +21,37 @@ function taskFixture(): SupervisorTask {
 }
 
 describe('MemorySupervisorTaskStore', () => {
-  it('saves and returns cloned tasks', () => {
+  it('exposes asynchronous store operations', async () => {
     const store = new MemorySupervisorTaskStore();
-    const saved = store.create(taskFixture());
+
+    const createResult = store.create(taskFixture());
+    expect(createResult).toBeInstanceOf(Promise);
+    await createResult;
+
+    expect(store.get('ATLAS-1')).toBeInstanceOf(Promise);
+    expect(store.list()).toBeInstanceOf(Promise);
+    expect(store.save(taskFixture())).toBeInstanceOf(Promise);
+  });
+
+  it('saves and returns cloned tasks', async () => {
+    const store = new MemorySupervisorTaskStore();
+    const saved = await store.create(taskFixture());
 
     saved.objective = 'mutated';
     saved.allowedPaths.push('b.ts');
 
-    const stored = store.get(saved.id);
+    const stored = await store.get(saved.id);
     expect(stored?.objective).toBe('Original objective');
     expect(stored?.allowedPaths).toEqual(['a.ts']);
   });
 
-  it('returns cloned task lists', () => {
+  it('returns cloned task lists', async () => {
     const store = new MemorySupervisorTaskStore();
-    store.create(taskFixture());
+    await store.create(taskFixture());
 
-    const listed = store.list();
+    const listed = await store.list();
     listed[0].objective = 'mutated';
 
-    expect(store.get('ATLAS-1')?.objective).toBe('Original objective');
+    expect((await store.get('ATLAS-1'))?.objective).toBe('Original objective');
   });
 });
