@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import type { SupervisorAction } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
   SupervisorExecution,
@@ -29,6 +30,22 @@ const REQUIRED_EVIDENCE: RequiredEvidenceField[] = [
   'remainingRisk',
 ];
 
+const PROTECTED_INTEGRATION_ACTIONS: SupervisorAction[] = [
+  'merge',
+  'rebase',
+  'squash',
+  'cherry_pick',
+  'auto_merge',
+  'force_push',
+  'delete_branch_for_integration',
+];
+
+const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
+  'QUEUED',
+  'DISPATCHED',
+  'RUNNING',
+];
+
 @Injectable()
 export class WorkerDispatcherService {
   private sequence = 0;
@@ -49,6 +66,18 @@ export class WorkerDispatcherService {
         code: 'task_not_dispatchable',
         current: task.status,
         required: 'WORKING',
+      });
+    }
+
+    const existingExecutions = await this.executionStore.listByTask(taskId);
+    if (
+      existingExecutions.some((execution) =>
+        ACTIVE_EXECUTION_STATUSES.includes(execution.status),
+      )
+    ) {
+      throw new ConflictException({
+        code: 'active_execution_exists',
+        taskId,
       });
     }
 
@@ -80,7 +109,9 @@ export class WorkerDispatcherService {
       workerRole: task.owner,
       objective: task.objective,
       allowedPaths: [...task.allowedPaths],
-      forbiddenActions: [...task.forbiddenActions],
+      forbiddenActions: Array.from(
+        new Set([...task.forbiddenActions, ...PROTECTED_INTEGRATION_ACTIONS]),
+      ),
       dependencies: [...task.dependsOn],
       acceptance: [...task.acceptance],
       requiredEvidence: [...REQUIRED_EVIDENCE],
@@ -133,18 +164,20 @@ export class WorkerDispatcherService {
   ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
-    if (!result.summary?.trim()) {
-      throw new BadRequestException('worker_result_summary_required');
-    }
+    this.validateWorkerResult(result);
 
     execution.status = 'COMPLETED';
     execution.result = {
       summary: result.summary.trim(),
       evidence: {
         ...result.evidence,
+        rootCause: result.evidence.rootCause.trim(),
         changedFiles: [...result.evidence.changedFiles],
         tests: [...result.evidence.tests],
+        build: result.evidence.build.trim(),
         regression: [...result.evidence.regression],
+        deploymentState: result.evidence.deploymentState.trim(),
+        gitState: result.evidence.gitState.trim(),
         remainingRisk: [...result.evidence.remainingRisk],
       },
     };
@@ -203,6 +236,26 @@ export class WorkerDispatcherService {
         code: 'invalid_execution_transition',
         current: execution.status,
         allowedFrom: allowed,
+      });
+    }
+  }
+
+  private validateWorkerResult(result: WorkerExecutionResult) {
+    const evidence = result?.evidence;
+    const valid =
+      Boolean(result?.summary?.trim()) &&
+      Boolean(evidence?.rootCause?.trim()) &&
+      Array.isArray(evidence?.changedFiles) &&
+      Array.isArray(evidence?.tests) &&
+      Boolean(evidence?.build?.trim()) &&
+      Array.isArray(evidence?.regression) &&
+      Boolean(evidence?.deploymentState?.trim()) &&
+      Boolean(evidence?.gitState?.trim()) &&
+      Array.isArray(evidence?.remainingRisk);
+
+    if (!valid) {
+      throw new BadRequestException({
+        code: 'invalid_worker_result',
       });
     }
   }
