@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
@@ -28,7 +28,22 @@ describe('AgentSupervisorService', () => {
     expect(task.owner).toBe('frontend');
   });
 
-  it('blocks a second active task that wants the same mutable file', async () => {
+  it('rejects owners outside the worker role whitelist', async () => {
+    await expect(
+      service.createTask({
+        objective: 'Invalid worker task',
+        owner: 'unknown-worker' as never,
+        allowedPaths: ['apps/api/src/example.ts'],
+        forbiddenActions: [],
+        dependsOn: [],
+        acceptance: ['passes'],
+      }),
+    ).rejects.toMatchObject({
+      response: 'worker_owner_required',
+    });
+  });
+
+  it('blocks a second active task that wants the same mutable file with a conflict response', async () => {
     const first = await service.createTask({
       objective: 'First task',
       owner: 'frontend',
@@ -49,7 +64,7 @@ describe('AgentSupervisorService', () => {
     await service.startTask(first.id);
 
     await expect(service.startTask(second.id)).rejects.toBeInstanceOf(
-      BadRequestException,
+      ConflictException,
     );
   });
 
