@@ -1129,6 +1129,17 @@ async function inspectPublicIp(
   }
 }
 
+app.get(
+  "/",
+  (_request, response) => {
+    response.json({
+      ok: true,
+      service:
+        "atlas-browser-worker",
+    });
+  },
+);
+
 app.use(
   requireWorkerToken,
 );
