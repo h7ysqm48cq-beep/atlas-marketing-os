@@ -209,3 +209,18 @@ export type EngineeringAudit = Prisma.EngineeringAuditModel
  * 
  */
 export type ImageGenerationSetting = Prisma.ImageGenerationSettingModel
+/**
+ * Model SupervisorTask
+ * 
+ */
+export type SupervisorTask = Prisma.SupervisorTaskModel
+/**
+ * Model SupervisorExecution
+ * 
+ */
+export type SupervisorExecution = Prisma.SupervisorExecutionModel
+/**
+ * Model SupervisorFileLock
+ * 
+ */
+export type SupervisorFileLock = Prisma.SupervisorFileLockModel

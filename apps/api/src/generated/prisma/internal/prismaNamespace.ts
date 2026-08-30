@@ -430,7 +430,10 @@ export const ModelName = {
   BrandMemoryFact: 'BrandMemoryFact',
   EngineeringSnapshot: 'EngineeringSnapshot',
   EngineeringAudit: 'EngineeringAudit',
-  ImageGenerationSetting: 'ImageGenerationSetting'
+  ImageGenerationSetting: 'ImageGenerationSetting',
+  SupervisorTask: 'SupervisorTask',
+  SupervisorExecution: 'SupervisorExecution',
+  SupervisorFileLock: 'SupervisorFileLock'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -446,7 +449,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsRun" | "sportsNewsSetting" | "aiRuntimeSetting" | "automationSetting" | "copilotConversation" | "copilotConversationEmbedding" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit" | "imageGenerationSetting"
+    modelProps: "backgroundJob" | "workspace" | "brand" | "campaign" | "campaignIdea" | "generationHistory" | "contentVersion" | "asset" | "knowledgeDocument" | "knowledgeEmbedding" | "aiUsage" | "socialChannel" | "socialChannelRuntimeProfile" | "browserAccount" | "browserAutomationPolicy" | "browserAccountEvent" | "browserAccountLease" | "browserAccountChannel" | "scheduledPost" | "publishAttempt" | "browserActionHistory" | "browserActionTrace" | "sportsNewsRun" | "sportsNewsSetting" | "aiRuntimeSetting" | "automationSetting" | "copilotConversation" | "copilotConversationEmbedding" | "copilotConversationMessage" | "promptTemplate" | "brandMemoryFact" | "engineeringSnapshot" | "engineeringAudit" | "imageGenerationSetting" | "supervisorTask" | "supervisorExecution" | "supervisorFileLock"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2966,6 +2969,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SupervisorTask: {
+      payload: Prisma.$SupervisorTaskPayload<ExtArgs>
+      fields: Prisma.SupervisorTaskFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SupervisorTaskFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SupervisorTaskFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        findFirst: {
+          args: Prisma.SupervisorTaskFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SupervisorTaskFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        findMany: {
+          args: Prisma.SupervisorTaskFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>[]
+        }
+        create: {
+          args: Prisma.SupervisorTaskCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        createMany: {
+          args: Prisma.SupervisorTaskCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SupervisorTaskCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>[]
+        }
+        delete: {
+          args: Prisma.SupervisorTaskDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        update: {
+          args: Prisma.SupervisorTaskUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        deleteMany: {
+          args: Prisma.SupervisorTaskDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SupervisorTaskUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SupervisorTaskUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>[]
+        }
+        upsert: {
+          args: Prisma.SupervisorTaskUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorTaskPayload>
+        }
+        aggregate: {
+          args: Prisma.SupervisorTaskAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSupervisorTask>
+        }
+        groupBy: {
+          args: Prisma.SupervisorTaskGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorTaskGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SupervisorTaskCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorTaskCountAggregateOutputType> | number
+        }
+      }
+    }
+    SupervisorExecution: {
+      payload: Prisma.$SupervisorExecutionPayload<ExtArgs>
+      fields: Prisma.SupervisorExecutionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SupervisorExecutionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SupervisorExecutionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        findFirst: {
+          args: Prisma.SupervisorExecutionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SupervisorExecutionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        findMany: {
+          args: Prisma.SupervisorExecutionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>[]
+        }
+        create: {
+          args: Prisma.SupervisorExecutionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        createMany: {
+          args: Prisma.SupervisorExecutionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SupervisorExecutionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>[]
+        }
+        delete: {
+          args: Prisma.SupervisorExecutionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        update: {
+          args: Prisma.SupervisorExecutionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        deleteMany: {
+          args: Prisma.SupervisorExecutionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SupervisorExecutionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SupervisorExecutionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>[]
+        }
+        upsert: {
+          args: Prisma.SupervisorExecutionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorExecutionPayload>
+        }
+        aggregate: {
+          args: Prisma.SupervisorExecutionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSupervisorExecution>
+        }
+        groupBy: {
+          args: Prisma.SupervisorExecutionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorExecutionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SupervisorExecutionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorExecutionCountAggregateOutputType> | number
+        }
+      }
+    }
+    SupervisorFileLock: {
+      payload: Prisma.$SupervisorFileLockPayload<ExtArgs>
+      fields: Prisma.SupervisorFileLockFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SupervisorFileLockFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SupervisorFileLockFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        findFirst: {
+          args: Prisma.SupervisorFileLockFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SupervisorFileLockFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        findMany: {
+          args: Prisma.SupervisorFileLockFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>[]
+        }
+        create: {
+          args: Prisma.SupervisorFileLockCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        createMany: {
+          args: Prisma.SupervisorFileLockCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SupervisorFileLockCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>[]
+        }
+        delete: {
+          args: Prisma.SupervisorFileLockDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        update: {
+          args: Prisma.SupervisorFileLockUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        deleteMany: {
+          args: Prisma.SupervisorFileLockDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SupervisorFileLockUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SupervisorFileLockUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>[]
+        }
+        upsert: {
+          args: Prisma.SupervisorFileLockUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupervisorFileLockPayload>
+        }
+        aggregate: {
+          args: Prisma.SupervisorFileLockAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSupervisorFileLock>
+        }
+        groupBy: {
+          args: Prisma.SupervisorFileLockGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorFileLockGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SupervisorFileLockCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupervisorFileLockCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3883,6 +4108,50 @@ export const ImageGenerationSettingScalarFieldEnum = {
 export type ImageGenerationSettingScalarFieldEnum = (typeof ImageGenerationSettingScalarFieldEnum)[keyof typeof ImageGenerationSettingScalarFieldEnum]
 
 
+export const SupervisorTaskScalarFieldEnum = {
+  id: 'id',
+  objective: 'objective',
+  owner: 'owner',
+  status: 'status',
+  allowedPaths: 'allowedPaths',
+  forbiddenActions: 'forbiddenActions',
+  dependsOn: 'dependsOn',
+  acceptance: 'acceptance',
+  evidence: 'evidence',
+  blockingReason: 'blockingReason',
+  failureReason: 'failureReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SupervisorTaskScalarFieldEnum = (typeof SupervisorTaskScalarFieldEnum)[keyof typeof SupervisorTaskScalarFieldEnum]
+
+
+export const SupervisorExecutionScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  workerRole: 'workerRole',
+  status: 'status',
+  assignment: 'assignment',
+  result: 'result',
+  error: 'error',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+} as const
+
+export type SupervisorExecutionScalarFieldEnum = (typeof SupervisorExecutionScalarFieldEnum)[keyof typeof SupervisorExecutionScalarFieldEnum]
+
+
+export const SupervisorFileLockScalarFieldEnum = {
+  path: 'path',
+  taskId: 'taskId',
+  acquiredAt: 'acquiredAt'
+} as const
+
+export type SupervisorFileLockScalarFieldEnum = (typeof SupervisorFileLockScalarFieldEnum)[keyof typeof SupervisorFileLockScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -4478,6 +4747,9 @@ export type GlobalOmitConfig = {
   engineeringSnapshot?: Prisma.EngineeringSnapshotOmit
   engineeringAudit?: Prisma.EngineeringAuditOmit
   imageGenerationSetting?: Prisma.ImageGenerationSettingOmit
+  supervisorTask?: Prisma.SupervisorTaskOmit
+  supervisorExecution?: Prisma.SupervisorExecutionOmit
+  supervisorFileLock?: Prisma.SupervisorFileLockOmit
 }
 
 /* Types for Logging */

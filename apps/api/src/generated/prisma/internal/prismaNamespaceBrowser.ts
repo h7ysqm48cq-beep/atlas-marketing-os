@@ -84,7 +84,10 @@ export const ModelName = {
   BrandMemoryFact: 'BrandMemoryFact',
   EngineeringSnapshot: 'EngineeringSnapshot',
   EngineeringAudit: 'EngineeringAudit',
-  ImageGenerationSetting: 'ImageGenerationSetting'
+  ImageGenerationSetting: 'ImageGenerationSetting',
+  SupervisorTask: 'SupervisorTask',
+  SupervisorExecution: 'SupervisorExecution',
+  SupervisorFileLock: 'SupervisorFileLock'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -979,6 +982,50 @@ export const ImageGenerationSettingScalarFieldEnum = {
 } as const
 
 export type ImageGenerationSettingScalarFieldEnum = (typeof ImageGenerationSettingScalarFieldEnum)[keyof typeof ImageGenerationSettingScalarFieldEnum]
+
+
+export const SupervisorTaskScalarFieldEnum = {
+  id: 'id',
+  objective: 'objective',
+  owner: 'owner',
+  status: 'status',
+  allowedPaths: 'allowedPaths',
+  forbiddenActions: 'forbiddenActions',
+  dependsOn: 'dependsOn',
+  acceptance: 'acceptance',
+  evidence: 'evidence',
+  blockingReason: 'blockingReason',
+  failureReason: 'failureReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SupervisorTaskScalarFieldEnum = (typeof SupervisorTaskScalarFieldEnum)[keyof typeof SupervisorTaskScalarFieldEnum]
+
+
+export const SupervisorExecutionScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  workerRole: 'workerRole',
+  status: 'status',
+  assignment: 'assignment',
+  result: 'result',
+  error: 'error',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+} as const
+
+export type SupervisorExecutionScalarFieldEnum = (typeof SupervisorExecutionScalarFieldEnum)[keyof typeof SupervisorExecutionScalarFieldEnum]
+
+
+export const SupervisorFileLockScalarFieldEnum = {
+  path: 'path',
+  taskId: 'taskId',
+  acquiredAt: 'acquiredAt'
+} as const
+
+export type SupervisorFileLockScalarFieldEnum = (typeof SupervisorFileLockScalarFieldEnum)[keyof typeof SupervisorFileLockScalarFieldEnum]
 
 
 export const SortOrder = {
