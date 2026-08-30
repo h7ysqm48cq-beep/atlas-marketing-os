@@ -941,10 +941,24 @@ export function AutomationDashboard() {
     });
   }
 
-  async function openBrowser() {
-    if (!selectedBrowserChannelId) {
+  async function openBrowser(channelOverride?: Channel) {
+    const channelId =
+      channelOverride?.id ||
+      selectedBrowserChannelId;
+
+    const channelPlatform =
+      channelOverride?.platform ||
+      selectedBrowserPlatform;
+
+    if (!channelId) {
       setBrowserError(copy.noFacebookChannel);
       return;
+    }
+
+    if (channelOverride) {
+      setSelectedBrowserChannelId(
+        channelOverride.id,
+      );
     }
 
     setBrowserAction("open");
@@ -953,7 +967,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${channelId}/browser/open`,
         {
           method: "POST",
           headers: {
@@ -961,7 +975,7 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             headless: false,
-            ...(isInstagramBrowser
+            ...(channelPlatform === "INSTAGRAM"
               ? {
                   startUrl: "https://www.instagram.com/",
                 }
@@ -1477,6 +1491,15 @@ export function AutomationDashboard() {
                       href={detailsHref}
                       key={channel.id}
                       role="row"
+                      onClick={(event) => {
+                        if (!browserChannel) {
+                          return;
+                        }
+
+                        event.preventDefault();
+
+                        void openBrowser(channel);
+                      }}
                     >
                       <span className={styles.channelPlatformCell} role="cell">
                         <span
@@ -1495,8 +1518,13 @@ export function AutomationDashboard() {
                       </span>
 
                       <strong className={styles.channelNameCell} role="cell">
-                        {channel.primaryBrowserAccount?.displayName ||
-                          channel.name}
+                        {channel.name}
+
+                        {channel.primaryBrowserAccount?.displayName ? (
+                          <small>
+                            {channel.primaryBrowserAccount.displayName}
+                          </small>
+                        ) : null}
                       </strong>
 
                       <span className={styles.channelUsernameCell} role="cell">

@@ -147,13 +147,13 @@ test(
 
     const block = extractFunction(
       source,
-      "async function openBrowser()",
+      "async function openBrowser(channelOverride?: Channel)",
       "async function checkBrowserStatus()",
     );
 
     assert.match(
       block,
-      /\/automation\/channels\/\$\{selectedBrowserChannelId\}\/browser\/open/,
+      /\/automation\/channels\/\$\{channelId\}\/browser\/open/,
       "Automation must preserve the selected channel id",
     );
 
@@ -409,6 +409,120 @@ test(
       block,
       /\/automation\/channels\/\$\{requestedChannelId\}\/browser\/open/,
       "Instagram must still use the channel-level endpoint",
+    );
+  },
+);
+
+test(
+  "Connected platforms keeps the real channel Page name visible",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const start = source.indexOf(
+      "{dashboard.channels.map((channel) => {",
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "Connected platforms channel table not found",
+    );
+
+    const end = source.indexOf(
+      '<article id="publishing"',
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "Connected platforms channel table end not found",
+    );
+
+    const block = source.slice(start, end);
+
+    assert.match(
+      block,
+      /<strong className=\{styles\.channelNameCell\} role="cell">[\s\S]*\{channel\.name\}[\s\S]*<\/strong>/,
+      "the main Account column must keep the real channel/Page name visible",
+    );
+
+    assert.match(
+      block,
+      /channel\.primaryBrowserAccount\?\.displayName/,
+      "Browser Account identity may still be shown as secondary information",
+    );
+  },
+);
+
+test(
+  "Connected platform Facebook and Instagram rows open the selected channel directly in Live Browser",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const openBlock = extractFunction(
+      source,
+      "async function openBrowser(",
+      "async function checkBrowserStatus()",
+    );
+
+    assert.match(
+      openBlock,
+      /channelOverride\?: Channel/,
+      "direct channel click must be able to pass the exact selected channel",
+    );
+
+    assert.match(
+      openBlock,
+      /channelOverride\?\.id/,
+      "browser open must use the clicked channel id instead of stale selected state",
+    );
+
+    assert.match(
+      openBlock,
+      /channelOverride\?\.platform/,
+      "browser open must use the clicked channel platform",
+    );
+
+    assert.match(
+      openBlock,
+      /https:\/\/www\.instagram\.com\//,
+      "Instagram direct open must explicitly target instagram.com",
+    );
+
+    assert.match(
+      openBlock,
+      /connectSecureBrowserViewer\(\)/,
+      "direct browser open must authorize the Live Browser viewer",
+    );
+
+    assert.match(
+      openBlock,
+      /revealBrowserViewer\(\)/,
+      "direct browser open must reveal the viewer after opening",
+    );
+
+    const rowStart = source.indexOf(
+      "{dashboard.channels.map((channel) => {",
+    );
+
+    const rowEnd = source.indexOf(
+      '<article id="publishing"',
+      rowStart,
+    );
+
+    const rowBlock = source.slice(rowStart, rowEnd);
+
+    assert.match(
+      rowBlock,
+      /onClick=\{[\s\S]*browserChannel[\s\S]*openBrowser\(channel\)/,
+      "Facebook and Instagram Connected-platform rows must directly open their channel",
     );
   },
 );
