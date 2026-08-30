@@ -71,6 +71,7 @@ type Channel = {
   primaryBrowserAccount?: {
     id: string;
     displayName: string;
+    facebookUserName: string | null;
     browserProfileKey: string;
     isPrimary: boolean;
   } | null;
@@ -1472,6 +1473,14 @@ export function AutomationDashboard() {
                   const primaryBrowserAccount =
                     channel.primaryBrowserAccount;
 
+                  const connectedPlatformIdentity =
+                    channel.platform === "FACEBOOK"
+                      ? (
+                          primaryBrowserAccount?.facebookUserName ||
+                          primaryBrowserAccount?.displayName
+                        )
+                      : primaryBrowserAccount?.displayName;
+
                   const browserChannel =
                     channel.platform === "FACEBOOK" ||
                     channel.platform === "INSTAGRAM";
@@ -1520,10 +1529,8 @@ export function AutomationDashboard() {
                       <strong className={styles.channelNameCell} role="cell">
                         {channel.name}
 
-                        {channel.primaryBrowserAccount?.displayName ? (
-                          <small>
-                            {channel.primaryBrowserAccount.displayName}
-                          </small>
+                        {connectedPlatformIdentity ? (
+                          <small>{connectedPlatformIdentity}</small>
                         ) : null}
                       </strong>
 
