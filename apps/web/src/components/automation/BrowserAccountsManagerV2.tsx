@@ -86,10 +86,12 @@ function getErrorMessage(body: Record<string, unknown>, fallback: string) {
 export function BrowserAccountsManagerV2({
   requestedAccountId,
   requestedChannelId,
+  requestedChannelPlatform,
   requestedViewerOpen = false,
 }: {
   requestedAccountId?: string | null;
   requestedChannelId?: string | null;
+  requestedChannelPlatform?: "FACEBOOK" | "INSTAGRAM" | null;
   requestedViewerOpen?: boolean;
 }) {
   const {
@@ -860,6 +862,11 @@ export function BrowserAccountsManagerV2({
     const openPayload = requestedChannelId
       ? {
           headless: false,
+          ...(requestedChannelPlatform === "INSTAGRAM"
+            ? {
+                startUrl: "https://www.instagram.com/",
+              }
+            : {}),
         }
       : {
           headless: false,
@@ -897,6 +904,11 @@ export function BrowserAccountsManagerV2({
     setViewerOpen(true);
 
     setViewerKey((current) => current + 1);
+
+    if (requestedChannelPlatform === "INSTAGRAM") {
+      setActionMessage("Instagram browser opened.");
+      return;
+    }
 
     /*
      * Browser running and Facebook logged in
@@ -950,6 +962,18 @@ export function BrowserAccountsManagerV2({
 
     automaticViewerRequestedRef.current = true;
 
+    if (runtime.running && requestedChannelId) {
+      void openBrowser(selectedAccount.id).catch((error) => {
+        setGlobalError(
+          error instanceof Error
+            ? error.message
+            : "Unable to open Live Browser.",
+        );
+      });
+
+      return;
+    }
+
     if (runtime.running) {
       void connectSecureBrowserViewer()
         .then(() => {
@@ -979,6 +1003,8 @@ export function BrowserAccountsManagerV2({
     });
   }, [
     requestedViewerOpen,
+    requestedChannelId,
+    requestedChannelPlatform,
     selectedAccount,
     runtimes,
   ]);

@@ -68,6 +68,12 @@ type Channel = {
   status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
   lastConnectedAt: string | null;
   lastError: string | null;
+  primaryBrowserAccount?: {
+    id: string;
+    displayName: string;
+    browserProfileKey: string;
+    isPrimary: boolean;
+  } | null;
   _count: {
     scheduledPosts: number;
   };
@@ -1449,11 +1455,20 @@ export function AutomationDashboard() {
                 </div>
 
                 {dashboard.channels.map((channel) => {
+                  const primaryBrowserAccount =
+                    channel.primaryBrowserAccount;
+
+                  const browserChannel =
+                    channel.platform === "FACEBOOK" ||
+                    channel.platform === "INSTAGRAM";
+
                   const detailsHref =
-                    channel.platform === "FACEBOOK"
-                      ? `/automation/browser-accounts?channelId=${encodeURIComponent(
+                    browserChannel && primaryBrowserAccount
+                      ? `/automation/browser-accounts?accountId=${encodeURIComponent(
+                          primaryBrowserAccount.id,
+                        )}&channelId=${encodeURIComponent(
                           channel.id,
-                        )}`
+                        )}&platform=${encodeURIComponent(channel.platform)}&viewer=1`
                       : `/settings?channelId=${encodeURIComponent(channel.id)}`;
 
                   return (
@@ -1480,7 +1495,8 @@ export function AutomationDashboard() {
                       </span>
 
                       <strong className={styles.channelNameCell} role="cell">
-                        {channel.name}
+                        {channel.primaryBrowserAccount?.displayName ||
+                          channel.name}
                       </strong>
 
                       <span className={styles.channelUsernameCell} role="cell">

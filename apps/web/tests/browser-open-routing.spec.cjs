@@ -237,3 +237,178 @@ test(
     );
   },
 );
+
+test(
+  "Connected platforms direct browser link selects the channel primary Browser Account",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    assert.match(
+      source,
+      /primaryBrowserAccount\??:/,
+      "Channel data must expose its primary Browser Account",
+    );
+
+    assert.match(
+      source,
+      /channel\.primaryBrowserAccount/,
+      "Connected platforms must use the channel primary Browser Account",
+    );
+
+    assert.match(
+      source,
+      /accountId=\$\{encodeURIComponent\([\s\S]*primaryBrowserAccount\.id/,
+      "direct browser link must carry the correct Browser Account id",
+    );
+
+    assert.match(
+      source,
+      /channelId=\$\{encodeURIComponent\([\s\S]*channel\.id/,
+      "direct browser link must preserve the selected channel id",
+    );
+
+    assert.match(
+      source,
+      /viewer=1/,
+      "Connected platforms must open directly into Live Browser",
+    );
+
+    assert.match(
+      source,
+      /channel\.primaryBrowserAccount\?\.displayName/,
+      "Connected platforms must show the linked Browser Account name instead of a default account",
+    );
+  },
+);
+
+test(
+  "Connected platforms carries channel platform into Browser Accounts",
+  async () => {
+    const dashboardSource = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const pageSource = await readFile(
+      "apps/web/src/app/automation/browser-accounts/page.tsx",
+      "utf8",
+    );
+
+    assert.match(
+      dashboardSource,
+      /platform=\$\{encodeURIComponent\(channel\.platform\)\}/,
+      "direct browser link must preserve Facebook vs Instagram",
+    );
+
+    assert.match(
+      pageSource,
+      /platform\?: string/,
+      "Browser Accounts page must read the requested platform",
+    );
+
+    assert.match(
+      pageSource,
+      /requestedChannelPlatform=\{[\s\S]*params\.platform/,
+      "Browser Accounts page must forward the requested platform",
+    );
+  },
+);
+
+test(
+  "direct channel viewer still routes an already-running Browser Account",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/BrowserAccountsManagerV2.tsx",
+      "utf8",
+    );
+
+    const openBrowserStart = source.indexOf(
+      "async function openBrowser(accountId: string)",
+    );
+
+    assert.notEqual(
+      openBrowserStart,
+      -1,
+      "openBrowser function not found",
+    );
+
+    const start = source.indexOf(
+      "useEffect(() => {",
+      openBrowserStart,
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "automatic viewer effect not found",
+    );
+
+    const end = source.indexOf(
+      "async function verifyLogin(",
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "automatic viewer effect end not found",
+    );
+
+    const block = source.slice(start, end);
+
+    assert.match(
+      block,
+      /requestedChannelId/,
+      "automatic viewer must recognize channel-specific direct opens",
+    );
+
+    assert.match(
+      block,
+      /requestedChannelId[\s\S]*openBrowser\(selectedAccount\.id\)/,
+      "channel-specific viewer must route the Page even if the Browser Account is already running",
+    );
+  },
+);
+
+test(
+  "Instagram direct Live Browser opens Instagram while Facebook keeps API Page resolution",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/BrowserAccountsManagerV2.tsx",
+      "utf8",
+    );
+
+    assert.match(
+      source,
+      /requestedChannelPlatform\?:[\s\S]*FACEBOOK[\s\S]*INSTAGRAM/,
+      "Browser Accounts manager must accept channel platform context",
+    );
+
+    const block = extractFunction(
+      source,
+      "async function openBrowser(accountId: string)",
+      "async function verifyLogin(",
+    );
+
+    assert.match(
+      block,
+      /requestedChannelPlatform[\s\S]*INSTAGRAM/,
+      "channel open must distinguish Instagram",
+    );
+
+    assert.match(
+      block,
+      /https:\/\/www\.instagram\.com\//,
+      "Instagram channel must open instagram.com",
+    );
+
+    assert.match(
+      block,
+      /\/automation\/channels\/\$\{requestedChannelId\}\/browser\/open/,
+      "Instagram must still use the channel-level endpoint",
+    );
+  },
+);
