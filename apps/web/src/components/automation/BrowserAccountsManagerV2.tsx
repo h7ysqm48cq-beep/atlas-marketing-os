@@ -926,7 +926,34 @@ export function BrowserAccountsManagerV2({
       return;
     }
 
+    const runtime =
+      runtimes[selectedAccount.id];
+
+    if (!runtime || runtime.loading) {
+      return;
+    }
+
     automaticViewerRequestedRef.current = true;
+
+    if (runtime.running) {
+      void connectSecureBrowserViewer()
+        .then(() => {
+          setViewerOpen(true);
+          setViewerKey((current) => current + 1);
+          setActionMessage(
+            "Browser profile is already running.",
+          );
+        })
+        .catch((error) => {
+          setGlobalError(
+            error instanceof Error
+              ? error.message
+              : "Unable to open Live Browser.",
+          );
+        });
+
+      return;
+    }
 
     void openBrowser(selectedAccount.id).catch((error) => {
       setGlobalError(
@@ -935,7 +962,11 @@ export function BrowserAccountsManagerV2({
           : "Unable to open Live Browser.",
       );
     });
-  }, [requestedViewerOpen, selectedAccount]);
+  }, [
+    requestedViewerOpen,
+    selectedAccount,
+    runtimes,
+  ]);
 
   async function verifyLogin(accountId: string) {
     setActionMessage("");

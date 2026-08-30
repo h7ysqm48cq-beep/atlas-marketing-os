@@ -85,3 +85,54 @@ test(
     );
   },
 );
+
+test(
+  "automatic Live Browser viewer does not reopen an already-running Browser Account",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/BrowserAccountsManagerV2.tsx",
+      "utf8",
+    );
+
+    const start = source.indexOf(
+      "if (\n      !requestedViewerOpen",
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "automatic viewer effect not found",
+    );
+
+    const end = source.indexOf(
+      "async function verifyLogin(",
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "automatic viewer effect end not found",
+    );
+
+    const block = source.slice(start, end);
+
+    assert.match(
+      block,
+      /runtimes\[selectedAccount\.id\]/,
+      "automatic viewer must wait for the selected Browser Account runtime",
+    );
+
+    assert.match(
+      block,
+      /connectSecureBrowserViewer\(\)/,
+      "an already-running browser must only connect the viewer",
+    );
+
+    assert.match(
+      block,
+      /running/,
+      "automatic viewer must branch on the existing browser running state",
+    );
+  },
+);
