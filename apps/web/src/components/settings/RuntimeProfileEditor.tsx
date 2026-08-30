@@ -626,8 +626,6 @@ export function RuntimeProfileEditor({
             },
             body: JSON.stringify({
               headless: false,
-              startUrl:
-                "https://www.facebook.com/",
             }),
           },
         );
