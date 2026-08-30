@@ -6608,7 +6608,6 @@ app.post(
         request.body?.captureFacebookIdentity === true;
 
       const facebookAccountIdentity =
-        captureFacebookIdentity &&
         !loginLikely &&
         url.includes("facebook.com")
           ? await inspectFacebookAccountIdentity({
@@ -6616,6 +6615,9 @@ app.post(
                 session.context.cookies(
                   "https://www.facebook.com/",
                 ),
+
+              captureProfileName:
+                captureFacebookIdentity,
 
               openTemporaryTab: async () => {
                 const identityPage =

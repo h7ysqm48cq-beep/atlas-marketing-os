@@ -136,3 +136,35 @@ test("does not open a temporary tab when Facebook c_user is unavailable", async 
   assert.equal(result, null);
   assert.equal(opened, 0);
 });
+
+
+test("returns Facebook c_user without opening a temporary tab when profile-name capture is disabled", async () => {
+  let opened = 0;
+
+  const result =
+    await inspectFacebookAccountIdentity({
+      getCookies: async () => [
+        {
+          name: "c_user",
+          value: "1234567890",
+        },
+      ],
+
+      captureProfileName: false,
+
+      openTemporaryTab: async () => {
+        opened += 1;
+
+        return makeTab({
+          profileName: "Should Not Be Read",
+        }).tab;
+      },
+    });
+
+  assert.deepEqual(result, {
+    facebookUserId: "1234567890",
+    facebookUserName: null,
+  });
+
+  assert.equal(opened, 0);
+});

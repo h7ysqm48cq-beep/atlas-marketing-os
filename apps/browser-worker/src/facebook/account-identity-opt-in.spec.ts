@@ -41,7 +41,7 @@ const inspectRoute =
   );
 
 test(
-  "Facebook personal identity capture is opt-in",
+  "Facebook profile-name capture is opt-in while c_user identity is always inspected",
   () => {
     assert.match(
       inspectRoute,
@@ -50,7 +50,12 @@ test(
 
     assert.match(
       inspectRoute,
-      /captureFacebookIdentity[\s\S]*inspectFacebookAccountIdentity/,
+      /captureProfileName:\s*captureFacebookIdentity/,
+    );
+
+    assert.doesNotMatch(
+      inspectRoute,
+      /facebookAccountIdentity\s*=\s*captureFacebookIdentity\s*&&/,
     );
   },
 );

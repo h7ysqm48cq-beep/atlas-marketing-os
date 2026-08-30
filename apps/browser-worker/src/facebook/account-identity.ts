@@ -16,6 +16,7 @@ export type FacebookAccountIdentity = {
 
 export async function inspectFacebookAccountIdentity(input: {
   getCookies: () => Promise<FacebookCookie[]>;
+  captureProfileName?: boolean;
   openTemporaryTab: () => Promise<FacebookIdentityTab>;
 }): Promise<FacebookAccountIdentity | null> {
   let tab: FacebookIdentityTab | null = null;
@@ -31,6 +32,13 @@ export async function inspectFacebookAccountIdentity(input: {
 
     if (!facebookUserId) {
       return null;
+    }
+
+    if (input.captureProfileName === false) {
+      return {
+        facebookUserId,
+        facebookUserName: null,
+      };
     }
 
     tab = await input.openTemporaryTab();
