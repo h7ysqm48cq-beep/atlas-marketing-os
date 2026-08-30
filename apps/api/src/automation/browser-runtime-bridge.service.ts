@@ -104,9 +104,30 @@ export class BrowserRuntimeBridgeService {
           channelId,
         );
 
+    let resolvedInput = input;
+
+    if (!input?.startUrl?.trim()) {
+      try {
+        const target =
+          await this.runtimeProfiles
+            .getFacebookPublishingTarget(
+              channelId,
+            );
+
+        resolvedInput = {
+          ...input,
+          startUrl: target.targetUrl,
+        };
+      } catch (error) {
+        if (!(error instanceof BadRequestException)) {
+          throw error;
+        }
+      }
+    }
+
     return this.openProfile(
       profile,
-      input,
+      resolvedInput,
     );
   }
 
