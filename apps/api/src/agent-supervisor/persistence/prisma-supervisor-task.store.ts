@@ -3,7 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import type { PrismaService } from '../../database/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 import type { SupervisorTask } from '../agent-supervisor.types';
 import type { SupervisorTaskStore } from '../stores/supervisor-task.store';
 import {

@@ -4,7 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import type { PrismaService } from '../../database/prisma.service';
+import { PrismaService } from '../../database/prisma.service';
 import type { FileOwnershipStore } from '../stores/file-ownership.store';
 
 type SupervisorFileLockRecord = {
