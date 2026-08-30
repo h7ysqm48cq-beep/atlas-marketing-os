@@ -111,7 +111,10 @@ test("identity inspection failure is non-fatal and still closes the temporary ta
       openTemporaryTab: async () => fake.tab,
     });
 
-  assert.equal(result, null);
+  assert.deepEqual(result, {
+    facebookUserId: "1234567890",
+    facebookUserName: null,
+  });
   assert.equal(fake.closes, 1);
 });
 

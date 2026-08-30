@@ -19,28 +19,34 @@ export async function inspectFacebookAccountIdentity(input: {
   captureProfileName?: boolean;
   openTemporaryTab: () => Promise<FacebookIdentityTab>;
 }): Promise<FacebookAccountIdentity | null> {
-  let tab: FacebookIdentityTab | null = null;
+  let facebookUserId = "";
 
   try {
     const cookies = await input.getCookies();
 
-    const facebookUserId =
+    facebookUserId =
       cookies
         .find((cookie) => cookie.name === "c_user")
         ?.value
         .trim() || "";
+  } catch {
+    return null;
+  }
 
-    if (!facebookUserId) {
-      return null;
-    }
+  if (!facebookUserId) {
+    return null;
+  }
 
-    if (input.captureProfileName === false) {
-      return {
-        facebookUserId,
-        facebookUserName: null,
-      };
-    }
+  if (input.captureProfileName === false) {
+    return {
+      facebookUserId,
+      facebookUserName: null,
+    };
+  }
 
+  let tab: FacebookIdentityTab | null = null;
+
+  try {
     tab = await input.openTemporaryTab();
 
     await tab.goto(
@@ -57,7 +63,10 @@ export async function inspectFacebookAccountIdentity(input: {
       facebookUserName,
     };
   } catch {
-    return null;
+    return {
+      facebookUserId,
+      facebookUserName: null,
+    };
   } finally {
     if (tab) {
       try {
