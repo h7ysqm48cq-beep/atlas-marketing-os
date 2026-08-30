@@ -91,6 +91,7 @@ export class AutomationService {
                   select: {
                     id: true,
                     displayName: true,
+                    facebookUserName: true,
                     browserProfileKey: true,
                     browserProfileName: true,
                     loginStatus: true,
@@ -990,6 +991,7 @@ export class AutomationService {
         browserAccount: {
           id: string;
           displayName: string;
+          facebookUserName?: string | null;
           browserProfileKey: string;
           browserProfileName: string;
           loginStatus: string;
