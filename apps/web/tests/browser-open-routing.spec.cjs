@@ -278,8 +278,8 @@ test(
 
     assert.match(
       source,
-      /channel\.primaryBrowserAccount\?\.displayName/,
-      "Connected platforms must show the linked Browser Account name instead of a default account",
+      /primaryBrowserAccount\?\.displayName/,
+      "Connected platforms must retain the linked Browser Account label as the fallback identity",
     );
   },
 );
@@ -452,8 +452,8 @@ test(
 
     assert.match(
       block,
-      /channel\.primaryBrowserAccount\?\.displayName/,
-      "Browser Account identity may still be shown as secondary information",
+      /primaryBrowserAccount\?\.displayName/,
+      "Browser Account label must remain available as secondary fallback information",
     );
   },
 );
@@ -523,6 +523,96 @@ test(
       rowBlock,
       /onClick=\{[\s\S]*browserChannel[\s\S]*openBrowser\(channel\)/,
       "Facebook and Instagram Connected-platform rows must directly open their channel",
+    );
+  },
+);
+
+
+test(
+  "Automation dashboard Channel type exposes Facebook personal identity",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const channelTypeStart =
+      source.indexOf("type Channel = {");
+
+    assert.notEqual(
+      channelTypeStart,
+      -1,
+      "Channel type was not found",
+    );
+
+    const channelTypeEnd =
+      source.indexOf(
+        "type ScheduledPost = {",
+        channelTypeStart,
+      );
+
+    assert.notEqual(
+      channelTypeEnd,
+      -1,
+      "Channel type end was not found",
+    );
+
+    const channelType =
+      source.slice(
+        channelTypeStart,
+        channelTypeEnd,
+      );
+
+    assert.match(
+      channelType,
+      /facebookUserName:\s*string\s*\|\s*null/,
+      "primary Browser Account must expose Facebook personal profile name",
+    );
+  },
+);
+
+test(
+  "Connected platforms prefers Facebook personal identity over the internal Browser Account label",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const start = source.indexOf(
+      "{dashboard.channels.map((channel) => {",
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "Connected platforms table was not found",
+    );
+
+    const end = source.indexOf(
+      '<article id="publishing"',
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "Connected platforms table end was not found",
+    );
+
+    const block =
+      source.slice(start, end);
+
+    assert.match(
+      block,
+      /\{channel\.name\}/,
+      "real Page/channel name must remain the primary visible name",
+    );
+
+    assert.match(
+      block,
+      /primaryBrowserAccount\?\.facebookUserName\s*\|\|\s*primaryBrowserAccount\?\.displayName/,
+      "secondary identity must prefer the real Facebook personal name and fall back to the internal Browser Account label",
     );
   },
 );

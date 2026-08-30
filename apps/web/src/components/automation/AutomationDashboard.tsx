@@ -71,6 +71,7 @@ type Channel = {
   primaryBrowserAccount?: {
     id: string;
     displayName: string;
+    facebookUserName: string | null;
     browserProfileKey: string;
     isPrimary: boolean;
   } | null;
@@ -1520,9 +1521,13 @@ export function AutomationDashboard() {
                       <strong className={styles.channelNameCell} role="cell">
                         {channel.name}
 
-                        {channel.primaryBrowserAccount?.displayName ? (
+                        {(
+                          primaryBrowserAccount?.facebookUserName ||
+                          primaryBrowserAccount?.displayName
+                        ) ? (
                           <small>
-                            {channel.primaryBrowserAccount.displayName}
+                            {primaryBrowserAccount?.facebookUserName ||
+                              primaryBrowserAccount?.displayName}
                           </small>
                         ) : null}
                       </strong>
