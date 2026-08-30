@@ -1299,6 +1299,91 @@ app.post(
       );
 
     if (existing) {
+      const requestedStartUrl =
+        input.startUrl
+          ?.trim() ||
+        null;
+
+      if (requestedStartUrl) {
+        let parsedStartUrl:
+          URL;
+
+        try {
+          parsedStartUrl =
+            new URL(
+              requestedStartUrl,
+            );
+        } catch {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              "Invalid browser start URL.",
+          });
+          return;
+        }
+
+        if (
+          ![
+            "http:",
+            "https:",
+          ].includes(
+            parsedStartUrl.protocol,
+          )
+        ) {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              "Browser start URL must use HTTP or HTTPS.",
+          });
+          return;
+        }
+
+        try {
+          const page =
+            existing.context
+              .pages()
+              .filter(
+                (candidate) =>
+                  !candidate.isClosed() &&
+                  candidate !==
+                    existing.preparedPage,
+              )
+              .at(-1) ||
+            await existing.context
+              .newPage();
+
+          await page.goto(
+            requestedStartUrl,
+            {
+              waitUntil:
+                "domcontentloaded",
+              timeout: 30000,
+            },
+          );
+
+          await page
+            .bringToFront();
+
+          existing.channelId =
+            input.channelId;
+
+          existing.currentUrl =
+            page.url();
+        } catch (error) {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unable to route the running browser profile.",
+          });
+          return;
+        }
+      }
+
       response.json({
         opened: false,
         alreadyRunning: true,

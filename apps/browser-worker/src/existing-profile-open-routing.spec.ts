@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import test from "node:test";
 
 function readExistingProfileBranch(source: string) {
@@ -17,7 +18,10 @@ function readExistingProfileBranch(source: string) {
 
 test("an already-running Browser profile routes to a newly requested start URL", async () => {
   const source = await readFile(
-    new URL("./index.ts", import.meta.url),
+    path.resolve(
+      __dirname,
+      "index.ts",
+    ),
     "utf8",
   );
 
