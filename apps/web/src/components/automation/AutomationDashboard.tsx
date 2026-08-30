@@ -955,7 +955,11 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             headless: false,
-            startUrl: isInstagramBrowser ? "https://www.instagram.com/" : "https://www.facebook.com/",
+            ...(isInstagramBrowser
+              ? {
+                  startUrl: "https://www.instagram.com/",
+                }
+              : {}),
           }),
         },
       );

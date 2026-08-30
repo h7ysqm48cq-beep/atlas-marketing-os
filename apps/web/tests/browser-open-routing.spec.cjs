@@ -136,3 +136,37 @@ test(
     );
   },
 );
+
+test(
+  "Automation Dashboard lets the API resolve the selected Facebook Page target",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const block = extractFunction(
+      source,
+      "async function openBrowser()",
+      "async function checkBrowserStatus()",
+    );
+
+    assert.match(
+      block,
+      /\/automation\/channels\/\$\{selectedBrowserChannelId\}\/browser\/open/,
+      "Automation must preserve the selected channel id",
+    );
+
+    assert.doesNotMatch(
+      block,
+      /https:\/\/www\.facebook\.com\//,
+      "Facebook Automation open must not override the API-resolved Page target",
+    );
+
+    assert.match(
+      block,
+      /https:\/\/www\.instagram\.com\//,
+      "Instagram browser routing must remain explicit",
+    );
+  },
+);
