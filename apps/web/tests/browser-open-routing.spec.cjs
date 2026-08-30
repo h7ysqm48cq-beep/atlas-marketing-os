@@ -616,3 +616,48 @@ test(
     );
   },
 );
+
+test(
+  "Connected platforms limits Facebook personal identity to Facebook channels",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/AutomationDashboard.tsx",
+      "utf8",
+    );
+
+    const start = source.indexOf(
+      "{dashboard.channels.map((channel) => {",
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "Connected platforms table was not found",
+    );
+
+    const end = source.indexOf(
+      '<article id="publishing"',
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "Connected platforms table end was not found",
+    );
+
+    const block = source.slice(start, end);
+
+    assert.match(
+      block,
+      /const connectedPlatformIdentity\s*=\s*channel\.platform\s*===\s*"FACEBOOK"\s*\?\s*\(\s*primaryBrowserAccount\?\.facebookUserName\s*\|\|\s*primaryBrowserAccount\?\.displayName\s*\)\s*:\s*primaryBrowserAccount\?\.displayName/,
+      "Facebook personal identity must only be used on Facebook rows",
+    );
+
+    assert.match(
+      block,
+      /<small>\s*\{connectedPlatformIdentity\}\s*<\/small>/,
+      "Connected platforms must render the platform-scoped secondary identity",
+    );
+  },
+);
