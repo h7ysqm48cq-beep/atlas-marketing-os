@@ -54,6 +54,9 @@ import {
   selectFacebookInspectionTab,
 } from "./facebook/inspection-page.js";
 import {
+  inspectFacebookAccountIdentity,
+} from "./facebook/account-identity.js";
+import {
   attachInstagramMedia,
   clickInstagramNext,
   clickInstagramShare,
@@ -6601,10 +6604,91 @@ app.post(
           )
         );
 
+      const captureFacebookIdentity =
+        request.body?.captureFacebookIdentity === true;
+
+      const facebookAccountIdentity =
+        captureFacebookIdentity &&
+        !loginLikely &&
+        url.includes("facebook.com")
+          ? await inspectFacebookAccountIdentity({
+              getCookies: async () =>
+                session.context.cookies(
+                  "https://www.facebook.com/",
+                ),
+
+              openTemporaryTab: async () => {
+                const identityPage =
+                  await session.context.newPage();
+
+                return {
+                  goto: async (targetUrl: string) => {
+                    await identityPage.goto(
+                      targetUrl,
+                      {
+                        waitUntil:
+                          "domcontentloaded",
+                        timeout: 15000,
+                      },
+                    );
+                  },
+
+                  readProfileName: async () => {
+                    const heading =
+                      (
+                        await identityPage
+                          .locator("h1")
+                          .first()
+                          .innerText({
+                            timeout: 5000,
+                          })
+                          .catch(() => "")
+                      )
+                        .replace(/\s+/g, " ")
+                        .trim();
+
+                    if (heading) {
+                      return heading;
+                    }
+
+                    const title =
+                      (
+                        await identityPage
+                          .title()
+                          .catch(() => "")
+                      )
+                        .replace(
+                          /\s*\|\s*Facebook\s*$/i,
+                          "",
+                        )
+                        .trim();
+
+                    return title || null;
+                  },
+
+                  close: async () => {
+                    await identityPage.close();
+                  },
+                };
+              },
+            })
+          : null;
+
       response.json({
         success: true,
         browserProfileKey:
           session.browserProfileKey,
+
+        facebookUserId:
+          facebookAccountIdentity
+            ?.facebookUserId ||
+          null,
+
+        facebookUserName:
+          facebookAccountIdentity
+            ?.facebookUserName ||
+          null,
+
         page: {
           title,
           url,
