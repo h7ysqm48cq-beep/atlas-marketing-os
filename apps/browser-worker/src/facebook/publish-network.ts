@@ -32,6 +32,8 @@ const facebookPublishErrorHints = [
   /review/i,
 ];
 
+const FACEBOOK_RESPONSE_BODY_TIMEOUT_MS = 1500;
+
 function facebookPath(value: string) {
   try {
     const parsed = new URL(value);
@@ -97,7 +99,10 @@ function requestMetadata(request: Request) {
   }
 }
 
-async function inspectResponse(response: Response) {
+async function inspectResponse(
+  response: Response,
+  responseBodyTimeoutMs: number,
+) {
   const request = response.request();
   const metadata = requestMetadata(request);
   const event: FacebookPublishNetworkEvent = {
@@ -110,7 +115,18 @@ async function inspectResponse(response: Response) {
     ...metadata,
   };
 
-  const body = await response.text().catch(() => "");
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  const body = await Promise.race([
+    response.text().catch(() => ""),
+    new Promise<string>((resolve) => {
+      timeout = setTimeout(() => resolve(""), responseBodyTimeoutMs);
+    }),
+  ]);
+
+  if (timeout) {
+    clearTimeout(timeout);
+  }
 
   event.errorHint =
     event.errorHint ||
@@ -119,7 +135,10 @@ async function inspectResponse(response: Response) {
   return event;
 }
 
-export function startFacebookPublishNetworkCapture(page: Page) {
+export function startFacebookPublishNetworkCapture(
+  page: Page,
+  responseBodyTimeoutMs = FACEBOOK_RESPONSE_BODY_TIMEOUT_MS,
+) {
   const events: FacebookPublishNetworkEvent[] = [];
   const pendingInspections = new Set<Promise<void>>();
   let stopped = false;
@@ -130,7 +149,10 @@ export function startFacebookPublishNetworkCapture(page: Page) {
       return;
     }
 
-    const inspection: Promise<void> = inspectResponse(response)
+    const inspection: Promise<void> = inspectResponse(
+      response,
+      responseBodyTimeoutMs,
+    )
       .then((event) => {
         if (events.length < 50) {
           events.push(event);
