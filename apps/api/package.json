@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "node scripts/check-background-job-regression.cjs",
+    "prebuild": "prisma generate --config ../../prisma.config.ts && node scripts/check-background-job-regression.cjs",
     "build": "nest build",
     "db:migrate": "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} prisma migrate deploy --schema prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

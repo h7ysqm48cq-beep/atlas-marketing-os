@@ -1,0 +1,160 @@
+version: 1
+name: atlas-agent-task-state-machine
+
+states:
+  DRAFT:
+    owner: supervisor
+    terminal: false
+    description: Task exists but execution has not started.
+
+  WORKING:
+    owner: worker
+    terminal: false
+    description: Assigned worker is actively implementing within scope.
+
+  BLOCKED:
+    owner: supervisor_or_worker
+    terminal: false
+    description: Progress cannot continue because a dependency, permission, environment, or required decision is missing.
+
+  IMPLEMENTED:
+    owner: worker
+    terminal: false
+    description: Worker believes scoped implementation is complete and has submitted evidence.
+
+  VERIFYING:
+    owner: supervisor
+    terminal: false
+    description: Supervisor or QA is validating evidence and acceptance criteria.
+
+  READY_FOR_REVIEW:
+    owner: supervisor
+    terminal: false
+    description: Required verification passed; owner review is the next gate.
+
+  APPROVED:
+    owner: user
+    terminal: true
+    description: User accepted the result. This does not imply merge or deployment permission.
+
+  FAILED:
+    owner: supervisor_or_worker
+    terminal: true
+    description: Current attempt is stopped after implementation or verification failure.
+
+transitions:
+  - from: DRAFT
+    to: WORKING
+    actor: supervisor
+    requires:
+      - assignment_contract_complete
+      - file_ownership_resolved
+      - dependencies_satisfied_or_none
+
+  - from: DRAFT
+    to: BLOCKED
+    actor: supervisor
+    requires:
+      - blocking_reason_recorded
+
+  - from: WORKING
+    to: IMPLEMENTED
+    actor: worker
+    requires:
+      - required_evidence_submitted
+      - scope_respected
+
+  - from: WORKING
+    to: BLOCKED
+    actor: worker_or_supervisor
+    requires:
+      - blocking_reason_recorded
+
+  - from: WORKING
+    to: FAILED
+    actor: worker_or_supervisor
+    requires:
+      - failure_evidence_recorded
+
+  - from: BLOCKED
+    to: WORKING
+    actor: supervisor
+    requires:
+      - blocking_reason_resolved
+      - ownership_revalidated
+      - dependencies_revalidated
+
+  - from: BLOCKED
+    to: FAILED
+    actor: supervisor
+    requires:
+      - stop_reason_recorded
+
+  - from: IMPLEMENTED
+    to: VERIFYING
+    actor: supervisor
+    requires:
+      - evidence_complete_or_not_run_reasons_recorded
+
+  - from: IMPLEMENTED
+    to: WORKING
+    actor: supervisor
+    requires:
+      - evidence_rejected_or_scope_gap_found
+
+  - from: VERIFYING
+    to: READY_FOR_REVIEW
+    actor: supervisor
+    requires:
+      - acceptance_passed
+      - focused_tests_passed_or_not_applicable
+      - relevant_build_checks_passed_or_not_applicable
+      - regression_checked_or_reason_recorded
+      - remaining_risk_recorded
+
+  - from: VERIFYING
+    to: WORKING
+    actor: supervisor
+    requires:
+      - verification_failed
+      - retry_policy_allows_retry
+
+  - from: VERIFYING
+    to: BLOCKED
+    actor: supervisor
+    requires:
+      - verification_blocker_recorded
+
+  - from: VERIFYING
+    to: FAILED
+    actor: supervisor
+    requires:
+      - retry_limit_reached_or_nonrecoverable_failure
+
+  - from: READY_FOR_REVIEW
+    to: APPROVED
+    actor: user
+    requires:
+      - user_acceptance
+
+  - from: READY_FOR_REVIEW
+    to: WORKING
+    actor: supervisor
+    requires:
+      - owner_requested_changes_or_new_failure_found
+
+retry_policy:
+  max_materially_similar_failed_attempts: 2
+  on_limit:
+    allowed_targets:
+      - BLOCKED
+      - FAILED
+    required_action: reassess_root_cause_scope_dependency_or_owner
+
+invariants:
+  - worker_cannot_set_READY_FOR_REVIEW
+  - worker_cannot_set_APPROVED
+  - APPROVED_does_not_imply_merge_permission
+  - APPROVED_does_not_imply_deploy_permission
+  - missing_verification_is_NOT_RUN_not_PASS
+  - protected_git_actions_require_explicit_user_authorization

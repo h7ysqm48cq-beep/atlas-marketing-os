@@ -45,31 +45,7 @@ export class NotificationService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // ponytail: startup DDL avoids generated Prisma churn; replace with a migration when auth/workspaces are formalized.
-    try {
-      await this.prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "PushSubscription" (
-          "id" TEXT,
-          "endpoint" TEXT PRIMARY KEY,
-          "p256dh" TEXT NOT NULL,
-          "auth" TEXT NOT NULL,
-          "userAgent" TEXT,
-          "enabled" BOOLEAN NOT NULL DEFAULT TRUE,
-          "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      await this.prisma.$executeRawUnsafe(`
-        ALTER TABLE "PushSubscription"
-        ADD COLUMN IF NOT EXISTS "enabled" BOOLEAN NOT NULL DEFAULT TRUE
-      `);
-      await this.prisma.$executeRawUnsafe(`
-        ALTER TABLE "PushSubscription"
-        ADD COLUMN IF NOT EXISTS "id" TEXT
-      `);
-    } catch (error) {
-      this.logger.error(`Push subscription table is unavailable: ${error instanceof Error ? error.message : 'unknown error'}`);
-    }
+    // PushSubscription schema is managed exclusively by Prisma migrations.
   }
 
   getConfig() {
