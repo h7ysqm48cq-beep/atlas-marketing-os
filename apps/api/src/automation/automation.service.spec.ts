@@ -392,3 +392,67 @@ describe('AutomationService Instagram scheduling validation', () => {
     expect(prisma.scheduledPost.update).not.toHaveBeenCalled();
   });
 });
+
+
+describe(
+  'AutomationService dashboard Browser Account identity',
+  () => {
+    it(
+      'selects Facebook personal profile name for Connected Platforms',
+      async () => {
+        const prisma = {
+          socialChannel: {
+            findMany:
+              jest.fn().mockResolvedValue([]),
+          },
+          scheduledPost: {
+            groupBy:
+              jest.fn().mockResolvedValue([]),
+            findMany:
+              jest.fn().mockResolvedValue([]),
+          },
+          publishAttempt: {
+            findMany:
+              jest.fn().mockResolvedValue([]),
+          },
+        };
+
+        const service =
+          new AutomationService(
+            prisma as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+          );
+
+        await service.dashboard();
+
+        expect(
+          prisma.socialChannel.findMany,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            include:
+              expect.objectContaining({
+                browserAccountLinks:
+                  expect.objectContaining({
+                    include:
+                      expect.objectContaining({
+                        browserAccount:
+                          expect.objectContaining({
+                            select:
+                              expect.objectContaining({
+                                facebookUserName:
+                                  true,
+                              }),
+                          }),
+                      }),
+                  }),
+              }),
+          }),
+        );
+      },
+    );
+  },
+);
