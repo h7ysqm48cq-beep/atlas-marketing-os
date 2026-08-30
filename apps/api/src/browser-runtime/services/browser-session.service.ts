@@ -22,6 +22,9 @@ type OpenBrowserInput = {
 };
 
 type WorkerInspection = {
+  facebookUserId?: string | null;
+  facebookUserName?: string | null;
+
   page?: {
     title?: string;
     url?: string;
@@ -179,6 +182,52 @@ export class BrowserSessionService {
         profile.browserProfileKey,
       )}/inspect`;
 
+    const previousAccount =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          id: accountId,
+        },
+        select: {
+          loginStatus: true,
+          facebookUserId: true,
+          facebookUserName: true,
+          identityLocked: true,
+        },
+      });
+
+    const storedFacebookUserId =
+      previousAccount
+        ?.facebookUserId
+        ?.trim() ||
+      '';
+
+    const storedFacebookUserName =
+      previousAccount
+        ?.facebookUserName
+        ?.trim() ||
+      '';
+
+    const captureFacebookIdentity =
+      !storedFacebookUserId ||
+      !storedFacebookUserName;
+
+    const inspectRequest =
+      captureFacebookIdentity
+        ? {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              captureFacebookIdentity:
+                true,
+            }),
+          }
+        : {
+            method: 'POST',
+          };
+
     let result:
       WorkerInspection;
 
@@ -187,9 +236,7 @@ export class BrowserSessionService {
         (
           await this.browserRuntime.request(
             inspectPath,
-            {
-              method: 'POST',
-            },
+            inspectRequest,
           )
         ) as WorkerInspection;
     } catch (error) {
@@ -222,9 +269,7 @@ export class BrowserSessionService {
         (
           await this.browserRuntime.request(
             inspectPath,
-            {
-              method: 'POST',
-            },
+            inspectRequest,
           )
         ) as WorkerInspection;
     }
@@ -404,15 +449,51 @@ export class BrowserSessionService {
             ? 'PENDING_VERIFICATION'
             : 'UNKNOWN';
 
-    const previousAccount =
-      await this.prisma.browserAccount.findUnique({
+    const workerFacebookUserId =
+      typeof result.facebookUserId ===
+      'string'
+        ? result.facebookUserId.trim()
+        : '';
+
+    const workerFacebookUserName =
+      typeof result.facebookUserName ===
+      'string'
+        ? result.facebookUserName.trim()
+        : '';
+
+    const facebookIdentityMismatch =
+      Boolean(
+        workerFacebookUserId &&
+        previousAccount
+          ?.identityLocked &&
+        storedFacebookUserId &&
+        storedFacebookUserId !==
+          workerFacebookUserId,
+      );
+
+    if (facebookIdentityMismatch) {
+      const identityError =
+        `Facebook identity mismatch: expected ${storedFacebookUserId}, detected ${workerFacebookUserId}.`;
+
+      await this.prisma.browserAccount.update({
         where: {
           id: accountId,
         },
-        select: {
-          loginStatus: true,
+        data: {
+          identityError,
+          lastLoginError:
+            identityError,
+          lastVerifiedAt:
+            new Date(),
+          lastHeartbeatAt:
+            new Date(),
         },
       });
+
+      throw new BadRequestException(
+        identityError,
+      );
+    }
 
     await this.prisma.browserAccount.update({
       where: {
@@ -421,6 +502,23 @@ export class BrowserSessionService {
       data: {
         loginStatus,
         cookieStatus,
+
+        ...(workerFacebookUserId
+          ? {
+              facebookUserId:
+                workerFacebookUserId,
+              identityError:
+                null,
+            }
+          : {}),
+
+        ...(workerFacebookUserName
+          ? {
+              facebookUserName:
+                workerFacebookUserName,
+            }
+          : {}),
+
         lastLoginAt:
           loginLikely
             ? new Date()
