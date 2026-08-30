@@ -1,3 +1,11 @@
+jest.mock('https-proxy-agent', () => ({
+  HttpsProxyAgent: jest.fn(),
+}));
+
+jest.mock('socks-proxy-agent', () => ({
+  SocksProxyAgent: jest.fn(),
+}));
+
 import { RuntimeProfileService } from './runtime-profile.service';
 
 describe('RuntimeProfileService Facebook Page target', () => {

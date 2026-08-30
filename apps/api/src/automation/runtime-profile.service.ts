@@ -685,20 +685,20 @@ export class RuntimeProfileService {
       '';
 
     const targetUrl =
-      username
+      pageId
         ? (
-            'https://www.facebook.com/' +
+            'https://www.facebook.com/profile.php?id=' +
             encodeURIComponent(
-              username,
-            ) +
-            '/'
+              pageId,
+            )
           )
-        : pageId
+        : username
           ? (
-              'https://www.facebook.com/profile.php?id=' +
+              'https://www.facebook.com/' +
               encodeURIComponent(
-                pageId,
-              )
+                username,
+              ) +
+              '/'
             )
           : null;
 
