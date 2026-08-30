@@ -22,6 +22,10 @@ export default async function BrowserAccountsPage({
           params.accountId ||
           null
         }
+        requestedChannelId={
+          params.channelId ||
+          null
+        }
         requestedViewerOpen={params.viewer === "1"}
       />
     </AppLayout>

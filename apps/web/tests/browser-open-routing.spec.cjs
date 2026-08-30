@@ -170,3 +170,70 @@ test(
     );
   },
 );
+
+test(
+  "Connected platforms preserves the selected Facebook channel into Browser Accounts",
+  async () => {
+    const pageSource = await readFile(
+      "apps/web/src/app/automation/browser-accounts/page.tsx",
+      "utf8",
+    );
+
+    assert.match(
+      pageSource,
+      /requestedChannelId=\{[\s\S]*params\.channelId/,
+      "Browser Accounts page must forward the selected channelId",
+    );
+  },
+);
+
+test(
+  "Browser Accounts uses channel-level routing when opened from Connected platforms",
+  async () => {
+    const source = await readFile(
+      "apps/web/src/components/automation/BrowserAccountsManagerV2.tsx",
+      "utf8",
+    );
+
+    assert.match(
+      source,
+      /requestedChannelId\?: string \| null/,
+      "Browser Accounts manager must accept channel context",
+    );
+
+    const start = source.indexOf(
+      "async function openBrowser(accountId: string)",
+    );
+
+    assert.notEqual(
+      start,
+      -1,
+      "openBrowser function not found",
+    );
+
+    const end = source.indexOf(
+      "async function verifyLogin(",
+      start,
+    );
+
+    assert.notEqual(
+      end,
+      -1,
+      "openBrowser function end not found",
+    );
+
+    const block = source.slice(start, end);
+
+    assert.match(
+      block,
+      /\/automation\/channels\/\$\{requestedChannelId\}\/browser\/open/,
+      "channel-aware Browser Accounts open must use the channel endpoint",
+    );
+
+    assert.match(
+      block,
+      /\/browser-runtime\/accounts\/\$\{accountId\}\/browser\/open/,
+      "normal Browser Accounts open must retain the account-level fallback",
+    );
+  },
+);

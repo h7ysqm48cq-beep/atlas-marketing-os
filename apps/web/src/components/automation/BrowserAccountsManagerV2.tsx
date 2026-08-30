@@ -85,9 +85,11 @@ function getErrorMessage(body: Record<string, unknown>, fallback: string) {
 
 export function BrowserAccountsManagerV2({
   requestedAccountId,
+  requestedChannelId,
   requestedViewerOpen = false,
 }: {
   requestedAccountId?: string | null;
+  requestedChannelId?: string | null;
   requestedViewerOpen?: boolean;
 }) {
   const {
@@ -848,17 +850,30 @@ export function BrowserAccountsManagerV2({
       error: "",
     });
 
+    const apiOrigin =
+      getBrowserRuntimeApiUrl();
+
+    const openUrl = requestedChannelId
+      ? `${apiOrigin}/automation/channels/${requestedChannelId}/browser/open`
+      : `${apiOrigin}/browser-runtime/accounts/${accountId}/browser/open`;
+
+    const openPayload = requestedChannelId
+      ? {
+          headless: false,
+        }
+      : {
+          headless: false,
+          startUrl: "https://www.facebook.com/",
+        };
+
     const response = await fetch(
-      `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
+      openUrl,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          headless: false,
-          startUrl: "https://www.facebook.com/",
-        }),
+        body: JSON.stringify(openPayload),
       },
     );
 
