@@ -134,3 +134,92 @@ Immediately before any merge, the agent must be able to state:
 - that the user explicitly authorized this merge.
 
 If the last item is false, **DO NOT MERGE**.
+
+## 10. High-risk root-cause fix protocol
+
+Use this protocol for auth/workspace, automation, scheduler, Calendar, publishing, database, routing, Browser Worker and production-adjacent fixes.
+
+Before editing:
+
+- identify the exact Git commit currently deployed for every affected Railway service;
+- identify the branch each service is actually tracking;
+- compare API/Web production heads before choosing a base;
+- if production heads have diverged, do not merge whole lines for convenience;
+- create isolated fix branches from the exact relevant production heads;
+- never assume `main`, `agent/railway-sync`, or the newest branch is the production baseline.
+
+When production lines diverge:
+
+- never overwrite large files wholesale from another line without a complete diff review;
+- preserve fixes that exist only on one line;
+- prefer narrow patches/helpers/wrappers;
+- reconcile only onto an audited canonical production line.
+
+## 11. Workspace, auth and scheduler isolation
+
+For authenticated APIs, workspace isolation belongs at the database/query/mutation boundary, not only in frontend filtering.
+
+- resolve the authenticated user's workspace using the existing auth context;
+- constrain reads and mutations to that workspace;
+- validate related Brand/Channel/Post IDs belong to the same permitted workspace;
+- treat cross-workspace IDs as inaccessible/not found;
+- if production ownership is missing or ambiguous, fail closed rather than silently creating a production-looking workspace or Brand.
+
+Do not make schedulers, publishers, cron jobs or other system jobs depend on HTTP authenticated-user context unless explicitly designed that way. User-facing HTTP paths and system/background execution must remain separately scoped and regression-tested.
+
+## 12. Calendar and dependency-state safety
+
+For `SCHEDULED` content:
+
+- new scheduled times must be strictly in the future;
+- validate in the frontend for UX and again in the API for correctness;
+- frontend `min` constraints are not sufficient by themselves;
+- DRAFT/history semantics must remain intact unless explicitly changed;
+- unrelated edits to an old scheduled record must not fail merely because its original schedule time is now past;
+- validate future time when scheduled time changes or status becomes `SCHEDULED`;
+- drag/drop rescheduling must not move a scheduled item into the past;
+- if today's preferred default slot has passed, choose a deterministic future slot.
+
+If a Brand/workspace has no valid Channel or another required dependency is missing, show an explicit unavailable state and disable the action that cannot succeed. Keep API-side validation as defense in depth.
+
+## 13. Verification-before-completion
+
+For high-risk fixes, do not claim completion until applicable checks have run:
+
+1. inspect exact changed files and diff;
+2. run focused regression tests for the root cause;
+3. run the affected package/application test suite;
+4. run Prisma generation when Prisma is involved;
+5. run the affected production build(s);
+6. run targeted lint/type checks for changed frontend files;
+7. distinguish pre-existing unrelated failures from patch-introduced failures;
+8. do not expand scope to repair unrelated repository debt without separate authorization;
+9. verify temporary CI/debug/trigger artifacts are not accidentally included in the product diff;
+10. verify the integration target is the actual production baseline/canonical line;
+11. stop at `READY_FOR_REVIEW` until merge/deploy is explicitly authorized.
+
+Skipped verification is `NOT RUN`, never a pass.
+
+## 14. Temporary CI and production-data rules
+
+If temporary CI is required because local execution is unavailable:
+
+- use isolated non-production branches;
+- temporary CI must never deploy or mutate production data;
+- use dummy/non-secret variables only when tooling requires parse-time values;
+- exact mechanical source replacements must assert their expected source fragment and fail if it differs;
+- final product diffs must exclude temporary CI workflows/triggers unless intentionally retained as an operational marker.
+
+Production database mutations require separate explicit authorization. Before mutation, perform a read-only dry run, enumerate dependencies, define pre/postconditions, prefer an atomic transaction, abort on precondition drift, and verify the result immediately. Never bypass a connected-tool safety block through a hidden alternate path.
+
+## 15. Canonical production line
+
+`production/atlas` is the intended canonical ATLAS production integration line after the 2026-09-01 production reconciliation.
+
+- `main` and `agent/railway-sync` are not production sources merely because they exist.
+- API and Web production should converge on the same canonical commit.
+- service-specific emergency hotfixes must be reconciled back into `production/atlas` promptly.
+- never force-push a Railway-tracked production branch during reconciliation.
+- if Railway cannot persist a source-branch rename safely, an already-tracked branch may act only as a mirror of `production/atlas`; verify it is a true non-force fast-forward and deploy the exact canonical SHA.
+- after deployment, verify Railway deployment metadata and runtime health against the exact canonical commit rather than trusting a branch-change acknowledgement.
+- before any future production integration, report root cause, exact production baselines, changed files, tests/builds, DB/schema impact, scheduler/worker impact, deployment-trigger behavior and remaining risk.
