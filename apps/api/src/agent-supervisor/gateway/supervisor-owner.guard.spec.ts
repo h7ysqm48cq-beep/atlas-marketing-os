@@ -4,7 +4,11 @@ import type { ConfigService } from '@nestjs/config';
 import { SupervisorOwnerGuard } from './supervisor-owner.guard';
 
 describe('SupervisorOwnerGuard', () => {
-  function context(method: string, token?: string): ExecutionContext {
+  function context(
+    method: string,
+    token?: string,
+    authenticated = true,
+  ): ExecutionContext {
     return {
       switchToHttp: () => ({
         getRequest: () => ({
@@ -12,7 +16,7 @@ describe('SupervisorOwnerGuard', () => {
           headers: token
             ? { 'x-atlas-supervisor-owner-token': token }
             : {},
-          user: { id: 'authenticated-user' },
+          ...(authenticated ? { user: { id: 'authenticated-user' } } : {}),
         }),
       }),
     } as unknown as ExecutionContext;
@@ -29,10 +33,18 @@ describe('SupervisorOwnerGuard', () => {
     expect(guard(undefined).canActivate(context('GET'))).toBe(true);
   });
 
+  it('requires an authenticated ATLAS user even when the owner token is correct', () => {
+    expect(() =>
+      guard('owner-secret').canActivate(
+        context('POST', 'owner-secret', false),
+      ),
+    ).toThrow(UnauthorizedException);
+  });
+
   it('fails closed for mutations when the owner credential is not configured', () => {
-    expect(() => guard(undefined).canActivate(context('POST', 'candidate'))).toThrow(
-      UnauthorizedException,
-    );
+    expect(() =>
+      guard(undefined).canActivate(context('POST', 'candidate')),
+    ).toThrow(UnauthorizedException);
   });
 
   it('rejects a mutation with no owner token header', () => {
