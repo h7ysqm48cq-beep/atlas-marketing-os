@@ -5,6 +5,9 @@ on:
     branches:
       - ci/workspace-calendar-api-verify-base-20260901
 
+permissions:
+  contents: write
+
 jobs:
   verify-api:
     runs-on: ubuntu-latest
@@ -13,8 +16,68 @@ jobs:
       DATABASE_URL: postgresql://atlas_ci:atlas_ci@127.0.0.1:5432/atlas_ci
       MIGRATION_DATABASE_URL: postgresql://atlas_ci:atlas_ci@127.0.0.1:5432/atlas_ci
     steps:
-      - name: Checkout
+      - name: Checkout isolated API fix branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply exact update validation patch
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          service_path = Path('apps/api/src/automation/workspace-scoped-automation.service.ts')
+          service = service_path.read_text()
+
+          old = '''  override async updatePost(\n    id: string,\n    input: Parameters<AutomationService['updatePost']>[1],\n  ) {\n    const current = await this.getPost(id);\n    const status = input.status ?? current.status;\n    const scheduledAt = input.scheduledAt\n      ? new Date(input.scheduledAt)\n      : current.scheduledAt;\n\n    if (!Number.isNaN(scheduledAt.getTime())) {\n      this.validateScheduledTime(status, scheduledAt);\n    }\n\n    return super.updatePost(id, input);\n  }'''
+
+          new = '''  override async updatePost(\n    id: string,\n    input: Parameters<AutomationService['updatePost']>[1],\n  ) {\n    const current = await this.getPost(id);\n    const shouldValidateScheduledTime =\n      input.scheduledAt !== undefined ||\n      input.status === ScheduledPostStatus.SCHEDULED;\n\n    if (shouldValidateScheduledTime) {\n      const status = input.status ?? current.status;\n      const scheduledAt = input.scheduledAt\n        ? new Date(input.scheduledAt)\n        : current.scheduledAt;\n\n      if (!Number.isNaN(scheduledAt.getTime())) {\n        this.validateScheduledTime(status, scheduledAt);\n      }\n    }\n\n    return super.updatePost(id, input);\n  }'''
+
+          if old in service:
+              service = service.replace(old, new, 1)
+              service_path.write_text(service)
+              print('updatePost validation patch applied.')
+          elif new in service:
+              print('updatePost validation patch already present.')
+          else:
+              raise SystemExit('updatePost validation block did not match expected source')
+
+          spec_path = Path('apps/api/src/automation/workspace-scoped-automation.service.spec.ts')
+          spec = spec_path.read_text()
+          marker = "it('allows metadata-only edits on an already-past SCHEDULED post'"
+
+          if marker not in spec:
+              anchor = '''  it('allows a historical DRAFT timestamp after workspace validation', async () => {'''
+              if spec.count(anchor) != 1:
+                  raise SystemExit('metadata edit test anchor did not match exactly once')
+
+              test = '''  it('allows metadata-only edits on an already-past SCHEDULED post', async () => {\n    const { prisma, auth, service } = createService();\n    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });\n    prisma.scheduledPost.findFirst.mockResolvedValue({ id: 'post-a' });\n    prisma.scheduledPost.findUnique.mockResolvedValue({\n      id: 'post-a',\n      brandId: 'brand-a',\n      channelId: 'channel-a',\n      platform: SocialPlatform.FACEBOOK,\n      title: 'Old title',\n      content: 'Scheduled',\n      mediaUrls: [],\n      scheduledAt: new Date(Date.now() - 60_000),\n      timezone: 'Asia/Kuala_Lumpur',\n      status: ScheduledPostStatus.SCHEDULED,\n      channel: { id: 'channel-a', name: 'Facebook' },\n      brand: { id: 'brand-a', name: 'Brand' },\n      campaign: null,\n      history: null,\n      attempts: [],\n    });\n    prisma.scheduledPost.update.mockResolvedValue({\n      id: 'post-a',\n      title: 'Edited title',\n      status: ScheduledPostStatus.SCHEDULED,\n    });\n\n    await expect(\n      auth.run('user-a', () =>\n        service.updatePost('post-a', { title: 'Edited title' }),\n      ),\n    ).resolves.toMatchObject({ title: 'Edited title' });\n\n    expect(prisma.scheduledPost.update).toHaveBeenCalled();\n  });\n\n'''
+              spec = spec.replace(anchor, test + anchor, 1)
+              spec_path.write_text(spec)
+              print('metadata-only edit regression test added.')
+          else:
+              print('metadata-only edit regression test already present.')
+          PY
+
+          git diff --check
+
+      - name: Commit exact API patch to isolated branch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No new patch to commit."
+            exit 0
+          fi
+
+          git config user.name "ATLAS CI"
+          git config user.email "atlas-ci@users.noreply.github.com"
+          git add \
+            apps/api/src/automation/workspace-scoped-automation.service.ts \
+            apps/api/src/automation/workspace-scoped-automation.service.spec.ts
+          git commit -m "fix(api): validate schedule time only when changed"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
