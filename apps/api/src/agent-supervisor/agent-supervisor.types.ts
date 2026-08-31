@@ -38,6 +38,12 @@ export type SupervisorAction =
   | 'force_push'
   | 'delete_branch_for_integration';
 
+export type SupervisorIntegrationAction =
+  | 'merge'
+  | 'deploy_production'
+  | 'run_migration'
+  | 'change_runtime_config';
+
 export interface CreateSupervisorTaskInput {
   objective: string;
   owner: Exclude<SupervisorAgentRole, 'supervisor'>;
@@ -45,6 +51,14 @@ export interface CreateSupervisorTaskInput {
   forbiddenActions: SupervisorAction[];
   dependsOn: string[];
   acceptance: string[];
+}
+
+export interface SupervisorReviewCandidate {
+  action: SupervisorIntegrationAction;
+  targetBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
 }
 
 export interface SupervisorEvidence {
@@ -56,6 +70,7 @@ export interface SupervisorEvidence {
   deploymentState: string;
   gitState: string;
   remainingRisk: string[];
+  reviewCandidate?: SupervisorReviewCandidate;
 }
 
 export interface SupervisorTask {
@@ -102,11 +117,7 @@ export interface ValidateWorkerContextInput {
 export interface IntegrationGateInput {
   taskId: string;
   executionId: string;
-  action:
-    | 'merge'
-    | 'deploy_production'
-    | 'run_migration'
-    | 'change_runtime_config';
+  action: SupervisorIntegrationAction;
   targetBranch?: string;
   baseSha?: string;
   headSha?: string;
