@@ -241,6 +241,42 @@ describe('WorkspaceScopedAutomationService', () => {
     expect(prisma.scheduledPost.update).not.toHaveBeenCalled();
   });
 
+  it('allows metadata-only edits on an already-past SCHEDULED post', async () => {
+    const { prisma, auth, service } = createService();
+    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    prisma.scheduledPost.findFirst.mockResolvedValue({ id: 'post-a' });
+    prisma.scheduledPost.findUnique.mockResolvedValue({
+      id: 'post-a',
+      brandId: 'brand-a',
+      channelId: 'channel-a',
+      platform: SocialPlatform.FACEBOOK,
+      title: 'Old title',
+      content: 'Scheduled',
+      mediaUrls: [],
+      scheduledAt: new Date(Date.now() - 60_000),
+      timezone: 'Asia/Kuala_Lumpur',
+      status: ScheduledPostStatus.SCHEDULED,
+      channel: { id: 'channel-a', name: 'Facebook' },
+      brand: { id: 'brand-a', name: 'Brand' },
+      campaign: null,
+      history: null,
+      attempts: [],
+    });
+    prisma.scheduledPost.update.mockResolvedValue({
+      id: 'post-a',
+      title: 'Edited title',
+      status: ScheduledPostStatus.SCHEDULED,
+    });
+
+    await expect(
+      auth.run('user-a', () =>
+        service.updatePost('post-a', { title: 'Edited title' }),
+      ),
+    ).resolves.toMatchObject({ title: 'Edited title' });
+
+    expect(prisma.scheduledPost.update).toHaveBeenCalled();
+  });
+
   it('allows a historical DRAFT timestamp after workspace validation', async () => {
     const { prisma, auth, service } = createService();
     prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });

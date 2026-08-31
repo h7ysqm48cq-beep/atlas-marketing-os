@@ -448,13 +448,19 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     input: Parameters<AutomationService['updatePost']>[1],
   ) {
     const current = await this.getPost(id);
-    const status = input.status ?? current.status;
-    const scheduledAt = input.scheduledAt
-      ? new Date(input.scheduledAt)
-      : current.scheduledAt;
+    const shouldValidateScheduledTime =
+      input.scheduledAt !== undefined ||
+      input.status === ScheduledPostStatus.SCHEDULED;
 
-    if (!Number.isNaN(scheduledAt.getTime())) {
-      this.validateScheduledTime(status, scheduledAt);
+    if (shouldValidateScheduledTime) {
+      const status = input.status ?? current.status;
+      const scheduledAt = input.scheduledAt
+        ? new Date(input.scheduledAt)
+        : current.scheduledAt;
+
+      if (!Number.isNaN(scheduledAt.getTime())) {
+        this.validateScheduledTime(status, scheduledAt);
+      }
     }
 
     return super.updatePost(id, input);
