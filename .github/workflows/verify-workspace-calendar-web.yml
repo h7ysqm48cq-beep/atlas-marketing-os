@@ -45,7 +45,7 @@ jobs:
           print('Calendar patch markers verified.')
           PY
 
-          git diff --check ci/workspace-calendar-web-verify-base-20260901...HEAD -- apps/web/src/components/calendar/ContentCalendar.tsx
+          git diff --check origin/ci/workspace-calendar-web-verify-base-20260901...HEAD -- apps/web/src/components/calendar/ContentCalendar.tsx
 
       - name: Install
         run: npm ci
