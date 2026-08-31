@@ -1,0 +1,4 @@
+ATLAS final required-check positive proof.
+
+This file is harmless and exists only to prove that a non-draft production/atlas PR with exact persisted Supervisor evidence passes atlas-supervisor-gate.
+Never merge this PR.
