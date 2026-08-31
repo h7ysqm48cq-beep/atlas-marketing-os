@@ -1,0 +1,23 @@
+name: tmp-supervisor-dual-gate-verify
+
+on:
+  push:
+    branches:
+      - feat/supervisor-dual-gate-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Focused Supervisor dual-gate tests
+        run: npm run test --workspace apps/api -- --runInBand agent-supervisor/gateway/agent-gateway.review-candidate.spec.ts agent-supervisor/agent-supervisor.service.spec.ts agent-supervisor/agent-supervisor.controller.spec.ts agent-supervisor/gateway/supervisor-gateway.controller.spec.ts agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts
