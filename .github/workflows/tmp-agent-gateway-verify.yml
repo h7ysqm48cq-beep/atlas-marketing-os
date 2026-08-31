@@ -11,10 +11,14 @@ permissions:
 jobs:
   gateway-focused:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -25,15 +29,30 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Run focused gateway tests when present
+      - name: Verify diff and Prisma scope
         shell: bash
         run: |
           set -euo pipefail
-          if compgen -G 'apps/api/src/agent-supervisor/gateway/*.spec.ts' > /dev/null; then
-            npm test --workspace apps/api -- --runInBand src/agent-supervisor/gateway
-          else
-            echo 'gateway specs not present yet; verifier ready'
+          git fetch origin production/atlas:refs/remotes/origin/production/atlas
+          git diff --check origin/production/atlas...HEAD
+          echo '===== CHANGED FILES ====='
+          git diff --name-status origin/production/atlas...HEAD
+          if git diff --name-only origin/production/atlas...HEAD -- apps/api/prisma | grep -q .; then
+            echo 'Unexpected Prisma change in runtime gateway increment' >&2
+            exit 1
           fi
+
+      - name: Run focused gateway tests
+        run: npm test --workspace apps/api -- --runInBand src/agent-supervisor/gateway
+
+      - name: Run full Supervisor regression
+        run: npm test --workspace apps/api -- --runInBand src/agent-supervisor
+
+      - name: Run related Engineering regression
+        run: npm test --workspace apps/api -- --runInBand src/agent-supervisor src/engineering
+
+      - name: Build API production path
+        run: npm run build --workspace apps/api
 
       - name: Validate permanent Supervisor workflow
         shell: bash
