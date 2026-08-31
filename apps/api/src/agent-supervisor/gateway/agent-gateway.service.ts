@@ -117,14 +117,18 @@ export class AgentGatewayService {
   async checkReviewCandidate(
     input: IntegrationGateInput,
   ): Promise<SupervisorGateDecision> {
-    const { task, execution } = await this.validateIntegrationCandidate(input);
+    const { task, execution, requestedCandidate } =
+      await this.validateIntegrationCandidate(input);
+    this.supervisor.assertOwnerMergeAuthorization(task, requestedCandidate);
     return this.allowed(task.id, execution.id);
   }
 
   async checkIntegration(
     input: IntegrationGateInput,
   ): Promise<SupervisorGateDecision> {
-    const { task, execution } = await this.validateIntegrationCandidate(input);
+    const { task, execution, requestedCandidate } =
+      await this.validateIntegrationCandidate(input);
+    this.supervisor.assertOwnerMergeAuthorization(task, requestedCandidate);
 
     if (!input.explicitUserAuthorization) {
       throw new BadRequestException({
@@ -195,7 +199,7 @@ export class AgentGatewayService {
       throw new BadRequestException({ code: 'canonical_target_required' });
     }
 
-    return { task, execution };
+    return { task, execution, requestedCandidate };
   }
 
   private async requireExecution(

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
@@ -9,6 +17,7 @@ import type {
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
+  SupervisorReviewCandidate,
 } from './agent-supervisor.types';
 
 @UseGuards(SupervisorOwnerGuard)
@@ -83,6 +92,19 @@ export class AgentSupervisorController {
   @Post('tasks/:id/approve')
   approveTask(@Param('id') id: string) {
     return this.supervisor.approveTask(id, true);
+  }
+
+  @Post('tasks/:id/authorize-merge')
+  authorizeMerge(
+    @Param('id') id: string,
+    @Body() body: { candidate: SupervisorReviewCandidate },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.authorizeMerge(
+      id,
+      body.candidate,
+      request.user?.id ?? '',
+    );
   }
 
   @Post('tasks/:id/dispatch')

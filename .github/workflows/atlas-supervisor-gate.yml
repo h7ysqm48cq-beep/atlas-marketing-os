@@ -115,7 +115,7 @@ jobs:
           test -n "$SUPERVISOR_API_URL"
           test -n "$SUPERVISOR_CI_TOKEN"
 
-      - name: Validate exact candidate with ATLAS Supervisor
+      - name: Validate Supervisor review and Owner merge authorization
         if: steps.changes.outputs.needs_gate == 'true'
         env:
           SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
@@ -178,9 +178,9 @@ jobs:
             response?.executionId !== process.env.EXECUTION_ID
           ) {
             console.error(response);
-            throw new Error('ATLAS Supervisor denied or returned a mismatched candidate decision');
+            throw new Error('ATLAS Supervisor denied or returned a mismatched dual-gate decision');
           }
-          console.log('ATLAS Supervisor candidate validation passed. Merge authorization is still separate.');
+          console.log('ATLAS Supervisor review and signed Owner merge authorization passed. CI validation does not itself authorize or execute merge.');
           NODE
 
       - name: Report gate not required for non-governance main change
