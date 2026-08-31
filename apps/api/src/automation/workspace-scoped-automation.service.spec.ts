@@ -77,10 +77,9 @@ describe('WorkspaceScopedAutomationService', () => {
     );
   });
 
-  it('filters calendar posts to brands in the authenticated workspace', async () => {
+  it('applies workspace and hidden-channel predicates before calendar limits', async () => {
     const { prisma, auth, service } = createService();
     prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
-    prisma.brand.findMany.mockResolvedValue([{ id: 'brand-a' }]);
     prisma.scheduledPost.findMany.mockResolvedValue([
       {
         id: 'post-a',
@@ -89,18 +88,42 @@ describe('WorkspaceScopedAutomationService', () => {
         channel: { id: 'channel-a', name: 'A' },
         campaign: null,
       },
-      {
-        id: 'post-b',
-        brandId: 'brand-b',
-        mediaUrls: [],
-        channel: { id: 'channel-b', name: 'B' },
-        campaign: null,
-      },
     ]);
 
-    const result = await auth.run('user-a', () => service.listCalendarPosts());
+    const result = await auth.run('user-a', () =>
+      service.listCalendarPosts(undefined, undefined, undefined, 10),
+    );
 
     expect(result.map((post) => post.id)).toEqual(['post-a']);
+    expect(prisma.scheduledPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brand: { workspaceId: 'workspace-a' },
+          channel: {
+            workspaceId: 'workspace-a',
+            hiddenAt: null,
+          },
+        }),
+        take: 10,
+      }),
+    );
+  });
+
+  it('applies workspace predicates before normal post list limits', async () => {
+    const { prisma, auth, service } = createService();
+    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    prisma.scheduledPost.findMany.mockResolvedValue([]);
+
+    await auth.run('user-a', () => service.listPosts());
+
+    expect(prisma.scheduledPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brand: { workspaceId: 'workspace-a' },
+          channel: { workspaceId: 'workspace-a' },
+        }),
+      }),
+    );
   });
 
   it('blocks a cross-workspace scheduled post before returning it', async () => {
