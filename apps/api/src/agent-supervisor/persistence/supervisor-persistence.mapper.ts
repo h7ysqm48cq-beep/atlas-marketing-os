@@ -3,6 +3,7 @@ import type {
   SupervisorAction,
   SupervisorEvidence,
   SupervisorIntegrationAction,
+  SupervisorOwnerMergeAuthorization,
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
@@ -82,7 +83,10 @@ function requireStringArray(value: unknown): string[] {
 }
 
 function requireIntegrationAction(value: unknown): SupervisorIntegrationAction {
-  if (typeof value !== 'string' || !INTEGRATION_ACTIONS.has(value as SupervisorIntegrationAction)) {
+  if (
+    typeof value !== 'string' ||
+    !INTEGRATION_ACTIONS.has(value as SupervisorIntegrationAction)
+  ) {
     throw persistenceError();
   }
   return value as SupervisorIntegrationAction;
@@ -99,12 +103,28 @@ function mapReviewCandidate(value: unknown): SupervisorReviewCandidate {
   };
 }
 
+function mapOwnerMergeAuthorization(
+  value: unknown,
+): SupervisorOwnerMergeAuthorization {
+  const object = requireObject(value);
+  return {
+    candidate: mapReviewCandidate(object.candidate),
+    authorizedBy: requireString(object.authorizedBy),
+    authorizedAt: requireString(object.authorizedAt),
+    signature: requireString(object.signature),
+  };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
   const reviewCandidate =
     object.reviewCandidate === undefined
       ? undefined
       : mapReviewCandidate(object.reviewCandidate);
+  const ownerMergeAuthorization =
+    object.ownerMergeAuthorization === undefined
+      ? undefined
+      : mapOwnerMergeAuthorization(object.ownerMergeAuthorization);
 
   return {
     rootCause: requireString(object.rootCause),
@@ -116,6 +136,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     gitState: requireString(object.gitState),
     remainingRisk: requireStringArray(object.remainingRisk),
     ...(reviewCandidate ? { reviewCandidate } : {}),
+    ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
   };
 }
 
@@ -177,6 +198,8 @@ export function mapExecutionRecord(
     error: record.error,
     createdAt: new Date(record.createdAt),
     startedAt: record.startedAt ? new Date(record.startedAt) : null,
-    completedAt: record.completedAt ? new Date(record.completedAt) : null,
+    completedAt: record.completedAt
+      ? new Date(record.completedAt)
+      : null,
   };
 }
