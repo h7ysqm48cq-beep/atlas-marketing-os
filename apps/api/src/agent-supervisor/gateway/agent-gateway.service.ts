@@ -7,7 +7,9 @@ import {
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
   IntegrationGateInput,
+  SupervisorEvidence,
   SupervisorGateDecision,
+  SupervisorReviewCandidate,
   SupervisorTask,
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
@@ -166,10 +168,30 @@ export class AgentGatewayService {
     }
 
     this.validateChangedFiles(execution.assignment.allowedPaths, input.changedFiles);
-    this.validateSha(input.baseSha, 'invalid_base_sha');
-    this.validateSha(input.headSha, 'invalid_head_sha');
 
-    if (input.action === 'merge' && input.targetBranch !== 'production/atlas') {
+    const requestedCandidate = this.normalizeRequestedCandidate(input);
+    const taskCandidate = this.requirePersistedCandidate(task.evidence);
+    const executionCandidate = this.requirePersistedCandidate(
+      execution.result.evidence,
+    );
+
+    this.requireCandidateMatchesEvidence(taskCandidate, task.evidence!);
+    this.requireCandidateMatchesEvidence(
+      executionCandidate,
+      execution.result.evidence,
+    );
+
+    if (
+      !this.sameCandidate(taskCandidate, executionCandidate) ||
+      !this.sameCandidate(taskCandidate, requestedCandidate)
+    ) {
+      throw new BadRequestException({ code: 'review_candidate_mismatch' });
+    }
+
+    if (
+      requestedCandidate.action === 'merge' &&
+      requestedCandidate.targetBranch !== 'production/atlas'
+    ) {
       throw new BadRequestException({ code: 'canonical_target_required' });
     }
 
@@ -188,6 +210,93 @@ export class AgentGatewayService {
       throw new BadRequestException({ code: 'execution_task_mismatch' });
     }
     return execution;
+  }
+
+  private normalizeRequestedCandidate(
+    input: IntegrationGateInput,
+  ): SupervisorReviewCandidate {
+    if (!input.targetBranch || !input.baseSha || !input.headSha) {
+      throw new BadRequestException({ code: 'review_candidate_incomplete' });
+    }
+
+    return this.normalizeCandidate({
+      action: input.action,
+      targetBranch: input.targetBranch,
+      baseSha: input.baseSha,
+      headSha: input.headSha,
+      changedFiles: input.changedFiles,
+    });
+  }
+
+  private requirePersistedCandidate(
+    evidence: SupervisorEvidence | null,
+  ): SupervisorReviewCandidate {
+    if (!evidence?.reviewCandidate) {
+      throw new BadRequestException({ code: 'review_candidate_not_recorded' });
+    }
+    return this.normalizeCandidate(evidence.reviewCandidate);
+  }
+
+  private normalizeCandidate(
+    candidate: SupervisorReviewCandidate,
+  ): SupervisorReviewCandidate {
+    const targetBranch = candidate.targetBranch.trim();
+    if (!targetBranch) {
+      throw new BadRequestException({ code: 'review_candidate_incomplete' });
+    }
+
+    const baseSha = this.requireSha(candidate.baseSha, 'invalid_base_sha');
+    const headSha = this.requireSha(candidate.headSha, 'invalid_head_sha');
+    const changedFiles = this.normalizeChangedFileSet(candidate.changedFiles);
+    if (changedFiles.length === 0) {
+      throw new BadRequestException({ code: 'review_candidate_empty_changes' });
+    }
+
+    return {
+      action: candidate.action,
+      targetBranch,
+      baseSha,
+      headSha,
+      changedFiles,
+    };
+  }
+
+  private requireCandidateMatchesEvidence(
+    candidate: SupervisorReviewCandidate,
+    evidence: SupervisorEvidence,
+  ) {
+    const evidenceFiles = this.normalizeChangedFileSet(evidence.changedFiles);
+    if (!this.sameStringArray(candidate.changedFiles, evidenceFiles)) {
+      throw new BadRequestException({
+        code: 'review_candidate_evidence_mismatch',
+      });
+    }
+  }
+
+  private sameCandidate(
+    left: SupervisorReviewCandidate,
+    right: SupervisorReviewCandidate,
+  ) {
+    return (
+      left.action === right.action &&
+      left.targetBranch === right.targetBranch &&
+      left.baseSha === right.baseSha &&
+      left.headSha === right.headSha &&
+      this.sameStringArray(left.changedFiles, right.changedFiles)
+    );
+  }
+
+  private normalizeChangedFileSet(files: string[]) {
+    return Array.from(
+      new Set(files.map((path) => this.normalizeRepoPath(path))),
+    ).sort();
+  }
+
+  private sameStringArray(left: string[], right: string[]) {
+    return (
+      left.length === right.length &&
+      left.every((value, index) => value === right[index])
+    );
   }
 
   private validateChangedFiles(allowedPaths: string[], changedFiles: string[]) {
@@ -212,10 +321,11 @@ export class AgentGatewayService {
     }
   }
 
-  private validateSha(value: string | undefined, code: string) {
-    if (value !== undefined && !FULL_GIT_SHA.test(value)) {
+  private requireSha(value: string, code: string) {
+    if (!FULL_GIT_SHA.test(value)) {
       throw new BadRequestException({ code });
     }
+    return value.toLowerCase();
   }
 
   private normalizeAllowedPath(path: string) {

@@ -7,6 +7,16 @@ import {
 const createdAt = new Date('2026-08-30T00:00:00.000Z');
 const updatedAt = new Date('2026-08-30T00:01:00.000Z');
 
+function reviewCandidateFixture() {
+  return {
+    action: 'merge',
+    targetBranch: 'production/atlas',
+    baseSha: 'a'.repeat(40),
+    headSha: 'b'.repeat(40),
+    changedFiles: ['apps/api/src/example.ts'],
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -17,6 +27,7 @@ function evidenceFixture() {
     deploymentState: 'NOT_DEPLOYED',
     gitState: 'NO_INTEGRATION_PERFORMED',
     remainingRisk: ['none'],
+    reviewCandidate: reviewCandidateFixture(),
   };
 }
 
@@ -98,7 +109,7 @@ function expectPersistenceError(callback: () => unknown) {
 }
 
 describe('supervisor persistence mapper', () => {
-  it('maps a valid task record and clones arrays plus evidence', () => {
+  it('maps a valid task record and clones arrays plus exact review candidate', () => {
     const record = taskRecord();
     const task = mapTaskRecord(record);
 
@@ -117,6 +128,21 @@ describe('supervisor persistence mapper', () => {
     expect(task.evidence?.changedFiles).not.toBe(
       (record.evidence as ReturnType<typeof evidenceFixture>).changedFiles,
     );
+    expect(task.evidence?.reviewCandidate).not.toBe(
+      (record.evidence as ReturnType<typeof evidenceFixture>).reviewCandidate,
+    );
+    expect(task.evidence?.reviewCandidate?.changedFiles).not.toBe(
+      (record.evidence as ReturnType<typeof evidenceFixture>).reviewCandidate
+        .changedFiles,
+    );
+  });
+
+  it('keeps backward compatibility with persisted evidence that predates review candidates', () => {
+    const legacy = evidenceFixture();
+    delete (legacy as Partial<typeof legacy>).reviewCandidate;
+    const task = mapTaskRecord(taskRecord({ evidence: legacy }));
+
+    expect(task.evidence?.reviewCandidate).toBeUndefined();
   });
 
   it('round-trips null task evidence', () => {
@@ -140,6 +166,20 @@ describe('supervisor persistence mapper', () => {
       (record.result as ReturnType<typeof executionResultFixture>).evidence
         .changedFiles,
     );
+    expect(execution.result?.evidence.reviewCandidate?.changedFiles).not.toBe(
+      (record.result as ReturnType<typeof executionResultFixture>).evidence
+        .reviewCandidate.changedFiles,
+    );
+  });
+
+  it('rejects malformed persisted review-candidate JSON', () => {
+    const evidence = evidenceFixture();
+    (evidence as Record<string, unknown>).reviewCandidate = {
+      ...reviewCandidateFixture(),
+      action: 'force_push',
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
   });
 
   it.each([null, 'assignment', 42, true, ['invalid']])(

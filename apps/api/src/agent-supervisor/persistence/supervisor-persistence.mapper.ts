@@ -2,6 +2,8 @@ import { InternalServerErrorException } from '@nestjs/common';
 import type {
   SupervisorAction,
   SupervisorEvidence,
+  SupervisorIntegrationAction,
+  SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
 } from '../agent-supervisor.types';
@@ -15,6 +17,13 @@ import type {
 } from '../execution/supervisor-execution.types';
 
 type JsonObject = Record<string, unknown>;
+
+const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
+  'merge',
+  'deploy_production',
+  'run_migration',
+  'change_runtime_config',
+]);
 
 export interface SupervisorTaskRecord {
   id: string;
@@ -72,8 +81,31 @@ function requireStringArray(value: unknown): string[] {
   return [...value];
 }
 
+function requireIntegrationAction(value: unknown): SupervisorIntegrationAction {
+  if (typeof value !== 'string' || !INTEGRATION_ACTIONS.has(value as SupervisorIntegrationAction)) {
+    throw persistenceError();
+  }
+  return value as SupervisorIntegrationAction;
+}
+
+function mapReviewCandidate(value: unknown): SupervisorReviewCandidate {
+  const object = requireObject(value);
+  return {
+    action: requireIntegrationAction(object.action),
+    targetBranch: requireString(object.targetBranch),
+    baseSha: requireString(object.baseSha),
+    headSha: requireString(object.headSha),
+    changedFiles: requireStringArray(object.changedFiles),
+  };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
+  const reviewCandidate =
+    object.reviewCandidate === undefined
+      ? undefined
+      : mapReviewCandidate(object.reviewCandidate);
+
   return {
     rootCause: requireString(object.rootCause),
     changedFiles: requireStringArray(object.changedFiles),
@@ -83,6 +115,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     deploymentState: requireString(object.deploymentState),
     gitState: requireString(object.gitState),
     remainingRisk: requireStringArray(object.remainingRisk),
+    ...(reviewCandidate ? { reviewCandidate } : {}),
   };
 }
 
