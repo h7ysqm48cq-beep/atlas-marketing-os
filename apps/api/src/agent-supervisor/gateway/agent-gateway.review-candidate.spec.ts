@@ -8,8 +8,9 @@ import { AgentGatewayService } from './agent-gateway.service';
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
+const OTHER_ALLOWED_FILE = 'apps/api/src/other.ts';
 
-async function makeReadyCandidate() {
+async function makeReadyCandidate(includeReviewCandidate = true) {
   const taskStore = new MemorySupervisorTaskStore();
   const fileStore = new MemoryFileOwnershipStore();
   const executionStore = new MemorySupervisorExecutionStore();
@@ -20,7 +21,7 @@ async function makeReadyCandidate() {
   const task = await supervisor.createTask({
     objective: 'Review supervised candidate',
     owner: 'backend',
-    allowedPaths: [CHANGED_FILE],
+    allowedPaths: [CHANGED_FILE, OTHER_ALLOWED_FILE],
     forbiddenActions: ['merge', 'deploy_production'],
     dependsOn: [],
     acceptance: ['candidate is verified'],
@@ -39,14 +40,18 @@ async function makeReadyCandidate() {
       deploymentState: 'NOT_DEPLOYED',
       gitState: 'NO_INTEGRATION_PERFORMED',
       remainingRisk: [],
-      reviewCandidate: {
-        action: 'merge',
-        targetBranch: 'production/atlas',
-        baseSha: BASE_SHA,
-        headSha: HEAD_SHA,
-        changedFiles: [CHANGED_FILE],
-      },
-    } as any,
+      ...(includeReviewCandidate
+        ? {
+            reviewCandidate: {
+              action: 'merge' as const,
+              targetBranch: 'production/atlas',
+              baseSha: BASE_SHA,
+              headSha: HEAD_SHA,
+              changedFiles: [CHANGED_FILE],
+            },
+          }
+        : {}),
+    },
   });
   await gateway.submitImplementationFromExecution(task.id, completed.id);
   await supervisor.beginVerification(task.id);
@@ -94,6 +99,44 @@ describe('AgentGatewayService review candidate', () => {
       }),
     ).rejects.toMatchObject({
       response: { code: 'review_candidate_mismatch' },
+    });
+  });
+
+  it('rejects a different changed-file set even when every file is inside the assignment scope', async () => {
+    const { task, completed, gateway } = await makeReadyCandidate();
+
+    await expect(
+      gateway.checkReviewCandidate({
+        taskId: task.id,
+        executionId: completed.id,
+        action: 'merge',
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [OTHER_ALLOWED_FILE],
+        explicitUserAuthorization: false,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'review_candidate_mismatch' },
+    });
+  });
+
+  it('fails closed for legacy evidence that never recorded an exact review candidate', async () => {
+    const { task, completed, gateway } = await makeReadyCandidate(false);
+
+    await expect(
+      gateway.checkReviewCandidate({
+        taskId: task.id,
+        executionId: completed.id,
+        action: 'merge',
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
+        explicitUserAuthorization: false,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'review_candidate_not_recorded' },
     });
   });
 });
