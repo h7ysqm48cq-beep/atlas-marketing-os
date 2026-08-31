@@ -57,15 +57,15 @@ export class BrandsService {
 
   private async getUserWorkspace() {
     const userId = this.authContext.requireUserId();
-    return this.prisma.workspace.upsert({
+    const workspace = await this.prisma.workspace.findUnique({
       where: { ownerUserId: userId },
-      update: {},
-      create: {
-        name: 'Atlas Workspace',
-        slug: `atlas-${userId}`,
-        ownerUserId: userId,
-      },
     });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace ownership is not configured.');
+    }
+
+    return workspace;
   }
 
   private async getSystemWorkspace() {

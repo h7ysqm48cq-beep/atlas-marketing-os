@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
 import { AutomationController } from './automation.controller';
 import { AutomationService } from './automation.service';
+import { WorkspaceScopedAutomationService } from './workspace-scoped-automation.service';
 import { TelegramConnectorService } from './telegram-connector.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { InstagramConnectorService } from './instagram-connector.service';
@@ -31,7 +32,11 @@ import { NotificationModule } from '../notifications/notification.module';
     SportsNewsSettingsService,
     SportsNewsSourceValidatorService,
     MSportsImageBrandingService,
-    AutomationService,
+    WorkspaceScopedAutomationService,
+    {
+      provide: AutomationService,
+      useExisting: WorkspaceScopedAutomationService,
+    },
     TelegramConnectorService,
     FacebookConnectorService,
     InstagramConnectorService,

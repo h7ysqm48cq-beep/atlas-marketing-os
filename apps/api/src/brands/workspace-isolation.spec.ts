@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { BrandsService } from './brands.service';
 import { AuthContextService } from '../auth/auth-context.service';
 
@@ -33,48 +33,44 @@ describe('workspace isolation', () => {
     const auth = new AuthContextService();
     const service = new BrandsService(prisma, auth);
     const workspace = { id: 'workspace-a', ownerUserId: 'user-a' };
-    prisma.workspace.upsert.mockResolvedValue(workspace);
+    prisma.workspace.findUnique.mockResolvedValue(workspace);
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-a', workspace });
 
     await auth.run('user-a', () => service.getActiveBrand());
 
-    expect(prisma.workspace.upsert).toHaveBeenCalledWith({
+    expect(prisma.workspace.findUnique).toHaveBeenCalledWith({
       where: { ownerUserId: 'user-a' },
-      update: {},
-      create: {
-        name: 'Atlas Workspace',
-        slug: 'atlas-user-a',
-        ownerUserId: 'user-a',
-      },
     });
+    expect(prisma.workspace.upsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ where: { ownerUserId: 'user-a' } }),
+    );
     expect(prisma.brand.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { workspaceId: 'workspace-a', status: 'ACTIVE' } }),
+      expect.objectContaining({
+        where: { workspaceId: 'workspace-a', status: 'ACTIVE' },
+      }),
     );
   });
 
-  it('creates a separate workspace and starter brand for a new user', async () => {
+  it('fails closed instead of creating a workspace for an unmapped user', async () => {
     const prisma = prismaMock();
     const auth = new AuthContextService();
     const service = new BrandsService(prisma, auth);
-    prisma.workspace.upsert.mockResolvedValue({ id: 'workspace-new', ownerUserId: 'user-new' });
-    prisma.brand.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'brand-new' });
-    prisma.brand.create.mockResolvedValue({ id: 'brand-new' });
+    prisma.workspace.findUnique.mockResolvedValue(null);
 
-    const brand = await auth.run('user-new', () => service.getActiveBrand());
+    await expect(
+      auth.run('user-new', () => service.getActiveBrand()),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
-    expect(brand).toEqual({ id: 'brand-new' });
-    expect(prisma.brand.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ workspaceId: 'workspace-new' }) }),
+    expect(prisma.workspace.upsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ where: { ownerUserId: 'user-new' } }),
     );
+    expect(prisma.brand.create).not.toHaveBeenCalled();
   });
 
   it('does not return a brand owned by another user', async () => {
     const prisma = prismaMock();
     const auth = new AuthContextService();
     const service = new BrandsService(prisma, auth);
-    prisma.workspace.upsert.mockResolvedValue({ id: 'workspace-a', ownerUserId: 'user-a' });
     prisma.brand.findUnique.mockResolvedValue(null);
 
     await expect(
