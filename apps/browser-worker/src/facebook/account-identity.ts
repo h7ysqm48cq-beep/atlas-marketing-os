@@ -14,6 +14,50 @@ export type FacebookAccountIdentity = {
   facebookUserName: string | null;
 };
 
+export function normalizeFacebookProfileName(
+  value: string | null | undefined,
+): string | null {
+  const normalized =
+    value
+      ?.replace(/\s+/g, " ")
+      .trim() || "";
+
+  if (!normalized) {
+    return null;
+  }
+
+  const withoutNotificationCount =
+    normalized
+      .replace(
+        /^\(\d+\+?\)\s*/u,
+        "",
+      )
+      .trim();
+
+  const rejectedNames =
+    new Set([
+      "facebook",
+      "home",
+      "profile",
+      "notifications",
+      "notification",
+      "menu",
+      "facebook home",
+      "log in",
+      "login",
+    ]);
+
+  if (
+    rejectedNames.has(
+      withoutNotificationCount.toLowerCase(),
+    )
+  ) {
+    return null;
+  }
+
+  return withoutNotificationCount || null;
+}
+
 export async function inspectFacebookAccountIdentity(input: {
   getCookies: () => Promise<FacebookCookie[]>;
   captureProfileName?: boolean;
@@ -56,7 +100,9 @@ export async function inspectFacebookAccountIdentity(input: {
     );
 
     const facebookUserName =
-      (await tab.readProfileName())?.trim() || null;
+      normalizeFacebookProfileName(
+        await tab.readProfileName(),
+      );
 
     return {
       facebookUserId,
