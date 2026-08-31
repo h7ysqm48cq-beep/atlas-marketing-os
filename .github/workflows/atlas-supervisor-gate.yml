@@ -63,9 +63,10 @@ jobs:
               path.startsWith('.atlas/agent-control/') ||
               path.startsWith('apps/api/src/agent-supervisor/');
             const needsGate = TARGET_BRANCH === 'production/atlas' || files.some(governancePath);
+            const changedFilesB64 = Buffer.from(JSON.stringify(files), 'utf8').toString('base64');
 
             fs.appendFileSync(GITHUB_OUTPUT, `needs_gate=${needsGate ? 'true' : 'false'}\n`);
-            fs.appendFileSync(GITHUB_OUTPUT, `changed_files=${JSON.stringify(files)}\n`);
+            fs.appendFileSync(GITHUB_OUTPUT, `changed_files_b64=${changedFilesB64}\n`);
           }
 
           main().catch((error) => {
@@ -124,17 +125,19 @@ jobs:
           TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          CHANGED_FILES_JSON: ${{ steps.changes.outputs.changed_files }}
+          CHANGED_FILES_B64: ${{ steps.changes.outputs.changed_files_b64 }}
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
-          const required = ['TASK_ID', 'EXECUTION_ID', 'TARGET_BRANCH', 'BASE_SHA', 'HEAD_SHA', 'CHANGED_FILES_JSON'];
+          const required = ['TASK_ID', 'EXECUTION_ID', 'TARGET_BRANCH', 'BASE_SHA', 'HEAD_SHA', 'CHANGED_FILES_B64'];
           for (const key of required) {
             if (!process.env[key]) throw new Error(`${key} is missing`);
           }
-          const changedFiles = JSON.parse(process.env.CHANGED_FILES_JSON);
+          const changedFiles = JSON.parse(
+            Buffer.from(process.env.CHANGED_FILES_B64, 'base64').toString('utf8'),
+          );
           if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
             throw new Error('invalid changed file list');
           }
