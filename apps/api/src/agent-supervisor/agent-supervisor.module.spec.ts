@@ -1,5 +1,6 @@
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { AgentSupervisorModule } from './agent-supervisor.module';
+import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
 import { PrismaSupervisorTaskStore } from './persistence/prisma-supervisor-task.store';
@@ -25,6 +26,10 @@ describe('AgentSupervisorModule runtime persistence wiring', () => {
         (provider as { provide: unknown }).provide === token,
     ) as { provide: symbol; useExisting?: unknown } | undefined;
   }
+
+  it('registers the owner mutation guard at runtime', () => {
+    expect(providers).toContain(SupervisorOwnerGuard);
+  });
 
   it('binds supervisor task persistence to Prisma at runtime', () => {
     expect(providers).toContain(PrismaSupervisorTaskStore);
