@@ -45,7 +45,11 @@ import {
   ensureFacebookPageIdentitySwitch,
   facebookPageSwitchActionPattern,
   hasFacebookPageSwitchPrompt,
+  hasFacebookPageTargetIdentityEvidence,
 } from "./facebook/page-identity.js";
+import {
+  ensureFacebookPagePublishingSurface,
+} from "./facebook/page-publishing-surface.js";
 import {
   filterFacebookPageCandidates,
 } from "./facebook/page-discovery.js";
@@ -4092,6 +4096,7 @@ app.post(
     let automationPage:
       Page | null =
       null;
+    let surfaceLoginRequired = false;
 
     try {
       await releasePreparedPage(
@@ -4280,6 +4285,50 @@ app.post(
         await page.waitForTimeout(2500);
       }
 
+      if (!targetPageId) {
+        throw new Error(
+          "Facebook target Page ID could not be verified.",
+        );
+      }
+
+      // One recovery budget for the entire PREPARE, including identity switches.
+      let publishingSurfaceRecoveryUsed = false;
+      const verifyNoFacebookLogin = async (candidatePage = page) => {
+        const url = new URL(candidatePage.url());
+        if (["facebook.com", "www.facebook.com"].includes(url.hostname)) {
+          const text = (await candidatePage.locator("body").innerText().catch(() => "")).toLowerCase();
+          const loginForm = await candidatePage.locator(
+            'input[name="email"]:visible, input[name="pass"]:visible, input[type="password"]:visible',
+          ).count().then((count) => count > 0).catch(() => false);
+          surfaceLoginRequired = /^\/login(?:[/.]|$)/i.test(url.pathname) || loginForm ||
+            text.includes("log in to facebook") ||
+            (text.includes("email or phone number") && text.includes("password") && text.includes("log in"));
+        }
+        if (surfaceLoginRequired) {
+          throw new Error("Facebook login is required.");
+        }
+      };
+      const verifyPublishingSurface = async (allowRecovery = true, candidatePage = page) => {
+        const result = await ensureFacebookPagePublishingSurface({
+          page: candidatePage,
+          targetPageId,
+          allowRecovery: allowRecovery && !publishingSurfaceRecoveryUsed,
+        });
+        publishingSurfaceRecoveryUsed ||= result.recovered;
+        if (!result.verified) {
+          // A recovery or identity switch may expose login instead of a Page.
+          // Preserve the API's login-required contract before failing closed.
+          await verifyNoFacebookLogin(candidatePage);
+          throw new Error(
+            [
+              "Facebook target Page publishing surface could not be verified.",
+              `Reason: ${result.reason}.`,
+              `URL: ${result.finalUrl}.`,
+            ].join(" "),
+          );
+        }
+        return result;
+      };
       const pageText =
         await page
           .locator("body")
@@ -4347,6 +4396,8 @@ app.post(
         });
         return;
       }
+
+      await verifyPublishingSurface();
 
       completeTraceStep({
         stepKey:
@@ -4451,82 +4502,104 @@ app.post(
         return null;
       };
 
-      const pageIdentitySwitch =
-        await ensureFacebookPageIdentitySwitch({
-          inspectState: async () => ({
-            bodyText:
-              await page
-                .locator("body")
-                .innerText()
-                .catch(() => ""),
-            hasVisibleSwitchAction:
-              Boolean(
-                await getVisibleSwitchAction(),
-              ),
-          }),
-          clickSwitchAction: async () => {
-            const candidate =
-              await getVisibleSwitchAction();
+      const verifyPageIdentity = async (allowRecovery = true): Promise<void> => {
+        const pageIdentitySwitch =
+          await ensureFacebookPageIdentitySwitch({
+            inspectState: async () => ({
+              bodyText:
+                await page
+                  .locator("body")
+                  .innerText()
+                  .catch(() => ""),
+              hasVisibleSwitchAction:
+                Boolean(
+                  await getVisibleSwitchAction(),
+                ),
+            }),
+            clickSwitchAction: async () => {
+              const candidate =
+                await getVisibleSwitchAction();
 
-            if (!candidate) {
-              return false;
-            }
+              if (!candidate) {
+                return false;
+              }
 
-            return candidate
-              .click({
-                timeout: 5000,
-                force: true,
-              })
-              .then(() => true)
-              .catch(() => false);
-          },
-          waitForSettled: async () => {
-            await page.waitForTimeout(2500);
-            await page
-              .waitForLoadState(
-                "domcontentloaded",
-                {
+              return candidate
+                .click({
                   timeout: 5000,
-                },
-              )
-              .catch(() => undefined);
+                  force: true,
+                })
+                .then(() => true)
+                .catch(() => false);
+            },
+            waitForSettled: async () => {
+              await page.waitForTimeout(2500);
+              await page
+                .waitForLoadState(
+                  "domcontentloaded",
+                  {
+                    timeout: 5000,
+                  },
+                )
+                .catch(() => undefined);
+            },
+            maxAttempts: 3,
+          });
+
+        console.log(
+          "[facebook/page-identity-switch]",
+          {
+            url:
+              page.url(),
+            required:
+              pageIdentitySwitch.required,
+            verified:
+              pageIdentitySwitch.verified,
+            attempts:
+              pageIdentitySwitch.attempts,
+            targetPageName:
+              pageIdentitySwitch.targetPageName,
+            reason:
+              pageIdentitySwitch.reason,
           },
-          maxAttempts: 3,
-        });
-
-      console.log(
-        "[facebook/page-identity-switch]",
-        {
-          url:
-            page.url(),
-          required:
-            pageIdentitySwitch.required,
-          verified:
-            pageIdentitySwitch.verified,
-          attempts:
-            pageIdentitySwitch.attempts,
-          targetPageName:
-            pageIdentitySwitch.targetPageName,
-          reason:
-            pageIdentitySwitch.reason,
-        },
-      );
-
-      if (!pageIdentitySwitch.verified) {
-        throw new Error(
-          [
-            "Facebook Page identity switch did not complete.",
-            pageIdentitySwitch.targetPageName
-              ? `Target Page: ${pageIdentitySwitch.targetPageName}.`
-              : null,
-            `Attempts: ${pageIdentitySwitch.attempts}.`,
-            `Reason: ${pageIdentitySwitch.reason}.`,
-            `URL: ${page.url()}.`,
-          ]
-            .filter(Boolean)
-            .join(" "),
         );
-      }
+
+        // A switch may land on login or Inbox without the Page name. Classify
+        // that result before treating missing identity evidence as terminal.
+        const postIdentitySurface = await verifyPublishingSurface(allowRecovery);
+        if (postIdentitySurface.recovered) {
+          await verifyPageIdentity(false);
+          if (
+            pageIdentitySwitch.targetPageName &&
+            !hasFacebookPageTargetIdentityEvidence(
+              await page.locator("body").innerText().catch(() => ""),
+              pageIdentitySwitch.targetPageName,
+            )
+          ) {
+            throw new Error("Facebook target Page identity could not be verified after recovery.");
+          }
+          return;
+        }
+
+        if (!pageIdentitySwitch.verified) {
+          await verifyNoFacebookLogin();
+          throw new Error(
+            [
+              "Facebook Page identity switch did not complete.",
+              pageIdentitySwitch.targetPageName
+                ? `Target Page: ${pageIdentitySwitch.targetPageName}.`
+                : null,
+              `Attempts: ${pageIdentitySwitch.attempts}.`,
+              `Reason: ${pageIdentitySwitch.reason}.`,
+              `URL: ${page.url()}.`,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          );
+        }
+      };
+
+      await verifyPageIdentity();
 
       /*
        * FACEBOOK_LOGIN_RECHECK_AFTER_IDENTITY_SWITCH_V1
@@ -4620,6 +4693,10 @@ app.post(
       ) {
         composerTriggerAttempt =
           attempt;
+
+        // Identity-switch completion is not proof of the current Page surface.
+        // Also fail closed if the URL changes while waiting for the composer.
+        await verifyPublishingSurface(false);
 
         const composerTriggers = [
           page.getByRole(
@@ -4906,6 +4983,7 @@ app.post(
         1200,
       );
 
+      await verifyPublishingSurface(false);
       let dialog;
       let dialogPage = page;
       try {
@@ -4931,12 +5009,16 @@ app.post(
         }
       }
 
+      // Validate the selected tab before adopting it or touching its editor.
+      // A pre-existing unrelated tab must never become this PREPARE's draft.
+      await verifyPublishingSurface(false, dialogPage);
       if (dialogPage !== page) {
         const previousPage = page;
         page = dialogPage;
         automationPage = page;
         await previousPage.close().catch(() => undefined);
       }
+      await verifyPublishingSurface(false);
 
       completeTraceStep({
         stepKey:
@@ -5247,6 +5329,7 @@ app.post(
       const fillCaptionStartedAt =
         Date.now();
 
+      await verifyPublishingSurface(false);
       const captionResult =
         await fillFacebookComposerCaption(
           page,
@@ -5446,6 +5529,8 @@ app.post(
             screenshot,
         });
 
+      const preparedPageTitle = await page.title();
+      await verifyPublishingSurface(false);
       session.currentUrl =
         page.url();
 
@@ -5489,7 +5574,7 @@ app.post(
           onboardingHandled,
         page: {
           title:
-            await page.title(),
+            preparedPageTitle,
           url:
             page.url(),
         },
@@ -5558,6 +5643,7 @@ app.post(
 
       response.status(400).json({
         success: false,
+        ...(surfaceLoginRequired ? { loginRequired: true } : {}),
         message:
           error instanceof Error
             ? error.message
