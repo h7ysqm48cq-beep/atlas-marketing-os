@@ -1,0 +1,5 @@
+ATLAS Supervisor production gate positive proof.
+
+This file exists only to verify that a persisted Supervisor task/execution bound to the exact production/atlas base SHA, PR head SHA, target branch, action, and changed-file set passes atlas-supervisor-gate.
+
+Do not merge this proof PR.
