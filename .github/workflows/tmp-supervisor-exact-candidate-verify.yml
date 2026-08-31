@@ -9,17 +9,28 @@ permissions:
   contents: read
 
 jobs:
-  focused:
+  combined:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
       - run: npx prisma generate --schema apps/api/prisma/schema.prisma
-      - run: npm run test --workspace apps/api -- agent-supervisor/gateway/agent-gateway.review-candidate.spec.ts --runInBand
+      - name: Exact candidate and persistence mapper tests
+        run: npm run test --workspace apps/api -- agent-supervisor/gateway/agent-gateway.review-candidate.spec.ts agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts --runInBand
+      - name: Full Supervisor regression
+        run: npm run test --workspace apps/api -- agent-supervisor --runInBand
+      - name: API production build
+        run: npm run build --workspace apps/api
+      - name: Diff safety
+        run: |
+          git diff --check origin/production/atlas...HEAD
+          test -z "$(git diff --name-only origin/production/atlas...HEAD -- apps/api/prisma)"
