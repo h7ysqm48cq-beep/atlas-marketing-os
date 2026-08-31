@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -14,6 +15,7 @@ import type {
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
+  SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
 } from './agent-supervisor.types';
@@ -59,6 +61,9 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
   'infra',
 ]);
 
+const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
+
 @Injectable()
 export class AgentSupervisorService {
   constructor(
@@ -69,6 +74,8 @@ export class AgentSupervisorService {
     @Optional()
     @Inject(SUPERVISOR_LIFECYCLE_STORE)
     private readonly lifecycleStore?: SupervisorLifecycleStore,
+    @Optional()
+    private readonly config?: ConfigService,
   ) {}
 
   async status() {
@@ -179,11 +186,17 @@ export class AgentSupervisorService {
     this.validateEvidence(task, evidence);
 
     task.evidence = {
-      ...evidence,
+      rootCause: evidence.rootCause,
       changedFiles: this.unique(evidence.changedFiles),
       tests: this.unique(evidence.tests),
+      build: evidence.build,
       regression: this.unique(evidence.regression),
+      deploymentState: evidence.deploymentState,
+      gitState: evidence.gitState,
       remainingRisk: this.unique(evidence.remainingRisk),
+      ...(evidence.reviewCandidate
+        ? { reviewCandidate: this.cloneCandidate(evidence.reviewCandidate) }
+        : {}),
     };
     task.status = 'IMPLEMENTED';
     task.updatedAt = new Date();
@@ -212,6 +225,11 @@ export class AgentSupervisorService {
 
     await this.assertDependenciesReady(task);
     await this.assertFilesAvailable(task);
+    if (task.evidence?.ownerMergeAuthorization) {
+      const { ownerMergeAuthorization: _authorization, ...evidence } =
+        task.evidence;
+      task.evidence = evidence;
+    }
     task.status = 'WORKING';
     task.blockingReason = reason.trim();
     task.updatedAt = new Date();
@@ -245,6 +263,105 @@ export class AgentSupervisorService {
     task.status = 'APPROVED';
     task.updatedAt = new Date();
     return this.taskStore.save(task);
+  }
+
+  async authorizeMerge(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    authorizedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+    if (!task.evidence?.reviewCandidate) {
+      throw new BadRequestException({ code: 'review_candidate_not_recorded' });
+    }
+
+    const reviewedCandidate = this.normalizeCandidate(
+      task.evidence.reviewCandidate,
+    );
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    this.requireCanonicalMerge(requestedCandidate);
+    if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_candidate_mismatch',
+      });
+    }
+
+    const ownerId = authorizedBy.trim();
+    if (!ownerId) {
+      throw new BadRequestException({ code: 'owner_identity_required' });
+    }
+
+    const authorizedAt = new Date().toISOString();
+    task.evidence = {
+      ...task.evidence,
+      ownerMergeAuthorization: {
+        candidate: requestedCandidate,
+        authorizedBy: ownerId,
+        authorizedAt,
+        signature: this.signOwnerMergeAuthorization(
+          requestedCandidate,
+          ownerId,
+          authorizedAt,
+        ),
+      },
+    };
+    task.updatedAt = new Date();
+    return this.taskStore.save(task);
+  }
+
+  assertOwnerMergeAuthorization(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+  ): void {
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    this.requireCanonicalMerge(requestedCandidate);
+
+    const authorization = task.evidence?.ownerMergeAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_required',
+      });
+    }
+
+    const authorizedCandidate = this.normalizeCandidate(
+      authorization.candidate,
+    );
+    if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_mismatch',
+      });
+    }
+
+    const authorizedBy = authorization.authorizedBy?.trim();
+    const authorizedAt = authorization.authorizedAt?.trim();
+    const signature = authorization.signature?.trim();
+    if (
+      !authorizedBy ||
+      !authorizedAt ||
+      !signature ||
+      !FULL_SIGNATURE.test(signature)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_invalid',
+      });
+    }
+
+    const expected = this.signOwnerMergeAuthorization(
+      authorizedCandidate,
+      authorizedBy,
+      authorizedAt,
+    );
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    const suppliedBuffer = Buffer.from(signature, 'hex');
+    if (
+      expectedBuffer.length !== suppliedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, suppliedBuffer)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_invalid',
+      });
+    }
   }
 
   checkPermission(
@@ -452,6 +569,118 @@ export class AgentSupervisorService {
         paths: outsideScope,
       });
     }
+  }
+
+  private normalizeCandidate(
+    candidate: SupervisorReviewCandidate,
+  ): SupervisorReviewCandidate {
+    const targetBranch = candidate.targetBranch?.trim();
+    if (!targetBranch || !Array.isArray(candidate.changedFiles)) {
+      throw new BadRequestException({ code: 'review_candidate_incomplete' });
+    }
+
+    const baseSha = this.requireSha(candidate.baseSha, 'invalid_base_sha');
+    const headSha = this.requireSha(candidate.headSha, 'invalid_head_sha');
+    const changedFiles = Array.from(
+      new Set(candidate.changedFiles.map((path) => this.normalizeRepoPath(path))),
+    ).sort();
+    if (changedFiles.length === 0) {
+      throw new BadRequestException({ code: 'review_candidate_empty_changes' });
+    }
+
+    return {
+      action: candidate.action,
+      targetBranch,
+      baseSha,
+      headSha,
+      changedFiles,
+    };
+  }
+
+  private cloneCandidate(
+    candidate: SupervisorReviewCandidate,
+  ): SupervisorReviewCandidate {
+    return {
+      ...candidate,
+      changedFiles: [...candidate.changedFiles],
+    };
+  }
+
+  private requireCanonicalMerge(candidate: SupervisorReviewCandidate) {
+    if (
+      candidate.action !== 'merge' ||
+      candidate.targetBranch !== 'production/atlas'
+    ) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_requires_canonical_merge',
+      });
+    }
+  }
+
+  private sameCandidate(
+    left: SupervisorReviewCandidate,
+    right: SupervisorReviewCandidate,
+  ) {
+    return (
+      left.action === right.action &&
+      left.targetBranch === right.targetBranch &&
+      left.baseSha === right.baseSha &&
+      left.headSha === right.headSha &&
+      left.changedFiles.length === right.changedFiles.length &&
+      left.changedFiles.every((value, index) => value === right.changedFiles[index])
+    );
+  }
+
+  private requireSha(value: string, code: string) {
+    if (!FULL_GIT_SHA.test(value ?? '')) {
+      throw new BadRequestException({ code });
+    }
+    return value.toLowerCase();
+  }
+
+  private normalizeRepoPath(path: string) {
+    const normalized = path?.trim().replace(/\\/g, '/');
+    if (
+      !normalized ||
+      normalized.startsWith('/') ||
+      /^[A-Za-z]:\//.test(normalized)
+    ) {
+      throw new BadRequestException({ code: 'invalid_repo_path' });
+    }
+
+    const segments = normalized.split('/');
+    if (
+      segments.some(
+        (segment) => !segment || segment === '.' || segment === '..',
+      )
+    ) {
+      throw new BadRequestException({ code: 'invalid_repo_path' });
+    }
+    return normalized;
+  }
+
+  private signOwnerMergeAuthorization(
+    candidate: SupervisorReviewCandidate,
+    authorizedBy: string,
+    authorizedAt: string,
+  ) {
+    const token = this.config?.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
+    if (!token) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_not_configured',
+      });
+    }
+
+    return createHmac('sha256', token)
+      .update(
+        JSON.stringify({
+          candidate,
+          authorizedBy,
+          authorizedAt,
+        }),
+        'utf8',
+      )
+      .digest('hex');
   }
 
   private requireStatus(task: SupervisorTask, allowed: SupervisorTaskStatus[]) {
