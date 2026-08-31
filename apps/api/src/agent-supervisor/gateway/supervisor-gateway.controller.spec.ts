@@ -53,5 +53,7 @@ describe('SupervisorGatewayController', () => {
     expect(gateway.checkReviewCandidate).toHaveBeenCalledWith(reviewInput);
     expect((controller as unknown as { checkIntegration?: unknown }).checkIntegration)
       .toBeUndefined();
+    expect((controller as unknown as { authorizeMerge?: unknown }).authorizeMerge)
+      .toBeUndefined();
   });
 });
