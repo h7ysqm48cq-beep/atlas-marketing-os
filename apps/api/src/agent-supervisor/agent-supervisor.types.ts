@@ -84,3 +84,39 @@ export interface PermissionDecision {
   allowed: boolean;
   reason: string | null;
 }
+
+export type ExternalCodeWorkerKind =
+  | 'codex'
+  | 'chatgpt-work'
+  | 'chatgpt-coding'
+  | 'external-agent';
+
+export interface ValidateWorkerContextInput {
+  taskId: string;
+  executionId: string;
+  externalWorker: ExternalCodeWorkerKind;
+  changedFiles?: string[];
+  requestedAction?: SupervisorAction;
+}
+
+export interface IntegrationGateInput {
+  taskId: string;
+  executionId: string;
+  action:
+    | 'merge'
+    | 'deploy_production'
+    | 'run_migration'
+    | 'change_runtime_config';
+  targetBranch?: string;
+  baseSha?: string;
+  headSha?: string;
+  changedFiles: string[];
+  explicitUserAuthorization: boolean;
+}
+
+export interface SupervisorGateDecision {
+  allowed: boolean;
+  reason: string | null;
+  taskId: string;
+  executionId: string;
+}
