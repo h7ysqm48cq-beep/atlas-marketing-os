@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
+  IntegrationGateInput,
   SupervisorGateDecision,
   SupervisorTask,
   ValidateWorkerContextInput,
@@ -17,6 +18,7 @@ import {
 } from '../stores/supervisor-execution.store';
 
 const ACTIVE_IMPLEMENTATION_STATUSES = new Set(['DISPATCHED', 'RUNNING']);
+const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 
 @Injectable()
 export class AgentGatewayService {
@@ -76,12 +78,7 @@ export class AgentGatewayService {
       }
     }
 
-    return {
-      allowed: true,
-      reason: null,
-      taskId: task.id,
-      executionId: execution.id,
-    };
+    return this.allowed(task.id, execution.id);
   }
 
   async submitImplementationFromExecution(
@@ -113,6 +110,57 @@ export class AgentGatewayService {
       task.id,
       execution.result.evidence,
     );
+  }
+
+  async checkIntegration(
+    input: IntegrationGateInput,
+  ): Promise<SupervisorGateDecision> {
+    const task = await this.supervisor.getTask(input.taskId);
+    if (!['READY_FOR_REVIEW', 'APPROVED'].includes(task.status)) {
+      throw new BadRequestException({
+        code: 'task_not_integration_ready',
+        current: task.status,
+      });
+    }
+
+    const execution = await this.requireExecution(task, input.executionId);
+    if (execution.status !== 'COMPLETED' || !execution.result) {
+      throw new BadRequestException({
+        code: 'execution_not_completed',
+        current: execution.status,
+      });
+    }
+
+    this.validateChangedFiles(execution.assignment.allowedPaths, input.changedFiles);
+    this.validateSha(input.baseSha, 'invalid_base_sha');
+    this.validateSha(input.headSha, 'invalid_head_sha');
+
+    if (input.action === 'merge' && input.targetBranch !== 'production/atlas') {
+      throw new BadRequestException({ code: 'canonical_target_required' });
+    }
+
+    if (!input.explicitUserAuthorization) {
+      throw new BadRequestException({
+        code: 'explicit_user_authorization_required',
+      });
+    }
+
+    const permission = this.supervisor.checkPermission(
+      'supervisor',
+      input.action,
+      {
+        explicitUserAuthorization: true,
+        supervisorAuthorization: true,
+        taskScopeIncludesAction: true,
+      },
+    );
+    if (!permission.allowed) {
+      throw new BadRequestException({
+        code: permission.reason ?? 'permission_denied',
+      });
+    }
+
+    return this.allowed(task.id, execution.id);
   }
 
   private async requireExecution(
@@ -151,6 +199,12 @@ export class AgentGatewayService {
     }
   }
 
+  private validateSha(value: string | undefined, code: string) {
+    if (value !== undefined && !FULL_GIT_SHA.test(value)) {
+      throw new BadRequestException({ code });
+    }
+  }
+
   private normalizeAllowedPath(path: string) {
     const trimmed = path.trim().replace(/\\/g, '/');
     const trailingSlash = trimmed.endsWith('/');
@@ -185,5 +239,14 @@ export class AgentGatewayService {
     return allowed.endsWith('/')
       ? changed.startsWith(allowed)
       : changed === allowed;
+  }
+
+  private allowed(taskId: string, executionId: string): SupervisorGateDecision {
+    return {
+      allowed: true,
+      reason: null,
+      taskId,
+      executionId,
+    };
   }
 }
