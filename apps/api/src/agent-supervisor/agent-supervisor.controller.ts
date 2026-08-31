@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
+import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -10,6 +11,7 @@ import type {
   SupervisorEvidence,
 } from './agent-supervisor.types';
 
+@UseGuards(SupervisorOwnerGuard)
 @Controller('engineering/supervisor')
 export class AgentSupervisorController {
   constructor(
@@ -79,11 +81,8 @@ export class AgentSupervisorController {
   }
 
   @Post('tasks/:id/approve')
-  approveTask(
-    @Param('id') id: string,
-    @Body() body: { explicitUserApproval: boolean },
-  ) {
-    return this.supervisor.approveTask(id, body.explicitUserApproval === true);
+  approveTask(@Param('id') id: string) {
+    return this.supervisor.approveTask(id, true);
   }
 
   @Post('tasks/:id/dispatch')
