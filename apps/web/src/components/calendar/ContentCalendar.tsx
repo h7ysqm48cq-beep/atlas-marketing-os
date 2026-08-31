@@ -522,6 +522,16 @@ export function ContentCalendar() {
   );
 
   async function createPost() {
+    if (uploadingImage) {
+      setError(
+        ui(
+          "Wait for image upload to finish before saving.",
+          "请等待图片上传完成后再保存。",
+        ),
+      );
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -1805,6 +1815,7 @@ export function ContentCalendar() {
                 onClick={() => void createPost()}
                 disabled={
                   saving ||
+                  uploadingImage ||
                   !form.channelId ||
                   !form.content ||
                   !form.scheduledAt
