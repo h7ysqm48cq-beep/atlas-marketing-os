@@ -1,6 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
 import { AuthContextService } from '../auth/auth-context.service';
 import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
+
+jest.mock('./publisher.service', () => ({
+  PublisherService: class PublisherService {},
+}));
+
+jest.mock('./runtime-profile.service', () => ({
+  RuntimeProfileService: class RuntimeProfileService {},
+}));
+
 import { WorkspaceScopedAutomationService } from './workspace-scoped-automation.service';
 
 function createService() {
