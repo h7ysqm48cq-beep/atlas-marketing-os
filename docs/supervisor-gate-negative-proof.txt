@@ -1,0 +1,5 @@
+ATLAS Supervisor Gate negative proof.
+
+This file exists only to verify that a pull request targeting production/atlas without Supervisor task/execution metadata is rejected by atlas-supervisor-gate.
+
+It must never be merged into production.
