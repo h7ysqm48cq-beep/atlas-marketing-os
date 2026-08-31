@@ -1,0 +1,4 @@
+ATLAS final required-check negative proof.
+
+This file is harmless and exists only to prove that GitHub blocks a non-draft production/atlas PR when Supervisor evidence is invalid.
+Never merge this PR.
