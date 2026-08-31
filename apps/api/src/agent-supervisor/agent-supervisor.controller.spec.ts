@@ -1,6 +1,8 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
@@ -20,6 +22,15 @@ describe('AgentSupervisorController', () => {
       new MemorySupervisorExecutionStore(),
     );
     controller = new AgentSupervisorController(supervisor, dispatcher);
+  });
+
+  it('applies the owner guard to the whole controller so future mutations fail closed by default', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      AgentSupervisorController,
+    ) as unknown[];
+
+    expect(guards).toContain(SupervisorOwnerGuard);
   });
 
   it('dispatches a task without accepting role or permission overrides', async () => {
