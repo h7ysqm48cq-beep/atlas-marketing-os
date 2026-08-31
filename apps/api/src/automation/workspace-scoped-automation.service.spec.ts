@@ -43,6 +43,16 @@ function createService() {
   return { prisma, auth, service };
 }
 
+function allowFacebookPost(prisma: ReturnType<typeof createService>['prisma']) {
+  prisma.brand.findFirst.mockResolvedValue({ id: 'brand-a' });
+  prisma.socialChannel.findFirst.mockResolvedValue({ id: 'channel-a' });
+  prisma.socialChannel.findUnique.mockResolvedValue({
+    id: 'channel-a',
+    brandId: 'brand-a',
+    platform: SocialPlatform.FACEBOOK,
+  });
+}
+
 describe('WorkspaceScopedAutomationService', () => {
   it('fails closed when an authenticated user has no owned workspace', async () => {
     const { prisma, auth, service } = createService();
@@ -156,16 +166,76 @@ describe('WorkspaceScopedAutomationService', () => {
     expect(prisma.scheduledPost.create).not.toHaveBeenCalled();
   });
 
+  it('allows a valid future SCHEDULED post after workspace validation', async () => {
+    const { prisma, auth, service } = createService();
+    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    allowFacebookPost(prisma);
+    const future = new Date(Date.now() + 60 * 60 * 1000);
+    prisma.scheduledPost.create.mockResolvedValue({
+      id: 'post-future',
+      brandId: 'brand-a',
+      channelId: 'channel-a',
+      platform: SocialPlatform.FACEBOOK,
+      content: 'Future',
+      mediaUrls: [],
+      scheduledAt: future,
+      timezone: 'Asia/Kuala_Lumpur',
+      status: ScheduledPostStatus.SCHEDULED,
+      channel: { id: 'channel-a', name: 'Facebook' },
+      brand: { id: 'brand-a', name: 'Brand' },
+      campaign: null,
+    });
+
+    await expect(
+      auth.run('user-a', () =>
+        service.createPost({
+          brandId: 'brand-a',
+          channelId: 'channel-a',
+          platform: SocialPlatform.FACEBOOK,
+          content: 'Future',
+          scheduledAt: future.toISOString(),
+          status: ScheduledPostStatus.SCHEDULED,
+        }),
+      ),
+    ).resolves.toMatchObject({ id: 'post-future' });
+  });
+
+  it('rejects moving a SCHEDULED post to a past timestamp', async () => {
+    const { prisma, auth, service } = createService();
+    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    prisma.scheduledPost.findFirst.mockResolvedValue({ id: 'post-a' });
+    prisma.scheduledPost.findUnique.mockResolvedValue({
+      id: 'post-a',
+      brandId: 'brand-a',
+      channelId: 'channel-a',
+      platform: SocialPlatform.FACEBOOK,
+      content: 'Scheduled',
+      mediaUrls: [],
+      scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
+      timezone: 'Asia/Kuala_Lumpur',
+      status: ScheduledPostStatus.SCHEDULED,
+      channel: { id: 'channel-a', name: 'Facebook' },
+      brand: { id: 'brand-a', name: 'Brand' },
+      campaign: null,
+      history: null,
+      attempts: [],
+    });
+
+    await expect(
+      auth.run('user-a', () =>
+        service.updatePost('post-a', {
+          scheduledAt: new Date(Date.now() - 60_000).toISOString(),
+        }),
+      ),
+    ).rejects.toThrow('future scheduledAt');
+
+    expect(prisma.scheduledPost.update).not.toHaveBeenCalled();
+  });
+
   it('allows a historical DRAFT timestamp after workspace validation', async () => {
     const { prisma, auth, service } = createService();
     prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
-    prisma.brand.findFirst.mockResolvedValue({ id: 'brand-a' });
-    prisma.socialChannel.findFirst.mockResolvedValue({ id: 'channel-a' });
-    prisma.socialChannel.findUnique.mockResolvedValue({
-      id: 'channel-a',
-      brandId: 'brand-a',
-      platform: SocialPlatform.FACEBOOK,
-    });
+    allowFacebookPost(prisma);
     prisma.scheduledPost.create.mockResolvedValue({
       id: 'post-a',
       platform: SocialPlatform.FACEBOOK,
