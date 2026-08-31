@@ -521,6 +521,18 @@ export function ContentCalendar() {
     (channel) => channel.brandId === form.brandId,
   );
 
+  const scheduledTimeIsPast =
+    form.status === "SCHEDULED" &&
+    Boolean(
+      form.scheduledAt &&
+        new Date(form.scheduledAt).getTime() <= Date.now(),
+    );
+
+  const minimumScheduledAt =
+    form.status === "SCHEDULED"
+      ? toLocalDateTimeInput(new Date().toISOString())
+      : undefined;
+
   async function createPost() {
     if (uploadingImage) {
       setError(
@@ -530,6 +542,34 @@ export function ContentCalendar() {
         ),
       );
       return;
+    }
+
+    if (!form.channelId) {
+      setError(
+        ui(
+          "No available channel for this brand.",
+          "此品牌没有可用渠道。",
+        ),
+      );
+      return;
+    }
+
+    if (form.status === "SCHEDULED") {
+      const scheduledTime = new Date(form.scheduledAt);
+
+      if (
+        !form.scheduledAt ||
+        Number.isNaN(scheduledTime.getTime()) ||
+        scheduledTime.getTime() <= Date.now()
+      ) {
+        setError(
+          ui(
+            "Scheduled time must be in the future.",
+            "排程时间必须是未来时间。",
+          ),
+        );
+        return;
+      }
     }
 
     setSaving(true);
@@ -869,6 +909,20 @@ export function ContentCalendar() {
       originalDate.getMilliseconds(),
     );
 
+    if (
+      post.status === "SCHEDULED" &&
+      movedDate.getTime() <= Date.now()
+    ) {
+      setError(
+        ui(
+          "Scheduled posts cannot be moved to a past time.",
+          "已排程帖子不能移动到过去的时间。",
+        ),
+      );
+      finishPostDrag();
+      return;
+    }
+
     const movedIso = movedDate.toISOString();
 
     if (localDateKey(post.scheduledAt) === localDateKey(targetDate)) {
@@ -962,15 +1016,26 @@ export function ContentCalendar() {
       mediaUrls: [],
     }));
 
-    const selectedDate = date ?? new Date();
+    const now = new Date();
+    const selectedDate = date ?? now;
 
-    const local = new Date(
+    let local = new Date(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
       selectedDate.getDate(),
       20,
       0,
     );
+
+    if (local.getTime() <= now.getTime()) {
+      local = new Date(now);
+      local.setSeconds(0, 0);
+
+      const remainder = local.getMinutes() % 15;
+      local.setMinutes(
+        local.getMinutes() + (remainder === 0 ? 15 : 15 - remainder),
+      );
+    }
 
     setForm((current) => ({
       ...current,
@@ -1593,6 +1658,7 @@ export function ContentCalendar() {
                 <span>{ui("Channel", "渠道")}</span>
                 <select
                   value={form.channelId}
+                  disabled={!channelsForBrand.length}
                   onChange={(event) => {
                     const channel = channels.find(
                       (item) => item.id === event.target.value,
@@ -1605,12 +1671,27 @@ export function ContentCalendar() {
                     }));
                   }}
                 >
+                  {!channelsForBrand.length ? (
+                    <option value="">
+                      {ui("No available channel", "没有可用渠道")}
+                    </option>
+                  ) : null}
+
                   {channelsForBrand.map((channel) => (
                     <option key={channel.id} value={channel.id}>
                       {channel.name}
                     </option>
                   ))}
                 </select>
+
+                {!channelsForBrand.length ? (
+                  <small>
+                    {ui(
+                      "No available channel for this brand.",
+                      "此品牌没有可用渠道。",
+                    )}
+                  </small>
+                ) : null}
               </label>
 
               <label>
@@ -1648,6 +1729,7 @@ export function ContentCalendar() {
                 <input
                   type="datetime-local"
                   value={form.scheduledAt}
+                  min={minimumScheduledAt}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
@@ -1817,8 +1899,10 @@ export function ContentCalendar() {
                   saving ||
                   uploadingImage ||
                   !form.channelId ||
+                  !channelsForBrand.length ||
                   !form.content ||
-                  !form.scheduledAt
+                  !form.scheduledAt ||
+                  scheduledTimeIsPast
                 }
               >
                 {saving
