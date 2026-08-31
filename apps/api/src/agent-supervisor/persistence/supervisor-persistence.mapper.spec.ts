@@ -17,6 +17,15 @@ function reviewCandidateFixture() {
   };
 }
 
+function ownerAuthorizationFixture() {
+  return {
+    candidate: reviewCandidateFixture(),
+    authorizedBy: 'owner-user-1',
+    authorizedAt: '2026-09-01T00:00:00.000Z',
+    signature: 'c'.repeat(64),
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -137,12 +146,31 @@ describe('supervisor persistence mapper', () => {
     );
   });
 
-  it('keeps backward compatibility with persisted evidence that predates review candidates', () => {
+  it('maps and clones persisted signed owner merge authorization', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorization: ownerAuthorizationFixture(),
+    };
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(task.evidence?.ownerMergeAuthorization).toEqual(
+      ownerAuthorizationFixture(),
+    );
+    expect(task.evidence?.ownerMergeAuthorization).not.toBe(
+      evidence.ownerMergeAuthorization,
+    );
+    expect(task.evidence?.ownerMergeAuthorization?.candidate.changedFiles).not.toBe(
+      evidence.ownerMergeAuthorization.candidate.changedFiles,
+    );
+  });
+
+  it('keeps backward compatibility with persisted evidence that predates review candidates and owner authorization', () => {
     const legacy = evidenceFixture();
     delete (legacy as Partial<typeof legacy>).reviewCandidate;
     const task = mapTaskRecord(taskRecord({ evidence: legacy }));
 
     expect(task.evidence?.reviewCandidate).toBeUndefined();
+    expect(task.evidence?.ownerMergeAuthorization).toBeUndefined();
   });
 
   it('round-trips null task evidence', () => {
@@ -177,6 +205,33 @@ describe('supervisor persistence mapper', () => {
     (evidence as Record<string, unknown>).reviewCandidate = {
       ...reviewCandidateFixture(),
       action: 'force_push',
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+
+  it('rejects malformed persisted owner authorization JSON', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorization: {
+        ...ownerAuthorizationFixture(),
+        candidate: {
+          ...reviewCandidateFixture(),
+          action: 'force_push',
+        },
+      },
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+
+  it('rejects non-string persisted owner authorization signatures', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorization: {
+        ...ownerAuthorizationFixture(),
+        signature: 1234,
+      },
     };
 
     expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
