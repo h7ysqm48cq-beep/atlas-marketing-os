@@ -103,6 +103,35 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     }
   }
 
+  private buildScheduledAtRange(from?: string, to?: string) {
+    const scheduledAt: { gte?: Date; lt?: Date } = {};
+
+    if (from) {
+      const parsedFrom = new Date(from);
+      if (!Number.isNaN(parsedFrom.getTime())) {
+        scheduledAt.gte = parsedFrom;
+      }
+    }
+
+    if (to) {
+      const parsedTo = new Date(to);
+      if (!Number.isNaN(parsedTo.getTime())) {
+        scheduledAt.lt = parsedTo;
+      }
+    }
+
+    return scheduledAt;
+  }
+
+  private safePostLimit(limit?: number) {
+    const requestedLimit =
+      Number.isFinite(limit) && Number(limit) > 0
+        ? Math.floor(Number(limit))
+        : 300;
+
+    return Math.min(requestedLimit, 500);
+  }
+
   override async listChannels(includeHidden = false) {
     const workspaceId = await this.requestWorkspaceId();
 
@@ -130,18 +159,56 @@ export class WorkspaceScopedAutomationService extends AutomationService {
       return super.listCalendarPosts(status, from, to, limit);
     }
 
-    const brandIds = new Set(
-      (
-        await this.scopedPrisma.brand.findMany({
-          where: { workspaceId },
-          select: { id: true },
-        })
-      ).map((brand) => brand.id),
-    );
+    const scheduledAt = this.buildScheduledAtRange(from, to);
+    const posts = await this.scopedPrisma.scheduledPost.findMany({
+      where: {
+        brand: { workspaceId },
+        channel: {
+          workspaceId,
+          hiddenAt: null,
+        },
+        ...(status ? { status } : {}),
+        ...(Object.keys(scheduledAt).length ? { scheduledAt } : {}),
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: this.safePostLimit(limit),
+      select: {
+        id: true,
+        brandId: true,
+        channelId: true,
+        campaignId: true,
+        historyId: true,
+        platform: true,
+        title: true,
+        content: true,
+        mediaUrls: true,
+        scheduledAt: true,
+        timezone: true,
+        status: true,
+        publishedAt: true,
+        externalPostId: true,
+        externalPostUrl: true,
+        lastError: true,
+        channel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
-    const posts = await super.listCalendarPosts(status, from, to, limit);
-
-    return posts.filter((post) => brandIds.has(post.brandId));
+    return posts.map((post) => ({
+      ...post,
+      mediaUrls:
+        post.mediaUrls?.filter((url) => !url.startsWith('data:')) ?? [],
+    }));
   }
 
   override async listPosts(
@@ -156,18 +223,61 @@ export class WorkspaceScopedAutomationService extends AutomationService {
       return super.listPosts(status, from, to, limit);
     }
 
-    const brandIds = new Set(
-      (
-        await this.scopedPrisma.brand.findMany({
-          where: { workspaceId },
-          select: { id: true },
-        })
-      ).map((brand) => brand.id),
-    );
+    const scheduledAt = this.buildScheduledAtRange(from, to);
+    const posts = await this.scopedPrisma.scheduledPost.findMany({
+      where: {
+        brand: { workspaceId },
+        channel: { workspaceId },
+        ...(status ? { status } : {}),
+        ...(Object.keys(scheduledAt).length ? { scheduledAt } : {}),
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: this.safePostLimit(limit),
+      select: {
+        id: true,
+        brandId: true,
+        channelId: true,
+        campaignId: true,
+        historyId: true,
+        platform: true,
+        title: true,
+        content: true,
+        scheduledAt: true,
+        timezone: true,
+        status: true,
+        externalPostId: true,
+        externalPostUrl: true,
+        publishedAt: true,
+        lastError: true,
+        createdAt: true,
+        updatedAt: true,
+        channel: {
+          select: {
+            id: true,
+            name: true,
+            platform: true,
+            brandId: true,
+          },
+        },
+        brand: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
-    const posts = await super.listPosts(status, from, to, limit);
-
-    return posts.filter((post) => brandIds.has(post.brandId));
+    return posts.map((post) => ({
+      ...post,
+      mediaUrls: [] as string[],
+    }));
   }
 
   override async getChannel(id: string) {
