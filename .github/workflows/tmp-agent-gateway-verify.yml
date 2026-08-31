@@ -1,0 +1,36 @@
+name: temp-agent-gateway-verify
+
+on:
+  push:
+    branches:
+      - feat/agent-supervisor-runtime-gateway-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Run focused gateway test when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f apps/api/src/agent-supervisor/gateway/agent-gateway.service.spec.ts ]]; then
+            npm test --workspace apps/api -- --runInBand src/agent-supervisor/gateway/agent-gateway.service.spec.ts
+          else
+            echo 'gateway spec not present yet; verifier ready'
+          fi
