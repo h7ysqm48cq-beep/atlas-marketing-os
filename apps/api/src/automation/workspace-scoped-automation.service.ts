@@ -6,11 +6,7 @@ import {
 } from '@nestjs/common';
 import { AuthContextService } from '../auth/auth-context.service';
 import { PrismaService } from '../database/prisma.service';
-import {
-  ScheduledPostStatus,
-  SocialChannelStatus,
-  SocialPlatform,
-} from '../generated/prisma/enums';
+import { ScheduledPostStatus } from '../generated/prisma/enums';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
 import { AutomationService } from './automation.service';
 import { PublisherService } from './publisher.service';
@@ -352,57 +348,13 @@ export class WorkspaceScopedAutomationService extends AutomationService {
   override async disconnectAllFacebookApi(confirmation: string) {
     const workspaceId = await this.requestWorkspaceId();
 
-    if (!workspaceId) {
-      return super.disconnectAllFacebookApi(confirmation);
-    }
-
-    if (confirmation !== 'DISCONNECT_ALL_FACEBOOK_API') {
+    if (workspaceId) {
       throw new BadRequestException(
-        'Explicit confirmation "DISCONNECT_ALL_FACEBOOK_API" is required.',
+        'Bulk Facebook API disconnect is disabled for workspace-scoped requests.',
       );
     }
 
-    return this.scopedPrisma.$transaction(async (transaction) => {
-      const channels = await transaction.socialChannel.findMany({
-        where: {
-          workspaceId,
-          platform: SocialPlatform.FACEBOOK,
-          accessTokenEncrypted: { not: null },
-        },
-        select: {
-          id: true,
-          browserAccountLinks: {
-            select: { browserAccountId: true },
-          },
-        },
-      });
-
-      const updated = await Promise.all(
-        channels.map((channel) =>
-          transaction.socialChannel.update({
-            where: { id: channel.id },
-            data: {
-              accessTokenEncrypted: null,
-              tokenExpiresAt: null,
-              publishingPreference: 'BROWSER_RUNTIME',
-              status:
-                channel.browserAccountLinks.length > 0
-                  ? SocialChannelStatus.CONNECTED
-                  : SocialChannelStatus.DISCONNECTED,
-              lastError: null,
-            },
-          }),
-        ),
-      );
-
-      return {
-        disconnected: updated.length,
-        channels: updated.map((channel) => {
-          const { accessTokenEncrypted: _secret, ...safeChannel } = channel;
-          return safeChannel;
-        }),
-      };
-    });
+    return super.disconnectAllFacebookApi(confirmation);
   }
 
   override async testChannel(id: string) {
