@@ -61,6 +61,12 @@ export interface SupervisorReviewCandidate {
   changedFiles: string[];
 }
 
+export interface SupervisorOwnerMergeAuthorization {
+  candidate: SupervisorReviewCandidate;
+  authorizedBy: string;
+  authorizedAt: string;
+}
+
 export interface SupervisorEvidence {
   rootCause: string;
   changedFiles: string[];
@@ -71,6 +77,7 @@ export interface SupervisorEvidence {
   gitState: string;
   remainingRisk: string[];
   reviewCandidate?: SupervisorReviewCandidate;
+  ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
 }
 
 export interface SupervisorTask {
