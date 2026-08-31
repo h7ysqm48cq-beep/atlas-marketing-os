@@ -273,13 +273,12 @@ export function WorkspaceSettings() {
 
     try {
       const response = await fetch(
-        `${API_URL}/browser-runtime/accounts/${accountId}/browser/open`,
+        `${API_URL}/automation/channels/${channel.id}/browser/open`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             headless: false,
-            startUrl: "https://www.facebook.com/",
           }),
         },
       );

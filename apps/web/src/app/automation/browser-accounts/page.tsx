@@ -5,6 +5,7 @@ type BrowserAccountsPageProps = {
   searchParams: Promise<{
     accountId?: string;
     channelId?: string;
+    platform?: string;
     viewer?: string;
   }>;
 };
@@ -21,6 +22,16 @@ export default async function BrowserAccountsPage({
         requestedAccountId={
           params.accountId ||
           null
+        }
+        requestedChannelId={
+          params.channelId ||
+          null
+        }
+        requestedChannelPlatform={
+          params.platform === "FACEBOOK" ||
+          params.platform === "INSTAGRAM"
+            ? params.platform
+            : null
         }
         requestedViewerOpen={params.viewer === "1"}
       />

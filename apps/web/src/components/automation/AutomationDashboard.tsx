@@ -68,6 +68,13 @@ type Channel = {
   status: "DISCONNECTED" | "CONNECTED" | "EXPIRED" | "ERROR";
   lastConnectedAt: string | null;
   lastError: string | null;
+  primaryBrowserAccount?: {
+    id: string;
+    displayName: string;
+    facebookUserName: string | null;
+    browserProfileKey: string;
+    isPrimary: boolean;
+  } | null;
   _count: {
     scheduledPosts: number;
   };
@@ -935,10 +942,24 @@ export function AutomationDashboard() {
     });
   }
 
-  async function openBrowser() {
-    if (!selectedBrowserChannelId) {
+  async function openBrowser(channelOverride?: Channel) {
+    const channelId =
+      channelOverride?.id ||
+      selectedBrowserChannelId;
+
+    const channelPlatform =
+      channelOverride?.platform ||
+      selectedBrowserPlatform;
+
+    if (!channelId) {
       setBrowserError(copy.noFacebookChannel);
       return;
+    }
+
+    if (channelOverride) {
+      setSelectedBrowserChannelId(
+        channelOverride.id,
+      );
     }
 
     setBrowserAction("open");
@@ -947,7 +968,7 @@ export function AutomationDashboard() {
 
     try {
       const response = await fetch(
-        `${getBrowserRuntimeApiUrl()}/automation/channels/${selectedBrowserChannelId}/browser/open`,
+        `${getBrowserRuntimeApiUrl()}/automation/channels/${channelId}/browser/open`,
         {
           method: "POST",
           headers: {
@@ -955,7 +976,11 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             headless: false,
-            startUrl: isInstagramBrowser ? "https://www.instagram.com/" : "https://www.facebook.com/",
+            ...(channelPlatform === "INSTAGRAM"
+              ? {
+                  startUrl: "https://www.instagram.com/",
+                }
+              : {}),
           }),
         },
       );
@@ -1445,11 +1470,28 @@ export function AutomationDashboard() {
                 </div>
 
                 {dashboard.channels.map((channel) => {
-                  const detailsHref =
+                  const primaryBrowserAccount =
+                    channel.primaryBrowserAccount;
+
+                  const connectedPlatformIdentity =
                     channel.platform === "FACEBOOK"
-                      ? `/automation/browser-accounts?channelId=${encodeURIComponent(
+                      ? (
+                          primaryBrowserAccount?.facebookUserName ||
+                          primaryBrowserAccount?.displayName
+                        )
+                      : primaryBrowserAccount?.displayName;
+
+                  const browserChannel =
+                    channel.platform === "FACEBOOK" ||
+                    channel.platform === "INSTAGRAM";
+
+                  const detailsHref =
+                    browserChannel && primaryBrowserAccount
+                      ? `/automation/browser-accounts?accountId=${encodeURIComponent(
+                          primaryBrowserAccount.id,
+                        )}&channelId=${encodeURIComponent(
                           channel.id,
-                        )}`
+                        )}&platform=${encodeURIComponent(channel.platform)}&viewer=1`
                       : `/settings?channelId=${encodeURIComponent(channel.id)}`;
 
                   return (
@@ -1458,6 +1500,15 @@ export function AutomationDashboard() {
                       href={detailsHref}
                       key={channel.id}
                       role="row"
+                      onClick={(event) => {
+                        if (!browserChannel) {
+                          return;
+                        }
+
+                        event.preventDefault();
+
+                        void openBrowser(channel);
+                      }}
                     >
                       <span className={styles.channelPlatformCell} role="cell">
                         <span
@@ -1477,6 +1528,10 @@ export function AutomationDashboard() {
 
                       <strong className={styles.channelNameCell} role="cell">
                         {channel.name}
+
+                        {connectedPlatformIdentity ? (
+                          <small>{connectedPlatformIdentity}</small>
+                        ) : null}
                       </strong>
 
                       <span className={styles.channelUsernameCell} role="cell">

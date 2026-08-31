@@ -103,6 +103,17 @@ type HealthSnapshot = {
   browserWorker?: unknown;
   assets?: unknown;
   calendar?: unknown;
+  queues?: {
+    status?: string;
+    backgroundJobs?: {
+      queued: number;
+      running: number;
+      succeeded: number;
+      failed: number;
+      cancelled: number;
+      total: number;
+    } | null;
+  };
   issues?: unknown[];
 };
 
@@ -1109,6 +1120,20 @@ useEffect(() => {
           : 1;
       });
 
+  const queueStats =
+    healthSnapshot?.queues?.backgroundJobs ??
+    null;
+
+  const queueHealth: Health =
+    !healthSnapshot || !queueStats
+      ? "idle"
+      : queueStats.failed > 0
+        ? "critical"
+        : healthSnapshot.queues?.status ===
+            "watch"
+          ? "watch"
+          : "healthy";
+
   const progress =
     targetSteps >
 
@@ -1764,6 +1789,35 @@ useEffect(() => {
 
       </section>
 
+      <section className={styles.overviewGrid}>
+        <article
+          data-testid="background-queue-card"
+          className={`${styles.overviewCard} ${ 
+            queueHealth === "critical"
+              ? styles.criticalCard
+              : queueHealth === "watch"
+                ? styles.watchCard
+                : queueHealth === "healthy"
+                  ? styles.healthyCard
+                  : ""
+          }`}
+        >
+          <span className={styles.overviewLabel}>
+            {ui(
+              "Background queues",
+              "后台队列",
+            )}
+          </span>
+
+          <strong className={styles.overviewValue}>
+            {queueStats?.failed ?? "—"}
+          </strong>
+
+          <span className={styles.overviewLabel}>
+            {ui("Failed jobs", "失败任务")}
+          </span>
+        </article>
+      </section>
 
       <section
         className={

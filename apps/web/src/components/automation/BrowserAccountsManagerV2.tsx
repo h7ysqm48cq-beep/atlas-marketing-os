@@ -85,9 +85,13 @@ function getErrorMessage(body: Record<string, unknown>, fallback: string) {
 
 export function BrowserAccountsManagerV2({
   requestedAccountId,
+  requestedChannelId,
+  requestedChannelPlatform,
   requestedViewerOpen = false,
 }: {
   requestedAccountId?: string | null;
+  requestedChannelId?: string | null;
+  requestedChannelPlatform?: "FACEBOOK" | "INSTAGRAM" | null;
   requestedViewerOpen?: boolean;
 }) {
   const {
@@ -848,17 +852,35 @@ export function BrowserAccountsManagerV2({
       error: "",
     });
 
+    const apiOrigin =
+      getBrowserRuntimeApiUrl();
+
+    const openUrl = requestedChannelId
+      ? `${apiOrigin}/automation/channels/${requestedChannelId}/browser/open`
+      : `${apiOrigin}/browser-runtime/accounts/${accountId}/browser/open`;
+
+    const openPayload = requestedChannelId
+      ? {
+          headless: false,
+          ...(requestedChannelPlatform === "INSTAGRAM"
+            ? {
+                startUrl: "https://www.instagram.com/",
+              }
+            : {}),
+        }
+      : {
+          headless: false,
+          startUrl: "https://www.facebook.com/",
+        };
+
     const response = await fetch(
-      `${getBrowserRuntimeApiUrl()}/browser-runtime/accounts/${accountId}/browser/open`,
+      openUrl,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          headless: false,
-          startUrl: "https://www.facebook.com/",
-        }),
+        body: JSON.stringify(openPayload),
       },
     );
 
@@ -882,6 +904,11 @@ export function BrowserAccountsManagerV2({
     setViewerOpen(true);
 
     setViewerKey((current) => current + 1);
+
+    if (requestedChannelPlatform === "INSTAGRAM") {
+      setActionMessage("Instagram browser opened.");
+      return;
+    }
 
     /*
      * Browser running and Facebook logged in
@@ -926,7 +953,46 @@ export function BrowserAccountsManagerV2({
       return;
     }
 
+    const runtime =
+      runtimes[selectedAccount.id];
+
+    if (!runtime || runtime.loading) {
+      return;
+    }
+
     automaticViewerRequestedRef.current = true;
+
+    if (runtime.running && requestedChannelId) {
+      void openBrowser(selectedAccount.id).catch((error) => {
+        setGlobalError(
+          error instanceof Error
+            ? error.message
+            : "Unable to open Live Browser.",
+        );
+      });
+
+      return;
+    }
+
+    if (runtime.running) {
+      void connectSecureBrowserViewer()
+        .then(() => {
+          setViewerOpen(true);
+          setViewerKey((current) => current + 1);
+          setActionMessage(
+            "Browser profile is already running.",
+          );
+        })
+        .catch((error) => {
+          setGlobalError(
+            error instanceof Error
+              ? error.message
+              : "Unable to open Live Browser.",
+          );
+        });
+
+      return;
+    }
 
     void openBrowser(selectedAccount.id).catch((error) => {
       setGlobalError(
@@ -935,7 +1001,13 @@ export function BrowserAccountsManagerV2({
           : "Unable to open Live Browser.",
       );
     });
-  }, [requestedViewerOpen, selectedAccount]);
+  }, [
+    requestedViewerOpen,
+    requestedChannelId,
+    requestedChannelPlatform,
+    selectedAccount,
+    runtimes,
+  ]);
 
   async function verifyLogin(accountId: string) {
     setActionMessage("");
