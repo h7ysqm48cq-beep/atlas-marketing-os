@@ -94,3 +94,35 @@ test(
     );
   },
 );
+
+
+test(
+  "Facebook profile-name capture avoids the global Facebook chrome heading",
+  async () => {
+    const source =
+      await readWorkerSource();
+
+    const block =
+      extractInspectRoute(
+        source,
+      );
+
+    assert.doesNotMatch(
+      block,
+      /identityPage\s*\.locator\("h1"\)\s*\.first\(\)/,
+      "profile-name capture must not trust the first global h1",
+    );
+
+    assert.match(
+      block,
+      /meta\[property="og:title"\]/,
+      "profile-name capture should inspect Facebook profile metadata",
+    );
+
+    assert.match(
+      block,
+      /\[role="main"\] h1/,
+      "profile-name capture should scope visible headings to profile content",
+    );
+  },
+);

@@ -55,6 +55,7 @@ import {
 } from "./facebook/inspection-page.js";
 import {
   inspectFacebookAccountIdentity,
+  normalizeFacebookProfileName,
 } from "./facebook/account-identity.js";
 import {
   attachInstagramMedia,
@@ -6636,18 +6637,31 @@ app.post(
                   },
 
                   readProfileName: async () => {
-                    const heading =
-                      (
+                    const metadataTitle =
+                      normalizeFacebookProfileName(
                         await identityPage
-                          .locator("h1")
+                          .locator(
+                            'meta[property="og:title"]',
+                          )
+                          .first()
+                          .getAttribute("content")
+                          .catch(() => null),
+                      );
+
+                    if (metadataTitle) {
+                      return metadataTitle;
+                    }
+
+                    const heading =
+                      normalizeFacebookProfileName(
+                        await identityPage
+                          .locator('[role="main"] h1')
                           .first()
                           .innerText({
                             timeout: 5000,
                           })
-                          .catch(() => "")
-                      )
-                        .replace(/\s+/g, " ")
-                        .trim();
+                          .catch(() => null),
+                      );
 
                     if (heading) {
                       return heading;
@@ -6665,7 +6679,9 @@ app.post(
                         )
                         .trim();
 
-                    return title || null;
+                    return normalizeFacebookProfileName(
+                      title,
+                    );
                   },
 
                   close: async () => {
