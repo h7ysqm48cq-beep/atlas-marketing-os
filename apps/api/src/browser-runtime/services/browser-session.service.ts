@@ -21,6 +21,50 @@ type OpenBrowserInput = {
   startUrl?: string;
 };
 
+function normalizeFacebookProfileName(
+  value: string | null | undefined,
+): string {
+  const normalized =
+    value
+      ?.replace(/\s+/g, ' ')
+      .trim() || '';
+
+  if (!normalized) {
+    return '';
+  }
+
+  const withoutNotificationCount =
+    normalized
+      .replace(
+        /^\(\d+\+?\)\s*/u,
+        '',
+      )
+      .trim();
+
+  const rejectedNames =
+    new Set([
+      'facebook',
+      'home',
+      'profile',
+      'notifications',
+      'notification',
+      'menu',
+      'facebook home',
+      'log in',
+      'login',
+    ]);
+
+  if (
+    rejectedNames.has(
+      withoutNotificationCount.toLowerCase(),
+    )
+  ) {
+    return '';
+  }
+
+  return withoutNotificationCount;
+}
+
 type WorkerInspection = {
   facebookUserId?: string | null;
   facebookUserName?: string | null;
@@ -201,11 +245,22 @@ export class BrowserSessionService {
         ?.trim() ||
       '';
 
-    const storedFacebookUserName =
+    const storedFacebookUserNameRaw =
       previousAccount
         ?.facebookUserName
         ?.trim() ||
       '';
+
+    const storedFacebookUserName =
+      normalizeFacebookProfileName(
+        storedFacebookUserNameRaw,
+      );
+
+    const storedFacebookUserNameInvalid =
+      Boolean(
+        storedFacebookUserNameRaw &&
+        !storedFacebookUserName,
+      );
 
     const captureFacebookIdentity =
       !storedFacebookUserId ||
@@ -456,10 +511,12 @@ export class BrowserSessionService {
         : '';
 
     const workerFacebookUserName =
-      typeof result.facebookUserName ===
-      'string'
-        ? result.facebookUserName.trim()
-        : '';
+      normalizeFacebookProfileName(
+        typeof result.facebookUserName ===
+          'string'
+          ? result.facebookUserName
+          : null,
+      );
 
     const facebookIdentityMismatch =
       Boolean(
@@ -495,6 +552,16 @@ export class BrowserSessionService {
       );
     }
 
+    const shouldClearInvalidFacebookUserName =
+      Boolean(
+        storedFacebookUserNameInvalid &&
+        workerFacebookUserId &&
+        storedFacebookUserId &&
+        workerFacebookUserId ===
+          storedFacebookUserId &&
+        !workerFacebookUserName,
+      );
+
     await this.prisma.browserAccount.update({
       where: {
         id: accountId,
@@ -517,7 +584,12 @@ export class BrowserSessionService {
               facebookUserName:
                 workerFacebookUserName,
             }
-          : {}),
+          : shouldClearInvalidFacebookUserName
+            ? {
+                facebookUserName:
+                  null,
+              }
+            : {}),
 
         lastLoginAt:
           loginLikely

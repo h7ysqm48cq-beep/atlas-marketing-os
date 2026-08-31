@@ -341,3 +341,187 @@ describe(
     );
   },
 );
+
+describe(
+  'BrowserSessionService invalid Facebook profile name recovery',
+  () => {
+    it(
+      'recaptures Facebook identity when stored name is generic Facebook chrome text',
+      async () => {
+        const harness =
+          createHarness({
+            storedFacebookUserId:
+              '1234567890',
+            storedFacebookUserName:
+              'Facebook',
+            workerFacebookUserId:
+              '1234567890',
+            workerFacebookUserName:
+              null,
+          });
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        expect(
+          harness.browserRuntime.request,
+        ).toHaveBeenCalledWith(
+          '/profiles/browser-profile-1/inspect',
+          expect.objectContaining({
+            method: 'POST',
+            body:
+              JSON.stringify({
+                captureFacebookIdentity:
+                  true,
+              }),
+          }),
+        );
+      },
+    );
+
+    it(
+      'treats notification-prefixed Facebook title as an invalid stored name',
+      async () => {
+        const harness =
+          createHarness({
+            storedFacebookUserId:
+              '1234567890',
+            storedFacebookUserName:
+              '(20+) Facebook',
+            workerFacebookUserId:
+              '1234567890',
+            workerFacebookUserName:
+              null,
+          });
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        expect(
+          harness.browserRuntime.request,
+        ).toHaveBeenCalledWith(
+          '/profiles/browser-profile-1/inspect',
+          expect.objectContaining({
+            body:
+              JSON.stringify({
+                captureFacebookIdentity:
+                  true,
+              }),
+          }),
+        );
+      },
+    );
+
+    it(
+      'clears stale generic Facebook name after the same c_user is confirmed',
+      async () => {
+        const harness =
+          createHarness({
+            storedFacebookUserId:
+              '1234567890',
+            storedFacebookUserName:
+              'Facebook',
+            identityLocked:
+              true,
+            workerFacebookUserId:
+              '1234567890',
+            workerFacebookUserName:
+              null,
+          });
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        const call =
+          harness
+            .browserAccountUpdate
+            .mock.calls.at(-1)?.[0];
+
+        expect(call).toBeDefined();
+
+        expect(
+          call.data.facebookUserId,
+        ).toBe(
+          '1234567890',
+        );
+
+        expect(
+          call.data.facebookUserName,
+        ).toBeNull();
+      },
+    );
+
+    it(
+      'does not clear a valid stored Facebook name when Worker name lookup is absent',
+      async () => {
+        const harness =
+          createHarness({
+            storedFacebookUserId:
+              '1234567890',
+            storedFacebookUserName:
+              'Judy Vin',
+            identityLocked:
+              true,
+            workerFacebookUserId:
+              '1234567890',
+            workerFacebookUserName:
+              null,
+          });
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        const call =
+          harness
+            .browserAccountUpdate
+            .mock.calls.at(-1)?.[0];
+
+        expect(call).toBeDefined();
+
+        expect(
+          call.data,
+        ).not.toHaveProperty(
+          'facebookUserName',
+        );
+      },
+    );
+
+    it(
+      'never accepts generic Worker Facebook title as a real name',
+      async () => {
+        const harness =
+          createHarness({
+            storedFacebookUserId:
+              '1234567890',
+            storedFacebookUserName:
+              null,
+            workerFacebookUserId:
+              '1234567890',
+            workerFacebookUserName:
+              '(20+) Facebook',
+          });
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        const call =
+          harness
+            .browserAccountUpdate
+            .mock.calls.at(-1)?.[0];
+
+        expect(call).toBeDefined();
+
+        expect(
+          call.data,
+        ).not.toHaveProperty(
+          'facebookUserName',
+        );
+      },
+    );
+  },
+);
