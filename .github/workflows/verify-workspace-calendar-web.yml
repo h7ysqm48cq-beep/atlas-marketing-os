@@ -1,0 +1,123 @@
+name: Verify Workspace Calendar Web Fix
+
+on:
+  pull_request:
+    branches:
+      - ci/workspace-calendar-web-verify-base-20260901
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8080
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      BROWSER_VIEWER_TOKEN_SECRET: ci-placeholder
+      OPENAI_MODEL: gpt-5.6-luna
+    steps:
+      - name: Checkout isolated Web fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply exact Calendar patch
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/calendar/ContentCalendar.tsx')
+          text = path.read_text()
+          marker = 'const scheduledTimeIsPast ='
+
+          if marker not in text:
+              def replace_once(old: str, new: str, label: str):
+                  global text
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+                  text = text.replace(old, new, 1)
+
+              replace_once(
+                  '''  const channelsForBrand = channels.filter(\n    (channel) => channel.brandId === form.brandId,\n  );\n\n  async function createPost() {''',
+                  '''  const channelsForBrand = channels.filter(\n    (channel) => channel.brandId === form.brandId,\n  );\n\n  const scheduledTimeIsPast =\n    form.status === "SCHEDULED" &&\n    Boolean(\n      form.scheduledAt &&\n        new Date(form.scheduledAt).getTime() <= Date.now(),\n    );\n\n  const minimumScheduledAt =\n    form.status === "SCHEDULED"\n      ? toLocalDateTimeInput(new Date().toISOString())\n      : undefined;\n\n  async function createPost() {''',
+                  'calendar scheduling state',
+              )
+
+              replace_once(
+                  '''    if (uploadingImage) {\n      setError(\n        ui(\n          "Wait for image upload to finish before saving.",\n          "请等待图片上传完成后再保存。",\n        ),\n      );\n      return;\n    }\n\n    setSaving(true);''',
+                  '''    if (uploadingImage) {\n      setError(\n        ui(\n          "Wait for image upload to finish before saving.",\n          "请等待图片上传完成后再保存。",\n        ),\n      );\n      return;\n    }\n\n    if (!form.channelId) {\n      setError(\n        ui(\n          "No available channel for this brand.",\n          "此品牌没有可用渠道。",\n        ),\n      );\n      return;\n    }\n\n    if (form.status === "SCHEDULED") {\n      const scheduledTime = new Date(form.scheduledAt);\n\n      if (\n        !form.scheduledAt ||\n        Number.isNaN(scheduledTime.getTime()) ||\n        scheduledTime.getTime() <= Date.now()\n      ) {\n        setError(\n          ui(\n            "Scheduled time must be in the future.",\n            "排程时间必须是未来时间。",\n          ),\n        );\n        return;\n      }\n    }\n\n    setSaving(true);''',
+                  'submit validation',
+              )
+
+              replace_once(
+                  '''    const movedIso = movedDate.toISOString();\n\n    if (localDateKey(post.scheduledAt) === localDateKey(targetDate)) {''',
+                  '''    if (\n      post.status === "SCHEDULED" &&\n      movedDate.getTime() <= Date.now()\n    ) {\n      setError(\n        ui(\n          "Scheduled posts cannot be moved to a past time.",\n          "已排程帖子不能移动到过去的时间。",\n        ),\n      );\n      finishPostDrag();\n      return;\n    }\n\n    const movedIso = movedDate.toISOString();\n\n    if (localDateKey(post.scheduledAt) === localDateKey(targetDate)) {''',
+                  'drag past guard',
+              )
+
+              replace_once(
+                  '''    const selectedDate = date ?? new Date();\n\n    const local = new Date(\n      selectedDate.getFullYear(),\n      selectedDate.getMonth(),\n      selectedDate.getDate(),\n      20,\n      0,\n    );''',
+                  '''    const now = new Date();\n    const selectedDate = date ?? now;\n\n    let local = new Date(\n      selectedDate.getFullYear(),\n      selectedDate.getMonth(),\n      selectedDate.getDate(),\n      20,\n      0,\n    );\n\n    if (local.getTime() <= now.getTime()) {\n      local = new Date(now);\n      local.setSeconds(0, 0);\n\n      const remainder = local.getMinutes() % 15;\n      local.setMinutes(\n        local.getMinutes() + (remainder === 0 ? 15 : 15 - remainder),\n      );\n    }''',
+                  'future default slot',
+              )
+
+              replace_once(
+                  '''                <select\n                  value={form.channelId}\n                  onChange={(event) => {''',
+                  '''                <select\n                  value={form.channelId}\n                  disabled={!channelsForBrand.length}\n                  onChange={(event) => {''',
+                  'channel select disabled',
+              )
+
+              replace_once(
+                  '''                >\n                  {channelsForBrand.map((channel) => (\n                    <option key={channel.id} value={channel.id}>\n                      {channel.name}\n                    </option>\n                  ))}\n                </select>\n              </label>''',
+                  '''                >\n                  {!channelsForBrand.length ? (\n                    <option value="">\n                      {ui("No available channel", "没有可用渠道")}\n                    </option>\n                  ) : null}\n\n                  {channelsForBrand.map((channel) => (\n                    <option key={channel.id} value={channel.id}>\n                      {channel.name}\n                    </option>\n                  ))}\n                </select>\n\n                {!channelsForBrand.length ? (\n                  <small>\n                    {ui(\n                      "No available channel for this brand.",\n                      "此品牌没有可用渠道。",\n                    )}\n                  </small>\n                ) : null}\n              </label>''',
+                  'empty channel message',
+              )
+
+              replace_once(
+                  '''                <input\n                  type="datetime-local"\n                  value={form.scheduledAt}\n                  onChange={(event) =>''',
+                  '''                <input\n                  type="datetime-local"\n                  value={form.scheduledAt}\n                  min={minimumScheduledAt}\n                  onChange={(event) =>''',
+                  'datetime minimum',
+              )
+
+              replace_once(
+                  '''                  !form.channelId ||\n                  !form.content ||\n                  !form.scheduledAt\n                }''',
+                  '''                  !form.channelId ||\n                  !channelsForBrand.length ||\n                  !form.content ||\n                  !form.scheduledAt ||\n                  scheduledTimeIsPast\n                }''',
+                  'create disabled guard',
+              )
+
+              path.write_text(text)
+              print('Calendar patch applied.')
+          else:
+              print('Calendar patch already present; no source rewrite needed.')
+          PY
+
+          git diff --check
+
+      - name: Commit Calendar patch to isolated branch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No new patch to commit."
+            exit 0
+          fi
+
+          git config user.name "ATLAS CI"
+          git config user.email "atlas-ci@users.noreply.github.com"
+          git add apps/web/src/components/calendar/ContentCalendar.tsx
+          git commit -m "fix(web): prevent invalid calendar scheduling"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Web lint
+        run: npm run lint --workspace apps/web
+
+      - name: Web build
+        run: npm run build --workspace apps/web
