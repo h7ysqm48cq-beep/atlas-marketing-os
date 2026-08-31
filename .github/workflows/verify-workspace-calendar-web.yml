@@ -51,7 +51,8 @@ jobs:
         run: npm ci
 
       - name: Calendar file lint
-        run: npx eslint apps/web/src/components/calendar/ContentCalendar.tsx
+        working-directory: apps/web
+        run: npx eslint src/components/calendar/ContentCalendar.tsx
 
       - name: Web build
         run: npm run build --workspace apps/web
