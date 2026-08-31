@@ -25,12 +25,12 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Run focused gateway test when present
+      - name: Run focused gateway tests when present
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f apps/api/src/agent-supervisor/gateway/agent-gateway.service.spec.ts ]]; then
-            npm test --workspace apps/api -- --runInBand src/agent-supervisor/gateway/agent-gateway.service.spec.ts
+          if compgen -G 'apps/api/src/agent-supervisor/gateway/*.spec.ts' > /dev/null; then
+            npm test --workspace apps/api -- --runInBand src/agent-supervisor/gateway
           else
-            echo 'gateway spec not present yet; verifier ready'
+            echo 'gateway specs not present yet; verifier ready'
           fi
