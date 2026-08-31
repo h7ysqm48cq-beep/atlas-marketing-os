@@ -112,9 +112,43 @@ export class AgentGatewayService {
     );
   }
 
+  async checkReviewCandidate(
+    input: IntegrationGateInput,
+  ): Promise<SupervisorGateDecision> {
+    const { task, execution } = await this.validateIntegrationCandidate(input);
+    return this.allowed(task.id, execution.id);
+  }
+
   async checkIntegration(
     input: IntegrationGateInput,
   ): Promise<SupervisorGateDecision> {
+    const { task, execution } = await this.validateIntegrationCandidate(input);
+
+    if (!input.explicitUserAuthorization) {
+      throw new BadRequestException({
+        code: 'explicit_user_authorization_required',
+      });
+    }
+
+    const permission = this.supervisor.checkPermission(
+      'supervisor',
+      input.action,
+      {
+        explicitUserAuthorization: true,
+        supervisorAuthorization: true,
+        taskScopeIncludesAction: true,
+      },
+    );
+    if (!permission.allowed) {
+      throw new BadRequestException({
+        code: permission.reason ?? 'permission_denied',
+      });
+    }
+
+    return this.allowed(task.id, execution.id);
+  }
+
+  private async validateIntegrationCandidate(input: IntegrationGateInput) {
     const task = await this.supervisor.getTask(input.taskId);
     if (!['READY_FOR_REVIEW', 'APPROVED'].includes(task.status)) {
       throw new BadRequestException({
@@ -139,28 +173,7 @@ export class AgentGatewayService {
       throw new BadRequestException({ code: 'canonical_target_required' });
     }
 
-    if (!input.explicitUserAuthorization) {
-      throw new BadRequestException({
-        code: 'explicit_user_authorization_required',
-      });
-    }
-
-    const permission = this.supervisor.checkPermission(
-      'supervisor',
-      input.action,
-      {
-        explicitUserAuthorization: true,
-        supervisorAuthorization: true,
-        taskScopeIncludesAction: true,
-      },
-    );
-    if (!permission.allowed) {
-      throw new BadRequestException({
-        code: permission.reason ?? 'permission_denied',
-      });
-    }
-
-    return this.allowed(task.id, execution.id);
+    return { task, execution };
   }
 
   private async requireExecution(
