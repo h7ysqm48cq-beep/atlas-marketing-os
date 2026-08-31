@@ -65,6 +65,7 @@ export interface SupervisorOwnerMergeAuthorization {
   candidate: SupervisorReviewCandidate;
   authorizedBy: string;
   authorizedAt: string;
+  signature: string;
 }
 
 export interface SupervisorEvidence {
