@@ -72,3 +72,47 @@ test(
     );
   },
 );
+
+test(
+  "retries profile-name capture after generic Facebook chrome text",
+  async () => {
+    let profileNameReads = 0;
+
+    const identity =
+      await inspectFacebookAccountIdentity({
+        getCookies: async () => [
+          {
+            name: "c_user",
+            value: "1234567890",
+          },
+        ],
+
+        openTemporaryTab: async () => ({
+          goto: async () => {},
+
+          readProfileName: async () => {
+            profileNameReads += 1;
+
+            return profileNameReads === 1
+              ? "(20+) Facebook"
+              : "Example Person";
+          },
+
+          close: async () => {},
+        }),
+      });
+
+    assert.deepEqual(
+      identity,
+      {
+        facebookUserId: "1234567890",
+        facebookUserName: "Example Person",
+      },
+    );
+
+    assert.equal(
+      profileNameReads,
+      2,
+    );
+  },
+);
