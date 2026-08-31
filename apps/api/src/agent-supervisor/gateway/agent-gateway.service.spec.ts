@@ -5,6 +5,10 @@ import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-exec
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
 import { AgentGatewayService } from './agent-gateway.service';
 
+const BASE_SHA = 'a'.repeat(40);
+const HEAD_SHA = 'b'.repeat(40);
+const CHANGED_FILE = 'apps/api/src/example.ts';
+
 describe('AgentGatewayService', () => {
   let supervisor: AgentSupervisorService;
   let dispatcher: WorkerDispatcherService;
@@ -24,7 +28,7 @@ describe('AgentGatewayService', () => {
     const task = await supervisor.createTask({
       objective: 'Implement supervised backend change',
       owner: 'backend',
-      allowedPaths: ['apps/api/src/example.ts'],
+      allowedPaths: [CHANGED_FILE],
       forbiddenActions: ['merge', 'deploy_production'],
       dependsOn: [],
       acceptance: ['focused tests pass'],
@@ -35,19 +39,28 @@ describe('AgentGatewayService', () => {
     return { task, execution };
   }
 
-  async function createReadyExecution() {
+  async function createReadyExecution(
+    targetBranch = 'production/atlas',
+  ) {
     const { task, execution } = await createRunningExecution();
     const completed = await dispatcher.complete(execution.id, {
       summary: 'Implemented under Supervisor execution',
       evidence: {
         rootCause: 'Confirmed gateway test cause',
-        changedFiles: ['apps/api/src/example.ts'],
+        changedFiles: [CHANGED_FILE],
         tests: ['focused gateway PASS'],
         build: 'PASS',
         regression: ['supervisor PASS'],
         deploymentState: 'NOT_DEPLOYED',
         gitState: 'NO_INTEGRATION_PERFORMED',
         remainingRisk: [],
+        reviewCandidate: {
+          action: 'merge',
+          targetBranch,
+          baseSha: BASE_SHA,
+          headSha: HEAD_SHA,
+          changedFiles: [CHANGED_FILE],
+        },
       },
     });
     await gateway.submitImplementationFromExecution(task.id, completed.id);
@@ -64,7 +77,7 @@ describe('AgentGatewayService', () => {
         taskId: task.id,
         executionId: execution.id,
         externalWorker: 'codex',
-        changedFiles: ['apps/api/src/example.ts'],
+        changedFiles: [CHANGED_FILE],
         requestedAction: 'edit_assigned_files',
       }),
     ).resolves.toEqual({
@@ -75,7 +88,7 @@ describe('AgentGatewayService', () => {
     });
   });
 
-  it.each(['../secret', '/absolute/path', '']) (
+  it.each(['../secret', '/absolute/path', ''])(
     'rejects invalid repository path %p',
     async (path) => {
       const { task, execution } = await createRunningExecution();
@@ -132,7 +145,7 @@ describe('AgentGatewayService', () => {
       summary: 'Implemented under Supervisor execution',
       evidence: {
         rootCause: 'Confirmed gateway test cause',
-        changedFiles: ['apps/api/src/example.ts'],
+        changedFiles: [CHANGED_FILE],
         tests: ['focused gateway PASS'],
         build: 'PASS',
         regression: ['supervisor PASS'],
@@ -148,9 +161,7 @@ describe('AgentGatewayService', () => {
     );
 
     expect(implemented.status).toBe('IMPLEMENTED');
-    expect(implemented.evidence?.changedFiles).toEqual([
-      'apps/api/src/example.ts',
-    ]);
+    expect(implemented.evidence?.changedFiles).toEqual([CHANGED_FILE]);
   });
 
   it('rejects implementation submission from a non-completed execution', async () => {
@@ -172,9 +183,9 @@ describe('AgentGatewayService', () => {
         executionId: execution.id,
         action: 'merge',
         targetBranch: 'production/atlas',
-        baseSha: 'a'.repeat(40),
-        headSha: 'b'.repeat(40),
-        changedFiles: ['apps/api/src/example.ts'],
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: true,
       }),
     ).rejects.toMatchObject({
@@ -191,9 +202,9 @@ describe('AgentGatewayService', () => {
         executionId: execution.id,
         action: 'merge',
         targetBranch: 'production/atlas',
-        baseSha: 'a'.repeat(40),
-        headSha: 'b'.repeat(40),
-        changedFiles: ['apps/api/src/example.ts'],
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: false,
       }),
     ).rejects.toMatchObject({
@@ -210,9 +221,9 @@ describe('AgentGatewayService', () => {
         executionId: execution.id,
         action: 'merge',
         targetBranch: 'production/atlas',
-        baseSha: 'a'.repeat(40),
+        baseSha: BASE_SHA,
         headSha: 'short',
-        changedFiles: ['apps/api/src/example.ts'],
+        changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: true,
       }),
     ).rejects.toMatchObject({
@@ -221,7 +232,7 @@ describe('AgentGatewayService', () => {
   });
 
   it('requires production/atlas for canonical merge decisions', async () => {
-    const { task, execution } = await createReadyExecution();
+    const { task, execution } = await createReadyExecution('main');
 
     await expect(
       gateway.checkIntegration({
@@ -229,9 +240,9 @@ describe('AgentGatewayService', () => {
         executionId: execution.id,
         action: 'merge',
         targetBranch: 'main',
-        baseSha: 'a'.repeat(40),
-        headSha: 'b'.repeat(40),
-        changedFiles: ['apps/api/src/example.ts'],
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: true,
       }),
     ).rejects.toMatchObject({
@@ -248,9 +259,9 @@ describe('AgentGatewayService', () => {
         executionId: execution.id,
         action: 'merge',
         targetBranch: 'production/atlas',
-        baseSha: 'a'.repeat(40),
-        headSha: 'b'.repeat(40),
-        changedFiles: ['apps/api/src/example.ts'],
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: true,
       }),
     ).resolves.toEqual({
