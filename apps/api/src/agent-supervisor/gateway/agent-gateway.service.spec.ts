@@ -104,4 +104,41 @@ describe('AgentGatewayService', () => {
       response: { code: 'worker_protected_action_denied' },
     });
   });
+
+  it('submits task implementation only from persisted completed execution evidence', async () => {
+    const { task, execution } = await createRunningExecution();
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Implemented under Supervisor execution',
+      evidence: {
+        rootCause: 'Confirmed gateway test cause',
+        changedFiles: ['apps/api/src/example.ts'],
+        tests: ['focused gateway PASS'],
+        build: 'PASS',
+        regression: ['supervisor PASS'],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_INTEGRATION_PERFORMED',
+        remainingRisk: [],
+      },
+    });
+
+    const implemented = await gateway.submitImplementationFromExecution(
+      task.id,
+      completed.id,
+    );
+
+    expect(implemented.status).toBe('IMPLEMENTED');
+    expect(implemented.evidence?.changedFiles).toEqual([
+      'apps/api/src/example.ts',
+    ]);
+  });
+
+  it('rejects implementation submission from a non-completed execution', async () => {
+    const { task, execution } = await createRunningExecution();
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, execution.id),
+    ).rejects.toMatchObject({
+      response: { code: 'execution_not_completed' },
+    });
+  });
 });
