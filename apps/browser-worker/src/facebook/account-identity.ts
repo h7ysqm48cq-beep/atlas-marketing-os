@@ -99,10 +99,17 @@ export async function inspectFacebookAccountIdentity(input: {
       )}`,
     );
 
-    const facebookUserName =
+    let facebookUserName =
       normalizeFacebookProfileName(
         await tab.readProfileName(),
       );
+
+    if (!facebookUserName) {
+      facebookUserName =
+        normalizeFacebookProfileName(
+          await tab.readProfileName(),
+        );
+    }
 
     return {
       facebookUserId,
