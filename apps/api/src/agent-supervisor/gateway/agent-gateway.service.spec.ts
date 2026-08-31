@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
@@ -8,6 +9,7 @@ import { AgentGatewayService } from './agent-gateway.service';
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
+const OWNER_TOKEN = 'integration-owner-token';
 
 describe('AgentGatewayService', () => {
   let supervisor: AgentSupervisorService;
@@ -19,7 +21,17 @@ describe('AgentGatewayService', () => {
     const taskStore = new MemorySupervisorTaskStore();
     const fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
-    supervisor = new AgentSupervisorService(taskStore, fileStore);
+    const config = {
+      get: jest.fn((key: string) =>
+        key === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? OWNER_TOKEN : undefined,
+      ),
+    } as unknown as ConfigService;
+    supervisor = new AgentSupervisorService(
+      taskStore,
+      fileStore,
+      undefined,
+      config,
+    );
     dispatcher = new WorkerDispatcherService(supervisor, executionStore);
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
@@ -41,8 +53,16 @@ describe('AgentGatewayService', () => {
 
   async function createReadyExecution(
     targetBranch = 'production/atlas',
+    authorizeMerge = targetBranch === 'production/atlas',
   ) {
     const { task, execution } = await createRunningExecution();
+    const reviewCandidate = {
+      action: 'merge' as const,
+      targetBranch,
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+    };
     const completed = await dispatcher.complete(execution.id, {
       summary: 'Implemented under Supervisor execution',
       evidence: {
@@ -54,18 +74,15 @@ describe('AgentGatewayService', () => {
         deploymentState: 'NOT_DEPLOYED',
         gitState: 'NO_INTEGRATION_PERFORMED',
         remainingRisk: [],
-        reviewCandidate: {
-          action: 'merge',
-          targetBranch,
-          baseSha: BASE_SHA,
-          headSha: HEAD_SHA,
-          changedFiles: [CHANGED_FILE],
-        },
+        reviewCandidate,
       },
     });
     await gateway.submitImplementationFromExecution(task.id, completed.id);
     await supervisor.beginVerification(task.id);
     await supervisor.markReadyForReview(task.id);
+    if (authorizeMerge) {
+      await supervisor.authorizeMerge(task.id, reviewCandidate, 'owner-user-1');
+    }
     return { task: await supervisor.getTask(task.id), execution: completed };
   }
 
@@ -193,7 +210,29 @@ describe('AgentGatewayService', () => {
     });
   });
 
-  it('rejects a canonical merge without explicit owner authorization', async () => {
+  it('rejects integration when review is ready but persisted owner merge authorization is missing', async () => {
+    const { task, execution } = await createReadyExecution(
+      'production/atlas',
+      false,
+    );
+
+    await expect(
+      gateway.checkIntegration({
+        taskId: task.id,
+        executionId: execution.id,
+        action: 'merge',
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
+        explicitUserAuthorization: true,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_required' },
+    });
+  });
+
+  it('still requires explicit integration authorization after signed owner merge authorization exists', async () => {
     const { task, execution } = await createReadyExecution();
 
     await expect(
@@ -232,7 +271,7 @@ describe('AgentGatewayService', () => {
   });
 
   it('requires production/atlas for canonical merge decisions', async () => {
-    const { task, execution } = await createReadyExecution('main');
+    const { task, execution } = await createReadyExecution('main', false);
 
     await expect(
       gateway.checkIntegration({
@@ -250,7 +289,7 @@ describe('AgentGatewayService', () => {
     });
   });
 
-  it('allows the exact reviewed canonical merge state after explicit authorization', async () => {
+  it('allows the exact reviewed canonical merge state after both owner gates and explicit integration authorization', async () => {
     const { task, execution } = await createReadyExecution();
 
     await expect(
