@@ -5,6 +5,7 @@ import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
 import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
+import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
 import { PrismaSupervisorLifecycleStore } from './persistence/prisma-supervisor-lifecycle.store';
@@ -21,6 +22,7 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
     WorkerDispatcherService,
     AgentGatewayService,
     SupervisorCiGuard,
+    SupervisorOwnerGuard,
     PrismaSupervisorTaskStore,
     PrismaSupervisorExecutionStore,
     PrismaFileOwnershipStore,
