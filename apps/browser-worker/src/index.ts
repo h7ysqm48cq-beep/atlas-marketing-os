@@ -6636,6 +6636,120 @@ app.post(
                   },
 
                   readProfileName: async () => {
+                    const domCandidates =
+                      await identityPage
+                        .evaluate(() => {
+                          const clean = (
+                            value:
+                              | string
+                              | null
+                              | undefined,
+                          ) =>
+                            (value || "")
+                              .replace(/\s+/g, " ")
+                              .trim()
+                              .slice(0, 160);
+
+                          const collect = (
+                            selector: string,
+                            limit: number,
+                          ) =>
+                            Array.from(
+                              document.querySelectorAll(
+                                selector,
+                              ),
+                            )
+                              .slice(0, limit)
+                              .map((element) => ({
+                                tag:
+                                  element.tagName
+                                    .toLowerCase(),
+                                text:
+                                  clean(
+                                    element.textContent,
+                                  ),
+                                role:
+                                  clean(
+                                    element.getAttribute(
+                                      "role",
+                                    ),
+                                  ),
+                                ariaLabel:
+                                  clean(
+                                    element.getAttribute(
+                                      "aria-label",
+                                    ),
+                                  ),
+                                ariaLevel:
+                                  clean(
+                                    element.getAttribute(
+                                      "aria-level",
+                                    ),
+                                  ),
+                              }))
+                              .filter(
+                                (candidate) =>
+                                  candidate.text ||
+                                  candidate.ariaLabel,
+                              );
+
+                          const metaContent = (
+                            selector: string,
+                          ) =>
+                            clean(
+                              document
+                                .querySelector(
+                                  selector,
+                                )
+                                ?.getAttribute(
+                                  "content",
+                                ),
+                            );
+
+                          return {
+                            url:
+                              window.location.href,
+                            title:
+                              clean(
+                                document.title,
+                              ),
+                            ogTitle:
+                              metaContent(
+                                'meta[property="og:title"]',
+                              ),
+                            twitterTitle:
+                              metaContent(
+                                'meta[name="twitter:title"]',
+                              ),
+                            mainHeadings:
+                              collect(
+                                'main h1, main [role="heading"]',
+                                12,
+                              ),
+                            h1:
+                              collect(
+                                "h1",
+                                12,
+                              ),
+                            roleHeadings:
+                              collect(
+                                '[role="heading"]',
+                                20,
+                              ),
+                          };
+                        })
+                        .catch((error) => ({
+                          error:
+                            error instanceof Error
+                              ? error.message
+                              : String(error),
+                        }));
+
+                    console.info(
+                      "[facebook/profile-name-dom-candidates]",
+                      domCandidates,
+                    );
+
                     const heading =
                       (
                         await identityPage
