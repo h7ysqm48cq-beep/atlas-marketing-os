@@ -1,7 +1,70 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import type { SupervisorReviewCandidate } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
+
+const BASE_SHA = 'a'.repeat(40);
+const HEAD_SHA = 'b'.repeat(40);
+const CHANGED_FILE = 'apps/api/src/example.ts';
+const OWNER_TOKEN = 'test-owner-token';
+
+function candidate(
+  overrides: Partial<SupervisorReviewCandidate> = {},
+): SupervisorReviewCandidate {
+  return {
+    action: 'merge',
+    targetBranch: 'production/atlas',
+    baseSha: BASE_SHA,
+    headSha: HEAD_SHA,
+    changedFiles: [CHANGED_FILE],
+    ...overrides,
+  };
+}
+
+function ownerConfig() {
+  return {
+    get: jest.fn((key: string) =>
+      key === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? OWNER_TOKEN : undefined,
+    ),
+  } as unknown as ConfigService;
+}
+
+function createOwnerService() {
+  return new AgentSupervisorService(
+    new MemorySupervisorTaskStore(),
+    new MemoryFileOwnershipStore(),
+    undefined,
+    ownerConfig(),
+  );
+}
+
+async function makeReadyTask(service: AgentSupervisorService) {
+  const task = await service.createTask({
+    objective: 'Owner authorization test',
+    owner: 'backend',
+    allowedPaths: [CHANGED_FILE],
+    forbiddenActions: ['merge', 'deploy_production'],
+    dependsOn: [],
+    acceptance: ['passes'],
+  });
+  await service.startTask(task.id);
+  await service.submitImplementation(task.id, {
+    rootCause: 'Confirmed cause',
+    changedFiles: [CHANGED_FILE],
+    tests: ['PASS'],
+    build: 'PASS',
+    regression: ['PASS'],
+    deploymentState: 'NOT_DEPLOYED',
+    gitState: 'NO_INTEGRATION_PERFORMED',
+    remainingRisk: [],
+    reviewCandidate: candidate(),
+  });
+  await service.beginVerification(task.id);
+  await service.markReadyForReview(task.id);
+  return service.getTask(task.id);
+}
 
 describe('AgentSupervisorService', () => {
   let service: AgentSupervisorService;
@@ -148,6 +211,88 @@ describe('AgentSupervisorService', () => {
     const ready = await service.markReadyForReview(task.id);
 
     expect(ready.status).toBe('READY_FOR_REVIEW');
+  });
+
+  it('persists a signed owner merge authorization only for the exact reviewed candidate', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+
+    const authorized = await ownerService.authorizeMerge(
+      task.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    expect(authorized.evidence?.ownerMergeAuthorization).toMatchObject({
+      candidate: candidate(),
+      authorizedBy: 'owner-user-1',
+    });
+    expect(authorized.evidence?.ownerMergeAuthorization?.authorizedAt).toEqual(
+      expect.any(String),
+    );
+    expect(authorized.evidence?.ownerMergeAuthorization?.signature).toMatch(
+      /^[0-9a-f]{64}$/,
+    );
+  });
+
+  it.each([
+    candidate({ headSha: 'c'.repeat(40) }),
+    candidate({ targetBranch: 'main' }),
+    candidate({ action: 'deploy_production' }),
+  ])('rejects owner authorization for a non-matching or non-canonical candidate', async (requested) => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+
+    await expect(
+      ownerService.authorizeMerge(task.id, requested, 'owner-user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('strips worker-supplied owner authorization from implementation evidence', async () => {
+    const ownerService = createOwnerService();
+    const task = await ownerService.createTask({
+      objective: 'Reject forged owner evidence',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge'],
+      dependsOn: [],
+      acceptance: ['forged auth is stripped'],
+    });
+    await ownerService.startTask(task.id);
+
+    const implemented = await ownerService.submitImplementation(task.id, {
+      rootCause: 'Attempted forged evidence',
+      changedFiles: [CHANGED_FILE],
+      tests: ['PASS'],
+      build: 'PASS',
+      regression: ['PASS'],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_INTEGRATION_PERFORMED',
+      remainingRisk: [],
+      reviewCandidate: candidate(),
+      ownerMergeAuthorization: {
+        candidate: candidate(),
+        authorizedBy: 'attacker',
+        authorizedAt: '2026-09-01T00:00:00.000Z',
+        signature: '0'.repeat(64),
+      },
+    });
+
+    expect(implemented.evidence?.ownerMergeAuthorization).toBeUndefined();
+  });
+
+  it('revokes owner merge authorization when a reviewed task returns to working', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const working = await ownerService.returnToWorking(
+      task.id,
+      'candidate changed',
+    );
+
+    expect(working.status).toBe('WORKING');
+    expect(working.evidence?.ownerMergeAuthorization).toBeUndefined();
   });
 
   it('denies protected git actions without explicit user authorization', () => {
