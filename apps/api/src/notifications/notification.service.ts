@@ -23,6 +23,25 @@ type StoredSubscription = {
   auth: string;
 };
 
+// Apple rejects local-only VAPID identities even when the signing keys are valid.
+function publicVapidSubject(value?: string): string | null {
+  const subject = value?.trim();
+  if (!subject) return null;
+  try {
+    const url = new URL(subject);
+    const host = url.protocol === 'mailto:'
+      ? url.pathname.split('@')[1]?.toLowerCase()
+      : url.protocol === 'https:' && !url.username && !url.password
+        ? url.hostname.toLowerCase()
+        : null;
+    if (!host || !/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}$/i.test(host) ||
+      /(?:^|\.)(?:local|localhost|internal|invalid|test)$/i.test(host)) return null;
+    return subject;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class NotificationService implements OnModuleInit {
   private readonly logger = new Logger(NotificationService.name);
@@ -35,12 +54,13 @@ export class NotificationService implements OnModuleInit {
   ) {
     const publicKey = config.get<string>('VAPID_PUBLIC_KEY')?.trim();
     const privateKey = config.get<string>('VAPID_PRIVATE_KEY')?.trim();
-    const subject = config.get<string>('VAPID_SUBJECT')?.trim() || 'mailto:admin@atlas.local';
+    const subject = publicVapidSubject(config.get<string>('VAPID_SUBJECT'))
+      || publicVapidSubject(config.get<string>('WEB_URL'));
     this.publicKey = publicKey || null;
-    this.enabled = Boolean(publicKey && privateKey);
+    this.enabled = Boolean(publicKey && privateKey && subject);
 
     if (this.enabled) {
-      webpush.setVapidDetails(subject, publicKey!, privateKey!);
+      webpush.setVapidDetails(subject!, publicKey!, privateKey!);
     }
   }
 
@@ -84,8 +104,8 @@ export class NotificationService implements OnModuleInit {
 
   async notify(input: PushInput) {
     if (!this.enabled) {
-      this.logger.warn('Push notification skipped: VAPID keys are not configured.');
-      return { sent: 0, skipped: true };
+      this.logger.warn('Push notification skipped: VAPID keys or a public subject are not configured.');
+      return { sent: 0, failed: 0, skipped: true };
     }
 
     const subscriptions = await this.prisma.$queryRaw<StoredSubscription[]>`
@@ -101,6 +121,7 @@ export class NotificationService implements OnModuleInit {
       category: input.category || 'system',
     });
     let sent = 0;
+    let failed = 0;
     for (const subscription of subscriptions) {
       try {
         await webpush.sendNotification(
@@ -109,17 +130,27 @@ export class NotificationService implements OnModuleInit {
             keys: { p256dh: subscription.p256dh, auth: subscription.auth },
           },
           payload,
+          { timeout: 10_000 },
         );
         sent += 1;
       } catch (error) {
+        failed += 1;
         const statusCode = (error as { statusCode?: number })?.statusCode;
         if (statusCode === 404 || statusCode === 410) {
           await this.unsubscribe(subscription.endpoint);
         } else {
-          this.logger.warn(`Push notification failed for one subscription: ${statusCode || 'unknown'}`);
+          // Only log the provider's short reason code, never subscription endpoints or JWTs.
+          let reason = 'unspecified';
+          try {
+            const body = JSON.parse((error as { body?: string })?.body || '{}');
+            if (typeof body.reason === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(body.reason)) {
+              reason = body.reason;
+            }
+          } catch { /* Provider responses are not always JSON. */ }
+          this.logger.warn(`Push notification failed for one subscription (${statusCode || 'network'}: ${reason}).`);
         }
       }
     }
-    return { sent, skipped: false };
+    return { sent, failed, skipped: false };
   }
 }

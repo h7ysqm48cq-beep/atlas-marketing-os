@@ -975,8 +975,7 @@ export class BrowserAccountService {
                     workspaceId,
                     status:
                       SocialChannelStatus.CONNECTED,
-                    publishingPreference:
-                      'BROWSER_RUNTIME',
+                    // Sync refreshes Page metadata, not the user's publishing choice.
                     lastConnectedAt:
                       new Date(),
                     lastError:
