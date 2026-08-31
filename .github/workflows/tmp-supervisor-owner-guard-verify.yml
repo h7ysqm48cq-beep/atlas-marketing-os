@@ -1,0 +1,26 @@
+name: tmp-supervisor-owner-guard-verify
+
+on:
+  push:
+    branches:
+      - feat/supervisor-owner-mutation-guard-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema apps/api/prisma/schema.prisma
+      - name: Owner guard focused tests
+        run: npm run test --workspace apps/api -- agent-supervisor/gateway/supervisor-owner.guard.spec.ts agent-supervisor/agent-supervisor.controller.spec.ts --runInBand
