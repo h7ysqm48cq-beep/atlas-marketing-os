@@ -1,4 +1,0 @@
-Temporary CI trigger for isolated Web Calendar verification. No runtime effect.
-Focused Calendar lint + Web build rerun.
-Retry after remote base ref correction.
-Retry with ESLint executed from apps/web.
