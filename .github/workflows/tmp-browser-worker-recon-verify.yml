@@ -1,0 +1,55 @@
+name: temp-browser-worker-recon-verify
+
+on:
+  push:
+    branches:
+      - verify/browser-worker-recon-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  browser-worker-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify reconciled diff scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin production/atlas:refs/remotes/origin/production/atlas
+          git diff --check origin/production/atlas...HEAD
+          mapfile -t changed < <(git diff --name-only origin/production/atlas...HEAD)
+          printf 'Changed files:\n%s\n' "${changed[*]}"
+          allowed='^(apps/browser-worker/src/existing-profile-open-routing\.spec\.ts|apps/browser-worker/src/facebook/account-identity-name\.spec\.ts|apps/browser-worker/src/facebook/account-identity-opt-in\.spec\.ts|apps/browser-worker/src/facebook/account-identity-routing\.spec\.ts|apps/browser-worker/src/facebook/account-identity\.spec\.ts|apps/browser-worker/src/facebook/account-identity\.ts|apps/browser-worker/src/index\.ts|apps/browser-worker/src/root-health\.spec\.ts|\.github/workflows/tmp-browser-worker-recon-verify\.yml)$'
+          for path in "${changed[@]}"; do
+            if [[ ! "$path" =~ $allowed ]]; then
+              echo "Out-of-scope Browser Worker reconciliation file: $path" >&2
+              exit 1
+            fi
+          done
+
+      - name: Run Browser Worker tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' specs < <(find apps/browser-worker/src -name '*.spec.ts' -print0)
+          test "${#specs[@]}" -gt 0
+          npx tsx --test "${specs[@]}"
+
+      - name: Build Browser Worker
+        run: npm run build --workspace apps/browser-worker
