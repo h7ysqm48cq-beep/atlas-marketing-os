@@ -61,7 +61,7 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
 }
 
 describe('AgentGatewayService review candidate', () => {
-  it('validates the exact persisted READY_FOR_REVIEW canonical candidate without fabricating merge authorization', async () => {
+  it('fails closed after review validation when exact owner merge authorization is missing', async () => {
     const { task, completed, gateway } = await makeReadyCandidate();
 
     await expect(
@@ -75,11 +75,8 @@ describe('AgentGatewayService review candidate', () => {
         changedFiles: [CHANGED_FILE],
         explicitUserAuthorization: false,
       }),
-    ).resolves.toEqual({
-      allowed: true,
-      reason: null,
-      taskId: task.id,
-      executionId: completed.id,
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_required' },
     });
   });
 
