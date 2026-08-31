@@ -1,0 +1,56 @@
+name: Verify Canonical Production Atlas
+
+on:
+  pull_request:
+    branches:
+      - ci/production-atlas-verify-base-20260901
+
+permissions:
+  contents: read
+
+jobs:
+  verify-canonical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8080
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      BROWSER_VIEWER_TOKEN_SECRET: ci-placeholder
+      OPENAI_MODEL: gpt-5.6-luna
+    steps:
+      - name: Checkout canonical verification head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema apps/api/prisma/schema.prisma
+
+      - name: API full tests
+        run: npm run test --workspace apps/api -- --runInBand
+
+      - name: API build
+        run: npm run build --workspace apps/api
+
+      - name: Web production regression tests
+        run: node --test apps/web/tests/calendar-image-save-race.spec.cjs apps/web/tests/browser-open-routing.spec.cjs
+
+      - name: Calendar focused lint
+        working-directory: apps/web
+        run: npx eslint src/components/calendar/ContentCalendar.tsx
+
+      - name: Web build
+        run: npm run build --workspace apps/web
