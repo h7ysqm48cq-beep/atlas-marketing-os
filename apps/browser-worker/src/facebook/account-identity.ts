@@ -89,9 +89,12 @@ export async function inspectFacebookAccountIdentity(input: {
   }
 
   let tab: FacebookIdentityTab | null = null;
+  let captureStage = "open-tab";
 
   try {
     tab = await input.openTemporaryTab();
+
+    captureStage = "goto";
 
     await tab.goto(
       `https://www.facebook.com/profile.php?id=${encodeURIComponent(
@@ -99,23 +102,69 @@ export async function inspectFacebookAccountIdentity(input: {
       )}`,
     );
 
+    captureStage = "read-1";
+
+    const firstRawProfileName =
+      await tab.readProfileName();
+
     let facebookUserName =
       normalizeFacebookProfileName(
-        await tab.readProfileName(),
+        firstRawProfileName,
       );
 
+    console.info(
+      "[facebook/account-identity-profile-name-attempt]",
+      {
+        facebookUserId,
+        attempt: 1,
+        rawProfileName:
+          firstRawProfileName,
+        normalizedProfileName:
+          facebookUserName,
+      },
+    );
+
     if (!facebookUserName) {
+      captureStage = "read-2";
+
+      const secondRawProfileName =
+        await tab.readProfileName();
+
       facebookUserName =
         normalizeFacebookProfileName(
-          await tab.readProfileName(),
+          secondRawProfileName,
         );
+
+      console.info(
+        "[facebook/account-identity-profile-name-attempt]",
+        {
+          facebookUserId,
+          attempt: 2,
+          rawProfileName:
+            secondRawProfileName,
+          normalizedProfileName:
+            facebookUserName,
+        },
+      );
     }
 
     return {
       facebookUserId,
       facebookUserName,
     };
-  } catch {
+  } catch (error) {
+    console.warn(
+      "[facebook/account-identity-profile-name-failure]",
+      {
+        facebookUserId,
+        stage: captureStage,
+        error:
+          error instanceof Error
+            ? error.message
+            : String(error),
+      },
+    );
+
     return {
       facebookUserId,
       facebookUserName: null,
