@@ -402,3 +402,34 @@ Rules:
 - never force-push a Railway-tracked production branch during reconciliation;
 - if Railway cannot change its configured source branch safely, a non-force fast-forward of the already tracked branch to the verified canonical descendant is allowed only after confirming the update is a true fast-forward and the canonical commit has passed combined verification;
 - after cutover, verify Railway deployment metadata and runtime health against the exact canonical commit rather than trusting a branch-change acknowledgement alone.
+
+## 21. Mandatory Supervisor admission for every code-writing agent
+
+This rule applies to **Codex, ChatGPT Work coding flows, ChatGPT coding agents, GitHub-connected coding agents, and every current or future code-writing agent** working on ATLAS.
+
+Read-only repository inspection, explanation, planning, architecture review, and non-mutating diagnosis may occur without a worker execution. Any repository write intended to become integratable work requires ATLAS Supervisor admission first.
+
+Before an agent edits an integratable file, the following persisted Supervisor state MUST exist:
+
+1. a Supervisor task in an implementation-compatible state;
+2. a Supervisor execution belonging to that task;
+3. an assigned worker role;
+4. explicit allowed paths;
+5. file ownership for the active implementation scope;
+6. forbidden actions and acceptance criteria in the execution assignment.
+
+The external agent must operate within the persisted assignment. Caller-supplied scope, role, or permissions never override Supervisor persistence.
+
+A branch, commit, patch, or PR created without valid Supervisor task/execution admission is `UNSUPERVISED`. Unsupervised work is **NOT INTEGRATABLE** and MUST NOT be merged, mirrored to a Railway-tracked branch, deployed, or used for a production migration. To recover it, create a fresh Supervisor task/execution, audit the complete diff against allowed paths, run required verification, and produce new evidence before considering integration.
+
+For integration candidates targeting `production/atlas`, the `atlas-supervisor-gate` CI check must validate the persisted task/execution, exact changed files, target branch, base SHA, and head SHA. Passing that review-candidate check does **not** grant merge permission. Merge/deploy/migration still requires the separate explicit user authorization defined elsewhere in this file.
+
+Service governance:
+
+- API source changes: Supervisor-gated;
+- Web source changes: Supervisor-gated;
+- Browser Worker source changes: Supervisor-gated and reconciled back to canonical production;
+- Datadog Agent image/version/configuration/redeploy changes: Supervisor `infra` task required;
+- read-only Datadog health/log inspection: allowed without a code execution.
+
+If Supervisor state is missing, stale, unavailable, or does not match the exact Git candidate, fail closed. Do not downgrade the gate to a warning and do not treat an agent's self-reported task ID as authority.

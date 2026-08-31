@@ -66,3 +66,17 @@ When two tasks require the same mutable file, the later task is blocked until th
 ## Integration gate
 
 Merge, rebase, squash, cherry-pick, auto-merge, force push and direct PR merge are disabled by default. The user must explicitly authorize the exact integration action after the Supervisor reports branch/status/diff/conflicts/tests.
+
+## Mandatory external code-agent admission
+
+Codex, ChatGPT Work coding flows, ChatGPT coding agents, GitHub-connected coding agents, and any future code-writing agent are external workers under the Engineering Supervisor.
+
+Read-only inspection, explanation, planning, architecture review, and non-mutating diagnosis may run without a worker execution. Before any repository write intended for integration, the Supervisor must persist a task and execution, assign a worker role, establish allowed paths and file ownership, and include forbidden actions plus acceptance criteria in the execution assignment.
+
+External workers do not define their own authority. Persisted Supervisor task/execution state is the source of truth for role, scope, file ownership and permissions.
+
+A branch, commit, patch or PR created without valid Supervisor admission is `UNSUPERVISED` and is not integratable. It must not be merged, mirrored to a Railway production branch, deployed or used for a production migration until a new Supervisor task/execution audits the complete diff and required verification succeeds.
+
+The `atlas-supervisor-gate` review check binds an integration candidate to its persisted task/execution, exact changed files, target branch, base SHA and head SHA. A passing review check proves candidate readiness only; it does not authorize merge, deploy, migration or runtime configuration changes.
+
+API, Web and Browser Worker source changes follow this same admission and integration model. Datadog is image-based infrastructure rather than ATLAS Git source, so Datadog image/version/configuration/redeploy changes require an `infra` Supervisor task; read-only Datadog health/log inspection is exempt from code execution admission.

@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { AgentGatewayService } from './gateway/agent-gateway.service';
+import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
+import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
 import { PrismaSupervisorLifecycleStore } from './persistence/prisma-supervisor-lifecycle.store';
@@ -12,10 +15,12 @@ import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store'
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
 
 @Module({
-  controllers: [AgentSupervisorController],
+  controllers: [AgentSupervisorController, SupervisorGatewayController],
   providers: [
     AgentSupervisorService,
     WorkerDispatcherService,
+    AgentGatewayService,
+    SupervisorCiGuard,
     PrismaSupervisorTaskStore,
     PrismaSupervisorExecutionStore,
     PrismaFileOwnershipStore,
@@ -40,6 +45,7 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
   exports: [
     AgentSupervisorService,
     WorkerDispatcherService,
+    AgentGatewayService,
     SUPERVISOR_TASK_STORE,
     SUPERVISOR_EXECUTION_STORE,
     FILE_OWNERSHIP_STORE,
