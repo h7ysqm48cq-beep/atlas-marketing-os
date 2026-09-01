@@ -152,38 +152,12 @@ export class WorkspaceScopedBrowserAccountService extends BrowserAccountService 
     return super.linkChannel(accountId, channelId, input);
   }
 
-  override async selectForChannel(channelId: string, input?: any) {
+  override async selectForChannel(channelId: string, input?: any): Promise<any> {
     await this.requireChannel(channelId);
-
-    const workspaceId = await this.currentWorkspaceId();
-    const allowedAccounts = await this.scopedPrisma.browserAccount.findMany({
-      where: {
-        workspaceId,
-      },
-      select: {
-        id: true,
-      },
-    });
-    const allowedIds = new Set(allowedAccounts.map((account) => account.id));
-    const selection = await super.selectForChannel(channelId, input);
-    const candidates = selection.candidates.filter((candidate) =>
-      allowedIds.has(candidate.id),
-    );
-    const selected = candidates.find((candidate) => candidate.eligible) || null;
-
-    return {
-      ...selection,
-      selected,
-      candidates,
-      reason: selected
-        ? 'BEST_ELIGIBLE_BROWSER_SELECTED'
-        : candidates.length
-          ? 'NO_ELIGIBLE_BROWSER_ACCOUNT'
-          : 'NO_LINKED_BROWSER_ACCOUNT',
-    };
+    return super.selectForChannel(channelId, input);
   }
 
-  override async pool() {
+  override async pool(): Promise<any> {
     const workspaceId = await this.currentWorkspaceId();
     const accounts = await this.scopedPrisma.browserAccount.findMany({
       where: {
