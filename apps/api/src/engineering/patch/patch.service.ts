@@ -238,6 +238,26 @@ export class PatchService {
         );
 
 
+      /*
+       * Repository analysis is not an executable edit.
+       * PatchService must only emit a patch when a real
+       * transformation produces source that differs from
+       * the reviewed repository content.
+       */
+      const candidateContent =
+        currentContent;
+
+
+      if (
+        candidateContent ===
+        currentContent
+      ) {
+
+        continue;
+
+      }
+
+
       const action:
         EngineeringPatchAction =
           currentContent
@@ -254,16 +274,8 @@ export class PatchService {
         before:
           currentContent,
 
-        /*
-         * PatchService no longer invents
-         * replacement source code.
-         *
-         * Recovery / Repair generates the
-         * candidate source. AST provides
-         * structural repository context.
-         */
         after:
-          currentContent,
+          candidateContent,
 
         explanation:
           ast.analyzed
