@@ -720,7 +720,7 @@ export function EngineeringCopilot() {
             setProposal(persistedProposal);
 
             runtime.diffPreviews =
-              runtime.patches
+              (runtime.patches || [])
                 .slice(0, 3)
                 .map((patch) => ({
                   filePath: patch.filePath,
