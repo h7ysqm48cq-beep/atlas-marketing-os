@@ -25,3 +25,17 @@ for (const fakePreviewText of [
     `synthetic diff text must not be rendered: ${fakePreviewText}`,
   );
 }
+
+assert.equal(
+  engineeringCopilotSource.includes(
+    "runtime.patches =\n              patchData.patches || [];",
+  ),
+  false,
+  "raw patch preparation records must not be exposed as executable patches",
+);
+
+assert.match(
+  engineeringCopilotSource,
+  /patch\.before\s*!==\s*patch\.after/u,
+  "EngineeringCopilot must keep only patches with a real source delta",
+);
