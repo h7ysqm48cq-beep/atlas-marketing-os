@@ -401,6 +401,7 @@ patches: {
   filePath: string;
   content: string;
   before?: string;
+  action?: "create" | "modify";
 }[],
 ) {
 
@@ -414,22 +415,58 @@ for (
   const patch of patches
 ) {
 
+  const targetPath =
+    this.repositoryFile(
+      patch.filePath,
+    );
+
+  const fileExists =
+    existsSync(targetPath);
+
+  if (
+    patch.action === "create" &&
+    fileExists
+  ) {
+    return {
+      filePath:
+        patch.filePath,
+      status:
+        "blocked",
+      reason:
+        "Reviewed create target now exists.",
+    };
+  }
+
+  if (
+    patch.action === "modify" &&
+    !fileExists
+  ) {
+    return {
+      filePath:
+        patch.filePath,
+      status:
+        "blocked",
+      reason:
+        "Reviewed modify target no longer exists.",
+    };
+  }
+
   let currentContent = "";
 
-  try {
+  if (fileExists) {
+    try {
 
-    currentContent =
-      await readFile(
-        this.repositoryFile(
-          patch.filePath,
-        ),
-        "utf8",
-      );
+      currentContent =
+        await readFile(
+          targetPath,
+          "utf8",
+        );
 
-  } catch {
+    } catch {
 
-    currentContent = "";
+      currentContent = "";
 
+    }
   }
 
 
