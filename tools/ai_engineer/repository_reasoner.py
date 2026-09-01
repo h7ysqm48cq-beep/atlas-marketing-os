@@ -184,6 +184,12 @@ class RepositoryReasoner:
 
     _generic_words = {
         "the",
+        "and",
+        "or",
+        "with",
+        "from",
+        "for",
+        "using",
         "this",
         "that",
         "please",
