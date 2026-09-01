@@ -67,7 +67,7 @@ jobs:
           '''
 
           path.write_text(
-              text.rstrip() + block + "\n",
+              text.rstrip() + block.rstrip() + "\n",
               encoding="utf-8",
           )
           PY
