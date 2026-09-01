@@ -59,6 +59,7 @@ export class ApplyController {
           filePath: patch.filePath,
           content: patch.after,
           before: patch.before,
+          action: patch.action,
         })),
       );
 
