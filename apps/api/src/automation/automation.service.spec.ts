@@ -14,6 +14,11 @@ jest.mock('./runtime-profile.service', () => ({
 
 import { AutomationService } from './automation.service';
 
+const workspaceScope = () =>
+  ({
+    getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-1'),
+  }) as never;
+
 describe('AutomationService Facebook API disconnect', () => {
   const createService = () => {
     const prisma = {
@@ -47,10 +52,8 @@ describe('AutomationService Facebook API disconnect', () => {
         findMany: jest.fn().mockResolvedValue([]),
       },
       brand: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'brand-1',
-        }),
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
           workspaceId: 'workspace-1',
         }),
       },
@@ -70,6 +73,7 @@ describe('AutomationService Facebook API disconnect', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     return {
@@ -81,8 +85,9 @@ describe('AutomationService Facebook API disconnect', () => {
   it('clears one API token while preserving a linked Browser channel', async () => {
     const { prisma, service } = createService();
 
-    prisma.socialChannel.findUnique.mockResolvedValue({
+    prisma.socialChannel.findFirst.mockResolvedValue({
       id: 'channel-1',
+      workspaceId: 'workspace-1',
       platform: SocialPlatform.FACEBOOK,
       browserAccountLinks: [
         {
@@ -131,8 +136,9 @@ describe('AutomationService Facebook API disconnect', () => {
   it('disconnects an API-only channel after its token is cleared', async () => {
     const { prisma, service } = createService();
 
-    prisma.socialChannel.findUnique.mockResolvedValue({
+    prisma.socialChannel.findFirst.mockResolvedValue({
       id: 'channel-1',
+      workspaceId: 'workspace-1',
       platform: SocialPlatform.FACEBOOK,
       browserAccountLinks: [],
     });
@@ -172,6 +178,13 @@ describe('AutomationService Facebook API disconnect', () => {
       disconnectAllFacebookApi: (confirmation: string) => Promise<unknown>;
     }).disconnectAllFacebookApi('DISCONNECT_ALL_FACEBOOK_API');
 
+    expect(prisma.socialChannel.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: 'workspace-1',
+        }),
+      }),
+    );
     expect(prisma.socialChannel.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -229,6 +242,7 @@ describe('AutomationService hidden channels', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     await service.dashboard();
@@ -236,6 +250,7 @@ describe('AutomationService hidden channels', () => {
     expect(prisma.socialChannel.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          workspaceId: 'workspace-1',
           hiddenAt: null,
         },
       }),
@@ -247,10 +262,8 @@ describe('AutomationService Facebook channel defaults', () => {
   it('creates a Facebook channel in Browser Runtime mode even when an API token is supplied', async () => {
     const prisma = {
       brand: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'brand-1',
-        }),
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
           workspaceId: 'workspace-1',
         }),
       },
@@ -273,6 +286,7 @@ describe('AutomationService Facebook channel defaults', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     await service.createChannel({
@@ -285,6 +299,7 @@ describe('AutomationService Facebook channel defaults', () => {
 
     expect(prisma.socialChannel.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
+        workspaceId: 'workspace-1',
         publishingPreference: 'BROWSER_RUNTIME',
       }),
     });
@@ -305,6 +320,7 @@ describe('AutomationService calendar visibility', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     await service.listCalendarPosts();
@@ -313,6 +329,7 @@ describe('AutomationService calendar visibility', () => {
       expect.objectContaining({
         where: {
           channel: {
+            workspaceId: 'workspace-1',
             hiddenAt: null,
           },
         },
@@ -330,8 +347,9 @@ describe('AutomationService Instagram scheduling validation', () => {
   it('rejects scheduling an Instagram post without an image asset', async () => {
     const prisma = {
       socialChannel: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'channel-1',
+          workspaceId: 'workspace-1',
           brandId: 'brand-1',
           platform: SocialPlatform.INSTAGRAM,
         }),
@@ -347,6 +365,7 @@ describe('AutomationService Instagram scheduling validation', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     await expect(
@@ -368,7 +387,7 @@ describe('AutomationService Instagram scheduling validation', () => {
   it('rejects queueing an Instagram post without an image asset', async () => {
     const prisma = {
       scheduledPost: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'post-1',
           platform: SocialPlatform.INSTAGRAM,
           status: ScheduledPostStatus.FAILED,
@@ -384,6 +403,7 @@ describe('AutomationService Instagram scheduling validation', () => {
       {} as never,
       {} as never,
       {} as never,
+      workspaceScope(),
     );
 
     await expect(service.queuePost('post-1')).rejects.toThrow(
@@ -393,66 +413,47 @@ describe('AutomationService Instagram scheduling validation', () => {
   });
 });
 
-
-describe(
-  'AutomationService dashboard Browser Account identity',
-  () => {
-    it(
-      'selects Facebook personal profile name for Connected Platforms',
-      async () => {
-        const prisma = {
-          socialChannel: {
-            findMany:
-              jest.fn().mockResolvedValue([]),
-          },
-          scheduledPost: {
-            groupBy:
-              jest.fn().mockResolvedValue([]),
-            findMany:
-              jest.fn().mockResolvedValue([]),
-          },
-          publishAttempt: {
-            findMany:
-              jest.fn().mockResolvedValue([]),
-          },
-        };
-
-        const service =
-          new AutomationService(
-            prisma as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-          );
-
-        await service.dashboard();
-
-        expect(
-          prisma.socialChannel.findMany,
-        ).toHaveBeenCalledWith(
-          expect.objectContaining({
-            include:
-              expect.objectContaining({
-                browserAccountLinks:
-                  expect.objectContaining({
-                    include:
-                      expect.objectContaining({
-                        browserAccount:
-                          expect.objectContaining({
-                            select:
-                              expect.objectContaining({
-                                facebookUserName:
-                                  true,
-                              }),
-                          }),
-                      }),
-                  }),
-              }),
-          }),
-        );
+describe('AutomationService dashboard Browser Account identity', () => {
+  it('selects Facebook personal profile name for Connected Platforms', async () => {
+    const prisma = {
+      socialChannel: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
+      scheduledPost: {
+        groupBy: jest.fn().mockResolvedValue([]),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      publishAttempt: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      workspaceScope(),
     );
-  },
-);
+
+    await service.dashboard();
+
+    expect(prisma.socialChannel.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          browserAccountLinks: expect.objectContaining({
+            include: expect.objectContaining({
+              browserAccount: expect.objectContaining({
+                select: expect.objectContaining({
+                  facebookUserName: true,
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+});
