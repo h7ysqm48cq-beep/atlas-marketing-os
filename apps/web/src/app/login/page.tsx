@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -18,14 +19,60 @@ export default function LoginPage() {
   const [loading, setLoading] =
     useState(false);
 
+  const [preparingSwitch, setPreparingSwitch] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
   const [status, setStatus] =
     useState("Ready");
 
+  useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      );
+
+    if (params.get("switch") !== "1") {
+      return;
+    }
+
+    const supabase =
+      createClient();
+
+    setPreparingSwitch(true);
+    setStatus("Preparing account switch...");
+
+    void supabase.auth
+      .signOut({ scope: "local" })
+      .then(({ error: signOutError }) => {
+        if (signOutError) {
+          throw signOutError;
+        }
+
+        setStatus("Ready");
+      })
+      .catch((signOutError) => {
+        console.error(
+          "Atlas account switch failed:",
+          signOutError,
+        );
+
+        setError(
+          signOutError instanceof Error
+            ? signOutError.message
+            : "Unable to switch account.",
+        );
+        setStatus("Account switch failed");
+      })
+      .finally(() => {
+        setPreparingSwitch(false);
+      });
+  }, []);
+
   async function performLogin() {
-    if (loading) {
+    if (loading || preparingSwitch) {
       return;
     }
 
@@ -164,6 +211,7 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               placeholder="name@company.com"
+              disabled={preparingSwitch}
             />
           </label>
 
@@ -176,6 +224,7 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               placeholder="Enter password"
+              disabled={preparingSwitch}
             />
           </label>
 
@@ -191,16 +240,18 @@ export default function LoginPage() {
 
           <button
             type="button"
-            disabled={loading}
+            disabled={loading || preparingSwitch}
             onClick={() => {
               console.log("LOGIN BUTTON CLICKED");
               setStatus("Button clicked");
               void performLogin();
             }}
           >
-            {loading
-              ? "Signing in..."
-              : "Sign in"}
+            {preparingSwitch
+              ? "Preparing account switch..."
+              : loading
+                ? "Signing in..."
+                : "Sign in"}
           </button>
         </form>
 
