@@ -11,6 +11,7 @@ import {
 } from '../generated/prisma/enums';
 import { PrismaService } from '../database/prisma.service';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 import { PublisherService } from './publisher.service';
 import { FacebookConnectorService } from './facebook-connector.service';
 import { TelegramConnectorService } from './telegram-connector.service';
@@ -56,6 +57,7 @@ export class AutomationService {
     private readonly facebookConnector: FacebookConnectorService,
     private readonly telegramConnector: TelegramConnectorService,
     private readonly runtimeProfiles: RuntimeProfileService,
+    private readonly workspaceScope: WorkspaceScopeService,
     @Optional()
     private readonly instagramConnector?: InstagramConnectorService,
     @Optional()
@@ -63,10 +65,12 @@ export class AutomationService {
   ) {}
 
   async dashboard() {
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
     const [channels, postsByStatus, upcoming, recentAttempts] =
       await Promise.all([
         this.prisma.socialChannel.findMany({
           where: {
+            workspaceId,
             hiddenAt: null,
           },
           orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
@@ -118,6 +122,7 @@ export class AutomationService {
         this.prisma.scheduledPost.groupBy({
           where: {
             channel: {
+              workspaceId,
               hiddenAt: null,
             },
           },
@@ -130,6 +135,7 @@ export class AutomationService {
         this.prisma.scheduledPost.findMany({
           where: {
             channel: {
+              workspaceId,
               hiddenAt: null,
             },
             status: {
@@ -184,6 +190,7 @@ export class AutomationService {
           where: {
             scheduledPost: {
               channel: {
+                workspaceId,
                 hiddenAt: null,
               },
             },
@@ -253,10 +260,14 @@ export class AutomationService {
   }
 
   async listChannels(includeHidden = false) {
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
     const channels = await this.prisma.socialChannel.findMany({
       where: includeHidden
-        ? undefined
+        ? {
+            workspaceId,
+          }
         : {
+            workspaceId,
             hiddenAt: null,
           },
       orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
@@ -316,16 +327,7 @@ export class AutomationService {
   }
 
   async createChannel(input: CreateChannelInput) {
-    await this.ensureBrand(input.brandId);
-
-    const brand = await this.prisma.brand.findUniqueOrThrow({
-      where: {
-        id: input.brandId,
-      },
-      select: {
-        workspaceId: true,
-      },
-    });
+    const brand = await this.ensureBrand(input.brandId);
 
     const accessToken = input.accessToken?.trim();
 
@@ -347,6 +349,7 @@ export class AutomationService {
     const existingChannel = externalId
       ? await this.prisma.socialChannel.findFirst({
           where: {
+            workspaceId: brand.workspaceId,
             brandId: input.brandId,
             platform: input.platform,
             externalId,
@@ -388,7 +391,7 @@ export class AutomationService {
         brandId: input.brandId,
         platform: input.platform,
         name: input.name.trim(),
-        externalId: externalId,
+        externalId,
         username: input.username?.trim() || null,
         accessTokenEncrypted: accessToken
           ? this.socialTokenCrypto.encrypt(accessToken)
@@ -412,9 +415,11 @@ export class AutomationService {
   }
 
   async getChannel(id: string) {
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id,
+        workspaceId,
       },
       include: {
         brand: {
@@ -439,9 +444,11 @@ export class AutomationService {
   }
 
   async testChannel(id: string) {
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id,
+        workspaceId,
       },
     });
 
@@ -648,8 +655,12 @@ export class AutomationService {
   }
 
   async testInstagramApiChannel(id: string) {
-    const channel = await this.prisma.socialChannel.findUnique({
-      where: { id },
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
+      where: {
+        id,
+        workspaceId,
+      },
     });
     if (!channel) {
       throw new NotFoundException('Social channel not found.');
@@ -714,10 +725,12 @@ export class AutomationService {
   }
 
   async disconnectChannelApi(id: string) {
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
     const existing =
-      await this.prisma.socialChannel.findUnique({
+      await this.prisma.socialChannel.findFirst({
         where: {
           id,
+          workspaceId,
         },
         include: {
           browserAccountLinks: {
@@ -762,99 +775,90 @@ export class AutomationService {
       );
     }
 
-    const hasBrowserAccount =
-      existing.browserAccountLinks.length > 0;
+    const hasBrowserAccount = existing.browserAccountLinks.length > 0;
 
-    const channel =
-      await this.prisma.socialChannel.update({
-        where: {
-          id,
-        },
-        data: {
-          accessTokenEncrypted: null,
-          tokenExpiresAt: null,
-          publishingPreference: 'BROWSER_RUNTIME',
-          status: hasBrowserAccount
-            ? SocialChannelStatus.CONNECTED
-            : SocialChannelStatus.DISCONNECTED,
-          lastError: null,
-        },
-      });
+    const channel = await this.prisma.socialChannel.update({
+      where: {
+        id,
+      },
+      data: {
+        accessTokenEncrypted: null,
+        tokenExpiresAt: null,
+        publishingPreference: 'BROWSER_RUNTIME',
+        status: hasBrowserAccount
+          ? SocialChannelStatus.CONNECTED
+          : SocialChannelStatus.DISCONNECTED,
+        lastError: null,
+      },
+    });
 
     return this.sanitizeChannel({
       ...channel,
-      browserAccountLinks:
-        existing.browserAccountLinks,
+      browserAccountLinks: existing.browserAccountLinks,
     });
   }
 
-  async disconnectAllFacebookApi(
-    confirmation: string,
-  ) {
-    if (
-      confirmation !==
-      'DISCONNECT_ALL_FACEBOOK_API'
-    ) {
+  async disconnectAllFacebookApi(confirmation: string) {
+    if (confirmation !== 'DISCONNECT_ALL_FACEBOOK_API') {
       throw new BadRequestException(
         'Explicit confirmation "DISCONNECT_ALL_FACEBOOK_API" is required.',
       );
     }
 
-    return this.prisma.$transaction(
-      async (transaction) => {
-        const channels =
-          await transaction.socialChannel.findMany({
-            where: {
-              platform: SocialPlatform.FACEBOOK,
-              accessTokenEncrypted: {
-                not: null,
-              },
-            },
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+
+    return this.prisma.$transaction(async (transaction) => {
+      const channels = await transaction.socialChannel.findMany({
+        where: {
+          workspaceId,
+          platform: SocialPlatform.FACEBOOK,
+          accessTokenEncrypted: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          browserAccountLinks: {
             select: {
-              id: true,
-              browserAccountLinks: {
-                select: {
-                  browserAccountId: true,
-                },
-              },
+              browserAccountId: true,
             },
-          });
+          },
+        },
+      });
 
-        const updated =
-          await Promise.all(
-            channels.map((channel) =>
-              transaction.socialChannel.update({
-              where: {
-                id: channel.id,
-              },
-              data: {
-                accessTokenEncrypted: null,
-                tokenExpiresAt: null,
-                publishingPreference: 'BROWSER_RUNTIME',
-                status:
-                  channel.browserAccountLinks.length > 0
-                    ? SocialChannelStatus.CONNECTED
-                    : SocialChannelStatus.DISCONNECTED,
-                lastError: null,
-              },
-              }),
-            ),
-          );
+      const updated = await Promise.all(
+        channels.map((channel) =>
+          transaction.socialChannel.update({
+            where: {
+              id: channel.id,
+            },
+            data: {
+              accessTokenEncrypted: null,
+              tokenExpiresAt: null,
+              publishingPreference: 'BROWSER_RUNTIME',
+              status:
+                channel.browserAccountLinks.length > 0
+                  ? SocialChannelStatus.CONNECTED
+                  : SocialChannelStatus.DISCONNECTED,
+              lastError: null,
+            },
+          }),
+        ),
+      );
 
-        return {
-          disconnected: updated.length,
-          channels: updated.map((channel) =>
-            this.sanitizeChannel(channel),
-          ),
-        };
-      },
-    );
+      return {
+        disconnected: updated.length,
+        channels: updated.map((channel) => this.sanitizeChannel(channel)),
+      };
+    });
   }
 
   async removeChannel(id: string) {
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id,
+        workspaceId,
       },
       include: {
         _count: {
@@ -913,17 +917,11 @@ export class AutomationService {
 
     if (
       publishingPreference !== undefined &&
-      ![
-        'AUTOMATIC',
-        'NATIVE_API',
-        'BROWSER_RUNTIME',
-      ].includes(
+      !['AUTOMATIC', 'NATIVE_API', 'BROWSER_RUNTIME'].includes(
         publishingPreference,
       )
     ) {
-      throw new BadRequestException(
-        'Invalid publishing preference.',
-      );
+      throw new BadRequestException('Invalid publishing preference.');
     }
 
     const accessToken =
@@ -1124,6 +1122,7 @@ export class AutomationService {
     to?: string,
     limit?: number,
   ) {
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
     const scheduledAt: {
       gte?: Date;
       lt?: Date;
@@ -1155,6 +1154,7 @@ export class AutomationService {
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
         channel: {
+          workspaceId,
           hiddenAt: null,
         },
         ...(status
@@ -1208,13 +1208,8 @@ export class AutomationService {
 
     return posts.map((post) => ({
       ...post,
-
-      // Defense in depth. API and database guards reject
-      // inline/base64 payloads before they can be persisted.
       mediaUrls:
-          post.mediaUrls?.filter(
-            (url) => !url.startsWith("data:")
-          ) ?? [],
+        post.mediaUrls?.filter((url) => !url.startsWith('data:')) ?? [],
     }));
   }
 
@@ -1224,6 +1219,7 @@ export class AutomationService {
     to?: string,
     limit?: number,
   ) {
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
     const scheduledAt: {
       gte?: Date;
       lt?: Date;
@@ -1254,6 +1250,9 @@ export class AutomationService {
 
     const posts = await this.prisma.scheduledPost.findMany({
       where: {
+        channel: {
+          workspaceId,
+        },
         ...(status
           ? {
               status,
@@ -1325,9 +1324,13 @@ export class AutomationService {
   }
 
   async getPost(id: string) {
-    const post = await this.prisma.scheduledPost.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const post = await this.prisma.scheduledPost.findFirst({
       where: {
         id,
+        channel: {
+          workspaceId,
+        },
       },
       include: {
         channel: true,
@@ -1349,19 +1352,13 @@ export class AutomationService {
     return post;
   }
 
-  private normalizeScheduledPostMediaUrls(
-    mediaUrls?: string[],
-  ) {
+  private normalizeScheduledPostMediaUrls(mediaUrls?: string[]) {
     if (mediaUrls === undefined) {
       return undefined;
     }
 
     const normalized = [
-      ...new Set(
-        mediaUrls
-          .map((url) => url.trim())
-          .filter(Boolean),
-      ),
+      ...new Set(mediaUrls.map((url) => url.trim()).filter(Boolean)),
     ];
 
     if (normalized.length > 20) {
@@ -1371,18 +1368,14 @@ export class AutomationService {
     }
 
     for (const url of normalized) {
-      if (
-        url.toLowerCase().startsWith('data:')
-      ) {
+      if (url.toLowerCase().startsWith('data:')) {
         throw new BadRequestException(
           'Inline/base64 media is not allowed. Upload the asset first and store its URL.',
         );
       }
 
       if (url.length > 4096) {
-        throw new BadRequestException(
-          'Media URL is too large.',
-        );
+        throw new BadRequestException('Media URL is too large.');
       }
 
       let parsed: URL;
@@ -1390,18 +1383,11 @@ export class AutomationService {
       try {
         parsed = new URL(url);
       } catch {
-        throw new BadRequestException(
-          'Invalid media URL.',
-        );
+        throw new BadRequestException('Invalid media URL.');
       }
 
-      if (
-        parsed.protocol !== 'http:' &&
-        parsed.protocol !== 'https:'
-      ) {
-        throw new BadRequestException(
-          'Media URL must use HTTP or HTTPS.',
-        );
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new BadRequestException('Media URL must use HTTP or HTTPS.');
       }
     }
 
@@ -1436,9 +1422,11 @@ export class AutomationService {
       throw new BadRequestException('Invalid scheduledAt value.');
     }
 
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id: input.channelId,
+        workspaceId,
       },
     });
 
@@ -1516,10 +1504,12 @@ export class AutomationService {
       throw new BadRequestException('At least one platform is required.');
     }
 
+    const brand = await this.ensureBrand(input.brandId);
     const uniquePlatforms = [...new Set(input.platforms)];
 
     const channels = await this.prisma.socialChannel.findMany({
       where: {
+        workspaceId: brand.workspaceId,
         brandId: input.brandId,
         platform: {
           in: uniquePlatforms,
@@ -1552,7 +1542,6 @@ export class AutomationService {
         }
 
         channelByPlatform.set(platform, requestedChannel);
-
         continue;
       }
 
@@ -1667,10 +1656,7 @@ export class AutomationService {
         title:
           input.title === undefined ? undefined : input.title.trim() || null,
         content: input.content === undefined ? undefined : input.content.trim(),
-        mediaUrls:
-          input.mediaUrls === undefined
-            ? undefined
-            : mediaUrls,
+        mediaUrls: input.mediaUrls === undefined ? undefined : mediaUrls,
         scheduledAt,
         timezone: input.timezone,
         status: input.status,
@@ -1772,23 +1758,15 @@ export class AutomationService {
   }
 
   async getSettings() {
-    const workspace = await this.prisma.workspace.findFirst({
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found.');
-    }
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
 
     return this.prisma.automationSetting.upsert({
       where: {
-        workspaceId: workspace.id,
+        workspaceId,
       },
       update: {},
       create: {
-        workspaceId: workspace.id,
+        workspaceId,
       },
     });
   }
@@ -1813,24 +1791,31 @@ export class AutomationService {
   }
 
   private async ensureBrand(id: string) {
-    const brand = await this.prisma.brand.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const brand = await this.prisma.brand.findFirst({
       where: {
         id,
+        workspaceId,
       },
       select: {
         id: true,
+        workspaceId: true,
       },
     });
 
     if (!brand) {
       throw new NotFoundException('Brand not found.');
     }
+
+    return brand;
   }
 
   private async ensureChannel(id: string) {
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id,
+        workspaceId,
       },
       select: {
         id: true,
