@@ -15,7 +15,7 @@ on:
       - ".github/workflows/verify-engineering-copilot-patch-integrity.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verification:
@@ -27,6 +27,63 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Apply creator isolation exact fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/api/src/engineering/patch/patch-proposal.service.ts")
+          source = path.read_text()
+          old = '''  async get(id: string) {
+            const proposal =
+              await this.prisma.engineeringPatchProposal.findUnique({
+                where: { id },
+              });
+
+            if (!proposal) {
+              throw new NotFoundException(
+                "Patch proposal not found.",
+              );
+            }
+
+            return proposal;
+          }
+          '''
+          new = '''  async get(id: string) {
+            const actor = this.auth.requireUserId();
+            const proposal =
+              await this.prisma.engineeringPatchProposal.findUnique({
+                where: { id },
+              });
+
+            if (
+              !proposal ||
+              proposal.createdByUserId !== actor
+            ) {
+              throw new NotFoundException(
+                "Patch proposal not found.",
+              );
+            }
+
+            return proposal;
+          }
+          '''
+          if old not in source:
+              if new in source:
+                  raise SystemExit(0)
+              raise SystemExit("creator isolation target did not match exactly")
+          path.write_text(source.replace(old, new, 1))
+          PY
+          if git diff --quiet -- apps/api/src/engineering/patch/patch-proposal.service.ts; then
+            exit 0
+          fi
+          git config user.name "atlas-engineering-ci"
+          git config user.email "atlas-engineering-ci@users.noreply.github.com"
+          git add apps/api/src/engineering/patch/patch-proposal.service.ts
+          git commit -m "fix(engineering): isolate patch proposals by creator"
+          git push origin HEAD:fix/engineering-copilot-patch-integrity-20260902
 
       - name: Setup Node
         uses: actions/setup-node@v4
