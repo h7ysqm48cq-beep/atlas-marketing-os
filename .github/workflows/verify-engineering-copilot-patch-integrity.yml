@@ -14,9 +14,9 @@ permissions:
   contents: read
 
 jobs:
-  targeted-tests:
+  verification:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -40,3 +40,12 @@ jobs:
 
       - name: Run Engineering Copilot patch integrity regression
         run: node apps/web/tests/engineering-patch-integrity.spec.mjs
+
+      - name: Run full API test suite
+        run: npm test --workspace apps/api -- --runInBand
+
+      - name: Build API
+        run: npm run build --workspace apps/api
+
+      - name: Build Web
+        run: npm run build --workspace apps/web
