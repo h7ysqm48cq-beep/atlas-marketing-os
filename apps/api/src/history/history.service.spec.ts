@@ -18,8 +18,7 @@ describe('HistoryService workspace scope', () => {
         workspaceId: 'workspace-a',
       }),
     } as unknown as BrandsService;
-    const service = new HistoryService(prisma);
-    (service as any).brands = brands;
+    const service = new HistoryService(prisma, brands);
 
     return {
       prisma,
