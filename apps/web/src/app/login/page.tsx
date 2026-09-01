@@ -20,7 +20,7 @@ export default function LoginPage() {
     useState(false);
 
   const [preparingSwitch, setPreparingSwitch] =
-    useState(false);
+    useState(true);
 
   const [error, setError] =
     useState("");
@@ -35,14 +35,14 @@ export default function LoginPage() {
       );
 
     if (params.get("switch") !== "1") {
+      queueMicrotask(() => {
+        setPreparingSwitch(false);
+      });
       return;
     }
 
     const supabase =
       createClient();
-
-    setPreparingSwitch(true);
-    setStatus("Preparing account switch...");
 
     void supabase.auth
       .signOut({ scope: "local" })
