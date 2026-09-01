@@ -63,6 +63,9 @@ describe("Engineering patch proposal contract", () => {
     expect(controller).not.toMatch(
       /@Post\(["']batch["']\)/u,
     );
+    expect(controller).not.toMatch(
+      /@Post\(\)/u,
+    );
   });
 
   it("persists generated executable patches before review", () => {
@@ -75,6 +78,31 @@ describe("Engineering patch proposal contract", () => {
     );
     expect(controller).toMatch(
       /proposal/u,
+    );
+  });
+
+  it("persists review decisions against the exact proposal revision", () => {
+    const controller = source(
+      "patch.controller.ts",
+    );
+
+    expect(controller).toMatch(
+      /@Post\(["']proposal\/approve["']\)/u,
+    );
+    expect(controller).toMatch(
+      /@Post\(["']proposal\/reject["']\)/u,
+    );
+    expect(controller).toMatch(
+      /proposalId/u,
+    );
+    expect(controller).toMatch(
+      /revision/u,
+    );
+    expect(controller).toMatch(
+      /proposalService\.approve/u,
+    );
+    expect(controller).toMatch(
+      /proposalService\.reject/u,
     );
   });
 });
