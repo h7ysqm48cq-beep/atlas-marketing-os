@@ -53,6 +53,13 @@ jobs:
           --runTestsByPath
           src/engineering/repository/repository.scanner.spec.ts
 
+      - name: Run patch no-op regression
+        run: >-
+          npm test --workspace apps/api --
+          --runInBand
+          --runTestsByPath
+          src/engineering/patch/patch.service.integrity.spec.ts
+
       - name: Run repository reasoner stop-word regression
         run: python -m pytest -q tools/tests/test_repository_reasoner_stop_words.py
 
