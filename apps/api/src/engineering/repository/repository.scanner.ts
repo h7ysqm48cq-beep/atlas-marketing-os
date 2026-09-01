@@ -28,6 +28,11 @@ export class RepositoryScanner {
     ".git",
   ]);
 
+  private readonly ignoredDirectoryPatterns = [
+    /^\.copilot-attachment-(?:state|ui-v1)-backup-/u,
+    /^\.copilot-attachments-v1-backup-/u,
+  ];
+
 
   async scan(
     root: string,
@@ -41,6 +46,19 @@ export class RepositoryScanner {
     );
 
     return files;
+  }
+
+
+  private shouldIgnore(
+    name: string,
+  ): boolean {
+    return (
+      this.ignored.has(name) ||
+      this.ignoredDirectoryPatterns.some(
+        (pattern) =>
+          pattern.test(name),
+      )
+    );
   }
 
 
@@ -61,7 +79,7 @@ export class RepositoryScanner {
     for (const entry of entries) {
 
       if (
-        this.ignored.has(
+        this.shouldIgnore(
           entry.name,
         )
       ) {
