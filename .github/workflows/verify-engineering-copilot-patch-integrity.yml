@@ -36,3 +36,9 @@ jobs:
           --runInBand
           --runTestsByPath
           src/engineering/repository/repository.scanner.spec.ts
+
+      - name: Run Engineering Copilot patch integrity regression
+        run: >-
+          npx ts-node
+          --compiler-options '{"module":"commonjs","moduleResolution":"node"}'
+          apps/web/src/components/engineering/engineering-patch-integrity.spec.ts
