@@ -1,0 +1,97 @@
+name: Engineering Reasoner Artifact One Shot
+
+on:
+  push:
+    branches:
+      - fix/engineering-copilot-patch-integrity-20260902
+    paths:
+      - ".github/workflows/engineering-reasoner-artifact-one-shot.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-exact-replacement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Replace exact reasoner artifact guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/ai_engineer/repository_reasoner.py")
+          text = path.read_text(encoding="utf-8")
+          marker = "    @staticmethod\n    def _ignored(\n        path: Path,\n    ) -> bool:\n"
+
+          if text.count(marker) != 1:
+              raise SystemExit("reasoner _ignored marker mismatch")
+
+          start = text.index(marker)
+          old_tail = text[start:].rstrip()
+          expected = '''    @staticmethod
+          def _ignored(
+              path: Path,
+          ) -> bool:
+              ignored = {
+                  ".git",
+                  ".next",
+                  ".turbo",
+                  ".atlas",
+                  "node_modules",
+                  "dist",
+                  "build",
+                  "coverage",
+                  "__pycache__",
+              }
+
+              return any(
+                  part in ignored
+                  for part in path.parts
+              )'''.replace("          ", "    ")
+
+          if old_tail != expected:
+              raise SystemExit("reasoner _ignored exact tail mismatch")
+
+          replacement = '''    @staticmethod
+          def _ignored(
+              path: Path,
+          ) -> bool:
+              ignored = {
+                  ".git",
+                  ".next",
+                  ".turbo",
+                  ".atlas",
+                  ".atlas-backups",
+                  "node_modules",
+                  "dist",
+                  "build",
+                  "coverage",
+                  "__pycache__",
+              }
+
+              hidden_backup = re.compile(
+                  r"^\\..+-backup-\\d{8}(?:-\\d{6})?$"
+              )
+
+              return any(
+                  part in ignored
+                  or hidden_backup.fullmatch(part)
+                  for part in path.parts
+              )'''.replace("          ", "    ")
+
+          path.write_text(
+              text[:start] + replacement + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          git diff --check
+          git config user.name "atlas-integrity-ci"
+          git config user.email "atlas-integrity-ci@users.noreply.github.com"
+          git add tools/ai_engineer/repository_reasoner.py
+          git commit -m "fix(engineering): ignore backup artifacts in reasoner"
+          git push origin HEAD:fix/engineering-copilot-patch-integrity-20260902
