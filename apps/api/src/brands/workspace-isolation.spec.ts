@@ -6,6 +6,13 @@ function prismaMock() {
   return {
     workspace: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      upsert: jest.fn(),
+    },
+    workspaceMember: {
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       upsert: jest.fn(),
     },
@@ -28,28 +35,54 @@ describe('workspace isolation', () => {
     expect(prisma.brand.findMany).not.toHaveBeenCalled();
   });
 
-  it('queries brands through the current user workspace', async () => {
+  it('prefers the current user default workspace membership over a legacy personal owner workspace', async () => {
     const prisma = prismaMock();
     const auth = new AuthContextService();
     const service = new BrandsService(prisma, auth);
-    const workspace = { id: 'workspace-a', ownerUserId: 'user-a' };
-    prisma.workspace.upsert.mockResolvedValue(workspace);
-    prisma.brand.findFirst.mockResolvedValue({ id: 'brand-a', workspace });
 
-    await auth.run('user-a', () => service.getActiveBrand());
-
-    expect(prisma.workspace.upsert).toHaveBeenCalledWith({
-      where: { ownerUserId: 'user-a' },
-      update: {},
-      create: {
-        name: 'Atlas Workspace',
-        slug: 'atlas-user-a',
-        ownerUserId: 'user-a',
+    prisma.workspaceMember.findFirst.mockResolvedValue({
+      workspaceId: 'workspace-shared',
+      userId: 'user-a',
+      isDefault: true,
+      workspace: {
+        id: 'workspace-shared',
+        ownerUserId: 'shared-owner',
       },
     });
-    expect(prisma.brand.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { workspaceId: 'workspace-a', status: 'ACTIVE' } }),
+    prisma.workspace.upsert.mockResolvedValue({
+      id: 'workspace-personal',
+      ownerUserId: 'user-a',
+    });
+    prisma.brand.findFirst.mockImplementation(({ where }: any) => {
+      if (where.workspaceId === 'workspace-shared') {
+        return Promise.resolve({
+          id: 'brand-shared',
+          workspace: { id: 'workspace-shared' },
+        });
+      }
+
+      return Promise.resolve({
+        id: 'brand-personal',
+        workspace: { id: 'workspace-personal' },
+      });
+    });
+
+    const brand = await auth.run('user-a', () => service.getActiveBrand());
+
+    expect(brand).toEqual(
+      expect.objectContaining({
+        id: 'brand-shared',
+      }),
     );
+    expect(prisma.workspaceMember.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-a',
+          isDefault: true,
+        },
+      }),
+    );
+    expect(prisma.workspace.upsert).not.toHaveBeenCalled();
   });
 
   it('creates a separate workspace and starter brand for a new user', async () => {
