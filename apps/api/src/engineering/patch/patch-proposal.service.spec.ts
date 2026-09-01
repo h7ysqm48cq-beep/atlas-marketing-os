@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from "@nestjs/common";
 
 import {
@@ -110,6 +111,7 @@ describe("PatchProposalService", () => {
       revision,
       status,
       patches,
+      createdByUserId: userId,
       snapshotHash: snapshotHash(
         request,
         revision,
@@ -184,6 +186,18 @@ describe("PatchProposalService", () => {
     await expect(
       service.create("Duplicate", [patch, patch]),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("does not expose another user's proposal by id", async () => {
+    const existing = {
+      ...validExisting(),
+      createdByUserId: "other-user",
+    };
+    const { service } = harness(existing);
+
+    await expect(
+      service.get("proposal-1"),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it("requires the exact reviewed revision for approval", async () => {
