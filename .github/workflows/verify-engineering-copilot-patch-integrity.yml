@@ -1,5 +1,6 @@
 name: Verify Engineering Copilot Patch Integrity
 
+# Branch-only verification; this workflow never deploys.
 on:
   push:
     branches:
