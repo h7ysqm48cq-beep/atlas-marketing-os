@@ -1,8 +1,6 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 import { PrismaService } from '../database/prisma.service';
 
 type ImageSettingPatch = {
@@ -28,6 +26,7 @@ type ImageSettingScope = {
 export class ImageSettingsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly workspaceScope: WorkspaceScopeService,
   ) {}
 
   private normalizeId(
@@ -39,41 +38,8 @@ export class ImageSettingsService {
     return normalized || null;
   }
 
-  private async getWorkspaceId() {
-    const activeBrand =
-      await this.prisma.brand.findFirst({
-        where: {
-          status: 'ACTIVE',
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-        select: {
-          workspaceId: true,
-        },
-      });
-
-    if (activeBrand?.workspaceId) {
-      return activeBrand.workspaceId;
-    }
-
-    const workspace =
-      await this.prisma.workspace.findFirst({
-        orderBy: {
-          createdAt: 'asc',
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (!workspace) {
-      throw new InternalServerErrorException(
-        'No workspace is available.',
-      );
-    }
-
-    return workspace.id;
+  private getWorkspaceId() {
+    return this.workspaceScope.getCurrentWorkspaceId();
   }
 
   private async ensureWorkspaceDefault(
