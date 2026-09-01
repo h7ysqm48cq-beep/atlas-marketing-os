@@ -42,6 +42,14 @@ export type StoredEngineeringPatch = {
 };
 
 
+type PersistedProposalSnapshot = {
+  request: string;
+  revision: number;
+  snapshotHash: string;
+  patches: unknown;
+};
+
+
 @Injectable()
 export class PatchProposalService {
   constructor(
@@ -116,8 +124,7 @@ export class PatchProposalService {
 
       if (
         patch.action !== "create" &&
-        patch.action !== "modify" &&
-        patch.action !== "delete"
+        patch.action !== "modify"
       ) {
         throw new BadRequestException(
           `Unsupported patch action for ${filePath}.`,
@@ -153,6 +160,106 @@ export class PatchProposalService {
         patches,
       }),
     );
+  }
+
+
+  private persistedPatches(
+    value: unknown,
+  ): StoredEngineeringPatch[] {
+    if (!Array.isArray(value) || !value.length) {
+      throw new ConflictException(
+        "Patch proposal snapshot is invalid.",
+      );
+    }
+
+    const seen = new Set<string>();
+
+    return value.map((raw) => {
+      if (
+        !raw ||
+        typeof raw !== "object" ||
+        Array.isArray(raw)
+      ) {
+        throw new ConflictException(
+          "Patch proposal snapshot is invalid.",
+        );
+      }
+
+      const candidate = raw as Partial<StoredEngineeringPatch>;
+
+      if (
+        typeof candidate.filePath !== "string" ||
+        typeof candidate.before !== "string" ||
+        typeof candidate.after !== "string" ||
+        typeof candidate.beforeHash !== "string" ||
+        typeof candidate.afterHash !== "string" ||
+        typeof candidate.explanation !== "string" ||
+        (
+          candidate.action !== "create" &&
+          candidate.action !== "modify"
+        )
+      ) {
+        throw new ConflictException(
+          "Patch proposal snapshot is invalid.",
+        );
+      }
+
+      let normalizedPath: string;
+      try {
+        normalizedPath = this.normalizePath(
+          candidate.filePath,
+        );
+      } catch {
+        throw new ConflictException(
+          "Patch proposal snapshot contains an invalid path.",
+        );
+      }
+
+      if (
+        normalizedPath !== candidate.filePath ||
+        seen.has(normalizedPath) ||
+        candidate.before === candidate.after ||
+        candidate.beforeHash !== this.sha256(candidate.before) ||
+        candidate.afterHash !== this.sha256(candidate.after)
+      ) {
+        throw new ConflictException(
+          "Patch proposal snapshot integrity check failed.",
+        );
+      }
+
+      seen.add(normalizedPath);
+
+      return {
+        filePath: normalizedPath,
+        action: candidate.action,
+        before: candidate.before,
+        after: candidate.after,
+        beforeHash: candidate.beforeHash,
+        afterHash: candidate.afterHash,
+        explanation: candidate.explanation,
+      };
+    });
+  }
+
+
+  private requireSnapshotIntegrity(
+    proposal: PersistedProposalSnapshot,
+  ) {
+    const patches = this.persistedPatches(
+      proposal.patches,
+    );
+
+    const expectedHash = this.snapshotHash(
+      proposal.request,
+      proposal.revision,
+      patches,
+    );
+
+    if (proposal.snapshotHash !== expectedHash) {
+      throw new ConflictException(
+        "Patch proposal immutable snapshot has changed.",
+      );
+    }
   }
 
 
@@ -234,6 +341,7 @@ export class PatchProposalService {
     const actor = this.auth.requireUserId();
     const proposal = await this.get(id);
     this.requireRevision(proposal, revision);
+    this.requireSnapshotIntegrity(proposal);
 
     if (proposal.status !== "READY_FOR_REVIEW") {
       throw new ConflictException(
@@ -247,6 +355,7 @@ export class PatchProposalService {
           id,
           revision,
           status: "READY_FOR_REVIEW",
+          snapshotHash: proposal.snapshotHash,
         },
         data: {
           status: "APPROVED",
@@ -276,6 +385,7 @@ export class PatchProposalService {
     const actor = this.auth.requireUserId();
     const proposal = await this.get(id);
     this.requireRevision(proposal, revision);
+    this.requireSnapshotIntegrity(proposal);
 
     if (proposal.status !== "READY_FOR_REVIEW") {
       throw new ConflictException(
@@ -289,6 +399,7 @@ export class PatchProposalService {
           id,
           revision,
           status: "READY_FOR_REVIEW",
+          snapshotHash: proposal.snapshotHash,
         },
         data: {
           status: "REJECTED",
@@ -317,6 +428,7 @@ export class PatchProposalService {
   ) {
     const proposal = await this.get(id);
     this.requireRevision(proposal, revision);
+    this.requireSnapshotIntegrity(proposal);
 
     if (proposal.status !== "APPROVED") {
       throw new ConflictException(
@@ -334,6 +446,7 @@ export class PatchProposalService {
   ) {
     const proposal = await this.get(id);
     this.requireRevision(proposal, revision);
+    this.requireSnapshotIntegrity(proposal);
 
     if (proposal.status !== "APPROVED") {
       throw new ConflictException(
@@ -347,6 +460,7 @@ export class PatchProposalService {
           id,
           revision,
           status: "APPROVED",
+          snapshotHash: proposal.snapshotHash,
         },
         data: {
           status: "STALE",
@@ -369,6 +483,7 @@ export class PatchProposalService {
     const actor = this.auth.requireUserId();
     const proposal = await this.get(id);
     this.requireRevision(proposal, revision);
+    this.requireSnapshotIntegrity(proposal);
 
     if (proposal.status !== "APPROVED") {
       throw new ConflictException(
@@ -382,6 +497,7 @@ export class PatchProposalService {
           id,
           revision,
           status: "APPROVED",
+          snapshotHash: proposal.snapshotHash,
         },
         data: {
           status: "APPLIED",
