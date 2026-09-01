@@ -1,0 +1,193 @@
+import {
+  BadRequestException,
+  ConflictException,
+} from "@nestjs/common";
+
+import {
+  createHash,
+} from "node:crypto";
+
+import {
+  PatchProposalService,
+} from "./patch-proposal.service";
+
+
+function sha256(value: string) {
+  return createHash("sha256")
+    .update(value)
+    .digest("hex");
+}
+
+
+describe("PatchProposalService", () => {
+  const userId = "user-engineer";
+
+  function harness(
+    existing: Record<string, unknown> | null = null,
+  ) {
+    const create = jest.fn(async ({ data }) => ({
+      id: "proposal-1",
+      ...data,
+      createdAt: new Date("2026-09-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-09-02T00:00:00.000Z"),
+      approvedAt: null,
+      rejectedAt: null,
+      appliedAt: null,
+      staleAt: null,
+      approvedByUserId: null,
+      rejectedByUserId: null,
+      appliedByUserId: null,
+    }));
+
+    const findUnique = jest.fn(async () => existing);
+    const updateMany = jest.fn(async () => ({ count: 1 }));
+    const prisma = {
+      engineeringPatchProposal: {
+        create,
+        findUnique,
+        updateMany,
+      },
+    } as never;
+
+    const auth = {
+      requireUserId: jest.fn(() => userId),
+    } as never;
+
+    return {
+      service: new PatchProposalService(prisma, auth),
+      create,
+      findUnique,
+      updateMany,
+    };
+  }
+
+  const patch = {
+    filePath: "apps/web/src/example.tsx",
+    action: "modify" as const,
+    before: "const value = 1;\n",
+    after: "const value = 2;\n",
+    explanation: "Change the value.",
+  };
+
+  it("persists an immutable snapshot with per-file hashes", async () => {
+    const { service, create } = harness();
+
+    const proposal = await service.create(
+      "Change example",
+      [patch],
+    );
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const data = create.mock.calls[0][0].data;
+    const storedPatches = data.patches as Array<Record<string, unknown>>;
+
+    expect(storedPatches).toEqual([
+      expect.objectContaining({
+        filePath: patch.filePath,
+        before: patch.before,
+        after: patch.after,
+        beforeHash: sha256(patch.before),
+        afterHash: sha256(patch.after),
+      }),
+    ]);
+    expect(data.createdByUserId).toBe(userId);
+    expect(data.revision).toBe(1);
+    expect(data.status).toBe("READY_FOR_REVIEW");
+    expect(data.snapshotHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(proposal.snapshotHash).toBe(data.snapshotHash);
+  });
+
+  it.each([
+    {
+      name: "no-op",
+      patch: {
+        ...patch,
+        after: patch.before,
+      },
+    },
+    {
+      name: "artifact",
+      patch: {
+        ...patch,
+        filePath: ".atlas-backups/example.tsx",
+      },
+    },
+  ])("rejects $name patches", async ({ patch: invalidPatch }) => {
+    const { service, create } = harness();
+
+    await expect(
+      service.create("Invalid", [invalidPatch]),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("rejects duplicate file paths", async () => {
+    const { service } = harness();
+
+    await expect(
+      service.create("Duplicate", [patch, patch]),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("requires the exact reviewed revision for approval", async () => {
+    const existing = {
+      id: "proposal-1",
+      revision: 2,
+      status: "READY_FOR_REVIEW",
+      patches: [],
+    };
+    const { service, updateMany } = harness(existing);
+
+    await expect(
+      service.approve("proposal-1", 1),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it("moves only the reviewed proposal revision to APPROVED", async () => {
+    const existing = {
+      id: "proposal-1",
+      revision: 1,
+      status: "READY_FOR_REVIEW",
+      patches: [],
+    };
+    const { service, updateMany } = harness(existing);
+
+    await service.approve("proposal-1", 1);
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: "proposal-1",
+          revision: 1,
+          status: "READY_FOR_REVIEW",
+        }),
+        data: expect.objectContaining({
+          status: "APPROVED",
+          approvedByUserId: userId,
+        }),
+      }),
+    );
+  });
+
+  it("marks an approved revision stale without changing its snapshot", async () => {
+    const existing = {
+      id: "proposal-1",
+      revision: 1,
+      status: "APPROVED",
+      patches: [patch],
+    };
+    const { service, updateMany } = harness(existing);
+
+    await service.markStale("proposal-1", 1);
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "STALE",
+          staleAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+});
