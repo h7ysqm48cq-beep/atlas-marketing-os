@@ -455,6 +455,16 @@ export function EngineeringCopilot() {
     analysis?.engineering_plan || null;
 
 
+  const hasExecutablePatch =
+    Boolean(
+      plan?.executable &&
+      runtimeView.patches?.some(
+        (patch) =>
+          patch.before !== patch.after,
+      ),
+    );
+
+
   async function restoreSnapshot(
     snapshotId: string,
   ) {
@@ -543,6 +553,13 @@ export function EngineeringCopilot() {
         disabled:
           busy ||
           (
+            (
+              action.id === "approve" ||
+              action.id === "apply"
+            ) &&
+            !hasExecutablePatch
+          ) ||
+          (
             action.id === "approve" &&
             decision === "approved"
           ) ||
@@ -555,6 +572,7 @@ export function EngineeringCopilot() {
   }, [
     busy,
     decision,
+    hasExecutablePatch,
     plan,
   ]);
 
@@ -893,6 +911,14 @@ export function EngineeringCopilot() {
     }
 
     if (actionId === "approve") {
+      if (!hasExecutablePatch) {
+        setMessage(
+          "No executable source patch is available for approval.",
+        );
+
+        return;
+      }
+
       setDecision("approved");
 
 
@@ -913,6 +939,13 @@ export function EngineeringCopilot() {
 
 
     if (actionId === "apply") {
+      if (!hasExecutablePatch) {
+        setMessage(
+          "No executable source patch is available to apply.",
+        );
+
+        return;
+      }
 
 
       const recoveryApprovalRequired =
