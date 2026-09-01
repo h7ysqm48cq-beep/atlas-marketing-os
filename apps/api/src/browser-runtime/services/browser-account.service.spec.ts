@@ -164,4 +164,57 @@ describe('BrowserAccountService workspace scope', () => {
     });
     expect(prisma.browserAccount.create).not.toHaveBeenCalled();
   });
+
+  it('keeps the browser account in the current workspace when brandId is cleared', async () => {
+    const existing = {
+      id: 'account-a',
+      workspaceId: 'workspace-a',
+      brandId: 'brand-a',
+      displayName: 'Workspace A Account',
+      browserProfileName: 'Workspace A Browser',
+      locale: 'en-MY',
+      timezone: 'Asia/Kuala_Lumpur',
+      proxyType: 'DIRECT',
+      proxyHost: null,
+      proxyPort: null,
+      proxyCountry: null,
+      proxyUsernameEncrypted: null,
+      proxyPasswordEncrypted: null,
+      channels: [],
+    };
+    const prisma = {
+      browserAccount: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'account-a',
+          workspaceId: 'workspace-a',
+          brandId: 'brand-a',
+          platform: 'FACEBOOK',
+        }),
+        findUnique: jest.fn().mockResolvedValue(existing),
+        update: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            ...existing,
+            ...data,
+            channels: [],
+          }),
+        ),
+      },
+      brand: {
+        findFirst: jest.fn(),
+      },
+    };
+    const service = createService(prisma);
+
+    await service.update('account-a', { brandId: null });
+
+    expect(prisma.browserAccount.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { id: 'account-a' },
+        data: expect.objectContaining({
+          brandId: null,
+          workspaceId: 'workspace-a',
+        }),
+      }),
+    );
+  });
 });
