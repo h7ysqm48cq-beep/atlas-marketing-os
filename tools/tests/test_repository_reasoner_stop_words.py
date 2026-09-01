@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from tools.ai_engineer import (
     EngineeringIntent,
     IntentType,
@@ -50,4 +52,27 @@ def test_filename_matching_ignores_conjunction_stop_words(tmp_path):
     }.intersection(
         term.lower()
         for term in RepositoryReasoner._search_terms(intent)
+    )
+
+
+def test_repository_reasoner_ignores_backup_artifact_paths():
+    assert RepositoryReasoner._ignored(
+        Path(
+            ".atlas-backups/ui-theme.patch"
+        )
+    )
+    assert RepositoryReasoner._ignored(
+        Path(
+            ".chunked-embedding-v2-backup-20260729-025047/apps/api/src/example.ts"
+        )
+    )
+    assert RepositoryReasoner._ignored(
+        Path(
+            ".copilot-attachment-state-backup-20260729-042759/apps/web/src/example.tsx"
+        )
+    )
+    assert not RepositoryReasoner._ignored(
+        Path(
+            "apps/api/src/backup.service.ts"
+        )
     )
