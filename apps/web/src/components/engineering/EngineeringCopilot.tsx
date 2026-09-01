@@ -666,7 +666,15 @@ export function EngineeringCopilot() {
 
 
             runtime.patches =
-              patchData.patches || [];
+              Array.isArray(patchData.patches)
+                ? patchData.patches.filter(
+                    (patch: {
+                      before?: string;
+                      after?: string;
+                    }) =>
+                      patch.before !== patch.after,
+                  )
+                : [];
 
           }
 
