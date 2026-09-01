@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { BrandsService } from './brands.service';
 import { AuthContextService } from '../auth/auth-context.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
+import { BrandsService } from './brands.service';
 
 function prismaMock() {
   return {
@@ -13,7 +14,9 @@ function prismaMock() {
     workspaceMember: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       upsert: jest.fn(),
     },
     brand: {
@@ -26,10 +29,22 @@ function prismaMock() {
   } as any;
 }
 
+function createServices(prisma: ReturnType<typeof prismaMock>) {
+  const auth = new AuthContextService();
+  const workspaceScope = new WorkspaceScopeService(prisma, auth);
+  const service = new BrandsService(prisma, workspaceScope);
+
+  return {
+    auth,
+    workspaceScope,
+    service,
+  };
+}
+
 describe('workspace isolation', () => {
   it('requires an authenticated user for brand reads', async () => {
     const prisma = prismaMock();
-    const service = new BrandsService(prisma, new AuthContextService());
+    const { service } = createServices(prisma);
 
     await expect(service.list()).rejects.toBeInstanceOf(UnauthorizedException);
     expect(prisma.brand.findMany).not.toHaveBeenCalled();
@@ -37,10 +52,10 @@ describe('workspace isolation', () => {
 
   it('prefers the current user default workspace membership over a legacy personal owner workspace', async () => {
     const prisma = prismaMock();
-    const auth = new AuthContextService();
-    const service = new BrandsService(prisma, auth);
+    const { auth, service } = createServices(prisma);
 
-    prisma.workspaceMember.findFirst.mockResolvedValue({
+    prisma.workspaceMember.findFirst.mockResolvedValueOnce({
+      id: 'membership-shared',
       workspaceId: 'workspace-shared',
       userId: 'user-a',
       isDefault: true,
@@ -87,9 +102,17 @@ describe('workspace isolation', () => {
 
   it('creates a separate workspace and starter brand for a new user', async () => {
     const prisma = prismaMock();
-    const auth = new AuthContextService();
-    const service = new BrandsService(prisma, auth);
-    prisma.workspace.upsert.mockResolvedValue({ id: 'workspace-new', ownerUserId: 'user-new' });
+    const { auth, service } = createServices(prisma);
+
+    prisma.workspaceMember.findFirst.mockResolvedValue(null);
+    prisma.workspace.findUnique.mockResolvedValue(null);
+    prisma.workspace.upsert.mockResolvedValue({
+      id: 'workspace-new',
+      ownerUserId: 'user-new',
+    });
+    prisma.workspaceMember.upsert.mockResolvedValue({
+      id: 'membership-new',
+    });
     prisma.brand.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'brand-new' });
@@ -98,27 +121,61 @@ describe('workspace isolation', () => {
     const brand = await auth.run('user-new', () => service.getActiveBrand());
 
     expect(brand).toEqual({ id: 'brand-new' });
+    expect(prisma.workspace.upsert).toHaveBeenCalledWith({
+      where: {
+        ownerUserId: 'user-new',
+      },
+      update: {},
+      create: {
+        name: 'Atlas Workspace',
+        slug: 'atlas-user-new',
+        ownerUserId: 'user-new',
+      },
+    });
+    expect(prisma.workspaceMember.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          workspaceId: 'workspace-new',
+          userId: 'user-new',
+          role: 'OWNER',
+          isDefault: true,
+        }),
+      }),
+    );
     expect(prisma.brand.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ workspaceId: 'workspace-new' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workspaceId: 'workspace-new',
+        }),
+      }),
     );
   });
 
-  it('does not return a brand owned by another user', async () => {
+  it('does not return a brand from a workspace the current user cannot access', async () => {
     const prisma = prismaMock();
-    const auth = new AuthContextService();
-    const service = new BrandsService(prisma, auth);
-    prisma.workspace.upsert.mockResolvedValue({ id: 'workspace-a', ownerUserId: 'user-a' });
-    prisma.brand.findUnique.mockResolvedValue(null);
+    const { auth, service } = createServices(prisma);
+
+    prisma.workspaceMember.findFirst.mockResolvedValueOnce({
+      id: 'membership-a',
+      workspaceId: 'workspace-a',
+      userId: 'user-a',
+      isDefault: true,
+      workspace: {
+        id: 'workspace-a',
+        ownerUserId: 'owner-a',
+      },
+    });
+    prisma.brand.findFirst.mockResolvedValue(null);
 
     await expect(
-      auth.run('user-a', () => service.get('brand-from-user-b')),
+      auth.run('user-a', () => service.get('brand-from-workspace-b')),
     ).rejects.toThrow('Brand not found.');
 
-    expect(prisma.brand.findUnique).toHaveBeenCalledWith(
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 'brand-from-user-b',
-          workspace: { ownerUserId: 'user-a' },
+          id: 'brand-from-workspace-b',
+          workspaceId: 'workspace-a',
         },
       }),
     );
