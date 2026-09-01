@@ -11,7 +11,7 @@ on:
       - ".github/workflows/verify-engineering-copilot-patch-integrity.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   targeted-tests:
@@ -21,70 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Apply executable patch gate GREEN
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("apps/web/src/components/engineering/EngineeringCopilot.tsx")
-          source = path.read_text()
-
-          replacements = [
-              (
-                  "  const plan =\n    analysis?.engineering_plan || null;\n",
-                  "  const plan =\n    analysis?.engineering_plan || null;\n\n\n  const hasExecutablePatch =\n    Boolean(\n      plan?.executable &&\n      runtimeView.patches?.some(\n        (patch) =>\n          patch.before !== patch.after,\n      ),\n    );\n",
-                  "execution gate",
-              ),
-              (
-                  "        disabled:\n          busy ||\n          (\n            action.id === \"approve\" &&\n            decision === \"approved\"\n          ) ||\n          (\n            action.id === \"reject\" &&\n            decision === \"rejected\"\n          ),\n",
-                  "        disabled:\n          busy ||\n          (\n            (\n              action.id === \"approve\" ||\n              action.id === \"apply\"\n            ) &&\n            !hasExecutablePatch\n          ) ||\n          (\n            action.id === \"approve\" &&\n            decision === \"approved\"\n          ) ||\n          (\n            action.id === \"reject\" &&\n            decision === \"rejected\"\n          ),\n",
-                  "review action gate",
-              ),
-              (
-                  "  }, [\n    busy,\n    decision,\n    plan,\n  ]);\n",
-                  "  }, [\n    busy,\n    decision,\n    hasExecutablePatch,\n    plan,\n  ]);\n",
-                  "review action dependencies",
-              ),
-              (
-                  "    if (actionId === \"approve\") {\n      setDecision(\"approved\");\n",
-                  "    if (actionId === \"approve\") {\n      if (!hasExecutablePatch) {\n        setMessage(\n          \"No executable source patch is available for approval.\",\n        );\n\n        return;\n      }\n\n      setDecision(\"approved\");\n",
-                  "approve fail-closed guard",
-              ),
-              (
-                  "    if (actionId === \"apply\") {\n\n\n      const recoveryApprovalRequired =\n",
-                  "    if (actionId === \"apply\") {\n      if (!hasExecutablePatch) {\n        setMessage(\n          \"No executable source patch is available to apply.\",\n        );\n\n        return;\n      }\n\n\n      const recoveryApprovalRequired =\n",
-                  "apply fail-closed guard",
-              ),
-          ]
-
-          if "  const hasExecutablePatch =" in source:
-              print("Executable patch gate GREEN already applied.")
-              raise SystemExit(0)
-
-          for old, new, label in replacements:
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(
-                      f"Expected exactly one {label} target, found {count}."
-                  )
-              source = source.replace(old, new, 1)
-
-          path.write_text(source)
-          PY
-
-          if git diff --quiet -- apps/web/src/components/engineering/EngineeringCopilot.tsx; then
-            echo "No source commit required."
-            exit 0
-          fi
-
-          git diff --check -- apps/web/src/components/engineering/EngineeringCopilot.tsx
-          git config user.name "ATLAS CI"
-          git config user.email "atlas-ci@users.noreply.github.com"
-          git add apps/web/src/components/engineering/EngineeringCopilot.tsx
-          git commit -m "fix(engineering): fail closed without executable patch"
-          git push origin HEAD:fix/engineering-copilot-patch-integrity-20260902
 
       - name: Setup Node
         uses: actions/setup-node@v4
