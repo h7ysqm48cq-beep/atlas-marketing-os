@@ -217,4 +217,76 @@ describe('BrowserAccountService workspace scope', () => {
       }),
     );
   });
+
+  it('filters stale cross-workspace browser links from channel selection', async () => {
+    const prisma = {
+      socialChannel: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'channel-a' }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'channel-a',
+          name: 'Workspace A Page',
+          platform: 'FACEBOOK',
+          status: 'CONNECTED',
+        }),
+      },
+      browserAccountChannel: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            browserAccountId: 'account-b',
+            isPrimary: true,
+            browserAccount: {
+              id: 'account-b',
+              workspaceId: 'workspace-b',
+              displayName: 'Workspace B Browser',
+              browserProfileKey: 'profile-b',
+              browserProfileName: 'Browser B',
+              loginStatus: 'LOGGED_IN',
+              cookieStatus: 'ACTIVE',
+              proxyType: 'DIRECT',
+              proxyCountry: null,
+              lastKnownIp: null,
+              lastHeartbeatAt: new Date(),
+              lastLoginError: null,
+            },
+          },
+          {
+            browserAccountId: 'account-a',
+            isPrimary: false,
+            browserAccount: {
+              id: 'account-a',
+              workspaceId: 'workspace-a',
+              displayName: 'Workspace A Browser',
+              browserProfileKey: 'profile-a',
+              browserProfileName: 'Browser A',
+              loginStatus: 'LOGGED_IN',
+              cookieStatus: 'ACTIVE',
+              proxyType: 'DIRECT',
+              proxyCountry: null,
+              lastKnownIp: null,
+              lastHeartbeatAt: new Date(),
+              lastLoginError: null,
+            },
+          },
+        ]),
+      },
+      browserAccount: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'account-a' }]),
+      },
+    };
+    const service = createService(prisma);
+
+    const result = await service.selectForChannel('channel-a');
+
+    expect(result.candidates.map((candidate: any) => candidate.id)).toEqual([
+      'account-a',
+    ]);
+    expect(result.selected).toMatchObject({ id: 'account-a' });
+    expect(prisma.browserAccount.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['account-b', 'account-a'] },
+        workspaceId: 'workspace-a',
+      },
+      select: { id: true },
+    });
+  });
 });
