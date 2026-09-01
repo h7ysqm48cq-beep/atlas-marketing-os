@@ -278,7 +278,7 @@ AuditService,
 
 
 
-    if (expectedBefore) {
+    if (expectedBefore !== undefined) {
 
       const validation =
         this.validator.validate(
@@ -433,7 +433,7 @@ for (
   }
 
 
-  if (patch.before) {
+  if (patch.before !== undefined) {
 
     const validation =
       this.validator.validate(
