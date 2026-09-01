@@ -31,20 +31,19 @@ jobs:
           path = Path("apps/web/src/components/engineering/EngineeringCopilot.tsx")
           source = path.read_text()
 
-          old = '''            runtime.patches =
-              patchData.patches || [];
-'''
-          new = '''            runtime.patches =
-              Array.isArray(patchData.patches)
-                ? patchData.patches.filter(
-                    (patch: {
-                      before?: string;
-                      after?: string;
-                    }) =>
-                      patch.before !== patch.after,
-                  )
-                : [];
-'''
+          old = "            runtime.patches =\n              patchData.patches || [];\n"
+          new = (
+              "            runtime.patches =\n"
+              "              Array.isArray(patchData.patches)\n"
+              "                ? patchData.patches.filter(\n"
+              "                    (patch: {\n"
+              "                      before?: string;\n"
+              "                      after?: string;\n"
+              "                    }) =>\n"
+              "                      patch.before !== patch.after,\n"
+              "                  )\n"
+              "                : [];\n"
+          )
 
           if new in source:
               print("No-op patch filtering GREEN already applied.")
