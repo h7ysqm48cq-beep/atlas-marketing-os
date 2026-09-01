@@ -14,20 +14,19 @@ jest.mock('./runtime-profile.service', () => ({
 import { AutomationService } from './automation.service';
 
 function createService(prisma: Record<string, any>) {
-  const service = new AutomationService(
+  const workspaceScope = {
+    getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
+  };
+
+  return new AutomationService(
     prisma as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
+    workspaceScope as never,
   );
-
-  (service as any).workspaceScope = {
-    getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
-  };
-
-  return service;
 }
 
 describe('AutomationService workspace scope', () => {
