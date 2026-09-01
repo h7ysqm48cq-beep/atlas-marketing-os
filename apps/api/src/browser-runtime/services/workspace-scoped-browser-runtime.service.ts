@@ -33,22 +33,24 @@ export class WorkspaceScopedBrowserLeaseService extends BrowserLeaseService {
 }
 
 @Injectable()
-export class WorkspaceScopedBrowserTimelineService extends BrowserTimelineService {
+export class WorkspaceScopedBrowserTimelineService {
+  private readonly base: BrowserTimelineService;
+
   constructor(
     prisma: PrismaService,
     private readonly scopedAccounts: BrowserAccountService,
   ) {
-    super(prisma);
+    this.base = new BrowserTimelineService(prisma);
   }
 
-  override async record(input: any): Promise<any> {
+  async record(input: Parameters<BrowserTimelineService['record']>[0]) {
     await this.scopedAccounts.getById(input.accountId);
-    return super.record(input);
+    return this.base.record(input);
   }
 
-  override async list(accountId: string, limit = 100): Promise<any> {
+  async list(accountId: string, limit = 100) {
     await this.scopedAccounts.getById(accountId);
-    return super.list(accountId, limit);
+    return this.base.list(accountId, limit);
   }
 }
 
