@@ -4,6 +4,7 @@ import { EngineeringController } from './engineering.controller';
 import { EngineeringService } from './engineering.service';
 import { RepairModule } from './repair/repair.module';
 import { PatchController } from './patch/patch.controller';
+import { PatchProposalService } from './patch/patch-proposal.service';
 import { PatchService } from './patch/patch.service';
 import { PatchValidator } from './patch/patch.validator';
 import { ApplyController } from './apply/apply.controller';
@@ -50,6 +51,7 @@ import { AstModule } from './ast/ast.module';
   ],
   providers: [
     EngineeringService,
+    PatchProposalService,
     PatchService,
     PatchValidator,
     ApplyService,
@@ -65,6 +67,7 @@ import { AstModule } from './ast/ast.module';
   ],
   exports: [
     EngineeringService,
+    PatchProposalService,
     PatchService,
     ApplyService,
     ValidationService,
