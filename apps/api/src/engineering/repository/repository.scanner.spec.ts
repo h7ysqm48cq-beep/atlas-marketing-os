@@ -40,7 +40,7 @@ describe("RepositoryScanner", () => {
     );
   });
 
-  it("excludes tracked Copilot backup artifacts from repository context", async () => {
+  it("excludes tracked backup artifacts from repository context", async () => {
     const sourceDir = join(
       root,
       "apps",
@@ -58,10 +58,22 @@ describe("RepositoryScanner", () => {
       ".copilot-attachment-ui-v1-backup-20260729-042211",
     );
 
+    const atlasBackups = join(
+      root,
+      ".atlas-backups",
+    );
+
+    const genericHiddenBackup = join(
+      root,
+      ".chunked-embedding-v2-backup-20260729-025047",
+    );
+
     await Promise.all([
       mkdir(sourceDir, { recursive: true }),
       mkdir(attachmentStateBackup, { recursive: true }),
       mkdir(attachmentUiBackup, { recursive: true }),
+      mkdir(atlasBackups, { recursive: true }),
+      mkdir(genericHiddenBackup, { recursive: true }),
     ]);
 
     const sourceFile = join(
@@ -88,6 +100,20 @@ describe("RepositoryScanner", () => {
         ),
         ".stale {}\n",
       ),
+      writeFile(
+        join(
+          atlasBackups,
+          "ui-theme.patch",
+        ),
+        "stale\n",
+      ),
+      writeFile(
+        join(
+          genericHiddenBackup,
+          "knowledge-embedding.service.ts",
+        ),
+        "export const stale = true;\n",
+      ),
     ]);
 
     const files = await new RepositoryScanner().scan(root);
@@ -98,6 +124,20 @@ describe("RepositoryScanner", () => {
       paths.some((path) =>
         path.includes(
           ".copilot-attachment-",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      paths.some((path) =>
+        path.includes(
+          ".atlas-backups",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      paths.some((path) =>
+        path.includes(
+          "-backup-2026",
         ),
       ),
     ).toBe(false);
