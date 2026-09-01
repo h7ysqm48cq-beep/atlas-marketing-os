@@ -2,14 +2,16 @@ import { SocialPlatform } from '../generated/prisma/enums';
 import { SportsNewsSettingsService } from './sports-news-settings.service';
 
 function createService(prisma: Record<string, any>) {
-  const service = new SportsNewsSettingsService(prisma as never);
-  (service as any).workspaceScope = {
+  const workspaceScope = {
     getCurrentWorkspace: jest.fn().mockResolvedValue({
       id: 'workspace-a',
     }),
     getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
   };
-  return service;
+  return new SportsNewsSettingsService(
+    prisma as never,
+    workspaceScope as never,
+  );
 }
 
 describe('SportsNewsSettingsService workspace scope', () => {
