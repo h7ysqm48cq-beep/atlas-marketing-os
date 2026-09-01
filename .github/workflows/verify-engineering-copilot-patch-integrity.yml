@@ -69,6 +69,20 @@ jobs:
           --runTestsByPath
           src/engineering/patch/patch-proposal.contract.spec.ts
 
+      - name: Run patch proposal integrity regressions
+        run: >-
+          npm test --workspace apps/api --
+          --runInBand
+          --runTestsByPath
+          src/engineering/patch/patch-proposal.service.spec.ts
+
+      - name: Run apply proposal integrity regression
+        run: >-
+          npm test --workspace apps/api --
+          --runInBand
+          --runTestsByPath
+          src/engineering/apply/apply.service.integrity.spec.ts
+
       - name: Run repository reasoner regressions
         run: python -m pytest -q tools/tests/test_repository_reasoner_stop_words.py
 
