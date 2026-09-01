@@ -33,7 +33,7 @@ import type {
 
 export type StoredEngineeringPatch = {
   filePath: string;
-  action: EngineeringPatchAction;
+  action: "create" | "modify";
   before: string;
   after: string;
   beforeHash: string;
