@@ -13,26 +13,16 @@ import {
 } from "node:path";
 
 import {
+  isEngineeringArtifactDirectory,
+} from "./repository-artifact-policy";
+
+import {
   RepositoryFile,
 } from "./repository.types";
 
 
 @Injectable()
 export class RepositoryScanner {
-
-  private readonly ignored = new Set([
-    "node_modules",
-    ".next",
-    "dist",
-    "coverage",
-    ".git",
-  ]);
-
-  private readonly ignoredDirectoryPatterns = [
-    /^\.copilot-attachment-(?:state|ui-v1)-backup-/u,
-    /^\.copilot-attachments-v1-backup-/u,
-  ];
-
 
   async scan(
     root: string,
@@ -46,19 +36,6 @@ export class RepositoryScanner {
     );
 
     return files;
-  }
-
-
-  private shouldIgnore(
-    name: string,
-  ): boolean {
-    return (
-      this.ignored.has(name) ||
-      this.ignoredDirectoryPatterns.some(
-        (pattern) =>
-          pattern.test(name),
-      )
-    );
   }
 
 
@@ -79,7 +56,7 @@ export class RepositoryScanner {
     for (const entry of entries) {
 
       if (
-        this.shouldIgnore(
+        isEngineeringArtifactDirectory(
           entry.name,
         )
       ) {
