@@ -445,6 +445,13 @@ export function EngineeringCopilot() {
       "rejected"
     >("pending");
 
+  const [proposal, setProposal] =
+    useState<{
+      id: string;
+      revision: number;
+      status: string;
+    } | null>(null);
+
   const [message, setMessage] =
     useState(
       "Describe a change to begin repository analysis.",
@@ -458,6 +465,7 @@ export function EngineeringCopilot() {
   const hasExecutablePatch =
     Boolean(
       plan?.executable &&
+      proposal &&
       runtimeView.patches?.some(
         (patch) =>
           patch.before !== patch.after,
@@ -590,6 +598,7 @@ export function EngineeringCopilot() {
     setBusy(true);
     setDecision("pending");
     setAnalysis(null);
+    setProposal(null);
     setLastPrompt(cleanText);
 
     setRuntimeView({
@@ -694,11 +703,46 @@ export function EngineeringCopilot() {
                   )
                 : [];
 
+            const persistedProposal =
+              patchData.proposal &&
+              typeof patchData.proposal.id === "string" &&
+              Number.isInteger(patchData.proposal.revision)
+                ? {
+                    id: patchData.proposal.id as string,
+                    revision: patchData.proposal.revision as number,
+                    status:
+                      typeof patchData.proposal.status === "string"
+                        ? patchData.proposal.status
+                        : "READY_FOR_REVIEW",
+                  }
+                : null;
+
+            setProposal(persistedProposal);
+
+            runtime.diffPreviews =
+              runtime.patches
+                .slice(0, 3)
+                .map((patch) => ({
+                  filePath: patch.filePath,
+                  lines: [
+                    {
+                      type: "remove" as const,
+                      text: patch.before || "",
+                    },
+                    {
+                      type: "add" as const,
+                      text: patch.after || "",
+                    },
+                  ],
+                }));
+
           }
 
         } catch {
 
           runtime.patches = [];
+          runtime.diffPreviews = [];
+          setProposal(null);
 
         }
 
@@ -797,96 +841,16 @@ export function EngineeringCopilot() {
         after?: string;
       }[] | undefined,
   ) {
-
     if (!patches?.length) {
       setMessage(
         "No recovery patch available.",
       );
-
       return;
     }
 
-
-    setRuntimeView({
-      ...runtimeView,
-      applyStatus:
-        "applying",
-      statusMessage:
-        "Applying recovery fix...",
-    });
-
-
-    const response =
-      await fetch(
-        `${API_URL}/engineering/apply/batch`,
-        {
-          method:
-            "POST",
-
-          headers:{
-            "Content-Type":
-              "application/json",
-          },
-
-          body:
-            JSON.stringify({
-              patches:
-                patches.map(
-                  patch => ({
-                    filePath:
-                      patch.filePath,
-
-                    content:
-                      patch.after,
-
-                    before:
-                      patch.before,
-                  }),
-                ),
-            }),
-        },
-      );
-
-
-    if (!response.ok) {
-      setMessage(
-        "Recovery fix failed.",
-      );
-
-      return;
-    }
-
-
-    const validationResponse =
-      await fetch(
-        `${API_URL}/engineering/validation/typescript`,
-        {
-          method:
-            "POST",
-        },
-      );
-
-
-    const validation =
-      await validationResponse.json();
-
-
-    setRuntimeView({
-      ...runtimeView,
-
-      applyStatus:
-        validation.status === "passed"
-          ? "completed"
-          : "failed",
-
-      validation,
-
-      statusMessage:
-        validation.status === "passed"
-          ? "Recovery fix applied successfully."
-          : "Recovery fix applied but validation failed.",
-    });
-
+    setMessage(
+      "Recovery patches are review-only until they are persisted as an immutable proposal.",
+    );
   }
 
 
@@ -911,259 +875,227 @@ export function EngineeringCopilot() {
     }
 
     if (actionId === "approve") {
-      if (!hasExecutablePatch) {
+      if (!hasExecutablePatch || !proposal) {
         setMessage(
-          "No executable source patch is available for approval.",
+          "No persisted executable patch proposal is available for approval.",
         );
-
         return;
       }
 
-      setDecision("approved");
+      setBusy(true);
+      try {
+        const response = await fetch(
+          `${API_URL}/engineering/patch/proposal/approve`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              proposalId: proposal.id,
+              revision: proposal.revision,
+            }),
+          },
+        );
 
+        if (!response.ok) {
+          throw new Error(
+            "Failed to approve the reviewed patch proposal.",
+          );
+        }
 
-      setRuntimeView({
-        ...runtimeView,
+        const approved = await response.json() as {
+          status?: string;
+        };
 
-        approvalState:
-          "APPROVED",
-      });
-
-
-      setMessage(
-        "Plan approved. Ready to apply changes.",
-      );
+        setProposal({
+          ...proposal,
+          status: approved.status || "APPROVED",
+        });
+        setDecision("approved");
+        setRuntimeView({
+          ...runtimeView,
+          approvalState: "APPROVED",
+        });
+        setMessage(
+          "Patch proposal approved. Ready to apply the reviewed revision.",
+        );
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Patch proposal approval failed.",
+        );
+      } finally {
+        setBusy(false);
+      }
 
       return;
     }
 
 
     if (actionId === "apply") {
-      if (!hasExecutablePatch) {
+      if (!hasExecutablePatch || !proposal) {
         setMessage(
-          "No executable source patch is available to apply.",
+          "No persisted executable patch proposal is available to apply.",
         );
-
         return;
       }
 
-
-      const recoveryApprovalRequired =
-        runtimeView.recovery
-          ?.suggestions
-          ?.some(
-            suggestion =>
-              suggestion.approvalRequired
-          );
-
-
-      if (
-        recoveryApprovalRequired
-        &&
-        runtimeView.approvalState !==
-          "APPROVED"
-      ) {
-
+      if (decision !== "approved") {
         setMessage(
-          "Human approval required before applying recovery fix.",
+          "Approve the exact reviewed proposal revision before applying it.",
         );
-
-        return;
-
-      }
-
-
-  const availablePatches =
-    runtimeView.patches?.length
-      ? runtimeView.patches
-      : runtimeView.recovery
-          ?.suggestions[0]
-          ?.patch;
-
-      if (
-        !availablePatches?.length
-      ) {
-        setMessage(
-          "No patch available to apply.",
-        );
-
         return;
       }
-
 
       setRuntimeView({
         ...runtimeView,
-        applyStatus:
-          "applying",
-        statusMessage:
-          "Applying repository changes...",
+        applyStatus: "applying",
+        statusMessage: "Applying reviewed repository proposal...",
       });
 
-
       try {
-
-
-          const response =
-        await fetch(
-          `${API_URL}/engineering/apply/batch`,
+        const response = await fetch(
+          `${API_URL}/engineering/apply/proposal`,
           {
-            method:
-              "POST",
-
-            headers:{
-              "Content-Type":
-                "application/json",
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-
-            body:
-              JSON.stringify({
-                patches:
-                  availablePatches.map(
-                    patch => ({
-                      filePath:
-                        patch.filePath,
-
-                      content:
-                        patch.after,
-
-                      before:
-                        patch.before,
-                    }),
-                  ),
-              }),
+            body: JSON.stringify({
+              proposalId: proposal.id,
+              revision: proposal.revision,
+            }),
           },
         );
 
+        if (!response.ok) {
+          throw new Error(
+            "Failed applying the reviewed repository proposal.",
+          );
+        }
 
-      if (!response.ok) {
-        throw new Error(
-          "Failed applying repository changes.",
-        );
-      }
+        const applyResult = await response.json() as {
+          proposalStatus?: string;
+        };
 
+        setProposal({
+          ...proposal,
+          status: applyResult.proposalStatus || "APPLIED",
+        });
 
-const validationResponse =
+        const validationResponse =
           await fetch(
             `${API_URL}/engineering/validation/typescript`,
-            {
-              method:
-                "POST",
-            },
+            { method: "POST" },
           );
-
 
         const validation =
           await validationResponse.json();
 
+        const auditResponse =
+          await fetch(
+            `${API_URL}/engineering/audit`,
+          );
 
-    
-    const auditResponse =
-      await fetch(
-        `${API_URL}/engineering/audit`,
-      );
+        const auditRecords =
+          await auditResponse.json();
 
+        let recovery = null;
 
-    const auditRecords =
-      await auditResponse.json();
-
-
-    let recovery = null;
-
-
-        if (
-          validation.status !== "passed"
-        ) {
-
+        if (validation.status !== "passed") {
           const recoveryResponse =
             await fetch(
               `${API_URL}/engineering/recovery/analyze`,
               {
-                method:
-                  "POST",
-
-                headers:{
-                  "Content-Type":
-                    "application/json",
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
                 },
-
-                body:
-                  JSON.stringify({
-                    error:
-                      JSON.stringify(
-                        validation,
-
-          auditRecords,
-
-                      ),
-                  }),
+                body: JSON.stringify({
+                  error: JSON.stringify(
+                    validation,
+                    auditRecords,
+                  ),
+                }),
               },
             );
 
-
-          if (
-            recoveryResponse.ok
-          ) {
-            recovery =
-              await recoveryResponse.json();
+          if (recoveryResponse.ok) {
+            recovery = await recoveryResponse.json();
           }
         }
 
-
         setRuntimeView({
           ...runtimeView,
-
           applyStatus:
             validation.status === "passed"
               ? "completed"
               : "failed",
-
           validation,
-
           recovery,
-
           statusMessage:
             validation.status === "passed"
-              ? "Repository changes validated successfully."
-              : "Repository validation failed after apply.",
+              ? "Reviewed repository proposal validated successfully."
+              : "Repository validation failed after proposal apply.",
         });
-
 
         setMessage(
           validation.status === "passed"
-            ? "Changes applied and validated successfully."
-            : "Changes applied but validation failed.",
+            ? "Reviewed changes applied and validated successfully."
+            : "Reviewed changes applied but validation failed.",
         );
-
-
-      } catch(error) {
-
+      } catch (error) {
         setRuntimeView({
           ...runtimeView,
-          applyStatus:
-            "failed",
+          applyStatus: "failed",
           statusMessage:
             error instanceof Error
               ? error.message
               : "Apply failed.",
         });
-
-
         setMessage(
-          "Repository apply failed.",
+          "Repository proposal apply failed.",
         );
       }
-
 
       return;
     }
 
     if (actionId === "reject") {
-      setDecision("rejected");
+      if (proposal) {
+        const response = await fetch(
+          `${API_URL}/engineering/patch/proposal/reject`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              proposalId: proposal.id,
+              revision: proposal.revision,
+            }),
+          },
+        );
 
+        if (!response.ok) {
+          setMessage(
+            "Failed to reject the reviewed patch proposal.",
+          );
+          return;
+        }
+
+        setProposal({
+          ...proposal,
+          status: "REJECTED",
+        });
+      }
+
+      setDecision("rejected");
       setMessage(
         "Plan rejected. No files were modified.",
       );
-
       return;
     }
 
@@ -1182,6 +1114,7 @@ const validationResponse =
     setInput("");
     setLastPrompt("");
     setAnalysis(null);
+    setProposal(null);
     setRuntimeView(
       IDLE_RUNTIME,
     );
