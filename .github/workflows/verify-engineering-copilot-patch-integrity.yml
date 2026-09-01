@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Python test dependency
+        run: python -m pip install pytest
+
       - name: Generate Prisma client
         run: npx prisma generate --config prisma.config.ts
 
