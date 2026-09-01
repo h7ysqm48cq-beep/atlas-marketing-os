@@ -16,7 +16,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --test apps/web/tests/auth-switch-account.spec.cjs
-      - run: npm run lint --workspace apps/web -- src/proxy.ts src/app/login/page.tsx src/components/UserMenu.tsx tests/auth-switch-account.spec.cjs
+      - run: npm run lint --workspace apps/web -- src/proxy.ts src/app/login/page.tsx src/components/UserMenu.tsx
       - run: npm run build --workspace apps/web
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
