@@ -32,4 +32,4 @@ jobs:
         run: npx prisma generate --config prisma.config.ts
 
       - name: Workspace scope targeted tests
-        run: npm test --workspace apps/api -- --runInBand workspace-scope.service.spec.ts workspace-isolation.spec.ts workspace-scoped-automation-membership.spec.ts workspace-scoped-automation.service.spec.ts sports-news-settings.workspace-scope.spec.ts campaigns.service.spec.ts history.service.spec.ts image-settings.service.spec.ts
+        run: npm test --workspace apps/api -- --runInBand workspace-scope.service.spec.ts workspace-isolation.spec.ts workspace-scoped-automation-membership.spec.ts workspace-scoped-automation.service.spec.ts sports-news-settings.workspace-scope.spec.ts campaigns.service.spec.ts history.service.spec.ts image-settings.service.spec.ts browser-account.service.spec.ts browser-runtime-workspace-scope.spec.ts

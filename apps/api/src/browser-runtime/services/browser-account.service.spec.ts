@@ -1,6 +1,7 @@
 jest.mock('../../database/prisma.service', () => ({ PrismaService: class {} }));
 jest.mock('../../generated/prisma/client', () => require('../../generated/prisma/enums'));
 import { BrowserAccountService } from './browser-account.service';
+import { WorkspaceScopedBrowserAccountService } from './workspace-scoped-browser-account.service';
 
 describe('BrowserAccountService.syncFacebookPages', () => {
   it.each(['NATIVE_API', 'AUTOMATIC', 'BROWSER_RUNTIME'])(
@@ -42,4 +43,125 @@ describe('BrowserAccountService.syncFacebookPages', () => {
       expect(tx.socialChannel.create).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('BrowserAccountService workspace scope', () => {
+  const createService = (prisma: Record<string, any>) => {
+    const workspaceScope = {
+      getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
+    };
+    return new WorkspaceScopedBrowserAccountService(
+      prisma as never,
+      {
+        encrypt: jest.fn((value: string) => `encrypted:${value}`),
+        decrypt: jest.fn((value: string) => value),
+      } as never,
+      workspaceScope as never,
+    );
+  };
+
+  it('lists only browser accounts from the current workspace', async () => {
+    const prisma = {
+      browserAccount: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const service = createService(prisma);
+
+    await service.list();
+
+    expect(prisma.browserAccount.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          workspaceId: 'workspace-a',
+        },
+      }),
+    );
+  });
+
+  it('does not return a browser account from another workspace', async () => {
+    const prisma = {
+      browserAccount: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'account-b',
+          workspaceId: 'workspace-b',
+          channels: [],
+        }),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(service.getById('account-b')).rejects.toThrow(
+      'Browser account was not found.',
+    );
+
+    expect(prisma.browserAccount.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'account-b',
+          workspaceId: 'workspace-a',
+        },
+      }),
+    );
+  });
+
+  it('ignores a client supplied workspaceId when creating an account', async () => {
+    const prisma = {
+      browserAccount: {
+        create: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            id: 'account-a',
+            channels: [],
+            ...data,
+          }),
+        ),
+      },
+      brand: {
+        findFirst: jest.fn(),
+      },
+    };
+    const service = createService(prisma);
+
+    await service.create({
+      displayName: 'Workspace A Account',
+      workspaceId: 'workspace-b',
+    });
+
+    expect(prisma.browserAccount.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workspaceId: 'workspace-a',
+      }),
+    });
+  });
+
+  it('rejects a brand that is outside the current workspace', async () => {
+    const prisma = {
+      browserAccount: {
+        create: jest.fn(),
+      },
+      brand: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.create({
+        displayName: 'Workspace A Account',
+        brandId: 'brand-b',
+      }),
+    ).rejects.toThrow('Brand was not found.');
+
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'brand-b',
+        workspaceId: 'workspace-a',
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(prisma.browserAccount.create).not.toHaveBeenCalled();
+  });
 });
