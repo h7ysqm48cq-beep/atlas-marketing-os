@@ -32,56 +32,60 @@ jobs:
 
           start = text.index(marker)
           old_tail = text[start:].rstrip()
-          expected = '''    @staticmethod
-          def _ignored(
-              path: Path,
-          ) -> bool:
-              ignored = {
-                  ".git",
-                  ".next",
-                  ".turbo",
-                  ".atlas",
-                  "node_modules",
-                  "dist",
-                  "build",
-                  "coverage",
-                  "__pycache__",
-              }
-
-              return any(
-                  part in ignored
-                  for part in path.parts
-              )'''.replace("          ", "    ")
+          expected = (
+              "    @staticmethod\n"
+              "    def _ignored(\n"
+              "        path: Path,\n"
+              "    ) -> bool:\n"
+              "        ignored = {\n"
+              "            \".git\",\n"
+              "            \".next\",\n"
+              "            \".turbo\",\n"
+              "            \".atlas\",\n"
+              "            \"node_modules\",\n"
+              "            \"dist\",\n"
+              "            \"build\",\n"
+              "            \"coverage\",\n"
+              "            \"__pycache__\",\n"
+              "        }\n"
+              "\n"
+              "        return any(\n"
+              "            part in ignored\n"
+              "            for part in path.parts\n"
+              "        )"
+          )
 
           if old_tail != expected:
               raise SystemExit("reasoner _ignored exact tail mismatch")
 
-          replacement = '''    @staticmethod
-          def _ignored(
-              path: Path,
-          ) -> bool:
-              ignored = {
-                  ".git",
-                  ".next",
-                  ".turbo",
-                  ".atlas",
-                  ".atlas-backups",
-                  "node_modules",
-                  "dist",
-                  "build",
-                  "coverage",
-                  "__pycache__",
-              }
-
-              hidden_backup = re.compile(
-                  r"^\\..+-backup-\\d{8}(?:-\\d{6})?$"
-              )
-
-              return any(
-                  part in ignored
-                  or hidden_backup.fullmatch(part)
-                  for part in path.parts
-              )'''.replace("          ", "    ")
+          replacement = (
+              "    @staticmethod\n"
+              "    def _ignored(\n"
+              "        path: Path,\n"
+              "    ) -> bool:\n"
+              "        ignored = {\n"
+              "            \".git\",\n"
+              "            \".next\",\n"
+              "            \".turbo\",\n"
+              "            \".atlas\",\n"
+              "            \".atlas-backups\",\n"
+              "            \"node_modules\",\n"
+              "            \"dist\",\n"
+              "            \"build\",\n"
+              "            \"coverage\",\n"
+              "            \"__pycache__\",\n"
+              "        }\n"
+              "\n"
+              "        hidden_backup = re.compile(\n"
+              "            r\"^\\..+-backup-\\d{8}(?:-\\d{6})?$\"\n"
+              "        )\n"
+              "\n"
+              "        return any(\n"
+              "            part in ignored\n"
+              "            or hidden_backup.fullmatch(part)\n"
+              "            for part in path.parts\n"
+              "        )"
+          )
 
           path.write_text(
               text[:start] + replacement + "\n",
