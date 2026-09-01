@@ -1,0 +1,24 @@
+name: Verify Auth Switch Fix
+
+on:
+  push:
+    branches:
+      - fix/auth-switch-account-session-20260901
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test apps/web/tests/auth-switch-account.spec.cjs
+      - run: npm run lint --workspace apps/web -- src/proxy.ts src/app/login/page.tsx src/components/UserMenu.tsx tests/auth-switch-account.spec.cjs
+      - run: npm run build --workspace apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-key
