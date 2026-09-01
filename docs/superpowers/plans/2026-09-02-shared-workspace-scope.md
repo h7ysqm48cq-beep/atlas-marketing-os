@@ -4,7 +4,7 @@
 
 **Goal:** Make Atlas use one explicit shared-workspace membership model so Xiaoen and Yushi can operate the same MGMBETMYR workspace without mixed or global tenant scope.
 
-**Architecture:** Add `WorkspaceMember` and a single global `WorkspaceScopeService` that resolves the authenticated user’s default workspace. Route Brands, Automation, Campaigns, History and Image Settings through that resolver, and add workspace filters/guards to all reads and writes. Preserve all existing tenant data; production membership assignment is a separate data operation after code verification.
+**Architecture:** Add `WorkspaceMember` and a single global `WorkspaceScopeService` that resolves the authenticated user’s default workspace. Route Brands, Automation, Campaigns, History, Image Settings, Sports News Settings and Browser Accounts through that resolver, and add workspace filters/guards to all reads and writes. Preserve all existing tenant data; production membership assignment is a separate data operation after code verification.
 
 **Tech Stack:** NestJS, Prisma, PostgreSQL/Supabase, Jest
 
@@ -34,24 +34,24 @@
 - Produces: `WorkspaceScopeService.getCurrentWorkspace()` and `getCurrentWorkspaceId()`.
 - Produces: `WorkspaceScopeService.requireWorkspaceAccess(workspaceId)`.
 
-- [ ] **Step 1: Write failing membership regression tests**
+- [x] **Step 1: Write failing membership regression tests**
 
 Add tests proving a user’s default `WorkspaceMember` wins over their legacy personal owner workspace and that a brand from a non-member workspace is rejected.
 
-- [ ] **Step 2: Run targeted test and verify RED**
+- [x] **Step 2: Run targeted test and verify RED**
 
 Run: `npm test --workspace apps/api -- workspace-isolation.spec.ts --runInBand`
 Expected: FAIL because current `BrandsService` only resolves `Workspace.ownerUserId`.
 
-- [ ] **Step 3: Add schema + migration**
+- [x] **Step 3: Add schema + migration**
 
 Add `WorkspaceMember` with `workspaceId`, `userId`, `role`, `isDefault`, timestamps, unique `(workspaceId,userId)`, index `(userId,isDefault)`, and a partial unique SQL index allowing one default membership per user. Backfill current non-null `Workspace.ownerUserId` rows as default OWNER memberships.
 
-- [ ] **Step 4: Implement `WorkspaceScopeService`**
+- [x] **Step 4: Implement `WorkspaceScopeService`**
 
 Resolve authenticated users in this order: default membership, any membership, legacy owner fallback with membership repair, then creation of a personal workspace + OWNER/default membership. Resolve unauthenticated system context to `mgmbetmyr`. `requireWorkspaceAccess()` must only accept a workspace that has a membership for the current user.
 
-- [ ] **Step 5: Route BrandsService through the resolver**
+- [x] **Step 5: Route BrandsService through the resolver**
 
 `list`, `getActiveBrand`, `create`, and `get(id)` must use the current workspace ID; `get(id)` must query `id + workspaceId` rather than nested owner-only conditions.
 
@@ -136,7 +136,38 @@ Remove `getWorkspaceId()` global brand/workspace scan and use the shared resolve
 
 Run targeted test.
 
-### Task 5: Full verification and production-data handoff
+### Task 5: Sports News Settings and Browser Account scope
+
+**Files:**
+- Modify/Test: `apps/api/src/automation/sports-news-settings.service.spec.ts`
+- Modify: `apps/api/src/automation/sports-news-settings.service.ts`
+- Modify/Test: `apps/api/src/browser-runtime/services/browser-account.service.spec.ts`
+- Modify: `apps/api/src/browser-runtime/services/browser-account.service.ts`
+
+**Interfaces:**
+- Consumes: `WorkspaceScopeService.getCurrentWorkspaceId()`.
+
+- [ ] **Step 1: Write failing Sports News scope tests**
+
+Prove settings/channels use the authenticated current workspace rather than the oldest database workspace, and selected channel IDs must belong to that workspace.
+
+- [ ] **Step 2: Write failing Browser Account scope tests**
+
+Prove list/get/create/update/page-sync cannot read or bind a Browser Account or Brand outside the current workspace. Client-supplied `workspaceId` must never override authenticated scope.
+
+- [ ] **Step 3: Verify RED**
+
+Run targeted sports settings and browser-account tests.
+
+- [ ] **Step 4: Implement resolver-based scope**
+
+Sports News Settings must use current workspace and validate selected channels within it. Browser Account reads/writes must force current workspace and validate every brand/channel relationship within it.
+
+- [ ] **Step 5: Verify GREEN**
+
+Run targeted tests.
+
+### Task 6: Full verification and production-data handoff
 
 **Files:**
 - No production data mutation in source control.
@@ -162,3 +193,7 @@ After deployment authorization, add Yushi as default MEMBER of the existing MGMB
 - [ ] **Step 5: Defer cleanup**
 
 Only after shared scope is verified, separately review hidden/duplicate channel cleanup; do not delete historical channels in this patch.
+
+- [ ] **Step 6: Record remaining AI Usage scope gap**
+
+`AiUsage` currently has no first-class `workspaceId`; do not fake tenant scoping. Treat its dashboard totals as a separate follow-up schema/backfill unless this patch is explicitly expanded.
