@@ -120,7 +120,7 @@ export class WorkspaceScopedBrowserAccountService extends BrowserAccountService 
   }
 
   override async update(id: string, input: any) {
-    await this.requireAccount(id);
+    const account = await this.requireAccount(id);
 
     if (input.brandId !== undefined && input.brandId !== null) {
       const brandId = input.brandId.trim();
@@ -129,7 +129,24 @@ export class WorkspaceScopedBrowserAccountService extends BrowserAccountService 
       }
     }
 
-    return super.update(id, input);
+    const updated = await super.update(id, input);
+    const clearedBrand =
+      input.brandId !== undefined &&
+      (input.brandId === null || !String(input.brandId).trim());
+
+    if (!clearedBrand) {
+      return updated;
+    }
+
+    await this.scopedPrisma.browserAccount.update({
+      where: { id: account.id },
+      data: {
+        brandId: null,
+        workspaceId: account.workspaceId,
+      },
+    });
+
+    return super.getById(id);
   }
 
   override async syncFacebookPages(accountId: string, input: any) {
@@ -153,8 +170,42 @@ export class WorkspaceScopedBrowserAccountService extends BrowserAccountService 
   }
 
   override async selectForChannel(channelId: string, input?: any): Promise<any> {
+    const workspaceId = await this.currentWorkspaceId();
     await this.requireChannel(channelId);
-    return super.selectForChannel(channelId, input);
+    const selection = await super.selectForChannel(channelId, input);
+    const candidateIds = (selection.candidates || []).map(
+      (candidate: { id: string }) => candidate.id,
+    );
+
+    if (!candidateIds.length) {
+      return selection;
+    }
+
+    const allowedAccounts = await this.scopedPrisma.browserAccount.findMany({
+      where: {
+        id: { in: candidateIds },
+        workspaceId,
+      },
+      select: { id: true },
+    });
+    const allowedIds = new Set(allowedAccounts.map((account) => account.id));
+    const candidates = selection.candidates.filter(
+      (candidate: { id: string }) => allowedIds.has(candidate.id),
+    );
+    const selected =
+      candidates.find((candidate: { eligible?: boolean }) => candidate.eligible) ||
+      null;
+
+    return {
+      ...selection,
+      candidates,
+      selected,
+      reason: selected
+        ? 'BEST_ELIGIBLE_BROWSER_SELECTED'
+        : candidates.length
+          ? 'NO_ELIGIBLE_BROWSER_ACCOUNT'
+          : 'NO_LINKED_BROWSER_ACCOUNT',
+    };
   }
 
   override async pool(): Promise<any> {
