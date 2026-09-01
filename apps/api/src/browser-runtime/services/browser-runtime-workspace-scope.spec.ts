@@ -3,10 +3,12 @@ jest.mock('./browser-session.service', () => ({
 }));
 
 import { NotFoundException } from '@nestjs/common';
-import { BrowserAutomationPolicyService } from './browser-automation-policy.service';
-import { BrowserLeaseService } from './browser-lease.service';
-import { BrowserOnboardingService } from './browser-onboarding.service';
-import { BrowserTimelineService } from './browser-timeline.service';
+import {
+  WorkspaceScopedBrowserAutomationPolicyService,
+  WorkspaceScopedBrowserLeaseService,
+  WorkspaceScopedBrowserOnboardingService,
+  WorkspaceScopedBrowserTimelineService,
+} from './workspace-scoped-browser-runtime.service';
 
 describe('Browser Runtime workspace scope', () => {
   const crossWorkspaceAccount = () => ({
@@ -20,7 +22,10 @@ describe('Browser Runtime workspace scope', () => {
       $transaction: jest.fn().mockResolvedValue({ acquired: true }),
     } as any;
     const browserAccounts = crossWorkspaceAccount();
-    const service = new BrowserLeaseService(prisma, browserAccounts as any);
+    const service = new WorkspaceScopedBrowserLeaseService(
+      prisma,
+      browserAccounts as any,
+    );
 
     await expect(
       service.acquire('account-b', {
@@ -39,8 +44,10 @@ describe('Browser Runtime workspace scope', () => {
       },
     } as any;
     const browserAccounts = crossWorkspaceAccount();
-    const service = new BrowserTimelineService(prisma);
-    (service as any).browserAccounts = browserAccounts;
+    const service = new WorkspaceScopedBrowserTimelineService(
+      prisma,
+      browserAccounts as any,
+    );
 
     await expect(service.list('account-b')).rejects.toThrow(
       'Browser account was not found.',
@@ -60,8 +67,10 @@ describe('Browser Runtime workspace scope', () => {
       },
     } as any;
     const browserAccounts = crossWorkspaceAccount();
-    const service = new BrowserAutomationPolicyService(prisma);
-    (service as any).browserAccounts = browserAccounts;
+    const service = new WorkspaceScopedBrowserAutomationPolicyService(
+      prisma,
+      browserAccounts as any,
+    );
 
     await expect(service.getOrCreate('account-b')).rejects.toThrow(
       'Browser account was not found.',
@@ -78,7 +87,7 @@ describe('Browser Runtime workspace scope', () => {
       },
     } as any;
     const browserAccounts = crossWorkspaceAccount();
-    const service = new BrowserOnboardingService(
+    const service = new WorkspaceScopedBrowserOnboardingService(
       prisma,
       browserAccounts as any,
       {} as any,
@@ -86,7 +95,9 @@ describe('Browser Runtime workspace scope', () => {
       {} as any,
     );
 
-    await expect(service.run('account-b')).rejects.toThrow();
+    await expect(service.run('account-b')).rejects.toThrow(
+      'Browser account was not found.',
+    );
 
     expect(browserAccounts.getById).toHaveBeenCalledWith('account-b');
   });
