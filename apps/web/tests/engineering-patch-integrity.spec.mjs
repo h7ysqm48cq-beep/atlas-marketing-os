@@ -62,6 +62,11 @@ assert.match(
 );
 assert.match(
   executionGateSource,
+  /proposal/u,
+  "execution gate must require a persisted patch proposal",
+);
+assert.match(
+  executionGateSource,
   /runtimeView\.patches\?\.some/u,
   "execution gate must require at least one prepared patch",
 );
@@ -89,8 +94,8 @@ const approveSource = sourceSection(
 
 assert.match(
   approveSource,
-  /if\s*\(\s*!hasExecutablePatch\s*\)/u,
-  "approve handler must fail closed without an executable patch",
+  /!hasExecutablePatch\s*\|\|\s*!proposal/u,
+  "approve handler must fail closed without both an executable patch and persisted proposal",
 );
 
 const applySource = sourceSection(
@@ -100,8 +105,8 @@ const applySource = sourceSection(
 
 assert.match(
   applySource,
-  /if\s*\(\s*!hasExecutablePatch\s*\)/u,
-  "apply handler must fail closed without an executable patch",
+  /!hasExecutablePatch\s*\|\|\s*!proposal/u,
+  "apply handler must fail closed without both an executable patch and persisted proposal",
 );
 
 assert.equal(
