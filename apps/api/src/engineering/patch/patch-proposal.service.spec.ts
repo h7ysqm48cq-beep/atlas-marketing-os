@@ -19,6 +19,34 @@ function sha256(value: string) {
 }
 
 
+function storedPatch() {
+  return {
+    filePath: "apps/web/src/example.tsx",
+    action: "modify" as const,
+    before: "const value = 1;\n",
+    after: "const value = 2;\n",
+    beforeHash: sha256("const value = 1;\n"),
+    afterHash: sha256("const value = 2;\n"),
+    explanation: "Change the value.",
+  };
+}
+
+
+function snapshotHash(
+  request: string,
+  revision: number,
+  patches: ReturnType<typeof storedPatch>[],
+) {
+  return sha256(
+    JSON.stringify({
+      request,
+      revision,
+      patches,
+    }),
+  );
+}
+
+
 describe("PatchProposalService", () => {
   const userId = "user-engineer";
 
@@ -69,6 +97,27 @@ describe("PatchProposalService", () => {
     explanation: "Change the value.",
   };
 
+  function validExisting(
+    status: "READY_FOR_REVIEW" | "APPROVED" = "READY_FOR_REVIEW",
+  ) {
+    const request = "Change example";
+    const patches = [storedPatch()];
+    const revision = 1;
+
+    return {
+      id: "proposal-1",
+      request,
+      revision,
+      status,
+      patches,
+      snapshotHash: snapshotHash(
+        request,
+        revision,
+        patches,
+      ),
+    };
+  }
+
   it("persists an immutable snapshot with per-file hashes", async () => {
     const { service, create } = harness();
 
@@ -112,6 +161,14 @@ describe("PatchProposalService", () => {
         filePath: ".atlas-backups/example.tsx",
       },
     },
+    {
+      name: "unsupported delete",
+      patch: {
+        ...patch,
+        action: "delete" as const,
+        after: "",
+      },
+    },
   ])("rejects $name patches", async ({ patch: invalidPatch }) => {
     const { service, create } = harness();
 
@@ -131,10 +188,8 @@ describe("PatchProposalService", () => {
 
   it("requires the exact reviewed revision for approval", async () => {
     const existing = {
-      id: "proposal-1",
+      ...validExisting(),
       revision: 2,
-      status: "READY_FOR_REVIEW",
-      patches: [],
     };
     const { service, updateMany } = harness(existing);
 
@@ -144,13 +199,33 @@ describe("PatchProposalService", () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 
-  it("moves only the reviewed proposal revision to APPROVED", async () => {
+  it("rejects a tampered immutable snapshot before approval", async () => {
     const existing = {
-      id: "proposal-1",
-      revision: 1,
-      status: "READY_FOR_REVIEW",
-      patches: [],
+      ...validExisting(),
+      snapshotHash: "0".repeat(64),
     };
+    const { service, updateMany } = harness(existing);
+
+    await expect(
+      service.approve("proposal-1", 1),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a tampered immutable snapshot before apply lookup", async () => {
+    const existing = {
+      ...validExisting("APPROVED"),
+      snapshotHash: "f".repeat(64),
+    };
+    const { service } = harness(existing);
+
+    await expect(
+      service.getApproved("proposal-1", 1),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("moves only the reviewed proposal revision to APPROVED", async () => {
+    const existing = validExisting();
     const { service, updateMany } = harness(existing);
 
     await service.approve("proposal-1", 1);
@@ -171,12 +246,7 @@ describe("PatchProposalService", () => {
   });
 
   it("marks an approved revision stale without changing its snapshot", async () => {
-    const existing = {
-      id: "proposal-1",
-      revision: 1,
-      status: "APPROVED",
-      patches: [patch],
-    };
+    const existing = validExisting("APPROVED");
     const { service, updateMany } = harness(existing);
 
     await service.markStale("proposal-1", 1);
