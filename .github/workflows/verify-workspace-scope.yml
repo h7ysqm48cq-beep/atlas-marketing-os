@@ -1,0 +1,36 @@
+name: Verify Workspace Scope Fix
+
+on:
+  push:
+    branches:
+      - fix/shared-workspace-scope-20260902
+    paths:
+      - apps/api/**
+      - .github/workflows/verify-workspace-scope.yml
+  workflow_dispatch:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --config prisma.config.ts
+
+      - name: Workspace scope tests
+        run: npm test --workspace apps/api -- --runInBand workspace-isolation.spec.ts automation.service.spec.ts campaigns.service.spec.ts history.service.spec.ts image-settings.service.spec.ts
+
+      - name: API build
+        run: npm run build --workspace apps/api
