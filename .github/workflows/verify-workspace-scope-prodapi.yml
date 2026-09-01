@@ -31,5 +31,5 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate --config prisma.config.ts
 
-      - name: Workspace scope resolver tests
-        run: npm test --workspace apps/api -- --runInBand workspace-scope.service.spec.ts
+      - name: Workspace scope core tests
+        run: npm test --workspace apps/api -- --runInBand workspace-scope.service.spec.ts workspace-isolation.spec.ts
