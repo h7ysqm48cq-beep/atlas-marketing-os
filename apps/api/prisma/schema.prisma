@@ -29,15 +29,31 @@ model Workspace {
   id                      String                   @id @default(cuid())
   name                    String
   slug                    String                   @unique
-  ownerUserId              String?                  @unique
+  ownerUserId             String?                  @unique
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   automationSetting       AutomationSetting?
   brands                  Brand[]
   imageGenerationSettings ImageGenerationSetting[]
+  members                 WorkspaceMember[]
   socialChannels          SocialChannel[]
   sportsNewsRuns          SportsNewsRun[]
   sportsNewsSetting       SportsNewsSetting?
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String    @default("MEMBER")
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId, isDefault])
+  @@index([workspaceId])
 }
 
 model Brand {
@@ -356,7 +372,7 @@ model SocialChannelRuntimeProfile {
   updatedAt              DateTime            @updatedAt
   browserEngine          String              @default("CHROMIUM")
   deviceScaleFactor      Float               @default(1)
-  identityLocked         Boolean             @default(true)
+  identityLocked         Boolean              @default(true)
   operatingSystem        String              @default("MACOS")
   screenHeight           Int                 @default(768)
   screenWidth            Int                 @default(1365)
@@ -1014,7 +1030,6 @@ model ImageGenerationSetting {
   @@index([pageId])
   @@index([channelId])
 }
-
 
 model SupervisorTask {
   id               String   @id

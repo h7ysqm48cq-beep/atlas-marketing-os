@@ -14,6 +14,9 @@ import {
   BrowserAccountService,
 } from './services/browser-account.service';
 import {
+  WorkspaceScopedBrowserAccountService,
+} from './services/workspace-scoped-browser-account.service';
+import {
   BrowserLeaseService,
 } from './services/browser-lease.service';
 import {
@@ -29,6 +32,12 @@ import {
   BrowserOnboardingService,
 } from './services/browser-onboarding.service';
 import {
+  WorkspaceScopedBrowserAutomationPolicyService,
+  WorkspaceScopedBrowserLeaseService,
+  WorkspaceScopedBrowserOnboardingService,
+  WorkspaceScopedBrowserTimelineService,
+} from './services/workspace-scoped-browser-runtime.service';
+import {
   BrowserRuntimeEventBus,
 } from './events/browser-runtime-event-bus.service';
 import {
@@ -43,12 +52,27 @@ import {
     BrowserAccountController,
   ],
   providers: [
-    BrowserAccountService,
-    BrowserLeaseService,
+    {
+      provide: BrowserAccountService,
+      useClass: WorkspaceScopedBrowserAccountService,
+    },
+    {
+      provide: BrowserLeaseService,
+      useClass: WorkspaceScopedBrowserLeaseService,
+    },
     BrowserSessionService,
-    BrowserTimelineService,
-    BrowserAutomationPolicyService,
-    BrowserOnboardingService,
+    {
+      provide: BrowserTimelineService,
+      useClass: WorkspaceScopedBrowserTimelineService,
+    },
+    {
+      provide: BrowserAutomationPolicyService,
+      useClass: WorkspaceScopedBrowserAutomationPolicyService,
+    },
+    {
+      provide: BrowserOnboardingService,
+      useClass: WorkspaceScopedBrowserOnboardingService,
+    },
     BrowserRuntimeEventBus,
     BrowserRuntimeAutomationListener,
     SocialTokenCryptoService,

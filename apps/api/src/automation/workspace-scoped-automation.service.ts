@@ -4,7 +4,7 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { AuthContextService } from '../auth/auth-context.service';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 import { PrismaService } from '../database/prisma.service';
 import { ScheduledPostStatus } from '../generated/prisma/enums';
 import { SocialTokenCryptoService } from '../common/social-token-crypto.service';
@@ -25,7 +25,7 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     facebookConnector: FacebookConnectorService,
     telegramConnector: TelegramConnectorService,
     runtimeProfiles: RuntimeProfileService,
-    private readonly authContext: AuthContextService,
+    private readonly workspaceScope: WorkspaceScopeService,
     @Optional()
     instagramConnector?: InstagramConnectorService,
     @Optional()
@@ -43,23 +43,8 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     );
   }
 
-  private async requestWorkspaceId(): Promise<string | null> {
-    const userId = this.authContext.getUserId();
-
-    if (!userId) {
-      return null;
-    }
-
-    const workspace = await this.scopedPrisma.workspace.findUnique({
-      where: { ownerUserId: userId },
-      select: { id: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException('Workspace ownership is not configured.');
-    }
-
-    return workspace.id;
+  private async requestWorkspaceId(): Promise<string> {
+    return this.workspaceScope.getCurrentWorkspaceId();
   }
 
   private async assertBrand(workspaceId: string, brandId: string) {
@@ -134,11 +119,6 @@ export class WorkspaceScopedAutomationService extends AutomationService {
 
   override async listChannels(includeHidden = false) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (!workspaceId) {
-      return super.listChannels(includeHidden);
-    }
-
     const channels = await super.listChannels(includeHidden);
 
     return channels.filter(
@@ -154,11 +134,6 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     limit?: number,
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (!workspaceId) {
-      return super.listCalendarPosts(status, from, to, limit);
-    }
-
     const scheduledAt = this.buildScheduledAtRange(from, to);
     const posts = await this.scopedPrisma.scheduledPost.findMany({
       where: {
@@ -218,11 +193,6 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     limit?: number,
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (!workspaceId) {
-      return super.listPosts(status, from, to, limit);
-    }
-
     const scheduledAt = this.buildScheduledAtRange(from, to);
     const posts = await this.scopedPrisma.scheduledPost.findMany({
       where: {
@@ -282,11 +252,7 @@ export class WorkspaceScopedAutomationService extends AutomationService {
 
   override async getChannel(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.getChannel(id);
   }
 
@@ -294,11 +260,7 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     input: Parameters<AutomationService['createChannel']>[0],
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertBrand(workspaceId, input.brandId);
-    }
-
+    await this.assertBrand(workspaceId, input.brandId);
     return super.createChannel(input);
   }
 
@@ -307,73 +269,48 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     input: Parameters<AutomationService['updateChannel']>[1],
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.updateChannel(id, input);
   }
 
   override async removeChannel(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.removeChannel(id);
   }
 
   override async disconnectChannel(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.disconnectChannel(id);
   }
 
   override async disconnectChannelApi(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.disconnectChannelApi(id);
   }
 
-  override async disconnectAllFacebookApi(confirmation: string) {
-    const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      throw new BadRequestException(
-        'Bulk Facebook API disconnect is disabled for workspace-scoped requests.',
-      );
-    }
-
-    return super.disconnectAllFacebookApi(confirmation);
+  override async disconnectAllFacebookApi(
+    _confirmation: string,
+  ): Promise<
+    Awaited<ReturnType<AutomationService['disconnectAllFacebookApi']>>
+  > {
+    await this.requestWorkspaceId();
+    throw new BadRequestException(
+      'Bulk Facebook API disconnect is disabled for workspace-scoped requests.',
+    );
   }
 
   override async testChannel(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.testChannel(id);
   }
 
   override async testInstagramApiChannel(id: string) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.testInstagramApiChannel(id);
   }
 
@@ -383,30 +320,23 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     lastError?: string,
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertChannel(workspaceId, id);
-    }
-
+    await this.assertChannel(workspaceId, id);
     return super.updateChannelStatus(id, status, lastError);
   }
 
   override async getPost(id: string) {
     const workspaceId = await this.requestWorkspaceId();
+    const post = await this.scopedPrisma.scheduledPost.findFirst({
+      where: {
+        id,
+        brand: { workspaceId },
+        channel: { workspaceId },
+      },
+      select: { id: true },
+    });
 
-    if (workspaceId) {
-      const post = await this.scopedPrisma.scheduledPost.findFirst({
-        where: {
-          id,
-          brand: { workspaceId },
-          channel: { workspaceId },
-        },
-        select: { id: true },
-      });
-
-      if (!post) {
-        throw new NotFoundException('Scheduled post not found.');
-      }
+    if (!post) {
+      throw new NotFoundException('Scheduled post not found.');
     }
 
     return super.getPost(id);
@@ -423,10 +353,8 @@ export class WorkspaceScopedAutomationService extends AutomationService {
       this.validateScheduledTime(status, scheduledAt);
     }
 
-    if (workspaceId) {
-      await this.assertBrand(workspaceId, input.brandId);
-      await this.assertChannel(workspaceId, input.channelId, input.brandId);
-    }
+    await this.assertBrand(workspaceId, input.brandId);
+    await this.assertChannel(workspaceId, input.channelId, input.brandId);
 
     return super.createPost(input);
   }
@@ -435,11 +363,7 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     input: Parameters<AutomationService['createMultiPlatformPosts']>[0],
   ) {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (workspaceId) {
-      await this.assertBrand(workspaceId, input.brandId);
-    }
-
+    await this.assertBrand(workspaceId, input.brandId);
     return super.createMultiPlatformPosts(input);
   }
 
@@ -468,11 +392,6 @@ export class WorkspaceScopedAutomationService extends AutomationService {
 
   override async getSettings() {
     const workspaceId = await this.requestWorkspaceId();
-
-    if (!workspaceId) {
-      return super.getSettings();
-    }
-
     return this.scopedPrisma.automationSetting.upsert({
       where: { workspaceId },
       update: {},

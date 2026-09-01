@@ -46,8 +46,13 @@ export class CampaignsService {
     });
   }
 
-  findAll() {
+  async findAll() {
+    const brand = await this.brandsService.getActiveBrand();
+
     return this.prisma.campaign.findMany({
+      where: {
+        brandId: brand.id,
+      },
       orderBy: { updatedAt: 'desc' },
       include: {
         brand: {
@@ -68,8 +73,12 @@ export class CampaignsService {
   }
 
   async findOne(id: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const brand = await this.brandsService.getActiveBrand();
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        brandId: brand.id,
+      },
       include: {
         brand: {
           include: {

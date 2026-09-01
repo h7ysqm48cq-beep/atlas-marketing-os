@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BrandsService } from '../brands/brands.service';
 import { ContentStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { UpdateFavoriteDto } from './dto/update-favorite.dto';
@@ -22,10 +23,18 @@ type SaveGenerationInput = {
 
 @Injectable()
 export class HistoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly brands: BrandsService,
+  ) {}
 
-  list() {
+  async list() {
+    const brand = await this.brands.getActiveBrand();
+
     return this.prisma.generationHistory.findMany({
+      where: {
+        brandId: brand.id,
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         brand: {
@@ -74,8 +83,12 @@ export class HistoryService {
   }
 
   async get(id: string) {
-    const record = await this.prisma.generationHistory.findUnique({
-      where: { id },
+    const brand = await this.brands.getActiveBrand();
+    const record = await this.prisma.generationHistory.findFirst({
+      where: {
+        id,
+        brandId: brand.id,
+      },
       include: {
         brand: {
           include: {

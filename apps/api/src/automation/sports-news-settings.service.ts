@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { WorkspaceScopeService } from '../auth/workspace-scope.service';
 import { PrismaService } from '../database/prisma.service';
 import { SocialPlatform } from '../generated/prisma/enums';
 
@@ -265,20 +266,13 @@ export type SportsNewsChannelOverride = {
 
 @Injectable()
 export class SportsNewsSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workspaceScope: WorkspaceScopeService,
+  ) {}
 
-  private async workspace() {
-    const workspace = await this.prisma.workspace.findFirst({
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found.');
-    }
-
-    return workspace;
+  private workspace() {
+    return this.workspaceScope.getCurrentWorkspace();
   }
 
   async get() {
@@ -599,9 +593,11 @@ export class SportsNewsSettingsService {
   }
 
   private async validateChannel(id: string, platform: SocialPlatform) {
-    const channel = await this.prisma.socialChannel.findUnique({
+    const workspaceId = await this.workspaceScope.getCurrentWorkspaceId();
+    const channel = await this.prisma.socialChannel.findFirst({
       where: {
         id,
+        workspaceId,
       },
     });
 

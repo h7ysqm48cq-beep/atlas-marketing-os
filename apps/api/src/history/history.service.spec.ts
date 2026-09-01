@@ -1,14 +1,13 @@
 import { BrandsService } from '../brands/brands.service';
-import { CampaignsService } from './campaigns.service';
+import { HistoryService } from './history.service';
 
-describe('CampaignsService workspace scope', () => {
+describe('HistoryService workspace scope', () => {
   const createService = () => {
     const prisma = {
-      campaign: {
+      generationHistory: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn(),
         findUnique: jest.fn(),
-        create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
       },
@@ -19,20 +18,21 @@ describe('CampaignsService workspace scope', () => {
         workspaceId: 'workspace-a',
       }),
     } as unknown as BrandsService;
+    const service = new HistoryService(prisma, brands);
 
     return {
       prisma,
       brands,
-      service: new CampaignsService(prisma, brands),
+      service,
     };
   };
 
-  it('lists only campaigns for the active brand', async () => {
+  it('lists only generation history for the active brand', async () => {
     const { prisma, service } = createService();
 
-    await service.findAll();
+    await service.list();
 
-    expect(prisma.campaign.findMany).toHaveBeenCalledWith(
+    expect(prisma.generationHistory.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           brandId: 'brand-a',
@@ -41,22 +41,22 @@ describe('CampaignsService workspace scope', () => {
     );
   });
 
-  it('does not return a campaign from another brand/workspace', async () => {
+  it('does not return generation history from another brand/workspace', async () => {
     const { prisma, service } = createService();
-    prisma.campaign.findFirst.mockResolvedValue(null);
-    prisma.campaign.findUnique.mockResolvedValue({
-      id: 'campaign-b',
+    prisma.generationHistory.findFirst.mockResolvedValue(null);
+    prisma.generationHistory.findUnique.mockResolvedValue({
+      id: 'history-b',
       brandId: 'brand-b',
     });
 
-    await expect(service.findOne('campaign-b')).rejects.toThrow(
-      'Campaign not found.',
+    await expect(service.get('history-b')).rejects.toThrow(
+      'Generation history record not found.',
     );
 
-    expect(prisma.campaign.findFirst).toHaveBeenCalledWith(
+    expect(prisma.generationHistory.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 'campaign-b',
+          id: 'history-b',
           brandId: 'brand-a',
         },
       }),

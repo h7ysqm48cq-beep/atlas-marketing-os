@@ -1,0 +1,41 @@
+name: Verify Workspace Scope Prod API
+
+on:
+  push:
+    branches:
+      - fix/shared-workspace-scope-prodapi-20260902
+    paths:
+      - apps/api/**
+      - .github/workflows/verify-workspace-scope-prodapi.yml
+  workflow_dispatch:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --config prisma.config.ts
+
+      - name: Workspace scope targeted tests
+        run: npm test --workspace apps/api -- --runInBand workspace-scope.service.spec.ts workspace-isolation.spec.ts workspace-scoped-automation-membership.spec.ts workspace-scoped-automation.service.spec.ts sports-news-settings.workspace-scope.spec.ts campaigns.service.spec.ts history.service.spec.ts image-settings.service.spec.ts browser-account.service.spec.ts browser-runtime-workspace-scope.spec.ts
+
+      - name: Full API tests
+        run: npm test --workspace apps/api -- --runInBand
+
+      - name: API build
+        run: npm run build --workspace apps/api
