@@ -8,6 +8,7 @@ import { InstagramConnectorService } from './instagram-connector.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { RuntimeProfileService } from './runtime-profile.service';
 import { BrowserAccountService } from './browser-account.service';
+import { WorkspaceScopedBrowserAccountService } from '../browser-runtime/services/workspace-scoped-browser-account.service';
 import { BrowserRuntimeBridgeService } from './browser-runtime-bridge.service';
 import { BrowserActionHistoryService } from './browser-action-history.service';
 import { BrowserActionTraceService } from './browser-action-trace.service';
@@ -37,7 +38,10 @@ import { NotificationModule } from '../notifications/notification.module';
     InstagramConnectorService,
     FacebookOAuthService,
     RuntimeProfileService,
-    BrowserAccountService,
+    {
+      provide: BrowserAccountService,
+      useClass: WorkspaceScopedBrowserAccountService,
+    },
     BrowserRuntimeBridgeService,
     BrowserActionHistoryService,
     BrowserActionTraceService,
