@@ -6,6 +6,11 @@ import {
 } from "@nestjs/common";
 
 import {
+  PatchProposalService,
+  type StoredEngineeringPatch,
+} from "../patch/patch-proposal.service";
+
+import {
   ApplyService,
 } from "./apply.service";
 
@@ -18,88 +23,66 @@ export class ApplyController {
   constructor(
     private readonly applyService:
       ApplyService,
+    private readonly proposalService:
+      PatchProposalService,
   ) {}
 
 
-  @Post()
-  async apply(
+  @Post("proposal")
+  async applyProposal(
     @Body()
     body: {
-      filePath: string;
-      content: string;
-      before?: string;
+      proposalId: string;
+      revision: number;
     },
   ) {
-
-    const result =
-      await this.applyService.applyChange(
-        body.filePath,
-        body.content,
-        body.before,
+    const proposal =
+      await this.proposalService.getApproved(
+        body.proposalId,
+        body.revision,
       );
 
+    const storedPatches =
+      Array.isArray(proposal.patches)
+        ? proposal.patches as unknown as StoredEngineeringPatch[]
+        : [];
 
-    /*
-     * A stale preview is not a successful creation.
-     *
-     * The service deliberately keeps the domain-level
-     * "blocked" result. The HTTP boundary maps it to
-     * 409 Conflict.
-     */
-    if (
-      result.status ===
-      "blocked"
-    ) {
-
+    if (!storedPatches.length) {
       throw new ConflictException(
-        result,
+        "Approved patch proposal has no executable patches.",
       );
-
     }
-
-
-    return result;
-
-  }
-
-
-  @Post("batch")
-  async applyBatch(
-    @Body()
-    body: {
-      patches: {
-        filePath: string;
-        content: string;
-        before?: string;
-      }[];
-    },
-  ) {
 
     const result =
       await this.applyService.applyBatch(
-        body.patches,
+        storedPatches.map((patch) => ({
+          filePath: patch.filePath,
+          content: patch.after,
+          before: patch.before,
+        })),
       );
 
-
-    /*
-     * Batch apply is atomic at the validation stage:
-     * if any patch has stale "before" content,
-     * report an HTTP conflict and do not continue.
-     */
-    if (
-      result.status ===
-      "blocked"
-    ) {
+    if (result.status === "blocked") {
+      await this.proposalService.markStale(
+        body.proposalId,
+        body.revision,
+      );
 
       throw new ConflictException(
         result,
       );
-
     }
 
+    await this.proposalService.markApplied(
+      body.proposalId,
+      body.revision,
+    );
 
-    return result;
-
+    return {
+      ...result,
+      proposalId: body.proposalId,
+      revision: body.revision,
+      proposalStatus: "APPLIED",
+    };
   }
-
 }
