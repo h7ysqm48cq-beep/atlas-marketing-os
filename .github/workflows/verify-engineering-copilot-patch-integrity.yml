@@ -36,22 +36,14 @@ jobs:
 
           path = Path("apps/api/src/engineering/patch/patch-proposal.service.ts")
           source = path.read_text()
-          old = '''  async get(id: string) {
-            const proposal =
-              await this.prisma.engineeringPatchProposal.findUnique({
-                where: { id },
-              });
-
-            if (!proposal) {
-              throw new NotFoundException(
-                "Patch proposal not found.",
-              );
-            }
-
-            return proposal;
-          }
-          '''
-          new = '''  async get(id: string) {
+          start_marker = "  async get(id: string) {"
+          end_marker = "\n\n\n  async approve("
+          if source.count(start_marker) != 1 or source.count(end_marker) != 1:
+              raise SystemExit("creator isolation function boundary was not unique")
+          start = source.index(start_marker)
+          end = source.index(end_marker, start)
+          current = source[start:end]
+          replacement = '''  async get(id: string) {
             const actor = this.auth.requireUserId();
             const proposal =
               await this.prisma.engineeringPatchProposal.findUnique({
@@ -68,17 +60,21 @@ jobs:
             }
 
             return proposal;
-          }
-          '''
-          if old not in source:
-              if new in source:
-                  raise SystemExit(0)
-              raise SystemExit("creator isolation target did not match exactly")
-          path.write_text(source.replace(old, new, 1))
+          }'''
+          # YAML block indentation is stripped before bash executes; normalize the
+          # replacement to the source file's two-space TypeScript indentation.
+          replacement = "\n".join(
+              line[8:] if line.startswith("        ") else line
+              for line in replacement.splitlines()
+          )
+          if current == replacement:
+              raise SystemExit(0)
+          path.write_text(source[:start] + replacement + source[end:])
           PY
           if git diff --quiet -- apps/api/src/engineering/patch/patch-proposal.service.ts; then
             exit 0
           fi
+          git diff --check
           git config user.name "atlas-engineering-ci"
           git config user.email "atlas-engineering-ci@users.noreply.github.com"
           git add apps/api/src/engineering/patch/patch-proposal.service.ts
