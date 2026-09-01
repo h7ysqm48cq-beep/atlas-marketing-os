@@ -272,34 +272,7 @@ function buildRuntimeView(
     },
 
 
-    diffPreviews:
-      plan.related_files
-        .slice(0, 3)
-        .map((file) => ({
-          filePath: file.file_path,
-          lines: [
-            {
-              type: "context",
-              text:
-                `// ${file.file_path}`,
-            },
-            {
-              type: "remove",
-              text:
-                "- Current implementation",
-            },
-            {
-              type: "add",
-              text:
-                "+ Updated implementation based on plan",
-            },
-            {
-              type: "context",
-              text:
-                "// Review required before applying",
-            },
-          ],
-        })),
+    diffPreviews: [],
 
 
     editProposals:
