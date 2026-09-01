@@ -14,6 +14,9 @@ import {
   BrowserAccountService,
 } from './services/browser-account.service';
 import {
+  WorkspaceScopedBrowserAccountService,
+} from './services/workspace-scoped-browser-account.service';
+import {
   BrowserLeaseService,
 } from './services/browser-lease.service';
 import {
@@ -43,7 +46,10 @@ import {
     BrowserAccountController,
   ],
   providers: [
-    BrowserAccountService,
+    {
+      provide: BrowserAccountService,
+      useClass: WorkspaceScopedBrowserAccountService,
+    },
     BrowserLeaseService,
     BrowserSessionService,
     BrowserTimelineService,
