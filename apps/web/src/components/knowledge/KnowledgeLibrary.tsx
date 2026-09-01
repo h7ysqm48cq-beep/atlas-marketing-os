@@ -165,7 +165,15 @@ export function KnowledgeLibrary() {
   }
 
   async function uploadKnowledgeFile(file: File) {
-    const allowedExtensions = [".pdf", ".docx", ".txt", ".md", ".markdown"];
+    const allowedExtensions = [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".xls",
+      ".txt",
+      ".md",
+      ".markdown",
+    ];
 
     const lowerName = file.name.toLowerCase();
     const supported = allowedExtensions.some((extension) =>
@@ -173,7 +181,7 @@ export function KnowledgeLibrary() {
     );
 
     if (!supported) {
-      setMessage("Upload PDF, DOCX, TXT, MD or Markdown files only.");
+      setMessage("Upload PDF, DOCX, XLSX, XLS, TXT, MD or Markdown files only.");
       return;
     }
 
@@ -350,7 +358,7 @@ export function KnowledgeLibrary() {
             ref={fileInputRef}
             className={styles.hiddenFileInput}
             type="file"
-            accept=".pdf,.docx,.txt,.md,.markdown"
+            accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.markdown"
             onChange={handleFileSelection}
           />
 
@@ -412,7 +420,7 @@ export function KnowledgeLibrary() {
               : "Drop a knowledge file here"}
           </strong>
 
-          <span>PDF, DOCX, TXT or Markdown · Maximum 10 MB</span>
+          <span>PDF, DOCX, XLSX, XLS, TXT or Markdown · Maximum 10 MB</span>
         </div>
       </div>
 
