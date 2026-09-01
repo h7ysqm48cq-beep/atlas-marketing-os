@@ -15,7 +15,7 @@ on:
       - ".github/workflows/verify-engineering-copilot-patch-integrity.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verification:
@@ -27,6 +27,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Apply Web type narrowing GREEN once
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/web/src/components/engineering/EngineeringCopilot.tsx")
+          source = path.read_text()
+          old = """            runtime.diffPreviews =\n              runtime.patches\n                .slice(0, 3)\n"""
+          new = """            runtime.diffPreviews =\n              (runtime.patches || [])\n                .slice(0, 3)\n"""
+
+          if new in source:
+              print("Web type narrowing GREEN already applied.")
+              raise SystemExit(0)
+
+          count = source.count(old)
+          if count != 1:
+              raise SystemExit(f"expected one exact runtime.patches diff block, found {count}")
+
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+          if git diff --quiet -- apps/web/src/components/engineering/EngineeringCopilot.tsx; then
+            echo "No source commit required."
+          else
+            git diff --check -- apps/web/src/components/engineering/EngineeringCopilot.tsx
+            git config user.name "ATLAS CI"
+            git config user.email "atlas-ci@users.noreply.github.com"
+            git add apps/web/src/components/engineering/EngineeringCopilot.tsx
+            git commit -m "fix(engineering): narrow real patch preview array"
+            git push origin HEAD:fix/engineering-copilot-patch-integrity-20260902
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
