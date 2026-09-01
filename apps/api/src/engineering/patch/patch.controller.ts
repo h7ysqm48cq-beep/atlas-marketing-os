@@ -13,6 +13,12 @@ import {
 } from "./patch.service";
 
 
+type ProposalDecisionBody = {
+  proposalId: string;
+  revision: number;
+};
+
+
 @Controller(
   "engineering/patch",
 )
@@ -57,5 +63,29 @@ export class PatchController {
       ...generated,
       proposal,
     };
+  }
+
+
+  @Post("proposal/approve")
+  approveProposal(
+    @Body()
+    body: ProposalDecisionBody,
+  ) {
+    return this.proposalService.approve(
+      body.proposalId,
+      body.revision,
+    );
+  }
+
+
+  @Post("proposal/reject")
+  rejectProposal(
+    @Body()
+    body: ProposalDecisionBody,
+  ) {
+    return this.proposalService.reject(
+      body.proposalId,
+      body.revision,
+    );
   }
 }
