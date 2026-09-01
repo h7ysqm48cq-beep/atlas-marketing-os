@@ -1224,3 +1224,35 @@ enum BrandMemoryFactStatus {
   CONFIRMED
   REJECTED
 }
+
+enum EngineeringPatchProposalStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  APPROVED
+  APPLIED
+  REJECTED
+  STALE
+}
+
+model EngineeringPatchProposal {
+  id               String                          @id @default(cuid())
+  request          String
+  status           EngineeringPatchProposalStatus @default(READY_FOR_REVIEW)
+  revision         Int                             @default(1)
+  snapshotHash     String
+  patches          Json
+  createdByUserId  String
+  approvedByUserId String?
+  rejectedByUserId String?
+  appliedByUserId  String?
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  appliedAt        DateTime?
+  staleAt          DateTime?
+
+  @@index([status, createdAt])
+  @@index([createdByUserId, createdAt])
+  @@index([snapshotHash])
+}
