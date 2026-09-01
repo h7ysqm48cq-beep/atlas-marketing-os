@@ -1,3 +1,7 @@
+jest.mock('./browser-session.service', () => ({
+  BrowserSessionService: class BrowserSessionService {},
+}));
+
 import { NotFoundException } from '@nestjs/common';
 import { BrowserAutomationPolicyService } from './browser-automation-policy.service';
 import { BrowserLeaseService } from './browser-lease.service';
