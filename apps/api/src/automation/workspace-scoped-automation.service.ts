@@ -291,7 +291,11 @@ export class WorkspaceScopedAutomationService extends AutomationService {
     return super.disconnectChannelApi(id);
   }
 
-  override async disconnectAllFacebookApi(_confirmation: string) {
+  override async disconnectAllFacebookApi(
+    _confirmation: string,
+  ): Promise<
+    Awaited<ReturnType<AutomationService['disconnectAllFacebookApi']>>
+  > {
     await this.requestWorkspaceId();
     throw new BadRequestException(
       'Bulk Facebook API disconnect is disabled for workspace-scoped requests.',
