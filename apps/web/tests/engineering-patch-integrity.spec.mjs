@@ -103,3 +103,27 @@ assert.match(
   /if\s*\(\s*!hasExecutablePatch\s*\)/u,
   "apply handler must fail closed without an executable patch",
 );
+
+assert.equal(
+  engineeringCopilotSource.includes("/engineering/apply/batch"),
+  false,
+  "EngineeringCopilot must not call the raw client-controlled batch apply endpoint",
+);
+
+assert.match(
+  engineeringCopilotSource,
+  /\/engineering\/apply\/proposal/u,
+  "EngineeringCopilot must apply only a persisted patch proposal",
+);
+
+assert.match(
+  engineeringCopilotSource,
+  /proposalId/u,
+  "proposal-bound apply must send the immutable proposal id",
+);
+
+assert.match(
+  engineeringCopilotSource,
+  /revision/u,
+  "proposal-bound apply must send the reviewed proposal revision",
+);
