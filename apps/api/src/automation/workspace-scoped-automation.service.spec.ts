@@ -1,5 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
-import { AuthContextService } from '../auth/auth-context.service';
 import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
 
 jest.mock('./publisher.service', () => ({
@@ -14,9 +12,6 @@ import { WorkspaceScopedAutomationService } from './workspace-scoped-automation.
 
 function createService() {
   const prisma = {
-    workspace: {
-      findUnique: jest.fn(),
-    },
     brand: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
@@ -38,7 +33,11 @@ function createService() {
       update: jest.fn(),
     },
   };
-  const auth = new AuthContextService();
+
+  const workspaceScope = {
+    getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
+  };
+
   const service = new WorkspaceScopedAutomationService(
     prisma as never,
     {} as never,
@@ -46,10 +45,10 @@ function createService() {
     {} as never,
     {} as never,
     {} as never,
-    auth,
+    workspaceScope as never,
   );
 
-  return { prisma, auth, service };
+  return { prisma, workspaceScope, service };
 }
 
 function allowFacebookPost(prisma: ReturnType<typeof createService>['prisma']) {
@@ -63,18 +62,8 @@ function allowFacebookPost(prisma: ReturnType<typeof createService>['prisma']) {
 }
 
 describe('WorkspaceScopedAutomationService', () => {
-  it('fails closed when an authenticated user has no owned workspace', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue(null);
-
-    await expect(
-      auth.run('user-a', () => service.listChannels()),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('filters channels to the authenticated workspace and keeps hidden filtering in the base query', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+  it('filters channels to the resolved workspace and keeps hidden filtering in the base query', async () => {
+    const { prisma, workspaceScope, service } = createService();
     prisma.socialChannel.findMany.mockResolvedValue([
       {
         id: 'channel-a',
@@ -88,17 +77,17 @@ describe('WorkspaceScopedAutomationService', () => {
       },
     ]);
 
-    const result = await auth.run('user-a', () => service.listChannels());
+    const result = await service.listChannels();
 
     expect(result.map((channel) => channel.id)).toEqual(['channel-a']);
+    expect(workspaceScope.getCurrentWorkspaceId).toHaveBeenCalled();
     expect(prisma.socialChannel.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { hiddenAt: null } }),
     );
   });
 
   it('applies workspace and hidden-channel predicates before calendar limits', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     prisma.scheduledPost.findMany.mockResolvedValue([
       {
         id: 'post-a',
@@ -109,9 +98,7 @@ describe('WorkspaceScopedAutomationService', () => {
       },
     ]);
 
-    const result = await auth.run('user-a', () =>
-      service.listCalendarPosts(undefined, undefined, undefined, 10),
-    );
+    const result = await service.listCalendarPosts(undefined, undefined, undefined, 10);
 
     expect(result.map((post) => post.id)).toEqual(['post-a']);
     expect(prisma.scheduledPost.findMany).toHaveBeenCalledWith(
@@ -129,11 +116,10 @@ describe('WorkspaceScopedAutomationService', () => {
   });
 
   it('applies workspace predicates before normal post list limits', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     prisma.scheduledPost.findMany.mockResolvedValue([]);
 
-    await auth.run('user-a', () => service.listPosts());
+    await service.listPosts();
 
     expect(prisma.scheduledPost.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -146,38 +132,33 @@ describe('WorkspaceScopedAutomationService', () => {
   });
 
   it('blocks a cross-workspace scheduled post before returning it', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     prisma.scheduledPost.findFirst.mockResolvedValue(null);
 
-    await expect(
-      auth.run('user-a', () => service.getPost('post-b')),
-    ).rejects.toThrow('Scheduled post not found.');
+    await expect(service.getPost('post-b')).rejects.toThrow(
+      'Scheduled post not found.',
+    );
   });
 
   it('rejects creating a SCHEDULED post in the past', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
 
     await expect(
-      auth.run('user-a', () =>
-        service.createPost({
-          brandId: 'brand-a',
-          channelId: 'channel-a',
-          platform: SocialPlatform.FACEBOOK,
-          content: 'Test',
-          scheduledAt: new Date(Date.now() - 60_000).toISOString(),
-          status: ScheduledPostStatus.SCHEDULED,
-        }),
-      ),
+      service.createPost({
+        brandId: 'brand-a',
+        channelId: 'channel-a',
+        platform: SocialPlatform.FACEBOOK,
+        content: 'Test',
+        scheduledAt: new Date(Date.now() - 60_000).toISOString(),
+        status: ScheduledPostStatus.SCHEDULED,
+      }),
     ).rejects.toThrow('future scheduledAt');
 
     expect(prisma.scheduledPost.create).not.toHaveBeenCalled();
   });
 
   it('allows a valid future SCHEDULED post after workspace validation', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     allowFacebookPost(prisma);
     const future = new Date(Date.now() + 60 * 60 * 1000);
     prisma.scheduledPost.create.mockResolvedValue({
@@ -196,22 +177,19 @@ describe('WorkspaceScopedAutomationService', () => {
     });
 
     await expect(
-      auth.run('user-a', () =>
-        service.createPost({
-          brandId: 'brand-a',
-          channelId: 'channel-a',
-          platform: SocialPlatform.FACEBOOK,
-          content: 'Future',
-          scheduledAt: future.toISOString(),
-          status: ScheduledPostStatus.SCHEDULED,
-        }),
-      ),
+      service.createPost({
+        brandId: 'brand-a',
+        channelId: 'channel-a',
+        platform: SocialPlatform.FACEBOOK,
+        content: 'Future',
+        scheduledAt: future.toISOString(),
+        status: ScheduledPostStatus.SCHEDULED,
+      }),
     ).resolves.toMatchObject({ id: 'post-future' });
   });
 
   it('rejects moving a SCHEDULED post to a past timestamp', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     prisma.scheduledPost.findFirst.mockResolvedValue({ id: 'post-a' });
     prisma.scheduledPost.findUnique.mockResolvedValue({
       id: 'post-a',
@@ -231,19 +209,16 @@ describe('WorkspaceScopedAutomationService', () => {
     });
 
     await expect(
-      auth.run('user-a', () =>
-        service.updatePost('post-a', {
-          scheduledAt: new Date(Date.now() - 60_000).toISOString(),
-        }),
-      ),
+      service.updatePost('post-a', {
+        scheduledAt: new Date(Date.now() - 60_000).toISOString(),
+      }),
     ).rejects.toThrow('future scheduledAt');
 
     expect(prisma.scheduledPost.update).not.toHaveBeenCalled();
   });
 
   it('allows metadata-only edits on an already-past SCHEDULED post', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     prisma.scheduledPost.findFirst.mockResolvedValue({ id: 'post-a' });
     prisma.scheduledPost.findUnique.mockResolvedValue({
       id: 'post-a',
@@ -269,17 +244,14 @@ describe('WorkspaceScopedAutomationService', () => {
     });
 
     await expect(
-      auth.run('user-a', () =>
-        service.updatePost('post-a', { title: 'Edited title' }),
-      ),
+      service.updatePost('post-a', { title: 'Edited title' }),
     ).resolves.toMatchObject({ title: 'Edited title' });
 
     expect(prisma.scheduledPost.update).toHaveBeenCalled();
   });
 
   it('allows a historical DRAFT timestamp after workspace validation', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+    const { prisma, service } = createService();
     allowFacebookPost(prisma);
     prisma.scheduledPost.create.mockResolvedValue({
       id: 'post-a',
@@ -289,41 +261,30 @@ describe('WorkspaceScopedAutomationService', () => {
     });
 
     await expect(
-      auth.run('user-a', () =>
-        service.createPost({
-          brandId: 'brand-a',
-          channelId: 'channel-a',
-          platform: SocialPlatform.FACEBOOK,
-          content: 'Draft',
-          scheduledAt: new Date(Date.now() - 60_000).toISOString(),
-          status: ScheduledPostStatus.DRAFT,
-        }),
-      ),
+      service.createPost({
+        brandId: 'brand-a',
+        channelId: 'channel-a',
+        platform: SocialPlatform.FACEBOOK,
+        content: 'Draft',
+        scheduledAt: new Date(Date.now() - 60_000).toISOString(),
+        status: ScheduledPostStatus.DRAFT,
+      }),
     ).resolves.toMatchObject({ id: 'post-a' });
   });
 
-  it('uses the authenticated workspace for automation settings', async () => {
-    const { prisma, auth, service } = createService();
-    prisma.workspace.findUnique.mockResolvedValue({ id: 'workspace-a' });
+  it('uses the resolved workspace for automation settings', async () => {
+    const { prisma, service } = createService();
     prisma.automationSetting.upsert.mockResolvedValue({
       id: 'setting-a',
       workspaceId: 'workspace-a',
     });
 
-    await auth.run('user-a', () => service.getSettings());
+    await service.getSettings();
 
     expect(prisma.automationSetting.upsert).toHaveBeenCalledWith({
       where: { workspaceId: 'workspace-a' },
       update: {},
       create: { workspaceId: 'workspace-a' },
     });
-  });
-
-  it('falls back to the original system behavior when there is no HTTP auth context', async () => {
-    const { prisma, service } = createService();
-    prisma.socialChannel.findMany.mockResolvedValue([]);
-
-    await expect(service.listChannels()).resolves.toEqual([]);
-    expect(prisma.workspace.findUnique).not.toHaveBeenCalled();
   });
 });
