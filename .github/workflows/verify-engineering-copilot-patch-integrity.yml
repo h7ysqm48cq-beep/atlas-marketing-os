@@ -6,6 +6,7 @@ on:
     branches:
       - fix/engineering-copilot-patch-integrity-20260902
     paths:
+      - "apps/api/prisma/**"
       - "apps/api/src/engineering/**"
       - "apps/web/src/components/engineering/**"
       - "apps/web/tests/engineering-patch-integrity.spec.mjs"
@@ -61,7 +62,14 @@ jobs:
           --runTestsByPath
           src/engineering/patch/patch.service.integrity.spec.ts
 
-      - name: Run repository reasoner stop-word regression
+      - name: Run persisted proposal contract regression
+        run: >-
+          npm test --workspace apps/api --
+          --runInBand
+          --runTestsByPath
+          src/engineering/patch/patch-proposal.contract.spec.ts
+
+      - name: Run repository reasoner regressions
         run: python -m pytest -q tools/tests/test_repository_reasoner_stop_words.py
 
       - name: Run Engineering Copilot patch integrity regression
