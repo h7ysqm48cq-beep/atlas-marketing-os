@@ -319,19 +319,23 @@ export class PatchProposalService {
 
 
   async get(id: string) {
-    const proposal =
-      await this.prisma.engineeringPatchProposal.findUnique({
-        where: { id },
-      });
+  const actor = this.auth.requireUserId();
+  const proposal =
+    await this.prisma.engineeringPatchProposal.findUnique({
+      where: { id },
+    });
 
-    if (!proposal) {
-      throw new NotFoundException(
-        "Patch proposal not found.",
-      );
-    }
-
-    return proposal;
+  if (
+    !proposal ||
+    proposal.createdByUserId !== actor
+  ) {
+    throw new NotFoundException(
+      "Patch proposal not found.",
+    );
   }
+
+  return proposal;
+}
 
 
   async approve(
