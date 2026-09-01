@@ -1,6 +1,7 @@
 jest.mock('../../database/prisma.service', () => ({ PrismaService: class {} }));
 jest.mock('../../generated/prisma/client', () => require('../../generated/prisma/enums'));
 import { BrowserAccountService } from './browser-account.service';
+import { WorkspaceScopedBrowserAccountService } from './workspace-scoped-browser-account.service';
 
 describe('BrowserAccountService.syncFacebookPages', () => {
   it.each(['NATIVE_API', 'AUTOMATIC', 'BROWSER_RUNTIME'])(
@@ -46,17 +47,17 @@ describe('BrowserAccountService.syncFacebookPages', () => {
 
 describe('BrowserAccountService workspace scope', () => {
   const createService = (prisma: Record<string, any>) => {
-    const service = new BrowserAccountService(
+    const workspaceScope = {
+      getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
+    };
+    return new WorkspaceScopedBrowserAccountService(
       prisma as never,
       {
         encrypt: jest.fn((value: string) => `encrypted:${value}`),
         decrypt: jest.fn((value: string) => value),
       } as never,
+      workspaceScope as never,
     );
-    (service as any).workspaceScope = {
-      getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
-    };
-    return service;
   };
 
   it('lists only browser accounts from the current workspace', async () => {
