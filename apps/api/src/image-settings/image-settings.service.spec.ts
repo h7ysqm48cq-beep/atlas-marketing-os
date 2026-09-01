@@ -23,10 +23,10 @@ describe('ImageSettingsService workspace scope', () => {
         create: jest.fn(),
       },
     } as any;
-    const service = new ImageSettingsService(prisma);
-    (service as any).workspaceScope = {
+    const workspaceScope = {
       getCurrentWorkspaceId: jest.fn().mockResolvedValue('workspace-a'),
-    };
+    } as any;
+    const service = new ImageSettingsService(prisma, workspaceScope);
 
     const result = await service.get();
 
