@@ -906,6 +906,7 @@ class RepositoryReasoner:
             ".next",
             ".turbo",
             ".atlas",
+            ".atlas-backups",
             "node_modules",
             "dist",
             "build",
@@ -913,7 +914,12 @@ class RepositoryReasoner:
             "__pycache__",
         }
 
+        hidden_backup = re.compile(
+            r"^\..+-backup-\d{8}(?:-\d{6})?$"
+        )
+
         return any(
             part in ignored
+            or hidden_backup.fullmatch(part)
             for part in path.parts
         )
