@@ -1,0 +1,27 @@
+name: p0b1-resolver-test
+
+on:
+  push:
+    branches:
+      - feat/production-deployment-receipt-resolver-20260902
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Focused RED/GREEN tests
+        run: >-
+          npm run test --workspace apps/api -- --runInBand
+          production-deployment-resolver.spec.ts
+          deployment-authorization-service-binding.spec.ts
+          production-deployment-authorization-persistence.spec.ts
