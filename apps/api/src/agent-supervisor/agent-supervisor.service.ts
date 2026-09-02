@@ -12,6 +12,7 @@ import type {
   CreateSupervisorTaskInput,
   PermissionContext,
   PermissionDecision,
+  ProductionDeploymentService,
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
@@ -65,6 +66,11 @@ const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
 const OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE =
   'ATLAS_OWNER_DEPLOYMENT_AUTHORIZATION_V1';
+const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
+  'api',
+  'web',
+  'browser-worker',
+]);
 
 @Injectable()
 export class AgentSupervisorService {
@@ -323,6 +329,7 @@ export class AgentSupervisorService {
   async authorizeProductionDeployment(
     id: string,
     candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
     authorizedBy: string,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
@@ -341,6 +348,7 @@ export class AgentSupervisorService {
         code: 'owner_deployment_authorization_candidate_mismatch',
       });
     }
+    const authorizedService = this.requireProductionDeploymentService(service);
 
     const ownerId = authorizedBy.trim();
     if (!ownerId) {
@@ -352,10 +360,12 @@ export class AgentSupervisorService {
       ...task.evidence,
       ownerDeploymentAuthorization: {
         candidate: requestedCandidate,
+        service: authorizedService,
         authorizedBy: ownerId,
         authorizedAt,
         signature: this.signOwnerDeploymentAuthorization(
           requestedCandidate,
+          authorizedService,
           ownerId,
           authorizedAt,
         ),
@@ -425,9 +435,11 @@ export class AgentSupervisorService {
   assertOwnerDeploymentAuthorization(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
   ): void {
     const requestedCandidate = this.normalizeCandidate(candidate);
     this.requireCanonicalProductionDeployment(requestedCandidate);
+    const requestedService = this.requireProductionDeploymentService(service);
 
     const authorization = task.evidence?.ownerDeploymentAuthorization;
     if (!authorization) {
@@ -443,6 +455,17 @@ export class AgentSupervisorService {
     if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_mismatch',
+      });
+    }
+    const authorizedService = authorization.service;
+    if (!PRODUCTION_DEPLOYMENT_SERVICES.has(authorizedService)) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
+      });
+    }
+    if (authorizedService !== requestedService) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_service_mismatch',
       });
     }
 
@@ -465,6 +488,7 @@ export class AgentSupervisorService {
 
     const expected = this.signOwnerDeploymentAuthorization(
       authorization.candidate,
+      authorizedService,
       authorizedBy,
       authorizedAt,
     );
@@ -818,6 +842,7 @@ export class AgentSupervisorService {
 
   private signOwnerDeploymentAuthorization(
     candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
     authorizedBy: string,
     authorizedAt: string,
   ) {
@@ -833,12 +858,22 @@ export class AgentSupervisorService {
         JSON.stringify({
           purpose: OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE,
           candidate,
+          service,
           authorizedBy,
           authorizedAt,
         }),
         'utf8',
       )
       .digest('hex');
+  }
+
+  private requireProductionDeploymentService(
+    service: ProductionDeploymentService,
+  ): ProductionDeploymentService {
+    if (!PRODUCTION_DEPLOYMENT_SERVICES.has(service)) {
+      throw new BadRequestException({ code: 'unsupported_production_service' });
+    }
+    return service;
   }
 
   private requireStatus(task: SupervisorTask, allowed: SupervisorTaskStatus[]) {

@@ -8,6 +8,7 @@ import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
   IntegrationGateInput,
   ProductionDeploymentGateInput,
+  ProductionDeploymentResolveInput,
   SupervisorEvidence,
   SupervisorGateDecision,
   SupervisorReviewCandidate,
@@ -184,8 +185,115 @@ export class AgentGatewayService {
     this.supervisor.assertOwnerDeploymentAuthorization(
       task,
       persistedCandidate,
+      input.service,
     );
     return this.allowed(task.id, execution.id);
+  }
+
+  async resolveProductionDeployment(
+    input: ProductionDeploymentResolveInput,
+  ): Promise<SupervisorGateDecision> {
+    const requestedSha = input.github?.commitSha ?? '';
+    this.productionDeploymentGate.assertProductionDeployment({
+      service: input.service,
+      supervisorApprovedSha: requestedSha,
+      github: input.github,
+    });
+
+    const normalizedSha = requestedSha.toLowerCase();
+    const approvedTasks = (await this.supervisor.listTasks()).filter(
+      (task) => task.status === 'APPROVED',
+    );
+    const shaMatches: Array<{
+      task: SupervisorTask;
+      candidate: SupervisorReviewCandidate;
+    }> = [];
+
+    for (const task of approvedTasks) {
+      const rawCandidate = task.evidence?.reviewCandidate;
+      if (
+        !rawCandidate ||
+        rawCandidate.action !== 'deploy_production' ||
+        rawCandidate.targetBranch !== 'production/atlas' ||
+        rawCandidate.headSha.toLowerCase() !== normalizedSha
+      ) {
+        continue;
+      }
+      const candidate = this.normalizeCandidate(rawCandidate);
+      if (candidate.headSha === normalizedSha) {
+        shaMatches.push({ task, candidate });
+      }
+    }
+
+    if (shaMatches.length === 0) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_not_found',
+      });
+    }
+
+    const serviceMatches = shaMatches.filter(
+      ({ task }) =>
+        task.evidence?.ownerDeploymentAuthorization?.service === input.service,
+    );
+    if (serviceMatches.length === 0) {
+      if (shaMatches.length === 1) {
+        const only = shaMatches[0];
+        this.supervisor.assertOwnerDeploymentAuthorization(
+          only.task,
+          only.candidate,
+          input.service,
+        );
+      }
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_not_found',
+      });
+    }
+    if (serviceMatches.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_ambiguous',
+      });
+    }
+
+    const { task, candidate } = serviceMatches[0];
+    this.productionDeploymentGate.assertProductionDeployment({
+      service: input.service,
+      supervisorApprovedSha: candidate.headSha,
+      github: input.github,
+    });
+    this.supervisor.assertOwnerDeploymentAuthorization(
+      task,
+      candidate,
+      input.service,
+    );
+
+    const executions = await this.executionStore.listByTask(task.id);
+    const matchingExecutions: SupervisorExecution[] = [];
+    for (const execution of executions) {
+      if (execution.status !== 'COMPLETED' || !execution.result) continue;
+      const rawCandidate = execution.result.evidence.reviewCandidate;
+      if (!rawCandidate) continue;
+      const executionCandidate = this.normalizeCandidate(rawCandidate);
+      if (this.sameCandidate(candidate, executionCandidate)) {
+        matchingExecutions.push(execution);
+      }
+    }
+
+    if (matchingExecutions.length === 0) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_not_found',
+      });
+    }
+    if (matchingExecutions.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_ambiguous',
+      });
+    }
+
+    const validated = await this.validatePersistedCandidate(
+      task.id,
+      matchingExecutions[0].id,
+    );
+    return this.allowed(validated.task.id, validated.execution.id);
   }
 
   private async validateIntegrationCandidate(input: IntegrationGateInput) {
