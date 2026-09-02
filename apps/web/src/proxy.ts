@@ -97,6 +97,10 @@ export async function proxy(
   const pathname =
     request.nextUrl.pathname;
 
+  const switchAccount =
+    pathname === "/login" &&
+    request.nextUrl.searchParams.get("switch") === "1";
+
   if (
     !claims &&
     !isPublicRoute(pathname)
@@ -117,7 +121,8 @@ export async function proxy(
 
   if (
     claims &&
-    pathname === "/login"
+    pathname === "/login" &&
+    !switchAccount
   ) {
     const destination =
       request.nextUrl.searchParams.get(
