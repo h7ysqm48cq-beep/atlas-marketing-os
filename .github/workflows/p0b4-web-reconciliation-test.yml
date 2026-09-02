@@ -15,8 +15,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Focused regression tests
-        run: node --test apps/web/tests/auth-switch-account.spec.cjs apps/web/tests/knowledge-upload-contract.spec.cjs
+      - name: Deterministic Web regression tests
+        run: node --test apps/web/tests/*.spec.cjs
       - name: Focused lint
         run: npm run lint --workspace apps/web -- src/proxy.ts src/app/login/page.tsx src/components/UserMenu.tsx src/components/knowledge/KnowledgeLibrary.tsx
       - name: Web production build
