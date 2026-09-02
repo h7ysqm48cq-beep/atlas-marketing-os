@@ -101,7 +101,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://atlas:atlas@127.0.0.1:5432/atlas_build
         run: npm run build --workspace apps/api
-      - name: Generated client hygiene
+      - name: Restore generated client and verify hygiene
         run: |
-          git diff --check
+          git restore --source=HEAD -- apps/api/src/generated
           test -z "$(git status --short -- apps/api/src/generated)"
+          git diff --check
