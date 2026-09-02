@@ -6,19 +6,81 @@ on:
       - feat/production-deployment-receipt-resolver-20260902
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
+
+      - name: Resolver endpoint RED proof
+        run: |
+          SPEC=apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts
+          cp "$SPEC" /tmp/supervisor-gateway.controller.spec.ts
+          python <<'PY'
+          from pathlib import Path
+          path = Path('apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts')
+          text = path.read_text()
+          anchor = "  it('exposes validation only and delegates to the gateway service', async () => {"
+          test = """  it('exposes production deployment receipt resolution behind the CI gateway', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-DEPLOY-RESOLVE-1',
+      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',
+    };
+    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      resolveProductionDeployment,
+    } as unknown as AgentGatewayService) as unknown as {
+      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      service: 'api',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.resolveProductionDeployment).toBe('function');
+    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
+      decision,
+    );
+    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
+  });
+
+"""
+          if text.count(anchor) != 1:
+              raise SystemExit('controller RED anchor drift')
+          path.write_text(text.replace(anchor, test + anchor, 1))
+          PY
+          set +e
+          npm run test --workspace apps/api -- --runInBand supervisor-gateway.controller.spec.ts > /tmp/controller-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/controller-red.log
+          if [ "$status" -eq 0 ]; then
+            echo 'Expected controller resolver contract to be RED before implementation'
+            exit 1
+          fi
+          grep -q 'resolveProductionDeployment' /tmp/controller-red.log
+          mv /tmp/supervisor-gateway.controller.spec.ts "$SPEC"
+
       - name: Apply P0B-1 source changes
         run: |
           awk '/^diff --git a\/apps\/api\/src\/agent-supervisor\/persistence\/supervisor-persistence.mapper.ts/{exit} {print}' \
@@ -43,7 +105,8 @@ jobs:
               text = text.replace(old, new, 1)
           path.write_text(text)
           PY
-      - name: Adapt existing Supervisor tests to service-bound contract
+
+      - name: Adapt Supervisor tests to service-bound contract and resolver endpoint
         run: |
           python <<'PY'
           from pathlib import Path
@@ -86,24 +149,134 @@ jobs:
 
           mapper_spec = 'apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts'
           replace(mapper_spec, "    candidate: deploymentCandidateFixture(),\n    authorizedBy: 'owner-user-1',", "    candidate: deploymentCandidateFixture(),\n    service: 'api',\n    authorizedBy: 'owner-user-1',")
+
+          gateway_controller_spec = Path('apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts')
+          text = gateway_controller_spec.read_text()
+          anchor = "  it('exposes validation only and delegates to the gateway service', async () => {"
+          test = """  it('exposes production deployment receipt resolution behind the CI gateway', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-DEPLOY-RESOLVE-1',
+      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',
+    };
+    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      resolveProductionDeployment,
+    } as unknown as AgentGatewayService) as unknown as {
+      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      service: 'api',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.resolveProductionDeployment).toBe('function');
+    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
+      decision,
+    );
+    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
+  });
+
+"""
+          if text.count(anchor) != 1:
+              raise SystemExit('gateway controller endpoint anchor drift')
+          gateway_controller_spec.write_text(text.replace(anchor, test + anchor, 1))
           PY
-      - name: Focused contract tests
+
+      - name: Focused P0B-1 GREEN
         run: >-
           npm run test --workspace apps/api -- --runInBand
           production-deployment-resolver.spec.ts
           deployment-authorization-service-binding.spec.ts
           production-deployment-authorization-persistence.spec.ts
-      - name: Full Supervisor regression
+          supervisor-gateway.controller.spec.ts
+
+      - name: Full Supervisor regression before freeze
         run: npm run test --workspace apps/api -- --runInBand agent-supervisor
-      - name: Diff hygiene
-        run: git diff --check
-      - name: Standard API build
+
+      - name: Standard API build before freeze
         env:
           DATABASE_URL: postgresql://atlas:atlas@127.0.0.1:5432/atlas_build
         run: npm run build --workspace apps/api
-      - name: Restore generated client and verify hygiene
+
+      - name: Restore generated client and freeze exact implementation tree
         run: |
           git restore --source=HEAD -- apps/api/src/generated
           git clean -fd -- apps/api/src/generated
-          test -z "$(git status --short -- apps/api/src/generated)"
+          rm .atlas/p0b1-source.patch
+          rm .github/workflows/p0b1-resolver-test.yml
           git diff --check
+          git config user.name 'atlas-supervisor-ci'
+          git config user.email 'atlas-supervisor-ci@users.noreply.github.com'
+          git add \
+            apps/api/src/agent-supervisor/agent-supervisor.types.ts \
+            apps/api/src/agent-supervisor/agent-supervisor.service.ts \
+            apps/api/src/agent-supervisor/agent-supervisor.controller.ts \
+            apps/api/src/agent-supervisor/agent-supervisor.service.spec.ts \
+            apps/api/src/agent-supervisor/agent-supervisor.controller.spec.ts \
+            apps/api/src/agent-supervisor/gateway/agent-gateway.service.ts \
+            apps/api/src/agent-supervisor/gateway/agent-gateway.service.spec.ts \
+            apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.ts \
+            apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts \
+            apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.ts \
+            apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts
+          git rm .atlas/p0b1-source.patch .github/workflows/p0b1-resolver-test.yml
+          git commit -m 'feat(supervisor): resolve production deployment receipts'
+          test -z "$(git status --short)"
+
+      - name: Verify exact committed tree scope
+        run: |
+          BASE=5e5fd295b229d50bf441f7a2e742d0ed4fa4273d
+          cat > /tmp/expected-files <<'EOF'
+          apps/api/src/agent-supervisor/agent-supervisor.controller.spec.ts
+          apps/api/src/agent-supervisor/agent-supervisor.controller.ts
+          apps/api/src/agent-supervisor/agent-supervisor.service.spec.ts
+          apps/api/src/agent-supervisor/agent-supervisor.service.ts
+          apps/api/src/agent-supervisor/agent-supervisor.types.ts
+          apps/api/src/agent-supervisor/deployment/deployment-authorization-service-binding.spec.ts
+          apps/api/src/agent-supervisor/gateway/agent-gateway.service.spec.ts
+          apps/api/src/agent-supervisor/gateway/agent-gateway.service.ts
+          apps/api/src/agent-supervisor/gateway/production-deployment-resolver.spec.ts
+          apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts
+          apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.ts
+          apps/api/src/agent-supervisor/persistence/production-deployment-authorization-persistence.spec.ts
+          apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts
+          apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.ts
+          EOF
+          git diff --name-only "$BASE"...HEAD | sort > /tmp/actual-files
+          diff -u /tmp/expected-files /tmp/actual-files
+          git diff --check "$BASE"...HEAD
+          test -z "$(git status --short)"
+
+      - name: Focused P0B-1 committed-tree verification
+        run: >-
+          npm run test --workspace apps/api -- --runInBand
+          production-deployment-resolver.spec.ts
+          deployment-authorization-service-binding.spec.ts
+          production-deployment-authorization-persistence.spec.ts
+          supervisor-gateway.controller.spec.ts
+
+      - name: Full Supervisor committed-tree regression
+        run: npm run test --workspace apps/api -- --runInBand agent-supervisor
+
+      - name: Standard API committed-tree build
+        env:
+          DATABASE_URL: postgresql://atlas:atlas@127.0.0.1:5432/atlas_build
+        run: npm run build --workspace apps/api
+
+      - name: Final hygiene and push feature branch only
+        run: |
+          git restore --source=HEAD -- apps/api/src/generated
+          git clean -fd -- apps/api/src/generated
+          git diff --check
+          test -z "$(git status --short)"
+          git push origin HEAD:refs/heads/feat/production-deployment-receipt-resolver-20260902
