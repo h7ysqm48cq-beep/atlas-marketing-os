@@ -16,9 +16,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Apply P0B-1 source patch
+        run: |
+          git apply --check .atlas/p0b1-source.patch
+          git apply .atlas/p0b1-source.patch
       - name: Focused RED/GREEN tests
         run: >-
           npm run test --workspace apps/api -- --runInBand
