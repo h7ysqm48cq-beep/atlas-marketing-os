@@ -162,6 +162,10 @@ export function UserMenu() {
             Settings
           </a>
 
+          <a href="/login?switch=1">
+            Switch account
+          </a>
+
           <button
             type="button"
             onClick={() =>
