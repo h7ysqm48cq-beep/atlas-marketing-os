@@ -54,6 +54,9 @@ import {
   selectFacebookInspectionTab,
 } from "./facebook/inspection-page.js";
 import {
+  inspectFacebookAccountIdentity,
+} from "./facebook/account-identity.js";
+import {
   attachInstagramMedia,
   clickInstagramNext,
   clickInstagramShare,
@@ -1129,6 +1132,17 @@ async function inspectPublicIp(
   }
 }
 
+app.get(
+  "/",
+  (_request, response) => {
+    response.json({
+      ok: true,
+      service:
+        "atlas-browser-worker",
+    });
+  },
+);
+
 app.use(
   requireWorkerToken,
 );
@@ -1288,6 +1302,91 @@ app.post(
       );
 
     if (existing) {
+      const requestedStartUrl =
+        input.startUrl
+          ?.trim() ||
+        null;
+
+      if (requestedStartUrl) {
+        let parsedStartUrl:
+          URL;
+
+        try {
+          parsedStartUrl =
+            new URL(
+              requestedStartUrl,
+            );
+        } catch {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              "Invalid browser start URL.",
+          });
+          return;
+        }
+
+        if (
+          ![
+            "http:",
+            "https:",
+          ].includes(
+            parsedStartUrl.protocol,
+          )
+        ) {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              "Browser start URL must use HTTP or HTTPS.",
+          });
+          return;
+        }
+
+        try {
+          const page =
+            existing.context
+              .pages()
+              .filter(
+                (candidate) =>
+                  !candidate.isClosed() &&
+                  candidate !==
+                    existing.preparedPage,
+              )
+              .at(-1) ||
+            await existing.context
+              .newPage();
+
+          await page.goto(
+            requestedStartUrl,
+            {
+              waitUntil:
+                "domcontentloaded",
+              timeout: 30000,
+            },
+          );
+
+          await page
+            .bringToFront();
+
+          existing.channelId =
+            input.channelId;
+
+          existing.currentUrl =
+            page.url();
+        } catch (error) {
+          response.status(400).json({
+            opened: false,
+            alreadyRunning: true,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unable to route the running browser profile.",
+          });
+          return;
+        }
+      }
+
       response.json({
         opened: false,
         alreadyRunning: true,
@@ -6505,10 +6604,93 @@ app.post(
           )
         );
 
+      const captureFacebookIdentity =
+        request.body?.captureFacebookIdentity === true;
+
+      const facebookAccountIdentity =
+        !loginLikely &&
+        url.includes("facebook.com")
+          ? await inspectFacebookAccountIdentity({
+              getCookies: async () =>
+                session.context.cookies(
+                  "https://www.facebook.com/",
+                ),
+
+              captureProfileName:
+                captureFacebookIdentity,
+
+              openTemporaryTab: async () => {
+                const identityPage =
+                  await session.context.newPage();
+
+                return {
+                  goto: async (targetUrl: string) => {
+                    await identityPage.goto(
+                      targetUrl,
+                      {
+                        waitUntil:
+                          "domcontentloaded",
+                        timeout: 15000,
+                      },
+                    );
+                  },
+
+                  readProfileName: async () => {
+                    const heading =
+                      (
+                        await identityPage
+                          .locator("h1")
+                          .first()
+                          .innerText({
+                            timeout: 5000,
+                          })
+                          .catch(() => "")
+                      )
+                        .replace(/\s+/g, " ")
+                        .trim();
+
+                    if (heading) {
+                      return heading;
+                    }
+
+                    const title =
+                      (
+                        await identityPage
+                          .title()
+                          .catch(() => "")
+                      )
+                        .replace(
+                          /\s*\|\s*Facebook\s*$/i,
+                          "",
+                        )
+                        .trim();
+
+                    return title || null;
+                  },
+
+                  close: async () => {
+                    await identityPage.close();
+                  },
+                };
+              },
+            })
+          : null;
+
       response.json({
         success: true,
         browserProfileKey:
           session.browserProfileKey,
+
+        facebookUserId:
+          facebookAccountIdentity
+            ?.facebookUserId ||
+          null,
+
+        facebookUserName:
+          facebookAccountIdentity
+            ?.facebookUserName ||
+          null,
+
         page: {
           title,
           url,
