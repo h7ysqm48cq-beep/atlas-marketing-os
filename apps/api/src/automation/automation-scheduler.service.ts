@@ -6,6 +6,7 @@ import {
   Cron,
 } from '@nestjs/schedule';
 import { PublisherService } from './publisher.service';
+import { SportsNewsAutomationService } from './sports-news-automation.service';
 
 @Injectable()
 export class AutomationSchedulerService {
@@ -17,6 +18,8 @@ export class AutomationSchedulerService {
   constructor(
     private readonly publisher:
       PublisherService,
+    private readonly sportsNews:
+      SportsNewsAutomationService,
   ) {}
 
   @Cron(
@@ -59,5 +62,23 @@ export class AutomationSchedulerService {
           : undefined,
       );
     }
+  }
+
+  @Cron('0 9 * * *', {
+    name: 'atlas-sports-news-morning',
+    timeZone: 'Asia/Kuala_Lumpur',
+    waitForCompletion: true,
+  })
+  publishMorningSportsNews() {
+    return this.sportsNews.run('09:00');
+  }
+
+  @Cron('0 20 * * *', {
+    name: 'atlas-sports-news-evening',
+    timeZone: 'Asia/Kuala_Lumpur',
+    waitForCompletion: true,
+  })
+  publishEveningSportsNews() {
+    return this.sportsNews.run('20:00');
   }
 }

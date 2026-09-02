@@ -83,6 +83,43 @@ export function AutomationDashboard() {
     useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedChannel, setSelectedChannel] =
+    useState<Channel | null>(null);
+  const [testingChannel, setTestingChannel] =
+    useState(false);
+  const [testResult, setTestResult] = useState("");
+
+  async function testChannel(channel: Channel) {
+    setTestingChannel(true);
+    setTestResult("");
+
+    try {
+      const endpoint =
+        channel.platform === "FACEBOOK"
+          ? "facebook/test"
+          : "telegram/test";
+      const response = await fetch(
+        `${API_URL}/automation/${endpoint}`,
+        { method: "POST" },
+      );
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(body || "Connection test failed.");
+      }
+
+      setTestResult("Connection test successful.");
+      await load();
+    } catch (testError) {
+      setTestResult(
+        testError instanceof Error
+          ? testError.message
+          : "Connection test failed.",
+      );
+    } finally {
+      setTestingChannel(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -229,9 +266,15 @@ export function AutomationDashboard() {
 
           <div className={styles.channelList}>
             {dashboard.channels.map((channel) => (
-              <div
+              <button
+                type="button"
                 className={styles.channelCard}
                 key={channel.id}
+                onClick={() => {
+                  setSelectedChannel(channel);
+                  setTestResult("");
+                }}
+                aria-label={`Manage ${channel.name}`}
               >
                 <div
                   className={`${styles.channelIcon} ${
@@ -269,7 +312,8 @@ export function AutomationDashboard() {
                     {channel._count.scheduledPosts} posts
                   </small>
                 </div>
-              </div>
+                <span className={styles.channelArrow}>›</span>
+              </button>
             ))}
           </div>
         </article>
@@ -403,6 +447,61 @@ export function AutomationDashboard() {
           </table>
         </div>
       </section>
+
+      {selectedChannel ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={() => setSelectedChannel(null)}
+        >
+          <section
+            className={styles.channelModal}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedChannel.name} channel details`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <p className={styles.eyebrow}>Channel details</p>
+                <h2>{selectedChannel.name}</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => setSelectedChannel(null)}
+                aria-label="Close channel details"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className={styles.channelDetails}>
+              <div><span>Platform</span><strong>{platformLabel(selectedChannel.platform)}</strong></div>
+              <div><span>Status</span><strong>{selectedChannel.status}</strong></div>
+              <div><span>Username</span><strong>{selectedChannel.username ? `@${selectedChannel.username}` : "—"}</strong></div>
+              <div><span>Scheduled posts</span><strong>{selectedChannel._count.scheduledPosts}</strong></div>
+              <div><span>Last connected</span><strong>{selectedChannel.lastConnectedAt ? formatDate(selectedChannel.lastConnectedAt) : "Never"}</strong></div>
+            </div>
+
+            {selectedChannel.lastError ? (
+              <div className={styles.error}>{selectedChannel.lastError}</div>
+            ) : null}
+            {testResult ? (
+              <div className={styles.testResult}>{testResult}</div>
+            ) : null}
+
+            <button
+              type="button"
+              className={styles.testButton}
+              disabled={testingChannel}
+              onClick={() => void testChannel(selectedChannel)}
+            >
+              {testingChannel ? "Testing..." : "Test connection"}
+            </button>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
