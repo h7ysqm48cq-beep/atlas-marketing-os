@@ -63,6 +63,8 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
 
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
+const OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE =
+  'ATLAS_OWNER_DEPLOYMENT_AUTHORIZATION_V1';
 
 @Injectable()
 export class AgentSupervisorService {
@@ -164,7 +166,9 @@ export class AgentSupervisorService {
   async failTask(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     if (task.status === 'APPROVED' || task.status === 'FAILED') {
-      throw new BadRequestException(`invalid_transition:${task.status}->FAILED`);
+      throw new BadRequestException(
+        `invalid_transition:${task.status}->FAILED`,
+      );
     }
     if (!reason.trim()) {
       throw new BadRequestException('failure_reason_required');
@@ -225,9 +229,15 @@ export class AgentSupervisorService {
 
     await this.assertDependenciesReady(task);
     await this.assertFilesAvailable(task);
-    if (task.evidence?.ownerMergeAuthorization) {
-      const { ownerMergeAuthorization: _authorization, ...evidence } =
-        task.evidence;
+    if (
+      task.evidence?.ownerMergeAuthorization ||
+      task.evidence?.ownerDeploymentAuthorization
+    ) {
+      const {
+        ownerMergeAuthorization: _mergeAuthorization,
+        ownerDeploymentAuthorization: _deploymentAuthorization,
+        ...evidence
+      } = task.evidence;
       task.evidence = evidence;
     }
     task.status = 'WORKING';
@@ -310,6 +320,51 @@ export class AgentSupervisorService {
     return this.taskStore.save(task);
   }
 
+  async authorizeProductionDeployment(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    authorizedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+    if (!task.evidence?.reviewCandidate) {
+      throw new BadRequestException({ code: 'review_candidate_not_recorded' });
+    }
+
+    const reviewedCandidate = this.normalizeCandidate(
+      task.evidence.reviewCandidate,
+    );
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+    if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_candidate_mismatch',
+      });
+    }
+
+    const ownerId = authorizedBy.trim();
+    if (!ownerId) {
+      throw new BadRequestException({ code: 'owner_identity_required' });
+    }
+
+    const authorizedAt = new Date().toISOString();
+    task.evidence = {
+      ...task.evidence,
+      ownerDeploymentAuthorization: {
+        candidate: requestedCandidate,
+        authorizedBy: ownerId,
+        authorizedAt,
+        signature: this.signOwnerDeploymentAuthorization(
+          requestedCandidate,
+          ownerId,
+          authorizedAt,
+        ),
+      },
+    };
+    task.updatedAt = new Date();
+    return this.taskStore.save(task);
+  }
+
   assertOwnerMergeAuthorization(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,
@@ -333,13 +388,16 @@ export class AgentSupervisorService {
       });
     }
 
-    const authorizedBy = authorization.authorizedBy?.trim();
-    const authorizedAt = authorization.authorizedAt?.trim();
-    const signature = authorization.signature?.trim();
+    const authorizedBy = authorization.authorizedBy;
+    const authorizedAt = authorization.authorizedAt;
+    const signature = authorization.signature;
     if (
       !authorizedBy ||
+      authorizedBy !== authorizedBy.trim() ||
       !authorizedAt ||
+      authorizedAt !== authorizedAt.trim() ||
       !signature ||
+      signature !== signature.trim() ||
       !FULL_SIGNATURE.test(signature)
     ) {
       throw new BadRequestException({
@@ -360,6 +418,64 @@ export class AgentSupervisorService {
     ) {
       throw new BadRequestException({
         code: 'owner_merge_authorization_invalid',
+      });
+    }
+  }
+
+  assertOwnerDeploymentAuthorization(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+  ): void {
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+
+    const authorization = task.evidence?.ownerDeploymentAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_required',
+      });
+    }
+
+    const authorizedCandidate = this.normalizeCandidate(
+      authorization.candidate,
+    );
+    this.requireCanonicalProductionDeployment(authorizedCandidate);
+    if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_mismatch',
+      });
+    }
+
+    const authorizedBy = authorization.authorizedBy;
+    const authorizedAt = authorization.authorizedAt;
+    const signature = authorization.signature;
+    if (
+      !authorizedBy ||
+      authorizedBy !== authorizedBy.trim() ||
+      !authorizedAt ||
+      authorizedAt !== authorizedAt.trim() ||
+      !signature ||
+      signature !== signature.trim() ||
+      !FULL_SIGNATURE.test(signature)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
+      });
+    }
+
+    const expected = this.signOwnerDeploymentAuthorization(
+      authorization.candidate,
+      authorizedBy,
+      authorizedAt,
+    );
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    const suppliedBuffer = Buffer.from(signature, 'hex');
+    if (
+      expectedBuffer.length !== suppliedBuffer.length ||
+      !timingSafeEqual(expectedBuffer, suppliedBuffer)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
       });
     }
   }
@@ -476,9 +592,9 @@ export class AgentSupervisorService {
       .filter(
         ({ dependency }) =>
           !dependency ||
-          !(['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]).includes(
-            dependency.status,
-          ),
+          !(
+            ['READY_FOR_REVIEW', 'APPROVED'] as SupervisorTaskStatus[]
+          ).includes(dependency.status),
       )
       .map(({ dependencyId }) => dependencyId);
 
@@ -582,7 +698,9 @@ export class AgentSupervisorService {
     const baseSha = this.requireSha(candidate.baseSha, 'invalid_base_sha');
     const headSha = this.requireSha(candidate.headSha, 'invalid_head_sha');
     const changedFiles = Array.from(
-      new Set(candidate.changedFiles.map((path) => this.normalizeRepoPath(path))),
+      new Set(
+        candidate.changedFiles.map((path) => this.normalizeRepoPath(path)),
+      ),
     ).sort();
     if (changedFiles.length === 0) {
       throw new BadRequestException({ code: 'review_candidate_empty_changes' });
@@ -617,6 +735,19 @@ export class AgentSupervisorService {
     }
   }
 
+  private requireCanonicalProductionDeployment(
+    candidate: SupervisorReviewCandidate,
+  ) {
+    if (
+      candidate.action !== 'deploy_production' ||
+      candidate.targetBranch !== 'production/atlas'
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_requires_canonical_deployment',
+      });
+    }
+  }
+
   private sameCandidate(
     left: SupervisorReviewCandidate,
     right: SupervisorReviewCandidate,
@@ -627,7 +758,9 @@ export class AgentSupervisorService {
       left.baseSha === right.baseSha &&
       left.headSha === right.headSha &&
       left.changedFiles.length === right.changedFiles.length &&
-      left.changedFiles.every((value, index) => value === right.changedFiles[index])
+      left.changedFiles.every(
+        (value, index) => value === right.changedFiles[index],
+      )
     );
   }
 
@@ -674,6 +807,31 @@ export class AgentSupervisorService {
     return createHmac('sha256', token)
       .update(
         JSON.stringify({
+          candidate,
+          authorizedBy,
+          authorizedAt,
+        }),
+        'utf8',
+      )
+      .digest('hex');
+  }
+
+  private signOwnerDeploymentAuthorization(
+    candidate: SupervisorReviewCandidate,
+    authorizedBy: string,
+    authorizedAt: string,
+  ) {
+    const token = this.config?.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
+    if (!token) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_not_configured',
+      });
+    }
+
+    return createHmac('sha256', token)
+      .update(
+        JSON.stringify({
+          purpose: OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE,
           candidate,
           authorizedBy,
           authorizedAt,

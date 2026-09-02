@@ -3,6 +3,7 @@ import type {
   SupervisorAction,
   SupervisorEvidence,
   SupervisorIntegrationAction,
+  SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerMergeAuthorization,
   SupervisorReviewCandidate,
   SupervisorTask,
@@ -25,6 +26,7 @@ const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
   'run_migration',
   'change_runtime_config',
 ]);
+const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
 
 export interface SupervisorTaskRecord {
   id: string;
@@ -76,7 +78,10 @@ function requireString(value: unknown): string {
 }
 
 function requireStringArray(value: unknown): string[] {
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== 'string')
+  ) {
     throw persistenceError();
   }
   return [...value];
@@ -115,6 +120,26 @@ function mapOwnerMergeAuthorization(
   };
 }
 
+function mapOwnerDeploymentAuthorization(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorization {
+  const object = requireObject(value);
+  const candidate = mapReviewCandidate(object.candidate);
+  const authorizedBy = requireString(object.authorizedBy);
+  const authorizedAt = requireString(object.authorizedAt);
+  const signature = requireString(object.signature);
+  if (
+    candidate.action !== 'deploy_production' ||
+    candidate.targetBranch !== 'production/atlas' ||
+    !authorizedBy.trim() ||
+    !authorizedAt.trim() ||
+    !FULL_SIGNATURE.test(signature)
+  ) {
+    throw persistenceError();
+  }
+  return { candidate, authorizedBy, authorizedAt, signature };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
   const reviewCandidate =
@@ -125,6 +150,10 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     object.ownerMergeAuthorization === undefined
       ? undefined
       : mapOwnerMergeAuthorization(object.ownerMergeAuthorization);
+  const ownerDeploymentAuthorization =
+    object.ownerDeploymentAuthorization === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorization(object.ownerDeploymentAuthorization);
 
   return {
     rootCause: requireString(object.rootCause),
@@ -137,6 +166,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     remainingRisk: requireStringArray(object.remainingRisk),
     ...(reviewCandidate ? { reviewCandidate } : {}),
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
+    ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
   };
 }
 
@@ -198,8 +228,6 @@ export function mapExecutionRecord(
     error: record.error,
     createdAt: new Date(record.createdAt),
     startedAt: record.startedAt ? new Date(record.startedAt) : null,
-    completedAt: record.completedAt
-      ? new Date(record.completedAt)
-      : null,
+    completedAt: record.completedAt ? new Date(record.completedAt) : null,
   };
 }

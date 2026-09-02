@@ -10,15 +10,22 @@ const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
 const OWNER_TOKEN = 'integration-owner-token';
+const CANONICAL_GITHUB = {
+  repositoryOwner: 'h7ysqm48cq-beep',
+  repositoryName: 'atlas-marketing-os',
+  branch: 'production/atlas',
+  commitSha: HEAD_SHA,
+};
 
 describe('AgentGatewayService', () => {
   let supervisor: AgentSupervisorService;
   let dispatcher: WorkerDispatcherService;
+  let taskStore: MemorySupervisorTaskStore;
   let executionStore: MemorySupervisorExecutionStore;
   let gateway: AgentGatewayService;
 
   beforeEach(() => {
-    const taskStore = new MemorySupervisorTaskStore();
+    taskStore = new MemorySupervisorTaskStore();
     const fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
     const config = {
@@ -85,6 +92,215 @@ describe('AgentGatewayService', () => {
     }
     return { task: await supervisor.getTask(task.id), execution: completed };
   }
+
+  async function createReadyDeploymentExecution(
+    action: 'deploy_production' | 'merge' = 'deploy_production',
+  ) {
+    const { task, execution } = await createRunningExecution();
+    const reviewCandidate = {
+      action,
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+    };
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Prepared exact production deployment candidate',
+      evidence: {
+        rootCause: 'Production provenance was not enforced',
+        changedFiles: [CHANGED_FILE],
+        tests: ['production deployment gate PASS'],
+        build: 'PASS',
+        regression: ['supervisor PASS'],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_INTEGRATION_PERFORMED',
+        remainingRisk: [],
+        reviewCandidate,
+      },
+    });
+    await gateway.submitImplementationFromExecution(task.id, completed.id);
+    await supervisor.beginVerification(task.id);
+    await supervisor.markReadyForReview(task.id);
+    return {
+      task: await supervisor.getTask(task.id),
+      execution: completed,
+      reviewCandidate,
+    };
+  }
+
+  async function authorizeProductionDeployment(
+    taskId: string,
+    reviewCandidate: {
+      action: 'deploy_production' | 'merge';
+      targetBranch: string;
+      baseSha: string;
+      headSha: string;
+      changedFiles: string[];
+    },
+  ) {
+    const contract = supervisor as unknown as {
+      authorizeProductionDeployment?: (
+        id: string,
+        candidate: typeof reviewCandidate,
+        authorizedBy: string,
+      ) => Promise<unknown>;
+    };
+    expect(contract.authorizeProductionDeployment).toEqual(
+      expect.any(Function),
+    );
+    if (!contract.authorizeProductionDeployment) return undefined;
+    return contract.authorizeProductionDeployment(
+      taskId,
+      reviewCandidate,
+      'owner-user-1',
+    );
+  }
+
+  function productionGateway() {
+    return gateway as unknown as {
+      checkProductionDeployment(input: unknown): Promise<unknown>;
+    };
+  }
+
+  it('exposes the production deployment gate contract', () => {
+    expect(
+      typeof (gateway as unknown as { checkProductionDeployment?: unknown })
+        .checkProductionDeployment,
+    ).toBe('function');
+  });
+
+  it('allows production provenance only against the persisted deployment candidate SHA', async () => {
+    const { task, execution, reviewCandidate } =
+      await createReadyDeploymentExecution();
+    await authorizeProductionDeployment(task.id, reviewCandidate);
+    await supervisor.approveTask(task.id, true);
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'api',
+        github: CANONICAL_GITHUB,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+  });
+
+  it('rejects canonical production provenance without persisted owner deployment authorization', async () => {
+    const { task, execution } = await createReadyDeploymentExecution();
+    await supervisor.approveTask(task.id, true);
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'api',
+        github: CANONICAL_GITHUB,
+        approvedSha: HEAD_SHA,
+        explicitUserAuthorization: true,
+        authorizedBy: 'caller-controlled-owner',
+        signature: 'f'.repeat(64),
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_deployment_authorization_required' },
+    });
+  });
+
+  it('does not reuse valid owner merge authorization as deployment authorization', async () => {
+    const { task, execution } = await createReadyDeploymentExecution();
+    await supervisor.approveTask(task.id, true);
+    const { task: mergeTask } = await createReadyExecution();
+    const persistedDeploymentTask = await supervisor.getTask(task.id);
+    persistedDeploymentTask.evidence = {
+      ...persistedDeploymentTask.evidence!,
+      ownerMergeAuthorization: mergeTask.evidence!.ownerMergeAuthorization,
+    };
+    await taskStore.save(persistedDeploymentTask);
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'api',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_deployment_authorization_required' },
+    });
+  });
+
+  it('rejects deployment authorization while the task is only READY_FOR_REVIEW', async () => {
+    const { task, execution, reviewCandidate } =
+      await createReadyDeploymentExecution();
+    await authorizeProductionDeployment(task.id, reviewCandidate);
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'api',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'task_not_deployment_approved' },
+    });
+  });
+
+  it.each(['DISPATCHED', 'RUNNING', 'FAILED', 'CANCELLED'] as const)(
+    'rejects production deployment from a %s execution',
+    async (status) => {
+      const { task, execution, reviewCandidate } =
+        await createReadyDeploymentExecution();
+      await authorizeProductionDeployment(task.id, reviewCandidate);
+      await supervisor.approveTask(task.id, true);
+      await executionStore.save({ ...execution, status });
+
+      await expect(
+        productionGateway().checkProductionDeployment({
+          taskId: task.id,
+          executionId: execution.id,
+          service: 'api',
+          github: CANONICAL_GITHUB,
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'execution_not_completed' },
+      });
+    },
+  );
+
+  it('does not reuse a persisted merge candidate as deployment authorization', async () => {
+    const { task, execution } = await createReadyDeploymentExecution('merge');
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'api',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'production_deployment_candidate_required' },
+    });
+  });
+
+  it('rejects provenance whose SHA differs from persisted deployment evidence', async () => {
+    const { task, execution } = await createReadyDeploymentExecution();
+
+    await expect(
+      productionGateway().checkProductionDeployment({
+        taskId: task.id,
+        executionId: execution.id,
+        service: 'browser-worker',
+        github: { ...CANONICAL_GITHUB, commitSha: 'c'.repeat(40) },
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'supervisor_approved_sha_mismatch' },
+    });
+  });
 
   it('accepts a running execution whose changed files are inside persisted assignment scope', async () => {
     const { task, execution } = await createRunningExecution();

@@ -39,10 +39,7 @@ export type SupervisorAction =
   | 'delete_branch_for_integration';
 
 export type SupervisorIntegrationAction =
-  | 'merge'
-  | 'deploy_production'
-  | 'run_migration'
-  | 'change_runtime_config';
+  'merge' | 'deploy_production' | 'run_migration' | 'change_runtime_config';
 
 export interface CreateSupervisorTaskInput {
   objective: string;
@@ -68,6 +65,13 @@ export interface SupervisorOwnerMergeAuthorization {
   signature: string;
 }
 
+export interface SupervisorOwnerDeploymentAuthorization {
+  candidate: SupervisorReviewCandidate;
+  authorizedBy: string;
+  authorizedAt: string;
+  signature: string;
+}
+
 export interface SupervisorEvidence {
   rootCause: string;
   changedFiles: string[];
@@ -79,6 +83,7 @@ export interface SupervisorEvidence {
   remainingRisk: string[];
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
+  ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
 }
 
 export interface SupervisorTask {
@@ -109,10 +114,7 @@ export interface PermissionDecision {
 }
 
 export type ExternalCodeWorkerKind =
-  | 'codex'
-  | 'chatgpt-work'
-  | 'chatgpt-coding'
-  | 'external-agent';
+  'codex' | 'chatgpt-work' | 'chatgpt-coding' | 'external-agent';
 
 export interface ValidateWorkerContextInput {
   taskId: string;
@@ -138,4 +140,29 @@ export interface SupervisorGateDecision {
   reason: string | null;
   taskId: string;
   executionId: string;
+}
+
+export type ProductionDeploymentService = 'api' | 'web' | 'browser-worker';
+
+export type ProductionDeploymentDriftStatus =
+  'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';
+
+export interface GithubDeploymentProvenance {
+  repositoryOwner?: string;
+  repositoryName?: string;
+  branch?: string;
+  commitSha?: string;
+}
+
+export interface ProductionDeploymentValidationInput {
+  service: ProductionDeploymentService;
+  supervisorApprovedSha: string;
+  github?: GithubDeploymentProvenance;
+}
+
+export interface ProductionDeploymentGateInput {
+  taskId: string;
+  executionId: string;
+  service: ProductionDeploymentService;
+  github?: GithubDeploymentProvenance;
 }

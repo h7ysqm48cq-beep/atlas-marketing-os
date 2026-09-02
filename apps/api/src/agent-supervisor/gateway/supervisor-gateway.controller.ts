@@ -2,6 +2,7 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { Public } from '../../auth/public.decorator';
 import type {
   IntegrationGateInput,
+  ProductionDeploymentGateInput,
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
 import { AgentGatewayService } from './agent-gateway.service';
@@ -21,5 +22,10 @@ export class SupervisorGatewayController {
   @Post('review-candidate')
   checkReviewCandidate(@Body() input: IntegrationGateInput) {
     return this.gateway.checkReviewCandidate(input);
+  }
+
+  @Post('production-deployment')
+  checkProductionDeployment(@Body() input: ProductionDeploymentGateInput) {
+    return this.gateway.checkProductionDeployment(input);
   }
 }
