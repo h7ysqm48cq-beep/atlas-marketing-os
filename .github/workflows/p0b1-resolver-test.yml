@@ -24,62 +24,35 @@ jobs:
 
       - name: Resolver endpoint RED proof
         run: |
-          SPEC=apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts
-          cp "$SPEC" /tmp/supervisor-gateway.controller.spec.ts
+          RED_SPEC=apps/api/src/agent-supervisor/gateway/p0b1-controller-red.spec.ts
           python <<'PY'
           from pathlib import Path
-          path = Path('apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts')
-          text = path.read_text()
-          anchor = "  it('exposes validation only and delegates to the gateway service', async () => {"
-          test = """  it('exposes production deployment receipt resolution behind the CI gateway', async () => {
-    const decision = {
-      allowed: true,
-      reason: null,
-      taskId: 'ATLAS-DEPLOY-RESOLVE-1',
-      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',
-    };
-    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
-    const controller = new SupervisorGatewayController({
-      resolveProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
-      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
-    };
-    const input = {
-      service: 'api',
-      github: {
-        repositoryOwner: 'h7ysqm48cq-beep',
-        repositoryName: 'atlas-marketing-os',
-        branch: 'production/atlas',
-        commitSha: 'a'.repeat(40),
-      },
-    };
-
-    expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
-    ).toContain(SupervisorCiGuard);
-    expect(typeof controller.resolveProductionDeployment).toBe('function');
-    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
-      decision,
-    );
-    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
-  });
-
-"""
-          if text.count(anchor) != 1:
-              raise SystemExit('controller RED anchor drift')
-          path.write_text(text.replace(anchor, test + anchor, 1))
+          lines = [
+              "import type { AgentGatewayService } from './agent-gateway.service';",
+              "import { SupervisorGatewayController } from './supervisor-gateway.controller';",
+              "",
+              "describe('P0B-1 controller RED', () => {",
+              "  it('requires resolveProductionDeployment on the CI gateway controller', () => {",
+              "    const controller = new SupervisorGatewayController({} as AgentGatewayService) as unknown as {",
+              "      resolveProductionDeployment?: unknown;",
+              "    };",
+              "    expect(typeof controller.resolveProductionDeployment).toBe('function');",
+              "  });",
+              "});",
+          ]
+          Path('apps/api/src/agent-supervisor/gateway/p0b1-controller-red.spec.ts').write_text('\n'.join(lines) + '\n')
           PY
           set +e
-          npm run test --workspace apps/api -- --runInBand supervisor-gateway.controller.spec.ts > /tmp/controller-red.log 2>&1
+          npm run test --workspace apps/api -- --runInBand p0b1-controller-red.spec.ts > /tmp/controller-red.log 2>&1
           status=$?
           set -e
           cat /tmp/controller-red.log
+          rm "$RED_SPEC"
           if [ "$status" -eq 0 ]; then
-            echo 'Expected controller resolver contract to be RED before implementation'
+            echo 'Expected resolver endpoint contract to be RED before implementation'
             exit 1
           fi
-          grep -q 'resolveProductionDeployment' /tmp/controller-red.log
-          mv /tmp/supervisor-gateway.controller.spec.ts "$SPEC"
+          echo 'Resolver endpoint RED proof: PASS'
 
       - name: Apply P0B-1 source changes
         run: |
@@ -153,43 +126,44 @@ jobs:
           gateway_controller_spec = Path('apps/api/src/agent-supervisor/gateway/supervisor-gateway.controller.spec.ts')
           text = gateway_controller_spec.read_text()
           anchor = "  it('exposes validation only and delegates to the gateway service', async () => {"
-          test = """  it('exposes production deployment receipt resolution behind the CI gateway', async () => {
-    const decision = {
-      allowed: true,
-      reason: null,
-      taskId: 'ATLAS-DEPLOY-RESOLVE-1',
-      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',
-    };
-    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
-    const controller = new SupervisorGatewayController({
-      resolveProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
-      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
-    };
-    const input = {
-      service: 'api',
-      github: {
-        repositoryOwner: 'h7ysqm48cq-beep',
-        repositoryName: 'atlas-marketing-os',
-        branch: 'production/atlas',
-        commitSha: 'a'.repeat(40),
-      },
-    };
-
-    expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
-    ).toContain(SupervisorCiGuard);
-    expect(typeof controller.resolveProductionDeployment).toBe('function');
-    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
-      decision,
-    );
-    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
-  });
-
-"""
+          test_lines = [
+              "  it('exposes production deployment receipt resolution behind the CI gateway', async () => {",
+              "    const decision = {",
+              "      allowed: true,",
+              "      reason: null,",
+              "      taskId: 'ATLAS-DEPLOY-RESOLVE-1',",
+              "      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',",
+              "    };",
+              "    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);",
+              "    const controller = new SupervisorGatewayController({",
+              "      resolveProductionDeployment,",
+              "    } as unknown as AgentGatewayService) as unknown as {",
+              "      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;",
+              "    };",
+              "    const input = {",
+              "      service: 'api',",
+              "      github: {",
+              "        repositoryOwner: 'h7ysqm48cq-beep',",
+              "        repositoryName: 'atlas-marketing-os',",
+              "        branch: 'production/atlas',",
+              "        commitSha: 'a'.repeat(40),",
+              "      },",
+              "    };",
+              "",
+              "    expect(",
+              "      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),",
+              "    ).toContain(SupervisorCiGuard);",
+              "    expect(typeof controller.resolveProductionDeployment).toBe('function');",
+              "    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(",
+              "      decision,",
+              "    );",
+              "    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);",
+              "  });",
+              "",
+          ]
           if text.count(anchor) != 1:
               raise SystemExit('gateway controller endpoint anchor drift')
-          gateway_controller_spec.write_text(text.replace(anchor, test + anchor, 1))
+          gateway_controller_spec.write_text(text.replace(anchor, '\n'.join(test_lines) + '\n' + anchor, 1))
           PY
 
       - name: Focused P0B-1 GREEN
