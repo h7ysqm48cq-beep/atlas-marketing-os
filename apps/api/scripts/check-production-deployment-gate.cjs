@@ -8,6 +8,11 @@ const REQUIRED_ENV = [
   'RAILWAY_GIT_BRANCH',
   'RAILWAY_GIT_COMMIT_SHA',
 ];
+const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
+  'api',
+  'web',
+  'browser-worker',
+]);
 
 function requireEnv(env, key) {
   const value = env[key];
@@ -15,6 +20,23 @@ function requireEnv(env, key) {
     throw new Error(`ATLAS_DEPLOY_GATE_DENY missing ${key}`);
   }
   return value.trim();
+}
+
+function deploymentService(env) {
+  const configured = env.ATLAS_DEPLOYMENT_SERVICE;
+  if (configured === undefined) return 'api';
+  if (typeof configured !== 'string' || !configured.trim()) {
+    throw new Error(
+      'ATLAS_DEPLOY_GATE_DENY unsupported ATLAS_DEPLOYMENT_SERVICE',
+    );
+  }
+  const service = configured.trim();
+  if (!SUPPORTED_DEPLOYMENT_SERVICES.has(service)) {
+    throw new Error(
+      'ATLAS_DEPLOY_GATE_DENY unsupported ATLAS_DEPLOYMENT_SERVICE',
+    );
+  }
+  return service;
 }
 
 function failureReason(responseBody, status) {
@@ -40,8 +62,9 @@ async function checkProductionDeploymentGate({
 
   const apiUrl = requireEnv(env, 'ATLAS_SUPERVISOR_API_URL').replace(/\/+$/g, '');
   const ciToken = requireEnv(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
+  const service = deploymentService(env);
   const payload = {
-    service: 'api',
+    service,
     github: {
       repositoryOwner: requireEnv(env, 'RAILWAY_GIT_REPO_OWNER'),
       repositoryName: requireEnv(env, 'RAILWAY_GIT_REPO_NAME'),
@@ -111,7 +134,7 @@ if (require.main === module) {
       console.log('ATLAS_DEPLOY_GATE_ALLOW', {
         taskId: receipt.taskId,
         executionId: receipt.executionId,
-        service: 'api',
+        service: deploymentService(process.env),
         commitSha: process.env.RAILWAY_GIT_COMMIT_SHA,
       });
     })
