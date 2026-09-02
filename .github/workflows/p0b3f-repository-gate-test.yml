@@ -1,0 +1,29 @@
+name: P0B-3F repository deployment gate test
+
+on:
+  push:
+    branches:
+      - fix/repository-owned-production-deploy-gate-20260902
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Focused repository gate contract
+        run: npm test --workspace apps/api -- --runInBand --runTestsByPath src/agent-supervisor/gateway/repository-production-deployment-gate.spec.ts
+      - name: Full Supervisor regression
+        run: npm test --workspace apps/api -- --runInBand src/agent-supervisor
+      - name: API build
+        env:
+          DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
+        run: npm run build --workspace apps/api
