@@ -104,5 +104,6 @@ jobs:
       - name: Restore generated client and verify hygiene
         run: |
           git restore --source=HEAD -- apps/api/src/generated
+          git clean -fd -- apps/api/src/generated
           test -z "$(git status --short -- apps/api/src/generated)"
           git diff --check
