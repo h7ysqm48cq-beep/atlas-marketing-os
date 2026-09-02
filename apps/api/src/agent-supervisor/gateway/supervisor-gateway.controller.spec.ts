@@ -43,6 +43,39 @@ describe('SupervisorGatewayController', () => {
     expect(checkProductionDeployment).toHaveBeenCalledWith(deploymentInput);
   });
 
+  it('exposes production deployment receipt resolution behind the CI gateway', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-DEPLOY-RESOLVE-1',
+      executionId: 'ATLAS-DEPLOY-RESOLVE-EXEC-1',
+    };
+    const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      resolveProductionDeployment,
+    } as unknown as AgentGatewayService) as unknown as {
+      resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      service: 'api',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.resolveProductionDeployment).toBe('function');
+    await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
+      decision,
+    );
+    expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
+  });
+
   it('exposes validation only and delegates to the gateway service', async () => {
     const workerDecision = {
       allowed: true,

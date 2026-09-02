@@ -67,6 +67,7 @@ export interface SupervisorOwnerMergeAuthorization {
 
 export interface SupervisorOwnerDeploymentAuthorization {
   candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
   authorizedBy: string;
   authorizedAt: string;
   signature: string;
@@ -163,6 +164,11 @@ export interface ProductionDeploymentValidationInput {
 export interface ProductionDeploymentGateInput {
   taskId: string;
   executionId: string;
+  service: ProductionDeploymentService;
+  github?: GithubDeploymentProvenance;
+}
+
+export interface ProductionDeploymentResolveInput {
   service: ProductionDeploymentService;
   github?: GithubDeploymentProvenance;
 }

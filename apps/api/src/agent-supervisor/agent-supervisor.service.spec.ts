@@ -1,7 +1,10 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from './agent-supervisor.service';
-import type { SupervisorReviewCandidate } from './agent-supervisor.types';
+import type {
+  ProductionDeploymentService,
+  SupervisorReviewCandidate,
+} from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
 
@@ -31,6 +34,7 @@ function deploymentCandidate(
 
 interface OwnerDeploymentAuthorizationContract {
   candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
   authorizedBy: string;
   authorizedAt: string;
   signature: string;
@@ -40,11 +44,13 @@ type DeploymentAuthorizationService = AgentSupervisorService & {
   authorizeProductionDeployment?: (
     id: string,
     candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
     authorizedBy: string,
   ) => Promise<unknown>;
   assertOwnerDeploymentAuthorization?: (
     task: unknown,
     candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
   ) => void;
 };
 
@@ -52,6 +58,7 @@ async function authorizeProductionDeployment(
   service: AgentSupervisorService,
   taskId: string,
   reviewCandidate: SupervisorReviewCandidate,
+  deploymentService: ProductionDeploymentService = 'api',
 ) {
   const contract = service as DeploymentAuthorizationService;
   expect(contract.authorizeProductionDeployment).toEqual(expect.any(Function));
@@ -59,6 +66,7 @@ async function authorizeProductionDeployment(
   return contract.authorizeProductionDeployment(
     taskId,
     reviewCandidate,
+    deploymentService,
     'owner-user-1',
   );
 }
@@ -361,6 +369,7 @@ describe('AgentSupervisorService', () => {
 
     expect(authorized?.evidence?.ownerDeploymentAuthorization).toMatchObject({
       candidate: reviewCandidate,
+      service: 'api',
       authorizedBy: 'owner-user-1',
     });
     expect(
@@ -432,6 +441,7 @@ describe('AgentSupervisorService', () => {
         contract.assertOwnerDeploymentAuthorization!(
           authorized,
           reviewCandidate,
+          'api',
         ),
       ).toThrow(BadRequestException);
     },
@@ -468,6 +478,7 @@ describe('AgentSupervisorService', () => {
         contract.assertOwnerDeploymentAuthorization!(
           authorized,
           reviewCandidate,
+          'api',
         ),
       ).toThrow(BadRequestException);
     },
@@ -494,6 +505,7 @@ describe('AgentSupervisorService', () => {
       mergeAuthorized.evidence!.ownerMergeAuthorization!;
     deploymentTask.evidence.ownerDeploymentAuthorization = {
       candidate: reviewCandidate,
+      service: 'api',
       authorizedBy: mergeAuthorization.authorizedBy,
       authorizedAt: mergeAuthorization.authorizedAt,
       signature: mergeAuthorization.signature,
@@ -508,6 +520,7 @@ describe('AgentSupervisorService', () => {
       contract.assertOwnerDeploymentAuthorization!(
         deploymentTask,
         reviewCandidate,
+        'api',
       ),
     ).toThrow(BadRequestException);
   });

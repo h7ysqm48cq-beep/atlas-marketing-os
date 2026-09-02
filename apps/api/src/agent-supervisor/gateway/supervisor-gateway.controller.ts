@@ -3,6 +3,7 @@ import { Public } from '../../auth/public.decorator';
 import type {
   IntegrationGateInput,
   ProductionDeploymentGateInput,
+  ProductionDeploymentResolveInput,
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
 import { AgentGatewayService } from './agent-gateway.service';
@@ -27,5 +28,10 @@ export class SupervisorGatewayController {
   @Post('production-deployment')
   checkProductionDeployment(@Body() input: ProductionDeploymentGateInput) {
     return this.gateway.checkProductionDeployment(input);
+  }
+
+  @Post('production-deployment/resolve')
+  resolveProductionDeployment(@Body() input: ProductionDeploymentResolveInput) {
+    return this.gateway.resolveProductionDeployment(input);
   }
 }

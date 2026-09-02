@@ -142,6 +142,7 @@ describe('AgentGatewayService', () => {
       authorizeProductionDeployment?: (
         id: string,
         candidate: typeof reviewCandidate,
+        service: 'api' | 'web' | 'browser-worker',
         authorizedBy: string,
       ) => Promise<unknown>;
     };
@@ -152,6 +153,7 @@ describe('AgentGatewayService', () => {
     return contract.authorizeProductionDeployment(
       taskId,
       reviewCandidate,
+      'api',
       'owner-user-1',
     );
   }

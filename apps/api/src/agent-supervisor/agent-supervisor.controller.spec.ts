@@ -139,6 +139,7 @@ describe('AgentSupervisorController', () => {
         'ATLAS-DEPLOY-1',
         {
           candidate: reviewCandidate,
+          service: 'api',
           explicitUserAuthorization: true,
           authorizedBy: 'caller-controlled-owner',
           signature: 'f'.repeat(64),
@@ -149,6 +150,7 @@ describe('AgentSupervisorController', () => {
     expect(authorizeProductionDeployment).toHaveBeenCalledWith(
       'ATLAS-DEPLOY-1',
       reviewCandidate,
+      'api',
       'authenticated-owner-id',
     );
   });

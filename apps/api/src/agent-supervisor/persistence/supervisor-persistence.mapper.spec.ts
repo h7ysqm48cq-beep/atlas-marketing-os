@@ -36,6 +36,7 @@ function deploymentCandidateFixture() {
 function ownerDeploymentAuthorizationFixture() {
   return {
     candidate: deploymentCandidateFixture(),
+    service: 'api',
     authorizedBy: 'owner-user-1',
     authorizedAt: '2026-09-02T00:00:00.000Z',
     signature: 'd'.repeat(64),

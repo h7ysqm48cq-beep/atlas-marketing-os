@@ -1,5 +1,6 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import type {
+  ProductionDeploymentService,
   SupervisorAction,
   SupervisorEvidence,
   SupervisorIntegrationAction,
@@ -27,6 +28,11 @@ const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
   'change_runtime_config',
 ]);
 const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
+const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
+  'api',
+  'web',
+  'browser-worker',
+]);
 
 export interface SupervisorTaskRecord {
   id: string;
@@ -125,19 +131,21 @@ function mapOwnerDeploymentAuthorization(
 ): SupervisorOwnerDeploymentAuthorization {
   const object = requireObject(value);
   const candidate = mapReviewCandidate(object.candidate);
+  const service = requireString(object.service) as ProductionDeploymentService;
   const authorizedBy = requireString(object.authorizedBy);
   const authorizedAt = requireString(object.authorizedAt);
   const signature = requireString(object.signature);
   if (
     candidate.action !== 'deploy_production' ||
     candidate.targetBranch !== 'production/atlas' ||
+    !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||
     !authorizedBy.trim() ||
     !authorizedAt.trim() ||
     !FULL_SIGNATURE.test(signature)
   ) {
     throw persistenceError();
   }
-  return { candidate, authorizedBy, authorizedAt, signature };
+  return { candidate, service, authorizedBy, authorizedAt, signature };
 }
 
 function mapEvidence(value: unknown): SupervisorEvidence {

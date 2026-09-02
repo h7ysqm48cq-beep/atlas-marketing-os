@@ -14,6 +14,7 @@ import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
+  ProductionDeploymentService,
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
@@ -107,12 +108,17 @@ export class AgentSupervisorController {
   @Post('tasks/:id/authorize-production-deployment')
   authorizeProductionDeployment(
     @Param('id') id: string,
-    @Body() body: { candidate: SupervisorReviewCandidate },
+    @Body()
+    body: {
+      candidate: SupervisorReviewCandidate;
+      service: ProductionDeploymentService;
+    },
     @Req() request: { user?: { id?: string } },
   ) {
     return this.supervisor.authorizeProductionDeployment(
       id,
       body.candidate,
+      body.service,
       request.user?.id ?? '',
     );
   }
