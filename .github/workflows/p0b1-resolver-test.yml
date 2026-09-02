@@ -29,36 +29,12 @@ jobs:
           from pathlib import Path
           path = Path('apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.ts')
           text = path.read_text()
-
           replacements = [
-              (
-                  "import type {\n  SupervisorAction,",
-                  "import type {\n  ProductionDeploymentService,\n  SupervisorAction,",
-              ),
-              (
-                  "const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;",
-                  "const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;\n"
-                  "const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([\n"
-                  "  'api',\n  'web',\n  'browser-worker',\n]);",
-              ),
-              (
-                  "  const candidate = mapReviewCandidate(object.candidate);\n"
-                  "  const authorizedBy = requireString(object.authorizedBy);",
-                  "  const candidate = mapReviewCandidate(object.candidate);\n"
-                  "  const service = requireString(object.service) as ProductionDeploymentService;\n"
-                  "  const authorizedBy = requireString(object.authorizedBy);",
-              ),
-              (
-                  "    candidate.targetBranch !== 'production/atlas' ||\n"
-                  "    !authorizedBy.trim() ||",
-                  "    candidate.targetBranch !== 'production/atlas' ||\n"
-                  "    !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||\n"
-                  "    !authorizedBy.trim() ||",
-              ),
-              (
-                  "  return { candidate, authorizedBy, authorizedAt, signature };",
-                  "  return { candidate, service, authorizedBy, authorizedAt, signature };",
-              ),
+              ("import type {\n  SupervisorAction,", "import type {\n  ProductionDeploymentService,\n  SupervisorAction,"),
+              ("const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;", "const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;\nconst PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([\n  'api',\n  'web',\n  'browser-worker',\n]);"),
+              ("  const candidate = mapReviewCandidate(object.candidate);\n  const authorizedBy = requireString(object.authorizedBy);", "  const candidate = mapReviewCandidate(object.candidate);\n  const service = requireString(object.service) as ProductionDeploymentService;\n  const authorizedBy = requireString(object.authorizedBy);"),
+              ("    candidate.targetBranch !== 'production/atlas' ||\n    !authorizedBy.trim() ||", "    candidate.targetBranch !== 'production/atlas' ||\n    !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||\n    !authorizedBy.trim() ||"),
+              ("  return { candidate, authorizedBy, authorizedAt, signature };", "  return { candidate, service, authorizedBy, authorizedAt, signature };"),
           ]
           for old, new in replacements:
               count = text.count(old)
@@ -67,9 +43,11 @@ jobs:
               text = text.replace(old, new, 1)
           path.write_text(text)
           PY
-      - name: Focused RED/GREEN tests
+      - name: Focused contract tests
         run: >-
           npm run test --workspace apps/api -- --runInBand
           production-deployment-resolver.spec.ts
           deployment-authorization-service-binding.spec.ts
           production-deployment-authorization-persistence.spec.ts
+      - name: Full Supervisor compatibility regression
+        run: npm run test --workspace apps/api -- --runInBand agent-supervisor
