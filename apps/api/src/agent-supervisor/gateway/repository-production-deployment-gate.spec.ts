@@ -154,6 +154,57 @@ describe('repository-owned production deployment gate', () => {
     });
   });
 
+  it('sends exact browser-worker provenance when the deployment service is explicitly selected', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn().mockResolvedValue(
+      response(200, {
+        allowed: true,
+        reason: null,
+        taskId: 'ATLAS-DEPLOY-WORKER-1',
+        executionId: 'ATLAS-DEPLOY-WORKER-EXEC-1',
+      }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({ ATLAS_DEPLOYMENT_SERVICE: 'browser-worker' }),
+        fetchImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-DEPLOY-WORKER-1',
+      executionId: 'ATLAS-DEPLOY-WORKER-EXEC-1',
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [, init] = (fetchImpl as unknown as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toEqual({
+      service: 'browser-worker',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    });
+  });
+
+  it('fails closed before calling the resolver when the deployment service is unsupported', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn() as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({ ATLAS_DEPLOYMENT_SERVICE: 'browser-worker-preview' }),
+        fetchImpl,
+      }),
+    ).rejects.toThrow(/unsupported ATLAS_DEPLOYMENT_SERVICE/);
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('keeps the repository Railway preDeploy gate before database migration', () => {
     const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
       deploy?: { preDeployCommand?: string[] };
