@@ -58,46 +58,16 @@ jobs:
               p.write_text(text.replace(old, new))
 
           service_spec = 'apps/api/src/agent-supervisor/agent-supervisor.service.spec.ts'
-          replace(
-              service_spec,
-              "import type { SupervisorReviewCandidate } from './agent-supervisor.types';",
-              "import type {\n  ProductionDeploymentService,\n  SupervisorReviewCandidate,\n} from './agent-supervisor.types';",
-          )
-          replace(
-              service_spec,
-              "interface OwnerDeploymentAuthorizationContract {\n  candidate: SupervisorReviewCandidate;\n  authorizedBy: string;",
-              "interface OwnerDeploymentAuthorizationContract {\n  candidate: SupervisorReviewCandidate;\n  service: ProductionDeploymentService;\n  authorizedBy: string;",
-          )
-          replace(
-              service_spec,
-              "    candidate: SupervisorReviewCandidate,\n    authorizedBy: string,\n  ) => Promise<unknown>;\n  assertOwnerDeploymentAuthorization?: (\n    task: unknown,\n    candidate: SupervisorReviewCandidate,\n  ) => void;",
-              "    candidate: SupervisorReviewCandidate,\n    service: ProductionDeploymentService,\n    authorizedBy: string,\n  ) => Promise<unknown>;\n  assertOwnerDeploymentAuthorization?: (\n    task: unknown,\n    candidate: SupervisorReviewCandidate,\n    service: ProductionDeploymentService,\n  ) => void;",
-          )
-          replace(
-              service_spec,
-              "  reviewCandidate: SupervisorReviewCandidate,\n) {",
-              "  reviewCandidate: SupervisorReviewCandidate,\n  deploymentService: ProductionDeploymentService = 'api',\n) {",
-          )
-          replace(
-              service_spec,
-              "    taskId,\n    reviewCandidate,\n    'owner-user-1',",
-              "    taskId,\n    reviewCandidate,\n    deploymentService,\n    'owner-user-1',",
-          )
-          replace(
-              service_spec,
-              "      candidate: reviewCandidate,\n      authorizedBy: 'owner-user-1',",
-              "      candidate: reviewCandidate,\n      service: 'api',\n      authorizedBy: 'owner-user-1',",
-          )
-          replace(
-              service_spec,
-              "      candidate: reviewCandidate,\n      authorizedBy: mergeAuthorization.authorizedBy,",
-              "      candidate: reviewCandidate,\n      service: 'api',\n      authorizedBy: mergeAuthorization.authorizedBy,",
-          )
+          replace(service_spec, "import type { SupervisorReviewCandidate } from './agent-supervisor.types';", "import type {\n  ProductionDeploymentService,\n  SupervisorReviewCandidate,\n} from './agent-supervisor.types';")
+          replace(service_spec, "interface OwnerDeploymentAuthorizationContract {\n  candidate: SupervisorReviewCandidate;\n  authorizedBy: string;", "interface OwnerDeploymentAuthorizationContract {\n  candidate: SupervisorReviewCandidate;\n  service: ProductionDeploymentService;\n  authorizedBy: string;")
+          replace(service_spec, "    candidate: SupervisorReviewCandidate,\n    authorizedBy: string,\n  ) => Promise<unknown>;\n  assertOwnerDeploymentAuthorization?: (\n    task: unknown,\n    candidate: SupervisorReviewCandidate,\n  ) => void;", "    candidate: SupervisorReviewCandidate,\n    service: ProductionDeploymentService,\n    authorizedBy: string,\n  ) => Promise<unknown>;\n  assertOwnerDeploymentAuthorization?: (\n    task: unknown,\n    candidate: SupervisorReviewCandidate,\n    service: ProductionDeploymentService,\n  ) => void;")
+          replace(service_spec, "  reviewCandidate: SupervisorReviewCandidate,\n) {", "  reviewCandidate: SupervisorReviewCandidate,\n  deploymentService: ProductionDeploymentService = 'api',\n) {")
+          replace(service_spec, "    taskId,\n    reviewCandidate,\n    'owner-user-1',", "    taskId,\n    reviewCandidate,\n    deploymentService,\n    'owner-user-1',")
+          replace(service_spec, "      candidate: reviewCandidate,\n      authorizedBy: 'owner-user-1',", "      candidate: reviewCandidate,\n      service: 'api',\n      authorizedBy: 'owner-user-1',")
+          replace(service_spec, "      candidate: reviewCandidate,\n      authorizedBy: mergeAuthorization.authorizedBy,", "      candidate: reviewCandidate,\n      service: 'api',\n      authorizedBy: mergeAuthorization.authorizedBy,")
           p = Path(service_spec)
           text = p.read_text()
-          pattern = re.compile(
-              r"(contract\.assertOwnerDeploymentAuthorization!\(\n(?P<i>\s+)(?:authorized|deploymentTask),\n(?P=i)reviewCandidate,\n)(?P<c>\s+\),)"
-          )
+          pattern = re.compile(r"(contract\.assertOwnerDeploymentAuthorization!\(\n(?P<i>\s+)(?:authorized|deploymentTask),\n(?P=i)reviewCandidate,\n)(?P<c>\s+\),)")
           def add_service(match):
               indent = match.group('i')
               return match.group(1) + indent + "'api',\n" + match.group('c')
@@ -107,35 +77,15 @@ jobs:
           p.write_text(text)
 
           gateway_spec = 'apps/api/src/agent-supervisor/gateway/agent-gateway.service.spec.ts'
-          replace(
-              gateway_spec,
-              "        candidate: typeof reviewCandidate,\n        authorizedBy: string,",
-              "        candidate: typeof reviewCandidate,\n        service: 'api' | 'web' | 'browser-worker',\n        authorizedBy: string,",
-          )
-          replace(
-              gateway_spec,
-              "      taskId,\n      reviewCandidate,\n      'owner-user-1',",
-              "      taskId,\n      reviewCandidate,\n      'api',\n      'owner-user-1',",
-          )
+          replace(gateway_spec, "        candidate: typeof reviewCandidate,\n        authorizedBy: string,", "        candidate: typeof reviewCandidate,\n        service: 'api' | 'web' | 'browser-worker',\n        authorizedBy: string,")
+          replace(gateway_spec, "      taskId,\n      reviewCandidate,\n      'owner-user-1',", "      taskId,\n      reviewCandidate,\n      'api',\n      'owner-user-1',")
 
           controller_spec = 'apps/api/src/agent-supervisor/agent-supervisor.controller.spec.ts'
-          replace(
-              controller_spec,
-              "          candidate: reviewCandidate,\n          explicitUserAuthorization: true,",
-              "          candidate: reviewCandidate,\n          service: 'api',\n          explicitUserAuthorization: true,",
-          )
-          replace(
-              controller_spec,
-              "      reviewCandidate,\n      'authenticated-owner-id',",
-              "      reviewCandidate,\n      'api',\n      'authenticated-owner-id',",
-          )
+          replace(controller_spec, "          candidate: reviewCandidate,\n          explicitUserAuthorization: true,", "          candidate: reviewCandidate,\n          service: 'api',\n          explicitUserAuthorization: true,")
+          replace(controller_spec, "      reviewCandidate,\n      'authenticated-owner-id',", "      reviewCandidate,\n      'api',\n      'authenticated-owner-id',")
 
           mapper_spec = 'apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts'
-          replace(
-              mapper_spec,
-              "    candidate: deploymentCandidateFixture(),\n    authorizedBy: 'owner-user-1',",
-              "    candidate: deploymentCandidateFixture(),\n    service: 'api',\n    authorizedBy: 'owner-user-1',",
-          )
+          replace(mapper_spec, "    candidate: deploymentCandidateFixture(),\n    authorizedBy: 'owner-user-1',", "    candidate: deploymentCandidateFixture(),\n    service: 'api',\n    authorizedBy: 'owner-user-1',")
           PY
       - name: Focused contract tests
         run: >-
@@ -145,3 +95,11 @@ jobs:
           production-deployment-authorization-persistence.spec.ts
       - name: Full Supervisor regression
         run: npm run test --workspace apps/api -- --runInBand agent-supervisor
+      - name: Diff hygiene
+        run: git diff --check
+      - name: Standard API build
+        run: npm run build --workspace apps/api
+      - name: Generated client hygiene
+        run: |
+          git diff --check
+          test -z "$(git status --short -- apps/api/src/generated)"
