@@ -21,8 +21,8 @@ jobs:
       - run: npm ci
       - name: Apply P0B-1 source patch
         run: |
-          git apply --check .atlas/p0b1-source.patch
-          git apply .atlas/p0b1-source.patch
+          git apply --check --recount .atlas/p0b1-source.patch
+          git apply --recount .atlas/p0b1-source.patch
       - name: Focused RED/GREEN tests
         run: >-
           npm run test --workspace apps/api -- --runInBand
