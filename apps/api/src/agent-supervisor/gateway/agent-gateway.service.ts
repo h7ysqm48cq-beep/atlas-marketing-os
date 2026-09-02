@@ -7,12 +7,14 @@ import {
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
   IntegrationGateInput,
+  ProductionDeploymentGateInput,
   SupervisorEvidence,
   SupervisorGateDecision,
   SupervisorReviewCandidate,
   SupervisorTask,
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
+import { ProductionDeploymentGateService } from '../deployment/production-deployment-gate.service';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
 import {
   SUPERVISOR_EXECUTION_STORE,
@@ -28,6 +30,7 @@ export class AgentGatewayService {
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
+    private readonly productionDeploymentGate: ProductionDeploymentGateService = new ProductionDeploymentGateService(),
   ) {}
 
   async validateWorkerContext(
@@ -59,7 +62,9 @@ export class AgentGatewayService {
     );
 
     if (input.requestedAction) {
-      if (execution.assignment.forbiddenActions.includes(input.requestedAction)) {
+      if (
+        execution.assignment.forbiddenActions.includes(input.requestedAction)
+      ) {
         throw new BadRequestException({
           code: 'worker_protected_action_denied',
         });
@@ -154,41 +159,45 @@ export class AgentGatewayService {
     return this.allowed(task.id, execution.id);
   }
 
+  async checkProductionDeployment(
+    input: ProductionDeploymentGateInput,
+  ): Promise<SupervisorGateDecision> {
+    const { task, execution, persistedCandidate } =
+      await this.validatePersistedCandidate(input.taskId, input.executionId);
+    if (persistedCandidate.action !== 'deploy_production') {
+      throw new BadRequestException({
+        code: 'production_deployment_candidate_required',
+      });
+    }
+    if (persistedCandidate.targetBranch !== 'production/atlas') {
+      throw new BadRequestException({ code: 'canonical_target_required' });
+    }
+
+    this.productionDeploymentGate.assertProductionDeployment({
+      service: input.service,
+      supervisorApprovedSha: persistedCandidate.headSha,
+      github: input.github,
+    });
+    if (task.status !== 'APPROVED') {
+      throw new BadRequestException({ code: 'task_not_deployment_approved' });
+    }
+    this.supervisor.assertOwnerDeploymentAuthorization(
+      task,
+      persistedCandidate,
+    );
+    return this.allowed(task.id, execution.id);
+  }
+
   private async validateIntegrationCandidate(input: IntegrationGateInput) {
-    const task = await this.supervisor.getTask(input.taskId);
-    if (!['READY_FOR_REVIEW', 'APPROVED'].includes(task.status)) {
-      throw new BadRequestException({
-        code: 'task_not_integration_ready',
-        current: task.status,
-      });
-    }
-
-    const execution = await this.requireExecution(task, input.executionId);
-    if (execution.status !== 'COMPLETED' || !execution.result) {
-      throw new BadRequestException({
-        code: 'execution_not_completed',
-        current: execution.status,
-      });
-    }
-
-    this.validateChangedFiles(execution.assignment.allowedPaths, input.changedFiles);
-
+    const { task, execution, persistedCandidate } =
+      await this.validatePersistedCandidate(
+        input.taskId,
+        input.executionId,
+        input.changedFiles,
+      );
     const requestedCandidate = this.normalizeRequestedCandidate(input);
-    const taskCandidate = this.requirePersistedCandidate(task.evidence);
-    const executionCandidate = this.requirePersistedCandidate(
-      execution.result.evidence,
-    );
 
-    this.requireCandidateMatchesEvidence(taskCandidate, task.evidence!);
-    this.requireCandidateMatchesEvidence(
-      executionCandidate,
-      execution.result.evidence,
-    );
-
-    if (
-      !this.sameCandidate(taskCandidate, executionCandidate) ||
-      !this.sameCandidate(taskCandidate, requestedCandidate)
-    ) {
+    if (!this.sameCandidate(persistedCandidate, requestedCandidate)) {
       throw new BadRequestException({ code: 'review_candidate_mismatch' });
     }
 
@@ -200,6 +209,51 @@ export class AgentGatewayService {
     }
 
     return { task, execution, requestedCandidate };
+  }
+
+  private async validatePersistedCandidate(
+    taskId: string,
+    executionId: string,
+    changedFiles?: string[],
+  ) {
+    const task = await this.supervisor.getTask(taskId);
+    if (!['READY_FOR_REVIEW', 'APPROVED'].includes(task.status)) {
+      throw new BadRequestException({
+        code: 'task_not_integration_ready',
+        current: task.status,
+      });
+    }
+
+    const execution = await this.requireExecution(task, executionId);
+    if (execution.status !== 'COMPLETED' || !execution.result) {
+      throw new BadRequestException({
+        code: 'execution_not_completed',
+        current: execution.status,
+      });
+    }
+
+    if (changedFiles) {
+      this.validateChangedFiles(
+        execution.assignment.allowedPaths,
+        changedFiles,
+      );
+    }
+    const taskCandidate = this.requirePersistedCandidate(task.evidence);
+    const executionCandidate = this.requirePersistedCandidate(
+      execution.result.evidence,
+    );
+
+    this.requireCandidateMatchesEvidence(taskCandidate, task.evidence!);
+    this.requireCandidateMatchesEvidence(
+      executionCandidate,
+      execution.result.evidence,
+    );
+
+    if (!this.sameCandidate(taskCandidate, executionCandidate)) {
+      throw new BadRequestException({ code: 'review_candidate_mismatch' });
+    }
+
+    return { task, execution, persistedCandidate: taskCandidate };
   }
 
   private async requireExecution(

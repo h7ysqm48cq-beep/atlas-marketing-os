@@ -3,9 +3,46 @@ import type {
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
 import type { AgentGatewayService } from './agent-gateway.service';
+import { SupervisorCiGuard } from './supervisor-ci.guard';
 import { SupervisorGatewayController } from './supervisor-gateway.controller';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 
 describe('SupervisorGatewayController', () => {
+  it('keeps the production deployment gate behind the CI-protected gateway boundary', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-DEPLOY-1',
+      executionId: 'ATLAS-DEPLOY-EXEC-1',
+    };
+    const checkProductionDeployment = jest.fn().mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      checkProductionDeployment,
+    } as unknown as AgentGatewayService) as unknown as {
+      checkProductionDeployment?: (input: unknown) => Promise<unknown>;
+    };
+    const deploymentInput = {
+      taskId: 'ATLAS-DEPLOY-1',
+      executionId: 'ATLAS-DEPLOY-EXEC-1',
+      service: 'api',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.checkProductionDeployment).toBe('function');
+    await expect(
+      controller.checkProductionDeployment!(deploymentInput),
+    ).resolves.toBe(decision);
+    expect(checkProductionDeployment).toHaveBeenCalledWith(deploymentInput);
+  });
+
   it('exposes validation only and delegates to the gateway service', async () => {
     const workerDecision = {
       allowed: true,
@@ -51,9 +88,12 @@ describe('SupervisorGatewayController', () => {
     );
     expect(gateway.validateWorkerContext).toHaveBeenCalledWith(workerInput);
     expect(gateway.checkReviewCandidate).toHaveBeenCalledWith(reviewInput);
-    expect((controller as unknown as { checkIntegration?: unknown }).checkIntegration)
-      .toBeUndefined();
-    expect((controller as unknown as { authorizeMerge?: unknown }).authorizeMerge)
-      .toBeUndefined();
+    expect(
+      (controller as unknown as { checkIntegration?: unknown })
+        .checkIntegration,
+    ).toBeUndefined();
+    expect(
+      (controller as unknown as { authorizeMerge?: unknown }).authorizeMerge,
+    ).toBeUndefined();
   });
 });

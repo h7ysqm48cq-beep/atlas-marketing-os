@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { ProductionDeploymentGateService } from './deployment/production-deployment-gate.service';
 import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
 import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
@@ -20,6 +21,7 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
   providers: [
     AgentSupervisorService,
     WorkerDispatcherService,
+    ProductionDeploymentGateService,
     AgentGatewayService,
     SupervisorCiGuard,
     SupervisorOwnerGuard,

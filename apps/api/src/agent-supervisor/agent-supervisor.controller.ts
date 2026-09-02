@@ -77,10 +77,7 @@ export class AgentSupervisorController {
   }
 
   @Post('tasks/:id/return-to-working')
-  returnToWorking(
-    @Param('id') id: string,
-    @Body() body: { reason: string },
-  ) {
+  returnToWorking(@Param('id') id: string, @Body() body: { reason: string }) {
     return this.supervisor.returnToWorking(id, body.reason ?? '');
   }
 
@@ -101,6 +98,19 @@ export class AgentSupervisorController {
     @Req() request: { user?: { id?: string } },
   ) {
     return this.supervisor.authorizeMerge(
+      id,
+      body.candidate,
+      request.user?.id ?? '',
+    );
+  }
+
+  @Post('tasks/:id/authorize-production-deployment')
+  authorizeProductionDeployment(
+    @Param('id') id: string,
+    @Body() body: { candidate: SupervisorReviewCandidate },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.authorizeProductionDeployment(
       id,
       body.candidate,
       request.user?.id ?? '',

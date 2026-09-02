@@ -41,7 +41,9 @@ describe('AgentSupervisorController', () => {
   it('creates merge authorization from authenticated request identity without accepting an approval boolean', async () => {
     const ownerConfig = {
       get: jest.fn((key: string) =>
-        key === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? 'controller-owner-token' : undefined,
+        key === 'ATLAS_SUPERVISOR_OWNER_TOKEN'
+          ? 'controller-owner-token'
+          : undefined,
       ),
     } as unknown as ConfigService;
     const ownerSupervisor = new AgentSupervisorService(
@@ -99,9 +101,56 @@ describe('AgentSupervisorController', () => {
       authorizedBy: 'authenticated-owner-id',
     });
     expect(
-      (ownerController as unknown as { authorizeMerge: (...args: unknown[]) => unknown })
-        .authorizeMerge.length,
+      (
+        ownerController as unknown as {
+          authorizeMerge: (...args: unknown[]) => unknown;
+        }
+      ).authorizeMerge.length,
     ).toBe(3);
+  });
+
+  it('creates deployment authorization from authenticated owner identity without caller authority fields', async () => {
+    const reviewCandidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+    };
+    const decision = { evidence: { ownerDeploymentAuthorization: {} } };
+    const authorizeProductionDeployment = jest.fn().mockResolvedValue(decision);
+    const ownerController = new AgentSupervisorController(
+      { authorizeProductionDeployment } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+    ) as unknown as {
+      authorizeProductionDeployment?: (
+        id: string,
+        body: Record<string, unknown>,
+        request: { user?: { id?: string } },
+      ) => Promise<unknown>;
+    };
+
+    expect(ownerController.authorizeProductionDeployment).toEqual(
+      expect.any(Function),
+    );
+    if (!ownerController.authorizeProductionDeployment) return;
+    await expect(
+      ownerController.authorizeProductionDeployment(
+        'ATLAS-DEPLOY-1',
+        {
+          candidate: reviewCandidate,
+          explicitUserAuthorization: true,
+          authorizedBy: 'caller-controlled-owner',
+          signature: 'f'.repeat(64),
+        },
+        { user: { id: 'authenticated-owner-id' } },
+      ),
+    ).resolves.toBe(decision);
+    expect(authorizeProductionDeployment).toHaveBeenCalledWith(
+      'ATLAS-DEPLOY-1',
+      reviewCandidate,
+      'authenticated-owner-id',
+    );
   });
 
   it('dispatches a task without accepting role or permission overrides', async () => {
@@ -148,8 +197,8 @@ describe('AgentSupervisorController', () => {
     await supervisor.startTask(task.id);
     const dispatched = await dispatcher.dispatch(task.id);
 
-    await expect(controller.getExecution(dispatched.execution.id)).resolves.toEqual(
-      dispatched.execution,
-    );
+    await expect(
+      controller.getExecution(dispatched.execution.id),
+    ).resolves.toEqual(dispatched.execution);
   });
 });

@@ -26,6 +26,22 @@ function ownerAuthorizationFixture() {
   };
 }
 
+function deploymentCandidateFixture() {
+  return {
+    ...reviewCandidateFixture(),
+    action: 'deploy_production',
+  };
+}
+
+function ownerDeploymentAuthorizationFixture() {
+  return {
+    candidate: deploymentCandidateFixture(),
+    authorizedBy: 'owner-user-1',
+    authorizedAt: '2026-09-02T00:00:00.000Z',
+    signature: 'd'.repeat(64),
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -159,9 +175,36 @@ describe('supervisor persistence mapper', () => {
     expect(task.evidence?.ownerMergeAuthorization).not.toBe(
       evidence.ownerMergeAuthorization,
     );
-    expect(task.evidence?.ownerMergeAuthorization?.candidate.changedFiles).not.toBe(
-      evidence.ownerMergeAuthorization.candidate.changedFiles,
+    expect(
+      task.evidence?.ownerMergeAuthorization?.candidate.changedFiles,
+    ).not.toBe(evidence.ownerMergeAuthorization.candidate.changedFiles);
+  });
+
+  it('maps and clones persisted signed owner deployment authorization', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: ownerDeploymentAuthorizationFixture(),
+    };
+    const task = mapTaskRecord(taskRecord({ evidence })) as ReturnType<
+      typeof mapTaskRecord
+    > & {
+      evidence: NonNullable<ReturnType<typeof mapTaskRecord>['evidence']> & {
+        ownerDeploymentAuthorization?: ReturnType<
+          typeof ownerDeploymentAuthorizationFixture
+        >;
+      };
+    };
+
+    expect(task.evidence.ownerDeploymentAuthorization).toEqual(
+      ownerDeploymentAuthorizationFixture(),
     );
+    expect(task.evidence.ownerDeploymentAuthorization).not.toBe(
+      evidence.ownerDeploymentAuthorization,
+    );
+    expect(
+      task.evidence.ownerDeploymentAuthorization?.candidate.changedFiles,
+    ).not.toBe(evidence.ownerDeploymentAuthorization.candidate.changedFiles);
   });
 
   it('keeps backward compatibility with persisted evidence that predates review candidates and owner authorization', () => {
@@ -230,6 +273,30 @@ describe('supervisor persistence mapper', () => {
       ...evidenceFixture(),
       ownerMergeAuthorization: {
         ...ownerAuthorizationFixture(),
+        signature: 1234,
+      },
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+
+  it('rejects persisted deployment authorization for a merge candidate', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerDeploymentAuthorization: {
+        ...ownerDeploymentAuthorizationFixture(),
+        candidate: reviewCandidateFixture(),
+      },
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+
+  it('rejects malformed persisted deployment authorization signatures', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerDeploymentAuthorization: {
+        ...ownerDeploymentAuthorizationFixture(),
         signature: 1234,
       },
     };
