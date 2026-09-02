@@ -1,0 +1,39 @@
+name: Temporary Browser Worker Reconciliation Verify
+
+on:
+  push:
+    branches:
+      - reconcile/browser-worker-live-fixes-20260903
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Focused live-only regression tests
+        run: >-
+          node --import tsx --test
+          apps/browser-worker/src/existing-profile-open-routing.spec.ts
+          apps/browser-worker/src/facebook/account-identity.spec.ts
+          apps/browser-worker/src/facebook/account-identity-name.spec.ts
+          apps/browser-worker/src/facebook/account-identity-opt-in.spec.ts
+          apps/browser-worker/src/facebook/account-identity-routing.spec.ts
+          apps/browser-worker/src/root-health.spec.ts
+
+      - name: Full Browser Worker tests
+        run: find apps/browser-worker/src -name '*.spec.ts' -print | sort | xargs node --import tsx --test
+
+      - name: Browser Worker build
+        run: npm run build --workspace apps/browser-worker
