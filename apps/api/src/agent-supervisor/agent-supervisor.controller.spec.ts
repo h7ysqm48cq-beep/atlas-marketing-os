@@ -155,6 +155,61 @@ describe('AgentSupervisorController', () => {
     );
   });
 
+  it('revokes deployment authorization using authenticated owner identity only', async () => {
+    const decision = {
+      status: 'APPROVED',
+      evidence: {
+        ownerDeploymentAuthorization: undefined,
+      },
+    };
+
+    const revokeProductionDeploymentAuthorization = jest
+      .fn()
+      .mockResolvedValue(decision);
+
+    const ownerController = new AgentSupervisorController(
+      {
+        revokeProductionDeploymentAuthorization,
+      } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+    ) as unknown as {
+      revokeProductionDeploymentAuthorization?: (
+        id: string,
+        body: Record<string, unknown>,
+        request: { user?: { id?: string } },
+      ) => Promise<unknown>;
+    };
+
+    expect(ownerController.revokeProductionDeploymentAuthorization).toEqual(
+      expect.any(Function),
+    );
+
+    if (!ownerController.revokeProductionDeploymentAuthorization) {
+      return;
+    }
+
+    await expect(
+      ownerController.revokeProductionDeploymentAuthorization(
+        'ATLAS-DEPLOY-1',
+        {
+          reason: 'superseded candidate',
+          revokedBy: 'caller-controlled-owner',
+        },
+        {
+          user: {
+            id: 'authenticated-owner-id',
+          },
+        },
+      ),
+    ).resolves.toBe(decision);
+
+    expect(revokeProductionDeploymentAuthorization).toHaveBeenCalledWith(
+      'ATLAS-DEPLOY-1',
+      'superseded candidate',
+      'authenticated-owner-id',
+    );
+  });
+
   it('dispatches a task without accepting role or permission overrides', async () => {
     const task = await supervisor.createTask({
       objective: 'Backend task',

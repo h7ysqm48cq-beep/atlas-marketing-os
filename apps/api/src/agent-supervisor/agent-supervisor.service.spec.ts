@@ -543,6 +543,109 @@ describe('AgentSupervisorService', () => {
     ).toThrow(BadRequestException);
   });
 
+  it('revokes deployment authorization from an APPROVED task without changing the reviewed candidate', async () => {
+    const ownerService = createOwnerService();
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+
+    await ownerService.authorizeProductionDeployment(
+      approved.id,
+      reviewCandidate,
+      'browser-worker',
+      'owner-user-1',
+    );
+
+    const before = await ownerService.getTask(approved.id);
+    const beforeEvidence = before.evidence!;
+    const beforeCandidate = beforeEvidence.reviewCandidate!;
+    const beforeMergeAuthorization = beforeEvidence.ownerMergeAuthorization;
+
+    const revoked = await ownerService.revokeProductionDeploymentAuthorization(
+      approved.id,
+      'superseded by replacement deployment task',
+      'owner-user-2',
+    );
+
+    expect(revoked.status).toBe('APPROVED');
+
+    expect(revoked.evidence?.reviewCandidate).toEqual(beforeCandidate);
+
+    expect(revoked.evidence?.ownerMergeAuthorization).toEqual(
+      beforeMergeAuthorization,
+    );
+
+    expect(revoked.evidence?.ownerDeploymentAuthorization).toBeUndefined();
+
+    expect(
+      revoked.evidence?.ownerDeploymentAuthorizationRevocations,
+    ).toHaveLength(1);
+
+    expect(
+      revoked.evidence?.ownerDeploymentAuthorizationRevocations?.[0],
+    ).toMatchObject({
+      candidate: reviewCandidate,
+      service: 'browser-worker',
+      authorizedBy: 'owner-user-1',
+      revokedBy: 'owner-user-2',
+      reason: 'superseded by replacement deployment task',
+    });
+
+    expect(
+      revoked.evidence?.ownerDeploymentAuthorizationRevocations?.[0]
+        ?.authorizedAt,
+    ).toEqual(expect.any(String));
+
+    expect(
+      revoked.evidence?.ownerDeploymentAuthorizationRevocations?.[0]?.revokedAt,
+    ).toEqual(expect.any(String));
+  });
+
+  it('rejects deployment authorization revocation when no authorization exists', async () => {
+    const ownerService = createOwnerService();
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+
+    await expect(
+      ownerService.revokeProductionDeploymentAuthorization(
+        approved.id,
+        'nothing to revoke',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_authorization_not_found',
+      },
+    });
+  });
+
+  it('rejects deployment authorization revocation without a reason', async () => {
+    const ownerService = createOwnerService();
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+
+    await ownerService.authorizeProductionDeployment(
+      approved.id,
+      reviewCandidate,
+      'api',
+      'owner-user-1',
+    );
+
+    await expect(
+      ownerService.revokeProductionDeploymentAuthorization(
+        approved.id,
+        '   ',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'deployment_authorization_revocation_reason_required',
+      },
+    });
+  });
+
   it('revokes owner deployment authorization when a reviewed task returns to working', async () => {
     const ownerService = createOwnerService();
     const reviewCandidate = deploymentCandidate();

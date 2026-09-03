@@ -375,6 +375,63 @@ export class AgentSupervisorService {
     return this.taskStore.save(task);
   }
 
+  async revokeProductionDeploymentAuthorization(
+    id: string,
+    reason: string,
+    revokedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+
+    const authorization = task.evidence?.ownerDeploymentAuthorization;
+
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_not_found',
+      });
+    }
+
+    const revocationReason = reason.trim();
+    if (!revocationReason) {
+      throw new BadRequestException({
+        code: 'deployment_authorization_revocation_reason_required',
+      });
+    }
+
+    const ownerId = revokedBy.trim();
+    if (!ownerId) {
+      throw new BadRequestException({
+        code: 'owner_identity_required',
+      });
+    }
+
+    const revokedAt = new Date().toISOString();
+
+    const {
+      ownerDeploymentAuthorization: _deploymentAuthorization,
+      ...evidence
+    } = task.evidence!;
+
+    task.evidence = {
+      ...evidence,
+      ownerDeploymentAuthorizationRevocations: [
+        ...(evidence.ownerDeploymentAuthorizationRevocations ?? []),
+        {
+          candidate: this.cloneCandidate(authorization.candidate),
+          service: authorization.service,
+          authorizedBy: authorization.authorizedBy,
+          authorizedAt: authorization.authorizedAt,
+          revokedBy: ownerId,
+          revokedAt,
+          reason: revocationReason,
+        },
+      ],
+    };
+
+    task.updatedAt = new Date();
+    return this.taskStore.save(task);
+  }
+
   assertOwnerMergeAuthorization(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,

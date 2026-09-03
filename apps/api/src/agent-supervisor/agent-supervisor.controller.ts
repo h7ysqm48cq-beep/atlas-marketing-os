@@ -123,6 +123,19 @@ export class AgentSupervisorController {
     );
   }
 
+  @Post('tasks/:id/revoke-production-deployment-authorization')
+  revokeProductionDeploymentAuthorization(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.revokeProductionDeploymentAuthorization(
+      id,
+      body.reason ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
   @Post('tasks/:id/dispatch')
   dispatchTask(@Param('id') id: string) {
     return this.dispatcher.dispatch(id);
