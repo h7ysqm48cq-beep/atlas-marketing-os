@@ -18,6 +18,10 @@ const SCRIPT_PATH = resolve(
   'scripts/check-production-deployment-gate.cjs',
 );
 const RAILWAY_CONFIG_PATH = resolve(process.cwd(), '../../railway.json');
+const BROWSER_WORKER_RAILWAY_CONFIG_PATH = resolve(
+  process.cwd(),
+  '../browser-worker/railway.json',
+);
 
 function loadGate(): Required<GateModule> {
   let loaded: GateModule;
@@ -213,4 +217,22 @@ describe('repository-owned production deployment gate', () => {
       'node apps/api/scripts/check-production-deployment-gate.cjs && npm run db:migrate --workspace apps/api',
     ]);
   });
+
+  it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
+    const config = JSON.parse(
+      readFileSync(BROWSER_WORKER_RAILWAY_CONFIG_PATH, 'utf8'),
+    ) as {
+      deploy?: { preDeployCommand?: string[] };
+    };
+
+    const commands = config.deploy?.preDeployCommand ?? [];
+
+    expect(commands).toEqual([
+      'ATLAS_DEPLOYMENT_SERVICE=browser-worker node apps/api/scripts/check-production-deployment-gate.cjs',
+    ]);
+
+    expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
+  });
+
+
 });
