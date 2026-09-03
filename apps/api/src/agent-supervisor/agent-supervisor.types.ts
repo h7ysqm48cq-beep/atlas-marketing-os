@@ -73,6 +73,16 @@ export interface SupervisorOwnerDeploymentAuthorization {
   signature: string;
 }
 
+export interface SupervisorOwnerDeploymentAuthorizationRevocation {
+  candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
+  authorizedBy: string;
+  authorizedAt: string;
+  revokedBy: string;
+  revokedAt: string;
+  reason: string;
+}
+
 export interface SupervisorEvidence {
   rootCause: string;
   changedFiles: string[];
@@ -85,6 +95,7 @@ export interface SupervisorEvidence {
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
+  ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
 }
 
 export interface SupervisorTask {
