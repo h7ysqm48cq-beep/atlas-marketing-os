@@ -1,8 +1,10 @@
-import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { GUARDS_METADATA, MODULE_METADATA } from '@nestjs/common/constants';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorController } from './agent-supervisor.controller';
+import { AgentSupervisorModule } from './agent-supervisor.module';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execution.store';
@@ -29,13 +31,16 @@ describe('AgentSupervisorController', () => {
     controller = new AgentSupervisorController(supervisor, dispatcher);
   });
 
-  it('applies the owner guard to the whole controller so future mutations fail closed by default', () => {
+  it('runs the trusted owner-action boundary before the existing owner guard', () => {
     const guards = Reflect.getMetadata(
       GUARDS_METADATA,
       AgentSupervisorController,
     ) as unknown[];
 
-    expect(guards).toContain(SupervisorOwnerGuard);
+    expect(guards).toEqual([SupervisorOwnerActionGuard, SupervisorOwnerGuard]);
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, AgentSupervisorModule),
+    ).toContain(SupervisorOwnerActionGuard);
   });
 
   it('creates merge authorization from authenticated request identity without accepting an approval boolean', async () => {

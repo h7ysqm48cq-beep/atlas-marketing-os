@@ -6,6 +6,7 @@ import { ProductionDeploymentGateService } from './deployment/production-deploym
 import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
 import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
+import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
@@ -24,6 +25,7 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
     ProductionDeploymentGateService,
     AgentGatewayService,
     SupervisorCiGuard,
+    SupervisorOwnerActionGuard,
     SupervisorOwnerGuard,
     PrismaSupervisorTaskStore,
     PrismaSupervisorExecutionStore,

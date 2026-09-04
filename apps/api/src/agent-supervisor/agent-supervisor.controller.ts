@@ -10,6 +10,7 @@ import {
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
+import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import type {
   CreateSupervisorTaskInput,
@@ -21,7 +22,7 @@ import type {
   SupervisorReviewCandidate,
 } from './agent-supervisor.types';
 
-@UseGuards(SupervisorOwnerGuard)
+@UseGuards(SupervisorOwnerActionGuard, SupervisorOwnerGuard)
 @Controller('engineering/supervisor')
 export class AgentSupervisorController {
   constructor(
