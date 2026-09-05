@@ -263,4 +263,67 @@ describe('AgentSupervisorController', () => {
       controller.getExecution(dispatched.execution.id),
     ).resolves.toEqual(dispatched.execution);
   });
+
+  // ASTRA_V2_CONSUME_CONTROLLER_RED
+  it('consumes merge authorization using authenticated owner identity rather than caller identity fields', async () => {
+    const decision = {
+      status: 'APPROVED',
+      evidence: {
+        ownerMergeAuthorization: undefined,
+        ownerMergeAuthorizationConsumption: {},
+      },
+    };
+
+    const consumeMergeAuthorization = jest
+      .fn()
+      .mockResolvedValue(decision);
+
+    const ownerController = new AgentSupervisorController(
+      {
+        consumeMergeAuthorization,
+      } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+    ) as unknown as {
+      consumeMergeAuthorization?: (
+        id: string,
+        body: Record<string, unknown>,
+        request: { user?: { id?: string } },
+      ) => Promise<unknown>;
+    };
+
+    expect(ownerController.consumeMergeAuthorization).toEqual(
+      expect.any(Function),
+    );
+
+    if (!ownerController.consumeMergeAuthorization) return;
+
+    const attestation = {
+      pullRequestNumber: 80,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA],
+      mergedAt: '2026-09-05T10:45:02.000Z',
+    };
+
+    await expect(
+      ownerController.consumeMergeAuthorization(
+        'ATLAS-MERGE-1',
+        {
+          attestation,
+          consumedBy: 'caller-controlled-owner',
+        },
+        {
+          user: {
+            id: 'authenticated-owner-id',
+          },
+        },
+      ),
+    ).resolves.toBe(decision);
+
+    expect(consumeMergeAuthorization).toHaveBeenCalledWith(
+      'ATLAS-MERGE-1',
+      attestation,
+      'authenticated-owner-id',
+    );
+  });
+
 });

@@ -4,6 +4,7 @@ import { AgentSupervisorService } from './agent-supervisor.service';
 import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
+  SupervisorTask,
 } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
@@ -68,6 +69,72 @@ async function authorizeProductionDeployment(
     reviewCandidate,
     deploymentService,
     'owner-user-1',
+  );
+}
+
+class PausingMemorySupervisorTaskStore
+  extends MemorySupervisorTaskStore
+{
+  private mutationGate: {
+    entered: () => void;
+    releasePromise: Promise<void>;
+  } | null = null;
+
+  armNextMutation() {
+    let enteredResolve!: () => void;
+    let releaseResolve!: () => void;
+
+    const entered = new Promise<void>((resolve) => {
+      enteredResolve = resolve;
+    });
+
+    const releasePromise = new Promise<void>((resolve) => {
+      releaseResolve = resolve;
+    });
+
+    this.mutationGate = {
+      entered: enteredResolve,
+      releasePromise,
+    };
+
+    return {
+      entered,
+      release: () => releaseResolve(),
+    };
+  }
+
+  override async saveIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null> {
+    await this.pauseMutationIfArmed();
+
+    return super.saveIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+  }
+
+  private async pauseMutationIfArmed(): Promise<void> {
+    const gate = this.mutationGate;
+
+    if (!gate) return;
+
+    this.mutationGate = null;
+    gate.entered();
+
+    await gate.releasePromise;
+  }
+}
+
+function createOwnerServiceWithStore(
+  taskStore: MemorySupervisorTaskStore,
+) {
+  return new AgentSupervisorService(
+    taskStore,
+    new MemoryFileOwnershipStore(),
+    undefined,
+    ownerConfig(),
   );
 }
 
@@ -689,4 +756,480 @@ describe('AgentSupervisorService', () => {
       }).allowed,
     ).toBe(false);
   });
+
+  // ASTRA_V2_MERGE_CONSUMPTION_SERVICE_RED
+  it('consumes an exact owner merge authorization once and records post-merge attestation', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: {
+          pullRequestNumber: number;
+          mergeCommitSha: string;
+          mergeParents: [string, string];
+          mergedAt: string;
+        },
+        consumedBy: string,
+      ) => Promise<{
+        evidence?: {
+          ownerMergeAuthorization?: unknown;
+          ownerMergeAuthorizationConsumption?: {
+            authorization: {
+              candidate: SupervisorReviewCandidate;
+              authorizedBy: string;
+              authorizedAt: string;
+              signature: string;
+            };
+            attestation: {
+              pullRequestNumber: number;
+              mergeCommitSha: string;
+              mergeParents: [string, string];
+              mergedAt: string;
+            };
+            consumedBy: string;
+            consumedAt: string;
+          };
+        };
+      }>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    const mergeSha = 'd'.repeat(40);
+    const consumed = await contract.consumeMergeAuthorization(
+      task.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: mergeSha,
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    expect(consumed.evidence?.ownerMergeAuthorization).toBeUndefined();
+    expect(
+      consumed.evidence?.ownerMergeAuthorizationConsumption,
+    ).toMatchObject({
+      authorization: {
+        candidate: candidate(),
+        authorizedBy: 'owner-user-1',
+      },
+      attestation: {
+        pullRequestNumber: 80,
+        mergeCommitSha: mergeSha,
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      consumedBy: 'owner-user-2',
+    });
+    expect(
+      consumed.evidence?.ownerMergeAuthorizationConsumption?.consumedAt,
+    ).toEqual(expect.any(String));
+  });
+
+  it('rejects replay after a merge authorization has been consumed', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    const attestation = {
+      pullRequestNumber: 80,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA],
+      mergedAt: '2026-09-05T10:45:02.000Z',
+    };
+
+    await contract.consumeMergeAuthorization(
+      task.id,
+      attestation,
+      'owner-user-2',
+    );
+
+    await expect(
+      contract.consumeMergeAuthorization(
+        task.id,
+        attestation,
+        'owner-user-2',
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_already_consumed' },
+    });
+  });
+
+  it('rejects post-merge attestation whose parents do not match the authorized base and head', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    await expect(
+      contract.consumeMergeAuthorization(
+        task.id,
+        {
+          pullRequestNumber: 80,
+          mergeCommitSha: 'd'.repeat(40),
+          mergeParents: [BASE_SHA, 'c'.repeat(40)],
+          mergedAt: '2026-09-05T10:45:02.000Z',
+        },
+        'owner-user-2',
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'merge_attestation_parent_mismatch' },
+    });
+  });
+
+  it('allows at most one winner when duplicate merge consumption requests race', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    const attestation = {
+      pullRequestNumber: 80,
+      mergeCommitSha: 'd'.repeat(40),
+      mergeParents: [BASE_SHA, HEAD_SHA],
+      mergedAt: '2026-09-05T10:45:02.000Z',
+    };
+
+    const outcomes = await Promise.allSettled([
+      contract.consumeMergeAuthorization(
+        task.id,
+        attestation,
+        'owner-user-2',
+      ),
+      contract.consumeMergeAuthorization(
+        task.id,
+        attestation,
+        'owner-user-2',
+      ),
+    ]);
+
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome.status === 'rejected')).toHaveLength(1);
+
+    const rejected = outcomes.find(
+      (outcome): outcome is PromiseRejectedResult =>
+        outcome.status === 'rejected',
+    );
+
+    expect(rejected?.reason).toMatchObject({
+      response: { code: 'owner_merge_authorization_already_consumed' },
+    });
+  });
+
+  it('does not allow a consumed merge candidate to be re-authorized', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    await contract.consumeMergeAuthorization(
+      task.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    await expect(
+      ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1'),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_already_consumed' },
+    });
+  });
+
+  it('does not allow a consumed reviewed task to return to WORKING', async () => {
+    const ownerService = createOwnerService();
+    const task = await makeReadyTask(ownerService);
+    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+
+    const contract = ownerService as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(expect.any(Function));
+    if (!contract.consumeMergeAuthorization) return;
+
+    await contract.consumeMergeAuthorization(
+      task.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    await expect(
+      ownerService.returnToWorking(task.id, 'change candidate'),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_already_consumed' },
+    });
+  });
+
+
+  // ASTRA_V2_ANTI_RESURRECTION_RED
+  it('rejects a stale deployment-authorization writer after merge authorization consumption wins', async () => {
+    const store = new PausingMemorySupervisorTaskStore();
+    const ownerService = createOwnerServiceWithStore(store);
+
+    const ready = await makeReadyTask(
+      ownerService,
+      candidate(),
+    );
+
+    await ownerService.authorizeMerge(
+      ready.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    /*
+     * Seed a persisted stale/drift state representing a writer that
+     * can legitimately enter the deployment-authorization path while
+     * retaining a previously signed merge authorization.
+     *
+     * The anti-resurrection invariant must remain safe even when an
+     * older persisted snapshot contains both domains.
+     */
+    const current = await store.get(ready.id);
+
+    expect(current?.evidence?.ownerMergeAuthorization).toBeDefined();
+
+    if (!current?.evidence) {
+      throw new Error('test_setup_evidence_missing');
+    }
+
+    const expectedSeedUpdatedAt =
+      new Date(current.updatedAt);
+
+    const seeded =
+      await store.saveIfUnchanged(
+        {
+          ...current,
+          evidence: {
+            ...current.evidence,
+            reviewCandidate:
+              deploymentCandidate(),
+          },
+          updatedAt: new Date(
+            expectedSeedUpdatedAt.getTime()
+              + 1,
+          ),
+        },
+        expectedSeedUpdatedAt,
+      );
+
+    expect(seeded).not.toBeNull();
+
+    const gate = store.armNextMutation();
+
+    const staleDeploymentWrite =
+      authorizeProductionDeployment(
+        ownerService,
+        ready.id,
+        deploymentCandidate(),
+        'api',
+      );
+
+    await gate.entered;
+
+    await ownerService.consumeMergeAuthorization(
+      ready.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    gate.release();
+
+    const [deploymentOutcome] =
+      await Promise.allSettled([
+        staleDeploymentWrite,
+      ]);
+
+    expect(deploymentOutcome.status).toBe('rejected');
+
+    const finalTask = await ownerService.getTask(ready.id);
+
+    expect(
+      finalTask.evidence?.ownerMergeAuthorization,
+    ).toBeUndefined();
+
+    expect(
+      finalTask.evidence
+        ?.ownerMergeAuthorizationConsumption,
+    ).toBeDefined();
+  });
+
+  it('rejects a stale approveTask writer after merge authorization consumption wins', async () => {
+    const store = new PausingMemorySupervisorTaskStore();
+    const ownerService = createOwnerServiceWithStore(store);
+
+    const ready = await makeReadyTask(ownerService);
+
+    await ownerService.authorizeMerge(
+      ready.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    const gate = store.armNextMutation();
+
+    const staleApproval =
+      ownerService.approveTask(
+        ready.id,
+        true,
+      );
+
+    await gate.entered;
+
+    await ownerService.consumeMergeAuthorization(
+      ready.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    gate.release();
+
+    const [approvalOutcome] =
+      await Promise.allSettled([
+        staleApproval,
+      ]);
+
+    expect(approvalOutcome.status).toBe('rejected');
+
+    const finalTask = await ownerService.getTask(ready.id);
+
+    expect(finalTask.status).toBe(
+      'READY_FOR_REVIEW',
+    );
+
+    expect(
+      finalTask.evidence?.ownerMergeAuthorization,
+    ).toBeUndefined();
+
+    expect(
+      finalTask.evidence
+        ?.ownerMergeAuthorizationConsumption,
+    ).toBeDefined();
+  });
+
+  it('rejects a stale returnToWorking writer after merge authorization consumption wins', async () => {
+    const store = new PausingMemorySupervisorTaskStore();
+    const ownerService = createOwnerServiceWithStore(store);
+
+    const ready = await makeReadyTask(ownerService);
+
+    await ownerService.authorizeMerge(
+      ready.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    const gate = store.armNextMutation();
+
+    const staleReturn =
+      ownerService.returnToWorking(
+        ready.id,
+        'independent review blocker',
+      );
+
+    await gate.entered;
+
+    await ownerService.consumeMergeAuthorization(
+      ready.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    gate.release();
+
+    const [returnOutcome] =
+      await Promise.allSettled([
+        staleReturn,
+      ]);
+
+    expect(returnOutcome.status).toBe('rejected');
+
+    const finalTask = await ownerService.getTask(ready.id);
+
+    expect(finalTask.status).toBe(
+      'READY_FOR_REVIEW',
+    );
+
+    expect(
+      finalTask.evidence
+        ?.ownerMergeAuthorizationConsumption,
+    ).toBeDefined();
+  });
+
 });

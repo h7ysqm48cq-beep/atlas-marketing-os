@@ -4,8 +4,10 @@ import type {
   SupervisorAction,
   SupervisorEvidence,
   SupervisorIntegrationAction,
+  SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerMergeAuthorization,
+  SupervisorOwnerMergeAuthorizationConsumption,
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
@@ -28,6 +30,7 @@ const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
   'change_runtime_config',
 ]);
 const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
+const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
   'web',
@@ -126,6 +129,71 @@ function mapOwnerMergeAuthorization(
   };
 }
 
+function mapMergeAttestation(value: unknown): SupervisorMergeAttestation {
+  const object = requireObject(value);
+
+  if (
+    typeof object.pullRequestNumber !== 'number' ||
+    !Number.isInteger(object.pullRequestNumber) ||
+    object.pullRequestNumber <= 0
+  ) {
+    throw persistenceError();
+  }
+
+  const mergeCommitSha = requireString(object.mergeCommitSha);
+  const mergeParents = requireStringArray(object.mergeParents);
+  const mergedAt = requireString(object.mergedAt);
+
+  if (
+    !FULL_GIT_SHA.test(mergeCommitSha) ||
+    mergeParents.length !== 2 ||
+    mergeParents.some((sha) => !FULL_GIT_SHA.test(sha)) ||
+    !mergedAt.trim() ||
+    mergedAt !== mergedAt.trim() ||
+    Number.isNaN(Date.parse(mergedAt))
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    pullRequestNumber: object.pullRequestNumber,
+    mergeCommitSha,
+    mergeParents: [mergeParents[0], mergeParents[1]],
+    mergedAt,
+  };
+}
+
+function mapOwnerMergeAuthorizationConsumption(
+  value: unknown,
+): SupervisorOwnerMergeAuthorizationConsumption {
+  const object = requireObject(value);
+
+  const authorization = mapOwnerMergeAuthorization(object.authorization);
+  const attestation = mapMergeAttestation(object.attestation);
+  const consumedBy = requireString(object.consumedBy);
+  const consumedAt = requireString(object.consumedAt);
+
+  if (
+    authorization.candidate.action !== 'merge' ||
+    authorization.candidate.targetBranch !== 'production/atlas' ||
+    !FULL_SIGNATURE.test(authorization.signature) ||
+    !consumedBy.trim() ||
+    consumedBy !== consumedBy.trim() ||
+    !consumedAt.trim() ||
+    consumedAt !== consumedAt.trim() ||
+    Number.isNaN(Date.parse(consumedAt))
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    authorization,
+    attestation,
+    consumedBy,
+    consumedAt,
+  };
+}
+
 function mapOwnerDeploymentAuthorization(
   value: unknown,
 ): SupervisorOwnerDeploymentAuthorization {
@@ -158,6 +226,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     object.ownerMergeAuthorization === undefined
       ? undefined
       : mapOwnerMergeAuthorization(object.ownerMergeAuthorization);
+  const ownerMergeAuthorizationConsumption =
+    object.ownerMergeAuthorizationConsumption === undefined
+      ? undefined
+      : mapOwnerMergeAuthorizationConsumption(
+          object.ownerMergeAuthorizationConsumption,
+        );
   const ownerDeploymentAuthorization =
     object.ownerDeploymentAuthorization === undefined
       ? undefined
@@ -174,6 +248,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     remainingRisk: requireStringArray(object.remainingRisk),
     ...(reviewCandidate ? { reviewCandidate } : {}),
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
+    ...(ownerMergeAuthorizationConsumption
+      ? { ownerMergeAuthorizationConsumption }
+      : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
   };
 }

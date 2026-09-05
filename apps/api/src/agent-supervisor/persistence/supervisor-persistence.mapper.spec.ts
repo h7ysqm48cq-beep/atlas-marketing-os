@@ -329,4 +329,47 @@ describe('supervisor persistence mapper', () => {
       );
     },
   );
+
+  // ASTRA_V2_CONSUMPTION_MAPPER_RED
+  it('maps and clones persisted merge authorization consumption audit evidence', () => {
+    const authorization = ownerAuthorizationFixture();
+    const consumption = {
+      authorization,
+      attestation: {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [
+          authorization.candidate.baseSha,
+          authorization.candidate.headSha,
+        ],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      consumedBy: 'owner-user-2',
+      consumedAt: '2026-09-05T10:45:03.000Z',
+    };
+
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorizationConsumption: consumption,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(
+      (
+        task.evidence as typeof task.evidence & {
+          ownerMergeAuthorizationConsumption?: typeof consumption;
+        }
+      )?.ownerMergeAuthorizationConsumption,
+    ).toEqual(consumption);
+
+    expect(
+      (
+        task.evidence as typeof task.evidence & {
+          ownerMergeAuthorizationConsumption?: typeof consumption;
+        }
+      )?.ownerMergeAuthorizationConsumption,
+    ).not.toBe(consumption);
+  });
+
 });

@@ -21,7 +21,18 @@ export class MemorySupervisorTaskStore implements SupervisorTaskStore {
     return this.cloneTask(stored);
   }
 
-  async save(task: SupervisorTask): Promise<SupervisorTask> {
+  async saveIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null> {
+    const current = this.tasks.get(task.id);
+    if (
+      !current ||
+      current.updatedAt.getTime() !== expectedUpdatedAt.getTime()
+    ) {
+      return null;
+    }
+
     const stored = this.cloneTask(task);
     this.tasks.set(stored.id, stored);
     return this.cloneTask(stored);
@@ -34,15 +45,7 @@ export class MemorySupervisorTaskStore implements SupervisorTaskStore {
       forbiddenActions: [...task.forbiddenActions],
       dependsOn: [...task.dependsOn],
       acceptance: [...task.acceptance],
-      evidence: task.evidence
-        ? {
-            ...task.evidence,
-            changedFiles: [...task.evidence.changedFiles],
-            tests: [...task.evidence.tests],
-            regression: [...task.evidence.regression],
-            remainingRisk: [...task.evidence.remainingRisk],
-          }
-        : null,
+      evidence: task.evidence ? structuredClone(task.evidence) : null,
       createdAt: new Date(task.createdAt),
       updatedAt: new Date(task.updatedAt),
     };

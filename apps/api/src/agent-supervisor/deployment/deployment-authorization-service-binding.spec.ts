@@ -136,7 +136,20 @@ describe('Owner production deployment authorization service binding', () => {
     if (!authorization) return;
 
     authorization.service = 'web';
-    await taskStore.save(authorized);
+    const expectedUpdatedAt =
+      new Date(authorized.updatedAt);
+
+    authorized.updatedAt =
+      new Date(
+        expectedUpdatedAt.getTime() + 1,
+      );
+
+    await expect(
+      taskStore.saveIfUnchanged(
+        authorized,
+        expectedUpdatedAt,
+      ),
+    ).resolves.not.toBeNull();
     const tampered = await supervisor.getTask(task.id);
 
     expect(() => assertAuthorization(tampered, candidate, 'web')).toThrow();

@@ -31,10 +31,18 @@ type TaskUpdateData = {
 
 type TransactionClient = {
   supervisorTask: {
-    update(args: {
-      where: { id: string };
+
+    updateMany(args: {
+      where: {
+        id: string;
+        updatedAt: Date;
+      };
       data: TaskUpdateData;
-    }): Promise<SupervisorTaskRecord>;
+    }): Promise<{ count: number }>;
+
+    findUnique(args: {
+      where: { id: string };
+    }): Promise<SupervisorTaskRecord | null>;
   };
   supervisorFileLock: {
     findMany(args: {
@@ -148,31 +156,65 @@ export class PrismaSupervisorLifecycleStore
     this.prisma = prisma as unknown as PrismaWithTransaction;
   }
 
-  async saveWithLocks(
+  async saveWithLocksIfUnchanged(
     task: SupervisorTask,
     mode: SupervisorLockMode,
-  ): Promise<SupervisorTask> {
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null> {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        if (mode === 'acquire') {
-          await this.acquire(tx, task);
-        } else {
-          await tx.supervisorFileLock.deleteMany({
-            where: { taskId: task.id },
-          });
-        }
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const updated =
+            await tx.supervisorTask.updateMany({
+              where: {
+                id: task.id,
+                updatedAt: new Date(
+                  expectedUpdatedAt,
+                ),
+              },
+              data: taskUpdateData(task),
+            });
 
-        const row = await tx.supervisorTask.update({
-          where: { id: task.id },
-          data: taskUpdateData(task),
-        });
-        return mapTaskRecord(row);
-      });
+          /*
+           * Version check must happen before lock mutations.
+           * A stale writer exits without touching ownership.
+           */
+          if (updated.count === 0) {
+            return null;
+          }
+
+          if (mode === 'acquire') {
+            await this.acquire(tx, task);
+          } else {
+            await tx.supervisorFileLock.deleteMany({
+              where: { taskId: task.id },
+            });
+          }
+
+          const row =
+            await tx.supervisorTask.findUnique({
+              where: { id: task.id },
+            });
+
+          if (!row) {
+            throw persistenceError();
+          }
+
+          return mapTaskRecord(row);
+        },
+      );
     } catch (error) {
-      if (error instanceof HttpException) throw error;
-      if (mode === 'acquire' && isPathUniqueError(error)) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      if (
+        mode === 'acquire' &&
+        isPathUniqueError(error)
+      ) {
         throw conflict([]);
       }
+
       throw persistenceError();
     }
   }

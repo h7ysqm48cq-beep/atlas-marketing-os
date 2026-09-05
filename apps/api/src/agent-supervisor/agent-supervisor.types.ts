@@ -65,6 +65,20 @@ export interface SupervisorOwnerMergeAuthorization {
   signature: string;
 }
 
+export interface SupervisorMergeAttestation {
+  pullRequestNumber: number;
+  mergeCommitSha: string;
+  mergeParents: [string, string];
+  mergedAt: string;
+}
+
+export interface SupervisorOwnerMergeAuthorizationConsumption {
+  authorization: SupervisorOwnerMergeAuthorization;
+  attestation: SupervisorMergeAttestation;
+  consumedBy: string;
+  consumedAt: string;
+}
+
 export interface SupervisorOwnerDeploymentAuthorization {
   candidate: SupervisorReviewCandidate;
   service: ProductionDeploymentService;
@@ -94,6 +108,7 @@ export interface SupervisorEvidence {
   remainingRisk: string[];
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
+  ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
 }

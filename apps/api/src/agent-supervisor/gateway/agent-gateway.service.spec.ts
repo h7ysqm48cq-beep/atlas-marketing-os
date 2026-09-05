@@ -221,7 +221,22 @@ describe('AgentGatewayService', () => {
       ...persistedDeploymentTask.evidence!,
       ownerMergeAuthorization: mergeTask.evidence!.ownerMergeAuthorization,
     };
-    await taskStore.save(persistedDeploymentTask);
+    const expectedUpdatedAt =
+      new Date(
+        persistedDeploymentTask.updatedAt,
+      );
+
+    persistedDeploymentTask.updatedAt =
+      new Date(
+        expectedUpdatedAt.getTime() + 1,
+      );
+
+    await expect(
+      taskStore.saveIfUnchanged(
+        persistedDeploymentTask,
+        expectedUpdatedAt,
+      ),
+    ).resolves.not.toBeNull();
 
     await expect(
       productionGateway().checkProductionDeployment({
