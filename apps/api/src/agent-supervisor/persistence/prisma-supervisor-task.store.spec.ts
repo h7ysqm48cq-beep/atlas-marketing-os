@@ -157,6 +157,98 @@ describe('PrismaSupervisorTaskStore', () => {
     });
   });
 
+  // ASTRA_V2_DEPLOYMENT_REVOCATION_STORE_RED
+  it('preserves deployment revocation history across get then CAS save', async () => {
+    const prisma = mockPrisma();
+
+    const revocation = {
+      candidate: {
+        action: 'deploy_production' as const,
+        targetBranch: 'production/atlas',
+        baseSha: 'a'.repeat(40),
+        headSha: 'b'.repeat(40),
+        changedFiles: [
+          'apps/api/src/agent-supervisor/persistence/supervisor-persistence.mapper.ts',
+        ],
+      },
+      service: 'api' as const,
+      authorizedBy: 'owner-user-1',
+      authorizedAt: '2026-09-05T14:55:00.000Z',
+      revokedBy: 'owner-user-2',
+      revokedAt: '2026-09-05T15:31:00.000Z',
+      reason:
+        'Astra Governance v2 bootstrap deployment completed and authorization no longer required',
+    };
+
+    const persisted = task({
+      status: 'APPROVED',
+      evidence: {
+        rootCause: 'deployment authorization closure',
+        changedFiles: [],
+        tests: [],
+        build: 'PASS',
+        regression: [],
+        deploymentState: 'DEPLOYED',
+        gitState: 'MERGED',
+        remainingRisk: [],
+        ownerDeploymentAuthorizationRevocations: [
+          revocation,
+        ],
+      },
+    });
+
+    prisma.supervisorTask.findUnique
+      .mockResolvedValueOnce(record(persisted));
+
+    const store =
+      new PrismaSupervisorTaskStore(prisma as never);
+
+    const loaded = await store.get(persisted.id);
+
+    expect(
+      loaded?.evidence
+        ?.ownerDeploymentAuthorizationRevocations,
+    ).toEqual([revocation]);
+
+    if (!loaded) {
+      throw new Error('expected persisted task');
+    }
+
+    const expectedUpdatedAt = loaded.updatedAt;
+
+    const next = {
+      ...loaded,
+      updatedAt: new Date(
+        expectedUpdatedAt.getTime() + 1,
+      ),
+    };
+
+    prisma.supervisorTask.updateMany
+      .mockResolvedValue({ count: 1 });
+
+    prisma.supervisorTask.findUnique
+      .mockResolvedValueOnce(record(next));
+
+    await store.saveIfUnchanged(
+      next,
+      expectedUpdatedAt,
+    );
+
+    expect(
+      prisma.supervisorTask.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          evidence: expect.objectContaining({
+            ownerDeploymentAuthorizationRevocations: [
+              revocation,
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+
   it('returns cloned arrays instead of retaining persistence record references', async () => {
     const prisma = mockPrisma();
     const persisted = record();
