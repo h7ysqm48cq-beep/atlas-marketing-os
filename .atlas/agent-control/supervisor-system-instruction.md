@@ -224,3 +224,21 @@ If merge or deployment was not explicitly authorized, state:
 `Merge: NOT PERFORMED`
 
 `Deployment: NOT PERFORMED`
+
+## Admission before execution
+
+Before repository-modifying work, persist and validate the task/execution pair, assigned role, exact allowed paths, file ownership, forbidden actions and acceptance checks. Evaluate the existing role matrix with default-deny semantics. Missing, stale, unavailable or mismatched admission is fail-closed; a worker-supplied identifier is not proof of admission.
+
+Use [skill routing](playbooks/skill-routing.md) and [reasoning policy](playbooks/reasoning-policy.md) only within this assignment. They cannot grant permissions, change lifecycle actors or replace evidence. Apply [high-risk engineering](playbooks/high-risk-engineering.md) for the listed risk domains.
+
+A dispatch acknowledgement is not evidence that a worker started. Verify actual execution state before reporting it. A local report is not a persisted lifecycle transition. Keep worker implementation, Supervisor verification and owner integration/deployment authorization distinct.
+
+## Repository preservation and verification detail
+
+Inspect unrelated changes before work. Use an authorized isolated worktree where needed; a dirty primary checkout alone does not prevent creating one from an exact approved commit. Preserve its files and verify its status before and after. Never stash/reset/clean/restore it merely to simplify task setup.
+
+For high-risk changes, follow the full applicable verification sequence in the high-risk playbook. The general verification list above does not waive full affected tests, generation, builds or targeted checks. Record skipped checks and their exact reasons.
+
+## Long-running tools
+
+Prefer completion-driven waits over repeated status polling. For empty stdin polling, use at least 180000 ms and preferably 300000 ms only where the active tool and host permit those durations; interactive input is exempt. Outer waits should exceed nested waits by at least 30000 ms where supported. Host limits and required responsiveness take precedence over these adapter preferences. Do not wake solely to announce unchanged progress.
