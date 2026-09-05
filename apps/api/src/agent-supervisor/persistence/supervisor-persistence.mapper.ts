@@ -6,6 +6,7 @@ import type {
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
+  SupervisorOwnerDeploymentAuthorizationRevocation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
   SupervisorReviewCandidate,
@@ -216,6 +217,63 @@ function mapOwnerDeploymentAuthorization(
   return { candidate, service, authorizedBy, authorizedAt, signature };
 }
 
+function mapOwnerDeploymentAuthorizationRevocation(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRevocation {
+  const object = requireObject(value);
+  const candidate = mapReviewCandidate(object.candidate);
+  const service = requireString(
+    object.service,
+  ) as ProductionDeploymentService;
+  const authorizedBy = requireString(object.authorizedBy);
+  const authorizedAt = requireString(object.authorizedAt);
+  const revokedBy = requireString(object.revokedBy);
+  const revokedAt = requireString(object.revokedAt);
+  const reason = requireString(object.reason);
+
+  if (
+    candidate.action !== 'deploy_production' ||
+    candidate.targetBranch !== 'production/atlas' ||
+    !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||
+    !authorizedBy.trim() ||
+    authorizedBy !== authorizedBy.trim() ||
+    !authorizedAt.trim() ||
+    authorizedAt !== authorizedAt.trim() ||
+    Number.isNaN(Date.parse(authorizedAt)) ||
+    !revokedBy.trim() ||
+    revokedBy !== revokedBy.trim() ||
+    !revokedAt.trim() ||
+    revokedAt !== revokedAt.trim() ||
+    Number.isNaN(Date.parse(revokedAt)) ||
+    !reason.trim() ||
+    reason !== reason.trim()
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    candidate,
+    service,
+    authorizedBy,
+    authorizedAt,
+    revokedBy,
+    revokedAt,
+    reason,
+  };
+}
+
+function mapOwnerDeploymentAuthorizationRevocations(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationRevocation[] {
+  if (!Array.isArray(value)) {
+    throw persistenceError();
+  }
+
+  return value.map(
+    mapOwnerDeploymentAuthorizationRevocation,
+  );
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
   const reviewCandidate =
@@ -236,6 +294,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     object.ownerDeploymentAuthorization === undefined
       ? undefined
       : mapOwnerDeploymentAuthorization(object.ownerDeploymentAuthorization);
+  const ownerDeploymentAuthorizationRevocations =
+    object.ownerDeploymentAuthorizationRevocations === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationRevocations(
+          object.ownerDeploymentAuthorizationRevocations,
+        );
 
   return {
     rootCause: requireString(object.rootCause),
@@ -252,6 +316,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       ? { ownerMergeAuthorizationConsumption }
       : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
+    ...(ownerDeploymentAuthorizationRevocations
+      ? { ownerDeploymentAuthorizationRevocations }
+      : {}),
   };
 }
 

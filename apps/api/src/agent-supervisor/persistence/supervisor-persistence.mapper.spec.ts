@@ -43,6 +43,19 @@ function ownerDeploymentAuthorizationFixture() {
   };
 }
 
+function ownerDeploymentAuthorizationRevocationFixture() {
+  return {
+    candidate: deploymentCandidateFixture(),
+    service: 'api',
+    authorizedBy: 'owner-user-1',
+    authorizedAt: '2026-09-02T00:00:00.000Z',
+    revokedBy: 'owner-user-2',
+    revokedAt: '2026-09-05T15:31:00.000Z',
+    reason:
+      'Astra Governance v2 bootstrap deployment completed and authorization no longer required',
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -207,6 +220,66 @@ describe('supervisor persistence mapper', () => {
       task.evidence.ownerDeploymentAuthorization?.candidate.changedFiles,
     ).not.toBe(evidence.ownerDeploymentAuthorization.candidate.changedFiles);
   });
+
+  // ASTRA_V2_DEPLOYMENT_REVOCATION_MAPPER_RED
+  it('maps and clones persisted deployment authorization revocation history', () => {
+    const revocation =
+      ownerDeploymentAuthorizationRevocationFixture();
+
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorizationRevocations: [revocation],
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(
+      task.evidence?.ownerDeploymentAuthorizationRevocations,
+    ).toEqual([revocation]);
+
+    expect(
+      task.evidence?.ownerDeploymentAuthorizationRevocations,
+    ).not.toBe(
+      evidence.ownerDeploymentAuthorizationRevocations,
+    );
+
+    expect(
+      task.evidence
+        ?.ownerDeploymentAuthorizationRevocations?.[0]
+        ?.candidate.changedFiles,
+    ).not.toBe(revocation.candidate.changedFiles);
+  });
+
+  it.each([
+    { service: 'invalid' },
+    { revokedBy: '   ' },
+    { revokedAt: 'not-a-date' },
+    { reason: '   ' },
+    {
+      candidate: {
+        ...deploymentCandidateFixture(),
+        action: 'merge',
+      },
+    },
+  ])(
+    'rejects malformed persisted deployment revocation: %p',
+    (override) => {
+      const evidence = {
+        ...evidenceFixture(),
+        ownerDeploymentAuthorizationRevocations: [
+          {
+            ...ownerDeploymentAuthorizationRevocationFixture(),
+            ...override,
+          },
+        ],
+      };
+
+      expectPersistenceError(() =>
+        mapTaskRecord(taskRecord({ evidence })),
+      );
+    },
+  );
 
   it('keeps backward compatibility with persisted evidence that predates review candidates and owner authorization', () => {
     const legacy = evidenceFixture();
