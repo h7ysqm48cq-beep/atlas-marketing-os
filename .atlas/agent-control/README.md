@@ -13,6 +13,14 @@ Repository-wide mandatory behavior is defined in `/AGENTS.md`. This directory ho
 
 When the same concept appears in multiple files, `/AGENTS.md` is the repository-wide rule source, while the YAML files provide the structured execution contract. Any conflict must be resolved conservatively: do not broaden permissions or skip verification.
 
+## Playbooks and policy boundaries
+
+- [Skill routing](playbooks/skill-routing.md): select relevant execution aids after scope is admitted.
+- [Reasoning policy](playbooks/reasoning-policy.md): use the minimum sufficient investigation and verification effort for the actual risk.
+- [High-risk engineering](playbooks/high-risk-engineering.md): required production, isolation, Calendar, data and verification procedures moved from the root rules without removing their protections.
+
+Playbooks do not create authority. The existing state machine, role matrix and persisted Supervisor assignment remain binding; this cleanup introduces no parallel control plane or runtime enforcement mechanism.
+
 ## Operating loop
 
 1. Receive one owner objective.
@@ -69,7 +77,7 @@ Merge, rebase, squash, cherry-pick, auto-merge, force push and direct PR merge a
 
 ## Mandatory external code-agent admission
 
-Codex, ChatGPT Work coding flows, ChatGPT coding agents, GitHub-connected coding agents, and any future code-writing agent are external workers under the Engineering Supervisor.
+Every code-writing agent is an external worker under the Engineering Supervisor, regardless of tool or provider.
 
 Read-only inspection, explanation, planning, architecture review, and non-mutating diagnosis may run without a worker execution. Before any repository write intended for integration, the Supervisor must persist a task and execution, assign a worker role, establish allowed paths and file ownership, and include forbidden actions plus acceptance criteria in the execution assignment.
 
