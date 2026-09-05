@@ -5,8 +5,9 @@ export const SUPERVISOR_LIFECYCLE_STORE = Symbol('SUPERVISOR_LIFECYCLE_STORE');
 export type SupervisorLockMode = 'acquire' | 'release';
 
 export interface SupervisorLifecycleStore {
-  saveWithLocks(
+  saveWithLocksIfUnchanged(
     task: SupervisorTask,
     mode: SupervisorLockMode,
-  ): Promise<SupervisorTask>;
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null>;
 }

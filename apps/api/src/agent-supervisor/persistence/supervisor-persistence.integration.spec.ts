@@ -190,7 +190,20 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       updatedAt: new Date(),
     };
 
-    const saved = await lifecycleStore.saveWithLocks(workingTask, 'acquire');
+    const saved =
+      await lifecycleStore.saveWithLocksIfUnchanged(
+        workingTask,
+        'acquire',
+        persistedTask.updatedAt,
+      );
+
+    expect(saved).not.toBeNull();
+
+    if (!saved) {
+      throw new Error(
+        'expected lifecycle acquire CAS to succeed',
+      );
+    }
 
     expect(saved.status).toBe('WORKING');
     expect((await taskStore.get(persistedTask.id))?.status).toBe('WORKING');
@@ -214,7 +227,11 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     };
 
     await expect(
-      lifecycleStore.saveWithLocks(attemptedWorkingTask, 'acquire'),
+      lifecycleStore.saveWithLocksIfUnchanged(
+        attemptedWorkingTask,
+        'acquire',
+        secondTask.updatedAt,
+      ),
     ).rejects.toMatchObject({
       response: { code: 'file_ownership_conflict' },
     });
@@ -234,7 +251,20 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       updatedAt: new Date(),
     };
 
-    const saved = await lifecycleStore.saveWithLocks(readyTask, 'release');
+    const saved =
+      await lifecycleStore.saveWithLocksIfUnchanged(
+        readyTask,
+        'release',
+        persistedTask.updatedAt,
+      );
+
+    expect(saved).not.toBeNull();
+
+    if (!saved) {
+      throw new Error(
+        'expected lifecycle release CAS to succeed',
+      );
+    }
 
     expect(saved.status).toBe('READY_FOR_REVIEW');
     expect((await taskStore.get(persistedTask.id))?.status).toBe(

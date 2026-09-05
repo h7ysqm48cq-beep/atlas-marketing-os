@@ -166,7 +166,20 @@ describe('AgentGatewayService review candidate', () => {
     const nextCandidate = candidate({ headSha: 'c'.repeat(40) });
     const persistedTask = await taskStore.get(task.id);
     persistedTask!.evidence!.reviewCandidate = nextCandidate;
-    await taskStore.save(persistedTask!);
+    const expectedUpdatedAt =
+      new Date(persistedTask!.updatedAt);
+
+    persistedTask!.updatedAt =
+      new Date(
+        expectedUpdatedAt.getTime() + 1,
+      );
+
+    await expect(
+      taskStore.saveIfUnchanged(
+        persistedTask!,
+        expectedUpdatedAt,
+      ),
+    ).resolves.not.toBeNull();
     const persistedExecution = await executionStore.get(completed.id);
     persistedExecution!.result!.evidence.reviewCandidate = nextCandidate;
     await executionStore.save(persistedExecution!);
@@ -198,7 +211,20 @@ describe('AgentGatewayService review candidate', () => {
     const persistedTask = await taskStore.get(task.id);
     persistedTask!.evidence!.changedFiles = [OTHER_ALLOWED_FILE];
     persistedTask!.evidence!.reviewCandidate = nextCandidate;
-    await taskStore.save(persistedTask!);
+    const expectedUpdatedAt =
+      new Date(persistedTask!.updatedAt);
+
+    persistedTask!.updatedAt =
+      new Date(
+        expectedUpdatedAt.getTime() + 1,
+      );
+
+    await expect(
+      taskStore.saveIfUnchanged(
+        persistedTask!,
+        expectedUpdatedAt,
+      ),
+    ).resolves.not.toBeNull();
     const persistedExecution = await executionStore.get(completed.id);
     persistedExecution!.result!.evidence.changedFiles = [OTHER_ALLOWED_FILE];
     persistedExecution!.result!.evidence.reviewCandidate = nextCandidate;
@@ -225,7 +251,20 @@ describe('AgentGatewayService review candidate', () => {
       authorizedAt: '2026-09-01T00:00:00.000Z',
       signature: '0'.repeat(64),
     };
-    await taskStore.save(persistedTask!);
+    const expectedUpdatedAt =
+      new Date(persistedTask!.updatedAt);
+
+    persistedTask!.updatedAt =
+      new Date(
+        expectedUpdatedAt.getTime() + 1,
+      );
+
+    await expect(
+      taskStore.saveIfUnchanged(
+        persistedTask!,
+        expectedUpdatedAt,
+      ),
+    ).resolves.not.toBeNull();
 
     await expect(
       gateway.checkReviewCandidate({
@@ -253,4 +292,53 @@ describe('AgentGatewayService review candidate', () => {
       response: { code: 'review_candidate_not_recorded' },
     });
   });
+
+  // ASTRA_V2_CONSUMED_GATE_RED
+  it('fails closed after the exact merge authorization has been consumed', async () => {
+    const { task, completed, gateway, supervisor } =
+      await makeReadyCandidate();
+
+    await supervisor.authorizeMerge(
+      task.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    const contract = supervisor as unknown as {
+      consumeMergeAuthorization?: (
+        taskId: string,
+        attestation: Record<string, unknown>,
+        consumedBy: string,
+      ) => Promise<unknown>;
+    };
+
+    expect(contract.consumeMergeAuthorization).toEqual(
+      expect.any(Function),
+    );
+
+    if (!contract.consumeMergeAuthorization) return;
+
+    await contract.consumeMergeAuthorization(
+      task.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    await expect(
+      gateway.checkReviewCandidate({
+        taskId: task.id,
+        executionId: completed.id,
+        ...candidate(),
+        explicitUserAuthorization: false,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_required' },
+    });
+  });
+
 });

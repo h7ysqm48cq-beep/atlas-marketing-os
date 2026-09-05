@@ -37,7 +37,7 @@ function mockPrisma() {
       create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
-      update: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 }
@@ -91,28 +91,69 @@ describe('PrismaSupervisorTaskStore', () => {
     });
   });
 
-  it('saves mutable task fields and maps the returned row', async () => {
+  it('saves mutable task fields through version-checked persistence', async () => {
     const prisma = mockPrisma();
-    const input = task({ status: 'IMPLEMENTED', blockingReason: 'cleared' });
-    prisma.supervisorTask.update.mockResolvedValue(record(input));
-    const store = new PrismaSupervisorTaskStore(prisma as never);
 
-    await expect(store.save(input)).resolves.toEqual(input);
-    expect(prisma.supervisorTask.update).toHaveBeenCalledWith({
-      where: { id: input.id },
+    const expectedUpdatedAt =
+      new Date(
+        '2026-08-30T00:00:01.000Z',
+      );
+
+    const input = task({
+      status: 'IMPLEMENTED',
+      blockingReason: 'cleared',
+      updatedAt: new Date(
+        expectedUpdatedAt.getTime() + 1,
+      ),
+    });
+
+    prisma.supervisorTask.updateMany
+      .mockResolvedValue({ count: 1 });
+
+    prisma.supervisorTask.findUnique
+      .mockResolvedValue(record(input));
+
+    const store =
+      new PrismaSupervisorTaskStore(
+        prisma as never,
+      );
+
+    await expect(
+      store.saveIfUnchanged(
+        input,
+        expectedUpdatedAt,
+      ),
+    ).resolves.toEqual(input);
+
+    expect(
+      prisma.supervisorTask.updateMany,
+    ).toHaveBeenCalledWith({
+      where: {
+        id: input.id,
+        updatedAt: expectedUpdatedAt,
+      },
       data: {
         objective: input.objective,
         owner: input.owner,
         status: input.status,
         allowedPaths: input.allowedPaths,
-        forbiddenActions: input.forbiddenActions,
+        forbiddenActions:
+          input.forbiddenActions,
         dependsOn: input.dependsOn,
         acceptance: input.acceptance,
         evidence: null,
-        blockingReason: input.blockingReason,
-        failureReason: input.failureReason,
+        blockingReason:
+          input.blockingReason,
+        failureReason:
+          input.failureReason,
         updatedAt: input.updatedAt,
       },
+    });
+
+    expect(
+      prisma.supervisorTask.findUnique,
+    ).toHaveBeenCalledWith({
+      where: { id: input.id },
     });
   });
 
@@ -137,4 +178,90 @@ describe('PrismaSupervisorTaskStore', () => {
       response: { code: 'supervisor_persistence_error' },
     });
   });
+
+  // ASTRA_V2_PRISMA_CAS_RED
+  it('uses updatedAt compare-and-set so stale task writers cannot overwrite a winner', async () => {
+    const prisma = mockPrisma();
+    const current = task();
+    const next = task({
+      objective: 'CAS winner',
+      updatedAt: new Date(current.updatedAt.getTime() + 1),
+    });
+
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    (prisma.supervisorTask as unknown as {
+      updateMany: typeof updateMany;
+    }).updateMany = updateMany;
+    prisma.supervisorTask.findUnique.mockResolvedValue(record(next));
+
+    const store = new PrismaSupervisorTaskStore(prisma as never);
+    const contract = store as unknown as {
+      saveIfUnchanged?: (
+        value: SupervisorTask,
+        expectedUpdatedAt: Date,
+      ) => Promise<SupervisorTask | null>;
+    };
+
+    expect(contract.saveIfUnchanged).toEqual(expect.any(Function));
+    if (!contract.saveIfUnchanged) return;
+
+    await expect(
+      contract.saveIfUnchanged(next, current.updatedAt),
+    ).resolves.toEqual(next);
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: next.id,
+          updatedAt: current.updatedAt,
+        },
+        data: expect.objectContaining({
+          objective: 'CAS winner',
+        }),
+      }),
+    );
+  });
+
+  it('returns null when the task compare-and-set loses the race', async () => {
+    const prisma = mockPrisma();
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    (prisma.supervisorTask as unknown as {
+      updateMany: typeof updateMany;
+    }).updateMany = updateMany;
+
+    const store = new PrismaSupervisorTaskStore(prisma as never);
+    const contract = store as unknown as {
+      saveIfUnchanged?: (
+        value: SupervisorTask,
+        expectedUpdatedAt: Date,
+      ) => Promise<SupervisorTask | null>;
+    };
+
+    expect(contract.saveIfUnchanged).toEqual(expect.any(Function));
+    if (!contract.saveIfUnchanged) return;
+
+    const current = task();
+
+    await expect(
+      contract.saveIfUnchanged(
+        {
+          ...current,
+          updatedAt: new Date(current.updatedAt.getTime() + 1),
+        },
+        current.updatedAt,
+      ),
+    ).resolves.toBeNull();
+  });
+
+
+  // ASTRA_V2_STORE_CLOSURE_PRISMA_TASK_RED
+  it('does not expose legacy unconditional save on PrismaSupervisorTaskStore', () => {
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        PrismaSupervisorTaskStore.prototype,
+        'save',
+      ),
+    ).toBe(false);
+  });
+
 });

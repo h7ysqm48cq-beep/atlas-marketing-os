@@ -16,6 +16,7 @@ import type {
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
+  SupervisorMergeAttestation,
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
@@ -143,6 +144,7 @@ export class AgentSupervisorService {
 
   async startTask(id: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['DRAFT', 'BLOCKED']);
     await this.assertDependenciesReady(task);
     await this.assertFilesAvailable(task);
@@ -150,13 +152,18 @@ export class AgentSupervisorService {
     task.status = 'WORKING';
     task.blockingReason = null;
     task.failureReason = null;
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.persistTaskWithLocks(task, 'acquire');
+    return this.persistTaskWithLocks(
+      task,
+      'acquire',
+      expectedUpdatedAt,
+    );
   }
 
   async blockTask(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['DRAFT', 'WORKING', 'VERIFYING']);
     if (!reason.trim()) {
       throw new BadRequestException('blocking_reason_required');
@@ -164,13 +171,18 @@ export class AgentSupervisorService {
 
     task.status = 'BLOCKED';
     task.blockingReason = reason.trim();
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.persistTaskWithLocks(task, 'release');
+    return this.persistTaskWithLocks(
+      task,
+      'release',
+      expectedUpdatedAt,
+    );
   }
 
   async failTask(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     if (task.status === 'APPROVED' || task.status === 'FAILED') {
       throw new BadRequestException(
         `invalid_transition:${task.status}->FAILED`,
@@ -182,9 +194,13 @@ export class AgentSupervisorService {
 
     task.status = 'FAILED';
     task.failureReason = reason.trim();
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.persistTaskWithLocks(task, 'release');
+    return this.persistTaskWithLocks(
+      task,
+      'release',
+      expectedUpdatedAt,
+    );
   }
 
   async submitImplementation(
@@ -192,6 +208,7 @@ export class AgentSupervisorService {
     evidence: SupervisorEvidence,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['WORKING']);
     this.validateEvidence(task, evidence);
 
@@ -209,28 +226,42 @@ export class AgentSupervisorService {
         : {}),
     };
     task.status = 'IMPLEMENTED';
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.taskStore.save(task);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
   }
 
   async beginVerification(id: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['IMPLEMENTED']);
     if (!task.evidence) {
       throw new BadRequestException('implementation_evidence_required');
     }
 
     task.status = 'VERIFYING';
-    task.updatedAt = new Date();
-    return this.taskStore.save(task);
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
   }
 
   async returnToWorking(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['IMPLEMENTED', 'VERIFYING', 'READY_FOR_REVIEW']);
     if (!reason.trim()) {
       throw new BadRequestException('return_reason_required');
+    }
+
+    if (task.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
+      });
     }
 
     await this.assertDependenciesReady(task);
@@ -248,22 +279,31 @@ export class AgentSupervisorService {
     }
     task.status = 'WORKING';
     task.blockingReason = reason.trim();
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.persistTaskWithLocks(task, 'acquire');
+    return this.persistTaskWithLocks(
+      task,
+      'acquire',
+      expectedUpdatedAt,
+    );
   }
 
   async markReadyForReview(id: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['VERIFYING']);
     if (!task.evidence) {
       throw new BadRequestException('verification_evidence_required');
     }
 
     task.status = 'READY_FOR_REVIEW';
-    task.updatedAt = new Date();
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
 
-    return this.persistTaskWithLocks(task, 'release');
+    return this.persistTaskWithLocks(
+      task,
+      'release',
+      expectedUpdatedAt,
+    );
   }
 
   async approveTask(
@@ -271,14 +311,18 @@ export class AgentSupervisorService {
     explicitUserApproval: boolean,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['READY_FOR_REVIEW']);
     if (!explicitUserApproval) {
       throw new BadRequestException('explicit_user_approval_required');
     }
 
     task.status = 'APPROVED';
-    task.updatedAt = new Date();
-    return this.taskStore.save(task);
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
   }
 
   async authorizeMerge(
@@ -287,7 +331,16 @@ export class AgentSupervisorService {
     authorizedBy: string,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+
     this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+
+    if (task.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
+      });
+    }
+
     if (!task.evidence?.reviewCandidate) {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
     }
@@ -296,7 +349,9 @@ export class AgentSupervisorService {
       task.evidence.reviewCandidate,
     );
     const requestedCandidate = this.normalizeCandidate(candidate);
+
     this.requireCanonicalMerge(requestedCandidate);
+
     if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
       throw new BadRequestException({
         code: 'owner_merge_authorization_candidate_mismatch',
@@ -304,11 +359,13 @@ export class AgentSupervisorService {
     }
 
     const ownerId = authorizedBy.trim();
+
     if (!ownerId) {
       throw new BadRequestException({ code: 'owner_identity_required' });
     }
 
     const authorizedAt = new Date().toISOString();
+
     task.evidence = {
       ...task.evidence,
       ownerMergeAuthorization: {
@@ -322,8 +379,83 @@ export class AgentSupervisorService {
         ),
       },
     };
-    task.updatedAt = new Date();
-    return this.taskStore.save(task);
+
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+
+    return this.saveTaskIfUnchanged(task, expectedUpdatedAt);
+  }
+
+  async consumeMergeAuthorization(
+    id: string,
+    attestation: SupervisorMergeAttestation,
+    consumedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+
+    this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+
+    if (task.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
+      });
+    }
+
+    const authorization = task.evidence?.ownerMergeAuthorization;
+
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_required',
+      });
+    }
+
+    this.assertOwnerMergeAuthorization(task, authorization.candidate);
+
+    const authorizedCandidate = this.normalizeCandidate(
+      authorization.candidate,
+    );
+    const normalizedAttestation =
+      this.normalizeMergeAttestation(attestation);
+
+    if (
+      normalizedAttestation.mergeParents[0] !==
+        authorizedCandidate.baseSha ||
+      normalizedAttestation.mergeParents[1] !==
+        authorizedCandidate.headSha
+    ) {
+      throw new BadRequestException({
+        code: 'merge_attestation_parent_mismatch',
+      });
+    }
+
+    const ownerId = consumedBy.trim();
+
+    if (!ownerId) {
+      throw new BadRequestException({
+        code: 'owner_identity_required',
+      });
+    }
+
+    const consumedAt = new Date().toISOString();
+
+    const {
+      ownerMergeAuthorization: _mergeAuthorization,
+      ...evidence
+    } = task.evidence!;
+
+    task.evidence = {
+      ...evidence,
+      ownerMergeAuthorizationConsumption: {
+        authorization: structuredClone(authorization),
+        attestation: normalizedAttestation,
+        consumedBy: ownerId,
+        consumedAt,
+      },
+    };
+
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+
+    return this.saveTaskIfUnchanged(task, expectedUpdatedAt);
   }
 
   async authorizeProductionDeployment(
@@ -333,6 +465,7 @@ export class AgentSupervisorService {
     authorizedBy: string,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
     if (!task.evidence?.reviewCandidate) {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
@@ -371,8 +504,11 @@ export class AgentSupervisorService {
         ),
       },
     };
-    task.updatedAt = new Date();
-    return this.taskStore.save(task);
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
   }
 
   async revokeProductionDeploymentAuthorization(
@@ -381,6 +517,7 @@ export class AgentSupervisorService {
     revokedBy: string,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
 
     const authorization = task.evidence?.ownerDeploymentAuthorization;
@@ -428,8 +565,11 @@ export class AgentSupervisorService {
       ],
     };
 
-    task.updatedAt = new Date();
-    return this.taskStore.save(task);
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
   }
 
   assertOwnerMergeAuthorization(
@@ -443,6 +583,12 @@ export class AgentSupervisorService {
     if (!authorization) {
       throw new BadRequestException({
         code: 'owner_merge_authorization_required',
+      });
+    }
+
+    if (task.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
       });
     }
 
@@ -710,17 +856,43 @@ export class AgentSupervisorService {
   private async persistTaskWithLocks(
     task: SupervisorTask,
     mode: SupervisorLockMode,
+    expectedUpdatedAt: Date,
   ): Promise<SupervisorTask> {
     if (this.lifecycleStore) {
-      return this.lifecycleStore.saveWithLocks(task, mode);
+      const saved =
+        await this.lifecycleStore.saveWithLocksIfUnchanged(
+          task,
+          mode,
+          expectedUpdatedAt,
+        );
+
+      if (saved) {
+        return saved;
+      }
+
+      throw new ConflictException({
+        code: 'supervisor_task_version_conflict',
+      });
+    }
+
+    const saved = await this.taskStore.saveIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+
+    if (!saved) {
+      throw new ConflictException({
+        code: 'supervisor_task_version_conflict',
+      });
     }
 
     if (mode === 'acquire') {
-      await this.acquireFileOwnership(task);
+      await this.acquireFileOwnership(saved);
     } else {
-      await this.releaseFileOwnership(task.id);
+      await this.releaseFileOwnership(saved.id);
     }
-    return this.taskStore.save(task);
+
+    return saved;
   }
 
   private async acquireFileOwnership(task: SupervisorTask) {
@@ -922,6 +1094,122 @@ export class AgentSupervisorService {
         'utf8',
       )
       .digest('hex');
+  }
+
+  private normalizeMergeAttestation(
+    attestation: SupervisorMergeAttestation,
+  ): SupervisorMergeAttestation {
+    const pullRequestNumber = attestation?.pullRequestNumber;
+
+    if (
+      !Number.isInteger(pullRequestNumber) ||
+      pullRequestNumber <= 0
+    ) {
+      throw new BadRequestException({
+        code: 'merge_attestation_invalid',
+      });
+    }
+
+    const mergeCommitSha = this.requireSha(
+      attestation?.mergeCommitSha,
+      'merge_attestation_invalid',
+    );
+
+    if (
+      !Array.isArray(attestation?.mergeParents) ||
+      attestation.mergeParents.length !== 2
+    ) {
+      throw new BadRequestException({
+        code: 'merge_attestation_invalid',
+      });
+    }
+
+    const mergeParents: [string, string] = [
+      this.requireSha(
+        attestation.mergeParents[0],
+        'merge_attestation_invalid',
+      ),
+      this.requireSha(
+        attestation.mergeParents[1],
+        'merge_attestation_invalid',
+      ),
+    ];
+
+    const mergedAt = attestation?.mergedAt?.trim();
+
+    if (!mergedAt) {
+      throw new BadRequestException({
+        code: 'merge_attestation_invalid',
+      });
+    }
+
+    const mergedDate = new Date(mergedAt);
+
+    if (Number.isNaN(mergedDate.getTime())) {
+      throw new BadRequestException({
+        code: 'merge_attestation_invalid',
+      });
+    }
+
+    return {
+      pullRequestNumber,
+      mergeCommitSha,
+      mergeParents,
+      mergedAt: mergedDate.toISOString(),
+    };
+  }
+
+  private nextMutationTime(expectedUpdatedAt: Date): Date {
+    return new Date(
+      Math.max(
+        Date.now(),
+        expectedUpdatedAt.getTime() + 1,
+      ),
+    );
+  }
+
+  private async saveTaskMutationIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask> {
+    const saved = await this.taskStore.saveIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+
+    if (saved) {
+      return saved;
+    }
+
+    throw new ConflictException({
+      code: 'supervisor_task_version_conflict',
+    });
+  }
+
+  private async saveTaskIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask> {
+    const saved = await this.taskStore.saveIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+
+    if (saved) {
+      return saved;
+    }
+
+    const latest = await this.requireTask(task.id);
+
+    if (latest.evidence?.ownerMergeAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_already_consumed',
+      });
+    }
+
+    throw new ConflictException({
+      code: 'supervisor_task_version_conflict',
+    });
   }
 
   private requireProductionDeploymentService(

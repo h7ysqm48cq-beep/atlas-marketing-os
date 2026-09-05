@@ -34,6 +34,14 @@ type SupervisorTaskUpdateArgs = {
   data: Omit<SupervisorTaskCreateArgs['data'], 'id' | 'createdAt'>;
 };
 
+type SupervisorTaskUpdateManyArgs = {
+  where: {
+    id: string;
+    updatedAt: Date;
+  };
+  data: Omit<SupervisorTaskCreateArgs['data'], 'id' | 'createdAt'>;
+};
+
 type SupervisorTaskDelegate = {
   create(args: SupervisorTaskCreateArgs): Promise<SupervisorTaskRecord>;
   findUnique(args: {
@@ -42,7 +50,9 @@ type SupervisorTaskDelegate = {
   findMany(args: {
     orderBy: { createdAt: 'asc' };
   }): Promise<SupervisorTaskRecord[]>;
-  update(args: SupervisorTaskUpdateArgs): Promise<SupervisorTaskRecord>;
+  updateMany(
+    args: SupervisorTaskUpdateManyArgs,
+  ): Promise<{ count: number }>;
 };
 
 type PrismaWithSupervisorTask = {
@@ -111,12 +121,31 @@ export class PrismaSupervisorTaskStore implements SupervisorTaskStore {
     });
   }
 
-  async save(task: SupervisorTask): Promise<SupervisorTask> {
+  async saveIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null> {
     return this.withPersistenceBoundary(async () => {
-      const row = await this.delegate.update({
-        where: { id: task.id },
+      const result = await this.delegate.updateMany({
+        where: {
+          id: task.id,
+          updatedAt: new Date(expectedUpdatedAt),
+        },
         data: taskUpdateData(task),
       });
+
+      if (result.count === 0) {
+        return null;
+      }
+
+      const row = await this.delegate.findUnique({
+        where: { id: task.id },
+      });
+
+      if (!row) {
+        throw persistenceError();
+      }
+
       return mapTaskRecord(row);
     });
   }

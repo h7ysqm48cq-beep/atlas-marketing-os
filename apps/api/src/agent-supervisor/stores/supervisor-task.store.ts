@@ -6,5 +6,8 @@ export interface SupervisorTaskStore {
   list(): Promise<SupervisorTask[]>;
   get(id: string): Promise<SupervisorTask | null>;
   create(task: SupervisorTask): Promise<SupervisorTask>;
-  save(task: SupervisorTask): Promise<SupervisorTask>;
+  saveIfUnchanged(
+    task: SupervisorTask,
+    expectedUpdatedAt: Date,
+  ): Promise<SupervisorTask | null>;
 }

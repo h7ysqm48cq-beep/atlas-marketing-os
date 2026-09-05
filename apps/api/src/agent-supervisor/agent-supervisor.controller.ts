@@ -19,6 +19,7 @@ import type {
   SupervisorAction,
   SupervisorAgentRole,
   SupervisorEvidence,
+  SupervisorMergeAttestation,
   SupervisorReviewCandidate,
 } from './agent-supervisor.types';
 
@@ -102,6 +103,22 @@ export class AgentSupervisorController {
     return this.supervisor.authorizeMerge(
       id,
       body.candidate,
+      request.user?.id ?? '',
+    );
+  }
+
+  @Post('tasks/:id/consume-merge-authorization')
+  consumeMergeAuthorization(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      attestation: SupervisorMergeAttestation;
+    },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.consumeMergeAuthorization(
+      id,
+      body.attestation,
       request.user?.id ?? '',
     );
   }
