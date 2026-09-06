@@ -91,6 +91,13 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
             },
           }
         : null,
+      claimedAt: execution.claimedAt ? new Date(execution.claimedAt) : null,
+      leaseExpiresAt: execution.leaseExpiresAt
+        ? new Date(execution.leaseExpiresAt)
+        : null,
+      lastHeartbeatAt: execution.lastHeartbeatAt
+        ? new Date(execution.lastHeartbeatAt)
+        : null,
       createdAt: new Date(execution.createdAt),
       startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
       completedAt: execution.completedAt

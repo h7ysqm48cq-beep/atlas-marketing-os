@@ -15,12 +15,18 @@ import type {
 } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
+  RunnerEligibility,
   SupervisorExecution,
+  SupervisorExecutionPurpose,
   SupervisorExecutionStatus,
   SupervisorWorkerRole,
   WorkerAssignmentEnvelope,
   WorkerExecutionResult,
 } from '../execution/supervisor-execution.types';
+import type {
+  SupervisorWorkerCapabilityMetadata,
+  SupervisorWorkerCapabilityOperation,
+} from '../worker/supervisor-worker-capability.types';
 
 type JsonObject = Record<string, unknown>;
 
@@ -62,6 +68,11 @@ export interface SupervisorExecutionRecord {
   assignment: unknown;
   result: unknown | null;
   error: string | null;
+  claimedBy: string | null;
+  claimEpoch: number;
+  claimedAt: Date | null;
+  leaseExpiresAt: Date | null;
+  lastHeartbeatAt: Date | null;
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -322,12 +333,44 @@ function mapEvidence(value: unknown): SupervisorEvidence {
   };
 }
 
+function mapWorkerCapability(
+  value: unknown,
+): SupervisorWorkerCapabilityMetadata {
+  const object = requireObject(value);
+  if (object.version !== 2) {
+    throw persistenceError();
+  }
+  return {
+    version: 2,
+    assignmentDigest: requireString(object.assignmentDigest),
+    allowedOperations: requireStringArray(
+      object.allowedOperations,
+    ) as SupervisorWorkerCapabilityOperation[],
+    issuedAt: requireString(object.issuedAt),
+    expiresAt: requireString(object.expiresAt),
+  };
+}
+
 function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const object = requireObject(value);
+  const executionPurpose =
+    object.executionPurpose === undefined
+      ? undefined
+      : (requireString(object.executionPurpose) as SupervisorExecutionPurpose);
+  const runnerEligibility =
+    object.runnerEligibility === undefined
+      ? undefined
+      : (requireString(object.runnerEligibility) as RunnerEligibility);
+  const workerCapability =
+    object.workerCapability === undefined
+      ? undefined
+      : mapWorkerCapability(object.workerCapability);
   return {
     executionId: requireString(object.executionId),
     taskId: requireString(object.taskId),
     workerRole: requireString(object.workerRole) as SupervisorWorkerRole,
+    ...(executionPurpose ? { executionPurpose } : {}),
+    ...(runnerEligibility ? { runnerEligibility } : {}),
     objective: requireString(object.objective),
     allowedPaths: requireStringArray(object.allowedPaths),
     forbiddenActions: requireStringArray(
@@ -338,6 +381,7 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
     requiredEvidence: requireStringArray(
       object.requiredEvidence,
     ) as RequiredEvidenceField[],
+    ...(workerCapability ? { workerCapability } : {}),
   };
 }
 
@@ -378,6 +422,15 @@ export function mapExecutionRecord(
     assignment: mapAssignment(record.assignment),
     result: record.result === null ? null : mapResult(record.result),
     error: record.error,
+    claimedBy: record.claimedBy,
+    claimEpoch: record.claimEpoch,
+    claimedAt: record.claimedAt ? new Date(record.claimedAt) : null,
+    leaseExpiresAt: record.leaseExpiresAt
+      ? new Date(record.leaseExpiresAt)
+      : null,
+    lastHeartbeatAt: record.lastHeartbeatAt
+      ? new Date(record.lastHeartbeatAt)
+      : null,
     createdAt: new Date(record.createdAt),
     startedAt: record.startedAt ? new Date(record.startedAt) : null,
     completedAt: record.completedAt ? new Date(record.completedAt) : null,

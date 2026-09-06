@@ -128,10 +128,54 @@ function executionRecord(overrides: Record<string, unknown> = {}) {
     assignment: assignmentFixture(),
     result: executionResultFixture(),
     error: null,
+    claimedBy: null,
+    claimEpoch: 0,
+    claimedAt: null,
+    leaseExpiresAt: null,
+    lastHeartbeatAt: null,
     createdAt,
     startedAt: new Date('2026-08-30T00:00:10.000Z'),
     completedAt: new Date('2026-08-30T00:00:20.000Z'),
     ...overrides,
+  };
+}
+
+function runnerClaimExecutionRecord() {
+  return {
+    id: 'ATLAS-EXEC-TEST',
+    taskId: 'ATLAS-TASK-TEST',
+    workerRole: 'engineering',
+    status: 'DISPATCHED',
+    assignment: {
+      executionId: 'ATLAS-EXEC-TEST',
+      taskId: 'ATLAS-TASK-TEST',
+      workerRole: 'engineering',
+      executionPurpose: 'IMPLEMENTATION',
+      runnerEligibility: 'A1_SYNTHETIC',
+      objective: 'validate runner claim plane',
+      allowedPaths: [],
+      forbiddenActions: ['merge'],
+      dependencies: [],
+      acceptance: ['synthetic lifecycle passes'],
+      requiredEvidence: ['rootCause'],
+      workerCapability: {
+        version: 2,
+        assignmentDigest: 'a'.repeat(64),
+        allowedOperations: ['mark_running', 'complete'],
+        issuedAt: '2026-09-07T00:00:00.000Z',
+        expiresAt: '2026-09-07T00:05:00.000Z',
+      },
+    },
+    result: null,
+    error: null,
+    claimedBy: 'engineering-runner:11111111-1111-4111-8111-111111111111',
+    claimEpoch: 4,
+    claimedAt: new Date('2026-09-07T00:00:00.000Z'),
+    leaseExpiresAt: new Date('2026-09-07T00:02:00.000Z'),
+    lastHeartbeatAt: new Date('2026-09-07T00:00:30.000Z'),
+    createdAt: new Date('2026-09-07T00:00:00.000Z'),
+    startedAt: null,
+    completedAt: null,
   };
 }
 
@@ -315,6 +359,32 @@ describe('supervisor persistence mapper', () => {
       (record.result as ReturnType<typeof executionResultFixture>).evidence
         .reviewCandidate.changedFiles,
     );
+  });
+
+  it('round-trips runner eligibility, capability v2, and claim ownership', () => {
+    const record = runnerClaimExecutionRecord();
+    const execution = mapExecutionRecord(record);
+
+    expect(execution).toMatchObject({
+      assignment: record.assignment,
+      claimedBy: record.claimedBy,
+      claimEpoch: record.claimEpoch,
+      claimedAt: record.claimedAt,
+      leaseExpiresAt: record.leaseExpiresAt,
+      lastHeartbeatAt: record.lastHeartbeatAt,
+    });
+    expect(execution.assignment.workerCapability?.allowedOperations).not.toBe(
+      record.assignment.workerCapability.allowedOperations,
+    );
+    expect(execution.claimedAt).not.toBe(record.claimedAt);
+    expect(execution.leaseExpiresAt).not.toBe(record.leaseExpiresAt);
+    expect(execution.lastHeartbeatAt).not.toBe(record.lastHeartbeatAt);
+  });
+
+  it('does not infer runner eligibility for legacy assignments', () => {
+    const execution = mapExecutionRecord(executionRecord());
+
+    expect(execution.assignment.runnerEligibility).toBeUndefined();
   });
 
   it('rejects malformed persisted review-candidate JSON', () => {

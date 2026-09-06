@@ -1,5 +1,46 @@
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import type {
+  SupervisorWorkerCapabilityAuthorizationInput,
+  SupervisorWorkerCapabilityClaims,
+} from '../worker/supervisor-worker-capability.types';
 import { MemorySupervisorExecutionStore } from './memory-supervisor-execution.store';
+
+const execution: SupervisorExecution = {
+  id: 'ATLAS-EXEC-TEST',
+  taskId: 'ATLAS-TASK-TEST',
+  workerRole: 'engineering',
+  status: 'DISPATCHED',
+  assignment: {
+    executionId: 'ATLAS-EXEC-TEST',
+    taskId: 'ATLAS-TASK-TEST',
+    workerRole: 'engineering',
+    executionPurpose: 'IMPLEMENTATION',
+    runnerEligibility: 'A1_SYNTHETIC',
+    objective: 'validate runner claim plane',
+    allowedPaths: [],
+    forbiddenActions: ['merge'],
+    dependencies: [],
+    acceptance: ['synthetic lifecycle passes'],
+    requiredEvidence: ['rootCause'],
+    workerCapability: {
+      version: 2,
+      assignmentDigest: 'a'.repeat(64),
+      allowedOperations: ['mark_running', 'complete'],
+      issuedAt: '2026-09-07T00:00:00.000Z',
+      expiresAt: '2026-09-07T00:05:00.000Z',
+    },
+  },
+  result: null,
+  error: null,
+  claimedBy: 'engineering-runner:11111111-1111-4111-8111-111111111111',
+  claimEpoch: 4,
+  claimedAt: new Date('2026-09-07T00:00:00.000Z'),
+  leaseExpiresAt: new Date('2026-09-07T00:02:00.000Z'),
+  lastHeartbeatAt: new Date('2026-09-07T00:00:30.000Z'),
+  createdAt: new Date('2026-09-07T00:00:00.000Z'),
+  startedAt: null,
+  completedAt: null,
+};
 
 function executionFixture(id: string, taskId: string): SupervisorExecution {
   const now = new Date('2026-08-30T00:00:00.000Z');
@@ -30,6 +71,11 @@ function executionFixture(id: string, taskId: string): SupervisorExecution {
     },
     result: null,
     error: null,
+    claimedBy: null,
+    claimEpoch: 0,
+    claimedAt: null,
+    leaseExpiresAt: null,
+    lastHeartbeatAt: null,
     createdAt: now,
     startedAt: null,
     completedAt: null,
@@ -37,6 +83,53 @@ function executionFixture(id: string, taskId: string): SupervisorExecution {
 }
 
 describe('MemorySupervisorExecutionStore', () => {
+  it('round-trips and clones runner claim ownership', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const stored = await store.create(execution);
+
+    expect(stored).toEqual(execution);
+    expect(stored.assignment).not.toBe(execution.assignment);
+    expect(stored.assignment.workerCapability?.allowedOperations).not.toBe(
+      execution.assignment.workerCapability?.allowedOperations,
+    );
+    expect(stored.claimedAt).not.toBe(execution.claimedAt);
+    expect(stored.leaseExpiresAt).not.toBe(execution.leaseExpiresAt);
+    expect(stored.lastHeartbeatAt).not.toBe(execution.lastHeartbeatAt);
+  });
+
+  it('freezes runner-bound capability claim and authorization types', () => {
+    const claims: SupervisorWorkerCapabilityClaims = {
+      ...execution.assignment.workerCapability!,
+      taskId: execution.taskId,
+      executionId: execution.id,
+      workerRole: execution.workerRole,
+      executionPurpose: execution.assignment.executionPurpose!,
+      runnerId: execution.claimedBy!,
+      claimEpoch: execution.claimEpoch,
+    };
+    const input: SupervisorWorkerCapabilityAuthorizationInput = {
+      taskId: execution.taskId,
+      executionId: execution.id,
+      workerRole: execution.workerRole,
+      executionPurpose: execution.assignment.executionPurpose!,
+      assignment: execution.assignment,
+      operation: 'complete',
+      claimedBy: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
+      leaseExpiresAt: execution.leaseExpiresAt,
+    };
+
+    expect(claims).toMatchObject({
+      runnerId: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
+    });
+    expect(input).toMatchObject({
+      claimedBy: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
+      leaseExpiresAt: execution.leaseExpiresAt,
+    });
+  });
+
   it('exposes asynchronous store operations', async () => {
     const store = new MemorySupervisorExecutionStore();
     const fixture = executionFixture('EXEC-1', 'ATLAS-1');
@@ -81,7 +174,7 @@ describe('MemorySupervisorExecutionStore', () => {
     const fixture = executionFixture('EXEC-1', 'ATLAS-1');
     fixture.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
     fixture.assignment.workerCapability = {
-      version: 1,
+      version: 2,
       assignmentDigest: 'a'.repeat(64),
       allowedOperations: ['read_assignment', 'mark_running'],
       issuedAt: '2026-09-06T00:00:00.000Z',
