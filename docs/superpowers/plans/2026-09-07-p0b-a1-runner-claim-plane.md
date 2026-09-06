@@ -25,12 +25,13 @@
 - Every new claim/reclaim increments `claimEpoch`; heartbeat never increments it.
 - Claim does not change `DISPATCHED` to `RUNNING`; only explicit Worker API `mark-running` does.
 - Expired `DISPATCHED` may be reclaimed; expired `RUNNING` must never be automatically reclaimed or replayed.
-- A Runner process may own at most one active `DISPATCHED` or `RUNNING` execution.
+- A Runner process may own at most one live `DISPATCHED` execution or any `RUNNING` execution at a time. An expired same-runner `DISPATCHED` claim is recoverable only by reclaiming that same execution with a higher epoch.
 - A1 production claim eligibility is exactly `executionPurpose=IMPLEMENTATION` plus `runnerEligibility=A1_SYNTHETIC`; missing eligibility fails closed; `STANDARD` remains unclaimable.
 - Synthetic completion must enforce zero changed files, deployment `NONE`, Git `UNCHANGED`, no review candidate, no merge/deployment authorization evidence, and must not advance the parent task.
 - No credential, capability token, authorization signature, or raw credential header may enter logs.
-- Ambiguous writes are reconciled read-only; no blind retry after ambiguous release/execution outcomes.
+- Ambiguous writes are reconciled before retry. `mark-running`, `complete`, `fail`, and `release` are never blindly retried after an ambiguous network outcome. Heartbeat is the only claim-plane write that may be repeated within the same `runnerId + claimEpoch` because it is a bounded lease renewal and cannot create a second execution or increment epoch.
 - Deployment authorization, deployment, Runner enablement, and real execution remain separate future governance actions.
+- This implementation plan does not authorize Railway variable changes. Switching the shared preDeploy resolver script to V1 creates a future rollout dependency: every production service that executes that script must receive `ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN` before its next deployment. That Railway mutation requires separate authorization.
 
 ---
 
@@ -135,7 +136,7 @@ const execution: SupervisorExecution = {
   },
   result: null,
   error: null,
-  claimedBy: 'engineering-runner:boot-1',
+  claimedBy: 'engineering-runner:11111111-1111-4111-8111-111111111111',
   claimEpoch: 4,
   claimedAt: new Date('2026-09-07T00:00:00.000Z'),
   leaseExpiresAt: new Date('2026-09-07T00:02:00.000Z'),
@@ -148,8 +149,6 @@ const execution: SupervisorExecution = {
 
 - [ ] **Step 2: Run focused tests and verify RED**
 
-Run:
-
 ```bash
 npm test --workspace apps/api -- --runInBand \
   agent-supervisor/persistence/supervisor-persistence.mapper.spec.ts \
@@ -160,25 +159,40 @@ Expected: FAIL because claim/eligibility/capability-v2 fields do not yet exist o
 
 - [ ] **Step 3: Add exact domain fields**
 
-Use these domain shapes:
-
 ```ts
 export type RunnerEligibility = 'A1_SYNTHETIC' | 'STANDARD';
 
 export interface WorkerAssignmentEnvelope {
-  // existing fields...
+  executionId: string;
+  taskId: string;
+  workerRole: SupervisorWorkerRole;
   executionPurpose?: SupervisorExecutionPurpose;
   runnerEligibility?: RunnerEligibility;
+  objective: string;
+  allowedPaths: string[];
+  forbiddenActions: SupervisorAction[];
+  dependencies: string[];
+  acceptance: string[];
+  requiredEvidence: RequiredEvidenceField[];
   workerCapability?: SupervisorWorkerCapabilityMetadata;
 }
 
 export interface SupervisorExecution {
-  // existing fields...
+  id: string;
+  taskId: string;
+  workerRole: SupervisorWorkerRole;
+  status: SupervisorExecutionStatus;
+  assignment: WorkerAssignmentEnvelope;
+  result: WorkerExecutionResult | null;
+  error: string | null;
   claimedBy: string | null;
   claimEpoch: number;
   claimedAt: Date | null;
   leaseExpiresAt: Date | null;
   lastHeartbeatAt: Date | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
 }
 ```
 
@@ -204,7 +218,7 @@ export interface SupervisorWorkerCapabilityClaims
 }
 ```
 
-Extend authorization input with the current DB ownership state:
+Extend `SupervisorWorkerCapabilityAuthorizationInput` with:
 
 ```ts
 claimedBy: string | null;
@@ -214,11 +228,11 @@ leaseExpiresAt: Date | null;
 
 - [ ] **Step 4: Fix persistence mapping and memory cloning**
 
-`mapAssignment()` must preserve `executionPurpose`, `runnerEligibility`, and `workerCapability`; `mapExecutionRecord()` must preserve all five claim fields. Do not infer missing `runnerEligibility` as `A1_SYNTHETIC`.
+`mapAssignment()` must preserve `executionPurpose`, `runnerEligibility`, and the complete `workerCapability` metadata. `mapExecutionRecord()` must preserve all five claim fields. Missing `runnerEligibility` remains `undefined`; never infer it as synthetic.
 
 - [ ] **Step 5: Run focused tests and verify GREEN**
 
-Run the same command as Step 2. Expected: PASS.
+Run the Step 2 command. Expected: PASS.
 
 - [ ] **Step 6: Commit the independently testable domain/persistence contract**
 
@@ -249,7 +263,7 @@ git commit -m "refactor(supervisor): model runner claim ownership"
 
 - [ ] **Step 1: Write failing Prisma-store tests for claim fields**
 
-Extend the fake delegate record/data assertions so create/save/get include `claimedBy`, `claimEpoch`, `claimedAt`, `leaseExpiresAt`, and `lastHeartbeatAt`.
+Extend fake delegate records and create/update assertions so all five claim fields are round-tripped.
 
 - [ ] **Step 2: Run the Prisma-store test and verify RED**
 
@@ -261,8 +275,6 @@ npm test --workspace apps/api -- --runInBand \
 Expected: FAIL because create/update record shapes omit the claim fields.
 
 - [ ] **Step 3: Extend `SupervisorExecution` schema exactly**
-
-Add:
 
 ```prisma
 claimedBy       String?
@@ -276,9 +288,7 @@ lastHeartbeatAt DateTime?
 
 Keep the existing task indexes unchanged.
 
-- [ ] **Step 4: Create the migration SQL**
-
-Use exact SQL equivalent to:
+- [ ] **Step 4: Create migration SQL**
 
 ```sql
 ALTER TABLE "SupervisorExecution"
@@ -301,19 +311,14 @@ Do not replace the existing `SupervisorExecution_one_active_per_task` partial un
 
 - [ ] **Step 5: Update Prisma store record/create/update shapes**
 
-Add the five claim fields to `SupervisorExecutionRecord`, create data, update data, and mapping. Preserve `claimEpoch` on release/terminal records rather than resetting it.
+Add the five claim fields to `SupervisorExecutionRecord`, create data, update data, and mapping. Preserve `claimEpoch` on release and terminal records.
 
-- [ ] **Step 6: Regenerate committed Prisma client with the repository-pinned CLI**
+- [ ] **Step 6: Regenerate committed Prisma client with pinned Prisma CLI**
 
 From `apps/api`:
 
 ```bash
 npx prisma generate --config ../../prisma.config.ts
-```
-
-Then run:
-
-```bash
 npm run check:prisma-generated --workspace apps/api
 ```
 
@@ -368,7 +373,7 @@ missing supplied token -> runner_credential_required
 wrong token -> runner_credential_invalid
 missing runner id -> runner_id_required
 malformed runner id -> runner_id_required
-valid token + engineering-runner:<uuid> -> true
+valid token + engineering-runner:<uuid-v4> -> true
 Owner token in Runner header -> rejected
 CI token in Runner header -> rejected
 ```
@@ -394,11 +399,11 @@ npm test --workspace apps/api -- --runInBand \
 
 Expected: FAIL because guards do not exist.
 
-- [ ] **Step 3: Implement constant-time token comparison**
+- [ ] **Step 3: Implement constant-time comparison and exact Runner ID validation**
 
-Follow the existing CI guard pattern: SHA-256 both values and `timingSafeEqual` the equal-length digests. Never log supplied/configured values.
+Follow the existing CI guard pattern: SHA-256 both values then `timingSafeEqual` the fixed-length digests. Never log supplied/configured values.
 
-Runner ID must match:
+Runner ID regex:
 
 ```ts
 /^engineering-runner:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
@@ -410,7 +415,7 @@ Remove class-wide CI guard from `SupervisorGatewayController`. Apply `@UseGuards
 
 - [ ] **Step 5: Register providers in `AgentSupervisorModule`**
 
-Register both new guards without exporting secrets or config.
+Register both new guards. Do not export credentials or config values.
 
 - [ ] **Step 6: Run guard/controller/module tests**
 
@@ -424,7 +429,7 @@ npm test --workspace apps/api -- --runInBand \
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit the machine-identity boundary**
+- [ ] **Step 7: Commit machine-identity boundary**
 
 ```bash
 git add apps/api/src/agent-supervisor/runner/supervisor-runner.guard* \
@@ -446,11 +451,9 @@ git commit -m "feat(supervisor): isolate runner machine identities"
 
 **Interfaces:**
 - Consumes: current DB `claimedBy`, `claimEpoch`, `leaseExpiresAt`.
-- Produces: capability token that is unusable after ownership epoch changes even before cryptographic expiry.
+- Produces: capability token unusable after ownership epoch changes even before cryptographic expiry.
 
 - [ ] **Step 1: Add failing capability tests**
-
-Tests must prove:
 
 ```text
 issue on unclaimed execution -> worker_capability_claim_required
@@ -474,17 +477,13 @@ npm test --workspace apps/api -- --runInBand \
 
 - [ ] **Step 3: Upgrade capability format to version 2**
 
-Set:
-
 ```ts
 const CAPABILITY_VERSION = 2 as const;
 ```
 
-`issue()` must require `execution.claimedBy`, positive integer `execution.claimEpoch`, and an unexpired `execution.leaseExpiresAt`; claims include those exact ownership values.
+`issue()` requires `execution.claimedBy`, positive integer `execution.claimEpoch`, and unexpired `execution.leaseExpiresAt`. Claims include exact current owner and epoch.
 
 - [ ] **Step 4: Fence against DB-current ownership during authorization**
-
-After signature/task/execution/role/purpose/operation/digest checks, enforce:
 
 ```ts
 if (
@@ -499,13 +498,13 @@ if (!input.leaseExpiresAt || now.getTime() >= input.leaseExpiresAt.getTime()) {
 }
 ```
 
-- [ ] **Step 5: Make Worker Guard pass DB ownership to capability authorization**
+- [ ] **Step 5: Make Worker Guard pass DB ownership state**
 
 Worker bootstrap token is never accepted here. Existing Bearer Worker Capability remains mandatory.
 
 - [ ] **Step 6: Run focused tests**
 
-Use the command from Step 2. Expected: PASS.
+Use Step 2 command. Expected: PASS.
 
 - [ ] **Step 7: Commit capability fencing**
 
@@ -539,9 +538,15 @@ type ClaimNextResult =
     };
 ```
 
-- [ ] **Step 1: Write failing claim-selection tests**
+Service methods accept an optional test clock only internally:
 
-Mock the Prisma transaction boundary and prove:
+```ts
+claimNext(runnerId: string, now?: Date): Promise<ClaimNextResult>;
+heartbeat(executionId: string, runnerId: string, claimEpoch: number, now?: Date): Promise<HeartbeatResult>;
+release(executionId: string, runnerId: string, claimEpoch: number, now?: Date): Promise<SupervisorExecution>;
+```
+
+- [ ] **Step 1: Write failing claim-selection tests**
 
 ```text
 oldest A1_SYNTHETIC IMPLEMENTATION DISPATCHED wins
@@ -551,7 +556,9 @@ INDEPENDENT_VERIFICATION -> skipped
 unexpired existing lease -> skipped
 expired DISPATCHED -> reclaimable
 RUNNING -> never selected even when lease expired
-same runner already owns DISPATCHED/RUNNING -> runner_already_holds_active_execution
+same runner + live DISPATCHED -> runner_already_holds_active_execution
+same runner + any RUNNING -> runner_already_holds_active_execution
+same runner + expired DISPATCHED -> reclaim that same execution, not another row
 no eligible row -> {claimed:false}
 reclaim increments epoch exactly once
 claim leaves status DISPATCHED
@@ -565,9 +572,23 @@ npm test --workspace apps/api -- --runInBand \
   agent-supervisor/runner/supervisor-runner-claim.service.spec.ts
 ```
 
-- [ ] **Step 3: Implement one short ownership transaction**
+- [ ] **Step 3: Implement same-runner recovery first inside the transaction**
 
-Inside `PrismaService.$transaction(async tx => { ... })`, first reject an existing active ownership by the same Runner ID. Then lock exactly one candidate:
+Inside `PrismaService.$transaction(async tx => { ... })`, lock any row already owned by `runnerId` with status `DISPATCHED` or `RUNNING`.
+
+Decision:
+
+```text
+RUNNING, regardless of lease -> 409 runner_already_holds_active_execution
+DISPATCHED + lease > now -> 409 runner_already_holds_active_execution
+DISPATCHED + lease <= now -> only that same row may be reclaimed; epoch + 1
+```
+
+This is the recovery path for a claim that committed but whose HTTP response was lost. It prevents the same Runner from obtaining unrelated work while an old ownership record exists.
+
+- [ ] **Step 4: If no same-runner recovery row exists, lock oldest eligible candidate**
+
+Use a parameterized Prisma raw query equivalent to:
 
 ```sql
 SELECT *
@@ -575,7 +596,7 @@ FROM "SupervisorExecution"
 WHERE "status" = 'DISPATCHED'
   AND (
     "claimedBy" IS NULL
-    OR "leaseExpiresAt" <= $NOW
+    OR "leaseExpiresAt" <= $1
   )
   AND "assignment"->>'executionPurpose' = 'IMPLEMENTATION'
   AND "assignment"->>'runnerEligibility' = 'A1_SYNTHETIC'
@@ -584,22 +605,24 @@ FOR UPDATE SKIP LOCKED
 LIMIT 1;
 ```
 
-While that row is locked:
+Do not construct SQL from untrusted text.
+
+- [ ] **Step 5: Allocate ownership and capability while the row lock is held**
 
 ```text
 nextEpoch = current claimEpoch + 1
 claimedBy = runnerId
 claimedAt = now
-leaseExpiresAt = now + 120s
+leaseExpiresAt = now + 120 seconds
 lastHeartbeatAt = now
 status remains DISPATCHED
 ```
 
 Construct a temporary `SupervisorExecution` with those values, call capability `issue()`, persist its metadata in `assignment.workerCapability`, update the locked row, then commit. Return the token only after transaction success.
 
-- [ ] **Step 4: Emit structured security events without secrets**
+- [ ] **Step 6: Emit structured security events without secrets**
 
-Use Nest `Logger` with objects containing only event name, task/execution ID, runner ID, epoch, status, purpose, timestamps, and machine-readable reason. Required initial claim events:
+Required events:
 
 ```text
 runner.claim.succeeded
@@ -609,7 +632,9 @@ runner.claim.rejected
 runner.fenced
 ```
 
-- [ ] **Step 5: Run tests and build**
+Allowed metadata: event, reason, taskId, executionId, runnerId, claimEpoch, status, executionPurpose, claimedAt, leaseExpiresAt, timestamp. Never include token/signature/header values.
+
+- [ ] **Step 7: Run tests and build**
 
 ```bash
 npm test --workspace apps/api -- --runInBand \
@@ -617,7 +642,7 @@ npm test --workspace apps/api -- --runInBand \
 npm run build --workspace apps/api
 ```
 
-- [ ] **Step 6: Commit atomic claim**
+- [ ] **Step 8: Commit atomic claim**
 
 ```bash
 git add apps/api/src/agent-supervisor/runner/supervisor-runner-claim.service* \
@@ -634,11 +659,20 @@ git commit -m "feat(supervisor): add atomic runner claim"
 - Modify: `apps/api/src/agent-supervisor/runner/supervisor-runner-claim.service.spec.ts`
 
 **Interfaces:**
-- Produces: `heartbeat(executionId, runnerId, claimEpoch)` and `release(executionId, runnerId, claimEpoch)`.
+- Produces:
+
+```ts
+interface HeartbeatResult {
+  execution: SupervisorExecution;
+  claimEpoch: number;
+  leaseExpiresAt: string;
+  capability: string;
+}
+```
 
 - [ ] **Step 1: Add failing heartbeat/release tests**
 
-Heartbeat cases:
+Heartbeat:
 
 ```text
 DISPATCHED current owner + epoch + live lease -> renew 120s and rotate capability
@@ -649,9 +683,10 @@ wrong epoch -> stale_runner_fenced
 expired lease -> runner_lease_expired
 terminal execution -> rejected
 DB update failure -> fresh token not returned
+repeated heartbeat with same runnerId+epoch -> safe renewal, no new execution
 ```
 
-Release cases:
+Release:
 
 ```text
 DISPATCHED own current live claim -> clear claimedBy/claimedAt/lease/heartbeat/capability metadata; keep epoch
@@ -662,11 +697,11 @@ expired lease -> runner_lease_expired
 
 - [ ] **Step 2: Verify RED**
 
-Run the Task 5 Jest command.
+Run Task 5 Jest command.
 
 - [ ] **Step 3: Implement heartbeat as one transaction**
 
-Lock the execution row, validate `status in (DISPATCHED,RUNNING)`, exact `claimedBy`, exact `claimEpoch`, and unexpired lease. Reissue a capability for the same owner/epoch, then atomically persist:
+Lock execution row, validate `status in (DISPATCHED,RUNNING)`, exact `claimedBy`, exact `claimEpoch`, and unexpired lease. Reissue capability for same owner/epoch, then persist in the same transaction:
 
 ```text
 leaseExpiresAt = now + 120s
@@ -674,15 +709,13 @@ lastHeartbeatAt = now
 assignment.workerCapability = fresh metadata
 ```
 
-Return the fresh token only after commit.
+Return fresh token only after commit.
 
 - [ ] **Step 4: Implement release before start only**
 
-For `DISPATCHED` only, clear current ownership and capability metadata without decrementing/resetting `claimEpoch`. Do not auto-release RUNNING work.
+For `DISPATCHED` only, clear `claimedBy`, `claimedAt`, `leaseExpiresAt`, `lastHeartbeatAt`, and `assignment.workerCapability`. Keep `claimEpoch` unchanged. Do not auto-release RUNNING work.
 
 - [ ] **Step 5: Add audit events**
-
-Required events:
 
 ```text
 runner.heartbeat.succeeded
@@ -692,8 +725,6 @@ runner.release.succeeded
 runner.release.rejected
 runner.fenced
 ```
-
-Never log capability tokens.
 
 - [ ] **Step 6: Verify GREEN and commit**
 
@@ -725,13 +756,13 @@ POST /engineering/supervisor/runner/executions/:executionId/release
 
 - [ ] **Step 1: Write controller tests**
 
-Use `@Public()` + `@UseGuards(SupervisorRunnerGuard)`. Read the validated `x-atlas-runner-id` header. Heartbeat/release body is exactly:
+Use `@Public()` + `@UseGuards(SupervisorRunnerGuard)`. Read validated `x-atlas-runner-id`. Heartbeat/release body is exactly:
 
 ```ts
 { claimEpoch: number }
 ```
 
-Reject non-positive/non-integer epoch before service invocation with deterministic `runner_claim_epoch_required`.
+Reject non-positive/non-integer epoch before service invocation with `runner_claim_epoch_required`.
 
 - [ ] **Step 2: Verify RED**
 
@@ -743,7 +774,7 @@ npm test --workspace apps/api -- --runInBand \
 
 - [ ] **Step 3: Implement controller and module registration**
 
-`claim-next` returns HTTP 200 with `{claimed:false}` when idle; do not translate idle to 404/409.
+`claim-next` returns HTTP 200 `{claimed:false}` when idle. Do not translate idle to an error.
 
 - [ ] **Step 4: Run tests and commit**
 
@@ -759,7 +790,7 @@ git commit -m "feat(supervisor): expose runner claim API"
 
 ---
 
-### Task 8: Make Dispatch Explicitly Route `STANDARD` vs `A1_SYNTHETIC` and Enforce Synthetic Evidence
+### Task 8: Route `STANDARD` vs `A1_SYNTHETIC` and Enforce Synthetic Evidence
 
 **Files:**
 - Modify: `apps/api/src/agent-supervisor/dispatch/worker-dispatcher.service.ts`
@@ -769,22 +800,21 @@ git commit -m "feat(supervisor): expose runner claim API"
 
 **Interfaces:**
 - Produces: new execution assignments with explicit eligibility.
-- Default Owner dispatch remains `STANDARD`; A1 smoke must be explicitly requested as `A1_SYNTHETIC`.
+- Default Owner dispatch remains `STANDARD`; A1 smoke must explicitly request `A1_SYNTHETIC`.
 
 - [ ] **Step 1: Add failing dispatch tests**
-
-Prove:
 
 ```text
 default dispatch -> runnerEligibility STANDARD
 explicit A1 synthetic -> runnerEligibility A1_SYNTHETIC
-A1 synthetic + INDEPENDENT_VERIFICATION -> reject runner_execution_not_eligible
+A1 synthetic + INDEPENDENT_VERIFICATION -> runner_execution_not_eligible
 dispatch does not issue a Runner-bound Worker Capability before claim
+new execution claim fields initialize to null/0
 ```
 
 - [ ] **Step 2: Add failing synthetic completion tests**
 
-Accepted evidence must equal:
+Accepted evidence:
 
 ```ts
 {
@@ -799,7 +829,7 @@ Accepted evidence must equal:
 }
 ```
 
-Reject any synthetic result containing changed files, `deploymentState !== 'NONE'`, `gitState !== 'UNCHANGED'`, `reviewCandidate`, `ownerMergeAuthorization`, `ownerMergeAuthorizationConsumption`, `ownerDeploymentAuthorization`, or `ownerDeploymentAuthorizationRevocations` with code `synthetic_execution_evidence_violation`.
+Reject any synthetic result containing changed files, `deploymentState !== 'NONE'`, `gitState !== 'UNCHANGED'`, `reviewCandidate`, `ownerMergeAuthorization`, `ownerMergeAuthorizationConsumption`, `ownerDeploymentAuthorization`, or `ownerDeploymentAuthorizationRevocations` with `synthetic_execution_evidence_violation`.
 
 - [ ] **Step 3: Verify RED**
 
@@ -811,7 +841,7 @@ npm test --workspace apps/api -- --runInBand \
 
 - [ ] **Step 4: Implement explicit eligibility**
 
-Use a default of `STANDARD`. The Owner controller may accept an optional body:
+Default `runnerEligibility` is `STANDARD`. Owner dispatch body may be:
 
 ```ts
 {
@@ -820,21 +850,21 @@ Use a default of `STANDARD`. The Owner controller may accept an optional body:
 }
 ```
 
-A1 synthetic is allowed only with `IMPLEMENTATION`.
+A1 synthetic is accepted only with `IMPLEMENTATION`.
 
 - [ ] **Step 5: Remove dispatch-time Worker Capability issuance**
 
-A Runner-bound capability is impossible before `claimedBy + claimEpoch` exist. The claim transaction is the only A1 path that issues the initial version-2 execution capability.
+A Runner-bound v2 capability cannot exist before `claimedBy + claimEpoch`. Claim transaction is the only A1 initial capability issuer.
 
-Preserve the Owner-only direct lifecycle controller as an emergency/admin path; do not make it a Runner path and do not remove it in A1.
+Preserve Owner-only direct lifecycle endpoints as emergency/admin paths; do not expose them to Runner identity.
 
-- [ ] **Step 6: Enforce the synthetic result contract server-side**
+- [ ] **Step 6: Enforce synthetic result contract inside `complete()`**
 
-Perform this validation inside `WorkerDispatcherService.complete()` before persisting `COMPLETED`.
+Validate before persisting `COMPLETED`.
 
 - [ ] **Step 7: Verify parent task remains unchanged**
 
-Add a test showing synthetic execution completion changes only execution state. Do not call `submitImplementationFromExecution()` automatically.
+Synthetic completion changes execution only. Never call `submitImplementationFromExecution()` automatically.
 
 - [ ] **Step 8: Run tests and commit**
 
@@ -866,17 +896,17 @@ git commit -m "feat(supervisor): gate synthetic runner executions"
 
 - [ ] **Step 1: Add failing service/type tests**
 
-Extend allowed production services exactly to:
+Allowed production services become exactly:
 
 ```ts
 'api' | 'web' | 'browser-worker' | 'engineering-runner'
 ```
 
-Prove arbitrary service strings remain rejected.
+Arbitrary strings remain rejected.
 
-- [ ] **Step 2: Add Node script tests before modifying the script**
+- [ ] **Step 2: Add Node script tests first**
 
-Use `node:test` and a fake `fetchImpl`. Prove the resolver request uses:
+Use `node:test` + fake `fetchImpl`. Prove resolver request sends:
 
 ```text
 x-atlas-supervisor-deploy-resolver-token
@@ -888,7 +918,7 @@ and never sends:
 x-atlas-supervisor-ci-token
 ```
 
-Required env for this script becomes `ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN`, not CI token. Also prove `ATLAS_DEPLOYMENT_SERVICE=engineering-runner` is accepted and unknown service is rejected.
+Script required env becomes `ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN`; `ATLAS_DEPLOYMENT_SERVICE=engineering-runner` is accepted; unknown service is rejected.
 
 - [ ] **Step 3: Verify RED**
 
@@ -899,25 +929,27 @@ npm test --workspace apps/api -- --runInBand \
 node --test apps/api/scripts/check-production-deployment-gate.test.cjs
 ```
 
-- [ ] **Step 4: Extend all exact service allowlists**
+- [ ] **Step 4: Extend every exact service allowlist**
 
-Update the TypeScript union, deployment gate set, persistence mapper deployment-service set, and preDeploy resolver script set together.
+Update TypeScript union, deployment gate set, persistence mapper set, and preDeploy resolver script set together.
 
-- [ ] **Step 5: Switch the preDeploy resolver script to V1 credential**
-
-The request header is exactly:
+- [ ] **Step 5: Switch preDeploy resolver script to V1 credential**
 
 ```js
 'x-atlas-supervisor-deploy-resolver-token': resolverToken
 ```
 
-Do not send both resolver and CI credentials. The script remains read-only: it only calls `/production-deployment/resolve` and returns the task/execution receipt.
+Do not send both resolver and CI credentials. Script remains read-only and calls only `/production-deployment/resolve`.
 
-- [ ] **Step 6: Run tests**
+- [ ] **Step 6: Record future deployment dependency explicitly**
 
-Use the Step 3 command. Expected: PASS.
+Before any production deployment after this code is merged, the relevant Railway service must have `ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN` configured. This includes existing API/Web/Browser Worker services that use the shared preDeploy script and the future Engineering Runner service. This step is documentation/verification only; do not mutate Railway during implementation.
 
-- [ ] **Step 7: Commit deployment-governance support**
+- [ ] **Step 7: Run tests**
+
+Use Step 3 command. Expected: PASS.
+
+- [ ] **Step 8: Commit deployment-governance support**
 
 ```bash
 git add apps/api/src/agent-supervisor/agent-supervisor.types.ts \
@@ -930,7 +962,7 @@ git commit -m "feat(supervisor): govern engineering runner deployments"
 
 ---
 
-### Task 10: Build the Disabled-by-Default Railway Engineering Runner Skeleton
+### Task 10: Build Disabled-by-Default Railway Engineering Runner Skeleton
 
 **Files:**
 - Create: `apps/engineering-runner/package.json`
@@ -947,75 +979,140 @@ git commit -m "feat(supervisor): govern engineering runner deployments"
 - Consumes: Runner Claim API + existing Worker API.
 - Produces: one-process/one-execution synthetic control-plane worker. No Agent launch and no filesystem/Git mutation.
 
-- [ ] **Step 1: Create package/test configuration with failing tests**
+- [ ] **Step 1: Create exact package and TypeScript configuration**
 
-`package.json` scripts:
+`apps/engineering-runner/package.json`:
 
 ```json
 {
-  "build": "tsc -p tsconfig.json",
-  "start": "node dist/index.js",
-  "test": "tsx --test src/**/*.spec.ts"
+  "name": "engineering-runner",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "tsx --test src/**/*.spec.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.7.3"
+  }
 }
 ```
 
-Use Node 22 built-in `fetch` and `crypto.randomUUID`; no HTTP client dependency is needed.
+`apps/engineering-runner/tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}
+```
 
 - [ ] **Step 2: Write Runner client contract tests**
 
-Prove every claim-plane request sends only:
+Runner process env reads only these runtime inputs:
+
+```text
+ATLAS_SUPERVISOR_API_URL
+ATLAS_SUPERVISOR_RUNNER_TOKEN
+ATLAS_ENGINEERING_RUNNER_ENABLED
+```
+
+It may inherit `ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN` from Railway because preDeploy variables are service variables, but Runner source must never read or send it at runtime.
+
+Claim-plane requests send:
 
 ```text
 x-atlas-supervisor-runner-token
 x-atlas-runner-id
-content-type: application/json (when a body exists)
+content-type: application/json when body exists
 ```
 
-Worker API requests send only Bearer execution capability, never the Runner bootstrap token.
+Worker API requests send only Bearer execution capability, never Runner bootstrap token.
 
-- [ ] **Step 3: Write Runner loop tests**
+- [ ] **Step 3: Write Runner loop tests before implementation**
 
-With injected `fetch`, `sleep`, and clock functions prove:
+With injected `fetch`, `sleep`, clock, and UUID functions prove:
 
 ```text
-ATLAS_ENGINEERING_RUNNER_ENABLED != true -> no claim request
+ATLAS_ENGINEERING_RUNNER_ENABLED !== 'true' -> zero claim requests and process remains alive
 idle -> poll every 5s
 network/API failure -> 5s,10s,20s,30s cap
 successful communication -> reset to 5s
 single-flight -> never two claim-next calls concurrently
 claim success -> polling stops while active
-process boot -> runnerId engineering-runner:<uuid>
-one process -> at most one active execution
+process boot -> runnerId engineering-runner:<uuid-v4>
+one process -> at most one current execution
+409 runner_already_holds_active_execution after ambiguous claim -> back off; never claim unrelated work while lease is live
 ```
 
 - [ ] **Step 4: Implement synthetic lifecycle only**
 
-A successful claim performs:
+Successful claim sequence:
 
 ```text
 claim-next
--> mark-running with claim capability
--> heartbeat once immediately to prove rotation
+-> mark-running using claim capability
+-> heartbeat once immediately to prove capability rotation
 -> replace in-memory capability with heartbeat result
--> complete with server-approved synthetic no-op evidence
+-> complete using fresh capability and exact synthetic no-op evidence
+-> clear current execution
 -> return to idle polling
 ```
 
-Do not read repository files, spawn child processes, run Git, run tests/build, or launch an Agent.
+Do not read repository files, spawn child processes, run Git, run tests/build, or launch any Agent.
 
-- [ ] **Step 5: Implement 30-second heartbeat for active work**
+- [ ] **Step 5: Implement 30-second periodic heartbeat abstraction**
 
-The abstraction must support periodic heartbeat while an execution remains active, even though A1 synthetic work completes quickly. Keep only the newest rotated capability in memory.
+While an execution is active, periodic heartbeat uses the same `runnerId + claimEpoch` and replaces only the in-memory capability with the newest token. Heartbeat request may be repeated after an ambiguous network result because server-side operation is a bounded renewal in the same epoch.
 
-- [ ] **Step 6: Implement shutdown behavior**
+- [ ] **Step 6: Implement fail-closed ambiguous execution handling**
 
-If current execution is still claimed-but-`DISPATCHED`, send exactly one release attempt. If already `RUNNING`, do not release. If release response is ambiguous/network-failed, log the non-secret reason and stop; do not retry blindly.
+If `mark-running`, `complete`, or `fail` has a network outcome where commit status is unknown:
 
-- [ ] **Step 7: Create minimal container and Railway config**
+```text
+DO NOT retry the same write automatically
+DO NOT create another execution
+DO NOT claim unrelated work as a substitute
+record non-secret event/reason
+stop processing that execution
+allow Supervisor lease/status reconciliation to determine next action
+```
 
-`Dockerfile` uses Node 22, installs workspace dependencies including TypeScript, builds only `apps/engineering-runner`, and starts `dist/index.js`. It must not install Chromium, GitHub CLI, Codex, or other execution engines.
+If `claim-next` response is lost after commit, subsequent claim requests with the same Runner ID are blocked while the lease is live; after expiry, Task 5 must preferentially reclaim that same `DISPATCHED` row with a higher epoch.
 
-`railway.json` contains only the deployment gate:
+- [ ] **Step 7: Implement shutdown behavior**
+
+If current execution is still `DISPATCHED`, send exactly one release attempt. If already `RUNNING`, do not release. If release response is ambiguous/network-failed, log non-secret reason and stop; never retry blindly.
+
+- [ ] **Step 8: Create minimal Dockerfile**
+
+```dockerfile
+FROM node:22-bookworm
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/engineering-runner/package.json apps/engineering-runner/
+RUN npm install --include=dev
+COPY . .
+RUN npm run build --workspace apps/engineering-runner
+ENV NODE_ENV=production
+CMD ["node", "apps/engineering-runner/dist/index.js"]
+```
+
+Do not install Chromium, GitHub CLI, Codex, or other execution engines.
+
+- [ ] **Step 9: Create Railway config**
 
 ```json
 {
@@ -1028,9 +1125,9 @@ If current execution is still claimed-but-`DISPATCHED`, send exactly one release
 }
 ```
 
-Do not encode any secret value in repository config.
+No secret values belong in repository config. Production environment must later set `ATLAS_ENGINEERING_RUNNER_ENABLED=false` before first deploy; that Railway mutation is not authorized by implementation.
 
-- [ ] **Step 8: Run Runner tests/build**
+- [ ] **Step 10: Run Runner tests/build**
 
 ```bash
 npm test --workspace apps/engineering-runner
@@ -1039,7 +1136,7 @@ npm run build --workspace apps/engineering-runner
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit Runner skeleton**
+- [ ] **Step 11: Commit Runner skeleton**
 
 ```bash
 git add apps/engineering-runner
@@ -1054,44 +1151,44 @@ git commit -m "feat(runner): add synthetic engineering runner skeleton"
 - Create: `apps/api/src/agent-supervisor/runner/supervisor-runner-claim.integration.spec.ts`
 
 **Interfaces:**
-- Validates: actual PostgreSQL locking and partial indexes; mocks are insufficient for this task.
+- Validates actual PostgreSQL locking and partial indexes; mocks are insufficient.
 
-- [ ] **Step 1: Create a dedicated local Prisma Postgres instance**
+- [ ] **Step 1: Create dedicated local Prisma Postgres**
 
-Do not point this test at production or a shared database. From repository root:
+Do not point this test at production/shared DB.
 
 ```bash
 npx prisma dev --name="atlas-p0b-a1-test" --detach
 npx prisma dev ls
 ```
 
-Use the TCP/Postgres connection URL reported for `atlas-p0b-a1-test` as `DATABASE_URL` in the test shell only.
+Use the TCP/Postgres URL reported for `atlas-p0b-a1-test` as `DATABASE_URL` in the test shell only.
 
-- [ ] **Step 2: Apply committed migrations to the dedicated local DB**
+- [ ] **Step 2: Apply committed migrations**
 
 ```bash
 npm run db:migrate --workspace apps/api
 ```
 
-Expected: all migrations apply successfully, including `20260907090000_p0b_a1_runner_claim_plane`.
+Expected: all migrations apply, including `20260907090000_p0b_a1_runner_claim_plane`.
 
 - [ ] **Step 3: Write real concurrency tests**
 
-Required assertions:
-
 ```text
-two concurrent different Runner IDs racing one eligible execution -> exactly one claims it
-multiple candidates -> SKIP LOCKED allows different runners to claim different rows without duplicate ownership
-same runner cannot own two active rows -> unique index/controlled conflict
-expired DISPATCHED -> reclaim succeeds and epoch increments
+two concurrent different Runner IDs racing one eligible execution -> exactly one owner
+multiple candidates -> SKIP LOCKED lets different runners claim different rows without duplicate ownership
+same runner cannot own two live active rows
+same runner with expired DISPATCHED reclaims same row and increments epoch
+claim response-loss recovery does not switch to unrelated work
+expired DISPATCHED owned by another runner -> reclaim succeeds and epoch increments
 old capability after reclaim -> stale_runner_fenced
 unexpired DISPATCHED -> cannot be stolen
-expired RUNNING -> claim-next does not select it
+expired RUNNING -> never selected
 heartbeat keeps epoch constant
-release DISPATCHED makes it claimable again while preserving monotonic epoch
+release DISPATCHED makes same execution claimable again while epoch stays monotonic
 ```
 
-Use deterministic inserted timestamps and clean up test rows in `afterEach`/`afterAll`.
+Use deterministic `now` values through the service’s test clock parameter; do not sleep 120 seconds.
 
 - [ ] **Step 4: Run integration test in band**
 
@@ -1102,15 +1199,15 @@ npm test --workspace apps/api -- --runInBand \
 
 Expected: PASS.
 
-- [ ] **Step 5: Stop the dedicated local database**
+- [ ] **Step 5: Stop local test database**
 
 ```bash
 npx prisma dev stop atlas-p0b-a1-test
 ```
 
-Confirm no production/shared database URL was used.
+Confirm no production/shared DB URL was used.
 
-- [ ] **Step 6: Commit the integration proof**
+- [ ] **Step 6: Commit integration proof**
 
 ```bash
 git add apps/api/src/agent-supervisor/runner/supervisor-runner-claim.integration.spec.ts
@@ -1122,10 +1219,10 @@ git commit -m "test(supervisor): prove runner claim concurrency"
 ### Task 12: Full A1 Verification and Frozen Candidate Review
 
 **Files:**
-- No new implementation files expected; only fix defects found by the verification commands within already-authorized A1 paths.
+- No new implementation files expected. Only defects discovered by verification may be fixed, and only inside A1-authorized paths already listed above.
 
 **Interfaces:**
-- Produces: implementation candidate evidence only. This task does not push, open a PR, merge, deploy, configure Railway, or enable the Runner.
+- Produces implementation candidate evidence only. Does not push, open PR, merge, deploy, configure Railway, or enable Runner.
 
 - [ ] **Step 1: Run all focused Supervisor tests**
 
@@ -1151,7 +1248,7 @@ npm run check:prisma-generated --workspace apps/api
 
 Expected: PASS with zero generated-client drift.
 
-- [ ] **Step 4: Build both API and Runner**
+- [ ] **Step 4: Build API and Runner**
 
 ```bash
 npm run build --workspace apps/api
@@ -1160,17 +1257,15 @@ npm run build --workspace apps/engineering-runner
 
 Expected: PASS.
 
-- [ ] **Step 5: Run lint without silently fixing unrelated files**
+- [ ] **Step 5: Run lint carefully**
 
-Use the repository lint command only after confirming its `--fix` behavior is scoped to the implementation worktree. Immediately inspect `git status --short`; revert any unrelated formatting churn before continuing.
+The existing API lint script uses `--fix`. Run it only in the isolated implementation worktree, inspect `git status --short` immediately afterward, and revert unrelated formatting churn before proceeding.
 
-- [ ] **Step 6: Run real PostgreSQL integration test again**
+- [ ] **Step 6: Re-run real PostgreSQL integration proof**
 
-Repeat Task 11 against the dedicated local `atlas-p0b-a1-test` database and stop it afterward.
+Repeat Task 11 against `atlas-p0b-a1-test`; stop the local DB afterward.
 
 - [ ] **Step 7: Security grep**
-
-Verify no Runner source contains Owner/CI/GitHub credential references:
 
 ```bash
 ! grep -R "ATLAS_SUPERVISOR_OWNER_TOKEN\|ATLAS_SUPERVISOR_CI_TOKEN\|GITHUB_TOKEN\|GH_TOKEN" apps/engineering-runner
@@ -1178,7 +1273,7 @@ Verify no Runner source contains Owner/CI/GitHub credential references:
 
 Expected exit status: 0.
 
-Verify Runner contains no code execution primitives:
+Verify no code execution primitives:
 
 ```bash
 ! grep -R "child_process\|spawn(\|exec(\|execFile(\|simple-git\|codex" apps/engineering-runner/src
@@ -1186,7 +1281,15 @@ Verify Runner contains no code execution primitives:
 
 Expected exit status: 0.
 
-- [ ] **Step 8: Verify production enablement remains absent from repository configuration**
+Verify Runner source does not read deploy-resolver token at runtime:
+
+```bash
+! grep -R "ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN" apps/engineering-runner/src
+```
+
+Expected exit status: 0.
+
+- [ ] **Step 8: Verify no production enablement is committed**
 
 ```bash
 ! grep -R "ATLAS_ENGINEERING_RUNNER_ENABLED=true" apps/engineering-runner
@@ -1196,11 +1299,11 @@ Expected exit status: 0.
 
 - [ ] **Step 9: Review exact changed-file boundary**
 
-The candidate may contain only A1 claim-plane/API/Prisma/generated-client/Runner/deployment-gate/tests/docs paths described by this plan. It must contain no Web, Browser Worker, marketing workflow, publishing, or unrelated product changes.
+Candidate may contain only A1 claim-plane/API/Prisma/generated-client/Runner/deployment-gate/tests/docs paths described by this plan. No Web, Browser Worker, marketing workflow, publishing, or unrelated product changes.
 
-- [ ] **Step 10: Freeze candidate SHA and collect evidence**
+- [ ] **Step 10: Freeze candidate SHA and evidence**
 
-Record:
+Record only non-secret evidence:
 
 ```text
 HEAD SHA
@@ -1217,11 +1320,9 @@ Runner no-agent/no-git grep result
 working tree status
 ```
 
-Do not include any secret values.
+- [ ] **Step 11: Stop at next governance boundary**
 
-- [ ] **Step 11: Stop at the next governance boundary**
-
-At this point implementation may be locally committed in the isolated branch only. Do not push/open PR/merge/deploy/change Railway/enable Runner without separate explicit authorization.
+Implementation may be locally committed in isolated branch only. Do not push/open PR/merge/deploy/change Railway/enable Runner without separate explicit authorization.
 
 ---
 
@@ -1230,25 +1331,37 @@ At this point implementation may be locally committed in the isolated branch onl
 | Area | Must prove |
 | --- | --- |
 | Atomic claim | Two runners cannot own the same execution; `SKIP LOCKED` behavior is proven on real PostgreSQL. |
-| One-runner invariant | One `runnerId` cannot own two active `DISPATCHED/RUNNING` executions. |
+| Lost claim response | Same Runner is blocked while lease is live, then may reclaim only its same expired `DISPATCHED` execution with epoch increment. |
+| One-runner invariant | One `runnerId` cannot own two live active executions; any `RUNNING` ownership blocks another claim regardless of lease. |
 | Eligibility | Only explicit `A1_SYNTHETIC + IMPLEMENTATION` is claimable; missing/`STANDARD`/verification purpose fail closed. |
-| Lease | 120s lease; 30s heartbeat; heartbeat does not increment epoch. |
+| Lease | 120s lease; 30s heartbeat; heartbeat never increments epoch. |
 | Reclaim | Expired `DISPATCHED` may reclaim with epoch increment; expired `RUNNING` never auto-reclaims. |
 | Capability | Version 2 token binds task/execution/role/purpose/assignment/Runner ID/epoch; old epoch is immediately fenced. |
 | Heartbeat atomicity | Lease renewal and capability metadata rotation commit together; token returned only after DB commit. |
 | Release | Only live own `DISPATCHED` claim can release; RUNNING release denied; ambiguous release never blindly retries. |
+| Ambiguous lifecycle writes | `mark-running`/`complete`/`fail` are not blindly retried; unresolved outcomes stop and require reconciliation. |
 | Authentication | Runner, deploy-resolver, CI, Owner credentials remain distinct; no credential fallback. |
 | Synthetic evidence | Zero changed files, `NONE`, `UNCHANGED`, no integration artifacts; spoofed evidence rejected. |
 | Parent task | Synthetic execution can become `COMPLETED` while parent task remains `WORKING`. |
 | Logging | Structured events contain no token, signature, or raw credential header. |
 | Runner runtime | Disabled by default; single-flight polling/backoff; no Git, no Agent launch, no repo mutation. |
-| Deployment governance | `engineering-runner` is a recognized exact service and preDeploy resolution uses read-only resolver credential, not CI token. |
+| Deployment governance | `engineering-runner` is an exact service and preDeploy resolution uses read-only resolver credential, not CI token. |
+| Railway boundary | No Railway variable/config mutation occurs during implementation; resolver-token rollout and Runner enablement require separate authorization. |
+
+## Plan Self-Review Result
+
+- Spec coverage: A1 through U1 are mapped to Tasks 1–12; V1 is mapped to Tasks 3, 9, 10, and 12.
+- Concurrency correction: same-runner expired `DISPATCHED` recovery is explicit and does not conflict with one-active-execution enforcement.
+- Ambiguous-write correction: claim response loss, mark-running/complete/fail ambiguity, heartbeat retry, and release ambiguity now have distinct fail-closed behavior.
+- Placeholder scan: no implementation placeholder remains; deferred A2/A3 work is explicitly outside this plan rather than left unfinished inside a task.
+- Type consistency: `RunnerEligibility`, claim fields, `ClaimNextResult`, and `HeartbeatResult` use one naming scheme throughout.
+- Security consistency: Runner runtime never reads Owner, CI, GitHub, or deploy-authorization credentials; V1 deploy-resolver credential is read-only and not read by Runner source.
 
 ## Execution Handoff
 
-Plan execution has two supported modes after a separate implementation authorization:
+After a separate implementation authorization, two execution modes are supported:
 
 1. **Subagent-Driven (recommended)** — use `superpowers:subagent-driven-development`, one fresh implementation subagent per task with review gates between tasks.
-2. **Inline Execution** — use `superpowers:executing-plans`, execute the tasks in this session in small batches with checkpoints.
+2. **Inline Execution** — use `superpowers:executing-plans`, execute tasks in this session in small batches with checkpoints.
 
 Neither execution mode is authorized by this planning document itself.
