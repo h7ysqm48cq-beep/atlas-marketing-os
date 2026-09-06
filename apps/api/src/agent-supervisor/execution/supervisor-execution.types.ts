@@ -3,16 +3,15 @@ import type {
   SupervisorEvidence,
   SupervisorTask,
 } from '../agent-supervisor.types';
+import type { SupervisorWorkerCapabilityMetadata } from '../worker/supervisor-worker-capability.types';
 
 export type SupervisorWorkerRole = SupervisorTask['owner'];
 
+export type SupervisorExecutionPurpose =
+  'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+
 export type SupervisorExecutionStatus =
-  | 'QUEUED'
-  | 'DISPATCHED'
-  | 'RUNNING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED';
+  'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 export type RequiredEvidenceField =
   | 'rootCause'
@@ -28,12 +27,14 @@ export interface WorkerAssignmentEnvelope {
   executionId: string;
   taskId: string;
   workerRole: SupervisorWorkerRole;
+  executionPurpose?: SupervisorExecutionPurpose;
   objective: string;
   allowedPaths: string[];
   forbiddenActions: SupervisorAction[];
   dependencies: string[];
   acceptance: string[];
   requiredEvidence: RequiredEvidenceField[];
+  workerCapability?: SupervisorWorkerCapabilityMetadata;
 }
 
 export interface WorkerExecutionResult {

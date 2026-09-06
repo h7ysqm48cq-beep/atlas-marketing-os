@@ -130,6 +130,46 @@ describe('PrismaSupervisorExecutionStore', () => {
     });
   });
 
+  it('atomically saves only when the persisted status matches', async () => {
+    const prisma = mockPrisma();
+    const input = execution({
+      status: 'COMPLETED',
+      completedAt: new Date('2026-09-06T00:05:00.000Z'),
+    });
+    prisma.supervisorExecution.update.mockResolvedValue(record(input));
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(store.saveIfStatus(input, 'RUNNING')).resolves.toEqual(input);
+    expect(prisma.supervisorExecution.update).toHaveBeenCalledWith({
+      where: { id: input.id, status: 'RUNNING' },
+      data: {
+        taskId: input.taskId,
+        workerRole: input.workerRole,
+        status: input.status,
+        assignment: input.assignment,
+        result: input.result,
+        error: input.error,
+        startedAt: input.startedAt,
+        completedAt: input.completedAt,
+      },
+    });
+  });
+
+  it('fails closed when a competing transition already changed status', async () => {
+    const prisma = mockPrisma();
+    prisma.supervisorExecution.update.mockRejectedValue({ code: 'P2025' });
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(
+      store.saveIfStatus(execution({ status: 'COMPLETED' }), 'RUNNING'),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'execution_state_conflict',
+        expected: 'RUNNING',
+      },
+    });
+  });
+
   it('returns cloned assignment data instead of persistence references', async () => {
     const prisma = mockPrisma();
     const persisted = record();
@@ -139,7 +179,7 @@ describe('PrismaSupervisorExecutionStore', () => {
     const mapped = await store.get(persisted.id);
     mapped?.assignment.allowedPaths.push('mutated');
 
-    expect((persisted.assignment as SupervisorExecution['assignment']).allowedPaths).toEqual([
+    expect(persisted.assignment.allowedPaths).toEqual([
       'apps/api/src/agent-supervisor/**',
     ]);
   });
@@ -205,7 +245,9 @@ describe('PrismaSupervisorExecutionStore', () => {
 
   it('wraps unknown database failures as supervisor_persistence_error', async () => {
     const prisma = mockPrisma();
-    prisma.supervisorExecution.findMany.mockRejectedValue(new Error('database down'));
+    prisma.supervisorExecution.findMany.mockRejectedValue(
+      new Error('database down'),
+    );
     const store = new PrismaSupervisorExecutionStore(prisma as never);
 
     await expect(store.listByTask('ATLAS-1')).rejects.toMatchObject({

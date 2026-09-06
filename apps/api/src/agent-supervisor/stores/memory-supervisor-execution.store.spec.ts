@@ -75,4 +75,49 @@ describe('MemorySupervisorExecutionStore', () => {
       'apps/api/src/example.ts',
     ]);
   });
+
+  it('round-trips execution purpose and non-secret capability metadata', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const fixture = executionFixture('EXEC-1', 'ATLAS-1');
+    fixture.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
+    fixture.assignment.workerCapability = {
+      version: 1,
+      assignmentDigest: 'a'.repeat(64),
+      allowedOperations: ['read_assignment', 'mark_running'],
+      issuedAt: '2026-09-06T00:00:00.000Z',
+      expiresAt: '2026-09-06T00:05:00.000Z',
+    };
+
+    await store.create(fixture);
+
+    await expect(store.get(fixture.id)).resolves.toMatchObject({
+      assignment: {
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        workerCapability: fixture.assignment.workerCapability,
+      },
+    });
+  });
+
+  it('allows only one concurrent terminal write from RUNNING', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const fixture = executionFixture('EXEC-1', 'ATLAS-1');
+    fixture.status = 'RUNNING';
+    await store.create(fixture);
+    const completed = { ...fixture, status: 'COMPLETED' as const };
+    const failed = { ...fixture, status: 'FAILED' as const };
+
+    const results = await Promise.allSettled([
+      store.saveIfStatus(completed, 'RUNNING'),
+      store.saveIfStatus(failed, 'RUNNING'),
+    ]);
+
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    const stored = await store.get(fixture.id);
+    expect(['COMPLETED', 'FAILED']).toContain(stored?.status);
+  });
 });
