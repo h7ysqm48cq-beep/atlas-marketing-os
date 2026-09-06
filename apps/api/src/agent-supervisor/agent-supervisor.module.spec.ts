@@ -10,10 +10,17 @@ import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execu
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
 import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
+import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
+import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
 
 describe('AgentSupervisorModule runtime persistence wiring', () => {
   const providers = Reflect.getMetadata(
     MODULE_METADATA.PROVIDERS,
+    AgentSupervisorModule,
+  ) as Array<unknown>;
+  const controllers = Reflect.getMetadata(
+    MODULE_METADATA.CONTROLLERS,
     AgentSupervisorModule,
   ) as Array<unknown>;
 
@@ -23,12 +30,22 @@ describe('AgentSupervisorModule runtime persistence wiring', () => {
         typeof provider === 'object' &&
         provider !== null &&
         'provide' in provider &&
-        (provider as { provide: unknown }).provide === token,
+        provider.provide === token,
     ) as { provide: symbol; useExisting?: unknown } | undefined;
   }
 
   it('registers the owner mutation guard at runtime', () => {
     expect(providers).toContain(SupervisorOwnerGuard);
+  });
+
+  it('registers the execution-bound worker capability plane', () => {
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        SupervisorWorkerCapabilityService,
+        SupervisorWorkerGuard,
+      ]),
+    );
+    expect(controllers).toContain(SupervisorWorkerController);
   });
 
   it('binds supervisor task persistence to Prisma at runtime', () => {

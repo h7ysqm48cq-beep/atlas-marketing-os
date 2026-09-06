@@ -16,9 +16,16 @@ import { FILE_OWNERSHIP_STORE } from './stores/file-ownership.store';
 import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
 import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
+import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
+import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
 
 @Module({
-  controllers: [AgentSupervisorController, SupervisorGatewayController],
+  controllers: [
+    AgentSupervisorController,
+    SupervisorGatewayController,
+    SupervisorWorkerController,
+  ],
   providers: [
     AgentSupervisorService,
     WorkerDispatcherService,
@@ -27,6 +34,8 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
     SupervisorCiGuard,
     SupervisorOwnerActionGuard,
     SupervisorOwnerGuard,
+    SupervisorWorkerCapabilityService,
+    SupervisorWorkerGuard,
     PrismaSupervisorTaskStore,
     PrismaSupervisorExecutionStore,
     PrismaFileOwnershipStore,

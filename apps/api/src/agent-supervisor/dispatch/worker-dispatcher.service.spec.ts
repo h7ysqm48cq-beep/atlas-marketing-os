@@ -3,6 +3,7 @@ import { AgentSupervisorService } from '../agent-supervisor.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { WorkerDispatcherService } from './worker-dispatcher.service';
 
 const PROTECTED_ACTIONS = [
@@ -41,6 +42,22 @@ describe('WorkerDispatcherService', () => {
     return supervisor.startTask(task.id);
   }
 
+  function workerResult() {
+    return {
+      summary: 'Implemented',
+      evidence: {
+        rootCause: 'Known cause',
+        changedFiles: ['apps/api/src/example.ts'],
+        tests: ['focused test PASS'],
+        build: 'PASS',
+        regression: ['adjacent PASS'],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_INTEGRATION_PERFORMED',
+        remainingRisk: [],
+      },
+    };
+  }
+
   it('dispatches a WORKING task with owned files and a restart-safe execution id', async () => {
     const task = await createWorkingTask();
 
@@ -53,6 +70,60 @@ describe('WorkerDispatcherService', () => {
     expect(result.assignment.taskId).toBe(task.id);
     expect(result.assignment.workerRole).toBe('backend');
     expect(result.assignment.allowedPaths).toEqual(task.allowedPaths);
+  });
+
+  it('records IMPLEMENTATION as the default execution purpose', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(task.id);
+
+    expect(
+      (result.assignment as { executionPurpose?: string }).executionPurpose,
+    ).toBe('IMPLEMENTATION');
+  });
+
+  it('issues a short-lived capability bound to the persisted assignment', async () => {
+    const task = await createWorkingTask();
+    const capabilityService = new SupervisorWorkerCapabilityService({
+      get: (name: string) =>
+        name === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? 'owner-secret' : undefined,
+    } as never);
+    const capabilityDispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      capabilityService,
+    );
+
+    const result = await capabilityDispatcher.dispatch(task.id);
+    expect(result.capability).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u);
+    expect(result.assignment.workerCapability?.assignmentDigest).toMatch(
+      /^[0-9a-f]{64}$/u,
+    );
+    expect(result.assignment.workerCapability).toMatchObject({
+      version: 1,
+      allowedOperations: [
+        'read_assignment',
+        'mark_running',
+        'complete',
+        'fail',
+        'cancel',
+      ],
+    });
+    expect((await executionStore.get(result.execution.id))?.assignment).toEqual(
+      result.assignment,
+    );
+    expect(JSON.stringify(result)).not.toContain('owner-secret');
+  });
+
+  it('can dispatch a separately bound independent verification execution', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(
+      task.id,
+      'INDEPENDENT_VERIFICATION',
+    );
+
+    expect(result.assignment.executionPurpose).toBe('INDEPENDENT_VERIFICATION');
   });
 
   it('rejects dispatch when task is not WORKING', async () => {
@@ -161,5 +232,105 @@ describe('WorkerDispatcherService', () => {
     });
 
     expect((await supervisor.getTask(task.id)).status).toBe('WORKING');
+  });
+
+  it('allows DISPATCHED to transition to RUNNING', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+
+    await expect(
+      dispatcher.markRunning(dispatched.execution.id),
+    ).resolves.toMatchObject({
+      status: 'RUNNING',
+    });
+  });
+
+  it('allows RUNNING to transition to COMPLETED', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    await expect(
+      dispatcher.complete(dispatched.execution.id, workerResult()),
+    ).resolves.toMatchObject({ status: 'COMPLETED' });
+  });
+
+  it('allows RUNNING to transition to FAILED', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    await expect(
+      dispatcher.fail(dispatched.execution.id, 'worker failed'),
+    ).resolves.toMatchObject({ status: 'FAILED' });
+  });
+
+  it('preserves the existing legal DISPATCHED cancellation flow', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+
+    await expect(
+      dispatcher.cancel(dispatched.execution.id, 'owner stopped execution'),
+    ).resolves.toMatchObject({ status: 'CANCELLED' });
+  });
+
+  it('rejects DISPATCHED to COMPLETED', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+
+    await expect(
+      dispatcher.complete(dispatched.execution.id, workerResult()),
+    ).rejects.toMatchObject({
+      response: { code: 'invalid_execution_transition' },
+    });
+  });
+
+  it('rejects terminal transition replays', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+    await dispatcher.complete(dispatched.execution.id, workerResult());
+
+    await expect(
+      dispatcher.markRunning(dispatched.execution.id),
+    ).rejects.toMatchObject({
+      response: { code: 'invalid_execution_transition' },
+    });
+    await expect(
+      dispatcher.complete(dispatched.execution.id, workerResult()),
+    ).rejects.toMatchObject({
+      response: { code: 'invalid_execution_transition' },
+    });
+  });
+
+  it('rejects FAILED to COMPLETED', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+    await dispatcher.fail(dispatched.execution.id, 'worker failed');
+
+    await expect(
+      dispatcher.complete(dispatched.execution.id, workerResult()),
+    ).rejects.toMatchObject({
+      response: { code: 'invalid_execution_transition' },
+    });
+  });
+
+  it('allows exactly one concurrent terminal transition', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(task.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    const results = await Promise.allSettled([
+      dispatcher.complete(dispatched.execution.id, workerResult()),
+      dispatcher.fail(dispatched.execution.id, 'worker failed'),
+    ]);
+
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
   });
 });

@@ -5,12 +5,14 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
   SupervisorExecution,
+  SupervisorExecutionPurpose,
   SupervisorExecutionStatus,
   WorkerAssignmentEnvelope,
   WorkerExecutionResult,
@@ -19,6 +21,7 @@ import {
   SUPERVISOR_EXECUTION_STORE,
   type SupervisorExecutionStore,
 } from '../stores/supervisor-execution.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 
 const REQUIRED_EVIDENCE: RequiredEvidenceField[] = [
   'rootCause',
@@ -53,11 +56,17 @@ export class WorkerDispatcherService {
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
+    @Optional()
+    private readonly capabilityService?: SupervisorWorkerCapabilityService,
   ) {}
 
-  async dispatch(taskId: string): Promise<{
+  async dispatch(
+    taskId: string,
+    executionPurpose: SupervisorExecutionPurpose = 'IMPLEMENTATION',
+  ): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
+    capability?: string;
   }> {
     const task = await this.supervisor.getTask(taskId);
     if (task.status !== 'WORKING') {
@@ -106,6 +115,7 @@ export class WorkerDispatcherService {
       executionId,
       taskId: task.id,
       workerRole: task.owner,
+      executionPurpose,
       objective: task.objective,
       allowedPaths: [...task.allowedPaths],
       forbiddenActions: Array.from(
@@ -116,7 +126,7 @@ export class WorkerDispatcherService {
       requiredEvidence: [...REQUIRED_EVIDENCE],
     };
 
-    const queued = await this.executionStore.create({
+    const queued: SupervisorExecution = {
       id: executionId,
       taskId: task.id,
       workerRole: task.owner,
@@ -127,14 +137,21 @@ export class WorkerDispatcherService {
       createdAt: now,
       startedAt: null,
       completedAt: null,
-    });
+    };
+    const issuedCapability = this.capabilityService?.issue(queued);
+    if (issuedCapability) {
+      queued.assignment.workerCapability = issuedCapability.metadata;
+    }
 
-    queued.status = 'DISPATCHED';
-    const execution = await this.executionStore.save(queued);
+    const created = await this.executionStore.create(queued);
+
+    created.status = 'DISPATCHED';
+    const execution = await this.executionStore.saveIfStatus(created, 'QUEUED');
 
     return {
       execution,
       assignment: execution.assignment,
+      ...(issuedCapability ? { capability: issuedCapability.token } : {}),
     };
   }
 
@@ -154,7 +171,7 @@ export class WorkerDispatcherService {
     execution.status = 'RUNNING';
     execution.startedAt = new Date();
     execution.error = null;
-    return this.executionStore.save(execution);
+    return this.executionStore.saveIfStatus(execution, 'DISPATCHED');
   }
 
   async complete(
@@ -182,7 +199,7 @@ export class WorkerDispatcherService {
     };
     execution.error = null;
     execution.completedAt = new Date();
-    return this.executionStore.save(execution);
+    return this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
   async fail(executionId: string, error: string): Promise<SupervisorExecution> {
@@ -195,7 +212,7 @@ export class WorkerDispatcherService {
     execution.status = 'FAILED';
     execution.error = error.trim();
     execution.completedAt = new Date();
-    return this.executionStore.save(execution);
+    return this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
   async cancel(
@@ -208,10 +225,11 @@ export class WorkerDispatcherService {
       throw new BadRequestException('worker_execution_cancel_reason_required');
     }
 
+    const previousStatus = execution.status;
     execution.status = 'CANCELLED';
     execution.error = reason.trim();
     execution.completedAt = new Date();
-    return this.executionStore.save(execution);
+    return this.executionStore.saveIfStatus(execution, previousStatus);
   }
 
   private async requireExecution(

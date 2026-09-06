@@ -5,7 +5,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import type {
+  SupervisorExecution,
+  SupervisorExecutionStatus,
+} from '../execution/supervisor-execution.types';
 import type { SupervisorExecutionStore } from '../stores/supervisor-execution.store';
 import {
   mapExecutionRecord,
@@ -19,7 +22,7 @@ type SupervisorExecutionCreateArgs = {
     workerRole: string;
     status: string;
     assignment: unknown;
-    result: unknown | null;
+    result: unknown;
     error: string | null;
     createdAt: Date;
     startedAt: Date | null;
@@ -28,12 +31,14 @@ type SupervisorExecutionCreateArgs = {
 };
 
 type SupervisorExecutionUpdateArgs = {
-  where: { id: string };
+  where: { id: string; status?: string };
   data: Omit<SupervisorExecutionCreateArgs['data'], 'id' | 'createdAt'>;
 };
 
 type SupervisorExecutionDelegate = {
-  create(args: SupervisorExecutionCreateArgs): Promise<SupervisorExecutionRecord>;
+  create(
+    args: SupervisorExecutionCreateArgs,
+  ): Promise<SupervisorExecutionRecord>;
   findUnique(args: {
     where: { id: string };
   }): Promise<SupervisorExecutionRecord | null>;
@@ -41,7 +46,9 @@ type SupervisorExecutionDelegate = {
     where: { taskId: string };
     orderBy: { createdAt: 'asc' };
   }): Promise<SupervisorExecutionRecord[]>;
-  update(args: SupervisorExecutionUpdateArgs): Promise<SupervisorExecutionRecord>;
+  update(
+    args: SupervisorExecutionUpdateArgs,
+  ): Promise<SupervisorExecutionRecord>;
 };
 
 type PrismaWithSupervisorExecution = {
@@ -74,6 +81,15 @@ function activeExecutionConflict(taskId: string): ConflictException {
   return new ConflictException({
     code: 'active_execution_exists',
     taskId,
+  });
+}
+
+function executionStateConflict(
+  expectedStatus: SupervisorExecutionStatus,
+): ConflictException {
+  return new ConflictException({
+    code: 'execution_state_conflict',
+    expected: expectedStatus,
   });
 }
 
@@ -133,28 +149,33 @@ function executionCreateData(
     workerRole: execution.workerRole,
     status: execution.status,
     assignment: structuredClone(execution.assignment),
-    result: execution.result === null ? null : structuredClone(execution.result),
+    result:
+      execution.result === null ? null : structuredClone(execution.result),
     error: execution.error,
     createdAt: new Date(execution.createdAt),
     startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
-    completedAt: execution.completedAt
-      ? new Date(execution.completedAt)
-      : null,
+    completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
   };
 }
 
 function executionUpdateData(
   execution: SupervisorExecution,
 ): SupervisorExecutionUpdateArgs['data'] {
-  const { id: _id, createdAt: _createdAt, ...data } =
-    executionCreateData(execution);
-  return data;
+  const data = executionCreateData(execution);
+  return {
+    taskId: data.taskId,
+    workerRole: data.workerRole,
+    status: data.status,
+    assignment: data.assignment,
+    result: data.result,
+    error: data.error,
+    startedAt: data.startedAt,
+    completedAt: data.completedAt,
+  };
 }
 
 @Injectable()
-export class PrismaSupervisorExecutionStore
-  implements SupervisorExecutionStore
-{
+export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore {
   private readonly delegate: SupervisorExecutionDelegate;
 
   constructor(prisma: PrismaService) {
@@ -197,6 +218,31 @@ export class PrismaSupervisorExecutionStore
       });
       return mapExecutionRecord(row);
     });
+  }
+
+  async saveIfStatus(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+  ): Promise<SupervisorExecution> {
+    try {
+      const row = await this.delegate.update({
+        where: { id: execution.id, status: expectedStatus },
+        data: executionUpdateData(execution),
+      });
+      return mapExecutionRecord(row);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        (error as { code?: unknown }).code === 'P2025'
+      ) {
+        throw executionStateConflict(expectedStatus);
+      }
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw persistenceError();
+    }
   }
 
   private async withPersistenceBoundary<T>(
