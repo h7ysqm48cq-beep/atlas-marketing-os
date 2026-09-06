@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "prisma generate --config ../../prisma.config.ts && node scripts/check-background-job-regression.cjs",
+    "prebuild": "npm run check:prisma-generated && node scripts/check-background-job-regression.cjs",
     "build": "nest build",
     "db:migrate": "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} prisma migrate deploy --schema prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,7 +19,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "check:prisma-generated": "node scripts/check-prisma-generated-client.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
