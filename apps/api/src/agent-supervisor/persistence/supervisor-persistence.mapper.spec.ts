@@ -56,6 +56,15 @@ function ownerDeploymentAuthorizationRevocationFixture() {
   };
 }
 
+function ownerDeploymentAuthorizationConsumptionFixture() {
+  return {
+    authorization: ownerDeploymentAuthorizationFixture(),
+    service: 'api',
+    receipt: 'e'.repeat(64),
+    issuedAt: '2026-09-06T00:00:00.000Z',
+  };
+}
+
 function evidenceFixture() {
   return {
     rootCause: 'Known cause',
@@ -263,6 +272,24 @@ describe('supervisor persistence mapper', () => {
     expect(
       task.evidence.ownerDeploymentAuthorization?.candidate.changedFiles,
     ).not.toBe(evidence.ownerDeploymentAuthorization.candidate.changedFiles);
+  });
+
+  it('maps and clones persisted deployment resolution receipt', () => {
+    const consumption = ownerDeploymentAuthorizationConsumptionFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: ownerDeploymentAuthorizationFixture(),
+      ownerDeploymentAuthorizationConsumption: consumption,
+    };
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(task.evidence?.ownerDeploymentAuthorizationConsumption).toEqual(
+      consumption,
+    );
+    expect(task.evidence?.ownerDeploymentAuthorizationConsumption).not.toBe(
+      evidence.ownerDeploymentAuthorizationConsumption,
+    );
   });
 
   it('maps persisted engineering-runner deployment authorization', () => {

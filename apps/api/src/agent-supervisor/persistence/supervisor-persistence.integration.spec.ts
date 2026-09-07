@@ -163,6 +163,54 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     expect(loaded?.createdAt).toBeInstanceOf(Date);
   });
 
+  it('persists deployment resolution receipts across fresh store instances', async () => {
+    const candidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas',
+      baseSha: 'a'.repeat(40),
+      headSha: 'b'.repeat(40),
+      changedFiles: ['apps/api/src/example.ts'],
+    };
+    const authorization = {
+      candidate,
+      service: 'engineering-runner' as const,
+      authorizedBy: 'owner-user-1',
+      authorizedAt: '2026-09-02T00:00:00.000Z',
+      signature: 'c'.repeat(64),
+    };
+    const input = task({
+      status: 'APPROVED',
+      evidence: {
+        rootCause: 'deployment resolver receipt',
+        changedFiles: candidate.changedFiles,
+        tests: ['persistence'],
+        build: 'PASS',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_INTEGRATION_PERFORMED',
+        remainingRisk: [],
+        reviewCandidate: candidate,
+        ownerDeploymentAuthorization: authorization,
+        ownerDeploymentAuthorizationConsumption: {
+          authorization,
+          service: 'engineering-runner' as const,
+          receipt: 'd'.repeat(64),
+          issuedAt: '2026-09-06T00:00:00.000Z',
+        },
+      },
+    });
+    const created = await taskStore.create(input);
+    const restartedStore = new PrismaSupervisorTaskStore(
+      prisma as unknown as PrismaService,
+    );
+
+    const loaded = await restartedStore.get(created.id);
+
+    expect(
+      loaded?.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toEqual(input.evidence?.ownerDeploymentAuthorizationConsumption);
+  });
+
   it('enforces one active execution per task at the database boundary', async () => {
     const persistedTask = await taskStore.create(task());
     await executionStore.create(execution(persistedTask.id, 'DISPATCHED'));

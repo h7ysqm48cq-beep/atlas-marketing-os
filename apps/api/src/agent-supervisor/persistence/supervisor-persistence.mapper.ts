@@ -6,6 +6,7 @@ import type {
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
+  SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
@@ -286,6 +287,36 @@ function mapOwnerDeploymentAuthorizationRevocations(
   );
 }
 
+function mapOwnerDeploymentAuthorizationConsumption(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationConsumption {
+  const object = requireObject(value);
+  const authorization = mapOwnerDeploymentAuthorization(
+    object.authorization,
+  );
+  const service = object.service;
+  const receipt = requireString(object.receipt);
+  const issuedAt = requireString(object.issuedAt);
+
+  if (
+    !PRODUCTION_DEPLOYMENT_SERVICES.has(service as ProductionDeploymentService) ||
+    authorization.service !== service ||
+    !FULL_SIGNATURE.test(receipt) ||
+    !issuedAt.trim() ||
+    issuedAt !== issuedAt.trim() ||
+    Number.isNaN(Date.parse(issuedAt))
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    authorization,
+    service: service as ProductionDeploymentService,
+    receipt,
+    issuedAt,
+  };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
   const reviewCandidate =
@@ -312,6 +343,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerDeploymentAuthorizationRevocations(
           object.ownerDeploymentAuthorizationRevocations,
         );
+  const ownerDeploymentAuthorizationConsumption =
+    object.ownerDeploymentAuthorizationConsumption === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationConsumption(
+          object.ownerDeploymentAuthorizationConsumption,
+        );
 
   return {
     rootCause: requireString(object.rootCause),
@@ -328,6 +365,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       ? { ownerMergeAuthorizationConsumption }
       : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
+    ...(ownerDeploymentAuthorizationConsumption
+      ? { ownerDeploymentAuthorizationConsumption }
+      : {}),
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
       : {}),
