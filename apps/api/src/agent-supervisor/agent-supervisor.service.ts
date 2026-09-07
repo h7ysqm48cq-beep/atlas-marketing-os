@@ -645,7 +645,8 @@ export class AgentSupervisorService {
     this.requireCanonicalProductionDeployment(requestedCandidate);
     const requestedService = this.requireProductionDeploymentService(service);
 
-    const authorization = task.evidence?.ownerDeploymentAuthorization;
+    const evidence = task.evidence;
+    const authorization = evidence?.ownerDeploymentAuthorization;
     if (!authorization) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_required',
@@ -706,6 +707,68 @@ export class AgentSupervisorService {
         code: 'owner_deployment_authorization_invalid',
       });
     }
+  }
+
+  async consumeOwnerDeploymentAuthorization(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+  ): Promise<{ task: SupervisorTask; receipt: string }> {
+    const task = await this.requireTask(id);
+    this.requireStatus(task, ['APPROVED']);
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+    const requestedService = this.requireProductionDeploymentService(service);
+    const existing = task.evidence?.ownerDeploymentAuthorizationConsumption;
+
+    if (existing) {
+      if (
+        existing.service !== requestedService ||
+        !this.sameCandidate(existing.authorization.candidate, requestedCandidate)
+      ) {
+        throw new BadRequestException({
+          code: 'owner_deployment_resolution_mismatch',
+        });
+      }
+      return { task, receipt: existing.receipt };
+    }
+
+    this.assertOwnerDeploymentAuthorization(
+      task,
+      requestedCandidate,
+      requestedService,
+    );
+    const evidence = task.evidence;
+    const authorization = evidence?.ownerDeploymentAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_required',
+      });
+    }
+
+    const issuedAt = new Date().toISOString();
+    const receipt = this.signOwnerDeploymentResolutionReceipt(
+      requestedCandidate,
+      requestedService,
+      authorization.signature,
+      issuedAt,
+    );
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    task.evidence = {
+      ...evidence,
+      ownerDeploymentAuthorizationConsumption: {
+        authorization: structuredClone(authorization),
+        service: requestedService,
+        receipt,
+        issuedAt,
+      },
+    };
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    const saved = await this.saveTaskMutationIfUnchanged(
+      task,
+      expectedUpdatedAt,
+    );
+    return { task: saved, receipt };
   }
 
   checkPermission(
@@ -1091,6 +1154,33 @@ export class AgentSupervisorService {
           service,
           authorizedBy,
           authorizedAt,
+        }),
+        'utf8',
+      )
+      .digest('hex');
+  }
+
+  private signOwnerDeploymentResolutionReceipt(
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    authorizationSignature: string,
+    issuedAt: string,
+  ) {
+    const token = this.config?.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
+    if (!token) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_not_configured',
+      });
+    }
+
+    return createHmac('sha256', token)
+      .update(
+        JSON.stringify({
+          purpose: 'ATLAS_OWNER_DEPLOYMENT_RESOLUTION_V1',
+          candidate,
+          service,
+          authorizationSignature,
+          issuedAt,
         }),
         'utf8',
       )

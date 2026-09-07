@@ -223,8 +223,10 @@ function executionClaimMutationData(execution: SupervisorExecution) {
 @Injectable()
 export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore {
   private readonly delegate: SupervisorExecutionDelegate;
+  private readonly prisma: PrismaService;
 
   constructor(prisma: PrismaService) {
+    this.prisma = prisma;
     this.delegate = (
       prisma as unknown as PrismaWithSupervisorExecution
     ).supervisorExecution;
@@ -297,26 +299,25 @@ export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore 
     fence: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution> {
     return this.withPersistenceBoundary(execution.taskId, async () => {
-      const updated = await this.delegate.updateMany({
-        where: {
-          id: execution.id,
-          status: expectedStatus,
-          claimedBy: fence.claimedBy,
-          claimEpoch: fence.claimEpoch,
-          leaseExpiresAt: { gt: fence.now },
-        },
-        data: executionClaimMutationData(execution),
-      });
-      if (updated.count !== 1) {
+      const data = executionClaimMutationData(execution);
+      const rows = await this.prisma.$queryRaw<SupervisorExecutionRecord[]>`
+        UPDATE "SupervisorExecution"
+        SET "status" = ${data.status},
+            "result" = ${data.result === null ? null : JSON.stringify(data.result)}::jsonb,
+            "error" = ${data.error},
+            "startedAt" = ${data.startedAt},
+            "completedAt" = ${data.completedAt}
+        WHERE "id" = ${execution.id}
+          AND "status" = ${expectedStatus}
+          AND "claimedBy" = ${fence.claimedBy}
+          AND "claimEpoch" = ${fence.claimEpoch}
+          AND "leaseExpiresAt" > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+        RETURNING *
+      `;
+      if (rows.length !== 1) {
         throw new ConflictException({ code: 'execution_claim_conflict' });
       }
-      const row = await this.delegate.findUnique({
-        where: { id: execution.id },
-      });
-      if (!row) {
-        throw new ConflictException({ code: 'execution_claim_conflict' });
-      }
-      return mapExecutionRecord(row);
+      return mapExecutionRecord(rows[0]);
     });
   }
 

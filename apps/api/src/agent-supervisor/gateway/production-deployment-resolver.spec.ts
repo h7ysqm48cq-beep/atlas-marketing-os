@@ -21,11 +21,12 @@ const CANONICAL_GITHUB = {
 describe('Production deployment resolver', () => {
   let supervisor: AgentSupervisorService;
   let dispatcher: WorkerDispatcherService;
+  let taskStore: MemorySupervisorTaskStore;
   let executionStore: MemorySupervisorExecutionStore;
   let gateway: AgentGatewayService;
 
   beforeEach(() => {
-    const taskStore = new MemorySupervisorTaskStore();
+    taskStore = new MemorySupervisorTaskStore();
     const fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
     const config = {
@@ -124,6 +125,17 @@ describe('Production deployment resolver', () => {
       taskId: task.id,
       executionId: execution.id,
     });
+
+    await expect(supervisor.getTask(task.id)).resolves.toMatchObject({
+      evidence: {
+        ownerDeploymentAuthorizationConsumption: {
+          service: 'api',
+          authorization: expect.any(Object),
+          receipt: expect.stringMatching(/^[0-9a-f]{64}$/u),
+          issuedAt: expect.any(String),
+        },
+      },
+    });
   });
 
   it('resolves an approved engineering-runner deployment receipt', async () => {
@@ -143,9 +155,9 @@ describe('Production deployment resolver', () => {
 
   it('rechecks deployment authorization after persisted candidate validation', async () => {
     const { task } = await createApprovedDeployment('api');
-    const originalGetTask = supervisor.getTask.bind(supervisor);
+    const originalGetTask = taskStore.get.bind(taskStore);
     let reads = 0;
-    jest.spyOn(supervisor, 'getTask').mockImplementation(async (id: string) => {
+    jest.spyOn(taskStore, 'get').mockImplementation(async (id: string) => {
       const current = await originalGetTask(id);
       reads += 1;
       if (reads < 2) return current;

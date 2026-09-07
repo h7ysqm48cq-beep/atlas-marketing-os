@@ -68,7 +68,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   });
 
   function task(overrides: Partial<SupervisorTask> = {}): SupervisorTask {
-    const now = new Date();
+    const now = new Date(Date.now() + 300_000);
     return {
       id: `ATLAS-TEST-${randomUUID()}`,
       objective: 'Verify persisted supervisor task',
@@ -311,7 +311,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     const secondTask = await taskStore.create(task());
     const first = await executionStore.create(claimableExecution(firstTask.id));
     const second = await executionStore.create(claimableExecution(secondTask.id));
-    const now = new Date('2026-09-08T00:00:00.000Z');
+    const now = new Date();
 
     const results = await Promise.all([
       runnerClaims.claimNext(
@@ -403,7 +403,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   it('fences persisted v2 worker transitions by claim epoch and live lease', async () => {
     const persistedTask = await taskStore.create(task());
     const queued = await executionStore.create(claimableExecution(persistedTask.id));
-    const now = new Date('2026-09-08T00:00:00.000Z');
+    const now = new Date(Date.now() + 300_000);
     const claimed = await runnerClaims.claimNext(
       'engineering-runner:88888888-8888-4888-8888-888888888888',
       now,
@@ -438,7 +438,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   it('does not let a stale worker mutation overwrite a concurrent heartbeat lease or capability', async () => {
     const persistedTask = await taskStore.create(task());
     await executionStore.create(claimableExecution(persistedTask.id));
-    const claimedAt = new Date('2026-09-08T00:00:00.000Z');
+    const claimedAt = new Date(Date.now() + 300_000);
     const claimed = await runnerClaims.claimNext(
       'engineering-runner:99999999-9999-4999-8999-999999999999',
       claimedAt,
@@ -471,5 +471,39 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       heartbeat.assignment.workerCapability,
     );
     expect(final?.leaseExpiresAt?.toISOString()).toBe(heartbeat.leaseExpiresAt);
+  });
+
+  it('rejects a mutation whose lease expires after the worker captured its fence time', async () => {
+    const persistedTask = await taskStore.create(
+      task({ objective: 'expired-at-write' }),
+    );
+    const persistedExecution = await executionStore.create(
+      execution(persistedTask.id, 'RUNNING'),
+    );
+    const expiredExecution = {
+      ...persistedExecution,
+      status: 'RUNNING',
+      claimedBy: 'engineering-runner:expired-at-write',
+      claimEpoch: 8,
+      claimedAt: new Date(Date.now() - 30_000),
+      leaseExpiresAt: new Date(Date.now() - 1_000),
+      lastHeartbeatAt: new Date(Date.now() - 30_000),
+    } satisfies SupervisorExecution;
+    await executionStore.save(expiredExecution);
+    const staleFenceTime = new Date(Date.now() - 2_000);
+
+    await expect(
+      executionStore.saveIfClaimCurrent(
+        { ...expiredExecution, status: 'COMPLETED' },
+        'RUNNING',
+        {
+          claimedBy: expiredExecution.claimedBy!,
+          claimEpoch: 8,
+          now: staleFenceTime,
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'execution_claim_conflict' },
+    });
   });
 });

@@ -293,9 +293,8 @@ export class AgentGatewayService {
       task.id,
       matchingExecutions[0].id,
     );
-    const latestTask = await this.supervisor.getTask(validated.task.id);
-    this.supervisor.assertOwnerDeploymentAuthorization(
-      latestTask,
+    await this.supervisor.consumeOwnerDeploymentAuthorization(
+      validated.task.id,
       candidate,
       input.service,
     );

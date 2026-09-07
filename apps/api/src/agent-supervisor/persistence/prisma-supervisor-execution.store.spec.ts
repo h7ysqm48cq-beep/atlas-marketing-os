@@ -54,6 +54,7 @@ function record(value: SupervisorExecution = execution()) {
 
 function mockPrisma() {
   return {
+    $queryRaw: jest.fn(),
     supervisorExecution: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -195,15 +196,8 @@ describe('PrismaSupervisorExecutionStore', () => {
   });
 
   it('atomically fences v2 mutation by owner, epoch, live lease, and status', async () => {
-    const prisma = mockPrisma() as ReturnType<typeof mockPrisma> & {
-      supervisorExecution: { updateMany: jest.Mock };
-    };
-    prisma.supervisorExecution.updateMany = jest.fn().mockResolvedValue({
-      count: 1,
-    });
-    prisma.supervisorExecution.findUnique.mockResolvedValue(
-      record(execution({ status: 'RUNNING' })),
-    );
+    const prisma = mockPrisma();
+    prisma.$queryRaw.mockResolvedValue([record(execution({ status: 'RUNNING' }))]);
     const input = execution({ status: 'RUNNING' });
     const store = new PrismaSupervisorExecutionStore(prisma as never);
     const now = new Date('2026-09-07T00:01:00.000Z');
@@ -215,25 +209,12 @@ describe('PrismaSupervisorExecutionStore', () => {
         now,
       }),
     ).resolves.toEqual(input);
-    expect(prisma.supervisorExecution.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: input.id,
-        status: 'DISPATCHED',
-        claimedBy: input.claimedBy,
-        claimEpoch: input.claimEpoch,
-        leaseExpiresAt: { gt: now },
-      },
-      data: expect.objectContaining({ status: 'RUNNING' }),
-    });
+    expect(prisma.$queryRaw).toHaveBeenCalled();
   });
 
   it('rejects a stale v2 mutation when the atomic fence matches no row', async () => {
-    const prisma = mockPrisma() as ReturnType<typeof mockPrisma> & {
-      supervisorExecution: { updateMany: jest.Mock };
-    };
-    prisma.supervisorExecution.updateMany = jest.fn().mockResolvedValue({
-      count: 0,
-    });
+    const prisma = mockPrisma();
+    prisma.$queryRaw.mockResolvedValue([]);
     const store = new PrismaSupervisorExecutionStore(prisma as never);
 
     await expect(
@@ -243,6 +224,26 @@ describe('PrismaSupervisorExecutionStore', () => {
         now: new Date('2026-09-07T00:01:00.000Z'),
       }),
     ).rejects.toMatchObject({ response: { code: 'execution_claim_conflict' } });
+  });
+
+  it('uses database current time for the live lease fence', async () => {
+    const prisma = mockPrisma();
+    const input = execution({ status: 'RUNNING' });
+    prisma.$queryRaw.mockResolvedValue([record(input)]);
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(
+      store.saveIfClaimCurrent(input, 'DISPATCHED', {
+        claimedBy: input.claimedBy!,
+        claimEpoch: input.claimEpoch,
+        now: new Date('2026-09-07T00:01:00.000Z'),
+      }),
+    ).resolves.toEqual(input);
+
+    const [query] = prisma.$queryRaw.mock.calls[0] as [TemplateStringsArray];
+    expect(query.join('')).toContain(
+      '"leaseExpiresAt" > (CURRENT_TIMESTAMP AT TIME ZONE \'UTC\')',
+    );
   });
 
   it('returns cloned assignment data instead of persistence references', async () => {
