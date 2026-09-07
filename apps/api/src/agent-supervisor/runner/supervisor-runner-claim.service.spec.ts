@@ -154,9 +154,7 @@ describe('SupervisorRunnerClaimService', () => {
     expect(sameRunnerSql).not.toContain(RUNNER_ID);
 
     const candidateSql = queryText(tx.$queryRaw.mock.calls[1]);
-    expect(candidateSql).toContain(
-      '"status" IN (\'DISPATCHED\', \'RUNNING\')',
-    );
+    expect(candidateSql).toContain('"status" = \'DISPATCHED\'');
     expect(candidateSql).toContain('"claimedBy" IS NULL');
     expect(candidateSql).toContain('"leaseExpiresAt" <= ?');
     expect(candidateSql).toContain(
@@ -168,8 +166,8 @@ describe('SupervisorRunnerClaimService', () => {
     expect(candidateSql).toContain('ORDER BY "createdAt" ASC');
     expect(candidateSql).toContain('FOR UPDATE SKIP LOCKED');
     expect(candidateSql).toContain('LIMIT 1');
-    expect(candidateSql).toContain('"status" = \'RUNNING\'');
-    expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([NOW, NOW]);
+    expect(candidateSql).not.toContain('"status" = \'RUNNING\'');
+    expect(tx.$queryRaw.mock.calls[1].slice(1)).toEqual([NOW]);
     expect(candidateSql).not.toContain(NOW.toISOString());
 
     expect(capability.issue).toHaveBeenCalledWith(
@@ -265,7 +263,7 @@ describe('SupervisorRunnerClaimService', () => {
     );
   });
 
-  it('reclaims a same-runner RUNNING execution after its lease expires', async () => {
+  it('does not reclaim a same-runner RUNNING execution after its lease expires', async () => {
     const running = execution({
       id: 'ATLAS-EXEC-20260907-33333333-3333-4333-8333-333333333333',
       taskId: 'ATLAS-20260907-33333333-3333-4333-8333-333333333333',
@@ -276,34 +274,21 @@ describe('SupervisorRunnerClaimService', () => {
     });
     const { service, tx } = harness({ sameRunner: [running] });
 
-    await expect(service.claimNext(RUNNER_ID, NOW)).resolves.toMatchObject({
-      claimed: true,
-      execution: {
-        id: running.id,
-        status: 'DISPATCHED',
-        claimedBy: RUNNER_ID,
-        claimEpoch: 8,
+    await expect(service.claimNext(RUNNER_ID, NOW)).rejects.toMatchObject({
+      status: 409,
+      response: {
+        code: 'runner_already_holds_active_execution',
+        executionId: running.id,
       },
-      claimEpoch: 8,
     });
 
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(tx.supervisorExecution.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: running.id },
-        data: expect.objectContaining({
-          status: 'DISPATCHED',
-          claimEpoch: 8,
-        }),
-      }),
-    );
-    expect(logSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: 'runner.claim.reclaimed',
-        executionId: running.id,
-        claimEpoch: 8,
-      }),
-    );
+    expect(tx.supervisorExecution.update).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'runner.claim.rejected',
+      reason: 'runner_already_holds_active_execution',
+      executionId: running.id,
+    }));
   });
 
   it('reclaims the same expired DISPATCHED row and increments epoch exactly once', async () => {

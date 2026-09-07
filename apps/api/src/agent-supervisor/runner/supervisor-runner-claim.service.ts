@@ -92,6 +92,21 @@ export class SupervisorRunnerClaimService {
         const owned = ownedRows[0] ?? null;
 
         if (owned) {
+          if (owned.status === 'RUNNING') {
+            this.securityEvent('runner.claim.rejected', {
+              reason: 'runner_already_holds_active_execution',
+              runnerId,
+              execution: owned,
+              now,
+            });
+            this.securityEvent('runner.fenced', {
+              reason: 'runner_already_holds_active_execution',
+              runnerId,
+              execution: owned,
+              now,
+            });
+            throw this.activeExecutionConflict(runnerId, owned.id);
+          }
           if (
             !owned.leaseExpiresAt ||
             owned.leaseExpiresAt.getTime() > now.getTime()
@@ -117,20 +132,10 @@ export class SupervisorRunnerClaimService {
         const candidates = await tx.$queryRaw<SupervisorExecutionRecord[]>`
           SELECT *
           FROM "SupervisorExecution"
-          WHERE "status" IN ('DISPATCHED', 'RUNNING')
+          WHERE "status" = 'DISPATCHED'
             AND (
-              (
-                "status" = 'DISPATCHED'
-                AND (
-                  "claimedBy" IS NULL
-                  OR "leaseExpiresAt" <= ${now}
-                )
-              )
-              OR (
-                "status" = 'RUNNING'
-                AND "claimedBy" IS NOT NULL
-                AND "leaseExpiresAt" <= ${now}
-              )
+              "claimedBy" IS NULL
+              OR "leaseExpiresAt" <= ${now}
             )
             AND "assignment"->>'executionPurpose' = 'IMPLEMENTATION'
             AND "assignment"->>'runnerEligibility' = 'A1_SYNTHETIC'
@@ -316,8 +321,7 @@ export class SupervisorRunnerClaimService {
     row: SupervisorExecutionRecord,
     now: Date,
   ): boolean {
-    if (!['DISPATCHED', 'RUNNING'].includes(row.status)) return false;
-    if (row.status === 'RUNNING' && row.claimedBy === null) return false;
+    if (row.status !== 'DISPATCHED') return false;
     if (row.claimedBy !== null && !row.leaseExpiresAt) return false;
     if (row.leaseExpiresAt && row.leaseExpiresAt.getTime() > now.getTime()) {
       return false;
