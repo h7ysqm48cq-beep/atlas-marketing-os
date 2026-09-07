@@ -169,7 +169,11 @@ export interface SupervisorGateDecision {
   executionId: string;
 }
 
-export type ProductionDeploymentService = 'api' | 'web' | 'browser-worker';
+export type ProductionDeploymentService =
+  | 'api'
+  | 'web'
+  | 'browser-worker'
+  | 'engineering-runner';
 
 export type ProductionDeploymentDriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';

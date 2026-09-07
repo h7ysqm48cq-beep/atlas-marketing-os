@@ -265,6 +265,35 @@ describe('supervisor persistence mapper', () => {
     ).not.toBe(evidence.ownerDeploymentAuthorization.candidate.changedFiles);
   });
 
+  it('maps persisted engineering-runner deployment authorization', () => {
+    const authorization = {
+      ...ownerDeploymentAuthorizationFixture(),
+      service: 'engineering-runner',
+    };
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: authorization,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(task.evidence?.ownerDeploymentAuthorization).toEqual(authorization);
+  });
+
+  it('rejects persisted deployment authorization for an unknown service', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: {
+        ...ownerDeploymentAuthorizationFixture(),
+        service: 'unknown-service',
+      },
+    };
+
+    expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+  });
+
   // ASTRA_V2_DEPLOYMENT_REVOCATION_MAPPER_RED
   it('maps and clones persisted deployment authorization revocation history', () => {
     const revocation =
