@@ -80,6 +80,9 @@ export class SupervisorWorkerGuard implements CanActivate {
         execution.assignment.executionPurpose ?? 'IMPLEMENTATION',
       assignment: execution.assignment,
       operation,
+      claimedBy: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
+      leaseExpiresAt: execution.leaseExpiresAt,
     });
     return true;
   }

@@ -17,7 +17,7 @@ import type {
   SupervisorWorkerCapabilityOperation,
 } from './supervisor-worker-capability.types';
 
-const CAPABILITY_VERSION = 1 as const;
+const CAPABILITY_VERSION = 2 as const;
 const DEFAULT_TTL_MS = 5 * 60 * 1_000;
 const MAX_TTL_MS = 15 * 60 * 1_000;
 const KEY_SALT = 'atlas-supervisor-worker-capability:v1';
@@ -65,6 +65,19 @@ export class SupervisorWorkerCapabilityService {
     ) {
       throw new ForbiddenException('worker_capability_execution_mismatch');
     }
+    if (
+      !execution.claimedBy ||
+      !Number.isInteger(execution.claimEpoch) ||
+      execution.claimEpoch <= 0
+    ) {
+      throw new ForbiddenException('worker_capability_claim_required');
+    }
+    if (
+      !execution.leaseExpiresAt ||
+      now.getTime() >= execution.leaseExpiresAt.getTime()
+    ) {
+      throw new ForbiddenException('runner_lease_expired');
+    }
 
     const allowedOperations = [
       ...new Set(options.allowedOperations ?? DEFAULT_OPERATIONS),
@@ -89,6 +102,8 @@ export class SupervisorWorkerCapabilityService {
       executionId: execution.id,
       workerRole: execution.workerRole,
       executionPurpose,
+      runnerId: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
     };
     const encodedPayload = Buffer.from(
       this.canonicalize(claims),
@@ -122,6 +137,18 @@ export class SupervisorWorkerCapabilityService {
     }
     if (claims.executionPurpose !== input.executionPurpose) {
       throw new ForbiddenException('worker_capability_purpose_mismatch');
+    }
+    if (
+      input.claimedBy !== claims.runnerId ||
+      input.claimEpoch !== claims.claimEpoch
+    ) {
+      throw new ForbiddenException('stale_runner_fenced');
+    }
+    if (
+      !input.leaseExpiresAt ||
+      now.getTime() >= input.leaseExpiresAt.getTime()
+    ) {
+      throw new ForbiddenException('runner_lease_expired');
     }
     if (!claims.allowedOperations.includes(input.operation)) {
       throw new ForbiddenException('worker_capability_operation_denied');
@@ -222,6 +249,10 @@ export class SupervisorWorkerCapabilityService {
       typeof claims.workerRole === 'string' &&
       (claims.executionPurpose === 'IMPLEMENTATION' ||
         claims.executionPurpose === 'INDEPENDENT_VERIFICATION') &&
+      typeof claims.runnerId === 'string' &&
+      Boolean(claims.runnerId) &&
+      Number.isInteger(claims.claimEpoch) &&
+      Number(claims.claimEpoch) > 0 &&
       typeof claims.assignmentDigest === 'string' &&
       /^[0-9a-f]{64}$/u.test(claims.assignmentDigest) &&
       typeof claims.issuedAt === 'string' &&
