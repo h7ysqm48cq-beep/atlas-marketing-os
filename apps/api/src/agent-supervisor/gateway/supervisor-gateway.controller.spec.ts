@@ -4,10 +4,32 @@ import type {
 } from '../agent-supervisor.types';
 import type { AgentGatewayService } from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
+import { SupervisorDeployResolverGuard } from './supervisor-deploy-resolver.guard';
 import { SupervisorGatewayController } from './supervisor-gateway.controller';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 
 describe('SupervisorGatewayController', () => {
+  it('splits CI and deploy resolver guards by route', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toBeUndefined();
+    for (const handler of [
+      SupervisorGatewayController.prototype.validateWorker,
+      SupervisorGatewayController.prototype.checkReviewCandidate,
+      SupervisorGatewayController.prototype.checkProductionDeployment,
+    ]) {
+      expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+        SupervisorCiGuard,
+      ]);
+    }
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.resolveProductionDeployment,
+      ),
+    ).toEqual([SupervisorDeployResolverGuard]);
+  });
+
   it('keeps the production deployment gate behind the CI-protected gateway boundary', async () => {
     const decision = {
       allowed: true,
@@ -34,7 +56,10 @@ describe('SupervisorGatewayController', () => {
     };
 
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.checkProductionDeployment,
+      ),
     ).toContain(SupervisorCiGuard);
     expect(typeof controller.checkProductionDeployment).toBe('function');
     await expect(
@@ -67,8 +92,11 @@ describe('SupervisorGatewayController', () => {
     };
 
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
-    ).toContain(SupervisorCiGuard);
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.resolveProductionDeployment,
+      ),
+    ).toContain(SupervisorDeployResolverGuard);
     expect(typeof controller.resolveProductionDeployment).toBe('function');
     await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
       decision,

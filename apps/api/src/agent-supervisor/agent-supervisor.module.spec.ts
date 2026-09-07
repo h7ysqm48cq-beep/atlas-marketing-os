@@ -1,5 +1,6 @@
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { AgentSupervisorModule } from './agent-supervisor.module';
+import { SupervisorDeployResolverGuard } from './gateway/supervisor-deploy-resolver.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
@@ -10,6 +11,7 @@ import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execu
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
 import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
+import { SupervisorRunnerGuard } from './runner/supervisor-runner.guard';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
@@ -36,6 +38,15 @@ describe('AgentSupervisorModule runtime persistence wiring', () => {
 
   it('registers the owner mutation guard at runtime', () => {
     expect(providers).toContain(SupervisorOwnerGuard);
+  });
+
+  it('registers dedicated runner and deploy resolver guards at runtime', () => {
+    expect(providers).toEqual(
+      expect.arrayContaining([
+        SupervisorRunnerGuard,
+        SupervisorDeployResolverGuard,
+      ]),
+    );
   });
 
   it('registers the execution-bound worker capability plane', () => {

@@ -5,6 +5,7 @@ import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import { ProductionDeploymentGateService } from './deployment/production-deployment-gate.service';
 import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
+import { SupervisorDeployResolverGuard } from './gateway/supervisor-deploy-resolver.guard';
 import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
@@ -16,6 +17,7 @@ import { FILE_OWNERSHIP_STORE } from './stores/file-ownership.store';
 import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
 import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
+import { SupervisorRunnerGuard } from './runner/supervisor-runner.guard';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
@@ -32,8 +34,10 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     ProductionDeploymentGateService,
     AgentGatewayService,
     SupervisorCiGuard,
+    SupervisorDeployResolverGuard,
     SupervisorOwnerActionGuard,
     SupervisorOwnerGuard,
+    SupervisorRunnerGuard,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
     PrismaSupervisorTaskStore,
