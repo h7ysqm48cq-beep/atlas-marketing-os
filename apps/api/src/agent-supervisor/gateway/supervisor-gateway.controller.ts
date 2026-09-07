@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Headers, Param, Post, UseGuards } from '@nestjs/common';
 import { Public } from '../../auth/public.decorator';
 import type {
   IntegrationGateInput,
@@ -9,11 +9,16 @@ import type {
 import { AgentGatewayService } from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
 import { SupervisorDeployResolverGuard } from './supervisor-deploy-resolver.guard';
+import { SupervisorRunnerClaimService } from '../runner/supervisor-runner-claim.service';
+import { SupervisorRunnerGuard } from '../runner/supervisor-runner.guard';
 
 @Public()
 @Controller('engineering/supervisor/gateway')
 export class SupervisorGatewayController {
-  constructor(private readonly gateway: AgentGatewayService) {}
+  constructor(
+    private readonly gateway: AgentGatewayService,
+    private readonly runnerClaims: SupervisorRunnerClaimService,
+  ) {}
 
   @Post('validate-worker')
   @UseGuards(SupervisorCiGuard)
@@ -37,5 +42,25 @@ export class SupervisorGatewayController {
   @UseGuards(SupervisorDeployResolverGuard)
   resolveProductionDeployment(@Body() input: ProductionDeploymentResolveInput) {
     return this.gateway.resolveProductionDeployment(input);
+  }
+
+  @Post('runner/claim-next')
+  @UseGuards(SupervisorRunnerGuard)
+  claimNext(@Headers('x-atlas-runner-id') runnerId: string) {
+    return this.runnerClaims.claimNext(runnerId);
+  }
+
+  @Post('runner/executions/:executionId/heartbeat')
+  @UseGuards(SupervisorRunnerGuard)
+  heartbeat(
+    @Headers('x-atlas-runner-id') runnerId: string,
+    @Param('executionId') executionId: string,
+    @Body() body: { claimEpoch: number },
+  ) {
+    return this.runnerClaims.heartbeat(
+      executionId,
+      runnerId,
+      body.claimEpoch,
+    );
   }
 }

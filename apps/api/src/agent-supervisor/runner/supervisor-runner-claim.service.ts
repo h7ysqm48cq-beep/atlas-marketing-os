@@ -23,6 +23,14 @@ export type ClaimNextResult =
       capability: string;
     };
 
+export type RunnerHeartbeatResult = {
+  execution: SupervisorExecution;
+  assignment: WorkerAssignmentEnvelope;
+  claimEpoch: number;
+  leaseExpiresAt: string;
+  capability: string;
+};
+
 type ClaimedResult = Extract<ClaimNextResult, { claimed: true }>;
 
 type ClaimTransactionOutcome =
@@ -85,7 +93,6 @@ export class SupervisorRunnerClaimService {
 
         if (owned) {
           if (
-            owned.status === 'RUNNING' ||
             !owned.leaseExpiresAt ||
             owned.leaseExpiresAt.getTime() > now.getTime()
           ) {
@@ -110,10 +117,20 @@ export class SupervisorRunnerClaimService {
         const candidates = await tx.$queryRaw<SupervisorExecutionRecord[]>`
           SELECT *
           FROM "SupervisorExecution"
-          WHERE "status" = 'DISPATCHED'
+          WHERE "status" IN ('DISPATCHED', 'RUNNING')
             AND (
-              "claimedBy" IS NULL
-              OR "leaseExpiresAt" <= ${now}
+              (
+                "status" = 'DISPATCHED'
+                AND (
+                  "claimedBy" IS NULL
+                  OR "leaseExpiresAt" <= ${now}
+                )
+              )
+              OR (
+                "status" = 'RUNNING'
+                AND "claimedBy" IS NOT NULL
+                AND "leaseExpiresAt" <= ${now}
+              )
             )
             AND "assignment"->>'executionPurpose' = 'IMPLEMENTATION'
             AND "assignment"->>'runnerEligibility' = 'A1_SYNTHETIC'
@@ -163,6 +180,84 @@ export class SupervisorRunnerClaimService {
       }
       throw error;
     }
+  }
+
+  async heartbeat(
+    executionId: string,
+    runnerId: string,
+    claimEpoch: number,
+    now: Date = new Date(),
+  ): Promise<RunnerHeartbeatResult> {
+    const outcome = await this.prisma.$transaction(async (prismaTx) => {
+      const tx = prismaTx as unknown as RunnerTransaction;
+      const rows = await tx.$queryRaw<SupervisorExecutionRecord[]>`
+        SELECT *
+        FROM "SupervisorExecution"
+        WHERE "id" = ${executionId}
+        FOR UPDATE
+        LIMIT 1
+      `;
+      const row = rows[0] ?? null;
+      const current = row ? mapExecutionRecord(row) : null;
+      if (
+        !current ||
+        current.claimedBy !== runnerId ||
+        current.claimEpoch !== claimEpoch ||
+        !['DISPATCHED', 'RUNNING'].includes(current.status) ||
+        !current.leaseExpiresAt ||
+        current.leaseExpiresAt.getTime() <= now.getTime()
+      ) {
+        this.securityEvent('runner.heartbeat.rejected', {
+          reason: 'runner_claim_not_current',
+          runnerId,
+          execution: row ?? undefined,
+          now,
+        });
+        throw new ConflictException({
+          code: 'runner_claim_not_current',
+          runnerId,
+          executionId,
+          claimEpoch,
+        });
+      }
+
+      const leaseExpiresAt = new Date(now.getTime() + LEASE_MS);
+      const renewed: SupervisorExecution = {
+        ...current,
+        assignment: structuredClone(current.assignment),
+        leaseExpiresAt,
+        lastHeartbeatAt: new Date(now),
+      };
+      const issued = this.capability.issue(renewed, { now });
+      renewed.assignment.workerCapability = structuredClone(issued.metadata);
+      const persistedRecord = await tx.supervisorExecution.update({
+        where: { id: executionId },
+        data: {
+          leaseExpiresAt: renewed.leaseExpiresAt,
+          lastHeartbeatAt: renewed.lastHeartbeatAt,
+          assignment: structuredClone(renewed.assignment),
+        },
+      });
+      const execution = mapExecutionRecord(persistedRecord);
+      return {
+        result: {
+          execution,
+          assignment: structuredClone(execution.assignment),
+          claimEpoch: execution.claimEpoch,
+          leaseExpiresAt: leaseExpiresAt.toISOString(),
+          capability: issued.token,
+        },
+        execution: persistedRecord,
+      };
+    });
+
+    this.securityEvent('runner.heartbeat.succeeded', {
+      reason: null,
+      runnerId,
+      execution: outcome.execution,
+      now,
+    });
+    return outcome.result;
   }
 
   private async allocateClaim(
@@ -221,11 +316,10 @@ export class SupervisorRunnerClaimService {
     row: SupervisorExecutionRecord,
     now: Date,
   ): boolean {
-    if (row.status !== 'DISPATCHED') return false;
-    if (
-      row.claimedBy !== null &&
-      (!row.leaseExpiresAt || row.leaseExpiresAt.getTime() > now.getTime())
-    ) {
+    if (!['DISPATCHED', 'RUNNING'].includes(row.status)) return false;
+    if (row.status === 'RUNNING' && row.claimedBy === null) return false;
+    if (row.claimedBy !== null && !row.leaseExpiresAt) return false;
+    if (row.leaseExpiresAt && row.leaseExpiresAt.getTime() > now.getTime()) {
       return false;
     }
     if (
@@ -282,7 +376,9 @@ export class SupervisorRunnerClaimService {
       | 'runner.claim.empty'
       | 'runner.claim.reclaimed'
       | 'runner.claim.rejected'
-      | 'runner.fenced',
+      | 'runner.fenced'
+      | 'runner.heartbeat.succeeded'
+      | 'runner.heartbeat.rejected',
     input: {
       reason: string | null;
       runnerId: string;
