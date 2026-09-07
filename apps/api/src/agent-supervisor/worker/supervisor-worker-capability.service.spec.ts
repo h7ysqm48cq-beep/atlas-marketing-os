@@ -144,6 +144,20 @@ describe('SupervisorWorkerCapabilityService', () => {
     expect(JSON.stringify(issued.metadata)).not.toContain(OWNER_TOKEN);
   });
 
+  it('rejects a legacy v1 token when the persisted assignment is v2', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issueLegacy(value, { now: NOW });
+    value.assignment.workerCapability = {
+      ...issued.metadata,
+      version: 2,
+    };
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'worker_capability_assignment_mismatch',
+    );
+  });
+
   it('rejects capability issuance without a claimed runner', () => {
     const service = new SupervisorWorkerCapabilityService(config());
 

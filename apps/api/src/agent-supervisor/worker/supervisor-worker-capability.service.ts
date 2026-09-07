@@ -215,6 +215,7 @@ export class SupervisorWorkerCapabilityService {
     const digest = this.assignmentDigest(input.assignment);
     if (
       digest !== claims.assignmentDigest ||
+      metadata?.version !== claims.version ||
       metadata?.assignmentDigest !== claims.assignmentDigest ||
       metadata.expiresAt !== claims.expiresAt ||
       metadata.issuedAt !== claims.issuedAt ||
