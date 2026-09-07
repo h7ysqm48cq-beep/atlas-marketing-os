@@ -18,6 +18,8 @@ jobs:
   supervisor-postgres-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_supervisor_test
     services:
       postgres:
         image: postgres:16
