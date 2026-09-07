@@ -276,6 +276,31 @@ describe('AgentSupervisorController', () => {
     });
   });
 
+  it.each([
+    ['executionPurpose', { executionPurpose: 'UNKNOWN_PURPOSE' }],
+    ['runnerEligibility', { runnerEligibility: 'UNKNOWN_RUNNER' }],
+  ])(
+    'rejects invalid runtime %s from the owner body before creating an execution',
+    async (_field, body) => {
+      const task = await supervisor.createTask({
+        objective: 'Reject invalid runner dispatch',
+        owner: 'backend',
+        allowedPaths: ['apps/api/src/example.ts'],
+        forbiddenActions: ['merge'],
+        dependsOn: [],
+        acceptance: ['invalid routing is rejected'],
+      });
+      await supervisor.startTask(task.id);
+
+      await expect(
+        controller.dispatchTask(task.id, body as never),
+      ).rejects.toMatchObject({
+        response: { code: 'runner_execution_not_eligible' },
+      });
+      expect(await controller.listExecutions(task.id)).toEqual([]);
+    },
+  );
+
   it('lists execution history for a task', async () => {
     const task = await supervisor.createTask({
       objective: 'Backend task',

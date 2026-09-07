@@ -49,13 +49,15 @@ const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
   'RUNNING',
 ];
 
-const SYNTHETIC_FORBIDDEN_EVIDENCE_FIELDS = [
-  'reviewCandidate',
-  'ownerMergeAuthorization',
-  'ownerMergeAuthorizationConsumption',
-  'ownerDeploymentAuthorization',
-  'ownerDeploymentAuthorizationRevocations',
-] as const;
+const EXECUTION_PURPOSES: SupervisorExecutionPurpose[] = [
+  'IMPLEMENTATION',
+  'INDEPENDENT_VERIFICATION',
+];
+
+const RUNNER_ELIGIBILITIES: RunnerEligibility[] = [
+  'STANDARD',
+  'A1_SYNTHETIC',
+];
 
 @Injectable()
 export class WorkerDispatcherService {
@@ -73,6 +75,15 @@ export class WorkerDispatcherService {
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
   }> {
+    if (
+      !EXECUTION_PURPOSES.includes(executionPurpose) ||
+      !RUNNER_ELIGIBILITIES.includes(runnerEligibility)
+    ) {
+      throw new BadRequestException({
+        code: 'runner_execution_not_eligible',
+      });
+    }
+
     if (
       runnerEligibility === 'A1_SYNTHETIC' &&
       executionPurpose !== 'IMPLEMENTATION'
@@ -302,8 +313,8 @@ export class WorkerDispatcherService {
       evidence.build === 'NOT_RUN_SYNTHETIC' &&
       evidence.deploymentState === 'NONE' &&
       evidence.gitState === 'UNCHANGED' &&
-      SYNTHETIC_FORBIDDEN_EVIDENCE_FIELDS.every(
-        (field) => !Object.prototype.hasOwnProperty.call(evidence, field),
+      Object.keys(evidence).every((field) =>
+        REQUIRED_EVIDENCE.includes(field as RequiredEvidenceField),
       );
 
     if (!valid) {

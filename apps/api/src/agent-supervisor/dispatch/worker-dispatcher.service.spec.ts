@@ -154,6 +154,27 @@ describe('WorkerDispatcherService', () => {
     expect(await executionStore.listByTask(task.id)).toEqual([]);
   });
 
+  it.each([
+    ['executionPurpose', 'UNKNOWN_PURPOSE', undefined],
+    ['runnerEligibility', undefined, 'UNKNOWN_RUNNER'],
+  ])(
+    'rejects invalid runtime %s before creating an execution',
+    async (_field, executionPurpose, runnerEligibility) => {
+      const task = await createWorkingTask();
+
+      await expect(
+        dispatcher.dispatch(
+          task.id,
+          executionPurpose as never,
+          runnerEligibility as never,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'runner_execution_not_eligible' },
+      });
+      expect(await executionStore.listByTask(task.id)).toEqual([]);
+    },
+  );
+
   it('can dispatch a separately bound independent verification execution', async () => {
     const task = await createWorkingTask();
 
@@ -308,6 +329,7 @@ describe('WorkerDispatcherService', () => {
       'ownerDeploymentAuthorizationRevocations',
       { ownerDeploymentAuthorizationRevocations: [] },
     ],
+    ['unrelatedExtraKey', { unrelatedExtraKey: 'unexpected' }],
   ])(
     'rejects synthetic completion evidence violating %s before persisting completion',
     async (_field, evidence) => {
