@@ -230,6 +230,50 @@ describe('AgentSupervisorController', () => {
 
     expect(result.assignment.workerRole).toBe('backend');
     expect(result.assignment.forbiddenActions).toContain('merge');
+    expect(result.assignment.runnerEligibility).toBe('STANDARD');
+  });
+
+  it('dispatches an explicit A1 synthetic implementation from the owner body', async () => {
+    const task = await supervisor.createTask({
+      objective: 'Synthetic runner smoke',
+      owner: 'backend',
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: ['merge'],
+      dependsOn: [],
+      acceptance: ['synthetic evidence only'],
+    });
+    await supervisor.startTask(task.id);
+
+    const result = await controller.dispatchTask(task.id, {
+      executionPurpose: 'IMPLEMENTATION',
+      runnerEligibility: 'A1_SYNTHETIC',
+    });
+
+    expect(result.assignment).toMatchObject({
+      executionPurpose: 'IMPLEMENTATION',
+      runnerEligibility: 'A1_SYNTHETIC',
+    });
+  });
+
+  it('rejects an A1 synthetic independent verification request from the owner body', async () => {
+    const task = await supervisor.createTask({
+      objective: 'Independent verification',
+      owner: 'qa',
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: ['merge'],
+      dependsOn: [],
+      acceptance: ['verify independently'],
+    });
+    await supervisor.startTask(task.id);
+
+    await expect(
+      controller.dispatchTask(task.id, {
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        runnerEligibility: 'A1_SYNTHETIC',
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'runner_execution_not_eligible' },
+    });
   });
 
   it('lists execution history for a task', async () => {
