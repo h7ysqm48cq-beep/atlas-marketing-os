@@ -81,7 +81,10 @@ function recordFromUpdate(
   } as SupervisorExecutionRecord;
 }
 
-function setup(queryResults: SupervisorExecutionRecord[][]) {
+function setup(
+  queryResults: SupervisorExecutionRecord[][],
+  options: { failAfterCallback?: boolean } = {},
+) {
   const results = [...queryResults];
   const queryRaw = jest.fn(async () => results.shift() ?? []);
   let updateBase: SupervisorExecutionRecord | null = null;
@@ -93,9 +96,13 @@ function setup(queryResults: SupervisorExecutionRecord[][]) {
     $queryRaw: queryRaw,
     supervisorExecution: { update },
   };
-  const transaction = jest.fn(async (callback: (input: typeof tx) => unknown) =>
-    callback(tx),
-  );
+  const transaction = jest.fn(async (callback: (input: typeof tx) => unknown) => {
+    const result = await callback(tx);
+    if (options.failAfterCallback) {
+      throw new Error('transaction commit failed');
+    }
+    return result;
+  });
   const prisma = { $transaction: transaction } as unknown as PrismaService;
   const issue = jest.fn(
     (execution: SupervisorExecution, options?: { now?: Date }) => {
@@ -111,11 +118,14 @@ function setup(queryResults: SupervisorExecutionRecord[][]) {
   );
   const capability = { issue } as unknown as SupervisorWorkerCapabilityService;
   const service = new SupervisorRunnerClaimService(prisma, capability);
+  const log = jest.fn();
+  (service as unknown as { logger: { log: typeof log } }).logger.log = log;
   return {
     service,
     queryRaw,
     update,
     issue,
+    log,
     setUpdateBase(value: SupervisorExecutionRecord) {
       updateBase = value;
     },
@@ -166,6 +176,46 @@ describe('SupervisorRunnerClaimService', () => {
     ).resolves.toEqual({ claimed: false });
     expect(harness.issue).not.toHaveBeenCalled();
     expect(harness.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing runnerEligibility', { runnerEligibility: undefined }],
+    ['STANDARD runnerEligibility', { runnerEligibility: 'STANDARD' }],
+    [
+      'INDEPENDENT_VERIFICATION purpose',
+      { executionPurpose: 'INDEPENDENT_VERIFICATION' },
+    ],
+  ])('fails closed when raw selection returns %s work', async (_label, patch) => {
+    const invalid = row({
+      assignment: {
+        ...(row().assignment as object),
+        ...patch,
+      },
+    });
+    const harness = setup([[], [invalid]]);
+
+    await expect(
+      harness.service.claimNext('engineering-runner:one', NOW),
+    ).resolves.toEqual({ claimed: false });
+    expect(harness.issue).not.toHaveBeenCalled();
+    expect(harness.update).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when raw selection returns RUNNING or a live leased row', async () => {
+    for (const invalid of [
+      row({ status: 'RUNNING', leaseExpiresAt: EXPIRED_LEASE }),
+      row({
+        claimedBy: 'engineering-runner:other',
+        leaseExpiresAt: LIVE_LEASE,
+      }),
+    ]) {
+      const harness = setup([[], [invalid]]);
+      await expect(
+        harness.service.claimNext('engineering-runner:one', NOW),
+      ).resolves.toEqual({ claimed: false });
+      expect(harness.issue).not.toHaveBeenCalled();
+      expect(harness.update).not.toHaveBeenCalled();
+    }
   });
 
   it('rejects a runner that already owns a live dispatched execution', async () => {
@@ -271,5 +321,20 @@ describe('SupervisorRunnerClaimService', () => {
       },
       assignment: { workerCapability: CAPABILITY_METADATA },
     });
+  });
+
+  it('does not return a capability token when the transaction fails after its callback', async () => {
+    const candidate = row();
+    const harness = setup([[], [candidate]], { failAfterCallback: true });
+    harness.setUpdateBase(candidate);
+
+    await expect(
+      harness.service.claimNext('engineering-runner:one', NOW),
+    ).rejects.toThrow('transaction commit failed');
+    expect(harness.issue).toHaveBeenCalledTimes(1);
+    expect(harness.update).toHaveBeenCalledTimes(1);
+    expect(harness.log).not.toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'runner.claim.succeeded' }),
+    );
   });
 });

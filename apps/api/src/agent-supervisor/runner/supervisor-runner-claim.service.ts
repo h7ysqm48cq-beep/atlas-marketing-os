@@ -23,6 +23,17 @@ export type ClaimNextResult =
       capability: string;
     };
 
+type ClaimedResult = Extract<ClaimNextResult, { claimed: true }>;
+
+type ClaimTransactionOutcome =
+  | { result: { claimed: false } }
+  | {
+      result: ClaimedResult;
+      event: 'runner.claim.succeeded' | 'runner.claim.reclaimed';
+      reason: string | null;
+      execution: SupervisorExecutionRecord;
+    };
+
 type RunnerTransaction = {
   $queryRaw<T = unknown>(
     strings: TemplateStringsArray,
@@ -59,7 +70,7 @@ export class SupervisorRunnerClaimService {
 
   async claimNext(runnerId: string, now: Date = new Date()): Promise<ClaimNextResult> {
     try {
-      return await this.prisma.$transaction(async (prismaTx) => {
+      const outcome = await this.prisma.$transaction(async (prismaTx) => {
         const tx = prismaTx as unknown as RunnerTransaction;
         const ownedRows = await tx.$queryRaw<SupervisorExecutionRecord[]>`
           SELECT *
@@ -111,13 +122,13 @@ export class SupervisorRunnerClaimService {
           LIMIT 1
         `;
         const candidate = candidates[0] ?? null;
-        if (!candidate) {
+        if (!candidate || !this.isEligibleCandidate(candidate, now)) {
           this.securityEvent('runner.claim.empty', {
             reason: 'no_eligible_execution',
             runnerId,
             now,
           });
-          return { claimed: false };
+          return { result: { claimed: false } } satisfies ClaimTransactionOutcome;
         }
 
         return this.allocateClaim(
@@ -128,6 +139,16 @@ export class SupervisorRunnerClaimService {
           candidate.claimedBy !== null,
         );
       });
+
+      if ('event' in outcome) {
+        this.securityEvent(outcome.event, {
+          reason: outcome.reason,
+          runnerId,
+          execution: outcome.execution,
+          now,
+        });
+      }
+      return outcome.result;
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
@@ -150,7 +171,7 @@ export class SupervisorRunnerClaimService {
     runnerId: string,
     now: Date,
     reclaimed: boolean,
-  ): Promise<Extract<ClaimNextResult, { claimed: true }>> {
+  ): Promise<ClaimTransactionOutcome> {
     const current = mapExecutionRecord(row);
     const claimEpoch = current.claimEpoch + 1;
     const leaseExpiresAt = new Date(now.getTime() + LEASE_MS);
@@ -181,24 +202,47 @@ export class SupervisorRunnerClaimService {
     });
     const execution = mapExecutionRecord(persistedRecord);
 
-    this.securityEvent(
-      reclaimed ? 'runner.claim.reclaimed' : 'runner.claim.succeeded',
-      {
-        reason: reclaimed ? 'expired_claim_recovered' : null,
-        runnerId,
-        execution: persistedRecord,
-        now,
-      },
-    );
-
     return {
-      claimed: true,
-      execution,
-      assignment: structuredClone(execution.assignment),
-      claimEpoch,
-      leaseExpiresAt: leaseExpiresAt.toISOString(),
-      capability: issued.token,
+      result: {
+        claimed: true,
+        execution,
+        assignment: structuredClone(execution.assignment),
+        claimEpoch,
+        leaseExpiresAt: leaseExpiresAt.toISOString(),
+        capability: issued.token,
+      },
+      event: reclaimed ? 'runner.claim.reclaimed' : 'runner.claim.succeeded',
+      reason: reclaimed ? 'expired_claim_recovered' : null,
+      execution: persistedRecord,
     };
+  }
+
+  private isEligibleCandidate(
+    row: SupervisorExecutionRecord,
+    now: Date,
+  ): boolean {
+    if (row.status !== 'DISPATCHED') return false;
+    if (
+      row.claimedBy !== null &&
+      (!row.leaseExpiresAt || row.leaseExpiresAt.getTime() > now.getTime())
+    ) {
+      return false;
+    }
+    if (
+      !row.assignment ||
+      typeof row.assignment !== 'object' ||
+      Array.isArray(row.assignment)
+    ) {
+      return false;
+    }
+    const assignment = row.assignment as {
+      executionPurpose?: unknown;
+      runnerEligibility?: unknown;
+    };
+    return (
+      assignment.executionPurpose === 'IMPLEMENTATION' &&
+      assignment.runnerEligibility === 'A1_SYNTHETIC'
+    );
   }
 
   private activeExecutionConflict(
