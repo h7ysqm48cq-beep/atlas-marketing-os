@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import {
   CanActivate,
   ExecutionContext,
@@ -25,26 +25,29 @@ export class SupervisorRunnerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       headers?: Record<string, string | string[] | undefined>;
     }>();
-    const supplied = request.headers?.[RUNNER_TOKEN_HEADER];
-    if (typeof supplied !== 'string' || !supplied) {
-      throw new UnauthorizedException('runner_credential_required');
-    }
-
-    const expectedDigest = this.digest(configured);
-    const suppliedDigest = this.digest(supplied);
-    if (!timingSafeEqual(expectedDigest, suppliedDigest)) {
-      throw new UnauthorizedException('runner_credential_invalid');
-    }
-
     const runnerId = request.headers?.[RUNNER_ID_HEADER];
     if (typeof runnerId !== 'string' || !RUNNER_ID_PATTERN.test(runnerId)) {
       throw new UnauthorizedException('runner_id_required');
     }
 
+    const supplied = request.headers?.[RUNNER_TOKEN_HEADER];
+    if (typeof supplied !== 'string' || !supplied) {
+      throw new UnauthorizedException('runner_credential_required');
+    }
+
+    const expectedDigest = this.credentialDigest(configured, runnerId);
+    const suppliedDigest = Buffer.from(supplied, 'hex');
+    if (
+      suppliedDigest.length !== expectedDigest.length ||
+      !timingSafeEqual(expectedDigest, suppliedDigest)
+    ) {
+      throw new UnauthorizedException('runner_credential_invalid');
+    }
+
     return true;
   }
 
-  private digest(value: string) {
-    return createHash('sha256').update(value, 'utf8').digest();
+  private credentialDigest(configured: string, runnerId: string) {
+    return createHmac('sha256', configured).update(runnerId, 'utf8').digest();
   }
 }

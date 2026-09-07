@@ -1,9 +1,17 @@
+import { createHmac } from 'node:crypto';
 import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { SupervisorRunnerGuard } from './supervisor-runner.guard';
 
 describe('SupervisorRunnerGuard', () => {
+  const RUNNER_ID =
+    'engineering-runner:123e4567-e89b-42d3-a456-426614174000';
+
+  function credential(secret: string, runnerId: string = RUNNER_ID) {
+    return createHmac('sha256', secret).update(runnerId, 'utf8').digest('hex');
+  }
+
   function context(headers: Record<string, string> = {}): ExecutionContext {
     return {
       switchToHttp: () => ({
@@ -93,12 +101,25 @@ describe('SupervisorRunnerGuard', () => {
     expect(
       guard('runner-secret').canActivate(
         context({
-          'x-atlas-supervisor-runner-token': 'runner-secret',
-          'x-atlas-runner-id':
-            'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
+          'x-atlas-supervisor-runner-token': credential('runner-secret'),
+          'x-atlas-runner-id': RUNNER_ID,
         }),
       ),
     ).toBe(true);
+  });
+
+  it('rejects a valid runner credential presented with another runner id', () => {
+    expectUnauthorized(
+      () =>
+        guard('runner-secret').canActivate(
+          context({
+            'x-atlas-supervisor-runner-token': credential('runner-secret'),
+            'x-atlas-runner-id':
+              'engineering-runner:223e4567-e89b-42d3-a456-426614174000',
+          }),
+        ),
+      'runner_credential_invalid',
+    );
   });
 
   it('rejects the owner token when presented in the runner header', () => {
