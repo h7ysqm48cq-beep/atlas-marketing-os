@@ -78,6 +78,29 @@ function context(
   } as unknown as ExecutionContext;
 }
 
+function contextWithRequest(
+  token: string,
+  taskId: string,
+  executionId: string,
+  operation: SupervisorWorkerCapabilityOperation,
+) {
+  const handler = () => undefined;
+  Reflect.defineMetadata(SUPERVISOR_WORKER_OPERATION, operation, handler);
+  const request = {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    params: { taskId, executionId },
+  } as { method: string; headers: Record<string, string>; params: Record<string, string>; atlasWorkerCapability?: unknown };
+  return {
+    request,
+    context: {
+      getHandler: () => handler,
+      getClass: () => class WorkerController {},
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as ExecutionContext,
+  };
+}
+
 describe('SupervisorWorkerGuard', () => {
   let store: MemorySupervisorExecutionStore;
   let capabilities: SupervisorWorkerCapabilityService;
@@ -108,6 +131,24 @@ describe('SupervisorWorkerGuard', () => {
         context(token, value.taskId, value.id, 'read_assignment'),
       ),
     ).resolves.toBe(true);
+  });
+
+  it('attaches authorized capability claims so controller mutations can pass the v2 fence', async () => {
+    const value = execution();
+    const token = await persistIssued(value);
+    const { context: requestContext, request } = contextWithRequest(
+      token,
+      value.taskId,
+      value.id,
+      'complete',
+    );
+
+    await expect(guard.canActivate(requestContext)).resolves.toBe(true);
+    expect(request.atlasWorkerCapability).toMatchObject({
+      version: 2,
+      runnerId: RUNNER_ID,
+      claimEpoch: 1,
+    });
   });
 
   it('prevents capability A from accessing execution B', async () => {

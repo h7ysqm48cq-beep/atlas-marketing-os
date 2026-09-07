@@ -17,8 +17,13 @@ import { FILE_OWNERSHIP_STORE } from './stores/file-ownership.store';
 import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
 import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
-import { SupervisorRunnerGuard } from './runner/supervisor-runner.guard';
+import {
+  SupervisorRunnerBootstrapGuard,
+  SupervisorRunnerGuard,
+  SupervisorRunnerSessionGuard,
+} from './runner/supervisor-runner.guard';
 import { SupervisorRunnerClaimService } from './runner/supervisor-runner-claim.service';
+import { SupervisorRunnerSessionService } from './runner/supervisor-runner-session.service';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
@@ -39,6 +44,9 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     SupervisorOwnerActionGuard,
     SupervisorOwnerGuard,
     SupervisorRunnerGuard,
+    SupervisorRunnerBootstrapGuard,
+    SupervisorRunnerSessionGuard,
+    SupervisorRunnerSessionService,
     SupervisorRunnerClaimService,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,

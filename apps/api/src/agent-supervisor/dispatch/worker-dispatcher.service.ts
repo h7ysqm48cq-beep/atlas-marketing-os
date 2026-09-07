@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
@@ -21,6 +22,8 @@ import {
   SUPERVISOR_EXECUTION_STORE,
   type SupervisorExecutionStore,
 } from '../stores/supervisor-execution.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 
 const REQUIRED_EVIDENCE: RequiredEvidenceField[] = [
   'rootCause',
@@ -65,6 +68,8 @@ export class WorkerDispatcherService {
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
+    @Optional()
+    private readonly capabilityService?: SupervisorWorkerCapabilityService,
   ) {}
 
   async dispatch(
@@ -74,6 +79,7 @@ export class WorkerDispatcherService {
   ): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
+    capability?: string;
   }> {
     if (
       !EXECUTION_PURPOSES.includes(executionPurpose) ||
@@ -169,6 +175,13 @@ export class WorkerDispatcherService {
       startedAt: null,
       completedAt: null,
     };
+    const issuedCapability =
+      runnerEligibility === 'STANDARD' && this.capabilityService
+        ? this.capabilityService.issueLegacy(queued)
+        : undefined;
+    if (issuedCapability) {
+      queued.assignment.workerCapability = issuedCapability.metadata;
+    }
     const created = await this.executionStore.create(queued);
 
     created.status = 'DISPATCHED';
@@ -177,6 +190,7 @@ export class WorkerDispatcherService {
     return {
       execution,
       assignment: execution.assignment,
+      ...(issuedCapability ? { capability: issuedCapability.token } : {}),
     };
   }
 
@@ -189,19 +203,25 @@ export class WorkerDispatcherService {
     return this.requireExecution(executionId);
   }
 
-  async markRunning(executionId: string): Promise<SupervisorExecution> {
+  async markRunning(
+    executionId: string,
+    fence?: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED']);
 
     execution.status = 'RUNNING';
     execution.startedAt = new Date();
     execution.error = null;
-    return this.executionStore.saveIfStatus(execution, 'DISPATCHED');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'DISPATCHED', fence)
+      : this.executionStore.saveIfStatus(execution, 'DISPATCHED');
   }
 
   async complete(
     executionId: string,
     result: WorkerExecutionResult,
+    fence?: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
@@ -227,10 +247,16 @@ export class WorkerDispatcherService {
     };
     execution.error = null;
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, 'RUNNING');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'RUNNING', fence)
+      : this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
-  async fail(executionId: string, error: string): Promise<SupervisorExecution> {
+  async fail(
+    executionId: string,
+    error: string,
+    fence?: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     if (!error?.trim()) {
@@ -240,12 +266,15 @@ export class WorkerDispatcherService {
     execution.status = 'FAILED';
     execution.error = error.trim();
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, 'RUNNING');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'RUNNING', fence)
+      : this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
   async cancel(
     executionId: string,
     reason: string,
+    fence?: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED', 'RUNNING']);
@@ -257,7 +286,9 @@ export class WorkerDispatcherService {
     execution.status = 'CANCELLED';
     execution.error = reason.trim();
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, previousStatus);
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, previousStatus, fence)
+      : this.executionStore.saveIfStatus(execution, previousStatus);
   }
 
   private async requireExecution(

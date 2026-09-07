@@ -31,6 +31,11 @@ export type RunnerHeartbeatResult = {
   capability: string;
 };
 
+export type RunnerReleaseResult = {
+  released: true;
+  execution: SupervisorExecution;
+};
+
 type ClaimedResult = Extract<ClaimNextResult, { claimed: true }>;
 
 type ClaimTransactionOutcome =
@@ -265,6 +270,65 @@ export class SupervisorRunnerClaimService {
     return outcome.result;
   }
 
+  async release(
+    executionId: string,
+    runnerId: string,
+    now: Date = new Date(),
+  ): Promise<RunnerReleaseResult> {
+    const outcome = await this.prisma.$transaction(async (prismaTx) => {
+      const tx = prismaTx as unknown as RunnerTransaction;
+      const rows = await tx.$queryRaw<SupervisorExecutionRecord[]>`
+        SELECT *
+        FROM "SupervisorExecution"
+        WHERE "id" = ${executionId}
+        FOR UPDATE
+        LIMIT 1
+      `;
+      const row = rows[0] ?? null;
+      const current = row ? mapExecutionRecord(row) : null;
+      if (
+        !current ||
+        current.claimedBy !== runnerId ||
+        !['DISPATCHED', 'RUNNING'].includes(current.status)
+      ) {
+        this.securityEvent('runner.release.rejected', {
+          reason: 'runner_claim_not_current',
+          runnerId,
+          execution: row ?? undefined,
+          now,
+        });
+        throw new ConflictException({
+          code: 'runner_claim_not_current',
+          runnerId,
+          executionId,
+        });
+      }
+      const assignment = structuredClone(current.assignment);
+      delete assignment.workerCapability;
+      const persistedRecord = await tx.supervisorExecution.update({
+        where: { id: executionId },
+        data: {
+          status: 'DISPATCHED',
+          claimedBy: null,
+          claimEpoch: current.claimEpoch + 1,
+          claimedAt: null,
+          leaseExpiresAt: null,
+          lastHeartbeatAt: null,
+          startedAt: null,
+          assignment,
+        },
+      });
+      return { released: true as const, execution: mapExecutionRecord(persistedRecord) };
+    });
+    this.securityEvent('runner.release.succeeded', {
+      reason: null,
+      runnerId,
+      execution: undefined,
+      now,
+    });
+    return outcome;
+  }
+
   private async allocateClaim(
     tx: RunnerTransaction,
     row: SupervisorExecutionRecord,
@@ -382,7 +446,9 @@ export class SupervisorRunnerClaimService {
       | 'runner.claim.rejected'
       | 'runner.fenced'
       | 'runner.heartbeat.succeeded'
-      | 'runner.heartbeat.rejected',
+      | 'runner.heartbeat.rejected'
+      | 'runner.release.succeeded'
+      | 'runner.release.rejected',
     input: {
       reason: string | null;
       runnerId: string;

@@ -7,7 +7,10 @@ import { SupervisorCiGuard } from './supervisor-ci.guard';
 import { SupervisorDeployResolverGuard } from './supervisor-deploy-resolver.guard';
 import { SupervisorGatewayController } from './supervisor-gateway.controller';
 import type { SupervisorRunnerClaimService } from '../runner/supervisor-runner-claim.service';
-import { SupervisorRunnerGuard } from '../runner/supervisor-runner.guard';
+import {
+  SupervisorRunnerBootstrapGuard,
+  SupervisorRunnerSessionGuard,
+} from '../runner/supervisor-runner.guard';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 
 describe('SupervisorGatewayController', () => {
@@ -38,12 +41,19 @@ describe('SupervisorGatewayController', () => {
         SupervisorGatewayController.prototype.resolveProductionDeployment,
       ),
     ).toEqual([SupervisorDeployResolverGuard]);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.createRunnerSession,
+      ),
+    ).toEqual([SupervisorRunnerBootstrapGuard]);
     for (const handler of [
       SupervisorGatewayController.prototype.claimNext,
       SupervisorGatewayController.prototype.heartbeat,
+      SupervisorGatewayController.prototype.release,
     ]) {
       expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-        SupervisorRunnerGuard,
+        SupervisorRunnerSessionGuard,
       ]);
     }
   });
@@ -176,7 +186,7 @@ describe('SupervisorGatewayController', () => {
     ).toBeUndefined();
   });
 
-  it('exposes claim and heartbeat only behind the dedicated runner guard', async () => {
+  it('derives claim, heartbeat, and release identity from the runner session', async () => {
     const claimResult = { claimed: false };
     const heartbeatResult = {
       claimEpoch: 4,
@@ -185,22 +195,26 @@ describe('SupervisorGatewayController', () => {
     };
     const claimNext = jest.fn().mockResolvedValue(claimResult);
     const heartbeat = jest.fn().mockResolvedValue(heartbeatResult);
+    const release = jest.fn().mockResolvedValue({ released: true });
     const controller = new SupervisorGatewayController(
       {} as AgentGatewayService,
-      claims({ claimNext, heartbeat }),
+      claims({ claimNext, heartbeat, release }),
     );
-    const runnerId =
-      'engineering-runner:123e4567-e89b-42d3-a456-426614174000';
+    const request = { atlasRunnerId: 'engineering-runner:server-issued' };
 
-    await expect(controller.claimNext(runnerId)).resolves.toBe(claimResult);
+    await expect(controller.claimNext(request)).resolves.toBe(claimResult);
     await expect(
-      controller.heartbeat(runnerId, 'ATLAS-EXEC-1', { claimEpoch: 4 }),
+      controller.heartbeat(request, 'ATLAS-EXEC-1', { claimEpoch: 4 }),
     ).resolves.toBe(heartbeatResult);
-    expect(claimNext).toHaveBeenCalledWith(runnerId);
+    await expect(controller.release(request, 'ATLAS-EXEC-1')).resolves.toEqual({
+      released: true,
+    });
+    expect(claimNext).toHaveBeenCalledWith(request.atlasRunnerId);
     expect(heartbeat).toHaveBeenCalledWith(
       'ATLAS-EXEC-1',
-      runnerId,
+      request.atlasRunnerId,
       4,
     );
+    expect(release).toHaveBeenCalledWith('ATLAS-EXEC-1', request.atlasRunnerId);
   });
 });

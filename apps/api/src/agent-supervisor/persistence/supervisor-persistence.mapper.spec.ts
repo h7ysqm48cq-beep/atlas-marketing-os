@@ -410,6 +410,26 @@ describe('supervisor persistence mapper', () => {
     expect(execution.lastHeartbeatAt).not.toBe(record.lastHeartbeatAt);
   });
 
+  it('loads legacy v1 worker capability metadata alongside v2 records', () => {
+    const record = executionRecord({
+      assignment: {
+        ...assignmentFixture(),
+        workerCapability: {
+          version: 1,
+          assignmentDigest: 'a'.repeat(64),
+          allowedOperations: ['read_assignment', 'complete'],
+          issuedAt: '2026-09-01T00:00:00.000Z',
+          expiresAt: '2026-09-01T00:05:00.000Z',
+        },
+      },
+    });
+
+    expect(mapExecutionRecord(record).assignment.workerCapability).toMatchObject({
+      version: 1,
+      assignmentDigest: 'a'.repeat(64),
+    });
+  });
+
   it('does not infer runner eligibility for legacy assignments', () => {
     const execution = mapExecutionRecord(executionRecord());
 

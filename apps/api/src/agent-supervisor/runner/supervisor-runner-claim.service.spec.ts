@@ -223,6 +223,48 @@ describe('SupervisorRunnerClaimService', () => {
     );
   });
 
+  it('releases only the session-owned claim and increments the fencing epoch', async () => {
+    const claimed = execution({
+      claimedBy: RUNNER_ID,
+      claimEpoch: 3,
+      leaseExpiresAt: new Date(NOW.getTime() + 30_000),
+    });
+    const { service, tx } = harness({ sameRunner: [claimed] });
+
+    await expect(service.release(claimed.id, RUNNER_ID, NOW)).resolves.toMatchObject({
+      released: true,
+      execution: {
+        id: claimed.id,
+        status: 'DISPATCHED',
+        claimedBy: null,
+        claimEpoch: 4,
+      },
+    });
+    expect(tx.supervisorExecution.update).toHaveBeenCalledWith({
+      where: { id: claimed.id },
+      data: expect.objectContaining({
+        claimedBy: null,
+        claimEpoch: 4,
+        leaseExpiresAt: null,
+        assignment: expect.not.objectContaining({ workerCapability: expect.anything() }),
+      }),
+    });
+  });
+
+  it('rejects release when the session runner does not own the claim', async () => {
+    const claimed = execution({
+      claimedBy: RUNNER_ID,
+      claimEpoch: 3,
+      leaseExpiresAt: new Date(NOW.getTime() + 30_000),
+    });
+    const { service, tx } = harness({ sameRunner: [claimed] });
+
+    await expect(
+      service.release(claimed.id, 'engineering-runner:22222222-2222-4222-8222-222222222222', NOW),
+    ).rejects.toMatchObject({ response: { code: 'runner_claim_not_current' } });
+    expect(tx.supervisorExecution.update).not.toHaveBeenCalled();
+  });
+
   it('rejects a same-runner live DISPATCHED execution before unrelated candidate selection', async () => {
     const held = execution({
       claimedBy: RUNNER_ID,

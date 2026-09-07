@@ -107,7 +107,7 @@ describe('WorkerDispatcherService', () => {
     ).toBe('IMPLEMENTATION');
   });
 
-  it('does not issue a worker capability before a runner claims the execution', async () => {
+  it('issues the legacy v1 worker capability for STANDARD dispatch', async () => {
     const task = await createWorkingTask();
     const capabilityService = new SupervisorWorkerCapabilityService({
       get: (name: string) =>
@@ -120,8 +120,7 @@ describe('WorkerDispatcherService', () => {
     ]) as WorkerDispatcherService;
 
     const result = await capabilityDispatcher.dispatch(task.id);
-    expect(result).not.toHaveProperty('capability');
-    expect(result.assignment.workerCapability).toBeUndefined();
+    expect(result.assignment.workerCapability).toMatchObject({ version: 1 });
     expect((await executionStore.get(result.execution.id))?.assignment).toEqual(
       result.assignment,
     );

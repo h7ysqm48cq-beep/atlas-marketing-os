@@ -10,6 +10,7 @@ import type {
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
 import type { SupervisorExecutionStore } from '../stores/supervisor-execution.store';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 import {
   mapExecutionRecord,
   type SupervisorExecutionRecord,
@@ -54,6 +55,16 @@ type SupervisorExecutionDelegate = {
   update(
     args: SupervisorExecutionUpdateArgs,
   ): Promise<SupervisorExecutionRecord>;
+  updateMany(args: {
+    where: {
+      id: string;
+      status: string;
+      claimedBy: string;
+      claimEpoch: number;
+      leaseExpiresAt: { gt: Date };
+    };
+    data: Omit<SupervisorExecutionCreateArgs['data'], 'id' | 'createdAt'>;
+  }): Promise<{ count: number }>;
 };
 
 type PrismaWithSupervisorExecution = {
@@ -262,6 +273,35 @@ export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore 
       }
       throw persistenceError();
     }
+  }
+
+  async saveIfClaimCurrent(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+    fence: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
+    return this.withPersistenceBoundary(execution.taskId, async () => {
+      const updated = await this.delegate.updateMany({
+        where: {
+          id: execution.id,
+          status: expectedStatus,
+          claimedBy: fence.claimedBy,
+          claimEpoch: fence.claimEpoch,
+          leaseExpiresAt: { gt: fence.now },
+        },
+        data: executionUpdateData(execution),
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException({ code: 'execution_claim_conflict' });
+      }
+      const row = await this.delegate.findUnique({
+        where: { id: execution.id },
+      });
+      if (!row) {
+        throw new ConflictException({ code: 'execution_claim_conflict' });
+      }
+      return mapExecutionRecord(row);
+    });
   }
 
   private async withPersistenceBoundary<T>(

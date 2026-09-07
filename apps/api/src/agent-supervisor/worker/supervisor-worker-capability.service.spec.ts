@@ -92,6 +92,37 @@ function tamperPayload(
 }
 
 describe('SupervisorWorkerCapabilityService', () => {
+  it('issues and authorizes the persisted v1 capability for STANDARD workers', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution({
+      claimedBy: null,
+      claimEpoch: 0,
+      leaseExpiresAt: null,
+      assignment: {
+        ...execution().assignment,
+        runnerEligibility: 'STANDARD',
+      },
+    });
+    const issued = service.issueLegacy(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(issued.metadata.version).toBe(1);
+    expect(
+      service.authorize(issued.token, {
+        taskId: value.taskId,
+        executionId: value.id,
+        workerRole: value.workerRole,
+        executionPurpose: 'IMPLEMENTATION',
+        assignment: value.assignment,
+        operation: 'complete',
+        claimedBy: null,
+        claimEpoch: 0,
+        leaseExpiresAt: null,
+        now: new Date(NOW.getTime() + 1_000),
+      }),
+    ).toMatchObject({ version: 1, taskId: value.taskId });
+  });
+
   it('accepts a valid execution-bound capability', () => {
     const service = new SupervisorWorkerCapabilityService(config());
     const value = execution();

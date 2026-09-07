@@ -42,7 +42,9 @@ describe('Production deployment resolver', () => {
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
 
-  async function createApprovedDeployment(service: 'api' | 'web' | 'browser-worker' = 'api') {
+  async function createApprovedDeployment(
+    service: 'api' | 'web' | 'browser-worker' | 'engineering-runner' = 'api',
+  ) {
     const task = await supervisor.createTask({
       objective: `Authorize exact ${service} production deployment`,
       owner: 'infra',
@@ -109,6 +111,21 @@ describe('Production deployment resolver', () => {
 
     await expect(
       resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+  });
+
+  it('resolves an approved engineering-runner deployment receipt', async () => {
+    const { task, execution } = await createApprovedDeployment(
+      'engineering-runner',
+    );
+
+    await expect(
+      resolve({ service: 'engineering-runner', github: CANONICAL_GITHUB }),
     ).resolves.toEqual({
       allowed: true,
       reason: null,

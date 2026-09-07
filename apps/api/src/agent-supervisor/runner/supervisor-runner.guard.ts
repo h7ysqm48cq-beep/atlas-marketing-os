@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import {
   CanActivate,
   ExecutionContext,
@@ -6,48 +5,69 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'node:crypto';
+import {
+  SupervisorRunnerSessionService,
+  type SupervisorRunnerSessionClaims,
+} from './supervisor-runner-session.service';
 
 const RUNNER_TOKEN_HEADER = 'x-atlas-supervisor-runner-token';
-const RUNNER_ID_HEADER = 'x-atlas-runner-id';
-const RUNNER_ID_PATTERN =
-  /^engineering-runner:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+export type SupervisorRunnerRequest = {
+  headers?: Record<string, string | string[] | undefined>;
+  atlasRunnerId?: string;
+  atlasRunnerSession?: SupervisorRunnerSessionClaims;
+};
+
+function header(request: SupervisorRunnerRequest, name: string): string | null {
+  const value = request.headers?.[name];
+  return typeof value === 'string' ? value : null;
+}
 
 @Injectable()
-export class SupervisorRunnerGuard implements CanActivate {
+export class SupervisorRunnerBootstrapGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const configured = this.config.get<string>('ATLAS_SUPERVISOR_RUNNER_TOKEN');
     if (!configured) {
-      throw new UnauthorizedException('runner_credential_not_configured');
+      throw new UnauthorizedException('runner_bootstrap_credential_not_configured');
     }
-
-    const request = context.switchToHttp().getRequest<{
-      headers?: Record<string, string | string[] | undefined>;
-    }>();
-    const runnerId = request.headers?.[RUNNER_ID_HEADER];
-    if (typeof runnerId !== 'string' || !RUNNER_ID_PATTERN.test(runnerId)) {
-      throw new UnauthorizedException('runner_id_required');
+    const request = context
+      .switchToHttp()
+      .getRequest<SupervisorRunnerRequest>();
+    const supplied = header(request, RUNNER_TOKEN_HEADER);
+    if (!supplied) {
+      throw new UnauthorizedException('runner_bootstrap_credential_required');
     }
-
-    const supplied = request.headers?.[RUNNER_TOKEN_HEADER];
-    if (typeof supplied !== 'string' || !supplied) {
-      throw new UnauthorizedException('runner_credential_required');
+    const expected = Buffer.from(configured, 'utf8');
+    const actual = Buffer.from(supplied, 'utf8');
+    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+      throw new UnauthorizedException('runner_bootstrap_credential_invalid');
     }
-
-    const expectedDigest = this.credentialDigest(configured, runnerId);
-    const suppliedDigest = Buffer.from(supplied, 'hex');
-    if (
-      suppliedDigest.length !== expectedDigest.length ||
-      !timingSafeEqual(expectedDigest, suppliedDigest)
-    ) {
-      throw new UnauthorizedException('runner_credential_invalid');
-    }
-
     return true;
   }
+}
 
-  private credentialDigest(configured: string, runnerId: string) {
-    return createHmac('sha256', configured).update(runnerId, 'utf8').digest();
+@Injectable()
+export class SupervisorRunnerSessionGuard implements CanActivate {
+  constructor(private readonly sessions: SupervisorRunnerSessionService) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context
+      .switchToHttp()
+      .getRequest<SupervisorRunnerRequest>();
+    const authorization = header(request, 'authorization');
+    if (!authorization?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('runner_session_required');
+    }
+    const session = this.sessions.verify(authorization.slice('Bearer '.length));
+    request.atlasRunnerSession = session;
+    request.atlasRunnerId = session.runnerId;
+    return true;
   }
 }
+
+// Compatibility name for integrations that imported the pre-R2 guard.
+@Injectable()
+export class SupervisorRunnerGuard extends SupervisorRunnerSessionGuard {}

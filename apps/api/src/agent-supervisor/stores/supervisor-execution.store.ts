@@ -2,6 +2,7 @@ import type {
   SupervisorExecution,
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 
 export const SUPERVISOR_EXECUTION_STORE = Symbol('SUPERVISOR_EXECUTION_STORE');
 
@@ -13,5 +14,10 @@ export interface SupervisorExecutionStore {
   saveIfStatus(
     execution: SupervisorExecution,
     expectedStatus: SupervisorExecutionStatus,
+  ): Promise<SupervisorExecution>;
+  saveIfClaimCurrent(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+    fence: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution>;
 }

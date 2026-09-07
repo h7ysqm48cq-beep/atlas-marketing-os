@@ -338,11 +338,11 @@ function mapWorkerCapability(
   value: unknown,
 ): SupervisorWorkerCapabilityMetadata {
   const object = requireObject(value);
-  if (object.version !== 2) {
+  if (object.version !== 1 && object.version !== 2) {
     throw persistenceError();
   }
   return {
-    version: 2,
+    version: object.version,
     assignmentDigest: requireString(object.assignmentDigest),
     allowedOperations: requireStringArray(
       object.allowedOperations,

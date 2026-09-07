@@ -4,6 +4,7 @@ import type {
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
 import type { SupervisorExecutionStore } from './supervisor-execution.store';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 
 @Injectable()
 export class MemorySupervisorExecutionStore implements SupervisorExecutionStore {
@@ -53,6 +54,29 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
           code: 'execution_state_conflict',
           expected: expectedStatus,
         }),
+      );
+    }
+    const stored = this.cloneExecution(execution);
+    this.executions.set(stored.id, stored);
+    return Promise.resolve(this.cloneExecution(stored));
+  }
+
+  saveIfClaimCurrent(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+    fence: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
+    const current = this.executions.get(execution.id);
+    if (
+      !current ||
+      current.status !== expectedStatus ||
+      current.claimedBy !== fence.claimedBy ||
+      current.claimEpoch !== fence.claimEpoch ||
+      !current.leaseExpiresAt ||
+      current.leaseExpiresAt.getTime() <= fence.now.getTime()
+    ) {
+      return Promise.reject(
+        new ConflictException({ code: 'execution_claim_conflict' }),
       );
     }
     const stored = this.cloneExecution(execution);

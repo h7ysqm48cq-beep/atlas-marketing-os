@@ -1,152 +1,93 @@
-import { createHmac } from 'node:crypto';
 import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import { SupervisorRunnerGuard } from './supervisor-runner.guard';
+import {
+  SupervisorRunnerBootstrapGuard,
+  SupervisorRunnerSessionGuard,
+} from './supervisor-runner.guard';
+import { SupervisorRunnerSessionService } from './supervisor-runner-session.service';
 
-describe('SupervisorRunnerGuard', () => {
-  const RUNNER_ID =
-    'engineering-runner:123e4567-e89b-42d3-a456-426614174000';
+const NOW = new Date('2026-09-08T00:00:00.000Z');
 
-  function credential(secret: string, runnerId: string = RUNNER_ID) {
-    return createHmac('sha256', secret).update(runnerId, 'utf8').digest('hex');
-  }
+function context(headers: Record<string, string> = {}) {
+  const request: { headers: Record<string, string>; atlasRunnerId?: string } = {
+    headers,
+  };
+  const value = {
+    switchToHttp: () => ({ getRequest: () => request }),
+  } as unknown as ExecutionContext;
+  return { context: value, request };
+}
 
-  function context(headers: Record<string, string> = {}): ExecutionContext {
-    return {
-      switchToHttp: () => ({
-        getRequest: () => ({ headers }),
-      }),
-    } as unknown as ExecutionContext;
-  }
+function config(values: Record<string, string | undefined>): ConfigService {
+  return {
+    get: jest.fn((name: string) => values[name]),
+  } as unknown as ConfigService;
+}
 
-  function guard(configuredToken?: string) {
-    const config = {
-      get: jest.fn((key: string) =>
-        key === 'ATLAS_SUPERVISOR_RUNNER_TOKEN' ? configuredToken : undefined,
-      ),
-    } as unknown as ConfigService;
-    return new SupervisorRunnerGuard(config);
-  }
-
-  function expectUnauthorized(fn: () => unknown, message: string) {
-    expect(fn).toThrow(new UnauthorizedException(message));
-  }
-
-  it('fails closed when the runner credential is not configured', () => {
-    expectUnauthorized(
-      () =>
-        guard(undefined).canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': 'candidate',
-            'x-atlas-runner-id':
-              'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_not_configured',
+describe('Supervisor runner guards', () => {
+  it('uses the runner token only for bootstrap and accepts no caller identity', () => {
+    const guard = new SupervisorRunnerBootstrapGuard(
+      config({ ATLAS_SUPERVISOR_RUNNER_TOKEN: 'bootstrap-secret' }),
     );
-  });
-
-  it('rejects a request with no runner token header', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-runner-id':
-              'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_required',
-    );
-  });
-
-  it('rejects an incorrect runner token', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': 'wrong-secret',
-            'x-atlas-runner-id':
-              'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_invalid',
-    );
-  });
-
-  it('rejects a request with no runner id', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({ 'x-atlas-supervisor-runner-token': 'runner-secret' }),
-        ),
-      'runner_id_required',
-    );
-  });
-
-  it('rejects a malformed runner id', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': 'runner-secret',
-            'x-atlas-runner-id': 'engineering-runner:not-a-uuid-v4',
-          }),
-        ),
-      'runner_id_required',
-    );
-  });
-
-  it('accepts the configured runner token and exact engineering runner id', () => {
     expect(
-      guard('runner-secret').canActivate(
+      guard.canActivate(
         context({
-          'x-atlas-supervisor-runner-token': credential('runner-secret'),
-          'x-atlas-runner-id': RUNNER_ID,
-        }),
+          'x-atlas-supervisor-runner-token': 'bootstrap-secret',
+          'x-atlas-runner-id': 'engineering-runner:caller-supplied',
+        }).context,
       ),
     ).toBe(true);
   });
 
-  it('rejects a valid runner credential presented with another runner id', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': credential('runner-secret'),
-            'x-atlas-runner-id':
-              'engineering-runner:223e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_invalid',
+  it('fails closed when bootstrap credential is absent or wrong', () => {
+    const guard = new SupervisorRunnerBootstrapGuard(
+      config({ ATLAS_SUPERVISOR_RUNNER_TOKEN: 'bootstrap-secret' }),
     );
+    expect(() => guard.canActivate(context().context)).toThrow(
+      new UnauthorizedException('runner_bootstrap_credential_required'),
+    );
+    expect(() =>
+      guard.canActivate(
+        context({ 'x-atlas-supervisor-runner-token': 'wrong' }).context,
+      ),
+    ).toThrow(new UnauthorizedException('runner_bootstrap_credential_invalid'));
   });
 
-  it('rejects the owner token when presented in the runner header', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': 'owner-secret',
-            'x-atlas-runner-id':
-              'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_invalid',
+  it('derives runner identity from the API-signed session and ignores a caller runner id', () => {
+    const service = new SupervisorRunnerSessionService(
+      config({ ATLAS_SUPERVISOR_RUNNER_SESSION_SIGNING_KEY: 'session-key' }),
     );
+    const issued = service.issue(NOW);
+    const guard = new SupervisorRunnerSessionGuard(service);
+    const { context: requestContext, request } = context({
+      authorization: `Bearer ${issued.token}`,
+      'x-atlas-runner-id': 'engineering-runner:caller-supplied',
+    });
+
+    expect(guard.canActivate(requestContext)).toBe(true);
+    expect(request.atlasRunnerId).toBe(issued.runnerId);
+    expect(request.atlasRunnerId).not.toBe('engineering-runner:caller-supplied');
   });
 
-  it('rejects the CI token when presented in the runner header', () => {
-    expectUnauthorized(
-      () =>
-        guard('runner-secret').canActivate(
-          context({
-            'x-atlas-supervisor-runner-token': 'ci-secret',
-            'x-atlas-runner-id':
-              'engineering-runner:123e4567-e89b-42d3-a456-426614174000',
-          }),
-        ),
-      'runner_credential_invalid',
+  it('rejects missing, expired, and forged sessions', () => {
+    const service = new SupervisorRunnerSessionService(
+      config({ ATLAS_SUPERVISOR_RUNNER_SESSION_SIGNING_KEY: 'session-key' }),
     );
+    const guard = new SupervisorRunnerSessionGuard(service);
+    expect(() => guard.canActivate(context().context)).toThrow(
+      new UnauthorizedException('runner_session_required'),
+    );
+    const issued = service.issue(new Date('2020-01-01T00:00:00.000Z'), 1_000);
+    expect(() =>
+      guard.canActivate(
+        context({ authorization: `Bearer ${issued.token}` }).context,
+      ),
+    ).toThrow(new UnauthorizedException('runner_session_expired'));
+    expect(() =>
+      guard.canActivate(
+        context({ authorization: 'Bearer forged.session' }).context,
+      ),
+    ).toThrow(new UnauthorizedException('runner_session_invalid'));
   });
 });
