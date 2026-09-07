@@ -231,20 +231,20 @@ describe('SupervisorRunnerClaimService', () => {
     });
     const { service, tx } = harness({ sameRunner: [claimed] });
 
-    await expect(service.release(claimed.id, RUNNER_ID, NOW)).resolves.toMatchObject({
+    await expect(service.release(claimed.id, RUNNER_ID, 3, NOW)).resolves.toMatchObject({
       released: true,
       execution: {
         id: claimed.id,
         status: 'DISPATCHED',
         claimedBy: null,
-        claimEpoch: 4,
+        claimEpoch: 3,
       },
     });
     expect(tx.supervisorExecution.update).toHaveBeenCalledWith({
       where: { id: claimed.id },
       data: expect.objectContaining({
         claimedBy: null,
-        claimEpoch: 4,
+        claimEpoch: 3,
         leaseExpiresAt: null,
         assignment: expect.not.objectContaining({ workerCapability: expect.anything() }),
       }),
@@ -260,9 +260,36 @@ describe('SupervisorRunnerClaimService', () => {
     const { service, tx } = harness({ sameRunner: [claimed] });
 
     await expect(
-      service.release(claimed.id, 'engineering-runner:22222222-2222-4222-8222-222222222222', NOW),
+      service.release(
+        claimed.id,
+        'engineering-runner:22222222-2222-4222-8222-222222222222',
+        3,
+        NOW,
+      ),
     ).rejects.toMatchObject({ response: { code: 'runner_claim_not_current' } });
     expect(tx.supervisorExecution.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects release of RUNNING or expired claims', async () => {
+    const running = execution({
+      status: 'RUNNING',
+      claimedBy: RUNNER_ID,
+      claimEpoch: 3,
+      leaseExpiresAt: new Date(NOW.getTime() + 30_000),
+    });
+    const expired = execution({
+      claimedBy: RUNNER_ID,
+      claimEpoch: 4,
+      leaseExpiresAt: new Date(NOW.getTime() - 1),
+    });
+    const { service } = harness({ sameRunner: [running] });
+    await expect(service.release(running.id, RUNNER_ID, 3, NOW)).rejects.toMatchObject({
+      response: { code: 'runner_claim_not_current' },
+    });
+    const expiredHarness = harness({ sameRunner: [expired] });
+    await expect(expiredHarness.service.release(expired.id, RUNNER_ID, 4, NOW)).rejects.toMatchObject({
+      response: { code: 'runner_claim_not_current' },
+    });
   });
 
   it('rejects a same-runner live DISPATCHED execution before unrelated candidate selection', async () => {

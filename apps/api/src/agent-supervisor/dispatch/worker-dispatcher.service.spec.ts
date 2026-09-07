@@ -27,7 +27,13 @@ describe('WorkerDispatcherService', () => {
     fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
     supervisor = new AgentSupervisorService(taskStore, fileStore);
-    dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+    dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      new SupervisorWorkerCapabilityService({
+        get: () => 'dispatcher-worker-capability-key',
+      } as never),
+    );
   });
 
   async function createWorkingTask() {
@@ -252,6 +258,9 @@ describe('WorkerDispatcherService', () => {
     const restartedDispatcher = new WorkerDispatcherService(
       supervisor,
       executionStore,
+      new SupervisorWorkerCapabilityService({
+        get: () => 'dispatcher-worker-capability-key',
+      } as never),
     );
     const second = await restartedDispatcher.dispatch(task.id);
 

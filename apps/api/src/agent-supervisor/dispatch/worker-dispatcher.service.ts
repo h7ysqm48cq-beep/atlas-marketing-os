@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
@@ -68,8 +67,7 @@ export class WorkerDispatcherService {
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
-    @Optional()
-    private readonly capabilityService?: SupervisorWorkerCapabilityService,
+    private readonly capabilityService: SupervisorWorkerCapabilityService,
   ) {}
 
   async dispatch(
@@ -176,7 +174,7 @@ export class WorkerDispatcherService {
       completedAt: null,
     };
     const issuedCapability =
-      runnerEligibility === 'STANDARD' && this.capabilityService
+      runnerEligibility === 'STANDARD'
         ? this.capabilityService.issueLegacy(queued)
         : undefined;
     if (issuedCapability) {

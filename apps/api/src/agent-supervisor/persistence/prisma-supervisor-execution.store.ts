@@ -63,7 +63,13 @@ type SupervisorExecutionDelegate = {
       claimEpoch: number;
       leaseExpiresAt: { gt: Date };
     };
-    data: Omit<SupervisorExecutionCreateArgs['data'], 'id' | 'createdAt'>;
+    data: {
+      status: string;
+      result: unknown | null;
+      error: string | null;
+      startedAt: Date | null;
+      completedAt: Date | null;
+    };
   }): Promise<{ count: number }>;
 };
 
@@ -204,6 +210,16 @@ function executionUpdateData(
   };
 }
 
+function executionClaimMutationData(execution: SupervisorExecution) {
+  return {
+    status: execution.status,
+    result: execution.result === null ? null : structuredClone(execution.result),
+    error: execution.error,
+    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
+    completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
+  };
+}
+
 @Injectable()
 export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore {
   private readonly delegate: SupervisorExecutionDelegate;
@@ -289,7 +305,7 @@ export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore 
           claimEpoch: fence.claimEpoch,
           leaseExpiresAt: { gt: fence.now },
         },
-        data: executionUpdateData(execution),
+        data: executionClaimMutationData(execution),
       });
       if (updated.count !== 1) {
         throw new ConflictException({ code: 'execution_claim_conflict' });

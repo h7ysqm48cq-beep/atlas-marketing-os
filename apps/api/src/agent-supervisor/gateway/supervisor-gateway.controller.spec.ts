@@ -206,7 +206,9 @@ describe('SupervisorGatewayController', () => {
     await expect(
       controller.heartbeat(request, 'ATLAS-EXEC-1', { claimEpoch: 4 }),
     ).resolves.toBe(heartbeatResult);
-    await expect(controller.release(request, 'ATLAS-EXEC-1')).resolves.toEqual({
+    await expect(
+      controller.release(request, 'ATLAS-EXEC-1', { claimEpoch: 4 }),
+    ).resolves.toEqual({
       released: true,
     });
     expect(claimNext).toHaveBeenCalledWith(request.atlasRunnerId);
@@ -215,6 +217,6 @@ describe('SupervisorGatewayController', () => {
       request.atlasRunnerId,
       4,
     );
-    expect(release).toHaveBeenCalledWith('ATLAS-EXEC-1', request.atlasRunnerId);
+    expect(release).toHaveBeenCalledWith('ATLAS-EXEC-1', request.atlasRunnerId, 4);
   });
 });

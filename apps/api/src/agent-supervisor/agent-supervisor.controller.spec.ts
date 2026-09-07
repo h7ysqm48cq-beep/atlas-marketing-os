@@ -9,10 +9,15 @@ import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
+const workerCapability = () =>
+  new SupervisorWorkerCapabilityService({
+    get: () => 'controller-worker-capability-key',
+  } as never);
 
 describe('AgentSupervisorController', () => {
   let supervisor: AgentSupervisorService;
@@ -27,6 +32,7 @@ describe('AgentSupervisorController', () => {
     dispatcher = new WorkerDispatcherService(
       supervisor,
       new MemorySupervisorExecutionStore(),
+      workerCapability(),
     );
     controller = new AgentSupervisorController(supervisor, dispatcher);
   });
@@ -60,6 +66,7 @@ describe('AgentSupervisorController', () => {
     const ownerDispatcher = new WorkerDispatcherService(
       ownerSupervisor,
       new MemorySupervisorExecutionStore(),
+      workerCapability(),
     );
     const ownerController = new AgentSupervisorController(
       ownerSupervisor,

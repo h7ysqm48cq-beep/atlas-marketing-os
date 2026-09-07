@@ -4,6 +4,7 @@ import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { AgentGatewayService } from './agent-gateway.service';
 
 const BASE_SHA = 'a'.repeat(40);
@@ -38,7 +39,13 @@ describe('Production deployment resolver', () => {
       undefined,
       config,
     );
-    dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+    dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      new SupervisorWorkerCapabilityService({
+        get: () => 'resolver-worker-capability-key',
+      } as never),
+    );
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
 
@@ -132,6 +139,30 @@ describe('Production deployment resolver', () => {
       taskId: task.id,
       executionId: execution.id,
     });
+  });
+
+  it('rechecks deployment authorization after persisted candidate validation', async () => {
+    const { task } = await createApprovedDeployment('api');
+    const originalGetTask = supervisor.getTask.bind(supervisor);
+    let reads = 0;
+    jest.spyOn(supervisor, 'getTask').mockImplementation(async (id: string) => {
+      const current = await originalGetTask(id);
+      reads += 1;
+      if (reads < 2) return current;
+      return {
+        ...current,
+        evidence: current.evidence
+          ? { ...current.evidence, ownerDeploymentAuthorization: undefined }
+          : null,
+      };
+    });
+
+    await expect(
+      resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_deployment_authorization_required' },
+    });
+    expect(task.id).toBeDefined();
   });
 
   it('rejects when no approved deployment receipt matches the provenance', async () => {

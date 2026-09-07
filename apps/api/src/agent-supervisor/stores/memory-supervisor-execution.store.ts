@@ -56,7 +56,16 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
         }),
       );
     }
-    const stored = this.cloneExecution(execution);
+    const stored = this.cloneExecution({
+      ...current,
+      ...execution,
+      assignment: current.assignment,
+      claimedBy: current.claimedBy,
+      claimEpoch: current.claimEpoch,
+      claimedAt: current.claimedAt,
+      leaseExpiresAt: current.leaseExpiresAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+    });
     this.executions.set(stored.id, stored);
     return Promise.resolve(this.cloneExecution(stored));
   }
@@ -79,7 +88,16 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
         new ConflictException({ code: 'execution_claim_conflict' }),
       );
     }
-    const stored = this.cloneExecution(execution);
+    const stored = this.cloneExecution({
+      ...current,
+      ...execution,
+      assignment: current.assignment,
+      claimedBy: current.claimedBy,
+      claimEpoch: current.claimEpoch,
+      claimedAt: current.claimedAt,
+      leaseExpiresAt: current.leaseExpiresAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+    });
     this.executions.set(stored.id, stored);
     return Promise.resolve(this.cloneExecution(stored));
   }

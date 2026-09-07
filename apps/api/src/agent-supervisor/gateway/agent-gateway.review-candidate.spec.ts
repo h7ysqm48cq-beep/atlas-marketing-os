@@ -5,6 +5,7 @@ import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { AgentGatewayService } from './agent-gateway.service';
 
 const BASE_SHA = 'a'.repeat(40);
@@ -12,6 +13,10 @@ const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
 const OTHER_ALLOWED_FILE = 'apps/api/src/other.ts';
 const OWNER_TOKEN = 'test-owner-merge-token';
+const workerCapability = () =>
+  new SupervisorWorkerCapabilityService({
+    get: () => 'review-worker-capability-key',
+  } as never);
 
 function candidate(
   overrides: Partial<SupervisorReviewCandidate> = {},
@@ -44,7 +49,11 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
     undefined,
     configService(),
   );
-  const dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+  const dispatcher = new WorkerDispatcherService(
+    supervisor,
+    executionStore,
+    workerCapability(),
+  );
   const gateway = new AgentGatewayService(supervisor, executionStore);
 
   const task = await supervisor.createTask({

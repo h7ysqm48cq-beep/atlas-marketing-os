@@ -434,4 +434,42 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       ),
     ).rejects.toMatchObject({ response: { code: 'execution_claim_conflict' } });
   });
+
+  it('does not let a stale worker mutation overwrite a concurrent heartbeat lease or capability', async () => {
+    const persistedTask = await taskStore.create(task());
+    await executionStore.create(claimableExecution(persistedTask.id));
+    const claimedAt = new Date('2026-09-08T00:00:00.000Z');
+    const claimed = await runnerClaims.claimNext(
+      'engineering-runner:99999999-9999-4999-8999-999999999999',
+      claimedAt,
+    );
+    expect(claimed.claimed).toBe(true);
+    if (!claimed.claimed) throw new Error('expected claim');
+
+    const heartbeatAt = new Date(claimedAt.getTime() + 30_000);
+    const staleMutation = {
+      ...claimed.execution,
+      status: 'RUNNING' as const,
+      startedAt: heartbeatAt,
+    };
+    const [heartbeat] = await Promise.all([
+      runnerClaims.heartbeat(
+        claimed.execution.id,
+        claimed.execution.claimedBy!,
+        claimed.execution.claimEpoch,
+        heartbeatAt,
+      ),
+      executionStore.saveIfClaimCurrent(staleMutation, 'DISPATCHED', {
+        claimedBy: claimed.execution.claimedBy!,
+        claimEpoch: claimed.execution.claimEpoch,
+        now: heartbeatAt,
+      }),
+    ]);
+
+    const final = await executionStore.get(claimed.execution.id);
+    expect(final?.assignment.workerCapability).toEqual(
+      heartbeat.assignment.workerCapability,
+    );
+    expect(final?.leaseExpiresAt?.toISOString()).toBe(heartbeat.leaseExpiresAt);
+  });
 });

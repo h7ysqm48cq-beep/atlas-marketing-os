@@ -273,6 +273,7 @@ export class SupervisorRunnerClaimService {
   async release(
     executionId: string,
     runnerId: string,
+    claimEpoch: number,
     now: Date = new Date(),
   ): Promise<RunnerReleaseResult> {
     const outcome = await this.prisma.$transaction(async (prismaTx) => {
@@ -289,7 +290,10 @@ export class SupervisorRunnerClaimService {
       if (
         !current ||
         current.claimedBy !== runnerId ||
-        !['DISPATCHED', 'RUNNING'].includes(current.status)
+        current.claimEpoch !== claimEpoch ||
+        current.status !== 'DISPATCHED' ||
+        !current.leaseExpiresAt ||
+        current.leaseExpiresAt.getTime() <= now.getTime()
       ) {
         this.securityEvent('runner.release.rejected', {
           reason: 'runner_claim_not_current',
@@ -310,7 +314,7 @@ export class SupervisorRunnerClaimService {
         data: {
           status: 'DISPATCHED',
           claimedBy: null,
-          claimEpoch: current.claimEpoch + 1,
+          claimEpoch: current.claimEpoch,
           claimedAt: null,
           leaseExpiresAt: null,
           lastHeartbeatAt: null,

@@ -85,8 +85,13 @@ export class SupervisorGatewayController {
   release(
     @Req() request: SupervisorRunnerRequest,
     @Param('executionId') executionId: string,
+    @Body() body: { claimEpoch: number },
   ) {
-    return this.runnerClaims.release(executionId, this.runnerId(request));
+    return this.runnerClaims.release(
+      executionId,
+      this.runnerId(request),
+      body.claimEpoch,
+    );
   }
 
   private runnerId(request: SupervisorRunnerRequest): string {
