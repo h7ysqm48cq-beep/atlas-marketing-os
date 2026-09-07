@@ -18,6 +18,7 @@ import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store'
 import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
 import { SupervisorRunnerGuard } from './runner/supervisor-runner.guard';
+import { SupervisorRunnerClaimService } from './runner/supervisor-runner-claim.service';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
@@ -38,6 +39,7 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     SupervisorOwnerActionGuard,
     SupervisorOwnerGuard,
     SupervisorRunnerGuard,
+    SupervisorRunnerClaimService,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
     PrismaSupervisorTaskStore,
@@ -65,6 +67,7 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     AgentSupervisorService,
     WorkerDispatcherService,
     AgentGatewayService,
+    SupervisorRunnerClaimService,
     SUPERVISOR_TASK_STORE,
     SUPERVISOR_EXECUTION_STORE,
     FILE_OWNERSHIP_STORE,
