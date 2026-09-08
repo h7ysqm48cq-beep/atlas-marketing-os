@@ -62,6 +62,17 @@ export type SupervisorTaskInput = {
   acceptance: string[];
 };
 
+export type SupervisorExecutionPurpose =
+  "IMPLEMENTATION" | "INDEPENDENT_VERIFICATION";
+
+export type SupervisorRunnerEligibility =
+  "STANDARD" | "A1_SYNTHETIC";
+
+export type SupervisorDispatchOptions = {
+  executionPurpose: SupervisorExecutionPurpose;
+  runnerEligibility: SupervisorRunnerEligibility;
+};
+
 export type SupervisorTaskDraft = {
   objective: string;
   owner: string;
@@ -115,6 +126,19 @@ function isSupervisorAction(
   return (
     SUPERVISOR_ACTIONS as readonly string[]
   ).includes(value);
+}
+
+function validateDispatchOptions(
+  options: SupervisorDispatchOptions | undefined,
+) {
+  if (
+    options?.executionPurpose === "INDEPENDENT_VERIFICATION" &&
+    options.runnerEligibility !== "STANDARD"
+  ) {
+    throw new Error(
+      "INDEPENDENT_VERIFICATION requires STANDARD eligibility",
+    );
+  }
 }
 
 export function normalizeTaskInput(
@@ -308,7 +332,10 @@ function requireStringField(
 export async function runSupervisorAdmission(
   input: SupervisorTaskInput,
   fetchImpl: FetchLike = fetch,
+  dispatchOptions?: SupervisorDispatchOptions,
 ): Promise<SupervisorAdmissionResult> {
+  validateDispatchOptions(dispatchOptions);
+
   const created = await postSupervisor(
     "create task",
     "/tasks",
@@ -343,7 +370,7 @@ export async function runSupervisorAdmission(
   const dispatched = await postSupervisor(
     "dispatch execution",
     `/tasks/${encodeURIComponent(taskId)}/dispatch`,
-    {},
+    dispatchOptions ?? {},
     fetchImpl,
   );
 
@@ -425,6 +452,8 @@ export function SupervisorOwnerPanel() {
     useState("");
   const [owner, setOwner] =
     useState<WorkerOwner>("engineering");
+  const [executionPurpose, setExecutionPurpose] =
+    useState<SupervisorExecutionPurpose>("IMPLEMENTATION");
   const [allowedPathsText, setAllowedPathsText] =
     useState("");
   const [forbiddenActionsText, setForbiddenActionsText] =
@@ -469,8 +498,20 @@ export function SupervisorOwnerPanel() {
         acceptanceText,
       });
 
+      const dispatchOptions =
+        executionPurpose === "INDEPENDENT_VERIFICATION"
+          ? {
+              executionPurpose,
+              runnerEligibility: "STANDARD" as const,
+            }
+          : undefined;
+
       const admission =
-        await runSupervisorAdmission(input);
+        await runSupervisorAdmission(
+          input,
+          fetch,
+          dispatchOptions,
+        );
 
       setResult(admission);
     } catch (caught) {
@@ -519,6 +560,27 @@ export function SupervisorOwnerPanel() {
             placeholder="Exact engineering objective"
             disabled={busy}
           />
+        </label>
+
+        <label style={labelStyle}>
+          Execution purpose
+          <select
+            value={executionPurpose}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setExecutionPurpose(
+                event.target.value as SupervisorExecutionPurpose,
+              )
+            }
+            style={fieldStyle}
+            disabled={busy}
+          >
+            <option value="IMPLEMENTATION">
+              Implementation
+            </option>
+            <option value="INDEPENDENT_VERIFICATION">
+              Independent verification (STANDARD)
+            </option>
+          </select>
         </label>
 
         <label style={labelStyle}>
