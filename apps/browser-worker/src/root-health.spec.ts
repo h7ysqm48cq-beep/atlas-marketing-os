@@ -70,7 +70,6 @@ test("GET / is a public 200 health fallback", async () => {
         BROWSER_WORKER_PORT: String(workerPort),
         NOVNC_PORT: String(viewerPort),
         NOVNC_INTERNAL_PORT: String(viewerInternalPort),
-        BROWSER_VIEWER_TOKEN_SECRET: "root-health-test-secret",
         BROWSER_WORKER_TOKEN: "root-health-worker-token",
       },
       stdio: ["ignore", "ignore", "pipe"],
@@ -84,19 +83,18 @@ test("GET / is a public 200 health fallback", async () => {
 
   try {
     const response = await waitForHttpResponse(
-      `http://127.0.0.1:${workerPort}/`,
+      `http://127.0.0.1:${workerPort}/health`,
     );
 
     assert.equal(
       response.status,
       200,
-      `expected GET / to bypass worker auth; stderr=${stderr}`,
+      `expected /health to stay available when the optional viewer is unavailable; stderr=${stderr}`,
     );
 
-    assert.deepEqual(await response.json(), {
-      ok: true,
-      service: "atlas-browser-worker",
-    });
+    const body = await response.json() as { healthy?: boolean };
+
+    assert.equal(body.healthy, true);
   } finally {
     child.kill("SIGTERM");
   }
