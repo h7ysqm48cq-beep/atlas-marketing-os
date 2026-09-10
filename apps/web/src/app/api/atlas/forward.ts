@@ -5,6 +5,34 @@ type RouteContext = {
   params: Promise<{ path?: string[] }>;
 };
 
+export const WORKER_CAPABILITY_HEADER = "x-atlas-worker-capability";
+
+export function isSupervisorWorkerPath(path: string[]): boolean {
+  return path[0] === "engineering" && path[1] === "supervisor" && path[2] === "worker";
+}
+
+export function getForwardAuthorization({
+  path,
+  workerCapability,
+  sessionAccessToken,
+}: {
+  path: string[];
+  workerCapability: string;
+  sessionAccessToken: string;
+}):
+  | { authorization: string }
+  | { error: "worker_capability_required" | "session_required" } {
+  if (isSupervisorWorkerPath(path)) {
+    return workerCapability.trim()
+      ? { authorization: `Bearer ${workerCapability.trim()}` }
+      : { error: "worker_capability_required" };
+  }
+
+  return sessionAccessToken.trim()
+    ? { authorization: `Bearer ${sessionAccessToken.trim()}` }
+    : { error: "session_required" };
+}
+
 function getApiBaseUrl() {
   const configured =
     process.env.ATLAS_API_URL?.trim() ||
@@ -18,18 +46,37 @@ function getApiBaseUrl() {
 }
 
 export async function forward(request: NextRequest, context: RouteContext) {
-  const supabase = await createClient();
-  const { data: sessionData } = await supabase.auth.getSession();
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const { path = [] } = await context.params;
+  const workerPath = isSupervisorWorkerPath(path);
+  const workerCapability = request.headers.get(WORKER_CAPABILITY_HEADER) ?? "";
 
-  if (!sessionData.session?.access_token || !claimsData?.claims) {
+  let sessionAccessToken = "";
+  let hasClaims = false;
+  if (!workerPath) {
+    const supabase = await createClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: claimsData } = await supabase.auth.getClaims();
+    sessionAccessToken = sessionData.session?.access_token ?? "";
+    hasClaims = Boolean(claimsData?.claims);
+  }
+
+  const auth = getForwardAuthorization({
+    path,
+    workerCapability,
+    sessionAccessToken,
+  });
+  if ("error" in auth || (!workerPath && !hasClaims)) {
     return NextResponse.json(
-      { message: "Authentication is required." },
+      {
+        message:
+          "error" in auth && auth.error === "worker_capability_required"
+            ? "Worker capability is required."
+            : "Authentication is required.",
+      },
       { status: 401 },
     );
   }
 
-  const { path = [] } = await context.params;
   const target = new URL(
     path.length ? `/${path.join("/")}` : "/",
     getApiBaseUrl(),
@@ -39,7 +86,8 @@ export async function forward(request: NextRequest, context: RouteContext) {
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
-  headers.set("authorization", `Bearer ${sessionData.session.access_token}`);
+  headers.delete(WORKER_CAPABILITY_HEADER);
+  headers.set("authorization", auth.authorization);
 
   const body = ["GET", "HEAD"].includes(request.method)
     ? undefined
