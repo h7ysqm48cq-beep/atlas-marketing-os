@@ -7331,8 +7331,6 @@ process.on(
  * Browser Worker API remains private on 4010.
  * Secure noVNC viewer is exposed separately on 6080.
  */
-startSecureViewerServer();
-
 app.listen(
   port,
   "::",
@@ -7340,5 +7338,25 @@ app.listen(
     console.log(
       `Atlas Browser Worker listening on port ${port}`,
     );
+
+    try {
+      const viewerServer =
+        startSecureViewerServer();
+
+      viewerServer.on(
+        "error",
+        (error) => {
+          console.error(
+            "Secure noVNC viewer unavailable; Browser Worker API remains ready.",
+            error,
+          );
+        },
+      );
+    } catch (error) {
+      console.error(
+        "Secure noVNC viewer unavailable; Browser Worker API remains ready.",
+        error,
+      );
+    }
   },
 );
