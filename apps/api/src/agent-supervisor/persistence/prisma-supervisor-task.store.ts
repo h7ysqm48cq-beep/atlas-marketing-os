@@ -59,6 +59,21 @@ type PrismaWithSupervisorTask = {
   supervisorTask: SupervisorTaskDelegate;
 };
 
+function mapTaskRecordWithEvidenceRecovery(record: SupervisorTaskRecord) {
+  try {
+    return mapTaskRecord(record);
+  } catch (error) {
+    if (record.evidence === null) {
+      throw error;
+    }
+
+    return mapTaskRecord({
+      ...record,
+      evidence: null,
+    });
+  }
+}
+
 function persistenceError(): InternalServerErrorException {
   return new InternalServerErrorException({
     code: 'supervisor_persistence_error',
@@ -101,14 +116,14 @@ export class PrismaSupervisorTaskStore implements SupervisorTaskStore {
       const rows = await this.delegate.findMany({
         orderBy: { createdAt: 'asc' },
       });
-      return rows.map(mapTaskRecord);
+      return rows.map(mapTaskRecordWithEvidenceRecovery);
     });
   }
 
   async get(id: string): Promise<SupervisorTask | null> {
     return this.withPersistenceBoundary(async () => {
       const row = await this.delegate.findUnique({ where: { id } });
-      return row ? mapTaskRecord(row) : null;
+      return row ? mapTaskRecordWithEvidenceRecovery(row) : null;
     });
   }
 
@@ -117,7 +132,7 @@ export class PrismaSupervisorTaskStore implements SupervisorTaskStore {
       const row = await this.delegate.create({
         data: taskCreateData(task),
       });
-      return mapTaskRecord(row);
+      return mapTaskRecordWithEvidenceRecovery(row);
     });
   }
 

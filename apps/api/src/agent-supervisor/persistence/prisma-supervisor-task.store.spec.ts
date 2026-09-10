@@ -261,6 +261,40 @@ describe('PrismaSupervisorTaskStore', () => {
     expect(persisted.allowedPaths).toEqual(['apps/api/src/agent-supervisor/**']);
   });
 
+  it('recovers a task when only its persisted evidence is malformed', async () => {
+    const prisma = mockPrisma();
+    const persisted = {
+      ...record(
+        task({
+          status: 'WORKING',
+          dependsOn: ['ATLAS-previous'],
+          acceptance: ['task remains readable'],
+        }),
+      ),
+      evidence: {
+        rootCause: 'malformed persisted evidence',
+        changedFiles: [],
+        tests: [{ command: 'test', result: 'passed' }],
+        build: 'passed',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'ISOLATED',
+        remainingRisk: [],
+      },
+    };
+    prisma.supervisorTask.findUnique.mockResolvedValue(persisted);
+    const store = new PrismaSupervisorTaskStore(prisma as never);
+
+    await expect(store.get(persisted.id)).resolves.toMatchObject({
+      id: persisted.id,
+      status: persisted.status,
+      allowedPaths: persisted.allowedPaths,
+      dependsOn: persisted.dependsOn,
+      acceptance: persisted.acceptance,
+      evidence: null,
+    });
+  });
+
   it('wraps unknown database failures as supervisor_persistence_error', async () => {
     const prisma = mockPrisma();
     prisma.supervisorTask.findMany.mockRejectedValue(new Error('database down'));
