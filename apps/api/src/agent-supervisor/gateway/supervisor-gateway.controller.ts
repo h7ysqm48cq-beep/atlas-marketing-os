@@ -30,6 +30,13 @@ export class SupervisorGatewayController {
     return this.gateway.checkProductionDeployment(input);
   }
 
+  @Post('production-deployment/claim-mutation')
+  claimProductionDeploymentMutation(
+    @Body() input: ProductionDeploymentGateInput,
+  ) {
+    return this.gateway.claimProductionDeploymentMutation(input);
+  }
+
   @Post('production-deployment/resolve')
   resolveProductionDeployment(@Body() input: ProductionDeploymentResolveInput) {
     return this.gateway.resolveProductionDeployment(input);
