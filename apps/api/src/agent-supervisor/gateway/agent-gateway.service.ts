@@ -9,6 +9,7 @@ import type {
   IntegrationGateInput,
   ProductionDeploymentGateInput,
   ProductionDeploymentResolveInput,
+  ProductionDeploymentService,
   SupervisorEvidence,
   SupervisorGateDecision,
   SupervisorReviewCandidate,
@@ -24,6 +25,8 @@ import {
 
 const ACTIVE_IMPLEMENTATION_STATUSES = new Set(['DISPATCHED', 'RUNNING']);
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+const EXTERNAL_DEPLOYMENT_MUTATION_CONSUMER_PREFIX =
+  'external-deploy-orchestrator:';
 
 @Injectable()
 export class AgentGatewayService {
@@ -190,6 +193,44 @@ export class AgentGatewayService {
     return this.allowed(task.id, execution.id);
   }
 
+  async claimProductionDeploymentMutation(
+    input: ProductionDeploymentGateInput,
+  ): Promise<SupervisorGateDecision> {
+    const { task, execution, persistedCandidate } =
+      await this.validatePersistedCandidate(input.taskId, input.executionId);
+    if (persistedCandidate.action !== 'deploy_production') {
+      throw new BadRequestException({
+        code: 'production_deployment_candidate_required',
+      });
+    }
+    if (persistedCandidate.targetBranch !== 'production/atlas') {
+      throw new BadRequestException({ code: 'canonical_target_required' });
+    }
+
+    this.productionDeploymentGate.assertProductionDeployment({
+      service: input.service,
+      supervisorApprovedSha: persistedCandidate.headSha,
+      github: input.github,
+    });
+    if (task.status !== 'APPROVED') {
+      throw new BadRequestException({ code: 'task_not_deployment_approved' });
+    }
+    this.supervisor.assertOwnerDeploymentAuthorization(
+      task,
+      persistedCandidate,
+      input.service,
+    );
+
+    await this.supervisor.consumeProductionDeploymentAuthorization(
+      task.id,
+      persistedCandidate,
+      input.service,
+      this.productionDeploymentMutationConsumer(execution.id),
+    );
+
+    return this.allowed(task.id, execution.id);
+  }
+
   async resolveProductionDeployment(
     input: ProductionDeploymentResolveInput,
   ): Promise<SupervisorGateDecision> {
@@ -293,13 +334,53 @@ export class AgentGatewayService {
       task.id,
       matchingExecutions[0].id,
     );
-    await this.supervisor.consumeProductionDeploymentAuthorization(
-      task.id,
+    this.assertProductionDeploymentMutationClaim(
+      validated.task,
       candidate,
       input.service,
-      'deploy-gate',
+      validated.execution.id,
     );
     return this.allowed(validated.task.id, validated.execution.id);
+  }
+
+  private assertProductionDeploymentMutationClaim(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    executionId: string,
+  ): void {
+    const claim = task.evidence?.ownerDeploymentAuthorizationConsumption;
+    if (!claim) {
+      throw new BadRequestException({
+        code: 'production_deployment_external_mutation_claim_required',
+      });
+    }
+
+    const currentAuthorization = task.evidence?.ownerDeploymentAuthorization;
+    const claimedCandidate = this.normalizeCandidate(
+      claim.authorization.candidate,
+    );
+    const expectedConsumer =
+      this.productionDeploymentMutationConsumer(executionId);
+
+    if (
+      claim.environment !== 'production' ||
+      claim.authorization.service !== service ||
+      !this.sameCandidate(claimedCandidate, candidate) ||
+      claim.consumedBy !== expectedConsumer ||
+      !currentAuthorization ||
+      currentAuthorization.signature !== claim.authorization.signature ||
+      currentAuthorization.authorizedBy !== claim.authorization.authorizedBy ||
+      currentAuthorization.authorizedAt !== claim.authorization.authorizedAt
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_external_mutation_claim_mismatch',
+      });
+    }
+  }
+
+  private productionDeploymentMutationConsumer(executionId: string): string {
+    return `${EXTERNAL_DEPLOYMENT_MUTATION_CONSUMER_PREFIX}${executionId}`;
   }
 
   private async validateIntegrationCandidate(input: IntegrationGateInput) {
