@@ -39,6 +39,7 @@ import { AgentWorkflowModule } from './agent-workflow/agent-workflow.module';
 import { BrowserRuntimeModule } from './browser-runtime/browser-runtime.module';
 import { JobsModule } from './jobs/jobs.module';
 import { EngineeringModule } from './engineering/engineering.module';
+import { AgentSupervisorModule } from './agent-supervisor/agent-supervisor.module';
 import { ImageSettingsModule } from './image-settings/image-settings.module';
 import { ImageProcessingModule } from './image-processing/image-processing.module';
 import { SystemHealthModule } from './system-health/system-health.module';
@@ -54,6 +55,7 @@ import { AuthContextInterceptor } from './auth/auth-context.interceptor';
     ImageSettingsModule,
     AiRuntimeModule,
     EngineeringModule,
+    AgentSupervisorModule,
     JobsModule,
     BrowserRuntimeModule,
     PlannerModule,

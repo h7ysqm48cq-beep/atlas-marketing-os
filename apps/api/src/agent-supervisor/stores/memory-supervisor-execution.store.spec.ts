@@ -81,9 +81,16 @@ describe('MemorySupervisorExecutionStore', () => {
     const fixture = executionFixture('EXEC-1', 'ATLAS-1');
     fixture.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
     fixture.assignment.workerCapability = {
-      version: 1,
+      version: 2,
       assignmentDigest: 'a'.repeat(64),
-      allowedOperations: ['read_assignment', 'mark_running'],
+      allowedActions: ['read_assignment', 'mark_running'],
+      manifestHash: 'b'.repeat(64),
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: ['merge'],
+      claimEpoch: 1,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
+      jti: 'jti-1',
       issuedAt: '2026-09-06T00:00:00.000Z',
       expiresAt: '2026-09-06T00:05:00.000Z',
     };

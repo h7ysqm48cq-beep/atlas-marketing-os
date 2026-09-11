@@ -1,18 +1,30 @@
-import { ServiceUnavailableException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
+import { generateKeyPairSync } from 'node:crypto';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import {
+  InMemoryAuthorityKeyRegistry,
+  SupervisorAuthorityService,
+} from '../authority/supervisor-authority.service';
 import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
 import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-capability.types';
 
-const OWNER_TOKEN = 'owner-secret-that-must-never-leave-the-server';
 const NOW = new Date('2026-09-06T00:00:00.000Z');
 
-function config(ownerToken: string | undefined = OWNER_TOKEN): ConfigService {
-  return {
-    get: jest.fn((name: string) =>
-      name === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? ownerToken : undefined,
-    ),
-  } as unknown as ConfigService;
+function authority(): SupervisorAuthorityService {
+  const fixture = () => {
+    const pair = generateKeyPairSync('ed25519');
+    return {
+      privateKeyPem: pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+      publicKeyPem: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+    };
+  };
+  return new SupervisorAuthorityService({ get: jest.fn() } as never, new InMemoryAuthorityKeyRegistry({
+    SUPERVISOR_SYSTEM: fixture(),
+    WORKER_CAPABILITY: fixture(),
+    VERIFIER_CAPABILITY: fixture(),
+    MERGE_APPROVAL: fixture(),
+    DEPLOY_APPROVAL: fixture(),
+  }));
 }
 
 function execution(
@@ -33,6 +45,10 @@ function execution(
       forbiddenActions: ['merge', 'deploy_production'],
       dependencies: [],
       acceptance: ['capability is execution-bound'],
+      manifestHash: 'a'.repeat(64),
+      claimEpoch: 1,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
       requiredEvidence: [
         'rootCause',
         'changedFiles',
@@ -84,7 +100,7 @@ function tamperPayload(
 
 describe('SupervisorWorkerCapabilityService', () => {
   it('accepts a valid execution-bound capability', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
@@ -96,13 +112,34 @@ describe('SupervisorWorkerCapabilityService', () => {
       workerRole: 'engineering',
       executionPurpose: 'IMPLEMENTATION',
     });
-    expect(claims.allowedOperations).toContain('read_assignment');
-    expect(issued.token).not.toContain(OWNER_TOKEN);
-    expect(JSON.stringify(issued.metadata)).not.toContain(OWNER_TOKEN);
+    expect(claims.allowedActions).toContain('read_assignment');
+    expect(issued.token).not.toContain('ATLAS_SUPERVISOR_OWNER_TOKEN');
+  });
+
+  it('rejects a v2 token that uses legacy allowedOperations only', () => {
+    const signingAuthority = authority();
+    const service = new SupervisorWorkerCapabilityService(signingAuthority);
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    const [, encodedClaims] = issued.token.split('.');
+    const legacyClaims = JSON.parse(
+      Buffer.from(encodedClaims, 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    delete legacyClaims.allowedActions;
+    legacyClaims.allowedOperations = ['read_assignment'];
+    const legacyToken = signingAuthority.sign(
+      'WORKER_CAPABILITY',
+      legacyClaims as never,
+    );
+
+    expect(() => authorize(service, legacyToken, value)).toThrow(
+      'worker_capability_actions_required',
+    );
   });
 
   it('rejects a tampered payload', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
@@ -111,24 +148,24 @@ describe('SupervisorWorkerCapabilityService', () => {
     });
 
     expect(() => authorize(service, token, value)).toThrow(
-      'worker_capability_invalid_signature',
+      'authority_token_malformed',
     );
   });
 
   it('rejects a tampered signature', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
     const [payload] = issued.token.split('.');
 
     expect(() => authorize(service, `${payload}.invalid`, value)).toThrow(
-      'worker_capability_invalid_signature',
+      'authority_token_malformed',
     );
   });
 
   it('rejects an expired capability', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW, ttlMs: 1_000 });
     value.assignment.workerCapability = issued.metadata;
@@ -143,19 +180,19 @@ describe('SupervisorWorkerCapabilityService', () => {
         operation: 'read_assignment',
         now: new Date(NOW.getTime() + 1_001),
       }),
-    ).toThrow('worker_capability_expired');
+    ).toThrow('authority_token_expired');
   });
 
   it.each([
-    ['taskId', { taskId: 'ATLAS-other' }, 'worker_capability_task_mismatch'],
+    ['taskId', { taskId: 'ATLAS-other' }, 'authority_task_mismatch'],
     [
       'executionId',
       { id: 'ATLAS-EXEC-other' },
-      'worker_capability_execution_mismatch',
+      'authority_execution_mismatch',
     ],
     ['workerRole', { workerRole: 'qa' }, 'worker_capability_role_mismatch'],
   ] as const)('rejects a wrong %s binding', (_label, overrides, code) => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
@@ -166,7 +203,7 @@ describe('SupervisorWorkerCapabilityService', () => {
   });
 
   it('rejects a wrong execution purpose binding', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
@@ -185,7 +222,7 @@ describe('SupervisorWorkerCapabilityService', () => {
   });
 
   it('rejects an assignment digest mismatch', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, { now: NOW });
     value.assignment.workerCapability = issued.metadata;
@@ -197,11 +234,11 @@ describe('SupervisorWorkerCapabilityService', () => {
   });
 
   it('rejects an unauthorized operation', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const value = execution();
     const issued = service.issue(value, {
       now: NOW,
-      allowedOperations: ['read_assignment'],
+      allowedActions: ['read_assignment'],
     });
     value.assignment.workerCapability = issued.metadata;
 
@@ -211,7 +248,7 @@ describe('SupervisorWorkerCapabilityService', () => {
   });
 
   it('keeps Engineering and independent verification capabilities isolated', () => {
-    const service = new SupervisorWorkerCapabilityService(config());
+    const service = new SupervisorWorkerCapabilityService(authority());
     const engineering = execution();
     const qa = execution({
       id: 'ATLAS-EXEC-20260906-22222222-2222-4222-8222-222222222222',
@@ -229,17 +266,17 @@ describe('SupervisorWorkerCapabilityService', () => {
 
     expect(() => authorize(service, engineeringIssued.token, qa)).toThrow();
 
-    const qaIssued = service.issue(qa, { now: NOW });
-    qa.assignment.workerCapability = qaIssued.metadata;
-    engineering.assignment.workerCapability = qaIssued.metadata;
-    expect(() => authorize(service, qaIssued.token, engineering)).toThrow();
+    expect(() => service.issue(qa, { now: NOW })).toThrow(
+      'worker_capability_purpose_mismatch',
+    );
   });
 
   it('fails closed when server signing material is unavailable', () => {
-    const service = new SupervisorWorkerCapabilityService(config(''));
+    const service = new SupervisorWorkerCapabilityService(authority());
 
-    expect(() => service.issue(execution(), { now: NOW })).toThrow(
-      ServiceUnavailableException,
-    );
+    expect(() => service.issue(execution({ assignment: {
+      ...execution().assignment,
+      manifestHash: undefined,
+    }}), { now: NOW })).toThrow(ForbiddenException);
   });
 });

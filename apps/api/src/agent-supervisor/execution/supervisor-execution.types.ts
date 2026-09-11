@@ -13,6 +13,13 @@ export type SupervisorExecutionPurpose =
 export type SupervisorExecutionStatus =
   'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
+export interface SupervisorExecutionAuthorityBinding {
+  manifestHash: string;
+  claimEpoch: number;
+  leaseId: string;
+  runnerId: string;
+}
+
 export type RequiredEvidenceField =
   | 'rootCause'
   | 'changedFiles'
@@ -34,6 +41,11 @@ export interface WorkerAssignmentEnvelope {
   dependencies: string[];
   acceptance: string[];
   requiredEvidence: RequiredEvidenceField[];
+  /** Authority binding is populated only by an immutable admission manifest. */
+  manifestHash?: string;
+  claimEpoch?: number;
+  leaseId?: string;
+  runnerId?: string;
   workerCapability?: SupervisorWorkerCapabilityMetadata;
 }
 

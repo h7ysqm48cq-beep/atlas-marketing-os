@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -7,7 +7,12 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
+import {
+  SupervisorAuthorityService,
+  canonicalizeAuthorityValue,
+} from './authority/supervisor-authority.service';
+import type { AuthorityClaims } from './authority/authority.types';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -17,6 +22,8 @@ import type {
   SupervisorAgentRole,
   SupervisorEvidence,
   SupervisorMergeAttestation,
+  SupervisorOwnerDeploymentAuthorization,
+  SupervisorOwnerMergeAuthorization,
   SupervisorReviewCandidate,
   SupervisorTask,
   SupervisorTaskStatus,
@@ -64,9 +71,6 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
 ]);
 
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
-const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
-const OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE =
-  'ATLAS_OWNER_DEPLOYMENT_AUTHORIZATION_V1';
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
   'web',
@@ -84,7 +88,9 @@ export class AgentSupervisorService {
     @Inject(SUPERVISOR_LIFECYCLE_STORE)
     private readonly lifecycleStore?: SupervisorLifecycleStore,
     @Optional()
-    private readonly config?: ConfigService,
+    private readonly _config?: ConfigService,
+    @Optional()
+    private readonly authority?: SupervisorAuthorityService,
   ) {}
 
   async status() {
@@ -263,6 +269,11 @@ export class AgentSupervisorService {
         code: 'owner_merge_authorization_already_consumed',
       });
     }
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
 
     await this.assertDependenciesReady(task);
     await this.assertFilesAvailable(task);
@@ -328,7 +339,7 @@ export class AgentSupervisorService {
   async authorizeMerge(
     id: string,
     candidate: SupervisorReviewCandidate,
-    authorizedBy: string,
+    authorization: SupervisorOwnerMergeAuthorization,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
@@ -358,26 +369,18 @@ export class AgentSupervisorService {
       });
     }
 
-    const ownerId = authorizedBy.trim();
+    const verifiedAuthorization =
+      structuredClone(authorization);
 
-    if (!ownerId) {
-      throw new BadRequestException({ code: 'owner_identity_required' });
-    }
-
-    const authorizedAt = new Date().toISOString();
+    this.verifyOwnerMergeAuthorization(
+      verifiedAuthorization,
+      requestedCandidate,
+    );
 
     task.evidence = {
-      ...task.evidence,
-      ownerMergeAuthorization: {
-        candidate: requestedCandidate,
-        authorizedBy: ownerId,
-        authorizedAt,
-        signature: this.signOwnerMergeAuthorization(
-          requestedCandidate,
-          ownerId,
-          authorizedAt,
-        ),
-      },
+      ...task.evidence!,
+      ownerMergeAuthorization:
+        verifiedAuthorization,
     };
 
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
@@ -462,11 +465,16 @@ export class AgentSupervisorService {
     id: string,
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
-    authorizedBy: string,
+    authorization: SupervisorOwnerDeploymentAuthorization,
   ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
     if (!task.evidence?.reviewCandidate) {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
     }
@@ -483,26 +491,19 @@ export class AgentSupervisorService {
     }
     const authorizedService = this.requireProductionDeploymentService(service);
 
-    const ownerId = authorizedBy.trim();
-    if (!ownerId) {
-      throw new BadRequestException({ code: 'owner_identity_required' });
-    }
+    const verifiedAuthorization =
+      structuredClone(authorization);
 
-    const authorizedAt = new Date().toISOString();
+    this.verifyOwnerDeploymentAuthorization(
+      verifiedAuthorization,
+      requestedCandidate,
+      authorizedService,
+    );
+
     task.evidence = {
       ...task.evidence,
-      ownerDeploymentAuthorization: {
-        candidate: requestedCandidate,
-        service: authorizedService,
-        authorizedBy: ownerId,
-        authorizedAt,
-        signature: this.signOwnerDeploymentAuthorization(
-          requestedCandidate,
-          authorizedService,
-          ownerId,
-          authorizedAt,
-        ),
-      },
+      ownerDeploymentAuthorization:
+        verifiedAuthorization,
     };
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
     return this.saveTaskMutationIfUnchanged(
@@ -521,6 +522,12 @@ export class AgentSupervisorService {
     this.requireStatus(task, ['READY_FOR_REVIEW', 'APPROVED']);
 
     const authorization = task.evidence?.ownerDeploymentAuthorization;
+
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
 
     if (!authorization) {
       throw new BadRequestException({
@@ -572,6 +579,64 @@ export class AgentSupervisorService {
     );
   }
 
+  async consumeProductionDeploymentAuthorization(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    consumedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['APPROVED']);
+
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
+
+    const authorization = task.evidence?.ownerDeploymentAuthorization;
+    if (!authorization) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_required',
+      });
+    }
+
+    const claims = this.verifyOwnerDeploymentAuthorization(
+      authorization,
+      candidate,
+      service,
+    );
+    const consumer = consumedBy.trim();
+    if (!consumer) {
+      throw new BadRequestException({ code: 'owner_identity_required' });
+    }
+    if (
+      typeof claims.jti !== 'string' ||
+      !claims.jti.trim() ||
+      typeof claims.candidateHash !== 'string' ||
+      !/^[0-9a-f]{64}$/i.test(claims.candidateHash)
+    ) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_invalid',
+      });
+    }
+
+    task.evidence = {
+      ...task.evidence!,
+      ownerDeploymentAuthorizationConsumption: {
+        authorization: structuredClone(authorization),
+        approvalJti: claims.jti,
+        candidateHash: claims.candidateHash,
+        environment: 'production',
+        consumedBy: consumer,
+        consumedAt: new Date().toISOString(),
+      },
+    };
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskIfUnchanged(task, expectedUpdatedAt);
+  }
+
   assertOwnerMergeAuthorization(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,
@@ -591,46 +656,100 @@ export class AgentSupervisorService {
         code: 'owner_merge_authorization_already_consumed',
       });
     }
-
-    const authorizedCandidate = this.normalizeCandidate(
-      authorization.candidate,
-    );
-    if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
       throw new BadRequestException({
-        code: 'owner_merge_authorization_mismatch',
+        code: 'owner_deployment_authorization_already_consumed',
       });
     }
 
-    const authorizedBy = authorization.authorizedBy;
-    const authorizedAt = authorization.authorizedAt;
-    const signature = authorization.signature;
+    this.verifyOwnerMergeAuthorization(
+      authorization,
+      requestedCandidate,
+    );
+  }
+
+  private verifyOwnerMergeAuthorization(
+    authorization: NonNullable<
+      SupervisorEvidence['ownerMergeAuthorization']
+    >,
+    candidate: SupervisorReviewCandidate,
+  ): void {
+    const authorizedCandidate =
+      this.normalizeCandidate(
+        authorization.candidate,
+      );
+
+    if (
+      !this.sameCandidate(
+        authorizedCandidate,
+        candidate,
+      )
+    ) {
+      throw new BadRequestException({
+        code:
+          'owner_merge_authorization_mismatch',
+      });
+    }
+
+    const authorizedBy =
+      authorization.authorizedBy;
+
+    const authorizedAt =
+      authorization.authorizedAt;
+
+    const signature =
+      authorization.signature;
+
     if (
       !authorizedBy ||
       authorizedBy !== authorizedBy.trim() ||
       !authorizedAt ||
       authorizedAt !== authorizedAt.trim() ||
       !signature ||
-      signature !== signature.trim() ||
-      !FULL_SIGNATURE.test(signature)
+      signature !== signature.trim()
     ) {
       throw new BadRequestException({
-        code: 'owner_merge_authorization_invalid',
+        code:
+          'owner_merge_authorization_invalid',
       });
     }
 
-    const expected = this.signOwnerMergeAuthorization(
-      authorizedCandidate,
-      authorizedBy,
-      authorizedAt,
-    );
-    const expectedBuffer = Buffer.from(expected, 'hex');
-    const suppliedBuffer = Buffer.from(signature, 'hex');
-    if (
-      expectedBuffer.length !== suppliedBuffer.length ||
-      !timingSafeEqual(expectedBuffer, suppliedBuffer)
-    ) {
+    const expectedCandidateHash =
+      this.candidateHash(
+        authorizedCandidate,
+      );
+
+    try {
+      const claims =
+        this.requireAuthority().verify(
+          signature,
+          {
+            domain: 'MERGE_APPROVAL',
+            audience: 'atlas:merge-gate',
+            actorType: 'HUMAN_OWNER',
+            tokenType: 'MERGE_APPROVAL',
+            purpose: 'APPROVE_MERGE',
+            candidateHash:
+              expectedCandidateHash,
+          },
+        );
+
+      if (
+        claims.authorizedBy !==
+          authorizedBy ||
+        claims.authorizedAt !==
+          authorizedAt ||
+        claims.candidateHash !==
+          expectedCandidateHash
+      ) {
+        throw new Error(
+          'candidate_binding_mismatch',
+        );
+      }
+    } catch {
       throw new BadRequestException({
-        code: 'owner_merge_authorization_invalid',
+        code:
+          'owner_merge_authorization_invalid',
       });
     }
   }
@@ -651,27 +770,34 @@ export class AgentSupervisorService {
       });
     }
 
-    const authorizedCandidate = this.normalizeCandidate(
-      authorization.candidate,
+    this.verifyOwnerDeploymentAuthorization(
+      authorization,
+      requestedCandidate,
+      requestedService,
     );
+  }
+
+  private verifyOwnerDeploymentAuthorization(
+    authorization: NonNullable<SupervisorEvidence['ownerDeploymentAuthorization']>,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+  ): AuthorityClaims {
+    const requestedCandidate = this.normalizeCandidate(candidate);
+    const authorizedCandidate = this.normalizeCandidate(authorization.candidate);
     this.requireCanonicalProductionDeployment(authorizedCandidate);
     if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_mismatch',
       });
     }
-    const authorizedService = authorization.service;
-    if (!PRODUCTION_DEPLOYMENT_SERVICES.has(authorizedService)) {
-      throw new BadRequestException({
-        code: 'owner_deployment_authorization_invalid',
-      });
-    }
-    if (authorizedService !== requestedService) {
+    const authorizedService = this.requireProductionDeploymentService(
+      authorization.service,
+    );
+    if (authorizedService !== service) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_service_mismatch',
       });
     }
-
     const authorizedBy = authorization.authorizedBy;
     const authorizedAt = authorization.authorizedAt;
     const signature = authorization.signature;
@@ -681,26 +807,30 @@ export class AgentSupervisorService {
       !authorizedAt ||
       authorizedAt !== authorizedAt.trim() ||
       !signature ||
-      signature !== signature.trim() ||
-      !FULL_SIGNATURE.test(signature)
+      signature !== signature.trim()
     ) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_invalid',
       });
     }
-
-    const expected = this.signOwnerDeploymentAuthorization(
-      authorization.candidate,
-      authorizedService,
-      authorizedBy,
-      authorizedAt,
-    );
-    const expectedBuffer = Buffer.from(expected, 'hex');
-    const suppliedBuffer = Buffer.from(signature, 'hex');
-    if (
-      expectedBuffer.length !== suppliedBuffer.length ||
-      !timingSafeEqual(expectedBuffer, suppliedBuffer)
-    ) {
+    try {
+      const claims = this.requireAuthority().verify(signature, {
+        domain: 'DEPLOY_APPROVAL',
+        audience: 'atlas:deploy-gate',
+        actorType: 'HUMAN_OWNER',
+        tokenType: 'DEPLOY_APPROVAL',
+        purpose: 'APPROVE_DEPLOY',
+      });
+      if (
+        claims.authorizedBy !== authorizedBy ||
+        claims.authorizedAt !== authorizedAt ||
+        claims.service !== authorizedService ||
+        claims.candidateHash !== this.candidateHash(authorizedCandidate)
+      ) {
+        throw new Error('candidate_binding_mismatch');
+      }
+      return claims;
+    } catch {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_invalid',
       });
@@ -1045,54 +1175,18 @@ export class AgentSupervisorService {
     return normalized;
   }
 
-  private signOwnerMergeAuthorization(
-    candidate: SupervisorReviewCandidate,
-    authorizedBy: string,
-    authorizedAt: string,
-  ) {
-    const token = this.config?.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
-    if (!token) {
+  private requireAuthority(): SupervisorAuthorityService {
+    if (!this.authority) {
       throw new BadRequestException({
-        code: 'owner_merge_authorization_not_configured',
+        code: 'owner_approval_signer_not_configured',
       });
     }
-
-    return createHmac('sha256', token)
-      .update(
-        JSON.stringify({
-          candidate,
-          authorizedBy,
-          authorizedAt,
-        }),
-        'utf8',
-      )
-      .digest('hex');
+    return this.authority;
   }
 
-  private signOwnerDeploymentAuthorization(
-    candidate: SupervisorReviewCandidate,
-    service: ProductionDeploymentService,
-    authorizedBy: string,
-    authorizedAt: string,
-  ) {
-    const token = this.config?.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
-    if (!token) {
-      throw new BadRequestException({
-        code: 'owner_deployment_authorization_not_configured',
-      });
-    }
-
-    return createHmac('sha256', token)
-      .update(
-        JSON.stringify({
-          purpose: OWNER_DEPLOYMENT_AUTHORIZATION_PURPOSE,
-          candidate,
-          service,
-          authorizedBy,
-          authorizedAt,
-        }),
-        'utf8',
-      )
+  private candidateHash(candidate: SupervisorReviewCandidate): string {
+    return createHash('sha256')
+      .update(canonicalizeAuthorityValue(candidate), 'utf8')
       .digest('hex');
   }
 
@@ -1204,6 +1298,11 @@ export class AgentSupervisorService {
     if (latest.evidence?.ownerMergeAuthorizationConsumption) {
       throw new BadRequestException({
         code: 'owner_merge_authorization_already_consumed',
+      });
+    }
+    if (latest.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
       });
     }
 

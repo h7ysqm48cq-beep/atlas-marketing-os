@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
@@ -19,6 +20,18 @@ import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
+import {
+  ConfigHumanOwnerApprovalKeyRegistry,
+  HUMAN_OWNER_APPROVAL_KEYRING,
+  SupervisorAuthorityKeyRegistry,
+} from './authority/authority-key-registry';
+import { SupervisorAdmissionManifestService } from './authority/supervisor-admission-manifest.service';
+import { HumanOwnerApprovalService } from './authority/human-owner-approval.service';
+import {
+  SUPERVISOR_AUTHORITY_KEYRING,
+  SupervisorAuthorityService,
+} from './authority/supervisor-authority.service';
+import { VerifierCapabilityService } from './authority/verifier-capability.service';
 
 @Module({
   controllers: [
@@ -36,6 +49,26 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     SupervisorOwnerGuard,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
+    SupervisorAdmissionManifestService,
+    SupervisorAuthorityService,
+    HumanOwnerApprovalService,
+    VerifierCapabilityService,
+    {
+      provide: SUPERVISOR_AUTHORITY_KEYRING,
+      useFactory: (config: ConfigService) =>
+        new SupervisorAuthorityKeyRegistry(
+          config,
+        ),
+      inject: [ConfigService],
+    },
+    {
+      provide: HUMAN_OWNER_APPROVAL_KEYRING,
+      useFactory: (config: ConfigService) =>
+        new ConfigHumanOwnerApprovalKeyRegistry(
+          config,
+        ),
+      inject: [ConfigService],
+    },
     PrismaSupervisorTaskStore,
     PrismaSupervisorExecutionStore,
     PrismaFileOwnershipStore,
@@ -65,6 +98,8 @@ import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
     SUPERVISOR_EXECUTION_STORE,
     FILE_OWNERSHIP_STORE,
     SUPERVISOR_LIFECYCLE_STORE,
+    SupervisorAuthorityService,
+    VerifierCapabilityService,
   ],
 })
 export class AgentSupervisorModule {}

@@ -3,7 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorModule } from './agent-supervisor.module';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import { SupervisorAdmissionManifestService } from './authority/supervisor-admission-manifest.service';
+import {
+  HumanOwnerApprovalService,
+} from './authority/human-owner-approval.service';
+import { createTestSupervisorAuthority } from './authority/test-authority';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
@@ -13,6 +19,72 @@ import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
+
+// R2A_CONTROLLER_OWNER_SIGNER_TEST_HELPER
+type ControllerOwnerRequest = {
+  user?: {
+    id?: string;
+  };
+  headers?: Record<
+    string,
+    string | string[] | undefined
+  >;
+};
+
+function createControllerOwnerSigner(
+  supervisor: unknown,
+): HumanOwnerApprovalService {
+  const holder =
+    supervisor as unknown as {
+      authority?: unknown;
+    };
+
+  if (!holder.authority) {
+    holder.authority =
+      createTestSupervisorAuthority();
+  }
+
+  const authority =
+    holder.authority as unknown as {
+      keyRegistry?: unknown;
+    };
+
+  const keyRegistry =
+    authority.keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'controller_test_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: jest.fn(
+      (key: string) => {
+        if (
+          key ===
+          'ATLAS_SUPERVISOR_OWNER_USER_ID'
+        ) {
+          return 'authenticated-owner-id';
+        }
+
+        if (
+          key ===
+          'ATLAS_SUPERVISOR_OWNER_TOKEN'
+        ) {
+          return 'controller-owner-token';
+        }
+
+        return undefined;
+      },
+    ),
+  } as unknown as ConfigService;
+
+  return new HumanOwnerApprovalService(
+    config,
+    keyRegistry as never,
+  );
+}
 
 describe('AgentSupervisorController', () => {
   let supervisor: AgentSupervisorService;
@@ -27,8 +99,11 @@ describe('AgentSupervisorController', () => {
     dispatcher = new WorkerDispatcherService(
       supervisor,
       new MemorySupervisorExecutionStore(),
+      new SupervisorWorkerCapabilityService(createTestSupervisorAuthority()),
+      new SupervisorAdmissionManifestService(),
     );
-    controller = new AgentSupervisorController(supervisor, dispatcher);
+    controller = new AgentSupervisorController(supervisor, dispatcher,
+      createControllerOwnerSigner(supervisor));
   });
 
   it('runs the trusted owner-action boundary before the existing owner guard', () => {
@@ -56,15 +131,18 @@ describe('AgentSupervisorController', () => {
       new MemoryFileOwnershipStore(),
       undefined,
       ownerConfig,
+      createTestSupervisorAuthority(),
     );
     const ownerDispatcher = new WorkerDispatcherService(
       ownerSupervisor,
       new MemorySupervisorExecutionStore(),
+      new SupervisorWorkerCapabilityService(createTestSupervisorAuthority()),
+      new SupervisorAdmissionManifestService(),
     );
     const ownerController = new AgentSupervisorController(
       ownerSupervisor,
       ownerDispatcher,
-    );
+      createControllerOwnerSigner(ownerSupervisor));
     const reviewCandidate = {
       action: 'merge' as const,
       targetBranch: 'production/atlas',
@@ -98,7 +176,17 @@ describe('AgentSupervisorController', () => {
     const authorized = await ownerController.authorizeMerge(
       task.id,
       { candidate: reviewCandidate },
-      { user: { id: 'authenticated-owner-id' } },
+      ({
+        user: {
+          id: 'authenticated-owner-id',
+        },
+        headers: {
+          'x-atlas-supervisor-owner-action':
+            '1',
+          'x-atlas-supervisor-owner-token':
+            'controller-owner-token',
+        },
+      } as ControllerOwnerRequest),
     );
 
     expect(authorized.evidence?.ownerMergeAuthorization).toMatchObject({
@@ -127,7 +215,7 @@ describe('AgentSupervisorController', () => {
     const ownerController = new AgentSupervisorController(
       { authorizeProductionDeployment } as unknown as AgentSupervisorService,
       {} as WorkerDispatcherService,
-    ) as unknown as {
+      createControllerOwnerSigner({ authorizeProductionDeployment } as unknown as AgentSupervisorService)) as unknown as {
       authorizeProductionDeployment?: (
         id: string,
         body: Record<string, unknown>,
@@ -149,14 +237,39 @@ describe('AgentSupervisorController', () => {
           authorizedBy: 'caller-controlled-owner',
           signature: 'f'.repeat(64),
         },
-        { user: { id: 'authenticated-owner-id' } },
+        ({
+        user: {
+          id: 'authenticated-owner-id',
+        },
+        headers: {
+          'x-atlas-supervisor-owner-action':
+            '1',
+          'x-atlas-supervisor-owner-token':
+            'controller-owner-token',
+        },
+      } as ControllerOwnerRequest),
       ),
     ).resolves.toBe(decision);
     expect(authorizeProductionDeployment).toHaveBeenCalledWith(
       'ATLAS-DEPLOY-1',
       reviewCandidate,
       'api',
-      'authenticated-owner-id',
+      expect.objectContaining({
+        candidate: reviewCandidate,
+        service: 'api',
+        authorizedBy: 'authenticated-owner-id',
+        authorizedAt: expect.any(String),
+        signature: expect.any(String),
+      }),
+    );
+
+    const deploymentAuthorization =
+      authorizeProductionDeployment.mock.calls[0]?.[3];
+
+    expect(
+      deploymentAuthorization?.signature,
+    ).toMatch(
+      /^[^.]+\.[^.]+\.[^.]+$/,
     );
   });
 
@@ -177,7 +290,9 @@ describe('AgentSupervisorController', () => {
         revokeProductionDeploymentAuthorization,
       } as unknown as AgentSupervisorService,
       {} as WorkerDispatcherService,
-    ) as unknown as {
+      createControllerOwnerSigner({
+        revokeProductionDeploymentAuthorization,
+      } as unknown as AgentSupervisorService)) as unknown as {
       revokeProductionDeploymentAuthorization?: (
         id: string,
         body: Record<string, unknown>,
@@ -242,7 +357,7 @@ describe('AgentSupervisorController', () => {
       acceptance: ['passes'],
     });
     await supervisor.startTask(task.id);
-    await dispatcher.dispatch(task.id);
+    await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(await controller.listExecutions(task.id)).toHaveLength(1);
   });
@@ -257,7 +372,7 @@ describe('AgentSupervisorController', () => {
       acceptance: ['passes'],
     });
     await supervisor.startTask(task.id);
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     await expect(
       controller.getExecution(dispatched.execution.id),
@@ -283,7 +398,9 @@ describe('AgentSupervisorController', () => {
         consumeMergeAuthorization,
       } as unknown as AgentSupervisorService,
       {} as WorkerDispatcherService,
-    ) as unknown as {
+      createControllerOwnerSigner({
+        consumeMergeAuthorization,
+      } as unknown as AgentSupervisorService)) as unknown as {
       consumeMergeAuthorization?: (
         id: string,
         body: Record<string, unknown>,
@@ -327,3 +444,43 @@ describe('AgentSupervisorController', () => {
   });
 
 });
+
+// R1_BOOTSTRAP_ADMISSION_RED_BEGIN
+describe('R1 bootstrap admission authority boundary', () => {
+  it('does not allow the HTTP dispatch caller to choose execution authority binding', async () => {
+    const { AgentSupervisorController } =
+      require('./agent-supervisor.controller');
+
+    const dispatcher = {
+      dispatch: jest.fn().mockResolvedValue({
+        execution: { id: 'ATLAS-EXEC-RED', status: 'DISPATCHED' },
+      }),
+    };
+
+    const controller = Object.create(
+      AgentSupervisorController.prototype,
+    ) as any;
+
+    controller.dispatcher = dispatcher;
+
+    const clientSuppliedBinding = {
+      manifestHash: 'a'.repeat(64),
+      claimEpoch: 999,
+      leaseId: 'client-controlled-lease',
+      runnerId: 'client-controlled-runner',
+    };
+
+    await (controller.dispatchTask as any)(
+      'ATLAS-TASK-RED',
+      clientSuppliedBinding,
+    );
+
+    expect(dispatcher.dispatch).toHaveBeenCalledTimes(1);
+
+    expect(dispatcher.dispatch).toHaveBeenCalledWith(
+      'ATLAS-TASK-RED',
+      'IMPLEMENTATION',
+    );
+  });
+});
+// R1_BOOTSTRAP_ADMISSION_RED_END

@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
+import { createTestSupervisorAuthority } from '../authority/test-authority';
 import {
   SUPERVISOR_WORKER_OPERATION,
   SupervisorWorkerGuard,
@@ -25,6 +26,10 @@ function execution(
       taskId,
       workerRole: 'engineering',
       executionPurpose: 'IMPLEMENTATION',
+      manifestHash: 'a'.repeat(64),
+      claimEpoch: 1,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
       objective: 'Worker capability plane',
       allowedPaths: ['apps/api/src/example.ts'],
       forbiddenActions: ['merge', 'deploy_production'],
@@ -79,10 +84,9 @@ describe('SupervisorWorkerGuard', () => {
 
   beforeEach(() => {
     store = new MemorySupervisorExecutionStore();
-    capabilities = new SupervisorWorkerCapabilityService({
-      get: (name: string) =>
-        name === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? 'owner-secret' : undefined,
-    } as never);
+    capabilities = new SupervisorWorkerCapabilityService(
+      createTestSupervisorAuthority(),
+    );
     guard = new SupervisorWorkerGuard(capabilities, store, new Reflector());
   });
 

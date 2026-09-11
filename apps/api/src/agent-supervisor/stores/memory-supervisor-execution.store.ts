@@ -73,8 +73,8 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
         workerCapability: execution.assignment.workerCapability
           ? {
               ...execution.assignment.workerCapability,
-              allowedOperations: [
-                ...execution.assignment.workerCapability.allowedOperations,
+              allowedActions: [
+                ...execution.assignment.workerCapability.allowedActions,
               ],
             }
           : undefined,

@@ -75,3 +75,38 @@ describe('AgentSupervisorModule runtime persistence wiring', () => {
     expect(providers).not.toContain(MemoryFileOwnershipStore);
   });
 });
+
+// R1_REQUIRED_ADMISSION_DI_BEGIN
+describe('R1 required admission manifest DI wiring', () => {
+  it('registers the admission producer and requires it in WorkerDispatcherService', () => {
+    const {
+      AgentSupervisorModule,
+    } = require('./agent-supervisor.module');
+
+    const {
+      WorkerDispatcherService,
+    } = require('./dispatch/worker-dispatcher.service');
+
+    const {
+      SupervisorAdmissionManifestService,
+    } = require('./authority/supervisor-admission-manifest.service');
+
+    const providers =
+      Reflect.getMetadata('providers', AgentSupervisorModule) ?? [];
+
+    expect(providers).toContain(
+      SupervisorAdmissionManifestService,
+    );
+
+    const constructorTypes =
+      Reflect.getMetadata(
+        'design:paramtypes',
+        WorkerDispatcherService,
+      ) ?? [];
+
+    expect(constructorTypes[3]).toBe(
+      SupervisorAdmissionManifestService,
+    );
+  });
+});
+// R1_REQUIRED_ADMISSION_DI_END

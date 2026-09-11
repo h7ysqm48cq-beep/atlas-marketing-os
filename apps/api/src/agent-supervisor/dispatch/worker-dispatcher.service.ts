@@ -5,9 +5,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
@@ -56,8 +56,8 @@ export class WorkerDispatcherService {
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
-    @Optional()
-    private readonly capabilityService?: SupervisorWorkerCapabilityService,
+    private readonly capabilityService: SupervisorWorkerCapabilityService,
+    private readonly admissionManifestService: SupervisorAdmissionManifestService,
   ) {}
 
   async dispatch(
@@ -68,6 +68,9 @@ export class WorkerDispatcherService {
     assignment: WorkerAssignmentEnvelope;
     capability?: string;
   }> {
+    if (!this.capabilityService) {
+      throw new BadRequestException('worker_capability_service_required');
+    }
     const task = await this.supervisor.getTask(taskId);
     if (task.status !== 'WORKING') {
       throw new BadRequestException({
@@ -111,7 +114,7 @@ export class WorkerDispatcherService {
 
     const now = new Date();
     const executionId = this.nextExecutionId(now);
-    const assignment: WorkerAssignmentEnvelope = {
+    const assignmentCore = {
       executionId,
       taskId: task.id,
       workerRole: task.owner,
@@ -126,6 +129,14 @@ export class WorkerDispatcherService {
       requiredEvidence: [...REQUIRED_EVIDENCE],
     };
 
+    const authorityBinding =
+      this.admissionManifestService.createBinding(assignmentCore);
+
+    const assignment: WorkerAssignmentEnvelope = {
+      ...assignmentCore,
+      ...authorityBinding,
+    };
+
     const queued: SupervisorExecution = {
       id: executionId,
       taskId: task.id,
@@ -138,10 +149,8 @@ export class WorkerDispatcherService {
       startedAt: null,
       completedAt: null,
     };
-    const issuedCapability = this.capabilityService?.issue(queued);
-    if (issuedCapability) {
-      queued.assignment.workerCapability = issuedCapability.metadata;
-    }
+    const issuedCapability = this.capabilityService.issue(queued);
+    queued.assignment.workerCapability = issuedCapability.metadata;
 
     const created = await this.executionStore.create(queued);
 

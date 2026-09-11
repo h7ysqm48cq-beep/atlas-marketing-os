@@ -72,15 +72,26 @@ export class SupervisorWorkerGuard implements CanActivate {
       throw new ForbiddenException('worker_capability_terminal_execution');
     }
 
-    this.capabilities.authorize(authorization.slice('Bearer '.length), {
-      taskId,
-      executionId,
-      workerRole: execution.workerRole,
-      executionPurpose:
-        execution.assignment.executionPurpose ?? 'IMPLEMENTATION',
-      assignment: execution.assignment,
-      operation,
-    });
+    try {
+      this.capabilities.authorize(authorization.slice('Bearer '.length), {
+        taskId,
+        executionId,
+        workerRole: execution.workerRole,
+        executionPurpose:
+          execution.assignment.executionPurpose ?? 'IMPLEMENTATION',
+        assignment: execution.assignment,
+        operation,
+      });
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'authority_token_malformed') {
+        throw new ForbiddenException('worker_capability_malformed');
+      }
+      if (code === 'authority_task_mismatch') {
+        throw new ForbiddenException('worker_capability_task_mismatch');
+      }
+      throw error;
+    }
     return true;
   }
 }

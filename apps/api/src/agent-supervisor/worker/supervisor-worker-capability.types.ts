@@ -8,18 +8,34 @@ export type SupervisorWorkerCapabilityOperation =
   'read_assignment' | 'mark_running' | 'complete' | 'fail' | 'cancel';
 
 export interface SupervisorWorkerCapabilityMetadata {
-  version: 1;
+  version: 2;
   assignmentDigest: string;
-  allowedOperations: SupervisorWorkerCapabilityOperation[];
+  allowedActions: SupervisorWorkerCapabilityOperation[];
+  manifestHash: string;
+  allowedPaths: string[];
+  forbiddenActions: string[];
+  claimEpoch: number;
+  leaseId: string;
+  runnerId: string;
+  jti: string;
   issuedAt: string;
   expiresAt: string;
 }
 
 export interface SupervisorWorkerCapabilityClaims extends SupervisorWorkerCapabilityMetadata {
+  iss: string;
+  sub: string;
+  aud: string;
+  actorType: 'WORKER_EXECUTION';
+  tokenType: 'WORKER_CAPABILITY';
+  purpose: 'IMPLEMENTATION';
+  iat: string;
+  exp: string;
   taskId: string;
   executionId: string;
   workerRole: SupervisorWorkerRole;
-  executionPurpose: SupervisorExecutionPurpose;
+  executionPurpose: 'IMPLEMENTATION';
+  [claim: string]: unknown;
 }
 
 export interface SupervisorWorkerCapabilityAuthorizationInput {
