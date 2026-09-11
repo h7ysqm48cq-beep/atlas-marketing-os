@@ -152,7 +152,10 @@ describe('Production deployment resolver', () => {
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
 
-  async function createApprovedDeployment(service: 'api' | 'web' | 'browser-worker' = 'api') {
+  async function createApprovedDeployment(
+    service: 'api' | 'web' | 'browser-worker' = 'api',
+    options: { runtimeRefresh?: boolean } = {},
+  ) {
     const task = await supervisor.createTask({
       objective: `Authorize exact ${service} production deployment`,
       owner: 'infra',
@@ -164,18 +167,26 @@ describe('Production deployment resolver', () => {
     await supervisor.startTask(task.id);
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     const running = await dispatcher.markRunning(dispatched.execution.id);
-    const reviewCandidate = {
-      action: 'deploy_production' as const,
-      targetBranch: 'production/atlas',
-      baseSha: BASE_SHA,
-      headSha: HEAD_SHA,
-      changedFiles: [CHANGED_FILE],
-    };
+    const reviewCandidate = options.runtimeRefresh
+      ? {
+          action: 'deploy_production' as const,
+          targetBranch: 'production/atlas',
+          baseSha: HEAD_SHA,
+          headSha: HEAD_SHA,
+          changedFiles: [],
+        }
+      : {
+          action: 'deploy_production' as const,
+          targetBranch: 'production/atlas',
+          baseSha: BASE_SHA,
+          headSha: HEAD_SHA,
+          changedFiles: [CHANGED_FILE],
+        };
     const completed = await dispatcher.complete(running.id, {
       summary: 'Prepared exact deployment receipt',
       evidence: {
         rootCause: 'Railway requires automatic Supervisor receipt resolution',
-        changedFiles: [CHANGED_FILE],
+        changedFiles: [...reviewCandidate.changedFiles],
         tests: ['resolver contract'],
         build: 'PASS',
         regression: [],
@@ -216,6 +227,21 @@ describe('Production deployment resolver', () => {
 
   it('resolves the unique approved service-bound receipt from canonical provenance', async () => {
     const { task, execution } = await createApprovedDeployment('api');
+
+    await expect(
+      resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+  });
+
+  it('resolves an exact same-SHA zero-diff runtime refresh receipt', async () => {
+    const { task, execution } = await createApprovedDeployment('api', {
+      runtimeRefresh: true,
+    });
 
     await expect(
       resolve({ service: 'api', github: CANONICAL_GITHUB }),

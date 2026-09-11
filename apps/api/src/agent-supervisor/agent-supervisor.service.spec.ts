@@ -294,6 +294,17 @@ function deploymentCandidate(
   return candidate({ action: 'deploy_production', ...overrides });
 }
 
+function runtimeRefreshDeploymentCandidate(
+  overrides: Partial<SupervisorReviewCandidate> = {},
+): SupervisorReviewCandidate {
+  return deploymentCandidate({
+    baseSha: BASE_SHA,
+    headSha: BASE_SHA,
+    changedFiles: [],
+    ...overrides,
+  });
+}
+
 interface OwnerDeploymentAuthorizationContract {
   candidate: SupervisorReviewCandidate;
   service: ProductionDeploymentService;
@@ -474,7 +485,7 @@ async function makeReadyTask(
   await service.startTask(task.id);
   await service.submitImplementation(task.id, {
     rootCause: 'Confirmed cause',
-    changedFiles: [CHANGED_FILE],
+    changedFiles: [...reviewCandidate.changedFiles],
     tests: ['PASS'],
     build: 'PASS',
     regression: ['PASS'],
@@ -746,6 +757,75 @@ describe('AgentSupervisorService', () => {
       authorized?.evidence?.ownerDeploymentAuthorization?.signature,
     ).toMatch(/^[^.]+\.[^.]+\.[^.]+$/);
     expect(authorized?.evidence?.ownerMergeAuthorization).toBeUndefined();
+  });
+
+  it('authorizes an exact same-SHA zero-diff production runtime refresh', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = runtimeRefreshDeploymentCandidate();
+    const task = await makeReadyTask(ownerService, reviewCandidate);
+
+    const authorized = (await authorizeProductionDeployment(
+      ownerService,
+      task.id,
+      reviewCandidate,
+    )) as {
+      evidence?: {
+        ownerDeploymentAuthorization?: OwnerDeploymentAuthorizationContract;
+      };
+    };
+
+    expect(authorized.evidence?.ownerDeploymentAuthorization).toMatchObject({
+      candidate: reviewCandidate,
+      service: 'api',
+      authorizedBy: 'owner-user-1',
+    });
+  });
+
+  it('rejects a same-SHA zero-diff merge candidate', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = candidate({
+      baseSha: BASE_SHA,
+      headSha: BASE_SHA,
+      changedFiles: [],
+    });
+    const task = await makeReadyTask(ownerService, reviewCandidate);
+
+    await expect(
+      authorizeMergeAsOwner(
+        ownerService,
+        task.id,
+        reviewCandidate,
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'review_candidate_empty_changes' },
+    });
+  });
+
+  it('rejects a zero-diff production deployment when base and head differ', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = deploymentCandidate({ changedFiles: [] });
+    const task = await makeReadyTask(ownerService, reviewCandidate);
+
+    await expect(
+      authorizeProductionDeployment(ownerService, task.id, reviewCandidate),
+    ).rejects.toMatchObject({
+      response: { code: 'review_candidate_empty_changes' },
+    });
+  });
+
+  it('rejects a same-SHA zero-diff deployment outside production/atlas', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = runtimeRefreshDeploymentCandidate({
+      targetBranch: 'feature/not-production',
+    });
+    const task = await makeReadyTask(ownerService, reviewCandidate);
+
+    await expect(
+      authorizeProductionDeployment(ownerService, task.id, reviewCandidate),
+    ).rejects.toMatchObject({
+      response: { code: 'review_candidate_empty_changes' },
+    });
   });
 
   it('consumes an exact deployment approval once and records its binding', async () => {

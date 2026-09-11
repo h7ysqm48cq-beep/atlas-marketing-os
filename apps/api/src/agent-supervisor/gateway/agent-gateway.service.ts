@@ -420,7 +420,12 @@ export class AgentGatewayService {
     const baseSha = this.requireSha(candidate.baseSha, 'invalid_base_sha');
     const headSha = this.requireSha(candidate.headSha, 'invalid_head_sha');
     const changedFiles = this.normalizeChangedFileSet(candidate.changedFiles);
-    if (changedFiles.length === 0) {
+    const isRuntimeRefresh =
+      candidate.action === 'deploy_production' &&
+      targetBranch === 'production/atlas' &&
+      baseSha === headSha &&
+      changedFiles.length === 0;
+    if (changedFiles.length === 0 && !isRuntimeRefresh) {
       throw new BadRequestException({ code: 'review_candidate_empty_changes' });
     }
 
