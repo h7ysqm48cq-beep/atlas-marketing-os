@@ -161,6 +161,7 @@ describe('Production deployment external mutation idempotency', () => {
         taskId: string;
         executionId: string;
         service: 'api';
+        github: typeof CANONICAL_GITHUB;
       }) => Promise<unknown>;
     };
     expect(contract.claimProductionDeploymentMutation).toEqual(
@@ -170,6 +171,7 @@ describe('Production deployment external mutation idempotency', () => {
       taskId,
       executionId,
       service: 'api',
+      github: CANONICAL_GITHUB,
     });
   }
 
