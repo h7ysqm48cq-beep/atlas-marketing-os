@@ -61,7 +61,20 @@ function response(status: number, body: unknown): Response {
   );
 }
 
+async function rejectedGate(promise: Promise<GateResult>): Promise<Error> {
+  try {
+    await promise;
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+  throw new Error('expected production deployment gate rejection');
+}
+
 describe('repository-owned production deployment gate', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('fails closed when required Railway Git provenance is missing', async () => {
     const gate = loadGate();
     await expect(
@@ -74,13 +87,23 @@ describe('repository-owned production deployment gate', () => {
 
   it('fails closed when the resolver returns HTTP 400', async () => {
     const gate = loadGate();
-    const fetchImpl = jest.fn().mockResolvedValue(
-      response(400, { code: 'production_deployment_resolution_not_found' }),
-    ) as unknown as typeof fetch;
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(
+        response(400, { code: 'production_deployment_resolution_not_found' }),
+      ) as unknown as typeof fetch;
 
-    await expect(
+    const error = await rejectedGate(
       gate.checkProductionDeploymentGate({ env: validEnv(), fetchImpl }),
-    ).rejects.toThrow(/production_deployment_resolution_not_found/);
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toMatch(/elapsed=\d+ms/);
+    expect(error.message).toContain('status=400');
+    expect(error.message).toContain(
+      'failure=production_deployment_resolution_not_found',
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed when the resolver response is malformed JSON', async () => {
@@ -89,10 +112,80 @@ describe('repository-owned production deployment gate', () => {
       .fn()
       .mockResolvedValue(response(200, 'not-json')) as unknown as typeof fetch;
 
-    await expect(
+    const error = await rejectedGate(
       gate.checkProductionDeploymentGate({ env: validEnv(), fetchImpl }),
-    ).rejects.toThrow(/invalid_response/);
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toMatch(/elapsed=\d+ms/);
+    expect(error.message).toContain('status=200');
+    expect(error.message).toContain('failure=invalid_response');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it('uses a 30 second resolver timeout and fails closed without retry or secret leakage', async () => {
+    const gate = loadGate();
+    const env = validEnv({
+      ATLAS_SUPERVISOR_API_URL: 'https://private-supervisor.example.test',
+      ATLAS_SUPERVISOR_CI_TOKEN: 'private-ci-token',
+    });
+    const timeoutError = Object.assign(
+      new Error(
+        'request to https://private-supervisor.example.test used private-ci-token',
+      ),
+      { name: 'TimeoutError' },
+    );
+    const fetchImpl = jest
+      .fn()
+      .mockRejectedValue(timeoutError) as unknown as typeof fetch;
+    const timeoutSpy = jest.spyOn(AbortSignal, 'timeout');
+
+    const error = await rejectedGate(
+      gate.checkProductionDeploymentGate({ env, fetchImpl }),
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toMatch(/elapsed=\d+ms/);
+    expect(error.message).toContain('status=unavailable');
+    expect(error.message).toContain('failure=resolver_timeout');
+    expect(error.message).not.toContain('private-ci-token');
+    expect(error.message).not.toContain(
+      'https://private-supervisor.example.test',
+    );
+    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([401, 403])(
+    'fails closed on HTTP %i with safe elapsed/status/failure diagnostics',
+    async (status) => {
+      const gate = loadGate();
+      const env = validEnv({
+        ATLAS_SUPERVISOR_API_URL: 'https://private-supervisor.example.test',
+        ATLAS_SUPERVISOR_CI_TOKEN: 'private-ci-token',
+      });
+      const fetchImpl = jest.fn().mockResolvedValue(
+        response(status, {
+          reason:
+            'denied private-ci-token https://private-supervisor.example.test',
+        }),
+      ) as unknown as typeof fetch;
+
+      const error = await rejectedGate(
+        gate.checkProductionDeploymentGate({ env, fetchImpl }),
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toMatch(/elapsed=\d+ms/);
+      expect(error.message).toContain(`status=${status}`);
+      expect(error.message).toContain('failure=');
+      expect(error.message).not.toContain('private-ci-token');
+      expect(error.message).not.toContain(
+        'https://private-supervisor.example.test',
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('fails closed when allowed is false', async () => {
     const gate = loadGate();

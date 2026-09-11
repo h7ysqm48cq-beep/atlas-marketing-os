@@ -51,6 +51,20 @@ function failureReason(responseBody, status) {
   return `http_${status}`;
 }
 
+function safeDiagnostic(value, secrets) {
+  return secrets.reduce(
+    (safe, secret) => safe.split(secret).join('[redacted]'),
+    String(value).replace(/[\r\n]+/g, ' '),
+  );
+}
+
+function deploymentGateDenied({ startedAt, status, failure, secrets }) {
+  const elapsed = Math.max(0, Date.now() - startedAt);
+  return new Error(
+    `ATLAS_DEPLOY_GATE_DENY elapsed=${elapsed}ms status=${status} failure=${safeDiagnostic(failure, secrets)}`,
+  );
+}
+
 async function checkProductionDeploymentGate({
   env = process.env,
   fetchImpl = globalThis.fetch,
@@ -72,6 +86,8 @@ async function checkProductionDeploymentGate({
       commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
     },
   };
+  const startedAt = Date.now();
+  const secrets = [ciToken, apiUrl];
 
   let response;
   try {
@@ -84,32 +100,65 @@ async function checkProductionDeploymentGate({
           'x-atlas-supervisor-ci-token': ciToken,
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(30_000),
       },
     );
   } catch (error) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY resolver_unreachable: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    const failure =
+      error instanceof Error &&
+      (error.name === 'TimeoutError' || error.name === 'AbortError')
+        ? 'resolver_timeout'
+        : 'resolver_unreachable';
+    throw deploymentGateDenied({
+      startedAt,
+      status: 'unavailable',
+      failure,
+      secrets,
+    });
   }
 
-  const text = await response.text();
+  const status =
+    response && typeof response.status === 'number'
+      ? response.status
+      : 'unavailable';
+  let text;
+  try {
+    text = await response.text();
+  } catch {
+    throw deploymentGateDenied({
+      startedAt,
+      status,
+      failure: 'response_read_failed',
+      secrets,
+    });
+  }
   let data;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
+    throw deploymentGateDenied({
+      startedAt,
+      status,
+      failure: 'invalid_response',
+      secrets,
+    });
   }
 
   if (!response.ok) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY ${failureReason(data, response.status)}`,
-    );
+    throw deploymentGateDenied({
+      startedAt,
+      status,
+      failure: failureReason(data, status),
+      secrets,
+    });
   }
   if (!data || data.allowed !== true) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY ${failureReason(data, response.status)}`,
-    );
+    throw deploymentGateDenied({
+      startedAt,
+      status,
+      failure: failureReason(data, status),
+      secrets,
+    });
   }
   if (
     typeof data.taskId !== 'string' ||
@@ -117,7 +166,12 @@ async function checkProductionDeploymentGate({
     typeof data.executionId !== 'string' ||
     !data.executionId.trim()
   ) {
-    throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
+    throw deploymentGateDenied({
+      startedAt,
+      status,
+      failure: 'invalid_response',
+      secrets,
+    });
   }
 
   return {
