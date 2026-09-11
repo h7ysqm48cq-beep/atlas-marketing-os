@@ -1025,6 +1025,11 @@ export const SupervisorExecutionScalarFieldEnum = {
   assignment: 'assignment',
   result: 'result',
   error: 'error',
+  claimedBy: 'claimedBy',
+  claimEpoch: 'claimEpoch',
+  claimedAt: 'claimedAt',
+  leaseExpiresAt: 'leaseExpiresAt',
+  lastHeartbeatAt: 'lastHeartbeatAt',
   createdAt: 'createdAt',
   startedAt: 'startedAt',
   completedAt: 'completedAt'

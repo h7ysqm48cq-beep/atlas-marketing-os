@@ -10,6 +10,8 @@ export type SupervisorWorkerRole = SupervisorTask['owner'];
 export type SupervisorExecutionPurpose =
   'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
 
+export type RunnerEligibility = 'A1_SYNTHETIC' | 'STANDARD';
+
 export type SupervisorExecutionStatus =
   'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
@@ -28,6 +30,7 @@ export interface WorkerAssignmentEnvelope {
   taskId: string;
   workerRole: SupervisorWorkerRole;
   executionPurpose?: SupervisorExecutionPurpose;
+  runnerEligibility?: RunnerEligibility;
   objective: string;
   allowedPaths: string[];
   forbiddenActions: SupervisorAction[];
@@ -50,6 +53,11 @@ export interface SupervisorExecution {
   assignment: WorkerAssignmentEnvelope;
   result: WorkerExecutionResult | null;
   error: string | null;
+  claimedBy: string | null;
+  claimEpoch: number;
+  claimedAt: Date | null;
+  leaseExpiresAt: Date | null;
+  lastHeartbeatAt: Date | null;
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;

@@ -42,7 +42,7 @@ function loadGate(): Required<GateModule> {
 function validEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
     ATLAS_SUPERVISOR_API_URL: 'https://supervisor.example.test',
-    ATLAS_SUPERVISOR_CI_TOKEN: 'ci-secret-value',
+    ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN: 'resolver-secret-value',
     RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
     RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
     RAILWAY_GIT_BRANCH: 'production/atlas',
@@ -145,7 +145,7 @@ describe('repository-owned production deployment gate', () => {
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({
       'content-type': 'application/json',
-      'x-atlas-supervisor-ci-token': 'ci-secret-value',
+      'x-atlas-supervisor-deploy-resolver-token': 'resolver-secret-value',
     });
     expect(JSON.parse(String(init.body))).toEqual({
       service: 'api',

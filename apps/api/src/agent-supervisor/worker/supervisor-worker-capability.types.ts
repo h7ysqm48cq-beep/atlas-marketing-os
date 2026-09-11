@@ -8,7 +8,7 @@ export type SupervisorWorkerCapabilityOperation =
   'read_assignment' | 'mark_running' | 'complete' | 'fail' | 'cancel';
 
 export interface SupervisorWorkerCapabilityMetadata {
-  version: 1;
+  version: 2;
   assignmentDigest: string;
   allowedOperations: SupervisorWorkerCapabilityOperation[];
   issuedAt: string;
@@ -20,6 +20,8 @@ export interface SupervisorWorkerCapabilityClaims extends SupervisorWorkerCapabi
   executionId: string;
   workerRole: SupervisorWorkerRole;
   executionPurpose: SupervisorExecutionPurpose;
+  runnerId: string;
+  claimEpoch: number;
 }
 
 export interface SupervisorWorkerCapabilityAuthorizationInput {
@@ -29,5 +31,8 @@ export interface SupervisorWorkerCapabilityAuthorizationInput {
   executionPurpose: SupervisorExecutionPurpose;
   assignment: WorkerAssignmentEnvelope;
   operation: SupervisorWorkerCapabilityOperation;
+  claimedBy: string | null;
+  claimEpoch: number;
+  leaseExpiresAt: Date | null;
   now?: Date;
 }

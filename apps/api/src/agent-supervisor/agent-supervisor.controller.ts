@@ -9,7 +9,11 @@ import {
 } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
-import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
+import type {
+  RunnerEligibility,
+  SupervisorExecutionPurpose,
+  WorkerExecutionResult,
+} from './execution/supervisor-execution.types';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import type {
@@ -155,8 +159,19 @@ export class AgentSupervisorController {
   }
 
   @Post('tasks/:id/dispatch')
-  dispatchTask(@Param('id') id: string) {
-    return this.dispatcher.dispatch(id);
+  dispatchTask(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      executionPurpose?: SupervisorExecutionPurpose;
+      runnerEligibility?: RunnerEligibility;
+    } = {},
+  ) {
+    return this.dispatcher.dispatch(
+      id,
+      body.executionPurpose,
+      body.runnerEligibility,
+    );
   }
 
   @Get('tasks/:id/executions')

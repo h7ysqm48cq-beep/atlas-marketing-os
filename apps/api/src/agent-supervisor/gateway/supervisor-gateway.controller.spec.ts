@@ -4,10 +4,50 @@ import type {
 } from '../agent-supervisor.types';
 import type { AgentGatewayService } from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
+import { SupervisorDeployResolverGuard } from './supervisor-deploy-resolver.guard';
 import { SupervisorGatewayController } from './supervisor-gateway.controller';
+import type { SupervisorRunnerClaimService } from '../runner/supervisor-runner-claim.service';
+import { SupervisorRunnerGuard } from '../runner/supervisor-runner.guard';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 
 describe('SupervisorGatewayController', () => {
+  function claims(overrides: Record<string, unknown> = {}) {
+    return {
+      claimNext: jest.fn(),
+      heartbeat: jest.fn(),
+      ...overrides,
+    } as unknown as SupervisorRunnerClaimService;
+  }
+
+  it('splits CI, deploy resolver, and runner guards by route', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toBeUndefined();
+    for (const handler of [
+      SupervisorGatewayController.prototype.validateWorker,
+      SupervisorGatewayController.prototype.checkReviewCandidate,
+      SupervisorGatewayController.prototype.checkProductionDeployment,
+    ]) {
+      expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+        SupervisorCiGuard,
+      ]);
+    }
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.resolveProductionDeployment,
+      ),
+    ).toEqual([SupervisorDeployResolverGuard]);
+    for (const handler of [
+      SupervisorGatewayController.prototype.claimNext,
+      SupervisorGatewayController.prototype.heartbeat,
+    ]) {
+      expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+        SupervisorRunnerGuard,
+      ]);
+    }
+  });
+
   it('keeps the production deployment gate behind the CI-protected gateway boundary', async () => {
     const decision = {
       allowed: true,
@@ -18,7 +58,7 @@ describe('SupervisorGatewayController', () => {
     const checkProductionDeployment = jest.fn().mockResolvedValue(decision);
     const controller = new SupervisorGatewayController({
       checkProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, claims()) as unknown as {
       checkProductionDeployment?: (input: unknown) => Promise<unknown>;
     };
     const deploymentInput = {
@@ -34,7 +74,10 @@ describe('SupervisorGatewayController', () => {
     };
 
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.checkProductionDeployment,
+      ),
     ).toContain(SupervisorCiGuard);
     expect(typeof controller.checkProductionDeployment).toBe('function');
     await expect(
@@ -53,7 +96,7 @@ describe('SupervisorGatewayController', () => {
     const resolveProductionDeployment = jest.fn().mockResolvedValue(decision);
     const controller = new SupervisorGatewayController({
       resolveProductionDeployment,
-    } as unknown as AgentGatewayService) as unknown as {
+    } as unknown as AgentGatewayService, claims()) as unknown as {
       resolveProductionDeployment?: (input: unknown) => Promise<unknown>;
     };
     const input = {
@@ -67,8 +110,11 @@ describe('SupervisorGatewayController', () => {
     };
 
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
-    ).toContain(SupervisorCiGuard);
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        SupervisorGatewayController.prototype.resolveProductionDeployment,
+      ),
+    ).toContain(SupervisorDeployResolverGuard);
     expect(typeof controller.resolveProductionDeployment).toBe('function');
     await expect(controller.resolveProductionDeployment!(input)).resolves.toBe(
       decision,
@@ -93,7 +139,7 @@ describe('SupervisorGatewayController', () => {
       validateWorkerContext: jest.fn().mockResolvedValue(workerDecision),
       checkReviewCandidate: jest.fn().mockResolvedValue(reviewDecision),
     } as unknown as AgentGatewayService;
-    const controller = new SupervisorGatewayController(gateway);
+    const controller = new SupervisorGatewayController(gateway, claims());
 
     const workerInput: ValidateWorkerContextInput = {
       taskId: 'ATLAS-1',
@@ -128,5 +174,33 @@ describe('SupervisorGatewayController', () => {
     expect(
       (controller as unknown as { authorizeMerge?: unknown }).authorizeMerge,
     ).toBeUndefined();
+  });
+
+  it('exposes claim and heartbeat only behind the dedicated runner guard', async () => {
+    const claimResult = { claimed: false };
+    const heartbeatResult = {
+      claimEpoch: 4,
+      leaseExpiresAt: '2026-09-07T10:02:00.000Z',
+      capability: 'renewed-capability',
+    };
+    const claimNext = jest.fn().mockResolvedValue(claimResult);
+    const heartbeat = jest.fn().mockResolvedValue(heartbeatResult);
+    const controller = new SupervisorGatewayController(
+      {} as AgentGatewayService,
+      claims({ claimNext, heartbeat }),
+    );
+    const runnerId =
+      'engineering-runner:123e4567-e89b-42d3-a456-426614174000';
+
+    await expect(controller.claimNext(runnerId)).resolves.toBe(claimResult);
+    await expect(
+      controller.heartbeat(runnerId, 'ATLAS-EXEC-1', { claimEpoch: 4 }),
+    ).resolves.toBe(heartbeatResult);
+    expect(claimNext).toHaveBeenCalledWith(runnerId);
+    expect(heartbeat).toHaveBeenCalledWith(
+      'ATLAS-EXEC-1',
+      runnerId,
+      4,
+    );
   });
 });

@@ -58,6 +58,23 @@ describe('WorkerDispatcherService', () => {
     };
   }
 
+  function syntheticResult(evidence: Record<string, unknown> = {}) {
+    return {
+      summary: 'Validated synthetic runner claim plane',
+      evidence: {
+        rootCause: 'synthetic_runner_claim_plane_validation',
+        changedFiles: [],
+        tests: ['claim plane smoke PASS'],
+        build: 'NOT_RUN_SYNTHETIC',
+        regression: ['parent task unchanged PASS'],
+        deploymentState: 'NONE',
+        gitState: 'UNCHANGED',
+        remainingRisk: [],
+        ...evidence,
+      },
+    };
+  }
+
   it('dispatches a WORKING task with owned files and a restart-safe execution id', async () => {
     const task = await createWorkingTask();
 
@@ -70,6 +87,14 @@ describe('WorkerDispatcherService', () => {
     expect(result.assignment.taskId).toBe(task.id);
     expect(result.assignment.workerRole).toBe('backend');
     expect(result.assignment.allowedPaths).toEqual(task.allowedPaths);
+    expect(result.assignment.runnerEligibility).toBe('STANDARD');
+    expect(result.execution).toMatchObject({
+      claimedBy: null,
+      claimEpoch: 0,
+      claimedAt: null,
+      leaseExpiresAt: null,
+      lastHeartbeatAt: null,
+    });
   });
 
   it('records IMPLEMENTATION as the default execution purpose', async () => {
@@ -82,38 +107,73 @@ describe('WorkerDispatcherService', () => {
     ).toBe('IMPLEMENTATION');
   });
 
-  it('issues a short-lived capability bound to the persisted assignment', async () => {
+  it('does not issue a worker capability before a runner claims the execution', async () => {
     const task = await createWorkingTask();
     const capabilityService = new SupervisorWorkerCapabilityService({
       get: (name: string) =>
         name === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? 'owner-secret' : undefined,
     } as never);
-    const capabilityDispatcher = new WorkerDispatcherService(
+    const capabilityDispatcher = Reflect.construct(WorkerDispatcherService, [
       supervisor,
       executionStore,
       capabilityService,
-    );
+    ]) as WorkerDispatcherService;
 
     const result = await capabilityDispatcher.dispatch(task.id);
-    expect(result.capability).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u);
-    expect(result.assignment.workerCapability?.assignmentDigest).toMatch(
-      /^[0-9a-f]{64}$/u,
-    );
-    expect(result.assignment.workerCapability).toMatchObject({
-      version: 1,
-      allowedOperations: [
-        'read_assignment',
-        'mark_running',
-        'complete',
-        'fail',
-        'cancel',
-      ],
-    });
+    expect(result).not.toHaveProperty('capability');
+    expect(result.assignment.workerCapability).toBeUndefined();
     expect((await executionStore.get(result.execution.id))?.assignment).toEqual(
       result.assignment,
     );
-    expect(JSON.stringify(result)).not.toContain('owner-secret');
   });
+
+  it('records explicit A1 synthetic runner eligibility', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+      'A1_SYNTHETIC',
+    );
+
+    expect(result.assignment.runnerEligibility).toBe('A1_SYNTHETIC');
+  });
+
+  it('rejects A1 synthetic independent verification executions', async () => {
+    const task = await createWorkingTask();
+
+    await expect(
+      dispatcher.dispatch(
+        task.id,
+        'INDEPENDENT_VERIFICATION',
+        'A1_SYNTHETIC',
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'runner_execution_not_eligible' },
+    });
+    expect(await executionStore.listByTask(task.id)).toEqual([]);
+  });
+
+  it.each([
+    ['executionPurpose', 'UNKNOWN_PURPOSE', undefined],
+    ['runnerEligibility', undefined, 'UNKNOWN_RUNNER'],
+  ])(
+    'rejects invalid runtime %s before creating an execution',
+    async (_field, executionPurpose, runnerEligibility) => {
+      const task = await createWorkingTask();
+
+      await expect(
+        dispatcher.dispatch(
+          task.id,
+          executionPurpose as never,
+          runnerEligibility as never,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'runner_execution_not_eligible' },
+      });
+      expect(await executionStore.listByTask(task.id)).toEqual([]);
+    },
+  );
 
   it('can dispatch a separately bound independent verification execution', async () => {
     const task = await createWorkingTask();
@@ -233,6 +293,67 @@ describe('WorkerDispatcherService', () => {
 
     expect((await supervisor.getTask(task.id)).status).toBe('WORKING');
   });
+
+  it('completes an A1 synthetic execution with exact no-op evidence without mutating its parent task', async () => {
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+      'A1_SYNTHETIC',
+    );
+    await dispatcher.markRunning(dispatched.execution.id);
+
+    await expect(
+      dispatcher.complete(dispatched.execution.id, syntheticResult() as never),
+    ).resolves.toMatchObject({
+      status: 'COMPLETED',
+      result: syntheticResult(),
+    });
+    expect((await supervisor.getTask(task.id)).status).toBe('WORKING');
+  });
+
+  it.each([
+    ['rootCause', { rootCause: 'not_the_synthetic_contract' }],
+    ['changedFiles', { changedFiles: ['apps/api/src/example.ts'] }],
+    ['build', { build: 'PASS' }],
+    ['deploymentState', { deploymentState: 'NOT_DEPLOYED' }],
+    ['gitState', { gitState: 'NO_INTEGRATION_PERFORMED' }],
+    ['reviewCandidate', { reviewCandidate: {} }],
+    ['ownerMergeAuthorization', { ownerMergeAuthorization: {} }],
+    [
+      'ownerMergeAuthorizationConsumption',
+      { ownerMergeAuthorizationConsumption: {} },
+    ],
+    ['ownerDeploymentAuthorization', { ownerDeploymentAuthorization: {} }],
+    [
+      'ownerDeploymentAuthorizationRevocations',
+      { ownerDeploymentAuthorizationRevocations: [] },
+    ],
+    ['unrelatedExtraKey', { unrelatedExtraKey: 'unexpected' }],
+  ])(
+    'rejects synthetic completion evidence violating %s before persisting completion',
+    async (_field, evidence) => {
+      const task = await createWorkingTask();
+      const dispatched = await dispatcher.dispatch(
+        task.id,
+        'IMPLEMENTATION',
+        'A1_SYNTHETIC',
+      );
+      await dispatcher.markRunning(dispatched.execution.id);
+
+      await expect(
+        dispatcher.complete(
+          dispatched.execution.id,
+          syntheticResult(evidence) as never,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'synthetic_execution_evidence_violation' },
+      });
+      await expect(
+        dispatcher.getExecution(dispatched.execution.id),
+      ).resolves.toMatchObject({ status: 'RUNNING', result: null });
+    },
+  );
 
   it('allows DISPATCHED to transition to RUNNING', async () => {
     const task = await createWorkingTask();

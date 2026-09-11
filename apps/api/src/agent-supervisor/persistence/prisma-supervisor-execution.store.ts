@@ -24,6 +24,11 @@ type SupervisorExecutionCreateArgs = {
     assignment: unknown;
     result: unknown;
     error: string | null;
+    claimedBy: string | null;
+    claimEpoch: number;
+    claimedAt: Date | null;
+    leaseExpiresAt: Date | null;
+    lastHeartbeatAt: Date | null;
     createdAt: Date;
     startedAt: Date | null;
     completedAt: Date | null;
@@ -152,6 +157,15 @@ function executionCreateData(
     result:
       execution.result === null ? null : structuredClone(execution.result),
     error: execution.error,
+    claimedBy: execution.claimedBy,
+    claimEpoch: execution.claimEpoch,
+    claimedAt: execution.claimedAt ? new Date(execution.claimedAt) : null,
+    leaseExpiresAt: execution.leaseExpiresAt
+      ? new Date(execution.leaseExpiresAt)
+      : null,
+    lastHeartbeatAt: execution.lastHeartbeatAt
+      ? new Date(execution.lastHeartbeatAt)
+      : null,
     createdAt: new Date(execution.createdAt),
     startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
     completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
@@ -169,6 +183,11 @@ function executionUpdateData(
     assignment: data.assignment,
     result: data.result,
     error: data.error,
+    claimedBy: data.claimedBy,
+    claimEpoch: data.claimEpoch,
+    claimedAt: data.claimedAt,
+    leaseExpiresAt: data.leaseExpiresAt,
+    lastHeartbeatAt: data.lastHeartbeatAt,
     startedAt: data.startedAt,
     completedAt: data.completedAt,
   };
