@@ -1085,7 +1085,12 @@ export class AgentSupervisorService {
         candidate.changedFiles.map((path) => this.normalizeRepoPath(path)),
       ),
     ).sort();
-    if (changedFiles.length === 0) {
+    const isRuntimeRefresh =
+      candidate.action === 'deploy_production' &&
+      targetBranch === 'production/atlas' &&
+      baseSha === headSha &&
+      changedFiles.length === 0;
+    if (changedFiles.length === 0 && !isRuntimeRefresh) {
       throw new BadRequestException({ code: 'review_candidate_empty_changes' });
     }
 
