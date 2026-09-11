@@ -14,6 +14,7 @@ import {
 } from '../stores/supervisor-execution.store';
 import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
 import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-capability.types';
+import type { SupervisorWorkerCapabilityClaims } from './supervisor-worker-capability.types';
 
 export const SUPERVISOR_WORKER_OPERATION = 'atlas-supervisor-worker-operation';
 
@@ -43,6 +44,7 @@ export class SupervisorWorkerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       headers: { authorization?: string | string[] };
       params: { taskId?: string; executionId?: string };
+      atlasWorkerCapability?: SupervisorWorkerCapabilityClaims;
     }>();
     const authorization = request.headers.authorization;
     if (
@@ -72,7 +74,7 @@ export class SupervisorWorkerGuard implements CanActivate {
       throw new ForbiddenException('worker_capability_terminal_execution');
     }
 
-    this.capabilities.authorize(authorization.slice('Bearer '.length), {
+    const claims = this.capabilities.authorize(authorization.slice('Bearer '.length), {
       taskId,
       executionId,
       workerRole: execution.workerRole,
@@ -80,7 +82,11 @@ export class SupervisorWorkerGuard implements CanActivate {
         execution.assignment.executionPurpose ?? 'IMPLEMENTATION',
       assignment: execution.assignment,
       operation,
+      claimedBy: execution.claimedBy,
+      claimEpoch: execution.claimEpoch,
+      leaseExpiresAt: execution.leaseExpiresAt,
     });
+    request.atlasWorkerCapability = claims;
     return true;
   }
 }

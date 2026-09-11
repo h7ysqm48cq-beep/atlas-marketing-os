@@ -6,6 +6,7 @@ import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-ca
 
 const OWNER_TOKEN = 'owner-secret-that-must-never-leave-the-server';
 const NOW = new Date('2026-09-06T00:00:00.000Z');
+const RUNNER_ID = 'engineering-runner:11111111-1111-4111-8111-111111111111';
 
 function config(ownerToken: string | undefined = OWNER_TOKEN): ConfigService {
   return {
@@ -46,6 +47,11 @@ function execution(
     },
     result: null,
     error: null,
+    claimedBy: RUNNER_ID,
+    claimEpoch: 1,
+    claimedAt: NOW,
+    leaseExpiresAt: new Date(NOW.getTime() + 120_000),
+    lastHeartbeatAt: NOW,
     createdAt: NOW,
     startedAt: null,
     completedAt: null,
@@ -66,6 +72,9 @@ function authorize(
     executionPurpose: value.assignment.executionPurpose ?? 'IMPLEMENTATION',
     assignment: value.assignment,
     operation,
+    claimedBy: value.claimedBy,
+    claimEpoch: value.claimEpoch,
+    leaseExpiresAt: value.leaseExpiresAt,
     now: new Date(NOW.getTime() + 1_000),
   });
 }
@@ -83,6 +92,37 @@ function tamperPayload(
 }
 
 describe('SupervisorWorkerCapabilityService', () => {
+  it('issues and authorizes the persisted v1 capability for STANDARD workers', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution({
+      claimedBy: null,
+      claimEpoch: 0,
+      leaseExpiresAt: null,
+      assignment: {
+        ...execution().assignment,
+        runnerEligibility: 'STANDARD',
+      },
+    });
+    const issued = service.issueLegacy(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(issued.metadata.version).toBe(1);
+    expect(
+      service.authorize(issued.token, {
+        taskId: value.taskId,
+        executionId: value.id,
+        workerRole: value.workerRole,
+        executionPurpose: 'IMPLEMENTATION',
+        assignment: value.assignment,
+        operation: 'complete',
+        claimedBy: null,
+        claimEpoch: 0,
+        leaseExpiresAt: null,
+        now: new Date(NOW.getTime() + 1_000),
+      }),
+    ).toMatchObject({ version: 1, taskId: value.taskId });
+  });
+
   it('accepts a valid execution-bound capability', () => {
     const service = new SupervisorWorkerCapabilityService(config());
     const value = execution();
@@ -91,14 +131,125 @@ describe('SupervisorWorkerCapabilityService', () => {
 
     const claims = authorize(service, issued.token, value);
     expect(claims).toMatchObject({
+      version: 2,
       taskId: value.taskId,
       executionId: value.id,
       workerRole: 'engineering',
       executionPurpose: 'IMPLEMENTATION',
+      runnerId: RUNNER_ID,
+      claimEpoch: 1,
     });
     expect(claims.allowedOperations).toContain('read_assignment');
     expect(issued.token).not.toContain(OWNER_TOKEN);
     expect(JSON.stringify(issued.metadata)).not.toContain(OWNER_TOKEN);
+  });
+
+  it('rejects a legacy v1 token when the persisted assignment is v2', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issueLegacy(value, { now: NOW });
+    value.assignment.workerCapability = {
+      ...issued.metadata,
+      version: 2,
+    };
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'worker_capability_assignment_mismatch',
+    );
+  });
+
+  it('rejects capability issuance without a claimed runner', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+
+    expect(() =>
+      service.issue(execution({ claimedBy: null }), { now: NOW }),
+    ).toThrow('worker_capability_claim_required');
+  });
+
+  it.each([0, -1, 1.5])(
+    'rejects capability issuance with invalid claim epoch %s',
+    (claimEpoch) => {
+      const service = new SupervisorWorkerCapabilityService(config());
+
+      expect(() => service.issue(execution({ claimEpoch }), { now: NOW })).toThrow(
+        'worker_capability_claim_required',
+      );
+    },
+  );
+
+  it('rejects capability issuance after the runner lease expires', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+
+    expect(() =>
+      service.issue(execution({ leaseExpiresAt: NOW }), { now: NOW }),
+    ).toThrow('runner_lease_expired');
+  });
+
+  it('rejects a capability when the current runner identity changes', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.claimedBy =
+      'engineering-runner:22222222-2222-4222-8222-222222222222';
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'stale_runner_fenced',
+    );
+  });
+
+  it('rejects a capability when the current claim epoch changes', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.claimEpoch += 1;
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'stale_runner_fenced',
+    );
+  });
+
+  it('rejects a capability after the persisted runner lease expires', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.leaseExpiresAt = new Date(NOW.getTime() + 1_000);
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'runner_lease_expired',
+    );
+  });
+
+  it('rejects an old epoch capability after reclaim', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.claimedBy =
+      'engineering-runner:22222222-2222-4222-8222-222222222222';
+    value.claimEpoch += 1;
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'stale_runner_fenced',
+    );
+  });
+
+  it('accepts a heartbeat-style reissue in the same ownership epoch', () => {
+    const service = new SupervisorWorkerCapabilityService(config());
+    const value = execution();
+    const first = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = first.metadata;
+    const reissued = service.issue(value, {
+      now: new Date(NOW.getTime() + 1_000),
+    });
+    value.assignment.workerCapability = reissued.metadata;
+
+    expect(authorize(service, reissued.token, value)).toMatchObject({
+      runnerId: RUNNER_ID,
+      claimEpoch: 1,
+    });
   });
 
   it('rejects a tampered payload', () => {
@@ -141,6 +292,9 @@ describe('SupervisorWorkerCapabilityService', () => {
         executionPurpose: 'IMPLEMENTATION',
         assignment: value.assignment,
         operation: 'read_assignment',
+        claimedBy: value.claimedBy,
+        claimEpoch: value.claimEpoch,
+        leaseExpiresAt: value.leaseExpiresAt,
         now: new Date(NOW.getTime() + 1_001),
       }),
     ).toThrow('worker_capability_expired');
@@ -179,6 +333,9 @@ describe('SupervisorWorkerCapabilityService', () => {
         executionPurpose: 'INDEPENDENT_VERIFICATION',
         assignment: value.assignment,
         operation: 'read_assignment',
+        claimedBy: value.claimedBy,
+        claimEpoch: value.claimEpoch,
+        leaseExpiresAt: value.leaseExpiresAt,
         now: new Date(NOW.getTime() + 1_000),
       }),
     ).toThrow('worker_capability_purpose_mismatch');

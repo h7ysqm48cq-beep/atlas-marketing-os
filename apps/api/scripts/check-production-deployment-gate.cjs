@@ -2,7 +2,7 @@
 
 const REQUIRED_ENV = [
   'ATLAS_SUPERVISOR_API_URL',
-  'ATLAS_SUPERVISOR_CI_TOKEN',
+  'ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN',
   'RAILWAY_GIT_REPO_OWNER',
   'RAILWAY_GIT_REPO_NAME',
   'RAILWAY_GIT_BRANCH',
@@ -12,6 +12,7 @@ const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
   'api',
   'web',
   'browser-worker',
+  'engineering-runner',
 ]);
 
 function requireEnv(env, key) {
@@ -61,7 +62,10 @@ async function checkProductionDeploymentGate({
   }
 
   const apiUrl = requireEnv(env, 'ATLAS_SUPERVISOR_API_URL').replace(/\/+$/g, '');
-  const ciToken = requireEnv(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
+  const resolverToken = requireEnv(
+    env,
+    'ATLAS_SUPERVISOR_DEPLOY_RESOLVER_TOKEN',
+  );
   const service = deploymentService(env);
   const payload = {
     service,
@@ -81,7 +85,7 @@ async function checkProductionDeploymentGate({
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-atlas-supervisor-ci-token': ciToken,
+          'x-atlas-supervisor-deploy-resolver-token': resolverToken,
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10_000),

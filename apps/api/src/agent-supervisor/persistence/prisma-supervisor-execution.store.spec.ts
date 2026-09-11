@@ -32,6 +32,11 @@ function execution(
     },
     result: null,
     error: null,
+    claimedBy: 'engineering-runner:11111111-1111-4111-8111-111111111111',
+    claimEpoch: 4,
+    claimedAt: new Date('2026-09-07T00:00:00.000Z'),
+    leaseExpiresAt: new Date('2026-09-07T00:02:00.000Z'),
+    lastHeartbeatAt: new Date('2026-09-07T00:00:30.000Z'),
     createdAt: new Date('2026-08-30T00:00:00.000Z'),
     startedAt: null,
     completedAt: null,
@@ -49,6 +54,7 @@ function record(value: SupervisorExecution = execution()) {
 
 function mockPrisma() {
   return {
+    $queryRaw: jest.fn(),
     supervisorExecution: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -75,6 +81,11 @@ describe('PrismaSupervisorExecutionStore', () => {
         assignment: input.assignment,
         result: null,
         error: null,
+        claimedBy: input.claimedBy,
+        claimEpoch: input.claimEpoch,
+        claimedAt: input.claimedAt,
+        leaseExpiresAt: input.leaseExpiresAt,
+        lastHeartbeatAt: input.lastHeartbeatAt,
         createdAt: input.createdAt,
         startedAt: null,
         completedAt: null,
@@ -124,6 +135,11 @@ describe('PrismaSupervisorExecutionStore', () => {
         assignment: input.assignment,
         result: input.result,
         error: input.error,
+        claimedBy: input.claimedBy,
+        claimEpoch: input.claimEpoch,
+        claimedAt: input.claimedAt,
+        leaseExpiresAt: input.leaseExpiresAt,
+        lastHeartbeatAt: input.lastHeartbeatAt,
         startedAt: input.startedAt,
         completedAt: input.completedAt,
       },
@@ -134,6 +150,10 @@ describe('PrismaSupervisorExecutionStore', () => {
     const prisma = mockPrisma();
     const input = execution({
       status: 'COMPLETED',
+      claimedBy: null,
+      claimedAt: null,
+      leaseExpiresAt: null,
+      lastHeartbeatAt: null,
       completedAt: new Date('2026-09-06T00:05:00.000Z'),
     });
     prisma.supervisorExecution.update.mockResolvedValue(record(input));
@@ -149,6 +169,11 @@ describe('PrismaSupervisorExecutionStore', () => {
         assignment: input.assignment,
         result: input.result,
         error: input.error,
+        claimedBy: null,
+        claimEpoch: 4,
+        claimedAt: null,
+        leaseExpiresAt: null,
+        lastHeartbeatAt: null,
         startedAt: input.startedAt,
         completedAt: input.completedAt,
       },
@@ -168,6 +193,57 @@ describe('PrismaSupervisorExecutionStore', () => {
         expected: 'RUNNING',
       },
     });
+  });
+
+  it('atomically fences v2 mutation by owner, epoch, live lease, and status', async () => {
+    const prisma = mockPrisma();
+    prisma.$queryRaw.mockResolvedValue([record(execution({ status: 'RUNNING' }))]);
+    const input = execution({ status: 'RUNNING' });
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+    const now = new Date('2026-09-07T00:01:00.000Z');
+
+    await expect(
+      store.saveIfClaimCurrent(input, 'DISPATCHED', {
+        claimedBy: input.claimedBy!,
+        claimEpoch: input.claimEpoch,
+        now,
+      }),
+    ).resolves.toEqual(input);
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  it('rejects a stale v2 mutation when the atomic fence matches no row', async () => {
+    const prisma = mockPrisma();
+    prisma.$queryRaw.mockResolvedValue([]);
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(
+      store.saveIfClaimCurrent(execution({ status: 'RUNNING' }), 'DISPATCHED', {
+        claimedBy: execution().claimedBy!,
+        claimEpoch: 4,
+        now: new Date('2026-09-07T00:01:00.000Z'),
+      }),
+    ).rejects.toMatchObject({ response: { code: 'execution_claim_conflict' } });
+  });
+
+  it('uses database current time for the live lease fence', async () => {
+    const prisma = mockPrisma();
+    const input = execution({ status: 'RUNNING' });
+    prisma.$queryRaw.mockResolvedValue([record(input)]);
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(
+      store.saveIfClaimCurrent(input, 'DISPATCHED', {
+        claimedBy: input.claimedBy!,
+        claimEpoch: input.claimEpoch,
+        now: new Date('2026-09-07T00:01:00.000Z'),
+      }),
+    ).resolves.toEqual(input);
+
+    const [query] = prisma.$queryRaw.mock.calls[0] as [TemplateStringsArray];
+    expect(query.join('')).toContain(
+      '"leaseExpiresAt" > (CURRENT_TIMESTAMP AT TIME ZONE \'UTC\')',
+    );
   });
 
   it('returns cloned assignment data instead of persistence references', async () => {

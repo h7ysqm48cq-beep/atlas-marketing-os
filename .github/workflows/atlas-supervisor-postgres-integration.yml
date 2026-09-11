@@ -1,0 +1,51 @@
+name: atlas-supervisor-postgres-integration
+
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/agent-supervisor/**'
+      - 'apps/api/prisma/**'
+      - '.github/workflows/atlas-supervisor-postgres-integration.yml'
+  push:
+    branches:
+      - production/atlas
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  supervisor-postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_supervisor_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atlas_supervisor_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atlas_supervisor_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema apps/api/prisma/schema.prisma
+      - run: npm run db:migrate --workspace apps/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_supervisor_test
+          MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_supervisor_test
+      - run: npm test --workspace apps/api -- --runInBand --runTestsByPath src/agent-supervisor/persistence/supervisor-persistence.integration.spec.ts
+        env:
+          SUPERVISOR_INTEGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atlas_supervisor_test

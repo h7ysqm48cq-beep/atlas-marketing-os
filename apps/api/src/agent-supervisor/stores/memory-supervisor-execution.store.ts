@@ -4,6 +4,7 @@ import type {
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
 import type { SupervisorExecutionStore } from './supervisor-execution.store';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 
 @Injectable()
 export class MemorySupervisorExecutionStore implements SupervisorExecutionStore {
@@ -55,7 +56,48 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
         }),
       );
     }
-    const stored = this.cloneExecution(execution);
+    const stored = this.cloneExecution({
+      ...current,
+      ...execution,
+      assignment: current.assignment,
+      claimedBy: current.claimedBy,
+      claimEpoch: current.claimEpoch,
+      claimedAt: current.claimedAt,
+      leaseExpiresAt: current.leaseExpiresAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+    });
+    this.executions.set(stored.id, stored);
+    return Promise.resolve(this.cloneExecution(stored));
+  }
+
+  saveIfClaimCurrent(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+    fence: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
+    const current = this.executions.get(execution.id);
+    if (
+      !current ||
+      current.status !== expectedStatus ||
+      current.claimedBy !== fence.claimedBy ||
+      current.claimEpoch !== fence.claimEpoch ||
+      !current.leaseExpiresAt ||
+      current.leaseExpiresAt.getTime() <= fence.now.getTime()
+    ) {
+      return Promise.reject(
+        new ConflictException({ code: 'execution_claim_conflict' }),
+      );
+    }
+    const stored = this.cloneExecution({
+      ...current,
+      ...execution,
+      assignment: current.assignment,
+      claimedBy: current.claimedBy,
+      claimEpoch: current.claimEpoch,
+      claimedAt: current.claimedAt,
+      leaseExpiresAt: current.leaseExpiresAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+    });
     this.executions.set(stored.id, stored);
     return Promise.resolve(this.cloneExecution(stored));
   }
@@ -90,6 +132,13 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
               remainingRisk: [...execution.result.evidence.remainingRisk],
             },
           }
+        : null,
+      claimedAt: execution.claimedAt ? new Date(execution.claimedAt) : null,
+      leaseExpiresAt: execution.leaseExpiresAt
+        ? new Date(execution.leaseExpiresAt)
+        : null,
+      lastHeartbeatAt: execution.lastHeartbeatAt
+        ? new Date(execution.lastHeartbeatAt)
         : null,
       createdAt: new Date(execution.createdAt),
       startedAt: execution.startedAt ? new Date(execution.startedAt) : null,

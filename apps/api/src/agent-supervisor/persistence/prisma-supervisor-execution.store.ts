@@ -10,6 +10,7 @@ import type {
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
 import type { SupervisorExecutionStore } from '../stores/supervisor-execution.store';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 import {
   mapExecutionRecord,
   type SupervisorExecutionRecord,
@@ -24,6 +25,11 @@ type SupervisorExecutionCreateArgs = {
     assignment: unknown;
     result: unknown;
     error: string | null;
+    claimedBy: string | null;
+    claimEpoch: number;
+    claimedAt: Date | null;
+    leaseExpiresAt: Date | null;
+    lastHeartbeatAt: Date | null;
     createdAt: Date;
     startedAt: Date | null;
     completedAt: Date | null;
@@ -49,6 +55,22 @@ type SupervisorExecutionDelegate = {
   update(
     args: SupervisorExecutionUpdateArgs,
   ): Promise<SupervisorExecutionRecord>;
+  updateMany(args: {
+    where: {
+      id: string;
+      status: string;
+      claimedBy: string;
+      claimEpoch: number;
+      leaseExpiresAt: { gt: Date };
+    };
+    data: {
+      status: string;
+      result: unknown | null;
+      error: string | null;
+      startedAt: Date | null;
+      completedAt: Date | null;
+    };
+  }): Promise<{ count: number }>;
 };
 
 type PrismaWithSupervisorExecution = {
@@ -152,6 +174,15 @@ function executionCreateData(
     result:
       execution.result === null ? null : structuredClone(execution.result),
     error: execution.error,
+    claimedBy: execution.claimedBy,
+    claimEpoch: execution.claimEpoch,
+    claimedAt: execution.claimedAt ? new Date(execution.claimedAt) : null,
+    leaseExpiresAt: execution.leaseExpiresAt
+      ? new Date(execution.leaseExpiresAt)
+      : null,
+    lastHeartbeatAt: execution.lastHeartbeatAt
+      ? new Date(execution.lastHeartbeatAt)
+      : null,
     createdAt: new Date(execution.createdAt),
     startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
     completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
@@ -169,16 +200,33 @@ function executionUpdateData(
     assignment: data.assignment,
     result: data.result,
     error: data.error,
+    claimedBy: data.claimedBy,
+    claimEpoch: data.claimEpoch,
+    claimedAt: data.claimedAt,
+    leaseExpiresAt: data.leaseExpiresAt,
+    lastHeartbeatAt: data.lastHeartbeatAt,
     startedAt: data.startedAt,
     completedAt: data.completedAt,
+  };
+}
+
+function executionClaimMutationData(execution: SupervisorExecution) {
+  return {
+    status: execution.status,
+    result: execution.result === null ? null : structuredClone(execution.result),
+    error: execution.error,
+    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
+    completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
   };
 }
 
 @Injectable()
 export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore {
   private readonly delegate: SupervisorExecutionDelegate;
+  private readonly prisma: PrismaService;
 
   constructor(prisma: PrismaService) {
+    this.prisma = prisma;
     this.delegate = (
       prisma as unknown as PrismaWithSupervisorExecution
     ).supervisorExecution;
@@ -243,6 +291,34 @@ export class PrismaSupervisorExecutionStore implements SupervisorExecutionStore 
       }
       throw persistenceError();
     }
+  }
+
+  async saveIfClaimCurrent(
+    execution: SupervisorExecution,
+    expectedStatus: SupervisorExecutionStatus,
+    fence: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
+    return this.withPersistenceBoundary(execution.taskId, async () => {
+      const data = executionClaimMutationData(execution);
+      const rows = await this.prisma.$queryRaw<SupervisorExecutionRecord[]>`
+        UPDATE "SupervisorExecution"
+        SET "status" = ${data.status},
+            "result" = ${data.result === null ? null : JSON.stringify(data.result)}::jsonb,
+            "error" = ${data.error},
+            "startedAt" = ${data.startedAt},
+            "completedAt" = ${data.completedAt}
+        WHERE "id" = ${execution.id}
+          AND "status" = ${expectedStatus}
+          AND "claimedBy" = ${fence.claimedBy}
+          AND "claimEpoch" = ${fence.claimEpoch}
+          AND "leaseExpiresAt" > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+        RETURNING *
+      `;
+      if (rows.length !== 1) {
+        throw new ConflictException({ code: 'execution_claim_conflict' });
+      }
+      return mapExecutionRecord(rows[0]);
+    });
   }
 
   private async withPersistenceBoundary<T>(

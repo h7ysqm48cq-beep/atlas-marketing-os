@@ -4,12 +4,17 @@ import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { AgentGatewayService } from './agent-gateway.service';
 
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
 const OWNER_TOKEN = 'integration-owner-token';
+const workerCapability = () =>
+  new SupervisorWorkerCapabilityService({
+    get: () => 'gateway-worker-capability-key',
+  } as never);
 const CANONICAL_GITHUB = {
   repositoryOwner: 'h7ysqm48cq-beep',
   repositoryName: 'atlas-marketing-os',
@@ -39,7 +44,11 @@ describe('AgentGatewayService', () => {
       undefined,
       config,
     );
-    dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+    dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      workerCapability(),
+    );
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
 

@@ -5,12 +5,12 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
+  RunnerEligibility,
   SupervisorExecution,
   SupervisorExecutionPurpose,
   SupervisorExecutionStatus,
@@ -22,6 +22,7 @@ import {
   type SupervisorExecutionStore,
 } from '../stores/supervisor-execution.store';
 import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
+import type { SupervisorWorkerCapabilityFence } from '../worker/supervisor-worker-capability.types';
 
 const REQUIRED_EVIDENCE: RequiredEvidenceField[] = [
   'rootCause',
@@ -50,24 +51,52 @@ const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
   'RUNNING',
 ];
 
+const EXECUTION_PURPOSES: SupervisorExecutionPurpose[] = [
+  'IMPLEMENTATION',
+  'INDEPENDENT_VERIFICATION',
+];
+
+const RUNNER_ELIGIBILITIES: RunnerEligibility[] = [
+  'STANDARD',
+  'A1_SYNTHETIC',
+];
+
 @Injectable()
 export class WorkerDispatcherService {
   constructor(
     private readonly supervisor: AgentSupervisorService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
-    @Optional()
-    private readonly capabilityService?: SupervisorWorkerCapabilityService,
+    private readonly capabilityService: SupervisorWorkerCapabilityService,
   ) {}
 
   async dispatch(
     taskId: string,
     executionPurpose: SupervisorExecutionPurpose = 'IMPLEMENTATION',
+    runnerEligibility: RunnerEligibility = 'STANDARD',
   ): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
     capability?: string;
   }> {
+    if (
+      !EXECUTION_PURPOSES.includes(executionPurpose) ||
+      !RUNNER_ELIGIBILITIES.includes(runnerEligibility)
+    ) {
+      throw new BadRequestException({
+        code: 'runner_execution_not_eligible',
+      });
+    }
+
+    if (
+      runnerEligibility === 'A1_SYNTHETIC' &&
+      executionPurpose !== 'IMPLEMENTATION'
+    ) {
+      throw new BadRequestException({
+        code: 'runner_execution_not_eligible',
+      });
+    }
+
     const task = await this.supervisor.getTask(taskId);
     if (task.status !== 'WORKING') {
       throw new BadRequestException({
@@ -116,6 +145,7 @@ export class WorkerDispatcherService {
       taskId: task.id,
       workerRole: task.owner,
       executionPurpose,
+      runnerEligibility,
       objective: task.objective,
       allowedPaths: [...task.allowedPaths],
       forbiddenActions: Array.from(
@@ -134,15 +164,22 @@ export class WorkerDispatcherService {
       assignment,
       result: null,
       error: null,
+      claimedBy: null,
+      claimEpoch: 0,
+      claimedAt: null,
+      leaseExpiresAt: null,
+      lastHeartbeatAt: null,
       createdAt: now,
       startedAt: null,
       completedAt: null,
     };
-    const issuedCapability = this.capabilityService?.issue(queued);
+    const issuedCapability =
+      runnerEligibility === 'STANDARD'
+        ? this.capabilityService.issueLegacy(queued)
+        : undefined;
     if (issuedCapability) {
       queued.assignment.workerCapability = issuedCapability.metadata;
     }
-
     const created = await this.executionStore.create(queued);
 
     created.status = 'DISPATCHED';
@@ -164,23 +201,32 @@ export class WorkerDispatcherService {
     return this.requireExecution(executionId);
   }
 
-  async markRunning(executionId: string): Promise<SupervisorExecution> {
+  async markRunning(
+    executionId: string,
+    fence?: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED']);
 
     execution.status = 'RUNNING';
     execution.startedAt = new Date();
     execution.error = null;
-    return this.executionStore.saveIfStatus(execution, 'DISPATCHED');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'DISPATCHED', fence)
+      : this.executionStore.saveIfStatus(execution, 'DISPATCHED');
   }
 
   async complete(
     executionId: string,
     result: WorkerExecutionResult,
+    fence?: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     this.validateWorkerResult(result);
+    if (execution.assignment.runnerEligibility === 'A1_SYNTHETIC') {
+      this.validateSyntheticWorkerResult(result);
+    }
 
     execution.status = 'COMPLETED';
     execution.result = {
@@ -199,10 +245,16 @@ export class WorkerDispatcherService {
     };
     execution.error = null;
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, 'RUNNING');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'RUNNING', fence)
+      : this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
-  async fail(executionId: string, error: string): Promise<SupervisorExecution> {
+  async fail(
+    executionId: string,
+    error: string,
+    fence?: SupervisorWorkerCapabilityFence,
+  ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     if (!error?.trim()) {
@@ -212,12 +264,15 @@ export class WorkerDispatcherService {
     execution.status = 'FAILED';
     execution.error = error.trim();
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, 'RUNNING');
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, 'RUNNING', fence)
+      : this.executionStore.saveIfStatus(execution, 'RUNNING');
   }
 
   async cancel(
     executionId: string,
     reason: string,
+    fence?: SupervisorWorkerCapabilityFence,
   ): Promise<SupervisorExecution> {
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED', 'RUNNING']);
@@ -229,7 +284,9 @@ export class WorkerDispatcherService {
     execution.status = 'CANCELLED';
     execution.error = reason.trim();
     execution.completedAt = new Date();
-    return this.executionStore.saveIfStatus(execution, previousStatus);
+    return fence
+      ? this.executionStore.saveIfClaimCurrent(execution, previousStatus, fence)
+      : this.executionStore.saveIfStatus(execution, previousStatus);
   }
 
   private async requireExecution(
@@ -273,6 +330,25 @@ export class WorkerDispatcherService {
     if (!valid) {
       throw new BadRequestException({
         code: 'invalid_worker_result',
+      });
+    }
+  }
+
+  private validateSyntheticWorkerResult(result: WorkerExecutionResult) {
+    const evidence = result.evidence;
+    const valid =
+      evidence.rootCause === 'synthetic_runner_claim_plane_validation' &&
+      evidence.changedFiles.length === 0 &&
+      evidence.build === 'NOT_RUN_SYNTHETIC' &&
+      evidence.deploymentState === 'NONE' &&
+      evidence.gitState === 'UNCHANGED' &&
+      Object.keys(evidence).every((field) =>
+        REQUIRED_EVIDENCE.includes(field as RequiredEvidenceField),
+      );
+
+    if (!valid) {
+      throw new BadRequestException({
+        code: 'synthetic_execution_evidence_violation',
       });
     }
   }

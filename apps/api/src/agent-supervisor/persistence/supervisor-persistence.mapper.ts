@@ -6,6 +6,7 @@ import type {
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
+  SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
@@ -15,12 +16,18 @@ import type {
 } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
+  RunnerEligibility,
   SupervisorExecution,
+  SupervisorExecutionPurpose,
   SupervisorExecutionStatus,
   SupervisorWorkerRole,
   WorkerAssignmentEnvelope,
   WorkerExecutionResult,
 } from '../execution/supervisor-execution.types';
+import type {
+  SupervisorWorkerCapabilityMetadata,
+  SupervisorWorkerCapabilityOperation,
+} from '../worker/supervisor-worker-capability.types';
 
 type JsonObject = Record<string, unknown>;
 
@@ -36,6 +43,7 @@ const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
   'web',
   'browser-worker',
+  'engineering-runner',
 ]);
 
 export interface SupervisorTaskRecord {
@@ -62,6 +70,11 @@ export interface SupervisorExecutionRecord {
   assignment: unknown;
   result: unknown | null;
   error: string | null;
+  claimedBy: string | null;
+  claimEpoch: number;
+  claimedAt: Date | null;
+  leaseExpiresAt: Date | null;
+  lastHeartbeatAt: Date | null;
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -274,6 +287,36 @@ function mapOwnerDeploymentAuthorizationRevocations(
   );
 }
 
+function mapOwnerDeploymentAuthorizationConsumption(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationConsumption {
+  const object = requireObject(value);
+  const authorization = mapOwnerDeploymentAuthorization(
+    object.authorization,
+  );
+  const service = object.service;
+  const receipt = requireString(object.receipt);
+  const issuedAt = requireString(object.issuedAt);
+
+  if (
+    !PRODUCTION_DEPLOYMENT_SERVICES.has(service as ProductionDeploymentService) ||
+    authorization.service !== service ||
+    !FULL_SIGNATURE.test(receipt) ||
+    !issuedAt.trim() ||
+    issuedAt !== issuedAt.trim() ||
+    Number.isNaN(Date.parse(issuedAt))
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    authorization,
+    service: service as ProductionDeploymentService,
+    receipt,
+    issuedAt,
+  };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
   const reviewCandidate =
@@ -300,6 +343,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       : mapOwnerDeploymentAuthorizationRevocations(
           object.ownerDeploymentAuthorizationRevocations,
         );
+  const ownerDeploymentAuthorizationConsumption =
+    object.ownerDeploymentAuthorizationConsumption === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationConsumption(
+          object.ownerDeploymentAuthorizationConsumption,
+        );
 
   return {
     rootCause: requireString(object.rootCause),
@@ -316,18 +365,53 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       ? { ownerMergeAuthorizationConsumption }
       : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
+    ...(ownerDeploymentAuthorizationConsumption
+      ? { ownerDeploymentAuthorizationConsumption }
+      : {}),
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
       : {}),
   };
 }
 
+function mapWorkerCapability(
+  value: unknown,
+): SupervisorWorkerCapabilityMetadata {
+  const object = requireObject(value);
+  if (object.version !== 1 && object.version !== 2) {
+    throw persistenceError();
+  }
+  return {
+    version: object.version,
+    assignmentDigest: requireString(object.assignmentDigest),
+    allowedOperations: requireStringArray(
+      object.allowedOperations,
+    ) as SupervisorWorkerCapabilityOperation[],
+    issuedAt: requireString(object.issuedAt),
+    expiresAt: requireString(object.expiresAt),
+  };
+}
+
 function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const object = requireObject(value);
+  const executionPurpose =
+    object.executionPurpose === undefined
+      ? undefined
+      : (requireString(object.executionPurpose) as SupervisorExecutionPurpose);
+  const runnerEligibility =
+    object.runnerEligibility === undefined
+      ? undefined
+      : (requireString(object.runnerEligibility) as RunnerEligibility);
+  const workerCapability =
+    object.workerCapability === undefined
+      ? undefined
+      : mapWorkerCapability(object.workerCapability);
   return {
     executionId: requireString(object.executionId),
     taskId: requireString(object.taskId),
     workerRole: requireString(object.workerRole) as SupervisorWorkerRole,
+    ...(executionPurpose ? { executionPurpose } : {}),
+    ...(runnerEligibility ? { runnerEligibility } : {}),
     objective: requireString(object.objective),
     allowedPaths: requireStringArray(object.allowedPaths),
     forbiddenActions: requireStringArray(
@@ -338,6 +422,7 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
     requiredEvidence: requireStringArray(
       object.requiredEvidence,
     ) as RequiredEvidenceField[],
+    ...(workerCapability ? { workerCapability } : {}),
   };
 }
 
@@ -378,6 +463,15 @@ export function mapExecutionRecord(
     assignment: mapAssignment(record.assignment),
     result: record.result === null ? null : mapResult(record.result),
     error: record.error,
+    claimedBy: record.claimedBy,
+    claimEpoch: record.claimEpoch,
+    claimedAt: record.claimedAt ? new Date(record.claimedAt) : null,
+    leaseExpiresAt: record.leaseExpiresAt
+      ? new Date(record.leaseExpiresAt)
+      : null,
+    lastHeartbeatAt: record.lastHeartbeatAt
+      ? new Date(record.lastHeartbeatAt)
+      : null,
     createdAt: new Date(record.createdAt),
     startedAt: record.startedAt ? new Date(record.startedAt) : null,
     completedAt: record.completedAt ? new Date(record.completedAt) : null,

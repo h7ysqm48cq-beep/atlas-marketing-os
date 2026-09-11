@@ -92,6 +92,55 @@ describe('SupervisorWorkerController', () => {
     );
   });
 
+  it('passes the server-authorized v2 runner fence to every worker mutation', async () => {
+    const { controller, calls } = setup();
+    const request = {
+      atlasWorkerCapability: {
+        version: 2,
+        runnerId: 'engineering-runner:11111111-1111-4111-8111-111111111111',
+        claimEpoch: 7,
+      },
+    };
+
+    await controller.markRunning(assignment.taskId, assignment.executionId, request as never);
+    await controller.complete(
+      assignment.taskId,
+      assignment.executionId,
+      { summary: 'done', evidence: {} } as never,
+      request as never,
+    );
+    await controller.fail(
+      assignment.taskId,
+      assignment.executionId,
+      { error: 'failed' },
+      request as never,
+    );
+    await controller.cancel(
+      assignment.taskId,
+      assignment.executionId,
+      { reason: 'cancelled' },
+      request as never,
+    );
+
+    expect(calls.markRunning).toHaveBeenCalledWith(
+      assignment.executionId,
+      expect.objectContaining({
+        claimedBy: request.atlasWorkerCapability.runnerId,
+        claimEpoch: 7,
+        now: expect.any(Date),
+      }),
+    );
+    expect(calls.complete.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ claimEpoch: 7 }),
+    );
+    expect(calls.fail.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ claimEpoch: 7 }),
+    );
+    expect(calls.cancel.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ claimEpoch: 7 }),
+    );
+  });
+
   it('does not expose owner approval or integration authority', () => {
     const { controller } = setup();
     const surface = controller as unknown as Record<string, unknown>;

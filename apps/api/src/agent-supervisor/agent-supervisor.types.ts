@@ -87,6 +87,13 @@ export interface SupervisorOwnerDeploymentAuthorization {
   signature: string;
 }
 
+export interface SupervisorOwnerDeploymentAuthorizationConsumption {
+  authorization: SupervisorOwnerDeploymentAuthorization;
+  service: ProductionDeploymentService;
+  receipt: string;
+  issuedAt: string;
+}
+
 export interface SupervisorOwnerDeploymentAuthorizationRevocation {
   candidate: SupervisorReviewCandidate;
   service: ProductionDeploymentService;
@@ -110,6 +117,7 @@ export interface SupervisorEvidence {
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
+  ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
 }
 
@@ -169,7 +177,11 @@ export interface SupervisorGateDecision {
   executionId: string;
 }
 
-export type ProductionDeploymentService = 'api' | 'web' | 'browser-worker';
+export type ProductionDeploymentService =
+  | 'api'
+  | 'web'
+  | 'browser-worker'
+  | 'engineering-runner';
 
 export type ProductionDeploymentDriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';

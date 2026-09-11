@@ -5,6 +5,8 @@ import { PrismaClient } from '../../generated/prisma/client';
 import type { PrismaService } from '../../database/prisma.service';
 import type { SupervisorTask } from '../agent-supervisor.types';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import { SupervisorRunnerClaimService } from '../runner/supervisor-runner-claim.service';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { PrismaFileOwnershipStore } from './prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './prisma-supervisor-execution.store';
 import { PrismaSupervisorLifecycleStore } from './prisma-supervisor-lifecycle.store';
@@ -29,6 +31,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   let executionStore: PrismaSupervisorExecutionStore;
   let fileStore: PrismaFileOwnershipStore;
   let lifecycleStore: PrismaSupervisorLifecycleStore;
+  let runnerClaims: SupervisorRunnerClaimService;
 
   beforeAll(async () => {
     const adapter = new PrismaPg({
@@ -41,6 +44,15 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     executionStore = new PrismaSupervisorExecutionStore(prismaService);
     fileStore = new PrismaFileOwnershipStore(prismaService);
     lifecycleStore = new PrismaSupervisorLifecycleStore(prismaService);
+    runnerClaims = new SupervisorRunnerClaimService(
+      prismaService,
+      new SupervisorWorkerCapabilityService({
+        get: (name: string) =>
+          name === 'ATLAS_SUPERVISOR_OWNER_TOKEN'
+            ? 'local-integration-only-capability-key'
+            : undefined,
+      } as never),
+    );
     await prisma.$queryRaw`SELECT 1`;
   });
 
@@ -56,7 +68,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
   });
 
   function task(overrides: Partial<SupervisorTask> = {}): SupervisorTask {
-    const now = new Date();
+    const now = new Date(Date.now() + 300_000);
     return {
       id: `ATLAS-TEST-${randomUUID()}`,
       objective: 'Verify persisted supervisor task',
@@ -107,9 +119,30 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       },
       result: null,
       error: null,
+      claimedBy: null,
+      claimEpoch: 0,
+      claimedAt: null,
+      leaseExpiresAt: null,
+      lastHeartbeatAt: null,
       createdAt: new Date(),
       startedAt: null,
       completedAt: null,
+    };
+  }
+
+  function claimableExecution(
+    taskId: string,
+    overrides: Partial<SupervisorExecution> = {},
+  ): SupervisorExecution {
+    const value = execution(taskId, 'DISPATCHED');
+    return {
+      ...value,
+      assignment: {
+        ...value.assignment,
+        executionPurpose: 'IMPLEMENTATION',
+        runnerEligibility: 'A1_SYNTHETIC',
+      },
+      ...overrides,
     };
   }
 
@@ -128,6 +161,54 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       status: 'DRAFT',
     });
     expect(loaded?.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('persists deployment resolution receipts across fresh store instances', async () => {
+    const candidate = {
+      action: 'deploy_production' as const,
+      targetBranch: 'production/atlas',
+      baseSha: 'a'.repeat(40),
+      headSha: 'b'.repeat(40),
+      changedFiles: ['apps/api/src/example.ts'],
+    };
+    const authorization = {
+      candidate,
+      service: 'engineering-runner' as const,
+      authorizedBy: 'owner-user-1',
+      authorizedAt: '2026-09-02T00:00:00.000Z',
+      signature: 'c'.repeat(64),
+    };
+    const input = task({
+      status: 'APPROVED',
+      evidence: {
+        rootCause: 'deployment resolver receipt',
+        changedFiles: candidate.changedFiles,
+        tests: ['persistence'],
+        build: 'PASS',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_INTEGRATION_PERFORMED',
+        remainingRisk: [],
+        reviewCandidate: candidate,
+        ownerDeploymentAuthorization: authorization,
+        ownerDeploymentAuthorizationConsumption: {
+          authorization,
+          service: 'engineering-runner' as const,
+          receipt: 'd'.repeat(64),
+          issuedAt: '2026-09-06T00:00:00.000Z',
+        },
+      },
+    });
+    const created = await taskStore.create(input);
+    const restartedStore = new PrismaSupervisorTaskStore(
+      prisma as unknown as PrismaService,
+    );
+
+    const loaded = await restartedStore.get(created.id);
+
+    expect(
+      loaded?.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toEqual(input.evidence?.ownerDeploymentAuthorizationConsumption);
   });
 
   it('enforces one active execution per task at the database boundary', async () => {
@@ -271,5 +352,206 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       'READY_FOR_REVIEW',
     );
     expect(await fileStore.findOwner('apps/api/src/example.ts')).toBeNull();
+  });
+
+  it('claims distinct rows concurrently through PostgreSQL row locks and SKIP LOCKED', async () => {
+    const firstTask = await taskStore.create(task());
+    const secondTask = await taskStore.create(task());
+    const first = await executionStore.create(claimableExecution(firstTask.id));
+    const second = await executionStore.create(claimableExecution(secondTask.id));
+    const now = new Date();
+
+    const results = await Promise.all([
+      runnerClaims.claimNext(
+        'engineering-runner:11111111-1111-4111-8111-111111111111',
+        now,
+      ),
+      runnerClaims.claimNext(
+        'engineering-runner:22222222-2222-4222-8222-222222222222',
+        now,
+      ),
+    ]);
+
+    expect(results.every((result) => result.claimed)).toBe(true);
+    expect(
+      new Set(
+        results.map((result) =>
+          result.claimed ? result.execution.id : null,
+        ),
+      ),
+    ).toEqual(new Set([first.id, second.id]));
+  });
+
+  it('reclaims expired DISPATCHED claims and fences expired RUNNING claims', async () => {
+    const now = new Date('2026-09-08T00:00:00.000Z');
+    const reclaimTask = await taskStore.create(task());
+    const reclaimable = await executionStore.create(
+      claimableExecution(reclaimTask.id, {
+        claimedBy: 'engineering-runner:33333333-3333-4333-8333-333333333333',
+        claimEpoch: 4,
+        claimedAt: new Date(now.getTime() - 180_000),
+        leaseExpiresAt: new Date(now.getTime() - 60_000),
+        lastHeartbeatAt: new Date(now.getTime() - 180_000),
+      }),
+    );
+    const reclaimed = await runnerClaims.claimNext(
+      'engineering-runner:44444444-4444-4444-8444-444444444444',
+      now,
+    );
+    expect(reclaimed).toMatchObject({
+      claimed: true,
+      execution: {
+        id: reclaimable.id,
+        claimedBy: 'engineering-runner:44444444-4444-4444-8444-444444444444',
+        claimEpoch: 5,
+      },
+    });
+
+    const runningTask = await taskStore.create(task());
+    await executionStore.create(
+      claimableExecution(runningTask.id, {
+        status: 'RUNNING',
+        claimedBy: 'engineering-runner:55555555-5555-4555-8555-555555555555',
+        claimEpoch: 7,
+        claimedAt: new Date(now.getTime() - 180_000),
+        leaseExpiresAt: new Date(now.getTime() - 60_000),
+        lastHeartbeatAt: new Date(now.getTime() - 180_000),
+      }),
+    );
+    await expect(
+      runnerClaims.claimNext(
+        'engineering-runner:66666666-6666-4666-8666-666666666666',
+        now,
+      ),
+    ).resolves.toEqual({ claimed: false });
+  });
+
+  it('enforces the partial unique active-runner index under concurrent claims', async () => {
+    const firstTask = await taskStore.create(task());
+    const secondTask = await taskStore.create(task());
+    await executionStore.create(claimableExecution(firstTask.id));
+    await executionStore.create(claimableExecution(secondTask.id));
+    const now = new Date('2026-09-08T00:00:00.000Z');
+
+    const results = await Promise.allSettled([
+      runnerClaims.claimNext(
+        'engineering-runner:77777777-7777-4777-8777-777777777777',
+        now,
+      ),
+      runnerClaims.claimNext(
+        'engineering-runner:77777777-7777-4777-8777-777777777777',
+        now,
+      ),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+  });
+
+  it('fences persisted v2 worker transitions by claim epoch and live lease', async () => {
+    const persistedTask = await taskStore.create(task());
+    const queued = await executionStore.create(claimableExecution(persistedTask.id));
+    const now = new Date(Date.now() + 300_000);
+    const claimed = await runnerClaims.claimNext(
+      'engineering-runner:88888888-8888-4888-8888-888888888888',
+      now,
+    );
+    expect(claimed.claimed).toBe(true);
+    if (!claimed.claimed) throw new Error('expected claim');
+
+    await expect(
+      executionStore.saveIfClaimCurrent(
+        { ...claimed.execution, status: 'RUNNING', startedAt: now },
+        'DISPATCHED',
+        {
+          claimedBy: claimed.execution.claimedBy!,
+          claimEpoch: claimed.execution.claimEpoch,
+          now,
+        },
+      ),
+    ).resolves.toMatchObject({ id: queued.id, status: 'RUNNING' });
+    await expect(
+      executionStore.saveIfClaimCurrent(
+        { ...claimed.execution, status: 'COMPLETED' },
+        'RUNNING',
+        {
+          claimedBy: claimed.execution.claimedBy!,
+          claimEpoch: claimed.execution.claimEpoch - 1,
+          now,
+        },
+      ),
+    ).rejects.toMatchObject({ response: { code: 'execution_claim_conflict' } });
+  });
+
+  it('does not let a stale worker mutation overwrite a concurrent heartbeat lease or capability', async () => {
+    const persistedTask = await taskStore.create(task());
+    await executionStore.create(claimableExecution(persistedTask.id));
+    const claimedAt = new Date(Date.now() + 300_000);
+    const claimed = await runnerClaims.claimNext(
+      'engineering-runner:99999999-9999-4999-8999-999999999999',
+      claimedAt,
+    );
+    expect(claimed.claimed).toBe(true);
+    if (!claimed.claimed) throw new Error('expected claim');
+
+    const heartbeatAt = new Date(claimedAt.getTime() + 30_000);
+    const staleMutation = {
+      ...claimed.execution,
+      status: 'RUNNING' as const,
+      startedAt: heartbeatAt,
+    };
+    const [heartbeat] = await Promise.all([
+      runnerClaims.heartbeat(
+        claimed.execution.id,
+        claimed.execution.claimedBy!,
+        claimed.execution.claimEpoch,
+        heartbeatAt,
+      ),
+      executionStore.saveIfClaimCurrent(staleMutation, 'DISPATCHED', {
+        claimedBy: claimed.execution.claimedBy!,
+        claimEpoch: claimed.execution.claimEpoch,
+        now: heartbeatAt,
+      }),
+    ]);
+
+    const final = await executionStore.get(claimed.execution.id);
+    expect(final?.assignment.workerCapability).toEqual(
+      heartbeat.assignment.workerCapability,
+    );
+    expect(final?.leaseExpiresAt?.toISOString()).toBe(heartbeat.leaseExpiresAt);
+  });
+
+  it('rejects a mutation whose lease expires after the worker captured its fence time', async () => {
+    const persistedTask = await taskStore.create(
+      task({ objective: 'expired-at-write' }),
+    );
+    const persistedExecution = await executionStore.create(
+      execution(persistedTask.id, 'RUNNING'),
+    );
+    const expiredExecution = {
+      ...persistedExecution,
+      status: 'RUNNING',
+      claimedBy: 'engineering-runner:expired-at-write',
+      claimEpoch: 8,
+      claimedAt: new Date(Date.now() - 30_000),
+      leaseExpiresAt: new Date(Date.now() - 1_000),
+      lastHeartbeatAt: new Date(Date.now() - 30_000),
+    } satisfies SupervisorExecution;
+    await executionStore.save(expiredExecution);
+    const staleFenceTime = new Date(Date.now() - 2_000);
+
+    await expect(
+      executionStore.saveIfClaimCurrent(
+        { ...expiredExecution, status: 'COMPLETED' },
+        'RUNNING',
+        {
+          claimedBy: expiredExecution.claimedBy!,
+          claimEpoch: 8,
+          now: staleFenceTime,
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'execution_claim_conflict' },
+    });
   });
 });

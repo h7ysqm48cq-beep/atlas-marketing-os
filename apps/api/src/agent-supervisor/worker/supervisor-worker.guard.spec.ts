@@ -10,6 +10,7 @@ import {
 import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-capability.types';
 
 const NOW = new Date();
+const RUNNER_ID = 'engineering-runner:11111111-1111-4111-8111-111111111111';
 
 function execution(
   id = 'ATLAS-EXEC-1',
@@ -43,6 +44,11 @@ function execution(
     },
     result: null,
     error: null,
+    claimedBy: RUNNER_ID,
+    claimEpoch: 1,
+    claimedAt: NOW,
+    leaseExpiresAt: new Date(NOW.getTime() + 120_000),
+    lastHeartbeatAt: NOW,
     createdAt: NOW,
     startedAt: null,
     completedAt: null,
@@ -70,6 +76,29 @@ function context(
       }),
     }),
   } as unknown as ExecutionContext;
+}
+
+function contextWithRequest(
+  token: string,
+  taskId: string,
+  executionId: string,
+  operation: SupervisorWorkerCapabilityOperation,
+) {
+  const handler = () => undefined;
+  Reflect.defineMetadata(SUPERVISOR_WORKER_OPERATION, operation, handler);
+  const request = {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    params: { taskId, executionId },
+  } as { method: string; headers: Record<string, string>; params: Record<string, string>; atlasWorkerCapability?: unknown };
+  return {
+    request,
+    context: {
+      getHandler: () => handler,
+      getClass: () => class WorkerController {},
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as ExecutionContext,
+  };
 }
 
 describe('SupervisorWorkerGuard', () => {
@@ -104,6 +133,24 @@ describe('SupervisorWorkerGuard', () => {
     ).resolves.toBe(true);
   });
 
+  it('attaches authorized capability claims so controller mutations can pass the v2 fence', async () => {
+    const value = execution();
+    const token = await persistIssued(value);
+    const { context: requestContext, request } = contextWithRequest(
+      token,
+      value.taskId,
+      value.id,
+      'complete',
+    );
+
+    await expect(guard.canActivate(requestContext)).resolves.toBe(true);
+    expect(request.atlasWorkerCapability).toMatchObject({
+      version: 2,
+      runnerId: RUNNER_ID,
+      claimEpoch: 1,
+    });
+  });
+
   it('prevents capability A from accessing execution B', async () => {
     const first = execution('ATLAS-EXEC-A', 'ATLAS-A');
     const second = execution('ATLAS-EXEC-B', 'ATLAS-B');
@@ -115,6 +162,32 @@ describe('SupervisorWorkerGuard', () => {
         context(token, second.taskId, second.id, 'read_assignment'),
       ),
     ).rejects.toThrow('worker_capability_task_mismatch');
+  });
+
+  it('rejects a capability after persisted runner ownership changes', async () => {
+    const value = execution();
+    const token = await persistIssued(value);
+    value.claimEpoch += 1;
+    await store.save(value);
+
+    await expect(
+      guard.canActivate(
+        context(token, value.taskId, value.id, 'read_assignment'),
+      ),
+    ).rejects.toThrow('stale_runner_fenced');
+  });
+
+  it('rejects a capability after the persisted runner lease expires', async () => {
+    const value = execution();
+    const token = await persistIssued(value);
+    value.leaseExpiresAt = new Date(Date.now() - 1);
+    await store.save(value);
+
+    await expect(
+      guard.canActivate(
+        context(token, value.taskId, value.id, 'read_assignment'),
+      ),
+    ).rejects.toThrow('runner_lease_expired');
   });
 
   it('rejects missing, malformed, and invalid capabilities', async () => {

@@ -293,6 +293,11 @@ export class AgentGatewayService {
       task.id,
       matchingExecutions[0].id,
     );
+    await this.supervisor.consumeOwnerDeploymentAuthorization(
+      validated.task.id,
+      candidate,
+      input.service,
+    );
     return this.allowed(validated.task.id, validated.execution.id);
   }
 
