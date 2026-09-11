@@ -1,5 +1,7 @@
 import { MODULE_METADATA } from '@nestjs/common/constants';
+import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorModule } from './agent-supervisor.module';
+import { HumanOwnerApprovalService } from './authority/human-owner-approval.service';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
@@ -73,6 +75,16 @@ describe('AgentSupervisorModule runtime persistence wiring', () => {
       useExisting: PrismaFileOwnershipStore,
     });
     expect(providers).not.toContain(MemoryFileOwnershipStore);
+  });
+
+  it('emits ConfigService runtime metadata for HumanOwnerApprovalService', () => {
+    const constructorTypes =
+      Reflect.getMetadata(
+        'design:paramtypes',
+        HumanOwnerApprovalService,
+      ) ?? [];
+
+    expect(constructorTypes[0]).toBe(ConfigService);
   });
 });
 
