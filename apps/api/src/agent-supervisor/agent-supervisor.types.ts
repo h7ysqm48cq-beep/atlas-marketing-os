@@ -87,6 +87,15 @@ export interface SupervisorOwnerDeploymentAuthorization {
   signature: string;
 }
 
+export interface SupervisorOwnerDeploymentAuthorizationConsumption {
+  authorization: SupervisorOwnerDeploymentAuthorization;
+  approvalJti: string;
+  candidateHash: string;
+  environment: 'production';
+  consumedBy: string;
+  consumedAt: string;
+}
+
 export interface SupervisorOwnerDeploymentAuthorizationRevocation {
   candidate: SupervisorReviewCandidate;
   service: ProductionDeploymentService;
@@ -110,6 +119,7 @@ export interface SupervisorEvidence {
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
+  ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
 }
 

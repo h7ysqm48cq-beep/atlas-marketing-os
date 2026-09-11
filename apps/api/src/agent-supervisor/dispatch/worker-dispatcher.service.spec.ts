@@ -1,5 +1,11 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import { generateKeyPairSync } from 'node:crypto';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
+import {
+  InMemoryAuthorityKeyRegistry,
+  SupervisorAuthorityService,
+} from '../authority/supervisor-authority.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
@@ -16,6 +22,23 @@ const PROTECTED_ACTIONS = [
   'delete_branch_for_integration',
 ];
 
+function capabilityAuthority(): SupervisorAuthorityService {
+  const key = () => {
+    const pair = generateKeyPairSync('ed25519');
+    return {
+      privateKeyPem: pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+      publicKeyPem: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+    };
+  };
+  return new SupervisorAuthorityService({ get: jest.fn() } as never, new InMemoryAuthorityKeyRegistry({
+    SUPERVISOR_SYSTEM: key(),
+    WORKER_CAPABILITY: key(),
+    VERIFIER_CAPABILITY: key(),
+    MERGE_APPROVAL: key(),
+    DEPLOY_APPROVAL: key(),
+  }));
+}
+
 describe('WorkerDispatcherService', () => {
   let supervisor: AgentSupervisorService;
   let fileStore: MemoryFileOwnershipStore;
@@ -27,7 +50,12 @@ describe('WorkerDispatcherService', () => {
     fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
     supervisor = new AgentSupervisorService(taskStore, fileStore);
-    dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+    dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
   });
 
   async function createWorkingTask() {
@@ -61,7 +89,7 @@ describe('WorkerDispatcherService', () => {
   it('dispatches a WORKING task with owned files and a restart-safe execution id', async () => {
     const task = await createWorkingTask();
 
-    const result = await dispatcher.dispatch(task.id);
+    const result = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(result.execution.status).toBe('DISPATCHED');
     expect(result.execution.id).toMatch(
@@ -75,55 +103,70 @@ describe('WorkerDispatcherService', () => {
   it('records IMPLEMENTATION as the default execution purpose', async () => {
     const task = await createWorkingTask();
 
-    const result = await dispatcher.dispatch(task.id);
+    const result = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(
       (result.assignment as { executionPurpose?: string }).executionPurpose,
     ).toBe('IMPLEMENTATION');
   });
 
-  it('issues a short-lived capability bound to the persisted assignment', async () => {
+  it('fails closed when the server admission producer returns a malformed binding', async () => {
     const task = await createWorkingTask();
-    const capabilityService = new SupervisorWorkerCapabilityService({
-      get: (name: string) =>
-        name === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? 'owner-secret' : undefined,
-    } as never);
+
+    const malformedAdmissionManifestService = {
+      createBinding: jest.fn().mockReturnValue({
+        manifestHash: 'not-a-valid-sha256',
+        claimEpoch: 0,
+        leaseId: 'server-lease',
+        runnerId: 'server-runner',
+      }),
+    };
+
     const capabilityDispatcher = new WorkerDispatcherService(
       supervisor,
       executionStore,
-      capabilityService,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      malformedAdmissionManifestService as never,
     );
 
-    const result = await capabilityDispatcher.dispatch(task.id);
-    expect(result.capability).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u);
-    expect(result.assignment.workerCapability?.assignmentDigest).toMatch(
-      /^[0-9a-f]{64}$/u,
+    await expect(
+      capabilityDispatcher.dispatch(task.id),
+    ).rejects.toThrow(
+      'worker_capability_authority_binding_required',
     );
-    expect(result.assignment.workerCapability).toMatchObject({
-      version: 1,
-      allowedOperations: [
-        'read_assignment',
-        'mark_running',
-        'complete',
-        'fail',
-        'cancel',
-      ],
-    });
-    expect((await executionStore.get(result.execution.id))?.assignment).toEqual(
-      result.assignment,
-    );
-    expect(JSON.stringify(result)).not.toContain('owner-secret');
+
+    expect(
+      malformedAdmissionManifestService.createBinding,
+    ).toHaveBeenCalledTimes(1);
+
+    expect(
+      await executionStore.listByTask(task.id),
+    ).toHaveLength(0);
   });
 
-  it('can dispatch a separately bound independent verification execution', async () => {
+  it('fails closed when the capability service is unavailable', async () => {
     const task = await createWorkingTask();
-
-    const result = await dispatcher.dispatch(
-      task.id,
-      'INDEPENDENT_VERIFICATION',
+    const dispatcherWithoutCapability = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      undefined as never,
+      new SupervisorAdmissionManifestService(),
     );
 
-    expect(result.assignment.executionPurpose).toBe('INDEPENDENT_VERIFICATION');
+    await expect(
+      dispatcherWithoutCapability.dispatch(task.id, 'IMPLEMENTATION'),
+    ).rejects.toThrow('worker_capability_service_required');
+    expect(await executionStore.listByTask(task.id)).toHaveLength(0);
+  });
+
+  it('fails closed when no verifier capability exists for independent verification', async () => {
+    const task = await createWorkingTask();
+
+    await expect(dispatcher.dispatch(
+      task.id,
+      'INDEPENDENT_VERIFICATION',
+    )).rejects.toThrow('worker_capability_purpose_mismatch');
+    expect(await executionStore.listByTask(task.id)).toHaveLength(0);
   });
 
   it('rejects dispatch when task is not WORKING', async () => {
@@ -136,7 +179,7 @@ describe('WorkerDispatcherService', () => {
       acceptance: ['passes'],
     });
 
-    await expect(dispatcher.dispatch(task.id)).rejects.toBeInstanceOf(
+    await expect(dispatcher.dispatch(task.id, 'IMPLEMENTATION')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
@@ -145,16 +188,16 @@ describe('WorkerDispatcherService', () => {
     const task = await createWorkingTask();
     await fileStore.release(task.id);
 
-    await expect(dispatcher.dispatch(task.id)).rejects.toBeInstanceOf(
+    await expect(dispatcher.dispatch(task.id, 'IMPLEMENTATION')).rejects.toBeInstanceOf(
       ConflictException,
     );
   });
 
   it('rejects a second active execution for the same task before persistence', async () => {
     const task = await createWorkingTask();
-    await dispatcher.dispatch(task.id);
+    await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
-    await expect(dispatcher.dispatch(task.id)).rejects.toMatchObject({
+    await expect(dispatcher.dispatch(task.id, 'IMPLEMENTATION')).rejects.toMatchObject({
       response: {
         code: 'active_execution_exists',
         taskId: task.id,
@@ -165,7 +208,7 @@ describe('WorkerDispatcherService', () => {
   it('always includes protected integration actions in the assignment envelope', async () => {
     const task = await createWorkingTask();
 
-    const result = await dispatcher.dispatch(task.id);
+    const result = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(result.assignment.forbiddenActions).toEqual(
       expect.arrayContaining(PROTECTED_ACTIONS),
@@ -175,10 +218,10 @@ describe('WorkerDispatcherService', () => {
   it('creates a new execution for each retry after the previous execution is terminal', async () => {
     const task = await createWorkingTask();
 
-    const first = await dispatcher.dispatch(task.id);
+    const first = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(first.execution.id);
     await dispatcher.fail(first.execution.id, 'worker failed');
-    const second = await dispatcher.dispatch(task.id);
+    const second = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(second.execution.id).not.toBe(first.execution.id);
     expect(await executionStore.listByTask(task.id)).toHaveLength(2);
@@ -186,22 +229,24 @@ describe('WorkerDispatcherService', () => {
 
   it('generates different execution ids across fresh dispatcher instances', async () => {
     const task = await createWorkingTask();
-    const first = await dispatcher.dispatch(task.id);
+    const first = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(first.execution.id);
     await dispatcher.fail(first.execution.id, 'worker failed');
 
     const restartedDispatcher = new WorkerDispatcherService(
       supervisor,
       executionStore,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
     );
-    const second = await restartedDispatcher.dispatch(task.id);
+    const second = await restartedDispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     expect(second.execution.id).not.toBe(first.execution.id);
   });
 
   it('rejects malformed worker results with invalid_worker_result', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -215,7 +260,7 @@ describe('WorkerDispatcherService', () => {
 
   it('does not move the task to READY_FOR_REVIEW when execution completes', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.complete(dispatched.execution.id, {
       summary: 'Implemented',
@@ -236,7 +281,7 @@ describe('WorkerDispatcherService', () => {
 
   it('allows DISPATCHED to transition to RUNNING', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     await expect(
       dispatcher.markRunning(dispatched.execution.id),
@@ -247,7 +292,7 @@ describe('WorkerDispatcherService', () => {
 
   it('allows RUNNING to transition to COMPLETED', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -257,7 +302,7 @@ describe('WorkerDispatcherService', () => {
 
   it('allows RUNNING to transition to FAILED', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -267,7 +312,7 @@ describe('WorkerDispatcherService', () => {
 
   it('preserves the existing legal DISPATCHED cancellation flow', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     await expect(
       dispatcher.cancel(dispatched.execution.id, 'owner stopped execution'),
@@ -276,7 +321,7 @@ describe('WorkerDispatcherService', () => {
 
   it('rejects DISPATCHED to COMPLETED', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
     await expect(
       dispatcher.complete(dispatched.execution.id, workerResult()),
@@ -287,7 +332,7 @@ describe('WorkerDispatcherService', () => {
 
   it('rejects terminal transition replays', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.complete(dispatched.execution.id, workerResult());
 
@@ -305,7 +350,7 @@ describe('WorkerDispatcherService', () => {
 
   it('rejects FAILED to COMPLETED', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.fail(dispatched.execution.id, 'worker failed');
 
@@ -318,7 +363,7 @@ describe('WorkerDispatcherService', () => {
 
   it('allows exactly one concurrent terminal transition', async () => {
     const task = await createWorkingTask();
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     await dispatcher.markRunning(dispatched.execution.id);
 
     const results = await Promise.allSettled([
@@ -334,3 +379,134 @@ describe('WorkerDispatcherService', () => {
     ).toHaveLength(1);
   });
 });
+
+// R1_BOOTSTRAP_ADMISSION_RED_BEGIN
+describe('R1 bootstrap server-side admission manifest', () => {
+  it('uses only a server-produced authority binding and ignores caller-supplied binding', async () => {
+    const { WorkerDispatcherService } =
+      require('./worker-dispatcher.service');
+
+    const serverBinding = {
+      manifestHash: 'b'.repeat(64),
+      claimEpoch: 0,
+      leaseId: 'server-lease',
+      runnerId: 'server-runner',
+    };
+
+    const clientSuppliedBinding = {
+      manifestHash: 'a'.repeat(64),
+      claimEpoch: 999,
+      leaseId: 'client-lease',
+      runnerId: 'client-runner',
+    };
+
+    const task = {
+      id: 'ATLAS-TASK-RED',
+      status: 'WORKING',
+      owner: 'engineering',
+      objective: 'R1 bootstrap admission remediation',
+      allowedPaths: [
+        'apps/api/src/agent-supervisor/dispatch/worker-dispatcher.service.ts',
+      ],
+      forbiddenActions: [],
+      dependsOn: [],
+      acceptance: [
+        'authority binding is produced only by trusted server admission',
+      ],
+    };
+
+    const supervisor = {
+      getTask: jest.fn().mockResolvedValue(task),
+      dependenciesReady: jest.fn().mockResolvedValue(true),
+      ownsAllowedPaths: jest.fn().mockResolvedValue(true),
+      checkPermission: jest.fn().mockReturnValue({
+        allowed: true,
+        reason: null,
+      }),
+    };
+
+    const executionStore = {
+      listByTask: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockImplementation(async (execution: any) => execution),
+      saveIfStatus: jest
+        .fn()
+        .mockImplementation(async (execution: any) => execution),
+    };
+
+    const capabilityService = {
+      issue: jest.fn().mockImplementation((execution: any) => ({
+        token: 'REDACTED_TEST_CAPABILITY',
+        metadata: {
+          version: 'test',
+          assignmentDigest: 'test-digest',
+          allowedActions: ['read_repo'],
+          allowedPaths: [...execution.assignment.allowedPaths],
+          forbiddenActions: [...execution.assignment.forbiddenActions],
+          manifestHash: execution.assignment.manifestHash,
+          claimEpoch: execution.assignment.claimEpoch,
+          leaseId: execution.assignment.leaseId,
+          runnerId: execution.assignment.runnerId,
+          jti: 'test-jti',
+          issuedAt: '2026-09-11T00:00:00.000Z',
+          expiresAt: '2026-09-11T00:10:00.000Z',
+        },
+      })),
+    };
+
+    const admissionManifestService = {
+      createBinding: jest.fn().mockReturnValue(serverBinding),
+    };
+
+    const dispatcher = new (WorkerDispatcherService as any)(
+      supervisor,
+      executionStore,
+      capabilityService,
+      admissionManifestService,
+    );
+
+    const result = await (dispatcher.dispatch as any)(
+      'ATLAS-TASK-RED',
+      'IMPLEMENTATION',
+      clientSuppliedBinding,
+    );
+
+    expect(admissionManifestService.createBinding)
+      .toHaveBeenCalledTimes(1);
+
+    expect(
+      admissionManifestService.createBinding.mock.calls[0][0],
+    ).toEqual(
+      expect.objectContaining({
+        taskId: 'ATLAS-TASK-RED',
+        workerRole: 'engineering',
+        executionPurpose: 'IMPLEMENTATION',
+        objective: 'R1 bootstrap admission remediation',
+      }),
+    );
+
+    expect(result.assignment).toEqual(
+      expect.objectContaining(serverBinding),
+    );
+
+    expect(result.assignment.manifestHash)
+      .not.toBe(clientSuppliedBinding.manifestHash);
+
+    expect(result.assignment.claimEpoch)
+      .not.toBe(clientSuppliedBinding.claimEpoch);
+
+    expect(result.assignment.leaseId)
+      .not.toBe(clientSuppliedBinding.leaseId);
+
+    expect(result.assignment.runnerId)
+      .not.toBe(clientSuppliedBinding.runnerId);
+
+    expect(capabilityService.issue).toHaveBeenCalledTimes(1);
+
+    expect(
+      capabilityService.issue.mock.calls[0][0].assignment,
+    ).toEqual(
+      expect.objectContaining(serverBinding),
+    );
+  });
+});
+// R1_BOOTSTRAP_ADMISSION_RED_END

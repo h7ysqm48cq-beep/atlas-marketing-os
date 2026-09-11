@@ -6,6 +6,7 @@ import type {
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
+  SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
   SupervisorOwnerMergeAuthorization,
   SupervisorOwnerMergeAuthorizationConsumption,
@@ -21,6 +22,7 @@ import type {
   WorkerAssignmentEnvelope,
   WorkerExecutionResult,
 } from '../execution/supervisor-execution.types';
+import type { SupervisorWorkerCapabilityMetadata } from '../worker/supervisor-worker-capability.types';
 
 type JsonObject = Record<string, unknown>;
 
@@ -30,7 +32,6 @@ const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
   'run_migration',
   'change_runtime_config',
 ]);
-const FULL_SIGNATURE = /^[0-9a-f]{64}$/i;
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
@@ -97,6 +98,53 @@ function requireStringArray(value: unknown): string[] {
   return [...value];
 }
 
+function requireAuthorityEnvelope(
+  value: unknown,
+  expectedTokenType: 'MERGE_APPROVAL' | 'DEPLOY_APPROVAL',
+): string {
+  const signature = requireString(value);
+  const parts = signature.split('.');
+  if (
+    parts.length !== 3 ||
+    parts.some((part) => !part || !/^[A-Za-z0-9_-]+$/.test(part))
+  ) {
+    throw persistenceError();
+  }
+
+  try {
+    const header = JSON.parse(
+      Buffer.from(parts[0], 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    const claims = JSON.parse(
+      Buffer.from(parts[1], 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    if (
+      header.typ !== 'ATLAS_AUTHORITY' ||
+      header.alg !== 'EdDSA' ||
+      typeof header.kid !== 'string' ||
+      claims.tokenType !== expectedTokenType ||
+      typeof claims.iss !== 'string' ||
+      typeof claims.sub !== 'string' ||
+      typeof claims.aud !== 'string' ||
+      typeof claims.purpose !== 'string' ||
+      typeof claims.iat !== 'string' ||
+      typeof claims.exp !== 'string' ||
+      typeof claims.jti !== 'string' ||
+      typeof claims.claimEpoch !== 'number' ||
+      !Number.isInteger(claims.claimEpoch) ||
+      claims.claimEpoch < 0
+    ) {
+      throw persistenceError();
+    }
+    Buffer.from(parts[2], 'base64url');
+  } catch (error) {
+    if (error instanceof InternalServerErrorException) throw error;
+    throw persistenceError();
+  }
+
+  return signature;
+}
+
 function requireIntegrationAction(value: unknown): SupervisorIntegrationAction {
   if (
     typeof value !== 'string' ||
@@ -126,7 +174,7 @@ function mapOwnerMergeAuthorization(
     candidate: mapReviewCandidate(object.candidate),
     authorizedBy: requireString(object.authorizedBy),
     authorizedAt: requireString(object.authorizedAt),
-    signature: requireString(object.signature),
+    signature: requireAuthorityEnvelope(object.signature, 'MERGE_APPROVAL'),
   };
 }
 
@@ -177,7 +225,6 @@ function mapOwnerMergeAuthorizationConsumption(
   if (
     authorization.candidate.action !== 'merge' ||
     authorization.candidate.targetBranch !== 'production/atlas' ||
-    !FULL_SIGNATURE.test(authorization.signature) ||
     !consumedBy.trim() ||
     consumedBy !== consumedBy.trim() ||
     !consumedAt.trim() ||
@@ -204,17 +251,49 @@ function mapOwnerDeploymentAuthorization(
   const authorizedBy = requireString(object.authorizedBy);
   const authorizedAt = requireString(object.authorizedAt);
   const signature = requireString(object.signature);
+  requireAuthorityEnvelope(signature, 'DEPLOY_APPROVAL');
   if (
     candidate.action !== 'deploy_production' ||
     candidate.targetBranch !== 'production/atlas' ||
     !PRODUCTION_DEPLOYMENT_SERVICES.has(service) ||
     !authorizedBy.trim() ||
-    !authorizedAt.trim() ||
-    !FULL_SIGNATURE.test(signature)
+    !authorizedAt.trim()
   ) {
     throw persistenceError();
   }
   return { candidate, service, authorizedBy, authorizedAt, signature };
+}
+
+function mapOwnerDeploymentAuthorizationConsumption(
+  value: unknown,
+): SupervisorOwnerDeploymentAuthorizationConsumption {
+  const object = requireObject(value);
+  const authorization = mapOwnerDeploymentAuthorization(object.authorization);
+  const approvalJti = requireString(object.approvalJti);
+  const candidateHash = requireString(object.candidateHash);
+  const environment = requireString(object.environment);
+  const consumedBy = requireString(object.consumedBy);
+  const consumedAt = requireString(object.consumedAt);
+  if (
+    !/^[0-9a-f]{64}$/i.test(candidateHash) ||
+    environment !== 'production' ||
+    !approvalJti.trim() ||
+    !consumedBy.trim() ||
+    consumedBy !== consumedBy.trim() ||
+    !consumedAt.trim() ||
+    consumedAt !== consumedAt.trim() ||
+    Number.isNaN(Date.parse(consumedAt))
+  ) {
+    throw persistenceError();
+  }
+  return {
+    authorization,
+    approvalJti,
+    candidateHash,
+    environment: 'production',
+    consumedBy,
+    consumedAt,
+  };
 }
 
 function mapOwnerDeploymentAuthorizationRevocation(
@@ -294,6 +373,12 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     object.ownerDeploymentAuthorization === undefined
       ? undefined
       : mapOwnerDeploymentAuthorization(object.ownerDeploymentAuthorization);
+  const ownerDeploymentAuthorizationConsumption =
+    object.ownerDeploymentAuthorizationConsumption === undefined
+      ? undefined
+      : mapOwnerDeploymentAuthorizationConsumption(
+          object.ownerDeploymentAuthorizationConsumption,
+        );
   const ownerDeploymentAuthorizationRevocations =
     object.ownerDeploymentAuthorizationRevocations === undefined
       ? undefined
@@ -316,6 +401,9 @@ function mapEvidence(value: unknown): SupervisorEvidence {
       ? { ownerMergeAuthorizationConsumption }
       : {}),
     ...(ownerDeploymentAuthorization ? { ownerDeploymentAuthorization } : {}),
+    ...(ownerDeploymentAuthorizationConsumption
+      ? { ownerDeploymentAuthorizationConsumption }
+      : {}),
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
       : {}),
@@ -324,6 +412,28 @@ function mapEvidence(value: unknown): SupervisorEvidence {
 
 function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const object = requireObject(value);
+  const executionPurpose = object.executionPurpose;
+  const claimEpoch = object.claimEpoch;
+  const workerCapability = object.workerCapability;
+  if (
+    executionPurpose !== undefined &&
+    executionPurpose !== 'IMPLEMENTATION' &&
+    executionPurpose !== 'INDEPENDENT_VERIFICATION'
+  ) {
+    throw persistenceError();
+  }
+  if (
+    claimEpoch !== undefined &&
+    (typeof claimEpoch !== 'number' ||
+      !Number.isInteger(claimEpoch) ||
+      claimEpoch < 0)
+  ) {
+    throw persistenceError();
+  }
+  const mappedCapability =
+    workerCapability === undefined
+      ? undefined
+      : mapWorkerCapability(workerCapability);
   return {
     executionId: requireString(object.executionId),
     taskId: requireString(object.taskId),
@@ -338,6 +448,45 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
     requiredEvidence: requireStringArray(
       object.requiredEvidence,
     ) as RequiredEvidenceField[],
+    ...(executionPurpose !== undefined ? { executionPurpose } : {}),
+    ...(object.manifestHash !== undefined
+      ? { manifestHash: requireString(object.manifestHash) }
+      : {}),
+    ...(claimEpoch !== undefined ? { claimEpoch } : {}),
+    ...(object.leaseId !== undefined
+      ? { leaseId: requireString(object.leaseId) }
+      : {}),
+    ...(object.runnerId !== undefined
+      ? { runnerId: requireString(object.runnerId) }
+      : {}),
+    ...(mappedCapability ? { workerCapability: mappedCapability } : {}),
+  };
+}
+
+function mapWorkerCapability(value: unknown): SupervisorWorkerCapabilityMetadata {
+  const object = requireObject(value);
+  if (object.version !== 2) throw persistenceError();
+  const claimEpoch = object.claimEpoch;
+  if (
+    typeof claimEpoch !== 'number' ||
+    !Number.isInteger(claimEpoch) ||
+    claimEpoch < 0
+  ) {
+    throw persistenceError();
+  }
+  return {
+    version: 2,
+    assignmentDigest: requireString(object.assignmentDigest),
+    allowedActions: requireStringArray(object.allowedActions) as SupervisorWorkerCapabilityMetadata['allowedActions'],
+    manifestHash: requireString(object.manifestHash),
+    allowedPaths: requireStringArray(object.allowedPaths),
+    forbiddenActions: requireStringArray(object.forbiddenActions),
+    claimEpoch,
+    leaseId: requireString(object.leaseId),
+    runnerId: requireString(object.runnerId),
+    jti: requireString(object.jti),
+    issuedAt: requireString(object.issuedAt),
+    expiresAt: requireString(object.expiresAt),
   };
 }
 

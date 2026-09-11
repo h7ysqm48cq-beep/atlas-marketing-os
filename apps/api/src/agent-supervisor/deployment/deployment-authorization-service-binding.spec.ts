@@ -1,5 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import { createTestSupervisorAuthority } from '../authority/test-authority';
+import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
 import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
@@ -10,6 +12,106 @@ import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.stor
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const OWNER_TOKEN = 'service-binding-owner-token';
+
+// R2A_FINAL_DEPLOYMENT_OWNER_ARTIFACT_HELPER_BEGIN
+
+type R2ADeploymentCandidate =
+  Parameters<
+    AgentSupervisorService[
+      'authorizeProductionDeployment'
+    ]
+  >[1];
+
+type R2ADeploymentService =
+  Parameters<
+    AgentSupervisorService[
+      'authorizeProductionDeployment'
+    ]
+  >[2];
+
+function r2aDeploymentOwnerApprovals(
+  service: AgentSupervisorService,
+  ownerId = 'owner-user-1',
+): HumanOwnerApprovalService {
+  const authority =
+    (
+      service as unknown as {
+        authority?: {
+          keyRegistry?: unknown;
+        };
+      }
+    ).authority;
+
+  const keyRegistry =
+    authority?.keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'r2a_test_owner_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: (key: string) => {
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_USER_ID'
+      ) {
+        return ownerId;
+      }
+
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_TOKEN'
+      ) {
+        return OWNER_TOKEN;
+      }
+
+      return undefined;
+    },
+  } as unknown as ConfigService;
+
+  return new HumanOwnerApprovalService(
+    config,
+    keyRegistry as never,
+  );
+}
+
+function r2aDeploymentAuthorization(
+  supervisorService: AgentSupervisorService,
+  candidate: R2ADeploymentCandidate,
+  deploymentService: R2ADeploymentService,
+  ownerId = 'owner-user-1',
+) {
+  const approvals =
+    r2aDeploymentOwnerApprovals(
+      supervisorService,
+      ownerId,
+    );
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId: ownerId,
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: deploymentService,
+      },
+    );
+
+  return approvals.issueDeployApproval(
+    proof,
+    candidate,
+    deploymentService,
+  );
+}
+
+// R2A_FINAL_DEPLOYMENT_OWNER_ARTIFACT_HELPER_END
+
 const CHANGED_FILE = 'apps/api/src/example.ts';
 
 describe('Owner production deployment authorization service binding', () => {
@@ -28,6 +130,7 @@ describe('Owner production deployment authorization service binding', () => {
       new MemoryFileOwnershipStore(),
       undefined,
       config,
+      createTestSupervisorAuthority(),
     );
   });
 
@@ -80,7 +183,7 @@ describe('Owner production deployment authorization service binding', () => {
       taskId,
       candidate,
       service,
-      'owner-user-1',
+      r2aDeploymentAuthorization(supervisor, candidate, service, 'owner-user-1'),
     );
     return supervisor.getTask(taskId);
   }

@@ -1,6 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
+import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
+import { createTestSupervisorAuthority } from '../authority/test-authority';
 import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
+import { SupervisorWorkerCapabilityService } from '../worker/supervisor-worker-capability.service';
 import { MemoryFileOwnershipStore } from '../stores/memory-file-ownership.store';
 import { MemorySupervisorExecutionStore } from '../stores/memory-supervisor-execution.store';
 import { MemorySupervisorTaskStore } from '../stores/memory-supervisor-task.store';
@@ -10,6 +14,153 @@ const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
 const OWNER_TOKEN = 'integration-owner-token';
+
+// R2A_OUT_OF_SCOPE_OWNER_ARTIFACT_HELPER_BEGIN
+
+type R2AReviewCandidate =
+  Parameters<
+    AgentSupervisorService['authorizeMerge']
+  >[1];
+
+type R2ADeploymentService =
+  Parameters<
+    AgentSupervisorService[
+      'authorizeProductionDeployment'
+    ]
+  >[2];
+
+function r2aOwnerApprovalService(
+  service: AgentSupervisorService,
+  ownerId = 'owner-user-1',
+): HumanOwnerApprovalService {
+  const authority =
+    (
+      service as unknown as {
+        authority?: unknown;
+      }
+    ).authority as
+      | {
+          keyRegistry?: unknown;
+        }
+      | undefined;
+
+  const keyRegistry =
+    authority?.keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'r2a_test_owner_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: (key: string) => {
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_USER_ID'
+      ) {
+        return ownerId;
+      }
+
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_TOKEN'
+      ) {
+        return OWNER_TOKEN;
+      }
+
+      return undefined;
+    },
+  } as unknown as ConfigService;
+
+  return new HumanOwnerApprovalService(
+    config,
+    keyRegistry as never,
+  );
+}
+
+function r2aMergeAuthorization(
+  service: AgentSupervisorService,
+  candidate: R2AReviewCandidate,
+  ownerId = 'owner-user-1',
+) {
+  const approvals =
+    r2aOwnerApprovalService(
+      service,
+      ownerId,
+    );
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId: ownerId,
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'MERGE',
+        candidate,
+      },
+    );
+
+  return approvals.issueMergeApproval(
+    proof,
+    candidate,
+  );
+}
+
+function r2aAuthorizeMergeAsOwner(
+  service: AgentSupervisorService,
+  taskId: string,
+  candidate: R2AReviewCandidate,
+  ownerId = 'owner-user-1',
+) {
+  return service.authorizeMerge(
+    taskId,
+    candidate,
+    r2aMergeAuthorization(
+      service,
+      candidate,
+      ownerId,
+    ),
+  );
+}
+
+function r2aDeploymentAuthorization(
+  service: AgentSupervisorService,
+  candidate: R2AReviewCandidate,
+  deploymentService: R2ADeploymentService,
+  ownerId = 'owner-user-1',
+) {
+  const approvals =
+    r2aOwnerApprovalService(
+      service,
+      ownerId,
+    );
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId: ownerId,
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: deploymentService,
+      },
+    );
+
+  return approvals.issueDeployApproval(
+    proof,
+    candidate,
+    deploymentService,
+  );
+}
+
+// R2A_OUT_OF_SCOPE_OWNER_ARTIFACT_HELPER_END
+
 const CANONICAL_GITHUB = {
   repositoryOwner: 'h7ysqm48cq-beep',
   repositoryName: 'atlas-marketing-os',
@@ -38,8 +189,14 @@ describe('AgentGatewayService', () => {
       fileStore,
       undefined,
       config,
+      createTestSupervisorAuthority(),
     );
-    dispatcher = new WorkerDispatcherService(supervisor, executionStore);
+    dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      new SupervisorWorkerCapabilityService(createTestSupervisorAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
     gateway = new AgentGatewayService(supervisor, executionStore);
   });
 
@@ -53,7 +210,7 @@ describe('AgentGatewayService', () => {
       acceptance: ['focused tests pass'],
     });
     await supervisor.startTask(task.id);
-    const dispatched = await dispatcher.dispatch(task.id);
+    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
     const execution = await dispatcher.markRunning(dispatched.execution.id);
     return { task, execution };
   }
@@ -88,7 +245,7 @@ describe('AgentGatewayService', () => {
     await supervisor.beginVerification(task.id);
     await supervisor.markReadyForReview(task.id);
     if (authorizeMerge) {
-      await supervisor.authorizeMerge(task.id, reviewCandidate, 'owner-user-1');
+      await r2aAuthorizeMergeAsOwner(supervisor, task.id, reviewCandidate, 'owner-user-1');
     }
     return { task: await supervisor.getTask(task.id), execution: completed };
   }
@@ -143,7 +300,15 @@ describe('AgentGatewayService', () => {
         id: string,
         candidate: typeof reviewCandidate,
         service: 'api' | 'web' | 'browser-worker',
-        authorizedBy: string,
+        authorization: Parameters<
+
+          AgentSupervisorService[
+
+            'authorizeProductionDeployment'
+
+          ]
+
+        >[3],
       ) => Promise<unknown>;
     };
     expect(contract.authorizeProductionDeployment).toEqual(
@@ -154,7 +319,7 @@ describe('AgentGatewayService', () => {
       taskId,
       reviewCandidate,
       'api',
-      'owner-user-1',
+      r2aDeploymentAuthorization(supervisor, reviewCandidate, 'api', 'owner-user-1'),
     );
   }
 

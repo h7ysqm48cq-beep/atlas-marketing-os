@@ -1,15 +1,13 @@
-import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
-import {
-  ForbiddenException,
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { createHash, randomUUID } from 'node:crypto';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import type {
   SupervisorExecution,
   WorkerAssignmentEnvelope,
 } from '../execution/supervisor-execution.types';
+import {
+  canonicalizeAuthorityValue,
+  SupervisorAuthorityService,
+} from '../authority/supervisor-authority.service';
 import type {
   SupervisorWorkerCapabilityAuthorizationInput,
   SupervisorWorkerCapabilityClaims,
@@ -17,12 +15,10 @@ import type {
   SupervisorWorkerCapabilityOperation,
 } from './supervisor-worker-capability.types';
 
-const CAPABILITY_VERSION = 1 as const;
+const CAPABILITY_VERSION = 2 as const;
 const DEFAULT_TTL_MS = 5 * 60 * 1_000;
 const MAX_TTL_MS = 15 * 60 * 1_000;
-const KEY_SALT = 'atlas-supervisor-worker-capability:v1';
-const KEY_INFO = 'execution-bound-signing';
-const DEFAULT_OPERATIONS: SupervisorWorkerCapabilityOperation[] = [
+const DEFAULT_ALLOWED_ACTIONS: SupervisorWorkerCapabilityOperation[] = [
   'read_assignment',
   'mark_running',
   'complete',
@@ -30,18 +26,18 @@ const DEFAULT_OPERATIONS: SupervisorWorkerCapabilityOperation[] = [
   'cancel',
 ];
 const OPERATIONS = new Set<SupervisorWorkerCapabilityOperation>(
-  DEFAULT_OPERATIONS,
+  DEFAULT_ALLOWED_ACTIONS,
 );
 
 type IssueOptions = {
   now?: Date;
   ttlMs?: number;
-  allowedOperations?: SupervisorWorkerCapabilityOperation[];
+  allowedActions?: SupervisorWorkerCapabilityOperation[];
 };
 
 @Injectable()
 export class SupervisorWorkerCapabilityService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly authority: SupervisorAuthorityService) {}
 
   issue(
     execution: SupervisorExecution,
@@ -56,48 +52,62 @@ export class SupervisorWorkerCapabilityService {
       throw new ForbiddenException('worker_capability_invalid_expiry');
     }
 
-    const executionPurpose =
-      execution.assignment.executionPurpose ?? 'IMPLEMENTATION';
+    const assignment = execution.assignment;
     if (
-      execution.assignment.taskId !== execution.taskId ||
-      execution.assignment.executionId !== execution.id ||
-      execution.assignment.workerRole !== execution.workerRole
+      assignment.taskId !== execution.taskId ||
+      assignment.executionId !== execution.id ||
+      assignment.workerRole !== execution.workerRole
     ) {
       throw new ForbiddenException('worker_capability_execution_mismatch');
     }
+    this.requireAuthorityBinding(assignment);
+    if (assignment.executionPurpose !== 'IMPLEMENTATION') {
+      throw new ForbiddenException('worker_capability_purpose_mismatch');
+    }
 
-    const allowedOperations = [
-      ...new Set(options.allowedOperations ?? DEFAULT_OPERATIONS),
+    const allowedActions = [
+      ...new Set(options.allowedActions ?? DEFAULT_ALLOWED_ACTIONS),
     ];
     if (
-      allowedOperations.length === 0 ||
-      allowedOperations.some((operation) => !OPERATIONS.has(operation))
+      allowedActions.length === 0 ||
+      allowedActions.some((operation) => !OPERATIONS.has(operation))
     ) {
       throw new ForbiddenException('worker_capability_operation_denied');
     }
 
+    const jti = randomUUID();
     const metadata: SupervisorWorkerCapabilityMetadata = {
       version: CAPABILITY_VERSION,
-      assignmentDigest: this.assignmentDigest(execution.assignment),
-      allowedOperations,
+      assignmentDigest: this.assignmentDigest(assignment),
+      allowedActions,
+      manifestHash: assignment.manifestHash!,
+      allowedPaths: [...assignment.allowedPaths],
+      forbiddenActions: [...assignment.forbiddenActions],
+      claimEpoch: assignment.claimEpoch!,
+      leaseId: assignment.leaseId!,
+      runnerId: assignment.runnerId!,
+      jti,
       issuedAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
     };
     const claims: SupervisorWorkerCapabilityClaims = {
       ...metadata,
+      iss: 'atlas.supervisor.control-plane',
+      sub: 'atlas:worker-execution',
+      aud: 'atlas:worker.gateway',
+      actorType: 'WORKER_EXECUTION',
+      tokenType: 'WORKER_CAPABILITY',
+      purpose: 'IMPLEMENTATION',
+      iat: metadata.issuedAt,
+      exp: metadata.expiresAt,
       taskId: execution.taskId,
       executionId: execution.id,
       workerRole: execution.workerRole,
-      executionPurpose,
+      executionPurpose: 'IMPLEMENTATION',
     };
-    const encodedPayload = Buffer.from(
-      this.canonicalize(claims),
-      'utf8',
-    ).toString('base64url');
-    const signature = this.sign(encodedPayload).toString('base64url');
 
     return {
-      token: `${encodedPayload}.${signature}`,
+      token: this.authority.sign('WORKER_CAPABILITY', claims),
       metadata,
     };
   }
@@ -106,35 +116,51 @@ export class SupervisorWorkerCapabilityService {
     token: string,
     input: SupervisorWorkerCapabilityAuthorizationInput,
   ): SupervisorWorkerCapabilityClaims {
-    const claims = this.verify(token);
-    const now = input.now ?? new Date();
-    if (now.getTime() >= Date.parse(claims.expiresAt)) {
-      throw new UnauthorizedException('worker_capability_expired');
+    this.requireAuthorityBinding(input.assignment);
+    if (input.executionPurpose !== 'IMPLEMENTATION') {
+      throw new ForbiddenException('worker_capability_purpose_mismatch');
     }
-    if (claims.taskId !== input.taskId) {
-      throw new ForbiddenException('worker_capability_task_mismatch');
-    }
-    if (claims.executionId !== input.executionId) {
-      throw new ForbiddenException('worker_capability_execution_mismatch');
-    }
+
+    const claims = this.authority.verify(token, {
+      domain: 'WORKER_CAPABILITY',
+      audience: 'atlas:worker.gateway',
+      actorType: 'WORKER_EXECUTION',
+      tokenType: 'WORKER_CAPABILITY',
+      purpose: 'IMPLEMENTATION',
+      now: input.now,
+      claimEpoch: input.assignment.claimEpoch,
+      taskId: input.taskId,
+      executionId: input.executionId,
+      manifestHash: input.assignment.manifestHash,
+    }) as unknown as SupervisorWorkerCapabilityClaims;
+
     if (claims.workerRole !== input.workerRole) {
       throw new ForbiddenException('worker_capability_role_mismatch');
     }
-    if (claims.executionPurpose !== input.executionPurpose) {
-      throw new ForbiddenException('worker_capability_purpose_mismatch');
+    if (!Array.isArray(claims.allowedActions)) {
+      throw new ForbiddenException('worker_capability_actions_required');
     }
-    if (!claims.allowedOperations.includes(input.operation)) {
+    if (!claims.allowedActions.includes(input.operation)) {
       throw new ForbiddenException('worker_capability_operation_denied');
     }
 
     const metadata = input.assignment.workerCapability;
     const digest = this.assignmentDigest(input.assignment);
     if (
+      !metadata ||
       digest !== claims.assignmentDigest ||
-      metadata?.assignmentDigest !== claims.assignmentDigest ||
+      metadata.assignmentDigest !== claims.assignmentDigest ||
+      metadata.version !== CAPABILITY_VERSION ||
+      metadata.manifestHash !== claims.manifestHash ||
+      metadata.claimEpoch !== claims.claimEpoch ||
+      metadata.leaseId !== claims.leaseId ||
+      metadata.runnerId !== claims.runnerId ||
+      metadata.jti !== claims.jti ||
       metadata.expiresAt !== claims.expiresAt ||
       metadata.issuedAt !== claims.issuedAt ||
-      !this.sameOperations(metadata.allowedOperations, claims.allowedOperations)
+      !this.sameOperations(metadata.allowedActions, claims.allowedActions) ||
+      !this.sameStringArrays(metadata.allowedPaths, claims.allowedPaths) ||
+      !this.sameStringArrays(metadata.forbiddenActions, claims.forbiddenActions)
     ) {
       throw new ForbiddenException('worker_capability_assignment_mismatch');
     }
@@ -146,121 +172,36 @@ export class SupervisorWorkerCapabilityService {
     const boundAssignment = { ...assignment };
     delete boundAssignment.workerCapability;
     return createHash('sha256')
-      .update(this.canonicalize(boundAssignment), 'utf8')
+      .update(canonicalizeAuthorityValue(boundAssignment), 'utf8')
       .digest('hex');
   }
 
-  private verify(token: string): SupervisorWorkerCapabilityClaims {
-    const parts = token?.split('.') ?? [];
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      throw new UnauthorizedException('worker_capability_malformed');
-    }
-
-    const expected = this.sign(parts[0]);
-    let supplied: Buffer;
-    try {
-      supplied = Buffer.from(parts[1], 'base64url');
-    } catch {
-      throw new UnauthorizedException('worker_capability_invalid_signature');
-    }
+  private requireAuthorityBinding(assignment: WorkerAssignmentEnvelope): void {
     if (
-      supplied.length !== expected.length ||
-      !timingSafeEqual(supplied, expected)
+      !assignment.manifestHash ||
+      !/^[0-9a-f]{64}$/i.test(assignment.manifestHash) ||
+      !Number.isInteger(assignment.claimEpoch) ||
+      assignment.claimEpoch! < 0 ||
+      !assignment.leaseId ||
+      !assignment.runnerId
     ) {
-      throw new UnauthorizedException('worker_capability_invalid_signature');
-    }
-
-    let candidate: unknown;
-    try {
-      candidate = JSON.parse(
-        Buffer.from(parts[0], 'base64url').toString('utf8'),
-      );
-    } catch {
-      throw new UnauthorizedException('worker_capability_malformed');
-    }
-    if (!this.isClaims(candidate)) {
-      throw new UnauthorizedException('worker_capability_malformed');
-    }
-    return candidate;
-  }
-
-  private sign(encodedPayload: string): Buffer {
-    return createHmac('sha256', this.signingKey())
-      .update(encodedPayload, 'utf8')
-      .digest();
-  }
-
-  private signingKey(): Buffer {
-    const source = this.config.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
-    if (!source) {
-      throw new ServiceUnavailableException(
-        'worker_capability_signing_material_unavailable',
+      throw new ForbiddenException(
+        'worker_capability_authority_binding_required',
       );
     }
-    return Buffer.from(
-      hkdfSync(
-        'sha256',
-        Buffer.from(source, 'utf8'),
-        Buffer.from(KEY_SALT, 'utf8'),
-        Buffer.from(KEY_INFO, 'utf8'),
-        32,
-      ),
-    );
-  }
-
-  private isClaims(value: unknown): value is SupervisorWorkerCapabilityClaims {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return false;
-    }
-    const claims = value as Partial<SupervisorWorkerCapabilityClaims>;
-    return (
-      claims.version === CAPABILITY_VERSION &&
-      typeof claims.taskId === 'string' &&
-      Boolean(claims.taskId) &&
-      typeof claims.executionId === 'string' &&
-      Boolean(claims.executionId) &&
-      typeof claims.workerRole === 'string' &&
-      (claims.executionPurpose === 'IMPLEMENTATION' ||
-        claims.executionPurpose === 'INDEPENDENT_VERIFICATION') &&
-      typeof claims.assignmentDigest === 'string' &&
-      /^[0-9a-f]{64}$/u.test(claims.assignmentDigest) &&
-      typeof claims.issuedAt === 'string' &&
-      Number.isFinite(Date.parse(claims.issuedAt)) &&
-      typeof claims.expiresAt === 'string' &&
-      Number.isFinite(Date.parse(claims.expiresAt)) &&
-      Array.isArray(claims.allowedOperations) &&
-      claims.allowedOperations.length > 0 &&
-      claims.allowedOperations.every(
-        (operation) =>
-          typeof operation === 'string' && OPERATIONS.has(operation),
-      )
-    );
   }
 
   private sameOperations(
     left: SupervisorWorkerCapabilityOperation[],
     right: SupervisorWorkerCapabilityOperation[],
   ): boolean {
-    return (
-      left.length === right.length &&
-      left.every((operation, index) => operation === right[index])
-    );
+    return this.sameStringArrays(left, right);
   }
 
-  private canonicalize(value: unknown): string {
-    if (Array.isArray(value)) {
-      return `[${value.map((entry) => this.canonicalize(entry)).join(',')}]`;
-    }
-    if (value && typeof value === 'object') {
-      return `{${Object.entries(value)
-        .filter(([, entry]) => entry !== undefined)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(
-          ([key, entry]) =>
-            `${JSON.stringify(key)}:${this.canonicalize(entry)}`,
-        )
-        .join(',')}}`;
-    }
-    return JSON.stringify(value);
+  private sameStringArrays(left: string[], right: string[]): boolean {
+    return (
+      left.length === right.length &&
+      left.every((value, index) => value === right[index])
+    );
   }
 }

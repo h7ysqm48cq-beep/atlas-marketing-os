@@ -1,6 +1,14 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import { generateKeyPairSync } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import {
+  HumanOwnerApprovalService,
+} from './authority/human-owner-approval.service';
+import {
+  InMemoryAuthorityKeyRegistry,
+  SupervisorAuthorityService,
+} from './authority/supervisor-authority.service';
 import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
@@ -13,6 +21,259 @@ const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
 const CHANGED_FILE = 'apps/api/src/example.ts';
 const OWNER_TOKEN = 'test-owner-token';
+
+// R2A_TEST_OWNER_ARTIFACT_ADAPTER_BEGIN
+function testOwnerApprovalService(
+  service: AgentSupervisorService,
+): HumanOwnerApprovalService {
+  const authority =
+    (service as unknown as {
+      authority?: {
+        keyRegistry?: unknown;
+      };
+    }).authority;
+
+  const keyRegistry =
+    authority?.keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'test_owner_authority_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: jest.fn(
+      (key: string) => {
+        if (
+          key ===
+          'ATLAS_SUPERVISOR_OWNER_USER_ID'
+        ) {
+          return 'owner-user-1';
+        }
+
+        if (
+          key ===
+          'ATLAS_SUPERVISOR_OWNER_TOKEN'
+        ) {
+          return OWNER_TOKEN;
+        }
+
+        return undefined;
+      },
+    ),
+  } as unknown as ConfigService;
+
+  return new HumanOwnerApprovalService(
+    config,
+    keyRegistry as never,
+  );
+}
+
+// R2A_DIRECT_OWNER_ARTIFACT_HELPER
+async function authorizeMergeAsOwner(
+  service: AgentSupervisorService,
+  taskId: string,
+  reviewCandidate: SupervisorReviewCandidate,
+  ownerId = 'owner-user-1',
+) {
+  const approval =
+    testOwnerApprovalService(service);
+
+  const proof =
+    approval.verifyAuthentication(
+      {
+        userId: ownerId,
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'MERGE',
+        candidate: reviewCandidate,
+      },
+    );
+
+  const authorization =
+    approval.issueMergeApproval(
+      proof,
+      reviewCandidate,
+    );
+
+  return service.authorizeMerge(
+    taskId,
+    reviewCandidate,
+    authorization,
+  );
+}
+
+// R2A_DIRECT_OWNER_DEPLOY_ARTIFACT_HELPER
+async function authorizeDeploymentAsOwner(
+  service: AgentSupervisorService,
+  taskId: string,
+  reviewCandidate: SupervisorReviewCandidate,
+  deploymentService:
+    ProductionDeploymentService = 'api',
+  ownerId = 'owner-user-1',
+) {
+  const approval =
+    testOwnerApprovalService(service);
+
+  const proof =
+    approval.verifyAuthentication(
+      {
+        userId: ownerId,
+        ownerAction: '1',
+        ownerToken: OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate: reviewCandidate,
+        service: deploymentService,
+      },
+    );
+
+  const authorization =
+    approval.issueDeployApproval(
+      proof,
+      reviewCandidate,
+      deploymentService,
+    );
+
+  return service
+    .authorizeProductionDeployment(
+      taskId,
+      reviewCandidate,
+      deploymentService,
+      authorization,
+    );
+}
+
+function bindOwnerApprovalArtifacts(
+  service: AgentSupervisorService,
+): any {
+  const approval =
+    testOwnerApprovalService(service);
+
+  const authorizeMerge =
+    service.authorizeMerge.bind(service);
+
+  const authorizeDeploy =
+    service
+      .authorizeProductionDeployment
+      .bind(service);
+
+  (
+    service as unknown as {
+      authorizeMerge: (
+        id: string,
+        candidate: SupervisorReviewCandidate,
+        ownerOrAuthorization: unknown,
+      ) => Promise<unknown>;
+    }
+  ).authorizeMerge = async (
+    id,
+    candidate,
+    ownerOrAuthorization,
+  ) => {
+    if (
+      typeof ownerOrAuthorization !== 'string'
+    ) {
+      return authorizeMerge(
+        id,
+        candidate,
+        ownerOrAuthorization as never,
+      );
+    }
+
+    const proof =
+      approval.verifyAuthentication(
+        {
+          userId: ownerOrAuthorization,
+          ownerAction: '1',
+          ownerToken: OWNER_TOKEN,
+        },
+        {
+          action: 'MERGE',
+          candidate,
+        },
+      );
+
+    const authorization =
+      approval.issueMergeApproval(
+        proof,
+        candidate,
+      );
+
+    return authorizeMerge(
+      id,
+      candidate,
+      authorization,
+    );
+  };
+
+  (
+    service as unknown as {
+      authorizeProductionDeployment: (
+        id: string,
+        candidate: SupervisorReviewCandidate,
+        deploymentService:
+          ProductionDeploymentService,
+        ownerOrAuthorization: unknown,
+      ) => Promise<unknown>;
+    }
+  ).authorizeProductionDeployment =
+    async (
+      id,
+      candidate,
+      deploymentService,
+      ownerOrAuthorization,
+    ) => {
+      if (
+        typeof ownerOrAuthorization !==
+        'string'
+      ) {
+        return authorizeDeploy(
+          id,
+          candidate,
+          deploymentService,
+          ownerOrAuthorization as never,
+        );
+      }
+
+      const proof =
+        approval.verifyAuthentication(
+          {
+            userId: ownerOrAuthorization,
+            ownerAction: '1',
+            ownerToken: OWNER_TOKEN,
+          },
+          {
+            action: 'DEPLOY',
+            candidate,
+            service:
+              deploymentService,
+          },
+        );
+
+      const authorization =
+        approval.issueDeployApproval(
+          proof,
+          candidate,
+          deploymentService,
+        );
+
+      return authorizeDeploy(
+        id,
+        candidate,
+        deploymentService,
+        authorization,
+      );
+    };
+
+  return service;
+}
+// R2A_TEST_OWNER_ARTIFACT_ADAPTER_END
+
 
 function candidate(
   overrides: Partial<SupervisorReviewCandidate> = {},
@@ -46,29 +307,53 @@ type DeploymentAuthorizationService = AgentSupervisorService & {
     id: string,
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
-    authorizedBy: string,
+    authorization: OwnerDeploymentAuthorizationContract,
   ) => Promise<unknown>;
   assertOwnerDeploymentAuthorization?: (
     task: unknown,
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
   ) => void;
+  consumeProductionDeploymentAuthorization?: (
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    consumedBy: string,
+  ) => Promise<unknown>;
 };
 
 async function authorizeProductionDeployment(
   service: AgentSupervisorService,
   taskId: string,
   reviewCandidate: SupervisorReviewCandidate,
-  deploymentService: ProductionDeploymentService = 'api',
+  deploymentService:
+    ProductionDeploymentService = 'api',
 ) {
-  const contract = service as DeploymentAuthorizationService;
-  expect(contract.authorizeProductionDeployment).toEqual(expect.any(Function));
-  if (!contract.authorizeProductionDeployment) return undefined;
-  return contract.authorizeProductionDeployment(
+  return authorizeDeploymentAsOwner(
+    service,
     taskId,
     reviewCandidate,
     deploymentService,
-    'owner-user-1',
+  );
+}
+
+async function consumeProductionDeploymentAuthorization(
+  service: AgentSupervisorService,
+  taskId: string,
+  reviewCandidate: SupervisorReviewCandidate,
+  deploymentService: ProductionDeploymentService = 'api',
+  consumedBy = 'deploy-gate',
+) {
+  const contract = service as DeploymentAuthorizationService;
+  expect(contract.consumeProductionDeploymentAuthorization).toEqual(
+    expect.any(Function),
+  );
+  if (!contract.consumeProductionDeploymentAuthorization) return undefined;
+  return contract.consumeProductionDeploymentAuthorization(
+    taskId,
+    reviewCandidate,
+    deploymentService,
+    consumedBy,
   );
 }
 
@@ -135,7 +420,25 @@ function createOwnerServiceWithStore(
     new MemoryFileOwnershipStore(),
     undefined,
     ownerConfig(),
+    testAuthority(),
   );
+}
+
+function testAuthority() {
+  const fixture = () => {
+    const pair = generateKeyPairSync('ed25519');
+    return {
+      privateKeyPem: pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+      publicKeyPem: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+    };
+  };
+  return new SupervisorAuthorityService({ get: jest.fn() } as never, new InMemoryAuthorityKeyRegistry({
+    SUPERVISOR_SYSTEM: fixture(),
+    WORKER_CAPABILITY: fixture(),
+    VERIFIER_CAPABILITY: fixture(),
+    MERGE_APPROVAL: fixture(),
+    DEPLOY_APPROVAL: fixture(),
+  }));
 }
 
 function ownerConfig() {
@@ -152,6 +455,7 @@ function createOwnerService() {
     new MemoryFileOwnershipStore(),
     undefined,
     ownerConfig(),
+    testAuthority(),
   );
 }
 
@@ -332,14 +636,10 @@ describe('AgentSupervisorService', () => {
   });
 
   it('persists a signed owner merge authorization only for the exact reviewed candidate', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
 
-    const authorized = await ownerService.authorizeMerge(
-      task.id,
-      candidate(),
-      'owner-user-1',
-    );
+    const authorized = await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     expect(authorized.evidence?.ownerMergeAuthorization).toMatchObject({
       candidate: candidate(),
@@ -349,7 +649,7 @@ describe('AgentSupervisorService', () => {
       expect.any(String),
     );
     expect(authorized.evidence?.ownerMergeAuthorization?.signature).toMatch(
-      /^[0-9a-f]{64}$/,
+      /^[^.]+\.[^.]+\.[^.]+$/,
     );
   });
 
@@ -360,17 +660,17 @@ describe('AgentSupervisorService', () => {
   ])(
     'rejects owner authorization for a non-matching or non-canonical candidate',
     async (requested) => {
-      const ownerService = createOwnerService();
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
       const task = await makeReadyTask(ownerService);
 
       await expect(
-        ownerService.authorizeMerge(task.id, requested, 'owner-user-1'),
+        authorizeMergeAsOwner(ownerService, task.id, requested, 'owner-user-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
     },
   );
 
   it('strips worker-supplied owner authorization from implementation evidence', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await ownerService.createTask({
       objective: 'Reject forged owner evidence',
       owner: 'backend',
@@ -403,9 +703,9 @@ describe('AgentSupervisorService', () => {
   });
 
   it('revokes owner merge authorization when a reviewed task returns to working', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const working = await ownerService.returnToWorking(
       task.id,
@@ -417,7 +717,7 @@ describe('AgentSupervisorService', () => {
   });
 
   it('persists deployment-specific owner authorization for the exact canonical deployment candidate', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const task = await makeReadyTask(ownerService, reviewCandidate);
 
@@ -444,8 +744,86 @@ describe('AgentSupervisorService', () => {
     ).toEqual(expect.any(String));
     expect(
       authorized?.evidence?.ownerDeploymentAuthorization?.signature,
-    ).toMatch(/^[0-9a-f]{64}$/);
+    ).toMatch(/^[^.]+\.[^.]+\.[^.]+$/);
     expect(authorized?.evidence?.ownerMergeAuthorization).toBeUndefined();
+  });
+
+  it('consumes an exact deployment approval once and records its binding', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeDeploymentAsOwner(ownerService, approved.id, reviewCandidate, 'api', 'owner-user-1');
+
+    const consumed = await consumeProductionDeploymentAuthorization(
+      ownerService,
+      approved.id,
+      reviewCandidate,
+    );
+
+    expect(consumed).toMatchObject({
+      evidence: {
+        ownerDeploymentAuthorizationConsumption: {
+          candidateHash: expect.any(String),
+          approvalJti: expect.any(String),
+          environment: 'production',
+          consumedBy: 'deploy-gate',
+        },
+      },
+    });
+    await expect(
+      consumeProductionDeploymentAuthorization(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'owner_deployment_authorization_already_consumed' },
+    });
+  });
+
+  it('rejects a changed deployment candidate during consumption', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeDeploymentAsOwner(ownerService, approved.id, reviewCandidate, 'api', 'owner-user-1');
+
+    await expect(
+      consumeProductionDeploymentAuthorization(
+        ownerService,
+        approved.id,
+        deploymentCandidate({ headSha: 'c'.repeat(40) }),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('allows exactly one winner when deploy approval consumption races', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = deploymentCandidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeDeploymentAsOwner(ownerService, approved.id, reviewCandidate, 'api', 'owner-user-1');
+
+    const results = await Promise.allSettled([
+      consumeProductionDeploymentAuthorization(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+        'deploy-gate-a',
+      ),
+      consumeProductionDeploymentAuthorization(
+        ownerService,
+        approved.id,
+        reviewCandidate,
+        'api',
+        'deploy-gate-b',
+      ),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
   });
 
   it.each([
@@ -454,7 +832,7 @@ describe('AgentSupervisorService', () => {
   ])(
     'rejects deployment authorization for a mismatched candidate',
     async (requested) => {
-      const ownerService = createOwnerService();
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
       const task = await makeReadyTask(ownerService, deploymentCandidate());
 
       await expect(
@@ -466,7 +844,7 @@ describe('AgentSupervisorService', () => {
   it.each(['candidate', 'authorizedBy', 'authorizedAt', 'signature'] as const)(
     'invalidates deployment authorization after %s tampering',
     async (field) => {
-      const ownerService = createOwnerService();
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
       const reviewCandidate = deploymentCandidate();
       const task = await makeReadyTask(ownerService, reviewCandidate);
       const authorized = (await authorizeProductionDeployment(
@@ -494,8 +872,8 @@ describe('AgentSupervisorService', () => {
       } else if (field === 'authorizedAt') {
         tampered.authorizedAt = '2026-09-02T00:00:00.000Z';
       } else {
-        const replacement = authorization.signature.endsWith('0') ? '1' : '0';
-        tampered.signature = `${authorization.signature.slice(0, -1)}${replacement}`;
+        const replacement = authorization.signature.startsWith('A') ? 'B' : 'A';
+        tampered.signature = `${replacement}${authorization.signature.slice(1)}`;
       }
 
       authorized.evidence.ownerDeploymentAuthorization = tampered;
@@ -517,7 +895,7 @@ describe('AgentSupervisorService', () => {
   it.each(['authorizedBy', 'authorizedAt', 'signature'] as const)(
     'rejects whitespace tampering in deployment authorization %s',
     async (field) => {
-      const ownerService = createOwnerService();
+      const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
       const reviewCandidate = deploymentCandidate();
       const task = await makeReadyTask(ownerService, reviewCandidate);
       const authorized = (await authorizeProductionDeployment(
@@ -552,13 +930,9 @@ describe('AgentSupervisorService', () => {
   );
 
   it('domain-separates deployment authorization from a valid merge signature', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const mergeTask = await makeReadyTask(ownerService);
-    const mergeAuthorized = await ownerService.authorizeMerge(
-      mergeTask.id,
-      candidate(),
-      'owner-user-1',
-    );
+    const mergeAuthorized = await authorizeMergeAsOwner(ownerService, mergeTask.id, candidate(), 'owner-user-1');
     const reviewCandidate = deploymentCandidate();
     const deploymentTask = (await makeReadyTask(
       ownerService,
@@ -593,7 +967,7 @@ describe('AgentSupervisorService', () => {
   });
 
   it('does not let deployment authorization satisfy merge authorization', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const task = await makeReadyTask(ownerService, reviewCandidate);
     const authorized = await authorizeProductionDeployment(
@@ -611,17 +985,12 @@ describe('AgentSupervisorService', () => {
   });
 
   it('revokes deployment authorization from an APPROVED task without changing the reviewed candidate', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const ready = await makeReadyTask(ownerService, reviewCandidate);
     const approved = await ownerService.approveTask(ready.id, true);
 
-    await ownerService.authorizeProductionDeployment(
-      approved.id,
-      reviewCandidate,
-      'browser-worker',
-      'owner-user-1',
-    );
+    await authorizeDeploymentAsOwner(ownerService, approved.id, reviewCandidate, 'browser-worker', 'owner-user-1');
 
     const before = await ownerService.getTask(approved.id);
     const beforeEvidence = before.evidence!;
@@ -669,7 +1038,7 @@ describe('AgentSupervisorService', () => {
   });
 
   it('rejects deployment authorization revocation when no authorization exists', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const ready = await makeReadyTask(ownerService, reviewCandidate);
     const approved = await ownerService.approveTask(ready.id, true);
@@ -688,17 +1057,12 @@ describe('AgentSupervisorService', () => {
   });
 
   it('rejects deployment authorization revocation without a reason', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const ready = await makeReadyTask(ownerService, reviewCandidate);
     const approved = await ownerService.approveTask(ready.id, true);
 
-    await ownerService.authorizeProductionDeployment(
-      approved.id,
-      reviewCandidate,
-      'api',
-      'owner-user-1',
-    );
+    await authorizeDeploymentAsOwner(ownerService, approved.id, reviewCandidate, 'api', 'owner-user-1');
 
     await expect(
       ownerService.revokeProductionDeploymentAuthorization(
@@ -714,7 +1078,7 @@ describe('AgentSupervisorService', () => {
   });
 
   it('revokes owner deployment authorization when a reviewed task returns to working', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();
     const task = await makeReadyTask(ownerService, reviewCandidate);
     await authorizeProductionDeployment(ownerService, task.id, reviewCandidate);
@@ -759,9 +1123,9 @@ describe('AgentSupervisorService', () => {
 
   // ASTRA_V2_MERGE_CONSUMPTION_SERVICE_RED
   it('consumes an exact owner merge authorization once and records post-merge attestation', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -833,9 +1197,9 @@ describe('AgentSupervisorService', () => {
   });
 
   it('rejects replay after a merge authorization has been consumed', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -873,9 +1237,9 @@ describe('AgentSupervisorService', () => {
   });
 
   it('rejects post-merge attestation whose parents do not match the authorized base and head', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -905,9 +1269,9 @@ describe('AgentSupervisorService', () => {
   });
 
   it('allows at most one winner when duplicate merge consumption requests race', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -954,9 +1318,9 @@ describe('AgentSupervisorService', () => {
   });
 
   it('does not allow a consumed merge candidate to be re-authorized', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -981,16 +1345,16 @@ describe('AgentSupervisorService', () => {
     );
 
     await expect(
-      ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1'),
+      authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1'),
     ).rejects.toMatchObject({
       response: { code: 'owner_merge_authorization_already_consumed' },
     });
   });
 
   it('does not allow a consumed reviewed task to return to WORKING', async () => {
-    const ownerService = createOwnerService();
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const task = await makeReadyTask(ownerService);
-    await ownerService.authorizeMerge(task.id, candidate(), 'owner-user-1');
+    await authorizeMergeAsOwner(ownerService, task.id, candidate(), 'owner-user-1');
 
     const contract = ownerService as unknown as {
       consumeMergeAuthorization?: (
@@ -1032,11 +1396,7 @@ describe('AgentSupervisorService', () => {
       candidate(),
     );
 
-    await ownerService.authorizeMerge(
-      ready.id,
-      candidate(),
-      'owner-user-1',
-    );
+    await authorizeMergeAsOwner(ownerService, ready.id, candidate(), 'owner-user-1');
 
     /*
      * Seed a persisted stale/drift state representing a writer that
@@ -1126,11 +1486,7 @@ describe('AgentSupervisorService', () => {
 
     const ready = await makeReadyTask(ownerService);
 
-    await ownerService.authorizeMerge(
-      ready.id,
-      candidate(),
-      'owner-user-1',
-    );
+    await authorizeMergeAsOwner(ownerService, ready.id, candidate(), 'owner-user-1');
 
     const gate = store.armNextMutation();
 
@@ -1184,11 +1540,7 @@ describe('AgentSupervisorService', () => {
 
     const ready = await makeReadyTask(ownerService);
 
-    await ownerService.authorizeMerge(
-      ready.id,
-      candidate(),
-      'owner-user-1',
-    );
+    await authorizeMergeAsOwner(ownerService, ready.id, candidate(), 'owner-user-1');
 
     const gate = store.armNextMutation();
 
@@ -1233,3 +1585,46 @@ describe('AgentSupervisorService', () => {
   });
 
 });
+
+describe(
+  'R2A signed-artifact Supervisor boundary',
+  () => {
+    it(
+      'rejects a self-declared Human Owner artifact without a valid dedicated signature',
+      async () => {
+        const rawService =
+          createOwnerService();
+
+        const task =
+          await makeReadyTask(
+            rawService,
+          );
+
+        await expect(
+          (
+            rawService.authorizeMerge as unknown as (
+              id: string,
+              candidate: SupervisorReviewCandidate,
+              authorization: unknown,
+            ) => Promise<unknown>
+          )(
+            task.id,
+            candidate(),
+            {
+              candidate:
+                candidate(),
+              authorizedBy:
+                'owner-user-1',
+              authorizedAt:
+                '2026-09-11T12:00:00.000Z',
+              signature:
+                'forged-owner-signature',
+            },
+          ),
+        ).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+      },
+    );
+  },
+);

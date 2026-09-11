@@ -3,9 +3,152 @@ import {
   mapExecutionRecord,
   mapTaskRecord,
 } from './supervisor-persistence.mapper';
+import { createTestSupervisorAuthority } from '../authority/test-authority';
+import type { ConfigService } from '@nestjs/config';
+import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
 
 const createdAt = new Date('2026-08-30T00:00:00.000Z');
 const updatedAt = new Date('2026-08-30T00:01:00.000Z');
+// R2A_OUT_OF_SCOPE_PERSISTENCE_OWNER_FIXTURE_BEGIN
+const R2A_PERSISTENCE_OWNER_ID =
+  'owner-user-1';
+
+const R2A_PERSISTENCE_OWNER_TOKEN =
+  'r2a-persistence-owner-token';
+
+function r2aPersistenceOwnerApprovals() {
+  const authority =
+    createTestSupervisorAuthority();
+
+  const keyRegistry =
+    (
+      authority as unknown as {
+        keyRegistry?: unknown;
+      }
+    ).keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'r2a_persistence_owner_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: (key: string) => {
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_USER_ID'
+      ) {
+        return R2A_PERSISTENCE_OWNER_ID;
+      }
+
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_TOKEN'
+      ) {
+        return R2A_PERSISTENCE_OWNER_TOKEN;
+      }
+
+      return undefined;
+    },
+  } as unknown as ConfigService;
+
+  return new HumanOwnerApprovalService(
+    config,
+    keyRegistry as never,
+  );
+}
+
+function r2aMergeApprovalFixture() {
+  const candidate = {
+    action: 'merge' as const,
+    targetBranch: 'production/atlas',
+    baseSha: 'a'.repeat(40),
+    headSha: 'b'.repeat(40),
+    changedFiles: [
+      'apps/api/src/example.ts',
+    ],
+  };
+
+  const approvals =
+    r2aPersistenceOwnerApprovals();
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId:
+          R2A_PERSISTENCE_OWNER_ID,
+        ownerAction: '1',
+        ownerToken:
+          R2A_PERSISTENCE_OWNER_TOKEN,
+      },
+      {
+        action: 'MERGE',
+        candidate,
+      },
+    );
+
+  return approvals.issueMergeApproval(
+    proof,
+    candidate,
+    new Date(
+      '2026-09-01T00:00:00.000Z',
+    ),
+  );
+}
+
+function r2aDeployApprovalFixture() {
+  const candidate = {
+    action: 'deploy_production' as const,
+    targetBranch: 'production/atlas',
+    baseSha: 'a'.repeat(40),
+    headSha: 'b'.repeat(40),
+    changedFiles: [
+      'apps/api/src/example.ts',
+    ],
+  };
+
+  const approvals =
+    r2aPersistenceOwnerApprovals();
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId:
+          R2A_PERSISTENCE_OWNER_ID,
+        ownerAction: '1',
+        ownerToken:
+          R2A_PERSISTENCE_OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: 'api',
+      },
+    );
+
+  return approvals.issueDeployApproval(
+    proof,
+    candidate,
+    'api',
+    new Date(
+      '2026-09-02T00:00:00.000Z',
+    ),
+  );
+}
+
+const mergeApproval =
+  r2aMergeApprovalFixture();
+
+const deployApproval =
+  r2aDeployApprovalFixture();
+
+const mergeApprovalSignature =
+  mergeApproval.signature;
+
+const deployApprovalSignature =
+  deployApproval.signature;
+// R2A_OUT_OF_SCOPE_PERSISTENCE_OWNER_FIXTURE_END
 
 function reviewCandidateFixture() {
   return {
@@ -20,9 +163,11 @@ function reviewCandidateFixture() {
 function ownerAuthorizationFixture() {
   return {
     candidate: reviewCandidateFixture(),
-    authorizedBy: 'owner-user-1',
-    authorizedAt: '2026-09-01T00:00:00.000Z',
-    signature: 'c'.repeat(64),
+    authorizedBy:
+      mergeApproval.authorizedBy,
+    authorizedAt:
+      mergeApproval.authorizedAt,
+    signature: mergeApprovalSignature,
   };
 }
 
@@ -37,9 +182,11 @@ function ownerDeploymentAuthorizationFixture() {
   return {
     candidate: deploymentCandidateFixture(),
     service: 'api',
-    authorizedBy: 'owner-user-1',
-    authorizedAt: '2026-09-02T00:00:00.000Z',
-    signature: 'd'.repeat(64),
+    authorizedBy:
+      deployApproval.authorizedBy,
+    authorizedAt:
+      deployApproval.authorizedAt,
+    signature: deployApprovalSignature,
   };
 }
 
@@ -94,6 +241,7 @@ function assignmentFixture() {
     executionId: 'ATLAS-EXEC-20260830-0001',
     taskId: 'ATLAS-20260830-0001',
     workerRole: 'backend',
+    executionPurpose: 'IMPLEMENTATION',
     objective: 'Persist supervisor task',
     allowedPaths: ['apps/api/src/example.ts'],
     forbiddenActions: ['merge'],
@@ -109,6 +257,24 @@ function assignmentFixture() {
       'gitState',
       'remainingRisk',
     ],
+    manifestHash: 'a'.repeat(64),
+    claimEpoch: 1,
+    leaseId: 'lease-1',
+    runnerId: 'runner-1',
+    workerCapability: {
+      version: 2,
+      assignmentDigest: 'b'.repeat(64),
+      allowedActions: ['read_assignment'],
+      manifestHash: 'a'.repeat(64),
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: ['merge'],
+      claimEpoch: 1,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
+      jti: 'worker-jti-1',
+      issuedAt: '2026-08-30T00:00:00.000Z',
+      expiresAt: '2026-08-30T00:05:00.000Z',
+    },
   };
 }
 
@@ -354,6 +520,45 @@ describe('supervisor persistence mapper', () => {
     expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
   });
 
+  it('round-trips structurally valid EdDSA merge and deploy approvals', () => {
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorization: ownerAuthorizationFixture(),
+      ownerDeploymentAuthorization: ownerDeploymentAuthorizationFixture(),
+    };
+
+    const task = mapTaskRecord(
+      taskRecord({
+        evidence: {
+          ...evidence,
+          reviewCandidate: deploymentCandidateFixture(),
+        },
+      }),
+    );
+
+    expect(task.evidence?.ownerMergeAuthorization?.signature).toBe(
+      mergeApprovalSignature,
+    );
+    expect(task.evidence?.ownerDeploymentAuthorization?.signature).toBe(
+      deployApprovalSignature,
+    );
+  });
+
+  it.each(['not-an-envelope', 'a.b', 'a.b.c', 'c'.repeat(64)])(
+    'rejects malformed, truncated, or legacy approval signatures: %s',
+    (signature) => {
+      const evidence = {
+        ...evidenceFixture(),
+        ownerMergeAuthorization: {
+          ...ownerAuthorizationFixture(),
+          signature,
+        },
+      };
+
+      expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+    },
+  );
+
   it('rejects persisted deployment authorization for a merge candidate', () => {
     const evidence = {
       ...evidenceFixture(),
@@ -443,6 +648,30 @@ describe('supervisor persistence mapper', () => {
         }
       )?.ownerMergeAuthorizationConsumption,
     ).not.toBe(consumption);
+  });
+
+  it('round-trips deploy authorization consumption separately from merge consumption', () => {
+    const authorization = ownerDeploymentAuthorizationFixture();
+    const consumption = {
+      authorization,
+      approvalJti: 'deploy-jti-1',
+      candidateHash: 'b'.repeat(64),
+      environment: 'production',
+      consumedBy: 'deploy-gate',
+      consumedAt: '2026-09-05T10:45:03.000Z',
+    };
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: authorization,
+      ownerDeploymentAuthorizationConsumption: consumption,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const mapped = task.evidence?.ownerDeploymentAuthorizationConsumption;
+
+    expect(mapped).toEqual(consumption);
+    expect(mapped).not.toBe(consumption);
   });
 
 });

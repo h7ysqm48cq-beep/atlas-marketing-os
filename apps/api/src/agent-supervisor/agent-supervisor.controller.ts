@@ -2,12 +2,17 @@ import {
   Body,
   Controller,
   Get,
+  Optional,
   Param,
   Post,
   Req,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import {
+  HumanOwnerApprovalService,
+} from './authority/human-owner-approval.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
@@ -23,12 +28,24 @@ import type {
   SupervisorReviewCandidate,
 } from './agent-supervisor.types';
 
+type HumanOwnerRequest = {
+  user?: {
+    id?: string;
+  };
+  headers?: Record<
+    string,
+    string | string[] | undefined
+  >;
+};
+
 @UseGuards(SupervisorOwnerActionGuard, SupervisorOwnerGuard)
 @Controller('engineering/supervisor')
 export class AgentSupervisorController {
   constructor(
     private readonly supervisor: AgentSupervisorService,
     private readonly dispatcher: WorkerDispatcherService,
+    @Optional()
+    private readonly humanOwnerApproval?: HumanOwnerApprovalService,
   ) {}
 
   @Get('status')
@@ -98,12 +115,32 @@ export class AgentSupervisorController {
   authorizeMerge(
     @Param('id') id: string,
     @Body() body: { candidate: SupervisorReviewCandidate },
-    @Req() request: { user?: { id?: string } },
+    @Req() request: HumanOwnerRequest,
   ) {
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'MERGE',
+          candidate: body.candidate,
+        },
+      );
+
+    const authorization =
+      signer.issueMergeApproval(
+        proof,
+        body.candidate,
+      );
+
     return this.supervisor.authorizeMerge(
       id,
       body.candidate,
-      request.user?.id ?? '',
+      authorization,
     );
   }
 
@@ -131,14 +168,80 @@ export class AgentSupervisorController {
       candidate: SupervisorReviewCandidate;
       service: ProductionDeploymentService;
     },
-    @Req() request: { user?: { id?: string } },
+    @Req() request: HumanOwnerRequest,
   ) {
-    return this.supervisor.authorizeProductionDeployment(
-      id,
-      body.candidate,
-      body.service,
-      request.user?.id ?? '',
-    );
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'DEPLOY',
+          candidate: body.candidate,
+          service: body.service,
+        },
+      );
+
+    const authorization =
+      signer.issueDeployApproval(
+        proof,
+        body.candidate,
+        body.service,
+      );
+
+    return this.supervisor
+      .authorizeProductionDeployment(
+        id,
+        body.candidate,
+        body.service,
+        authorization,
+      );
+  }
+
+  private requireHumanOwnerApproval(): HumanOwnerApprovalService {
+    if (!this.humanOwnerApproval) {
+      throw new ServiceUnavailableException(
+        'human_owner_approval_signer_not_configured',
+      );
+    }
+
+    return this.humanOwnerApproval;
+  }
+
+  private ownerAuthenticationEvidence(
+    request: HumanOwnerRequest,
+  ) {
+    return {
+      userId:
+        request.user?.id ?? '',
+      ownerAction:
+        this.requestHeader(
+          request,
+          'x-atlas-supervisor-owner-action',
+        ),
+      ownerToken:
+        this.requestHeader(
+          request,
+          'x-atlas-supervisor-owner-token',
+        ),
+    };
+  }
+
+  private requestHeader(
+    request: HumanOwnerRequest,
+    name: string,
+  ): string {
+    const value =
+      request.headers?.[name];
+
+    if (Array.isArray(value)) {
+      return value[0] ?? '';
+    }
+
+    return value ?? '';
   }
 
   @Post('tasks/:id/revoke-production-deployment-authorization')
@@ -156,7 +259,7 @@ export class AgentSupervisorController {
 
   @Post('tasks/:id/dispatch')
   dispatchTask(@Param('id') id: string) {
-    return this.dispatcher.dispatch(id);
+    return this.dispatcher.dispatch(id, 'IMPLEMENTATION');
   }
 
   @Get('tasks/:id/executions')
