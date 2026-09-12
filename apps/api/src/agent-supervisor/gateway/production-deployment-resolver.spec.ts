@@ -225,8 +225,28 @@ describe('Production deployment resolver', () => {
     return contract.resolveProductionDeployment!(input);
   }
 
+  function claim(
+    taskId: string,
+    executionId: string,
+    service: 'api' | 'web' | 'browser-worker' = 'api',
+  ) {
+    const contract = gateway as unknown as {
+      claimProductionDeploymentMutation?: (value: unknown) => Promise<unknown>;
+    };
+    expect(contract.claimProductionDeploymentMutation).toEqual(
+      expect.any(Function),
+    );
+    return contract.claimProductionDeploymentMutation!({
+      taskId,
+      executionId,
+      service,
+      github: CANONICAL_GITHUB,
+    });
+  }
+
   it('resolves the unique approved service-bound receipt from canonical provenance', async () => {
     const { task, execution } = await createApprovedDeployment('api');
+    await claim(task.id, execution.id, 'api');
 
     await expect(
       resolve({ service: 'api', github: CANONICAL_GITHUB }),
@@ -242,6 +262,7 @@ describe('Production deployment resolver', () => {
     const { task, execution } = await createApprovedDeployment('api', {
       runtimeRefresh: true,
     });
+    await claim(task.id, execution.id, 'api');
 
     await expect(
       resolve({ service: 'api', github: CANONICAL_GITHUB }),
@@ -253,18 +274,33 @@ describe('Production deployment resolver', () => {
     });
   });
 
-  it('consumes the deployment approval before returning a consequential resolution', async () => {
+  it('requires a one-shot external mutation claim before returning a consequential resolution', async () => {
     const { task, execution } = await createApprovedDeployment('api');
 
-    await resolve({ service: 'api', github: CANONICAL_GITHUB });
+    await expect(
+      resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'production_deployment_external_mutation_claim_required',
+      },
+    });
 
-    await expect(resolve({ service: 'api', github: CANONICAL_GITHUB })).rejects.toMatchObject({
-      response: { code: 'owner_deployment_authorization_already_consumed' },
+    await claim(task.id, execution.id, 'api');
+    await expect(
+      resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
     });
-    expect((await supervisor.getTask(task.id)).evidence?.ownerDeploymentAuthorizationConsumption).toMatchObject({
-      consumedBy: 'deploy-gate',
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: `external-deploy-orchestrator:${execution.id}`,
     });
-    expect(execution.id).toBeDefined();
   });
 
   it('rejects when no approved deployment receipt matches the provenance', async () => {
