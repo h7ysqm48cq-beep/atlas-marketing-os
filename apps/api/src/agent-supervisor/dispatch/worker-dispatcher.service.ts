@@ -68,9 +68,6 @@ export class WorkerDispatcherService {
     assignment: WorkerAssignmentEnvelope;
     capability?: string;
   }> {
-    if (!this.capabilityService) {
-      throw new BadRequestException('worker_capability_service_required');
-    }
     const task = await this.supervisor.getTask(taskId);
     if (task.status !== 'WORKING') {
       throw new BadRequestException({
@@ -136,6 +133,7 @@ export class WorkerDispatcherService {
       ...assignmentCore,
       ...authorityBinding,
     };
+    this.requireAdmissionAuthorityBinding(assignment);
 
     const queued: SupervisorExecution = {
       id: executionId,
@@ -148,19 +146,16 @@ export class WorkerDispatcherService {
       createdAt: now,
       startedAt: null,
       completedAt: null,
+      runnerId: null,
+      claimEpoch: 0,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
     };
-    const issuedCapability = this.capabilityService.issue(queued);
-    queued.assignment.workerCapability = issuedCapability.metadata;
-
-    const created = await this.executionStore.create(queued);
-
-    created.status = 'DISPATCHED';
-    const execution = await this.executionStore.saveIfStatus(created, 'QUEUED');
+    const execution = await this.executionStore.create(queued);
 
     return {
       execution,
       assignment: execution.assignment,
-      ...(issuedCapability ? { capability: issuedCapability.token } : {}),
     };
   }
 
@@ -251,6 +246,27 @@ export class WorkerDispatcherService {
       );
     }
     return execution;
+  }
+
+  private requireAdmissionAuthorityBinding(
+    assignment: WorkerAssignmentEnvelope,
+  ): void {
+    const valid =
+      typeof assignment.manifestHash === 'string' &&
+      /^[0-9a-f]{64}$/i.test(assignment.manifestHash) &&
+      typeof assignment.claimEpoch === 'number' &&
+      Number.isInteger(assignment.claimEpoch) &&
+      assignment.claimEpoch >= 0 &&
+      typeof assignment.leaseId === 'string' &&
+      assignment.leaseId.trim().length > 0 &&
+      typeof assignment.runnerId === 'string' &&
+      assignment.runnerId.trim().length > 0;
+
+    if (!valid) {
+      throw new BadRequestException(
+        'worker_capability_authority_binding_required',
+      );
+    }
   }
 
   private requireExecutionStatus(

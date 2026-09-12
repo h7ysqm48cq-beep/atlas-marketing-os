@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import type { SupervisorTask } from '../agent-supervisor.types';
+import type { SupervisorExecution } from '../execution/supervisor-execution.types';
 import { PrismaSupervisorLifecycleStore } from './prisma-supervisor-lifecycle.store';
 
 function task(overrides: Partial<SupervisorTask> = {}): SupervisorTask {
@@ -22,6 +23,136 @@ function task(overrides: Partial<SupervisorTask> = {}): SupervisorTask {
   };
 }
 
+function execution(overrides: Partial<SupervisorExecution> = {}): SupervisorExecution {
+  const now = new Date('2026-09-13T00:00:00.000Z');
+  return {
+    id: 'EXEC-RECONCILE-1',
+    taskId: 'ATLAS-1',
+    workerRole: 'backend',
+    status: 'RUNNING',
+    assignment: {
+      executionId: 'EXEC-RECONCILE-1',
+      taskId: 'ATLAS-1',
+      workerRole: 'backend',
+      objective: 'Recover stale execution',
+      allowedPaths: ['apps/api/src/agent-supervisor/a.ts'],
+      forbiddenActions: ['merge'],
+      dependencies: [],
+      acceptance: ['execution recovered'],
+      requiredEvidence: [
+        'rootCause',
+        'changedFiles',
+        'tests',
+        'build',
+        'regression',
+        'deploymentState',
+        'gitState',
+        'remainingRisk',
+      ],
+      manifestHash: 'c'.repeat(64),
+      claimEpoch: 4,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
+      workerCapability: {
+        version: 2,
+        assignmentDigest: 'd'.repeat(64),
+        allowedActions: ['heartbeat'],
+        manifestHash: 'c'.repeat(64),
+        allowedPaths: ['apps/api/src/agent-supervisor/a.ts'],
+        forbiddenActions: ['merge'],
+        claimEpoch: 4,
+        leaseId: 'lease-1',
+        runnerId: 'runner-1',
+        jti: 'jti-1',
+        issuedAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + 60_000).toISOString(),
+      },
+    },
+    result: null,
+    error: null,
+    createdAt: new Date('2026-09-12T23:00:00.000Z'),
+    startedAt: new Date('2026-09-12T23:30:00.000Z'),
+    completedAt: null,
+    runnerId: 'runner-1',
+    claimEpoch: 4,
+    lastHeartbeatAt: new Date('2026-09-13T00:00:00.000Z'),
+    leaseExpiresAt: new Date('2026-09-12T23:59:00.000Z'),
+    ...overrides,
+  };
+}
+
+type RecoveryCandidate = {
+  executionId: string;
+  taskId: string;
+  status: 'QUEUED' | 'DISPATCHED' | 'RUNNING';
+  kind:
+    | 'QUEUED_TIMEOUT'
+    | 'LEGACY_DISPATCHED_TIMEOUT'
+    | 'RUNNING_LEASE_EXPIRED';
+  claimEpoch: number;
+  runnerId: string | null;
+  createdAt: Date;
+  leaseExpiresAt: Date | null;
+};
+
+type RecoveryStore = {
+  recoverExecutionAndBlockTask(input: {
+    candidate: RecoveryCandidate;
+    now: Date;
+  }): Promise<{ execution: SupervisorExecution; task: SupervisorTask } | null>;
+};
+
+function recoveryStore(store: PrismaSupervisorLifecycleStore): RecoveryStore {
+  const candidateStore = store as unknown as Partial<RecoveryStore>;
+  expect(candidateStore.recoverExecutionAndBlockTask).toEqual(
+    expect.any(Function),
+  );
+  return candidateStore as RecoveryStore;
+}
+
+function recoveryCandidate(
+  overrides: Partial<RecoveryCandidate> = {},
+): RecoveryCandidate {
+  return {
+    executionId: 'EXEC-RECONCILE-1',
+    taskId: 'ATLAS-1',
+    status: 'RUNNING',
+    kind: 'RUNNING_LEASE_EXPIRED',
+    claimEpoch: 4,
+    runnerId: 'runner-1',
+    createdAt: new Date('2026-09-12T23:00:00.000Z'),
+    leaseExpiresAt: new Date('2026-09-12T23:59:00.000Z'),
+    ...overrides,
+  };
+}
+
+function recoveryTransaction() {
+  const transaction = {
+    $queryRaw: jest.fn(),
+    $queryRawUnsafe: jest.fn(),
+    $executeRawUnsafe: jest.fn(),
+    supervisorExecution: {
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+    },
+    supervisorTask: {
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+    },
+    supervisorFileLock: {
+      deleteMany: jest.fn(),
+    },
+  };
+  const prisma = {
+    $transaction: jest.fn(
+      async (callback: (tx: typeof transaction) => unknown) => callback(transaction),
+    ),
+  };
+  return { prisma, transaction };
+}
+
 function persistedRecord(value: SupervisorTask) {
   return {
     ...value,
@@ -35,6 +166,11 @@ function persistedRecord(value: SupervisorTask) {
 
 function mockPrisma() {
   const tx = {
+    supervisorExecution: {
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+    },
     supervisorTask: {
       updateMany: jest.fn(),
       findUnique: jest.fn(),
@@ -359,4 +495,392 @@ describe('PrismaSupervisorLifecycleStore', () => {
     ).toBe(false);
   });
 
+  it('atomically fails the stale execution, blocks the task, and releases its locks', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const candidate = recoveryCandidate();
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    transaction.supervisorExecution.findUnique.mockResolvedValue(
+      execution(),
+    );
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate,
+      now,
+    });
+
+    expect(recovered).toMatchObject({
+      execution: {
+        id: candidate.executionId,
+        status: 'FAILED',
+        completedAt: now,
+        error: 'supervisor_execution_lease_expired',
+      },
+      task: {
+        id: candidate.taskId,
+        status: 'BLOCKED',
+        blockingReason: 'supervisor_execution_lease_expired',
+      },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: candidate.taskId },
+    });
+  });
+
+  it('invalidates the old claim while preserving the execution audit envelope', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const current = execution();
+    const candidate = recoveryCandidate({ claimEpoch: current.claimEpoch });
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate,
+      now,
+    });
+
+    expect(recovered?.execution).toMatchObject({
+      claimEpoch: current.claimEpoch + 1,
+      runnerId: null,
+      leaseExpiresAt: null,
+      startedAt: current.startedAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+      assignment: {
+        claimEpoch: current.claimEpoch + 1,
+        workerCapability: undefined,
+      },
+    });
+    expect(recovered?.execution.assignment.runnerId).toBeUndefined();
+    expect(recovered?.execution.assignment.leaseId).toBeUndefined();
+  });
+
+  it('does not overwrite a completion that wins the recovery race', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const candidate = recoveryCandidate();
+    transaction.supervisorExecution.findUnique.mockResolvedValue(
+      execution({
+        status: 'COMPLETED',
+        completedAt: new Date('2026-09-13T00:01:30.000Z'),
+      }),
+    );
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(
+      recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['status', execution({ status: 'RUNNING', claimEpoch: 5 })],
+    ['claimEpoch', execution({ claimEpoch: 5 })],
+    ['runnerId', execution({ runnerId: 'other-runner' })],
+    [
+      'leaseExpiresAt',
+      execution({ leaseExpiresAt: new Date('2026-09-13T00:00:00.000Z') }),
+    ],
+  ] as const)('fails closed when the stale %s snapshot no longer matches', async (_label, current) => {
+    const { prisma, transaction } = recoveryTransaction();
+    const candidate = recoveryCandidate();
+    transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(
+      recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each(['BLOCKED', 'COMPLETED', 'CANCELLED'] as const)(
+    'does not recover a task that is already %s',
+    async (status) => {
+      const { prisma, transaction } = recoveryTransaction();
+      transaction.supervisorExecution.findUnique.mockResolvedValue(execution());
+      transaction.supervisorTask.findUnique.mockResolvedValue(
+        task({ status: status as SupervisorTask['status'] }),
+      );
+
+      const store = new PrismaSupervisorLifecycleStore(prisma as never);
+      await expect(
+        recoveryStore(store).recoverExecutionAndBlockTask({
+          candidate: recoveryCandidate(),
+          now: new Date('2026-09-13T00:02:00.000Z'),
+        }),
+      ).resolves.toBeNull();
+      expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+      expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+      expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('is idempotent when the same stale recovery input is replayed', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const candidate = recoveryCandidate();
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    transaction.supervisorExecution.findUnique
+      .mockResolvedValueOnce(execution())
+      .mockResolvedValueOnce(
+        execution({
+          status: 'FAILED',
+          claimEpoch: 5,
+          runnerId: null,
+          leaseExpiresAt: null,
+          completedAt: now,
+          error: 'supervisor_execution_lease_expired',
+        }),
+      );
+    transaction.supervisorTask.findUnique
+      .mockResolvedValueOnce(task())
+      .mockResolvedValueOnce(task({ status: 'BLOCKED' }));
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const contract = recoveryStore(store);
+    await expect(contract.recoverExecutionAndBlockTask({ candidate, now })).resolves.toBeTruthy();
+    await expect(contract.recoverExecutionAndBlockTask({ candidate, now })).resolves.toBeNull();
+    expect(transaction.supervisorExecution.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorTask.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses one database transaction with row locks and no unsafe raw SQL', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    transaction.$queryRaw.mockResolvedValue([execution()]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(execution());
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate: recoveryCandidate(),
+      now: new Date('2026-09-13T00:02:00.000Z'),
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    const query = `${String(transaction.$queryRaw.mock.calls[0]?.[0])} ${JSON.stringify(
+      transaction.$queryRaw.mock.calls[0],
+    )}`;
+    expect(query).toMatch(/FOR UPDATE/i);
+    expect(transaction.$queryRawUnsafe).not.toHaveBeenCalled();
+    expect(transaction.$executeRawUnsafe).not.toHaveBeenCalled();
+  });
+
+});
+
+// S7_HUMAN_OWNER_ABORT_RED_RECOVERY
+type OwnerAbortRecoveryInput = {
+  source: 'HUMAN_OWNER_ABORT';
+  taskId: string;
+  reason: string;
+  now: Date;
+};
+
+function ownerAbortInput(
+  overrides: Partial<OwnerAbortRecoveryInput> = {},
+): OwnerAbortRecoveryInput {
+  return {
+    source: 'HUMAN_OWNER_ABORT',
+    taskId: 'ATLAS-1',
+    reason: 'superseded implementation',
+    now: new Date('2026-09-13T00:02:00.000Z'),
+    ...overrides,
+  };
+}
+
+function dynamicRecovery(store: PrismaSupervisorLifecycleStore) {
+  return store as unknown as {
+    recoverExecutionAndBlockTask: (
+      input: unknown,
+    ) => Promise<{ execution: SupervisorExecution; task: SupervisorTask } | null>;
+  };
+}
+
+async function invokeOwnerAbort(
+  store: PrismaSupervisorLifecycleStore,
+  input: OwnerAbortRecoveryInput,
+) {
+  try {
+    return await dynamicRecovery(store).recoverExecutionAndBlockTask(input);
+  } catch {
+    return undefined;
+  }
+}
+
+function configureOwnerAbortTransaction(
+  status: SupervisorExecution['status'] = 'RUNNING',
+) {
+  const { prisma, transaction } = recoveryTransaction();
+  const current = execution({ status });
+  transaction.$queryRaw.mockResolvedValue([current]);
+  transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+  transaction.supervisorTask.findUnique.mockResolvedValue(task());
+  transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+  transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+  transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+  return { prisma, transaction, current };
+}
+
+describe('S7 Human Owner abort RED recovery contract', () => {
+  it('RED 9 evolves the S6 recovery input additively', async () => {
+    const { prisma, transaction } = configureOwnerAbortTransaction();
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const contract = dynamicRecovery(store);
+
+    await expect(
+      contract.recoverExecutionAndBlockTask({
+        candidate: recoveryCandidate(),
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeTruthy();
+
+    const ownerResult = await invokeOwnerAbort(store, ownerAbortInput());
+    expect(ownerResult).not.toBeUndefined();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('RED 10 selects and row-locks the current active execution inside the transaction', async () => {
+    const { prisma, transaction } = configureOwnerAbortTransaction();
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    await invokeOwnerAbort(store, ownerAbortInput());
+
+    expect(transaction.$queryRaw).toHaveBeenCalled();
+    const query = transaction.$queryRaw.mock.calls
+      .map((call) => String(call[0]))
+      .join(' ');
+    expect(query).toMatch(/FOR UPDATE/i);
+    expect(query).toMatch(/QUEUED|DISPATCHED|RUNNING/i);
+    expect(transaction.$queryRawUnsafe).not.toHaveBeenCalled();
+    expect(transaction.$executeRawUnsafe).not.toHaveBeenCalled();
+  });
+
+  it('RED 11 returns null and performs no mutation when no active execution exists', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    transaction.$queryRaw.mockResolvedValue([]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(null);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    const result = await invokeOwnerAbort(store, ownerAbortInput());
+    expect(result).toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('RED 12 terminalizes the current execution as CANCELLED with the abort reason', async () => {
+    const { prisma, transaction } = configureOwnerAbortTransaction('RUNNING');
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    const result = await invokeOwnerAbort(store, ownerAbortInput({ now }));
+    expect(result?.execution).toMatchObject({
+      status: 'CANCELLED',
+      completedAt: now,
+      error: 'supervisor_execution_owner_abort:superseded implementation',
+    });
+  });
+
+  it('RED 13 invalidates the worker claim while preserving historical timestamps', async () => {
+    const { prisma, transaction, current } = configureOwnerAbortTransaction('RUNNING');
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    const result = await invokeOwnerAbort(store, ownerAbortInput());
+    expect(result?.execution).toMatchObject({
+      claimEpoch: current.claimEpoch + 1,
+      runnerId: null,
+      leaseExpiresAt: null,
+      startedAt: current.startedAt,
+      lastHeartbeatAt: current.lastHeartbeatAt,
+      assignment: {
+        claimEpoch: current.claimEpoch + 1,
+        workerCapability: undefined,
+      },
+    });
+    expect(result?.execution.assignment.runnerId).toBeUndefined();
+    expect(result?.execution.assignment.leaseId).toBeUndefined();
+  });
+
+  it('RED 14 blocks the task and releases only its locks in the same transaction', async () => {
+    const { prisma, transaction } = configureOwnerAbortTransaction('RUNNING');
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    const result = await invokeOwnerAbort(store, ownerAbortInput());
+    expect(result?.task).toMatchObject({
+      status: 'BLOCKED',
+      blockingReason: 'supervisor_execution_owner_abort:superseded implementation',
+    });
+    expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: 'ATLAS-1' },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('RED 15 preserves a completion race winner and makes repeated abort idempotent', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    transaction.$queryRaw.mockResolvedValue([execution({ status: 'COMPLETED', completedAt: now })]);
+    transaction.supervisorExecution.findUnique.mockResolvedValue(
+      execution({ status: 'COMPLETED', completedAt: now }),
+    );
+    transaction.supervisorTask.findUnique.mockResolvedValue(task());
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+
+    const raceResult = await invokeOwnerAbort(store, ownerAbortInput({ now }));
+    expect(raceResult).toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+
+    transaction.$queryRaw.mockResolvedValue([execution()]);
+    transaction.supervisorExecution.findUnique
+      .mockResolvedValueOnce(execution())
+      .mockResolvedValueOnce(execution({
+        status: 'CANCELLED',
+        claimEpoch: 5,
+        runnerId: null,
+        leaseExpiresAt: null,
+        completedAt: now,
+        error: 'supervisor_execution_owner_abort:superseded implementation',
+      }));
+    transaction.supervisorTask.findUnique
+      .mockResolvedValueOnce(task())
+      .mockResolvedValueOnce(task({ status: 'BLOCKED' }));
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(invokeOwnerAbort(store, ownerAbortInput({ now }))).not.toBeNull();
+    const second = await invokeOwnerAbort(store, ownerAbortInput({ now }));
+    expect(second).toBeNull();
+    expect(transaction.supervisorExecution.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorTask.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledTimes(1);
+  });
 });

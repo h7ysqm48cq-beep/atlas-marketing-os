@@ -121,4 +121,137 @@ describe('R1 required admission manifest DI wiring', () => {
     );
   });
 });
+
+// S4B_BOOTSTRAP_CLAIM_WIRING_RED_BEGIN
+describe('S4B bootstrap claim wiring RED contract', () => {
+  it('registers the bootstrap controller/guard and claim-store token without replacing the existing store token', () => {
+    const { AgentSupervisorModule } = require('./agent-supervisor.module');
+    const SupervisorWorkerBootstrapController = (() => {
+      try {
+        return require('./worker/supervisor-worker-bootstrap.controller')
+          .SupervisorWorkerBootstrapController;
+      } catch {
+        return undefined;
+      }
+    })();
+    const SupervisorWorkerBootstrapGuard = (() => {
+      try {
+        return require('./worker/supervisor-worker-bootstrap.guard')
+          .SupervisorWorkerBootstrapGuard;
+      } catch {
+        return undefined;
+      }
+    })();
+    const { PrismaSupervisorExecutionStore } = require(
+      './persistence/prisma-supervisor-execution.store',
+    );
+    const {
+      SUPERVISOR_EXECUTION_CLAIM_STORE,
+      SUPERVISOR_EXECUTION_STORE,
+    } = require('./stores/supervisor-execution.store');
+
+    const providers = Reflect.getMetadata('providers', AgentSupervisorModule) ?? [];
+    const controllers =
+      Reflect.getMetadata('controllers', AgentSupervisorModule) ?? [];
+    const claimProvider = providers.find(
+      (provider: { provide?: unknown }) =>
+        provider?.provide === SUPERVISOR_EXECUTION_CLAIM_STORE,
+    );
+    const executionProvider = providers.find(
+      (provider: { provide?: unknown }) =>
+        provider?.provide === SUPERVISOR_EXECUTION_STORE,
+    );
+
+    expect(SupervisorWorkerBootstrapController).toBeDefined();
+    expect(SupervisorWorkerBootstrapGuard).toBeDefined();
+    expect(SUPERVISOR_EXECUTION_CLAIM_STORE).toBeDefined();
+    expect(controllers).toContain(SupervisorWorkerBootstrapController);
+    expect(providers).toContain(SupervisorWorkerBootstrapGuard);
+    expect(claimProvider).toMatchObject({
+      provide: SUPERVISOR_EXECUTION_CLAIM_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    });
+    expect(executionProvider).toMatchObject({
+      provide: SUPERVISOR_EXECUTION_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    });
+    expect(providers).not.toContain(MemorySupervisorExecutionStore);
+  });
+});
+// S4B_BOOTSTRAP_CLAIM_WIRING_RED_END
+
+// S5B_HEARTBEAT_STORE_WIRING_RED_BEGIN
+describe('S5B heartbeat store wiring RED contract', () => {
+  it('binds the explicit heartbeat store token to Prisma without replacing existing tokens', () => {
+    const { AgentSupervisorModule } = require('./agent-supervisor.module');
+    const { PrismaSupervisorExecutionStore } = require(
+      './persistence/prisma-supervisor-execution.store',
+    );
+    const {
+      SUPERVISOR_EXECUTION_HEARTBEAT_STORE,
+      SUPERVISOR_EXECUTION_CLAIM_STORE,
+      SUPERVISOR_EXECUTION_STORE,
+    } = require('./stores/supervisor-execution.store');
+    const providers = Reflect.getMetadata('providers', AgentSupervisorModule) ?? [];
+    const providerForToken = (token: unknown) =>
+      providers.find(
+        (provider: { provide?: unknown }) => provider?.provide === token,
+      );
+
+    expect(SUPERVISOR_EXECUTION_HEARTBEAT_STORE).toBeDefined();
+    expect(providerForToken(SUPERVISOR_EXECUTION_HEARTBEAT_STORE)).toMatchObject({
+      provide: SUPERVISOR_EXECUTION_HEARTBEAT_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    });
+    expect(providerForToken(SUPERVISOR_EXECUTION_CLAIM_STORE)).toBeDefined();
+    expect(providerForToken(SUPERVISOR_EXECUTION_STORE)).toBeDefined();
+  });
+});
+// S5B_HEARTBEAT_STORE_WIRING_RED_END
 // R1_REQUIRED_ADMISSION_DI_END
+
+// S6_RECONCILIATION_RECOVERY_WIRING_RED_BEGIN
+describe('S6 reconciliation and recovery wiring RED contract', () => {
+  it('registers the reconciler and narrow store tokens without memory bindings', () => {
+    let reconciler: unknown;
+    let reconciliationToken: unknown;
+    let recoveryToken: unknown;
+    try {
+      reconciler = require('./reconciliation/supervisor-execution-reconciler.service')
+        .SupervisorExecutionReconcilerService;
+      const stores = require('./stores/supervisor-execution.store');
+      reconciliationToken = stores.SUPERVISOR_EXECUTION_RECONCILIATION_STORE;
+      recoveryToken = require('./stores/supervisor-lifecycle.store')
+        .SUPERVISOR_EXECUTION_RECOVERY_STORE;
+    } catch {
+      // Missing S6 production symbols are the intended RED condition.
+    }
+
+    const registeredProviders =
+      Reflect.getMetadata('providers', AgentSupervisorModule) ?? [];
+    expect(reconciler).toBeDefined();
+    expect(reconciliationToken).toBeDefined();
+    expect(recoveryToken).toBeDefined();
+    expect(registeredProviders).toContain(reconciler);
+
+    const reconciliationProvider = registeredProviders.find(
+      (provider: { provide?: unknown }) =>
+        provider?.provide === reconciliationToken,
+    );
+    const recoveryProvider = registeredProviders.find(
+      (provider: { provide?: unknown }) => provider?.provide === recoveryToken,
+    );
+
+    expect(reconciliationProvider).toMatchObject({
+      provide: reconciliationToken,
+      useExisting: expect.any(Function),
+    });
+    expect(recoveryProvider).toMatchObject({
+      provide: recoveryToken,
+      useExisting: expect.any(Function),
+    });
+    expect(registeredProviders).not.toContain(MemorySupervisorExecutionStore);
+    expect(registeredProviders).not.toContain(MemorySupervisorTaskStore);
+  });
+});
+// S6_RECONCILIATION_RECOVERY_WIRING_RED_END

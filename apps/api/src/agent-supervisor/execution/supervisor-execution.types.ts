@@ -65,4 +65,8 @@ export interface SupervisorExecution {
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
+  runnerId: string | null;
+  claimEpoch: number;
+  lastHeartbeatAt: Date | null;
+  leaseExpiresAt: Date | null;
 }

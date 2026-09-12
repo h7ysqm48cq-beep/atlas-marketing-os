@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
   Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import {
@@ -34,6 +35,9 @@ import {
 } from './stores/file-ownership.store';
 import {
   SUPERVISOR_LIFECYCLE_STORE,
+  SUPERVISOR_EXECUTION_RECOVERY_STORE,
+  type SupervisorExecutionRecoveryResult,
+  type SupervisorExecutionRecoveryStore,
   type SupervisorLifecycleStore,
   type SupervisorLockMode,
 } from './stores/supervisor-lifecycle.store';
@@ -91,6 +95,9 @@ export class AgentSupervisorService {
     private readonly _config?: ConfigService,
     @Optional()
     private readonly authority?: SupervisorAuthorityService,
+    @Optional()
+    @Inject(SUPERVISOR_EXECUTION_RECOVERY_STORE)
+    private readonly recoveryStore?: SupervisorExecutionRecoveryStore,
   ) {}
 
   async status() {
@@ -184,6 +191,44 @@ export class AgentSupervisorService {
       'release',
       expectedUpdatedAt,
     );
+  }
+
+  async abortTask(
+    id: string,
+    reason: string,
+  ): Promise<SupervisorExecutionRecoveryResult> {
+    const normalizedReason = reason?.trim() ?? '';
+    if (!normalizedReason) {
+      const exception = new BadRequestException('abort_reason_required');
+      Object.assign(exception, { response: 'abort_reason_required' });
+      throw exception;
+    }
+
+    const recoveryStore =
+      this.recoveryStore ??
+      (this.lifecycleStore &&
+      typeof (this.lifecycleStore as Partial<SupervisorExecutionRecoveryStore>)
+        .recoverExecutionAndBlockTask === 'function'
+        ? (this.lifecycleStore as unknown as SupervisorExecutionRecoveryStore)
+        : undefined);
+    if (!recoveryStore) {
+      throw new ServiceUnavailableException(
+        'supervisor_recovery_store_not_configured',
+      );
+    }
+
+    const recovered = await recoveryStore.recoverExecutionAndBlockTask({
+      source: 'HUMAN_OWNER_ABORT',
+      taskId: id,
+      reason: normalizedReason,
+      now: new Date(),
+    });
+    if (!recovered) {
+      throw new ConflictException({
+        code: 'supervisor_abort_rejected',
+      });
+    }
+    return recovered;
   }
 
   async failTask(id: string, reason: string): Promise<SupervisorTask> {

@@ -3,10 +3,21 @@ import type {
   SupervisorExecution,
   SupervisorExecutionStatus,
 } from '../execution/supervisor-execution.types';
-import type { SupervisorExecutionStore } from './supervisor-execution.store';
+import type {
+  SupervisorExecutionClaimInput,
+  SupervisorExecutionClaimStore,
+  SupervisorExecutionHeartbeatInput,
+  SupervisorExecutionHeartbeatStore,
+  SupervisorExecutionStore,
+} from './supervisor-execution.store';
 
 @Injectable()
-export class MemorySupervisorExecutionStore implements SupervisorExecutionStore {
+export class MemorySupervisorExecutionStore
+  implements
+    SupervisorExecutionStore,
+    SupervisorExecutionClaimStore,
+    SupervisorExecutionHeartbeatStore
+{
   private readonly executions = new Map<string, SupervisorExecution>();
   private readonly order: string[] = [];
 
@@ -60,6 +71,85 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
     return Promise.resolve(this.cloneExecution(stored));
   }
 
+  claimNext(
+    input: SupervisorExecutionClaimInput,
+  ): Promise<SupervisorExecution | null> {
+    let selected: SupervisorExecution | undefined;
+    for (const id of this.order) {
+      const candidate = this.executions.get(id);
+      if (
+        !candidate ||
+        candidate.status !== 'QUEUED' ||
+        candidate.workerRole !== input.workerRole ||
+        (selected &&
+          (candidate.createdAt.getTime() > selected.createdAt.getTime() ||
+            (candidate.createdAt.getTime() === selected.createdAt.getTime() &&
+              candidate.id >= selected.id)))
+      ) {
+        continue;
+      }
+      selected = candidate;
+    }
+
+    if (!selected) {
+      return Promise.resolve(null);
+    }
+
+    const nextClaimEpoch = selected.claimEpoch + 1;
+    const assignment = {
+      ...selected.assignment,
+      claimEpoch: nextClaimEpoch,
+      runnerId: input.runnerId,
+      leaseId: input.leaseId,
+    };
+    delete assignment.workerCapability;
+
+    const stored = this.cloneExecution({
+      ...selected,
+      status: 'RUNNING',
+      runnerId: input.runnerId,
+      claimEpoch: nextClaimEpoch,
+      startedAt: new Date(input.now),
+      lastHeartbeatAt: new Date(input.now),
+      leaseExpiresAt: new Date(input.leaseExpiresAt),
+      result: null,
+      error: null,
+      completedAt: null,
+      assignment,
+    });
+    this.executions.set(stored.id, stored);
+    return Promise.resolve(this.cloneExecution(stored));
+  }
+
+  heartbeat = (
+    input: SupervisorExecutionHeartbeatInput,
+  ): Promise<SupervisorExecution | null> => {
+    const current = this.executions.get(input.executionId);
+    if (
+      !current ||
+      current.taskId !== input.taskId ||
+      current.workerRole !== input.workerRole ||
+      current.status !== 'RUNNING' ||
+      current.claimEpoch !== input.claimEpoch ||
+      current.runnerId !== input.runnerId ||
+      current.assignment.claimEpoch !== input.claimEpoch ||
+      current.assignment.runnerId !== input.runnerId ||
+      current.assignment.leaseId !== input.leaseId ||
+      !current.lastHeartbeatAt ||
+      !current.leaseExpiresAt ||
+      input.now.getTime() <= current.lastHeartbeatAt.getTime() ||
+      input.now.getTime() >= current.leaseExpiresAt.getTime() ||
+      input.leaseExpiresAt.getTime() <= current.leaseExpiresAt.getTime() ||
+      input.leaseExpiresAt.getTime() <= input.now.getTime()
+    ) {
+      return Promise.resolve(null);
+    }
+
+    current.lastHeartbeatAt = new Date(input.now);
+    current.leaseExpiresAt = new Date(input.leaseExpiresAt);
+    return Promise.resolve(this.cloneExecution(current));
+  };
+
   private cloneExecution(execution: SupervisorExecution): SupervisorExecution {
     return {
       ...execution,
@@ -95,6 +185,12 @@ export class MemorySupervisorExecutionStore implements SupervisorExecutionStore 
       startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
       completedAt: execution.completedAt
         ? new Date(execution.completedAt)
+        : null,
+      lastHeartbeatAt: execution.lastHeartbeatAt
+        ? new Date(execution.lastHeartbeatAt)
+        : null,
+      leaseExpiresAt: execution.leaseExpiresAt
+        ? new Date(execution.leaseExpiresAt)
         : null,
     };
   }

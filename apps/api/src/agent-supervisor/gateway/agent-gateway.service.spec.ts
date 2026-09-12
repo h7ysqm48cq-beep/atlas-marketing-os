@@ -210,9 +210,20 @@ describe('AgentGatewayService', () => {
       acceptance: ['focused tests pass'],
     });
     await supervisor.startTask(task.id);
-    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
-    const execution = await dispatcher.markRunning(dispatched.execution.id);
+    const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(queued.execution.id);
+    const execution = await dispatcher.markRunning(queued.execution.id);
     return { task, execution };
+  }
+
+  async function moveQueuedToLegacyDispatched(executionId: string) {
+    const execution = await executionStore.get(executionId);
+    if (!execution) {
+      throw new Error('test_execution_missing');
+    }
+    expect(execution.status).toBe('QUEUED');
+    execution.status = 'DISPATCHED';
+    return executionStore.saveIfStatus(execution, 'QUEUED');
   }
 
   async function createReadyExecution(

@@ -13,13 +13,24 @@ import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.st
 import { PrismaSupervisorExecutionStore } from './persistence/prisma-supervisor-execution.store';
 import { PrismaSupervisorLifecycleStore } from './persistence/prisma-supervisor-lifecycle.store';
 import { PrismaSupervisorTaskStore } from './persistence/prisma-supervisor-task.store';
+import { SupervisorExecutionReconcilerService } from './reconciliation/supervisor-execution-reconciler.service';
 import { FILE_OWNERSHIP_STORE } from './stores/file-ownership.store';
-import { SUPERVISOR_EXECUTION_STORE } from './stores/supervisor-execution.store';
-import { SUPERVISOR_LIFECYCLE_STORE } from './stores/supervisor-lifecycle.store';
+import {
+  SUPERVISOR_EXECUTION_CLAIM_STORE,
+  SUPERVISOR_EXECUTION_HEARTBEAT_STORE,
+  SUPERVISOR_EXECUTION_RECONCILIATION_STORE,
+  SUPERVISOR_EXECUTION_STORE,
+} from './stores/supervisor-execution.store';
+import {
+  SUPERVISOR_EXECUTION_RECOVERY_STORE,
+  SUPERVISOR_LIFECYCLE_STORE,
+} from './stores/supervisor-lifecycle.store';
 import { SUPERVISOR_TASK_STORE } from './stores/supervisor-task.store';
 import { SupervisorWorkerCapabilityService } from './worker/supervisor-worker-capability.service';
 import { SupervisorWorkerController } from './worker/supervisor-worker.controller';
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
+import { SupervisorWorkerBootstrapController } from './worker/supervisor-worker-bootstrap.controller';
+import { SupervisorWorkerBootstrapGuard } from './worker/supervisor-worker-bootstrap.guard';
 import {
   ConfigHumanOwnerApprovalKeyRegistry,
   HUMAN_OWNER_APPROVAL_KEYRING,
@@ -38,6 +49,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     AgentSupervisorController,
     SupervisorGatewayController,
     SupervisorWorkerController,
+    SupervisorWorkerBootstrapController,
   ],
   providers: [
     AgentSupervisorService,
@@ -49,6 +61,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SupervisorOwnerGuard,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
+    SupervisorWorkerBootstrapGuard,
     SupervisorAdmissionManifestService,
     SupervisorAuthorityService,
     HumanOwnerApprovalService,
@@ -73,6 +86,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     PrismaSupervisorExecutionStore,
     PrismaFileOwnershipStore,
     PrismaSupervisorLifecycleStore,
+    SupervisorExecutionReconcilerService,
     {
       provide: SUPERVISOR_TASK_STORE,
       useExisting: PrismaSupervisorTaskStore,
@@ -82,11 +96,27 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
       useExisting: PrismaSupervisorExecutionStore,
     },
     {
+      provide: SUPERVISOR_EXECUTION_CLAIM_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    },
+    {
+      provide: SUPERVISOR_EXECUTION_HEARTBEAT_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    },
+    {
+      provide: SUPERVISOR_EXECUTION_RECONCILIATION_STORE,
+      useExisting: PrismaSupervisorExecutionStore,
+    },
+    {
       provide: FILE_OWNERSHIP_STORE,
       useExisting: PrismaFileOwnershipStore,
     },
     {
       provide: SUPERVISOR_LIFECYCLE_STORE,
+      useExisting: PrismaSupervisorLifecycleStore,
+    },
+    {
+      provide: SUPERVISOR_EXECUTION_RECOVERY_STORE,
       useExisting: PrismaSupervisorLifecycleStore,
     },
   ],
@@ -100,6 +130,11 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SUPERVISOR_LIFECYCLE_STORE,
     SupervisorAuthorityService,
     VerifierCapabilityService,
+    SUPERVISOR_EXECUTION_CLAIM_STORE,
+    SUPERVISOR_EXECUTION_HEARTBEAT_STORE,
+    SUPERVISOR_EXECUTION_RECONCILIATION_STORE,
+    SUPERVISOR_EXECUTION_RECOVERY_STORE,
+    SupervisorExecutionReconcilerService,
   ],
 })
 export class AgentSupervisorModule {}

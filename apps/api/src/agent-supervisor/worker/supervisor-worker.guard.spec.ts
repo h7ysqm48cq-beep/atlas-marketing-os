@@ -15,8 +15,9 @@ const NOW = new Date();
 function execution(
   id = 'ATLAS-EXEC-1',
   taskId = 'ATLAS-1',
+  overrides: Partial<SupervisorExecution> = {},
 ): SupervisorExecution {
-  return {
+  const value: SupervisorExecution = {
     id,
     taskId,
     workerRole: 'engineering',
@@ -51,7 +52,39 @@ function execution(
     createdAt: NOW,
     startedAt: null,
     completedAt: null,
+    runnerId: null,
+    claimEpoch: 0,
+    lastHeartbeatAt: null,
+    leaseExpiresAt: null,
   };
+  return {
+    ...value,
+    ...overrides,
+    assignment: {
+      ...value.assignment,
+      ...(overrides.assignment ?? {}),
+    },
+  };
+}
+
+function claimedExecution(
+  overrides: Partial<SupervisorExecution> = {},
+): SupervisorExecution {
+  return execution('ATLAS-EXEC-1', 'ATLAS-1', {
+    status: 'RUNNING',
+    runnerId: 'runner-4',
+    claimEpoch: 4,
+    lastHeartbeatAt: new Date(NOW.getTime() - 10_000),
+    leaseExpiresAt: new Date(NOW.getTime() + 60_000),
+    ...overrides,
+    assignment: {
+      ...execution().assignment,
+      claimEpoch: 4,
+      leaseId: 'lease-4',
+      runnerId: 'runner-4',
+      ...(overrides.assignment ?? {}),
+    },
+  });
 }
 
 function context(
@@ -59,20 +92,23 @@ function context(
   taskId: string,
   executionId: string,
   operation: SupervisorWorkerCapabilityOperation | undefined,
+  requestHolder?: { request?: Record<string, unknown> },
 ): ExecutionContext {
   const handler = () => undefined;
   if (operation) {
     Reflect.defineMetadata(SUPERVISOR_WORKER_OPERATION, operation, handler);
   }
+  const request = {
+    method: operation === 'read_assignment' ? 'GET' : 'POST',
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+    params: { taskId, executionId },
+  };
+  if (requestHolder) requestHolder.request = request;
   return {
     getHandler: () => handler,
     getClass: () => class WorkerController {},
     switchToHttp: () => ({
-      getRequest: () => ({
-        method: operation === 'read_assignment' ? 'GET' : 'POST',
-        headers: token ? { authorization: `Bearer ${token}` } : {},
-        params: { taskId, executionId },
-      }),
+      getRequest: () => request,
     }),
   } as unknown as ExecutionContext;
 }
@@ -181,5 +217,94 @@ describe('SupervisorWorkerGuard', () => {
         context(token, value.taskId, value.id, 'read_assignment'),
       ),
     ).rejects.toThrow('worker_capability_purpose_mismatch');
+  });
+
+  it.each(['QUEUED', 'DISPATCHED', 'COMPLETED', 'FAILED', 'CANCELLED'] as const)(
+    'rejects heartbeat authorization for %s executions',
+    async (status) => {
+      const value = claimedExecution({ status });
+      const token = await persistIssued(value);
+      const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+
+      await expect(
+        guard.canActivate(context(token, value.taskId, value.id, heartbeat)),
+      ).rejects.toMatchObject({
+        message: expect.not.stringContaining('worker_capability_operation_denied'),
+      });
+    },
+  );
+
+  it('rejects heartbeat authorization after the persisted RUNNING lease expires', async () => {
+    const value = claimedExecution({
+      lastHeartbeatAt: new Date(NOW.getTime() - 120_000),
+      leaseExpiresAt: new Date(NOW.getTime() - 1),
+    });
+    const token = await persistIssued(value);
+    const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+    jest.useFakeTimers().setSystemTime(NOW);
+
+    try {
+      await expect(
+        guard.canActivate(context(token, value.taskId, value.id, heartbeat)),
+      ).rejects.toMatchObject({
+        message: expect.not.stringContaining('worker_capability_operation_denied'),
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['claimEpoch', { claimEpoch: 5 }],
+    ['runnerId', { runnerId: 'runner-other' }],
+  ] as const)(
+    'rejects heartbeat when top-level %s differs from the assignment claim',
+    async (_label, override) => {
+      const value = claimedExecution(override);
+      const token = await persistIssued(value);
+      const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+
+      await expect(
+        guard.canActivate(context(token, value.taskId, value.id, heartbeat)),
+      ).rejects.toMatchObject({
+        message: expect.not.stringContaining('worker_capability_operation_denied'),
+      });
+    },
+  );
+
+  it('rejects heartbeat when the capability-bound lease differs from persisted assignment', async () => {
+    const value = claimedExecution();
+    const issued = capabilities.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.assignment.leaseId = 'lease-other';
+    await store.create(value);
+    const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+
+    await expect(
+      guard.canActivate(context(issued.token, value.taskId, value.id, heartbeat)),
+    ).rejects.toThrow('worker_capability_assignment_mismatch');
+  });
+
+  it('attaches only the verified claim binding for a valid heartbeat authorization', async () => {
+    const value = claimedExecution();
+    const token = await persistIssued(value);
+    const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+    const holder: { request?: Record<string, unknown> } = {};
+
+    await expect(
+      guard.canActivate(
+        context(token, value.taskId, value.id, heartbeat, holder),
+      ),
+    ).resolves.toBe(true);
+
+    expect(holder.request?.supervisorWorkerAuthorization).toEqual({
+      taskId: value.taskId,
+      executionId: value.id,
+      workerRole: value.workerRole,
+      claimEpoch: 4,
+      runnerId: 'runner-4',
+      leaseId: 'lease-4',
+    });
+    expect(holder.request?.token).toBeUndefined();
   });
 });

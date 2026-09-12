@@ -165,8 +165,9 @@ describe('Production deployment resolver', () => {
       acceptance: ['production deployment resolver passes'],
     });
     await supervisor.startTask(task.id);
-    const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
-    const running = await dispatcher.markRunning(dispatched.execution.id);
+    const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(queued.execution.id);
+    const running = await dispatcher.markRunning(queued.execution.id);
     const reviewCandidate = options.runtimeRefresh
       ? {
           action: 'deploy_production' as const,
@@ -215,6 +216,16 @@ describe('Production deployment resolver', () => {
     );
     await supervisor.approveTask(task.id, true);
     return { task: await supervisor.getTask(task.id), execution: completed };
+  }
+
+  async function moveQueuedToLegacyDispatched(executionId: string) {
+    const execution = await executionStore.get(executionId);
+    if (!execution) {
+      throw new Error('test_execution_missing');
+    }
+    expect(execution.status).toBe('QUEUED');
+    execution.status = 'DISPATCHED';
+    return executionStore.saveIfStatus(execution, 'QUEUED');
   }
 
   function resolve(input: unknown) {

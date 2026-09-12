@@ -1708,3 +1708,122 @@ describe(
     );
   },
 );
+
+// S7_HUMAN_OWNER_ABORT_RED_SERVICE
+describe('S7 Human Owner abort RED service contract', () => {
+  function fixture(recoveryResult: unknown = {
+    execution: { status: 'CANCELLED' },
+    task: { status: 'BLOCKED' },
+  }) {
+    const taskStore = {
+      get: jest.fn().mockResolvedValue({
+        id: 'ATLAS-S7-ABORT-1',
+        objective: 'Abort obsolete execution',
+        owner: 'backend',
+        status: 'WORKING',
+        allowedPaths: ['apps/api/src/a.ts'],
+        forbiddenActions: ['merge', 'deploy_production'],
+        dependsOn: [],
+        acceptance: ['atomic abort'],
+        evidence: null,
+        blockingReason: null,
+        failureReason: null,
+        createdAt: new Date('2026-09-13T00:00:00.000Z'),
+        updatedAt: new Date('2026-09-13T00:00:00.000Z'),
+      }),
+    };
+    const fileOwnershipStore = {
+      findOwner: jest.fn().mockResolvedValue('ATLAS-S7-ABORT-1'),
+    };
+    const recoveryStore = {
+      recoverExecutionAndBlockTask: jest.fn().mockResolvedValue(recoveryResult),
+    };
+    const service = new AgentSupervisorService(
+      taskStore as never,
+      fileOwnershipStore as never,
+      recoveryStore as never,
+    );
+    return { service, recoveryStore };
+  }
+
+  function abortMethod(service: AgentSupervisorService) {
+    return (service as unknown as {
+      abortTask?: (taskId: string, reason: string, ...extra: unknown[]) => Promise<unknown>;
+    }).abortTask;
+  }
+
+  it('RED 4 rejects a blank abort reason before recovery mutation', async () => {
+    const { service, recoveryStore } = fixture();
+    const abortTask = abortMethod(service);
+    expect(abortTask).toEqual(expect.any(Function));
+    if (!abortTask) return;
+
+    await expect(abortTask.call(service, 'ATLAS-S7-ABORT-1', ''))
+      .rejects.toMatchObject({ response: 'abort_reason_required' });
+    await expect(abortTask.call(service, 'ATLAS-S7-ABORT-1', '   '))
+      .rejects.toMatchObject({ response: 'abort_reason_required' });
+    expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledTimes(0);
+  });
+
+  it('RED 5 normalizes the abort reason exactly once', async () => {
+    const { service, recoveryStore } = fixture();
+    const abortTask = abortMethod(service);
+    expect(abortTask).toEqual(expect.any(Function));
+    if (!abortTask) return;
+
+    await abortTask.call(service, 'ATLAS-S7-ABORT-1', '  superseded implementation  ');
+    expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'HUMAN_OWNER_ABORT',
+        taskId: 'ATLAS-S7-ABORT-1',
+        reason: 'superseded implementation',
+      }),
+    );
+  });
+
+  it('RED 6 derives abort time from the server and ignores caller time fields', async () => {
+    const { service, recoveryStore } = fixture();
+    const abortTask = abortMethod(service);
+    expect(abortTask).toEqual(expect.any(Function));
+    if (!abortTask) return;
+
+    const before = Date.now();
+    await abortTask.call(
+      service,
+      'ATLAS-S7-ABORT-1',
+      'stop obsolete execution',
+      { now: new Date(0), completedAt: new Date(0), leaseExpiresAt: new Date(0) },
+    );
+    const input = recoveryStore.recoverExecutionAndBlockTask.mock.calls[0]?.[0] as {
+      now?: Date;
+    };
+    expect(input.now).toEqual(expect.any(Date));
+    expect(input.now?.getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it('RED 7 routes Owner abort through the existing atomic recovery boundary', async () => {
+    const { service, recoveryStore } = fixture();
+    const abortTask = abortMethod(service);
+    expect(abortTask).toEqual(expect.any(Function));
+    if (!abortTask) return;
+
+    await abortTask.call(service, 'ATLAS-S7-ABORT-1', 'stop obsolete execution');
+    expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'HUMAN_OWNER_ABORT' }),
+    );
+  });
+
+  it('RED 8 rejects null recovery without fallback or retry', async () => {
+    const { service, recoveryStore } = fixture(null);
+    const abortTask = abortMethod(service);
+    expect(abortTask).toEqual(expect.any(Function));
+    if (!abortTask) return;
+
+    await expect(
+      abortTask.call(service, 'ATLAS-S7-ABORT-1', 'stop obsolete execution'),
+    ).rejects.toMatchObject({
+      response: { code: 'supervisor_abort_rejected' },
+    });
+    expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledTimes(1);
+  });
+});
