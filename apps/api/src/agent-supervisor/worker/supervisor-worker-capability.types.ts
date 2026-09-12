@@ -5,7 +5,12 @@ import type {
 } from '../execution/supervisor-execution.types';
 
 export type SupervisorWorkerCapabilityOperation =
-  'read_assignment' | 'mark_running' | 'complete' | 'fail' | 'cancel';
+  | 'read_assignment'
+  | 'mark_running'
+  | 'heartbeat'
+  | 'complete'
+  | 'fail'
+  | 'cancel';
 
 export interface SupervisorWorkerCapabilityMetadata {
   version: 2;

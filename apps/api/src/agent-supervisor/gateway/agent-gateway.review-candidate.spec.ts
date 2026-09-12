@@ -189,6 +189,15 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
   const taskStore = new MemorySupervisorTaskStore();
   const fileStore = new MemoryFileOwnershipStore();
   const executionStore = new MemorySupervisorExecutionStore();
+  async function moveQueuedToLegacyDispatched(executionId: string) {
+    const execution = await executionStore.get(executionId);
+    if (!execution) {
+      throw new Error('test_execution_missing');
+    }
+    expect(execution.status).toBe('QUEUED');
+    execution.status = 'DISPATCHED';
+    return executionStore.saveIfStatus(execution, 'QUEUED');
+  }
   const supervisor = new AgentSupervisorService(
     taskStore,
     fileStore,
@@ -213,9 +222,10 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
     acceptance: ['candidate is verified'],
   });
   await supervisor.startTask(task.id);
-  const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
-  await dispatcher.markRunning(dispatched.execution.id);
-  const completed = await dispatcher.complete(dispatched.execution.id, {
+  const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+  const execution = await moveQueuedToLegacyDispatched(queued.execution.id);
+  await dispatcher.markRunning(execution.id);
+  const completed = await dispatcher.complete(queued.execution.id, {
     summary: 'Candidate implemented',
     evidence: {
       rootCause: 'Known cause',

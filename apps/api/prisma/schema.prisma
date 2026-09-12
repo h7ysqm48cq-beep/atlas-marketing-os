@@ -1061,6 +1061,10 @@ model SupervisorExecution {
   assignment  Json
   result      Json?
   error       String?
+  runnerId        String?
+  claimEpoch      Int       @default(0)
+  lastHeartbeatAt DateTime?
+  leaseExpiresAt  DateTime?
   createdAt   DateTime @default(now())
   startedAt   DateTime?
   completedAt DateTime?
@@ -1069,6 +1073,8 @@ model SupervisorExecution {
 
   @@index([taskId, createdAt])
   @@index([taskId, status])
+  @@index([status, createdAt, id])
+  @@index([status, leaseExpiresAt])
 }
 
 model SupervisorFileLock {

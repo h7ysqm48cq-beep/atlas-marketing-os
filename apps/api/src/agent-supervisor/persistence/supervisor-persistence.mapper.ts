@@ -66,6 +66,10 @@ export interface SupervisorExecutionRecord {
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
+  runnerId: string | null;
+  claimEpoch: number;
+  lastHeartbeatAt: Date | null;
+  leaseExpiresAt: Date | null;
 }
 
 function persistenceError(): InternalServerErrorException {
@@ -96,6 +100,20 @@ function requireStringArray(value: unknown): string[] {
     throw persistenceError();
   }
   return [...value];
+}
+
+function requireNullableString(value: unknown): string | null {
+  if (value !== null && typeof value !== 'string') {
+    throw persistenceError();
+  }
+  return value;
+}
+
+function requireClaimEpoch(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw persistenceError();
+  }
+  return value;
 }
 
 function requireAuthorityEnvelope(
@@ -530,5 +548,13 @@ export function mapExecutionRecord(
     createdAt: new Date(record.createdAt),
     startedAt: record.startedAt ? new Date(record.startedAt) : null,
     completedAt: record.completedAt ? new Date(record.completedAt) : null,
+    runnerId: requireNullableString(record.runnerId),
+    claimEpoch: requireClaimEpoch(record.claimEpoch),
+    lastHeartbeatAt: record.lastHeartbeatAt
+      ? new Date(record.lastHeartbeatAt)
+      : null,
+    leaseExpiresAt: record.leaseExpiresAt
+      ? new Date(record.leaseExpiresAt)
+      : null,
   };
 }
