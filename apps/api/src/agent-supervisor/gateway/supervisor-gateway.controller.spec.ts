@@ -43,6 +43,45 @@ describe('SupervisorGatewayController', () => {
     expect(checkProductionDeployment).toHaveBeenCalledWith(deploymentInput);
   });
 
+  it('exposes the one-shot external deployment mutation claim behind the CI gateway', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-DEPLOY-CLAIM-1',
+      executionId: 'ATLAS-DEPLOY-CLAIM-EXEC-1',
+    };
+    const claimProductionDeploymentMutation = jest
+      .fn()
+      .mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      claimProductionDeploymentMutation,
+    } as unknown as AgentGatewayService) as unknown as {
+      claimProductionDeploymentMutation?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      taskId: 'ATLAS-DEPLOY-CLAIM-1',
+      executionId: 'ATLAS-DEPLOY-CLAIM-EXEC-1',
+      service: 'api',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.claimProductionDeploymentMutation).toBe(
+      'function',
+    );
+    await expect(
+      controller.claimProductionDeploymentMutation!(input),
+    ).resolves.toBe(decision);
+    expect(claimProductionDeploymentMutation).toHaveBeenCalledWith(input);
+  });
+
   it('exposes production deployment receipt resolution behind the CI gateway', async () => {
     const decision = {
       allowed: true,
