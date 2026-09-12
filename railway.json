@@ -2,7 +2,7 @@
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
     "preDeployCommand": [
-      "if [ \"${ATLAS_EMERGENCY_RECOVERY_PR94:-}\" = \"1\" ] && [ \"${RAILWAY_ENVIRONMENT_NAME:-}\" = \"production\" ] && [ \"${RAILWAY_SERVICE_NAME:-}\" = \"api\" ]; then echo \"ATLAS_BREAK_GLASS_RECOVERY_PR94_ALLOW service=api environment=production skip_supervisor_gate=true skip_db_migration=true\"; else node apps/api/scripts/check-production-deployment-gate.cjs && npm run db:migrate --workspace apps/api; fi"
+      "node apps/api/scripts/check-production-deployment-gate.cjs && npm run db:migrate --workspace apps/api"
     ]
   }
 }
