@@ -21,6 +21,7 @@ const MAX_TTL_MS = 15 * 60 * 1_000;
 const DEFAULT_ALLOWED_ACTIONS: SupervisorWorkerCapabilityOperation[] = [
   'read_assignment',
   'mark_running',
+  'heartbeat',
   'complete',
   'fail',
   'cancel',

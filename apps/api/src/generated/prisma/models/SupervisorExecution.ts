@@ -20,8 +20,18 @@ export type SupervisorExecutionModel = runtime.Types.Result.DefaultSelection<Pri
 
 export type AggregateSupervisorExecution = {
   _count: SupervisorExecutionCountAggregateOutputType | null
+  _avg: SupervisorExecutionAvgAggregateOutputType | null
+  _sum: SupervisorExecutionSumAggregateOutputType | null
   _min: SupervisorExecutionMinAggregateOutputType | null
   _max: SupervisorExecutionMaxAggregateOutputType | null
+}
+
+export type SupervisorExecutionAvgAggregateOutputType = {
+  claimEpoch: number | null
+}
+
+export type SupervisorExecutionSumAggregateOutputType = {
+  claimEpoch: number | null
 }
 
 export type SupervisorExecutionMinAggregateOutputType = {
@@ -30,6 +40,10 @@ export type SupervisorExecutionMinAggregateOutputType = {
   workerRole: string | null
   status: string | null
   error: string | null
+  runnerId: string | null
+  claimEpoch: number | null
+  lastHeartbeatAt: Date | null
+  leaseExpiresAt: Date | null
   createdAt: Date | null
   startedAt: Date | null
   completedAt: Date | null
@@ -41,6 +55,10 @@ export type SupervisorExecutionMaxAggregateOutputType = {
   workerRole: string | null
   status: string | null
   error: string | null
+  runnerId: string | null
+  claimEpoch: number | null
+  lastHeartbeatAt: Date | null
+  leaseExpiresAt: Date | null
   createdAt: Date | null
   startedAt: Date | null
   completedAt: Date | null
@@ -54,6 +72,10 @@ export type SupervisorExecutionCountAggregateOutputType = {
   assignment: number
   result: number
   error: number
+  runnerId: number
+  claimEpoch: number
+  lastHeartbeatAt: number
+  leaseExpiresAt: number
   createdAt: number
   startedAt: number
   completedAt: number
@@ -61,12 +83,24 @@ export type SupervisorExecutionCountAggregateOutputType = {
 }
 
 
+export type SupervisorExecutionAvgAggregateInputType = {
+  claimEpoch?: true
+}
+
+export type SupervisorExecutionSumAggregateInputType = {
+  claimEpoch?: true
+}
+
 export type SupervisorExecutionMinAggregateInputType = {
   id?: true
   taskId?: true
   workerRole?: true
   status?: true
   error?: true
+  runnerId?: true
+  claimEpoch?: true
+  lastHeartbeatAt?: true
+  leaseExpiresAt?: true
   createdAt?: true
   startedAt?: true
   completedAt?: true
@@ -78,6 +112,10 @@ export type SupervisorExecutionMaxAggregateInputType = {
   workerRole?: true
   status?: true
   error?: true
+  runnerId?: true
+  claimEpoch?: true
+  lastHeartbeatAt?: true
+  leaseExpiresAt?: true
   createdAt?: true
   startedAt?: true
   completedAt?: true
@@ -91,6 +129,10 @@ export type SupervisorExecutionCountAggregateInputType = {
   assignment?: true
   result?: true
   error?: true
+  runnerId?: true
+  claimEpoch?: true
+  lastHeartbeatAt?: true
+  leaseExpiresAt?: true
   createdAt?: true
   startedAt?: true
   completedAt?: true
@@ -135,6 +177,18 @@ export type SupervisorExecutionAggregateArgs<ExtArgs extends runtime.Types.Exten
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    *
+   * Select which fields to average
+  **/
+  _avg?: SupervisorExecutionAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   *
+   * Select which fields to sum
+  **/
+  _sum?: SupervisorExecutionSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   *
    * Select which fields to find the minimum value
   **/
   _min?: SupervisorExecutionMinAggregateInputType
@@ -165,6 +219,8 @@ export type SupervisorExecutionGroupByArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   _count?: SupervisorExecutionCountAggregateInputType | true
+  _avg?: SupervisorExecutionAvgAggregateInputType
+  _sum?: SupervisorExecutionSumAggregateInputType
   _min?: SupervisorExecutionMinAggregateInputType
   _max?: SupervisorExecutionMaxAggregateInputType
 }
@@ -177,10 +233,16 @@ export type SupervisorExecutionGroupByOutputType = {
   assignment: runtime.JsonValue
   result: runtime.JsonValue | null
   error: string | null
+  runnerId: string | null
+  claimEpoch: number
+  lastHeartbeatAt: Date | null
+  leaseExpiresAt: Date | null
   createdAt: Date
   startedAt: Date | null
   completedAt: Date | null
   _count: SupervisorExecutionCountAggregateOutputType | null
+  _avg: SupervisorExecutionAvgAggregateOutputType | null
+  _sum: SupervisorExecutionSumAggregateOutputType | null
   _min: SupervisorExecutionMinAggregateOutputType | null
   _max: SupervisorExecutionMaxAggregateOutputType | null
 }
@@ -211,6 +273,10 @@ export type SupervisorExecutionWhereInput = {
   assignment?: Prisma.JsonFilter<"SupervisorExecution">
   result?: Prisma.JsonNullableFilter<"SupervisorExecution">
   error?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  claimEpoch?: Prisma.IntFilter<"SupervisorExecution"> | number
+  lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
+  leaseExpiresAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"SupervisorExecution"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
@@ -225,6 +291,10 @@ export type SupervisorExecutionOrderByWithRelationInput = {
   assignment?: Prisma.SortOrder
   result?: Prisma.SortOrderInput | Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
+  runnerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  claimEpoch?: Prisma.SortOrder
+  lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  leaseExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -242,6 +312,10 @@ export type SupervisorExecutionWhereUniqueInput = Prisma.AtLeast<{
   assignment?: Prisma.JsonFilter<"SupervisorExecution">
   result?: Prisma.JsonNullableFilter<"SupervisorExecution">
   error?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  claimEpoch?: Prisma.IntFilter<"SupervisorExecution"> | number
+  lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
+  leaseExpiresAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"SupervisorExecution"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
@@ -256,12 +330,18 @@ export type SupervisorExecutionOrderByWithAggregationInput = {
   assignment?: Prisma.SortOrder
   result?: Prisma.SortOrderInput | Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
+  runnerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  claimEpoch?: Prisma.SortOrder
+  lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  leaseExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   completedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SupervisorExecutionCountOrderByAggregateInput
+  _avg?: Prisma.SupervisorExecutionAvgOrderByAggregateInput
   _max?: Prisma.SupervisorExecutionMaxOrderByAggregateInput
   _min?: Prisma.SupervisorExecutionMinOrderByAggregateInput
+  _sum?: Prisma.SupervisorExecutionSumOrderByAggregateInput
 }
 
 export type SupervisorExecutionScalarWhereWithAggregatesInput = {
@@ -275,6 +355,10 @@ export type SupervisorExecutionScalarWhereWithAggregatesInput = {
   assignment?: Prisma.JsonWithAggregatesFilter<"SupervisorExecution">
   result?: Prisma.JsonNullableWithAggregatesFilter<"SupervisorExecution">
   error?: Prisma.StringNullableWithAggregatesFilter<"SupervisorExecution"> | string | null
+  runnerId?: Prisma.StringNullableWithAggregatesFilter<"SupervisorExecution"> | string | null
+  claimEpoch?: Prisma.IntWithAggregatesFilter<"SupervisorExecution"> | number
+  lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupervisorExecution"> | Date | string | null
+  leaseExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupervisorExecution"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SupervisorExecution"> | Date | string
   startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupervisorExecution"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SupervisorExecution"> | Date | string | null
@@ -287,6 +371,10 @@ export type SupervisorExecutionCreateInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -301,6 +389,10 @@ export type SupervisorExecutionUncheckedCreateInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -313,6 +405,10 @@ export type SupervisorExecutionUpdateInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -327,6 +423,10 @@ export type SupervisorExecutionUncheckedUpdateInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -340,6 +440,10 @@ export type SupervisorExecutionCreateManyInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -352,6 +456,10 @@ export type SupervisorExecutionUpdateManyMutationInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -365,6 +473,10 @@ export type SupervisorExecutionUncheckedUpdateManyInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -388,9 +500,17 @@ export type SupervisorExecutionCountOrderByAggregateInput = {
   assignment?: Prisma.SortOrder
   result?: Prisma.SortOrder
   error?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
+  claimEpoch?: Prisma.SortOrder
+  lastHeartbeatAt?: Prisma.SortOrder
+  leaseExpiresAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
+}
+
+export type SupervisorExecutionAvgOrderByAggregateInput = {
+  claimEpoch?: Prisma.SortOrder
 }
 
 export type SupervisorExecutionMaxOrderByAggregateInput = {
@@ -399,6 +519,10 @@ export type SupervisorExecutionMaxOrderByAggregateInput = {
   workerRole?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
+  claimEpoch?: Prisma.SortOrder
+  lastHeartbeatAt?: Prisma.SortOrder
+  leaseExpiresAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
@@ -410,9 +534,17 @@ export type SupervisorExecutionMinOrderByAggregateInput = {
   workerRole?: Prisma.SortOrder
   status?: Prisma.SortOrder
   error?: Prisma.SortOrder
+  runnerId?: Prisma.SortOrder
+  claimEpoch?: Prisma.SortOrder
+  lastHeartbeatAt?: Prisma.SortOrder
+  leaseExpiresAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   completedAt?: Prisma.SortOrder
+}
+
+export type SupervisorExecutionSumOrderByAggregateInput = {
+  claimEpoch?: Prisma.SortOrder
 }
 
 export type SupervisorExecutionCreateNestedManyWithoutTaskInput = {
@@ -464,6 +596,10 @@ export type SupervisorExecutionCreateWithoutTaskInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -476,6 +612,10 @@ export type SupervisorExecutionUncheckedCreateWithoutTaskInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -518,6 +658,10 @@ export type SupervisorExecutionScalarWhereInput = {
   assignment?: Prisma.JsonFilter<"SupervisorExecution">
   result?: Prisma.JsonNullableFilter<"SupervisorExecution">
   error?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  runnerId?: Prisma.StringNullableFilter<"SupervisorExecution"> | string | null
+  claimEpoch?: Prisma.IntFilter<"SupervisorExecution"> | number
+  lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
+  leaseExpiresAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"SupervisorExecution"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
   completedAt?: Prisma.DateTimeNullableFilter<"SupervisorExecution"> | Date | string | null
@@ -530,6 +674,10 @@ export type SupervisorExecutionCreateManyTaskInput = {
   assignment: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: string | null
+  runnerId?: string | null
+  claimEpoch?: number
+  lastHeartbeatAt?: Date | string | null
+  leaseExpiresAt?: Date | string | null
   createdAt?: Date | string
   startedAt?: Date | string | null
   completedAt?: Date | string | null
@@ -542,6 +690,10 @@ export type SupervisorExecutionUpdateWithoutTaskInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -554,6 +706,10 @@ export type SupervisorExecutionUncheckedUpdateWithoutTaskInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -566,6 +722,10 @@ export type SupervisorExecutionUncheckedUpdateManyWithoutTaskInput = {
   assignment?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   result?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  runnerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  claimEpoch?: Prisma.IntFieldUpdateOperationsInput | number
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leaseExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -581,6 +741,10 @@ export type SupervisorExecutionSelect<ExtArgs extends runtime.Types.Extensions.I
   assignment?: boolean
   result?: boolean
   error?: boolean
+  runnerId?: boolean
+  claimEpoch?: boolean
+  lastHeartbeatAt?: boolean
+  leaseExpiresAt?: boolean
   createdAt?: boolean
   startedAt?: boolean
   completedAt?: boolean
@@ -595,6 +759,10 @@ export type SupervisorExecutionSelectCreateManyAndReturn<ExtArgs extends runtime
   assignment?: boolean
   result?: boolean
   error?: boolean
+  runnerId?: boolean
+  claimEpoch?: boolean
+  lastHeartbeatAt?: boolean
+  leaseExpiresAt?: boolean
   createdAt?: boolean
   startedAt?: boolean
   completedAt?: boolean
@@ -609,6 +777,10 @@ export type SupervisorExecutionSelectUpdateManyAndReturn<ExtArgs extends runtime
   assignment?: boolean
   result?: boolean
   error?: boolean
+  runnerId?: boolean
+  claimEpoch?: boolean
+  lastHeartbeatAt?: boolean
+  leaseExpiresAt?: boolean
   createdAt?: boolean
   startedAt?: boolean
   completedAt?: boolean
@@ -623,12 +795,16 @@ export type SupervisorExecutionSelectScalar = {
   assignment?: boolean
   result?: boolean
   error?: boolean
+  runnerId?: boolean
+  claimEpoch?: boolean
+  lastHeartbeatAt?: boolean
+  leaseExpiresAt?: boolean
   createdAt?: boolean
   startedAt?: boolean
   completedAt?: boolean
 }
 
-export type SupervisorExecutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskId" | "workerRole" | "status" | "assignment" | "result" | "error" | "createdAt" | "startedAt" | "completedAt", ExtArgs["result"]["supervisorExecution"]>
+export type SupervisorExecutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskId" | "workerRole" | "status" | "assignment" | "result" | "error" | "runnerId" | "claimEpoch" | "lastHeartbeatAt" | "leaseExpiresAt" | "createdAt" | "startedAt" | "completedAt", ExtArgs["result"]["supervisorExecution"]>
 export type SupervisorExecutionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   task?: boolean | Prisma.SupervisorTaskDefaultArgs<ExtArgs>
 }
@@ -652,6 +828,10 @@ export type $SupervisorExecutionPayload<ExtArgs extends runtime.Types.Extensions
     assignment: runtime.JsonValue
     result: runtime.JsonValue | null
     error: string | null
+    runnerId: string | null
+    claimEpoch: number
+    lastHeartbeatAt: Date | null
+    leaseExpiresAt: Date | null
     createdAt: Date
     startedAt: Date | null
     completedAt: Date | null
@@ -1086,6 +1266,10 @@ export interface SupervisorExecutionFieldRefs {
   readonly assignment: Prisma.FieldRef<"SupervisorExecution", 'Json'>
   readonly result: Prisma.FieldRef<"SupervisorExecution", 'Json'>
   readonly error: Prisma.FieldRef<"SupervisorExecution", 'String'>
+  readonly runnerId: Prisma.FieldRef<"SupervisorExecution", 'String'>
+  readonly claimEpoch: Prisma.FieldRef<"SupervisorExecution", 'Int'>
+  readonly lastHeartbeatAt: Prisma.FieldRef<"SupervisorExecution", 'DateTime'>
+  readonly leaseExpiresAt: Prisma.FieldRef<"SupervisorExecution", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"SupervisorExecution", 'DateTime'>
   readonly startedAt: Prisma.FieldRef<"SupervisorExecution", 'DateTime'>
   readonly completedAt: Prisma.FieldRef<"SupervisorExecution", 'DateTime'>

@@ -110,6 +110,10 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
       createdAt: new Date(),
       startedAt: null,
       completedAt: null,
+      runnerId: null,
+      claimEpoch: 0,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
     };
   }
 

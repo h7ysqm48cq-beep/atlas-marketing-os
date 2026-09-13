@@ -70,6 +70,18 @@ describe('WorkerDispatcherService', () => {
     return supervisor.startTask(task.id);
   }
 
+  async function moveQueuedToLegacyDispatched(executionId: string) {
+    const execution = await executionStore.get(executionId);
+
+    if (!execution) {
+      throw new Error('test_execution_missing');
+    }
+
+    expect(execution.status).toBe('QUEUED');
+    execution.status = 'DISPATCHED';
+    return executionStore.saveIfStatus(execution, 'QUEUED');
+  }
+
   function workerResult() {
     return {
       summary: 'Implemented',
@@ -86,12 +98,121 @@ describe('WorkerDispatcherService', () => {
     };
   }
 
+  it('dispatch remains QUEUED', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+
+    expect(result.execution.status).toBe('QUEUED');
+    await expect(executionStore.listByTask(task.id)).resolves.toMatchObject([
+      { status: 'QUEUED' },
+    ]);
+  });
+
+  it('dispatch does not issue or expose a Worker capability before claim', async () => {
+    const task = await createWorkingTask();
+    const capabilityService = new SupervisorWorkerCapabilityService(
+      capabilityAuthority(),
+    );
+    const issueSpy = jest.spyOn(capabilityService, 'issue');
+    const capabilityDispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      capabilityService,
+      new SupervisorAdmissionManifestService(),
+    );
+
+    const result = await capabilityDispatcher.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+    );
+
+    expect(issueSpy).not.toHaveBeenCalled();
+    expect(result.capability).toBeUndefined();
+    expect(result.assignment.workerCapability).toBeUndefined();
+    const [persisted] = await executionStore.listByTask(task.id);
+    expect(persisted.assignment.workerCapability).toBeUndefined();
+  });
+
+  it('dispatch can queue work when Worker capability service is unavailable', async () => {
+    const task = await createWorkingTask();
+    const dispatcherWithoutCapability = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      undefined as never,
+      new SupervisorAdmissionManifestService(),
+    );
+
+    const result = await dispatcherWithoutCapability.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+    );
+    expect(result).toMatchObject({
+      execution: { status: 'QUEUED' },
+    });
+    expect(result.capability).toBeUndefined();
+  });
+
+  it('dispatch queues INDEPENDENT_VERIFICATION without issuing a verifier capability', async () => {
+    const task = await createWorkingTask();
+
+    const result = await dispatcher.dispatch(
+      task.id,
+      'INDEPENDENT_VERIFICATION',
+    );
+    expect(result).toMatchObject({
+      execution: {
+        status: 'QUEUED',
+        assignment: {
+          executionPurpose: 'INDEPENDENT_VERIFICATION',
+          workerCapability: undefined,
+        },
+      },
+    });
+    expect(result.capability).toBeUndefined();
+  });
+
+  it('dispatch performs only one persistence creation step', async () => {
+    const task = await createWorkingTask();
+    const executionStore = {
+      listByTask: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockImplementation(async (execution: any) => execution),
+      saveIfStatus: jest
+        .fn()
+        .mockImplementation(async (execution: any) => execution),
+    };
+    const capabilityService = {
+      issue: jest.fn().mockReturnValue({
+        token: 'REDACTED_TEST_CAPABILITY',
+        metadata: {},
+      }),
+    };
+    const persistenceDispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore as never,
+      capabilityService as never,
+      new SupervisorAdmissionManifestService(),
+    );
+
+    await persistenceDispatcher.dispatch(task.id, 'IMPLEMENTATION');
+
+    expect(executionStore.create).toHaveBeenCalledTimes(1);
+    expect(executionStore.saveIfStatus).not.toHaveBeenCalled();
+    expect(executionStore.create.mock.calls[0][0]).toMatchObject({
+      status: 'QUEUED',
+      runnerId: null,
+      claimEpoch: 0,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
+    });
+  });
+
   it('dispatches a WORKING task with owned files and a restart-safe execution id', async () => {
     const task = await createWorkingTask();
 
     const result = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
 
-    expect(result.execution.status).toBe('DISPATCHED');
+    expect(result.execution.status).toBe('QUEUED');
     expect(result.execution.id).toMatch(
       /^ATLAS-EXEC-\d{8}-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
@@ -144,7 +265,7 @@ describe('WorkerDispatcherService', () => {
     ).toHaveLength(0);
   });
 
-  it('fails closed when the capability service is unavailable', async () => {
+  it('queues work when the capability service is unavailable', async () => {
     const task = await createWorkingTask();
     const dispatcherWithoutCapability = new WorkerDispatcherService(
       supervisor,
@@ -153,20 +274,35 @@ describe('WorkerDispatcherService', () => {
       new SupervisorAdmissionManifestService(),
     );
 
-    await expect(
-      dispatcherWithoutCapability.dispatch(task.id, 'IMPLEMENTATION'),
-    ).rejects.toThrow('worker_capability_service_required');
-    expect(await executionStore.listByTask(task.id)).toHaveLength(0);
+    const result = await dispatcherWithoutCapability.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+    );
+    expect(result).toMatchObject({
+      execution: { status: 'QUEUED' },
+    });
+    expect(result.capability).toBeUndefined();
+    expect(await executionStore.listByTask(task.id)).toHaveLength(1);
   });
 
-  it('fails closed when no verifier capability exists for independent verification', async () => {
+  it('queues independent verification without a verifier capability', async () => {
     const task = await createWorkingTask();
 
-    await expect(dispatcher.dispatch(
+    const result = await dispatcher.dispatch(
       task.id,
       'INDEPENDENT_VERIFICATION',
-    )).rejects.toThrow('worker_capability_purpose_mismatch');
-    expect(await executionStore.listByTask(task.id)).toHaveLength(0);
+    );
+    expect(result).toMatchObject({
+      execution: {
+        status: 'QUEUED',
+        assignment: {
+          executionPurpose: 'INDEPENDENT_VERIFICATION',
+          workerCapability: undefined,
+        },
+      },
+    });
+    expect(result.capability).toBeUndefined();
+    expect(await executionStore.listByTask(task.id)).toHaveLength(1);
   });
 
   it('rejects dispatch when task is not WORKING', async () => {
@@ -219,6 +355,7 @@ describe('WorkerDispatcherService', () => {
     const task = await createWorkingTask();
 
     const first = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(first.execution.id);
     await dispatcher.markRunning(first.execution.id);
     await dispatcher.fail(first.execution.id, 'worker failed');
     const second = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
@@ -230,6 +367,7 @@ describe('WorkerDispatcherService', () => {
   it('generates different execution ids across fresh dispatcher instances', async () => {
     const task = await createWorkingTask();
     const first = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(first.execution.id);
     await dispatcher.markRunning(first.execution.id);
     await dispatcher.fail(first.execution.id, 'worker failed');
 
@@ -247,6 +385,7 @@ describe('WorkerDispatcherService', () => {
   it('rejects malformed worker results with invalid_worker_result', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -261,6 +400,7 @@ describe('WorkerDispatcherService', () => {
   it('does not move the task to READY_FOR_REVIEW when execution completes', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.complete(dispatched.execution.id, {
       summary: 'Implemented',
@@ -282,6 +422,7 @@ describe('WorkerDispatcherService', () => {
   it('allows DISPATCHED to transition to RUNNING', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
 
     await expect(
       dispatcher.markRunning(dispatched.execution.id),
@@ -293,6 +434,7 @@ describe('WorkerDispatcherService', () => {
   it('allows RUNNING to transition to COMPLETED', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -303,6 +445,7 @@ describe('WorkerDispatcherService', () => {
   it('allows RUNNING to transition to FAILED', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
 
     await expect(
@@ -313,6 +456,7 @@ describe('WorkerDispatcherService', () => {
   it('preserves the existing legal DISPATCHED cancellation flow', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
 
     await expect(
       dispatcher.cancel(dispatched.execution.id, 'owner stopped execution'),
@@ -322,6 +466,7 @@ describe('WorkerDispatcherService', () => {
   it('rejects DISPATCHED to COMPLETED', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
 
     await expect(
       dispatcher.complete(dispatched.execution.id, workerResult()),
@@ -333,6 +478,7 @@ describe('WorkerDispatcherService', () => {
   it('rejects terminal transition replays', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.complete(dispatched.execution.id, workerResult());
 
@@ -351,6 +497,7 @@ describe('WorkerDispatcherService', () => {
   it('rejects FAILED to COMPLETED', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
     await dispatcher.fail(dispatched.execution.id, 'worker failed');
 
@@ -364,6 +511,7 @@ describe('WorkerDispatcherService', () => {
   it('allows exactly one concurrent terminal transition', async () => {
     const task = await createWorkingTask();
     const dispatched = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
     await dispatcher.markRunning(dispatched.execution.id);
 
     const results = await Promise.allSettled([
@@ -500,13 +648,7 @@ describe('R1 bootstrap server-side admission manifest', () => {
     expect(result.assignment.runnerId)
       .not.toBe(clientSuppliedBinding.runnerId);
 
-    expect(capabilityService.issue).toHaveBeenCalledTimes(1);
-
-    expect(
-      capabilityService.issue.mock.calls[0][0].assignment,
-    ).toEqual(
-      expect.objectContaining(serverBinding),
-    );
+    expect(capabilityService.issue).not.toHaveBeenCalled();
   });
 });
 // R1_BOOTSTRAP_ADMISSION_RED_END

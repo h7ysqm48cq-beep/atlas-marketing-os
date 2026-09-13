@@ -78,6 +78,11 @@ export class AgentSupervisorController {
     return this.supervisor.blockTask(id, body.reason ?? '');
   }
 
+  @Post('tasks/:id/abort')
+  abortTask(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.supervisor.abortTask(id, body.reason ?? '');
+  }
+
   @Post('tasks/:id/fail')
   failTask(@Param('id') id: string, @Body() body: { reason: string }) {
     return this.supervisor.failTask(id, body.reason ?? '');

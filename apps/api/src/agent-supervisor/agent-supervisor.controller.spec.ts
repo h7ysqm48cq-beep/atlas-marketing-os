@@ -1,4 +1,10 @@
-import { GUARDS_METADATA, MODULE_METADATA } from '@nestjs/common/constants';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  MODULE_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+import { RequestMethod } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorModule } from './agent-supervisor.module';
@@ -480,6 +486,92 @@ describe('R1 bootstrap admission authority boundary', () => {
     expect(dispatcher.dispatch).toHaveBeenCalledWith(
       'ATLAS-TASK-RED',
       'IMPLEMENTATION',
+    );
+  });
+});
+
+// S7_HUMAN_OWNER_ABORT_RED_CONTROLLER
+describe('S7 Human Owner abort RED contract', () => {
+  const taskId = 'ATLAS-S7-ABORT-1';
+  const body = {
+    reason: 'Owner stopped obsolete execution',
+    executionId: 'caller-controlled-execution',
+    status: 'COMPLETED',
+    claimEpoch: 999,
+    runnerId: 'caller-runner',
+    leaseId: 'caller-lease',
+    ownerId: 'caller-owner',
+  };
+
+  it('RED 1 exposes the exact Human Owner abort POST route', () => {
+    const prototype = AgentSupervisorController.prototype as unknown as Record<
+      string,
+      unknown
+    >;
+    const abortTask = prototype.abortTask as object;
+
+    expect(abortTask).toEqual(expect.any(Function));
+    expect(Reflect.getMetadata(PATH_METADATA, abortTask)).toBe('tasks/:id/abort');
+    expect(Reflect.getMetadata(METHOD_METADATA, abortTask)).toBe(
+      RequestMethod.POST,
+    );
+  });
+
+  it('RED 2 keeps abort behind the existing Owner guards only', () => {
+    const prototype = AgentSupervisorController.prototype as unknown as Record<
+      string,
+      unknown
+    >;
+    const abortTask = prototype.abortTask;
+    expect(abortTask).toEqual(expect.any(Function));
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, AgentSupervisorController),
+    ).toEqual([SupervisorOwnerActionGuard, SupervisorOwnerGuard]);
+  });
+
+  it('RED 3 ignores caller execution and owner binding fields', async () => {
+    const abort = (AgentSupervisorController.prototype as unknown as Record<
+      string,
+      unknown
+    >).abortTask as
+      | ((id: string, body: Record<string, unknown>, request: unknown) => Promise<unknown>)
+      | undefined;
+    expect(abort).toEqual(expect.any(Function));
+    if (!abort) return;
+
+    const abortTask = jest.fn().mockResolvedValue({ status: 'BLOCKED' });
+    const controller = new AgentSupervisorController(
+      { abortTask } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+      undefined,
+    );
+
+    await abort.call(
+      controller,
+      taskId,
+      body,
+      { user: { id: 'authenticated-owner' } },
+    );
+
+    expect(abortTask).toHaveBeenCalledWith(taskId, body.reason);
+    expect(abortTask).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ executionId: expect.any(String) }),
+    );
+  });
+
+  it('RED 16 does not acquire merge, deploy, or runtime-config authority', () => {
+    const prototype = AgentSupervisorController.prototype as unknown as Record<
+      string,
+      unknown
+    >;
+    const abortTask = prototype.abortTask;
+    expect(abortTask).toEqual(expect.any(Function));
+
+    const source = String(abortTask);
+    expect(source).not.toMatch(
+      /authorizeMerge|authorizeProductionDeployment|consumeMergeAuthorization|issueMergeApproval|issueDeployApproval/,
     );
   });
 });

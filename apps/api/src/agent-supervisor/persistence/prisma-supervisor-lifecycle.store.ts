@@ -6,12 +6,21 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { SupervisorTask } from '../agent-supervisor.types';
+import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import type { SupervisorExecutionReconciliationCandidate } from '../stores/supervisor-execution.store';
 import type {
   SupervisorLifecycleStore,
   SupervisorLockMode,
+  SupervisorExecutionRecoveryInput,
+  SupervisorExecutionReconciliationInput,
+  SupervisorExecutionOwnerAbortRecoveryInput,
+  SupervisorExecutionRecoveryResult,
+  SupervisorExecutionRecoveryStore,
 } from '../stores/supervisor-lifecycle.store';
 import {
+  mapExecutionRecord,
   mapTaskRecord,
+  type SupervisorExecutionRecord,
   type SupervisorTaskRecord,
 } from './supervisor-persistence.mapper';
 
@@ -30,13 +39,23 @@ type TaskUpdateData = {
 };
 
 type TransactionClient = {
+  $queryRaw<T = unknown>(
+    query: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T>;
+  supervisorExecution: {
+    findUnique(args: {
+      where: { id: string };
+    }): Promise<SupervisorExecutionRecord | null>;
+    updateMany(args: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    }): Promise<{ count: number }>;
+  };
   supervisorTask: {
 
     updateMany(args: {
-      where: {
-        id: string;
-        updatedAt: Date;
-      };
+      where: Record<string, unknown>;
       data: TaskUpdateData;
     }): Promise<{ count: number }>;
 
@@ -107,6 +126,56 @@ function taskUpdateData(task: SupervisorTask): TaskUpdateData {
   };
 }
 
+function executionUpdateData(execution: SupervisorExecution): Record<string, unknown> {
+  return {
+    taskId: execution.taskId,
+    workerRole: execution.workerRole,
+    status: execution.status,
+    assignment: structuredClone(execution.assignment),
+    result: execution.result === null ? null : structuredClone(execution.result),
+    error: execution.error,
+    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
+    completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
+    runnerId: execution.runnerId,
+    claimEpoch: execution.claimEpoch,
+    lastHeartbeatAt: execution.lastHeartbeatAt
+      ? new Date(execution.lastHeartbeatAt)
+      : null,
+    leaseExpiresAt: execution.leaseExpiresAt
+      ? new Date(execution.leaseExpiresAt)
+      : null,
+  };
+}
+
+function sameDate(left: Date | null, right: Date | null): boolean {
+  return left?.getTime() === right?.getTime();
+}
+
+function isRecoveryKindForStatus(
+  candidate: SupervisorExecutionReconciliationCandidate,
+): boolean {
+  return (
+    (candidate.status === 'QUEUED' && candidate.kind === 'QUEUED_TIMEOUT') ||
+    (candidate.status === 'DISPATCHED' &&
+      candidate.kind === 'LEGACY_DISPATCHED_TIMEOUT') ||
+    (candidate.status === 'RUNNING' &&
+      candidate.kind === 'RUNNING_LEASE_EXPIRED')
+  );
+}
+
+function recoveryReason(
+  kind: SupervisorExecutionReconciliationCandidate['kind'],
+): string {
+  switch (kind) {
+    case 'QUEUED_TIMEOUT':
+      return 'supervisor_execution_queued_timeout';
+    case 'LEGACY_DISPATCHED_TIMEOUT':
+      return 'supervisor_execution_legacy_dispatched_timeout';
+    case 'RUNNING_LEASE_EXPIRED':
+      return 'supervisor_execution_lease_expired';
+  }
+}
+
 function normalizeConstraintField(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
@@ -146,9 +215,15 @@ function isPathUniqueError(error: unknown): boolean {
   );
 }
 
+function isOwnerAbortInput(
+  input: SupervisorExecutionRecoveryInput,
+): input is SupervisorExecutionOwnerAbortRecoveryInput {
+  return 'source' in input && input.source === 'HUMAN_OWNER_ABORT';
+}
+
 @Injectable()
 export class PrismaSupervisorLifecycleStore
-  implements SupervisorLifecycleStore
+  implements SupervisorLifecycleStore, SupervisorExecutionRecoveryStore
 {
   private readonly prisma: PrismaWithTransaction;
 
@@ -218,6 +293,222 @@ export class PrismaSupervisorLifecycleStore
       throw persistenceError();
     }
   }
+
+  async recoverExecutionAndBlockTask(
+    input: SupervisorExecutionRecoveryInput,
+  ): Promise<SupervisorExecutionRecoveryResult | null> {
+    try {
+      return await this.prisma.$transaction(async (tx) =>
+        isOwnerAbortInput(input)
+          ? this.recoverOwnerAbort(tx, input)
+          : this.recoverReconciliation(tx, input),
+      );
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw persistenceError();
+    }
+  }
+
+  private async recoverOwnerAbort(
+    tx: TransactionClient,
+    input: SupervisorExecutionOwnerAbortRecoveryInput,
+  ): Promise<SupervisorExecutionRecoveryResult | null> {
+    const taskRows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "SupervisorTask"
+      WHERE "id" = ${input.taskId}
+        AND "status" = 'WORKING'
+      FOR UPDATE
+    `;
+    if (taskRows.length !== 1) return null;
+
+    const activeRows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "SupervisorExecution"
+      WHERE "taskId" = ${input.taskId}
+        AND "status" IN ('QUEUED', 'DISPATCHED', 'RUNNING')
+      ORDER BY "createdAt" ASC, "id" ASC
+      FOR UPDATE
+    `;
+    if (activeRows.length !== 1) return null;
+
+    const executionRow = await tx.supervisorExecution.findUnique({
+      where: { id: activeRows[0].id },
+    });
+    const taskRow = await tx.supervisorTask.findUnique({
+      where: { id: input.taskId },
+    });
+    if (!executionRow || !taskRow) return null;
+
+    const currentExecution = mapExecutionRecord(executionRow);
+    const currentTask = mapTaskRecord(taskRow);
+    if (
+      currentExecution.taskId !== input.taskId ||
+      !['QUEUED', 'DISPATCHED', 'RUNNING'].includes(currentExecution.status) ||
+      currentTask.id !== input.taskId ||
+      currentTask.status !== 'WORKING' ||
+      !input.reason.trim()
+    ) {
+      return null;
+    }
+
+    const reason = `supervisor_execution_owner_abort:${input.reason.trim()}`;
+    const nextClaimEpoch = currentExecution.claimEpoch + 1;
+    const assignment = { ...currentExecution.assignment };
+    assignment.workerCapability = undefined;
+    delete assignment.runnerId;
+    delete assignment.leaseId;
+    assignment.claimEpoch = nextClaimEpoch;
+
+    const abortedExecution: SupervisorExecution = {
+      ...currentExecution,
+      status: 'CANCELLED',
+      completedAt: new Date(input.now),
+      error: reason,
+      claimEpoch: nextClaimEpoch,
+      runnerId: null,
+      leaseExpiresAt: null,
+      assignment,
+    };
+    const executionUpdate = await tx.supervisorExecution.updateMany({
+      where: {
+        id: currentExecution.id,
+        taskId: currentExecution.taskId,
+        status: currentExecution.status,
+        claimEpoch: currentExecution.claimEpoch,
+        runnerId: currentExecution.runnerId,
+        leaseExpiresAt: currentExecution.leaseExpiresAt,
+      },
+      data: executionUpdateData(abortedExecution),
+    });
+    if (executionUpdate.count !== 1) throw persistenceError();
+
+    const blockedTask: SupervisorTask = {
+      ...currentTask,
+      status: 'BLOCKED',
+      blockingReason: reason,
+      updatedAt: new Date(input.now),
+    };
+    const taskUpdate = await tx.supervisorTask.updateMany({
+      where: {
+        id: currentTask.id,
+        status: 'WORKING',
+      },
+      data: taskUpdateData(blockedTask),
+    });
+    if (taskUpdate.count !== 1) throw persistenceError();
+
+    await tx.supervisorFileLock.deleteMany({
+      where: { taskId: input.taskId },
+    });
+
+    return {
+      execution: abortedExecution,
+      task: blockedTask,
+    };
+  }
+
+  private async recoverReconciliation(
+    tx: TransactionClient,
+    input: SupervisorExecutionReconciliationInput,
+  ): Promise<SupervisorExecutionRecoveryResult | null> {
+    await tx.$queryRaw`
+          SELECT "id"
+          FROM "SupervisorExecution"
+          WHERE "id" = ${input.candidate.executionId}
+          FOR UPDATE
+        `;
+        await tx.$queryRaw`
+          SELECT "id"
+          FROM "SupervisorTask"
+          WHERE "id" = ${input.candidate.taskId}
+          FOR UPDATE
+        `;
+
+        const executionRow = await tx.supervisorExecution.findUnique({
+          where: { id: input.candidate.executionId },
+        });
+        const taskRow = await tx.supervisorTask.findUnique({
+          where: { id: input.candidate.taskId },
+        });
+        if (!executionRow || !taskRow) return null;
+
+        const currentExecution = mapExecutionRecord(executionRow);
+        const currentTask = mapTaskRecord(taskRow);
+        if (
+          currentExecution.id !== input.candidate.executionId ||
+          currentExecution.taskId !== input.candidate.taskId ||
+          currentExecution.status !== input.candidate.status ||
+          currentExecution.claimEpoch !== input.candidate.claimEpoch ||
+          currentExecution.runnerId !== input.candidate.runnerId ||
+          currentExecution.createdAt.getTime() !==
+            input.candidate.createdAt.getTime() ||
+          !sameDate(currentExecution.leaseExpiresAt, input.candidate.leaseExpiresAt) ||
+          currentTask.status !== 'WORKING' ||
+          !isRecoveryKindForStatus(input.candidate) ||
+          (input.candidate.status === 'RUNNING' &&
+            (!currentExecution.leaseExpiresAt ||
+              currentExecution.leaseExpiresAt.getTime() > input.now.getTime()))
+        ) {
+          return null;
+        }
+
+        const reason = recoveryReason(input.candidate.kind);
+        const nextClaimEpoch = currentExecution.claimEpoch + 1;
+        const assignment = { ...currentExecution.assignment };
+        assignment.workerCapability = undefined;
+        delete assignment.runnerId;
+        delete assignment.leaseId;
+        assignment.claimEpoch = nextClaimEpoch;
+
+        const recoveredExecution: SupervisorExecution = {
+          ...currentExecution,
+          status: 'FAILED',
+          completedAt: new Date(input.now),
+          error: reason,
+          claimEpoch: nextClaimEpoch,
+          runnerId: null,
+          leaseExpiresAt: null,
+          assignment,
+        };
+        const executionUpdate = await tx.supervisorExecution.updateMany({
+          where: {
+            id: currentExecution.id,
+            taskId: currentExecution.taskId,
+            status: currentExecution.status,
+            claimEpoch: currentExecution.claimEpoch,
+            runnerId: currentExecution.runnerId,
+            createdAt: currentExecution.createdAt,
+            leaseExpiresAt: currentExecution.leaseExpiresAt,
+          },
+          data: executionUpdateData(recoveredExecution),
+        });
+        if (executionUpdate.count !== 1) throw persistenceError();
+
+        const blockedTask: SupervisorTask = {
+          ...currentTask,
+          status: 'BLOCKED',
+          blockingReason: reason,
+          updatedAt: new Date(input.now),
+        };
+        const taskUpdate = await tx.supervisorTask.updateMany({
+          where: {
+            id: currentTask.id,
+            status: 'WORKING',
+          },
+          data: taskUpdateData(blockedTask),
+        });
+        if (taskUpdate.count !== 1) throw persistenceError();
+
+        await tx.supervisorFileLock.deleteMany({
+          where: { taskId: input.candidate.taskId },
+        });
+
+        return {
+          execution: recoveredExecution,
+          task: blockedTask,
+        };
+    }
 
   private async acquire(
     tx: TransactionClient,

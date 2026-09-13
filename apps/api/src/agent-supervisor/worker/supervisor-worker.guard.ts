@@ -12,6 +12,7 @@ import {
   SUPERVISOR_EXECUTION_STORE,
   type SupervisorExecutionStore,
 } from '../stores/supervisor-execution.store';
+import type { SupervisorWorkerRole } from '../execution/supervisor-execution.types';
 import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
 import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-capability.types';
 
@@ -20,6 +21,15 @@ export const SUPERVISOR_WORKER_OPERATION = 'atlas-supervisor-worker-operation';
 export const SupervisorWorkerOperationRequired = (
   operation: SupervisorWorkerCapabilityOperation,
 ) => SetMetadata(SUPERVISOR_WORKER_OPERATION, operation);
+
+export interface SupervisorWorkerAuthorizationContext {
+  taskId: string;
+  executionId: string;
+  workerRole: SupervisorWorkerRole;
+  claimEpoch: number;
+  runnerId: string;
+  leaseId: string;
+}
 
 @Injectable()
 export class SupervisorWorkerGuard implements CanActivate {
@@ -43,6 +53,7 @@ export class SupervisorWorkerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       headers: { authorization?: string | string[] };
       params: { taskId?: string; executionId?: string };
+      supervisorWorkerAuthorization?: SupervisorWorkerAuthorizationContext;
     }>();
     const authorization = request.headers.authorization;
     if (
@@ -65,6 +76,40 @@ export class SupervisorWorkerGuard implements CanActivate {
     if (execution.taskId !== taskId) {
       throw new ForbiddenException('worker_capability_task_mismatch');
     }
+    const now = new Date();
+    if (operation === 'heartbeat') {
+      if (execution.status !== 'RUNNING') {
+        throw new ForbiddenException(
+          'worker_capability_heartbeat_execution_not_running',
+        );
+      }
+      if (
+        !Number.isInteger(execution.claimEpoch) ||
+        typeof execution.runnerId !== 'string' ||
+        execution.runnerId.length === 0 ||
+        !(execution.lastHeartbeatAt instanceof Date) ||
+        !(execution.leaseExpiresAt instanceof Date)
+      ) {
+        throw new ForbiddenException(
+          'worker_capability_heartbeat_binding_required',
+        );
+      }
+      if (
+        execution.assignment.claimEpoch !== execution.claimEpoch ||
+        execution.assignment.runnerId !== execution.runnerId ||
+        typeof execution.assignment.leaseId !== 'string' ||
+        execution.assignment.leaseId.length === 0
+      ) {
+        throw new ForbiddenException(
+          'worker_capability_heartbeat_binding_mismatch',
+        );
+      }
+      if (execution.leaseExpiresAt.getTime() <= now.getTime()) {
+        throw new ForbiddenException(
+          'worker_capability_execution_lease_expired',
+        );
+      }
+    }
     if (
       operation !== 'read_assignment' &&
       ['COMPLETED', 'FAILED', 'CANCELLED'].includes(execution.status)
@@ -81,6 +126,7 @@ export class SupervisorWorkerGuard implements CanActivate {
           execution.assignment.executionPurpose ?? 'IMPLEMENTATION',
         assignment: execution.assignment,
         operation,
+        now,
       });
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
@@ -91,6 +137,16 @@ export class SupervisorWorkerGuard implements CanActivate {
         throw new ForbiddenException('worker_capability_task_mismatch');
       }
       throw error;
+    }
+    if (operation === 'heartbeat') {
+      request.supervisorWorkerAuthorization = {
+        taskId,
+        executionId,
+        workerRole: execution.workerRole,
+        claimEpoch: execution.claimEpoch!,
+        runnerId: execution.runnerId!,
+        leaseId: execution.assignment.leaseId!,
+      };
     }
     return true;
   }

@@ -297,6 +297,30 @@ function executionRecord(overrides: Record<string, unknown> = {}) {
     createdAt,
     startedAt: new Date('2026-08-30T00:00:10.000Z'),
     completedAt: new Date('2026-08-30T00:00:20.000Z'),
+    runnerId: null,
+    claimEpoch: 0,
+    lastHeartbeatAt: null,
+    leaseExpiresAt: null,
+    ...overrides,
+  };
+}
+
+type ExecutionLivenessFields = {
+  runnerId: string | null;
+  claimEpoch: number;
+  lastHeartbeatAt: Date | null;
+  leaseExpiresAt: Date | null;
+};
+
+function executionRecordWithLiveness(
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    ...executionRecord(),
+    runnerId: 'runner-s2-red',
+    claimEpoch: 3,
+    lastHeartbeatAt: new Date('2026-09-12T01:02:03.000Z'),
+    leaseExpiresAt: new Date('2026-09-12T01:12:03.000Z'),
     ...overrides,
   };
 }
@@ -482,6 +506,32 @@ describe('supervisor persistence mapper', () => {
         .reviewCandidate.changedFiles,
     );
   });
+
+  it('maps execution liveness fields from persistence', () => {
+    const record = executionRecordWithLiveness();
+    const mapped = mapExecutionRecord(record) as ReturnType<
+      typeof mapExecutionRecord
+    > &
+      ExecutionLivenessFields;
+
+    expect(mapped.runnerId).toBe('runner-s2-red');
+    expect(mapped.claimEpoch).toBe(3);
+    expect(mapped.lastHeartbeatAt).toEqual(
+      new Date('2026-09-12T01:02:03.000Z'),
+    );
+    expect(mapped.leaseExpiresAt).toEqual(
+      new Date('2026-09-12T01:12:03.000Z'),
+    );
+  });
+
+  it.each([-1, 1.5])(
+    'rejects invalid persisted claimEpoch: %p',
+    (claimEpoch) => {
+      expectPersistenceError(() =>
+        mapExecutionRecord(executionRecordWithLiveness({ claimEpoch })),
+      );
+    },
+  );
 
   it('rejects malformed persisted review-candidate JSON', () => {
     const evidence = evidenceFixture();

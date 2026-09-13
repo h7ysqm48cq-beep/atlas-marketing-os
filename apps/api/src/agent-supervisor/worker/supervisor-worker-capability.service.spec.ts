@@ -65,6 +65,10 @@ function execution(
     createdAt: NOW,
     startedAt: null,
     completedAt: null,
+    runnerId: null,
+    claimEpoch: 0,
+    lastHeartbeatAt: null,
+    leaseExpiresAt: null,
     ...overrides,
   };
 }
@@ -278,5 +282,58 @@ describe('SupervisorWorkerCapabilityService', () => {
       ...execution().assignment,
       manifestHash: undefined,
     }}), { now: NOW })).toThrow(ForbiddenException);
+  });
+
+  it('includes heartbeat in the default Worker capability actions', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution({
+      status: 'RUNNING',
+      runnerId: 'runner-1',
+      claimEpoch: 1,
+      lastHeartbeatAt: NOW,
+      leaseExpiresAt: new Date(NOW.getTime() + 60_000),
+      assignment: {
+        ...execution().assignment,
+        claimEpoch: 1,
+        leaseId: 'lease-1',
+        runnerId: 'runner-1',
+      },
+    });
+
+    const issued = service.issue(value, { now: NOW });
+
+    expect(issued.metadata.allowedActions as string[]).toContain('heartbeat');
+  });
+
+  it('authorizes heartbeat only when the capability explicitly permits it', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution({
+      status: 'RUNNING',
+      runnerId: 'runner-1',
+      claimEpoch: 1,
+      lastHeartbeatAt: NOW,
+      leaseExpiresAt: new Date(NOW.getTime() + 60_000),
+      assignment: {
+        ...execution().assignment,
+        claimEpoch: 1,
+        leaseId: 'lease-1',
+        runnerId: 'runner-1',
+      },
+    });
+    const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(() => authorize(service, issued.token, value, heartbeat)).not.toThrow();
+
+    const restricted = service.issue(value, {
+      now: NOW,
+      allowedActions: ['read_assignment'],
+    });
+    value.assignment.workerCapability = restricted.metadata;
+
+    expect(() => authorize(service, restricted.token, value, heartbeat)).toThrow(
+      'worker_capability_operation_denied',
+    );
   });
 });
