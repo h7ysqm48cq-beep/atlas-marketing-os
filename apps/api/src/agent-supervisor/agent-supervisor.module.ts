@@ -7,7 +7,6 @@ import { ProductionDeploymentGateService } from './deployment/production-deploym
 import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorCiGuard } from './gateway/supervisor-ci.guard';
 import { SupervisorGatewayController } from './gateway/supervisor-gateway.controller';
-import { SupervisorHumanOwnerCredentialGuard } from './gateway/supervisor-human-owner-credential.guard';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import { PrismaFileOwnershipStore } from './persistence/prisma-file-ownership.store';
@@ -59,7 +58,6 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     AgentGatewayService,
     SupervisorCiGuard,
     SupervisorOwnerActionGuard,
-    SupervisorHumanOwnerCredentialGuard,
     SupervisorOwnerGuard,
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
