@@ -15,7 +15,6 @@ import {
 } from './authority/human-owner-approval.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
-import { SupervisorHumanOwnerCredentialGuard } from './gateway/supervisor-human-owner-credential.guard';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
 import type {
@@ -39,7 +38,7 @@ type HumanOwnerRequest = {
   >;
 };
 
-@UseGuards(SupervisorOwnerActionGuard)
+@UseGuards(SupervisorOwnerActionGuard, SupervisorOwnerGuard)
 @Controller('engineering/supervisor')
 export class AgentSupervisorController {
   constructor(
@@ -117,7 +116,6 @@ export class AgentSupervisorController {
     return this.supervisor.approveTask(id, true);
   }
 
-  @UseGuards(SupervisorHumanOwnerCredentialGuard, SupervisorOwnerGuard)
   @Post('tasks/:id/authorize-merge')
   authorizeMerge(
     @Param('id') id: string,
@@ -167,7 +165,6 @@ export class AgentSupervisorController {
     );
   }
 
-  @UseGuards(SupervisorHumanOwnerCredentialGuard, SupervisorOwnerGuard)
   @Post('tasks/:id/authorize-production-deployment')
   authorizeProductionDeployment(
     @Param('id') id: string,

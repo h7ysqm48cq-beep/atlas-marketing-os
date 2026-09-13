@@ -21,8 +21,6 @@ export class SupervisorOwnerActionGuard implements CanActivate {
       user?: { id?: string };
     }>();
 
-    delete request.headers[OWNER_TOKEN_HEADER];
-
     if (READ_ONLY_METHODS.has((request.method ?? '').toUpperCase())) {
       return true;
     }
@@ -49,6 +47,14 @@ export class SupervisorOwnerActionGuard implements CanActivate {
       throw new UnauthorizedException('supervisor_owner_action_required');
     }
 
+    const ownerToken = this.config.get<string>('ATLAS_SUPERVISOR_OWNER_TOKEN');
+    if (!ownerToken) {
+      throw new UnauthorizedException(
+        'supervisor_owner_credential_not_configured',
+      );
+    }
+
+    request.headers[OWNER_TOKEN_HEADER] = ownerToken;
     return true;
   }
 }
