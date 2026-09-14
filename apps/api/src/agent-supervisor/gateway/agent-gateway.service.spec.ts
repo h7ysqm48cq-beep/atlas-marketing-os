@@ -312,13 +312,7 @@ describe('AgentGatewayService', () => {
         candidate: typeof reviewCandidate,
         service: 'api' | 'web' | 'browser-worker',
         authorization: Parameters<
-
-          AgentSupervisorService[
-
-            'authorizeProductionDeployment'
-
-          ]
-
+          AgentSupervisorService['authorizeProductionDeployment']
         >[3],
       ) => Promise<unknown>;
     };
@@ -397,15 +391,8 @@ describe('AgentGatewayService', () => {
       ...persistedDeploymentTask.evidence!,
       ownerMergeAuthorization: mergeTask.evidence!.ownerMergeAuthorization,
     };
-    const expectedUpdatedAt =
-      new Date(
-        persistedDeploymentTask.updatedAt,
-      );
-
-    persistedDeploymentTask.updatedAt =
-      new Date(
-        expectedUpdatedAt.getTime() + 1,
-      );
+    const expectedUpdatedAt = new Date(persistedDeploymentTask.updatedAt);
+    persistedDeploymentTask.updatedAt = new Date(expectedUpdatedAt.getTime() + 1);
 
     await expect(
       taskStore.saveIfUnchanged(
@@ -696,6 +683,84 @@ describe('AgentGatewayService', () => {
     ).rejects.toMatchObject({
       response: { code: 'canonical_target_required' },
     });
+  });
+
+  it('keeps ordinary consumption expired while requiring trusted CI consumption for a merge that occurred inside the original authorization window', async () => {
+    jest.useFakeTimers();
+
+    try {
+      jest.setSystemTime(new Date('2026-09-14T00:00:00.000Z'));
+      const { task, execution } = await createReadyExecution();
+      await supervisor.approveTask(task.id, true);
+
+      const approved = await supervisor.getTask(task.id);
+      const authorization = approved.evidence?.ownerMergeAuthorization;
+      expect(authorization).toBeDefined();
+      if (!authorization) return;
+
+      const mergedAt = new Date(
+        Date.parse(authorization.authorizedAt) + 60_000,
+      ).toISOString();
+      const attestation = {
+        pullRequestNumber: 104,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+        mergedAt,
+      };
+
+      jest.setSystemTime(
+        new Date(Date.parse(authorization.authorizedAt) + 11 * 60_000),
+      );
+
+      await expect(
+        supervisor.consumeMergeAuthorization(
+          task.id,
+          attestation,
+          'owner-user-1',
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'owner_merge_authorization_invalid' },
+      });
+
+      const trustedGateway = gateway as unknown as {
+        consumeTrustedMergeAuthorization?: (input: {
+          taskId: string;
+          executionId: string;
+          action: 'merge';
+          targetBranch: string;
+          baseSha: string;
+          headSha: string;
+          changedFiles: string[];
+          attestation: typeof attestation;
+        }) => Promise<unknown>;
+      };
+
+      expect(trustedGateway.consumeTrustedMergeAuthorization).toEqual(
+        expect.any(Function),
+      );
+
+      if (!trustedGateway.consumeTrustedMergeAuthorization) return;
+
+      await expect(
+        trustedGateway.consumeTrustedMergeAuthorization({
+          taskId: task.id,
+          executionId: execution.id,
+          action: 'merge',
+          targetBranch: 'production/atlas',
+          baseSha: BASE_SHA,
+          headSha: HEAD_SHA,
+          changedFiles: [CHANGED_FILE],
+          attestation,
+        }),
+      ).resolves.toEqual({
+        allowed: true,
+        reason: null,
+        taskId: task.id,
+        executionId: execution.id,
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('allows the exact reviewed canonical merge state after both owner gates and explicit integration authorization', async () => {
