@@ -1,9 +1,8 @@
 import { CommandExecutor } from './executor.ts';
 import { loadEngineeringRunnerConfig } from './config.ts';
 import { EngineeringRunner } from './runner.ts';
-import { ExactScopeGuard } from './scope-guard.ts';
+import { ExactScopeGuard, GitWorkspace } from './scope-guard.ts';
 import { SupervisorClient } from './supervisor-client.ts';
-import { GitWorkspace } from './workspace.ts';
 
 async function main(): Promise<void> {
   const config = loadEngineeringRunnerConfig();
