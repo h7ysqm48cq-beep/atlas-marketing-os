@@ -98,6 +98,14 @@ function context(
 }
 
 describe('SupervisorVerifierGuard RED contract', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function setup(value = verifierExecution()) {
     const module = loadVerifierGuardModule();
     const Guard = module.SupervisorVerifierGuard;
@@ -177,23 +185,18 @@ describe('SupervisorVerifierGuard RED contract', () => {
     if (!setupValue) return;
     await setupValue.store.create(value);
     const token = setupValue.verifierCapabilities.issue(verifierInput(value), NOW);
-    jest.useFakeTimers().setSystemTime(NOW);
 
-    try {
-      await expect(
-        setupValue.guard.canActivate(
-          context(
-            setupValue.operationKey,
-            'heartbeat',
-            token,
-            value.taskId,
-            value.id,
-          ),
+    await expect(
+      setupValue.guard.canActivate(
+        context(
+          setupValue.operationKey,
+          'heartbeat',
+          token,
+          value.taskId,
+          value.id,
         ),
-      ).rejects.toThrow('verifier_capability_execution_lease_expired');
-    } finally {
-      jest.useRealTimers();
-    }
+      ),
+    ).rejects.toThrow('verifier_capability_execution_lease_expired');
   });
 
   it('attaches only the verified claim binding for heartbeat renewal', async () => {

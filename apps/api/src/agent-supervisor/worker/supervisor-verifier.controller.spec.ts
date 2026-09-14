@@ -121,10 +121,8 @@ describe('SupervisorVerifierController RED contract', () => {
     const setupValue = setup();
     if (!setupValue) return;
 
-    const submit = setupValue.controller.submitVerification.bind(
-      setupValue.controller,
-    );
-    const heartbeat = setupValue.controller.heartbeat.bind(setupValue.controller);
+    const submit = setupValue.Controller.prototype.submitVerification;
+    const heartbeat = setupValue.Controller.prototype.heartbeat;
 
     expect(Reflect.getMetadata(PATH_METADATA, submit)).toBe(
       'tasks/:taskId/executions/:executionId/verification',
