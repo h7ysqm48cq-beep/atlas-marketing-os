@@ -57,8 +57,11 @@ export function parseGitStatusPorcelainZ(input: string): string[] {
 }
 
 export class GitWorkspace {
-  constructor(private readonly cwd: string) {
+  private readonly cwd: string;
+
+  constructor(cwd: string) {
     if (!cwd) throw new Error('workspace_cwd_required');
+    this.cwd = cwd;
   }
 
   async listChangedFiles(): Promise<string[]> {
