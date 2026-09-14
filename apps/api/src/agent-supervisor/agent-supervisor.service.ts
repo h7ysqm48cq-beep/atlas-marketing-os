@@ -438,6 +438,35 @@ export class AgentSupervisorService {
     attestation: SupervisorMergeAttestation,
     consumedBy: string,
   ): Promise<SupervisorTask> {
+    return this.consumeMergeAuthorizationAt(
+      id,
+      attestation,
+      consumedBy,
+    );
+  }
+
+  async consumeTrustedMergeAuthorization(
+    id: string,
+    attestation: SupervisorMergeAttestation,
+    consumedBy: string,
+  ): Promise<SupervisorTask> {
+    const normalizedAttestation =
+      this.normalizeMergeAttestation(attestation);
+
+    return this.consumeMergeAuthorizationAt(
+      id,
+      normalizedAttestation,
+      consumedBy,
+      new Date(normalizedAttestation.mergedAt),
+    );
+  }
+
+  private async consumeMergeAuthorizationAt(
+    id: string,
+    attestation: SupervisorMergeAttestation,
+    consumedBy: string,
+    verifiedAt?: Date,
+  ): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
 
@@ -457,7 +486,11 @@ export class AgentSupervisorService {
       });
     }
 
-    this.assertOwnerMergeAuthorization(task, authorization.candidate);
+    this.assertOwnerMergeAuthorization(
+      task,
+      authorization.candidate,
+      verifiedAt,
+    );
 
     const authorizedCandidate = this.normalizeCandidate(
       authorization.candidate,
@@ -685,6 +718,7 @@ export class AgentSupervisorService {
   assertOwnerMergeAuthorization(
     task: SupervisorTask,
     candidate: SupervisorReviewCandidate,
+    verifiedAt?: Date,
   ): void {
     const requestedCandidate = this.normalizeCandidate(candidate);
     this.requireCanonicalMerge(requestedCandidate);
@@ -710,6 +744,7 @@ export class AgentSupervisorService {
     this.verifyOwnerMergeAuthorization(
       authorization,
       requestedCandidate,
+      verifiedAt,
     );
   }
 
@@ -718,6 +753,7 @@ export class AgentSupervisorService {
       SupervisorEvidence['ownerMergeAuthorization']
     >,
     candidate: SupervisorReviewCandidate,
+    verifiedAt?: Date,
   ): void {
     const authorizedCandidate =
       this.normalizeCandidate(
@@ -776,6 +812,7 @@ export class AgentSupervisorService {
             purpose: 'APPROVE_MERGE',
             candidateHash:
               expectedCandidateHash,
+            ...(verifiedAt ? { now: verifiedAt } : {}),
           },
         );
 
