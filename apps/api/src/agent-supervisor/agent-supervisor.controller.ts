@@ -267,6 +267,14 @@ export class AgentSupervisorController {
     return this.dispatcher.dispatch(id, 'IMPLEMENTATION');
   }
 
+  @Post('tasks/:id/dispatch-verification')
+  dispatchVerificationTask(@Param('id') id: string) {
+    return this.dispatcher.dispatch(
+      id,
+      'INDEPENDENT_VERIFICATION',
+    );
+  }
+
   @Get('tasks/:id/executions')
   listExecutions(@Param('id') id: string) {
     return this.dispatcher.listByTask(id);
