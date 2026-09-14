@@ -186,3 +186,31 @@ jobs:
       - name: Report gate not required for non-governance main change
         if: steps.changes.outputs.needs_gate != 'true'
         run: echo 'ATLAS Supervisor gate not required for this non-governance main pull request.'
+
+  api-verification:
+    name: api-verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --config prisma.config.ts
+
+      - name: Targeted Supervisor tests
+        run: npm test --workspace apps/api -- --runInBand agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
+
+      - name: API build and regression guards
+        run: npm run build --workspace apps/api
