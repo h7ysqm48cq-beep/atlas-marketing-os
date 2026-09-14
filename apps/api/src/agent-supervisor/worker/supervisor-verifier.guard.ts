@@ -101,12 +101,26 @@ export class SupervisorVerifierGuard implements CanActivate {
     }
 
     const now = new Date();
-    if (operation === 'heartbeat') {
-      if (execution.status !== 'RUNNING') {
-        throw new ForbiddenException(
-          'verifier_capability_heartbeat_execution_not_running',
-        );
-      }
+    if (operation === 'heartbeat' && execution.status !== 'RUNNING') {
+      throw new ForbiddenException(
+        'verifier_capability_heartbeat_execution_not_running',
+      );
+    }
+
+    if (
+      operation !== 'read_assignment' &&
+      ['COMPLETED', 'FAILED', 'CANCELLED'].includes(execution.status)
+    ) {
+      throw new ForbiddenException('verifier_capability_terminal_execution');
+    }
+
+    const leaseBoundOperation = [
+      'heartbeat',
+      'submit_verification',
+      'fail',
+      'cancel',
+    ].includes(operation);
+    if (leaseBoundOperation) {
       if (
         !(execution.lastHeartbeatAt instanceof Date) ||
         !(execution.leaseExpiresAt instanceof Date)
@@ -118,13 +132,6 @@ export class SupervisorVerifierGuard implements CanActivate {
           'verifier_capability_execution_lease_expired',
         );
       }
-    }
-
-    if (
-      operation !== 'read_assignment' &&
-      ['COMPLETED', 'FAILED', 'CANCELLED'].includes(execution.status)
-    ) {
-      throw new ForbiddenException('verifier_capability_terminal_execution');
     }
 
     this.capabilities.authorize(authorization.slice('Bearer '.length), {
