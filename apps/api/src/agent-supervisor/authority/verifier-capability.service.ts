@@ -8,6 +8,7 @@ import {
 export type VerifierCapabilityOperation =
   | 'read_assignment'
   | 'mark_running'
+  | 'heartbeat'
   | 'submit_verification'
   | 'fail'
   | 'cancel';
@@ -42,6 +43,7 @@ export class VerifierCapabilityService {
   private readonly operations: VerifierCapabilityOperation[] = [
     'read_assignment',
     'mark_running',
+    'heartbeat',
     'submit_verification',
     'fail',
     'cancel',

@@ -353,6 +353,71 @@ describe('AgentSupervisorController', () => {
     expect(result.assignment.forbiddenActions).toContain('merge');
   });
 
+  it('exposes a server-fixed Human Owner verifier dispatch route', () => {
+    const prototype =
+      AgentSupervisorController.prototype as unknown as Record<
+        string,
+        unknown
+      >;
+    const method =
+      prototype.dispatchVerificationTask as object;
+
+    expect(method).toEqual(expect.any(Function));
+    expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
+      'tasks/:id/dispatch-verification',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, method)).toBe(
+      RequestMethod.POST,
+    );
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        AgentSupervisorController,
+      ),
+    ).toEqual([
+      SupervisorOwnerActionGuard,
+      SupervisorOwnerGuard,
+    ]);
+  });
+
+  it('dispatches verifier work with a server-fixed execution purpose', async () => {
+    const dispatch = jest.fn().mockResolvedValue({
+      execution: {
+        id: 'ATLAS-EXEC-VERIFY-1',
+        status: 'QUEUED',
+      },
+    });
+    const verifierController =
+      new AgentSupervisorController(
+        {} as AgentSupervisorService,
+        { dispatch } as unknown as WorkerDispatcherService,
+      ) as unknown as {
+        dispatchVerificationTask?: (
+          id: string,
+          callerControlledPurpose?: string,
+        ) => Promise<unknown>;
+      };
+
+    expect(
+      verifierController.dispatchVerificationTask,
+    ).toEqual(expect.any(Function));
+
+    if (!verifierController.dispatchVerificationTask) {
+      return;
+    }
+
+    await verifierController.dispatchVerificationTask(
+      'ATLAS-TASK-VERIFY-1',
+      'IMPLEMENTATION',
+    );
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith(
+      'ATLAS-TASK-VERIFY-1',
+      'INDEPENDENT_VERIFICATION',
+    );
+  });
+
   it('lists execution history for a task', async () => {
     const task = await supervisor.createTask({
       objective: 'Backend task',
