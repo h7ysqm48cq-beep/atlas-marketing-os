@@ -142,6 +142,43 @@ test('EngineeringRunner fails execution on implementation scope drift and never 
   assert.match(failReason, /scope_drift/);
 });
 
+test('EngineeringRunner rejects implementation evidence when reported changed files do not match Git observation', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { runOnce(): Promise<unknown> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const active = session();
+  let complete = 0;
+  let failReason = '';
+  active.complete = async () => { complete += 1; };
+  active.fail = async (reason: string) => { failReason = reason; };
+  const mismatchedResult = {
+    ...result,
+    evidence: {
+      ...result.evidence,
+      changedFiles: [],
+    },
+  };
+  const snapshots = [[], ['apps/example.ts']];
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => mismatchedResult },
+    workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(complete, 0);
+  assert.match(failReason, /implementation_evidence_changed_files_mismatch/);
+});
+
 test('EngineeringRunner rejects independent-verification git drift', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as
