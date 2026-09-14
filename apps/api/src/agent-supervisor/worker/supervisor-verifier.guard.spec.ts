@@ -199,6 +199,31 @@ describe('SupervisorVerifierGuard RED contract', () => {
     ).rejects.toThrow('verifier_capability_execution_lease_expired');
   });
 
+  it.each(['submit_verification', 'fail', 'cancel'])(
+    'fails closed when %s is attempted after the verifier lease expires',
+    async (operation) => {
+      const value = verifierExecution({
+        leaseExpiresAt: new Date(NOW.getTime() - 1),
+      });
+      const setupValue = setup(value);
+      if (!setupValue) return;
+      await setupValue.store.create(value);
+      const token = setupValue.verifierCapabilities.issue(verifierInput(value), NOW);
+
+      await expect(
+        setupValue.guard.canActivate(
+          context(
+            setupValue.operationKey,
+            operation,
+            token,
+            value.taskId,
+            value.id,
+          ),
+        ),
+      ).rejects.toThrow('verifier_capability_execution_lease_expired');
+    },
+  );
+
   it('attaches only the verified claim binding for heartbeat renewal', async () => {
     const value = verifierExecution();
     const setupValue = setup(value);
