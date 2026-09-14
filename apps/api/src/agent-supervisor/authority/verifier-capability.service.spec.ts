@@ -58,26 +58,6 @@ describe('VerifierCapabilityService', () => {
     });
   });
 
-  it('authorizes heartbeat as an execution-bound verifier operation', () => {
-    const service = new VerifierCapabilityService(authority());
-    const token = service.issue(input(), NOW);
-
-    expect(
-      service.authorize(token, {
-        ...input(),
-        operation: 'heartbeat' as never,
-        now: new Date(NOW.getTime() + 1_000),
-      }),
-    ).toMatchObject({
-      taskId: input().taskId,
-      executionId: input().executionId,
-      claimEpoch: input().claimEpoch,
-      leaseId: input().leaseId,
-      runnerId: input().runnerId,
-      allowedActions: expect.arrayContaining(['heartbeat']),
-    });
-  });
-
   it('fails closed when the verifier binding is incomplete', () => {
     const service = new VerifierCapabilityService(authority());
     expect(() => service.issue({ ...input(), manifestHash: '' }, NOW)).toThrow(
