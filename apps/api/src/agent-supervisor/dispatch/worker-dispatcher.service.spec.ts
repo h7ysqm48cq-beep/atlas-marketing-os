@@ -22,24 +22,6 @@ const PROTECTED_ACTIONS = [
   'delete_branch_for_integration',
 ];
 
-const VERIFIER_FORBIDDEN_ACTIONS = [
-  'edit_assigned_files',
-  'commit_assigned_branch',
-  'change_database_schema',
-  'run_migration',
-  'change_auth_or_identity',
-  'change_runtime_config',
-  'deploy_non_production',
-  'deploy_production',
-  'merge',
-  'rebase',
-  'squash',
-  'cherry_pick',
-  'auto_merge',
-  'force_push',
-  'delete_branch_for_integration',
-];
-
 function capabilityAuthority(): SupervisorAuthorityService {
   const key = () => {
     const pair = generateKeyPairSync('ed25519');
@@ -86,15 +68,6 @@ describe('WorkerDispatcherService', () => {
       acceptance: ['focused tests pass'],
     });
     return supervisor.startTask(task.id);
-  }
-
-  async function createVerifyingTask() {
-    const task = await createWorkingTask();
-    await supervisor.submitImplementation(
-      task.id,
-      workerResult().evidence,
-    );
-    return supervisor.beginVerification(task.id);
   }
 
   async function moveQueuedToLegacyDispatched(executionId: string) {
@@ -181,7 +154,7 @@ describe('WorkerDispatcherService', () => {
   });
 
   it('dispatch queues INDEPENDENT_VERIFICATION without issuing a verifier capability', async () => {
-    const task = await createVerifyingTask();
+    const task = await createWorkingTask();
 
     const result = await dispatcher.dispatch(
       task.id,
@@ -313,7 +286,7 @@ describe('WorkerDispatcherService', () => {
   });
 
   it('queues independent verification without a verifier capability', async () => {
-    const task = await createVerifyingTask();
+    const task = await createWorkingTask();
 
     const result = await dispatcher.dispatch(
       task.id,
@@ -330,88 +303,6 @@ describe('WorkerDispatcherService', () => {
     });
     expect(result.capability).toBeUndefined();
     expect(await executionStore.listByTask(task.id)).toHaveLength(1);
-  });
-
-  it('requires VERIFYING before independent verification dispatch', async () => {
-    const task = await createWorkingTask();
-
-    await expect(
-      dispatcher.dispatch(
-        task.id,
-        'INDEPENDENT_VERIFICATION',
-      ),
-    ).rejects.toMatchObject({
-      response: {
-        code: 'task_not_dispatchable',
-        current: 'WORKING',
-        required: 'VERIFYING',
-      },
-    });
-  });
-
-  it('requires WORKING before implementation dispatch', async () => {
-    const task = await createVerifyingTask();
-
-    await expect(
-      dispatcher.dispatch(
-        task.id,
-        'IMPLEMENTATION',
-      ),
-    ).rejects.toMatchObject({
-      response: {
-        code: 'task_not_dispatchable',
-        current: 'VERIFYING',
-        required: 'WORKING',
-      },
-    });
-  });
-
-  it('uses read authority and mutation-deny scope for independent verification', async () => {
-    const task = await createVerifyingTask();
-    const permissionSpy = jest.spyOn(
-      supervisor,
-      'checkPermission',
-    );
-
-    const result = await dispatcher.dispatch(
-      task.id,
-      'INDEPENDENT_VERIFICATION',
-    );
-
-    expect(permissionSpy).toHaveBeenCalledWith(
-      task.owner,
-      'read_repo',
-      { taskScopeIncludesAction: true },
-    );
-    expect(permissionSpy).not.toHaveBeenCalledWith(
-      task.owner,
-      'edit_assigned_files',
-      expect.anything(),
-    );
-    expect(result.assignment.forbiddenActions).toEqual(
-      expect.arrayContaining(
-        VERIFIER_FORBIDDEN_ACTIONS,
-      ),
-    );
-  });
-
-  it('preserves edit authority for implementation dispatch', async () => {
-    const task = await createWorkingTask();
-    const permissionSpy = jest.spyOn(
-      supervisor,
-      'checkPermission',
-    );
-
-    await dispatcher.dispatch(
-      task.id,
-      'IMPLEMENTATION',
-    );
-
-    expect(permissionSpy).toHaveBeenCalledWith(
-      task.owner,
-      'edit_assigned_files',
-      { taskScopeIncludesAction: true },
-    );
   });
 
   it('rejects dispatch when task is not WORKING', async () => {

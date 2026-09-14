@@ -44,24 +44,6 @@ const PROTECTED_INTEGRATION_ACTIONS: SupervisorAction[] = [
   'delete_branch_for_integration',
 ];
 
-const VERIFIER_FORBIDDEN_ACTIONS: SupervisorAction[] = [
-  'edit_assigned_files',
-  'commit_assigned_branch',
-  'change_database_schema',
-  'run_migration',
-  'change_auth_or_identity',
-  'change_runtime_config',
-  'deploy_non_production',
-  'deploy_production',
-  'merge',
-  'rebase',
-  'squash',
-  'cherry_pick',
-  'auto_merge',
-  'force_push',
-  'delete_branch_for_integration',
-];
-
 const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
   'QUEUED',
   'DISPATCHED',
@@ -87,15 +69,11 @@ export class WorkerDispatcherService {
     capability?: string;
   }> {
     const task = await this.supervisor.getTask(taskId);
-    const requiredStatus =
-      executionPurpose === 'INDEPENDENT_VERIFICATION'
-        ? 'VERIFYING'
-        : 'WORKING';
-    if (task.status !== requiredStatus) {
+    if (task.status !== 'WORKING') {
       throw new BadRequestException({
         code: 'task_not_dispatchable',
         current: task.status,
-        required: requiredStatus,
+        required: 'WORKING',
       });
     }
 
@@ -119,13 +97,9 @@ export class WorkerDispatcherService {
       throw new ConflictException('file_ownership_missing');
     }
 
-    const requestedAction: SupervisorAction =
-      executionPurpose === 'INDEPENDENT_VERIFICATION'
-        ? 'read_repo'
-        : 'edit_assigned_files';
     const permission = this.supervisor.checkPermission(
       task.owner,
-      requestedAction,
+      'edit_assigned_files',
       { taskScopeIncludesAction: true },
     );
     if (!permission.allowed) {
@@ -137,10 +111,6 @@ export class WorkerDispatcherService {
 
     const now = new Date();
     const executionId = this.nextExecutionId(now);
-    const enforcedForbiddenActions =
-      executionPurpose === 'INDEPENDENT_VERIFICATION'
-        ? VERIFIER_FORBIDDEN_ACTIONS
-        : PROTECTED_INTEGRATION_ACTIONS;
     const assignmentCore = {
       executionId,
       taskId: task.id,
@@ -149,10 +119,7 @@ export class WorkerDispatcherService {
       objective: task.objective,
       allowedPaths: [...task.allowedPaths],
       forbiddenActions: Array.from(
-        new Set([
-          ...task.forbiddenActions,
-          ...enforcedForbiddenActions,
-        ]),
+        new Set([...task.forbiddenActions, ...PROTECTED_INTEGRATION_ACTIONS]),
       ),
       dependencies: [...task.dependsOn],
       acceptance: [...task.acceptance],
