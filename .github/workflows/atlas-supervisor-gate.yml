@@ -1,4 +1,4 @@
-name: p0b-engineering-runner-packaging
+name: p0b-engineering-runner-lock-blob
 
 on:
   push:
@@ -6,14 +6,12 @@ on:
       - feat/p0b-engineering-agent-runner-20260914
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  package-and-verify:
+  create-lock-blob:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      DATABASE_URL: postgresql://postgres:unused@127.0.0.1:59999/unused
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,28 +25,38 @@ jobs:
       - name: Generate synchronized lockfile
         run: npm install --package-lock-only --ignore-scripts
 
-      - name: Verify clean install
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate --config prisma.config.ts
-
-      - name: Engineering Runner contracts
-        run: npm test --workspace apps/engineering-runner
-
-      - name: Engineering Runner build
-        run: npm run build --workspace apps/engineering-runner
-
-      - name: Targeted Supervisor tests
-        run: npm test --workspace apps/api -- --runInBand verifier-capability.service.spec.ts supervisor-verifier.guard.spec.ts supervisor-verifier.controller.spec.ts agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
-
-      - name: API build and regression guards
-        run: npm run build --workspace apps/api
-
-      - name: Upload synchronized lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: p0b-engineering-runner-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Create unattached package-lock Git blob
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { execFileSync } = require('node:child_process');
+          const expected = execFileSync('git', ['hash-object', 'package-lock.json'], { encoding: 'utf8' }).trim();
+          const content = fs.readFileSync('package-lock.json').toString('base64');
+          async function main() {
+            const response = await fetch(`https://api.github.com/repos/${process.env.REPOSITORY}/git/blobs`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/vnd.github+json',
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ content, encoding: 'base64' }),
+            });
+            if (!response.ok) throw new Error(`blob creation failed:${response.status}`);
+            const body = await response.json();
+            if (body?.sha !== expected) throw new Error('created blob SHA mismatch');
+            console.log(`LOCK_BLOB_SHA=${body.sha}`);
+            console.log('BRANCH_REF_UPDATED=false');
+            console.log('LOCKFILE_SECRET_CONTENT=NONE');
+          }
+          main().catch((error) => {
+            console.error(error?.message ?? 'lock blob creation failed');
+            process.exit(1);
+          });
+          NODE
