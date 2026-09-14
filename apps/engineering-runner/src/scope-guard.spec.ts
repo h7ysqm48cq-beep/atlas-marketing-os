@@ -81,6 +81,22 @@ test('independent verification rejects any tracked git drift', async () => {
   );
 });
 
+test('GitWorkspace is exported from scope-guard.ts for scope-owned workspace inspection', async () => {
+  const mod = await loadModule();
+  const Workspace = mod.GitWorkspace as
+    | (new (cwd: string) => { listChangedFiles(): Promise<string[]> })
+    | undefined;
+
+  assert.ok(
+    Workspace,
+    'GitWorkspace must be exported from scope-guard.ts',
+  );
+  assert.throws(
+    () => new Workspace(''),
+    /workspace_cwd_required/,
+  );
+});
+
 test('parseGitStatusPorcelainZ returns canonical changed paths including rename destination', async () => {
   const mod = await loadModule();
   const parse = mod.parseGitStatusPorcelainZ as
