@@ -32,6 +32,20 @@ function isAmbiguousMutation(error: unknown): boolean {
   );
 }
 
+function assertImplementationEvidenceMatches(
+  observed: string[],
+  reported: string[],
+): void {
+  const observedSorted = [...observed].sort();
+  const reportedSorted = [...reported].sort();
+  if (
+    observedSorted.length !== reportedSorted.length ||
+    observedSorted.some((value, index) => value !== reportedSorted[index])
+  ) {
+    throw new Error('implementation_evidence_changed_files_mismatch');
+  }
+}
+
 async function delay(ms: number, signal: AbortSignal): Promise<void> {
   if (signal.aborted) return;
   await new Promise<void>((resolve) => {
@@ -94,6 +108,10 @@ export class EngineeringRunner {
         this.scopeGuard.assertImplementationScope(
           after,
           session.assignment.allowedPaths,
+        );
+        assertImplementationEvidenceMatches(
+          after,
+          executionResult.evidence.changedFiles,
         );
       }
 
