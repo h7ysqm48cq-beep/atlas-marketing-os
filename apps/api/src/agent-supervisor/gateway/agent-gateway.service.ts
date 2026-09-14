@@ -11,6 +11,7 @@ import type {
   ProductionDeploymentResolveInput,
   SupervisorEvidence,
   SupervisorGateDecision,
+  SupervisorMergeAttestation,
   SupervisorReviewCandidate,
   SupervisorTask,
   ValidateWorkerContextInput,
@@ -24,6 +25,13 @@ import {
 
 const ACTIVE_IMPLEMENTATION_STATUSES = new Set(['DISPATCHED', 'RUNNING']);
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+
+export type TrustedMergeAuthorizationConsumptionInput = Omit<
+  IntegrationGateInput,
+  'explicitUserAuthorization'
+> & {
+  attestation: SupervisorMergeAttestation;
+};
 
 @Injectable()
 export class AgentGatewayService {
@@ -126,6 +134,36 @@ export class AgentGatewayService {
     const { task, execution, requestedCandidate } =
       await this.validateIntegrationCandidate(input);
     this.supervisor.assertOwnerMergeAuthorization(task, requestedCandidate);
+    return this.allowed(task.id, execution.id);
+  }
+
+  async consumeTrustedMergeAuthorization(
+    input: TrustedMergeAuthorizationConsumptionInput,
+  ): Promise<SupervisorGateDecision> {
+    const { task, execution, requestedCandidate } =
+      await this.validateIntegrationCandidate({
+        ...input,
+        explicitUserAuthorization: false,
+      });
+
+    if (requestedCandidate.action !== 'merge') {
+      throw new BadRequestException({
+        code: 'trusted_merge_candidate_required',
+      });
+    }
+
+    if (task.status !== 'APPROVED') {
+      throw new BadRequestException({
+        code: 'task_not_merge_approved',
+      });
+    }
+
+    await this.supervisor.consumeTrustedMergeAuthorization(
+      task.id,
+      input.attestation,
+      'ci-gate',
+    );
+
     return this.allowed(task.id, execution.id);
   }
 
