@@ -368,8 +368,14 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate --config prisma.config.ts
 
+      - name: Engineering Runner contracts
+        run: npm test --workspace apps/engineering-runner
+
+      - name: Engineering Runner build
+        run: npm run build --workspace apps/engineering-runner
+
       - name: Targeted Supervisor tests
-        run: npm test --workspace apps/api -- --runInBand agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
+        run: npm test --workspace apps/api -- --runInBand verifier-capability.service.spec.ts supervisor-verifier.guard.spec.ts supervisor-verifier.controller.spec.ts agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
 
       - name: API build and regression guards
         run: npm run build --workspace apps/api

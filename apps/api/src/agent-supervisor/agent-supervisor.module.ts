@@ -31,6 +31,8 @@ import { SupervisorWorkerController } from './worker/supervisor-worker.controlle
 import { SupervisorWorkerGuard } from './worker/supervisor-worker.guard';
 import { SupervisorWorkerBootstrapController } from './worker/supervisor-worker-bootstrap.controller';
 import { SupervisorWorkerBootstrapGuard } from './worker/supervisor-worker-bootstrap.guard';
+import { SupervisorVerifierController } from './worker/supervisor-verifier.controller';
+import { SupervisorVerifierGuard } from './worker/supervisor-verifier.guard';
 import {
   ConfigHumanOwnerApprovalKeyRegistry,
   HUMAN_OWNER_APPROVAL_KEYRING,
@@ -50,6 +52,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SupervisorGatewayController,
     SupervisorWorkerController,
     SupervisorWorkerBootstrapController,
+    SupervisorVerifierController,
   ],
   providers: [
     AgentSupervisorService,
@@ -62,6 +65,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SupervisorWorkerCapabilityService,
     SupervisorWorkerGuard,
     SupervisorWorkerBootstrapGuard,
+    SupervisorVerifierGuard,
     SupervisorAdmissionManifestService,
     SupervisorAuthorityService,
     HumanOwnerApprovalService,
