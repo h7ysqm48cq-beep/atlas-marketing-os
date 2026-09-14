@@ -685,7 +685,7 @@ describe('AgentGatewayService', () => {
     });
   });
 
-  it('keeps ordinary consumption expired while requiring trusted CI consumption for a merge that occurred inside the original authorization window', async () => {
+  it('keeps ordinary consumption expired while allowing trusted CI consumption for a merge that occurred inside the original authorization window', async () => {
     jest.useFakeTimers();
 
     try {
@@ -722,27 +722,8 @@ describe('AgentGatewayService', () => {
         response: { code: 'owner_merge_authorization_invalid' },
       });
 
-      const trustedGateway = gateway as unknown as {
-        consumeTrustedMergeAuthorization?: (input: {
-          taskId: string;
-          executionId: string;
-          action: 'merge';
-          targetBranch: string;
-          baseSha: string;
-          headSha: string;
-          changedFiles: string[];
-          attestation: typeof attestation;
-        }) => Promise<unknown>;
-      };
-
-      expect(trustedGateway.consumeTrustedMergeAuthorization).toEqual(
-        expect.any(Function),
-      );
-
-      if (!trustedGateway.consumeTrustedMergeAuthorization) return;
-
       await expect(
-        trustedGateway.consumeTrustedMergeAuthorization({
+        gateway.consumeTrustedMergeAuthorization({
           taskId: task.id,
           executionId: execution.id,
           action: 'merge',
@@ -761,6 +742,87 @@ describe('AgentGatewayService', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it.each([
+    ['before iat', -1],
+    ['at exp', 10 * 60_000],
+    ['after exp', 10 * 60_000 + 1],
+  ] as const)(
+    'rejects trusted merge consumption when mergedAt is %s',
+    async (_label, offsetMs) => {
+      jest.useFakeTimers();
+
+      try {
+        jest.setSystemTime(new Date('2026-09-14T00:00:00.000Z'));
+        const { task, execution } = await createReadyExecution();
+        await supervisor.approveTask(task.id, true);
+        const approved = await supervisor.getTask(task.id);
+        const authorization = approved.evidence?.ownerMergeAuthorization;
+        expect(authorization).toBeDefined();
+        if (!authorization) return;
+
+        const attestation = {
+          pullRequestNumber: 104,
+          mergeCommitSha: 'd'.repeat(40),
+          mergeParents: [BASE_SHA, HEAD_SHA] as [string, string],
+          mergedAt: new Date(
+            Date.parse(authorization.authorizedAt) + offsetMs,
+          ).toISOString(),
+        };
+
+        jest.setSystemTime(
+          new Date(Date.parse(authorization.authorizedAt) + 11 * 60_000),
+        );
+
+        await expect(
+          gateway.consumeTrustedMergeAuthorization({
+            taskId: task.id,
+            executionId: execution.id,
+            action: 'merge',
+            targetBranch: 'production/atlas',
+            baseSha: BASE_SHA,
+            headSha: HEAD_SHA,
+            changedFiles: [CHANGED_FILE],
+            attestation,
+          }),
+        ).rejects.toMatchObject({
+          response: { code: 'owner_merge_authorization_invalid' },
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  it('rejects trusted merge consumption until the Human Owner review is APPROVED', async () => {
+    const { task, execution } = await createReadyExecution();
+    const ready = await supervisor.getTask(task.id);
+    const authorization = ready.evidence?.ownerMergeAuthorization;
+    expect(authorization).toBeDefined();
+    if (!authorization) return;
+
+    await expect(
+      gateway.consumeTrustedMergeAuthorization({
+        taskId: task.id,
+        executionId: execution.id,
+        action: 'merge',
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
+        attestation: {
+          pullRequestNumber: 104,
+          mergeCommitSha: 'd'.repeat(40),
+          mergeParents: [BASE_SHA, HEAD_SHA],
+          mergedAt: new Date(
+            Date.parse(authorization.authorizedAt) + 60_000,
+          ).toISOString(),
+        },
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'task_not_merge_approved' },
+    });
   });
 
   it('allows the exact reviewed canonical merge state after both owner gates and explicit integration authorization', async () => {
