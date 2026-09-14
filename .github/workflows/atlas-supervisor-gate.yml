@@ -315,8 +315,6 @@ jobs:
             --silent \
             --show-error \
             --max-time 15 \
-            --retry 1 \
-            --retry-all-errors \
             --request POST \
             --header 'Content-Type: application/json' \
             --header "X-Atlas-Supervisor-CI-Token: ${SUPERVISOR_CI_TOKEN}" \
