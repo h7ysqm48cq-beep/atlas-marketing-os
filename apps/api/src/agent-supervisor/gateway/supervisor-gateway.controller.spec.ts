@@ -76,6 +76,47 @@ describe('SupervisorGatewayController', () => {
     expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
   });
 
+  it('exposes trusted post-merge consumption only behind the CI-protected gateway boundary', async () => {
+    const decision = {
+      allowed: true,
+      reason: null,
+      taskId: 'ATLAS-MERGE-1',
+      executionId: 'ATLAS-MERGE-EXEC-1',
+    };
+    const consumeTrustedMergeAuthorization = jest
+      .fn()
+      .mockResolvedValue(decision);
+    const controller = new SupervisorGatewayController({
+      consumeTrustedMergeAuthorization,
+    } as unknown as AgentGatewayService) as unknown as {
+      consumeTrustedMergeAuthorization?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      taskId: 'ATLAS-MERGE-1',
+      executionId: 'ATLAS-MERGE-EXEC-1',
+      action: 'merge',
+      targetBranch: 'production/atlas',
+      baseSha: 'a'.repeat(40),
+      headSha: 'b'.repeat(40),
+      changedFiles: ['apps/api/src/example.ts'],
+      attestation: {
+        pullRequestNumber: 104,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: ['a'.repeat(40), 'b'.repeat(40)],
+        mergedAt: '2026-09-14T00:01:00.000Z',
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.consumeTrustedMergeAuthorization).toBe('function');
+    await expect(
+      controller.consumeTrustedMergeAuthorization!(input),
+    ).resolves.toBe(decision);
+    expect(consumeTrustedMergeAuthorization).toHaveBeenCalledWith(input);
+  });
+
   it('exposes validation only and delegates to the gateway service', async () => {
     const workerDecision = {
       allowed: true,
