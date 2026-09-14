@@ -6,9 +6,6 @@ on:
       - production/atlas
       - main
     types: [opened, synchronize, reopened, edited, ready_for_review, closed]
-  push:
-    branches:
-      - feat/p0b-engineering-agent-runner-20260914
 
 permissions:
   contents: read
@@ -17,7 +14,6 @@ permissions:
 jobs:
   atlas-supervisor-gate:
     name: atlas-supervisor-gate
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -351,7 +347,7 @@ jobs:
 
   api-verification:
     name: api-verification
-    if: github.event_name == 'push' || github.event.action != 'closed'
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -373,7 +369,10 @@ jobs:
         run: npx prisma generate --config prisma.config.ts
 
       - name: Engineering Runner contracts
-        run: node --test --experimental-strip-types apps/engineering-runner/src/*.spec.ts
+        run: npm test --workspace apps/engineering-runner
+
+      - name: Engineering Runner build
+        run: npm run build --workspace apps/engineering-runner
 
       - name: Targeted Supervisor tests
         run: npm test --workspace apps/api -- --runInBand verifier-capability.service.spec.ts supervisor-verifier.guard.spec.ts supervisor-verifier.controller.spec.ts agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
