@@ -43,9 +43,12 @@ export function parseGitStatusPorcelainZ(input: string): string[] {
     const firstPath = record.slice(3);
     const renamedOrCopied = status.includes('R') || status.includes('C');
     if (renamedOrCopied) {
-      const destination = records[index + 1];
-      if (!destination) throw new Error('git_status_rename_malformed');
-      changed.push(canonicalRepositoryPath(destination));
+      const source = records[index + 1];
+      if (!source) throw new Error('git_status_rename_malformed');
+      changed.push(
+        canonicalRepositoryPath(firstPath),
+        canonicalRepositoryPath(source),
+      );
       index += 1;
       continue;
     }
