@@ -6,7 +6,10 @@ import type {
   ProductionDeploymentResolveInput,
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
-import { AgentGatewayService } from './agent-gateway.service';
+import {
+  AgentGatewayService,
+  type TrustedMergeAuthorizationConsumptionInput,
+} from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
 
 @Public()
@@ -23,6 +26,13 @@ export class SupervisorGatewayController {
   @Post('review-candidate')
   checkReviewCandidate(@Body() input: IntegrationGateInput) {
     return this.gateway.checkReviewCandidate(input);
+  }
+
+  @Post('merge-authorization/consume')
+  consumeTrustedMergeAuthorization(
+    @Body() input: TrustedMergeAuthorizationConsumptionInput,
+  ) {
+    return this.gateway.consumeTrustedMergeAuthorization(input);
   }
 
   @Post('production-deployment')
