@@ -97,7 +97,7 @@ test('GitWorkspace is exported from scope-guard.ts for scope-owned workspace ins
   );
 });
 
-test('parseGitStatusPorcelainZ returns canonical changed paths including rename destination', async () => {
+test('parseGitStatusPorcelainZ fail-closes rename and copy scope by returning both destination and source in -z order', async () => {
   const mod = await loadModule();
   const parse = mod.parseGitStatusPorcelainZ as
     | ((input: string) => string[])
@@ -105,7 +105,16 @@ test('parseGitStatusPorcelainZ returns canonical changed paths including rename 
   assert.ok(parse, 'parseGitStatusPorcelainZ must exist');
 
   assert.deepEqual(
-    parse(' M apps/a.ts\0?? apps/b.ts\0R  apps/old.ts\0apps/new.ts\0'),
-    ['apps/a.ts', 'apps/b.ts', 'apps/new.ts'],
+    parse(
+      ' M apps/a.ts\0?? apps/b.ts\0R  apps/new.ts\0apps/old.ts\0C  apps/copied.ts\0apps/original.ts\0',
+    ),
+    [
+      'apps/a.ts',
+      'apps/b.ts',
+      'apps/new.ts',
+      'apps/old.ts',
+      'apps/copied.ts',
+      'apps/original.ts',
+    ],
   );
 });
