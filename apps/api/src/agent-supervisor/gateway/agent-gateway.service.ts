@@ -286,13 +286,27 @@ export class AgentGatewayService {
         code: 'production_deployment_resolution_not_found',
       });
     }
-    if (serviceMatches.length > 1) {
+    const unconsumedServiceMatches = serviceMatches.filter(
+      ({ task }) =>
+        !task.evidence?.ownerDeploymentAuthorizationConsumption,
+    );
+    if (unconsumedServiceMatches.length > 1) {
       throw new BadRequestException({
         code: 'production_deployment_resolution_ambiguous',
       });
     }
 
-    const { task, candidate } = serviceMatches[0];
+    const resolvableMatches =
+      unconsumedServiceMatches.length === 1
+        ? unconsumedServiceMatches
+        : serviceMatches;
+    if (resolvableMatches.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_resolution_ambiguous',
+      });
+    }
+
+    const { task, candidate } = resolvableMatches[0];
     this.productionDeploymentGate.assertProductionDeployment({
       service: input.service,
       supervisorApprovedSha: candidate.headSha,
