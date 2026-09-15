@@ -88,7 +88,8 @@ type RecoveryCandidate = {
   kind:
     | 'QUEUED_TIMEOUT'
     | 'LEGACY_DISPATCHED_TIMEOUT'
-    | 'RUNNING_LEASE_EXPIRED';
+    | 'RUNNING_LEASE_EXPIRED'
+    | 'PARENT_STATE_MISMATCH';
   claimEpoch: number;
   runnerId: string | null;
   createdAt: Date;
@@ -689,6 +690,84 @@ describe('PrismaSupervisorLifecycleStore', () => {
     expect(query).toMatch(/FOR UPDATE/i);
     expect(transaction.$queryRawUnsafe).not.toHaveBeenCalled();
     expect(transaction.$executeRawUnsafe).not.toHaveBeenCalled();
+  });
+
+
+  it.each(['QUEUED', 'DISPATCHED'] as const)(
+    'cancels stale %s implementation when its parent task is FAILED without rewriting the parent',
+    async (status) => {
+      const { prisma, transaction } = recoveryTransaction();
+      const current = execution({
+        status,
+        runnerId: null,
+        claimEpoch: 0,
+        lastHeartbeatAt: null,
+        leaseExpiresAt: null,
+      });
+      const candidate = recoveryCandidate({
+        status,
+        kind: 'PARENT_STATE_MISMATCH',
+        runnerId: null,
+        claimEpoch: 0,
+        leaseExpiresAt: null,
+      });
+      transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+      transaction.supervisorTask.findUnique.mockResolvedValue(task({ status: 'FAILED' }));
+      transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+
+      const store = new PrismaSupervisorLifecycleStore(prisma as never);
+      const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      });
+
+      expect(recovered).toMatchObject({
+        execution: {
+          status: 'CANCELLED',
+          error: 'supervisor_execution_parent_state_mismatch',
+        },
+        task: { status: 'FAILED' },
+      });
+      expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+      expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('leaves a valid WORKING implementation untouched by parent-state reconciliation', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const current = execution({
+      status: 'QUEUED', runnerId: null, claimEpoch: 0, lastHeartbeatAt: null, leaseExpiresAt: null,
+    });
+    transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task({ status: 'WORKING' }));
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate: recoveryCandidate({
+        status: 'QUEUED', kind: 'PARENT_STATE_MISMATCH', runnerId: null, claimEpoch: 0, leaseExpiresAt: null,
+      }),
+      now: new Date('2026-09-13T00:02:00.000Z'),
+    })).resolves.toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('treats a parent-state execution CAS loser as benign', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const current = execution({
+      status: 'DISPATCHED', runnerId: null, claimEpoch: 0, lastHeartbeatAt: null, leaseExpiresAt: null,
+    });
+    transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+    transaction.supervisorTask.findUnique.mockResolvedValue(task({ status: 'FAILED' }));
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 0 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate: recoveryCandidate({
+        status: 'DISPATCHED', kind: 'PARENT_STATE_MISMATCH', runnerId: null, claimEpoch: 0, leaseExpiresAt: null,
+      }),
+      now: new Date('2026-09-13T00:02:00.000Z'),
+    })).resolves.toBeNull();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
   });
 
 });

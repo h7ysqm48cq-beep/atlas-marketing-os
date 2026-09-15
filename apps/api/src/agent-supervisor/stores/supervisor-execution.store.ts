@@ -49,7 +49,8 @@ export interface SupervisorExecutionHeartbeatStore {
 export type SupervisorExecutionReconciliationKind =
   | 'QUEUED_TIMEOUT'
   | 'LEGACY_DISPATCHED_TIMEOUT'
-  | 'RUNNING_LEASE_EXPIRED';
+  | 'RUNNING_LEASE_EXPIRED'
+  | 'PARENT_STATE_MISMATCH';
 
 export interface SupervisorExecutionReconciliationCandidate {
   executionId: string;

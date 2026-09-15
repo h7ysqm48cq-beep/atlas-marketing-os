@@ -159,7 +159,9 @@ function isRecoveryKindForStatus(
     (candidate.status === 'DISPATCHED' &&
       candidate.kind === 'LEGACY_DISPATCHED_TIMEOUT') ||
     (candidate.status === 'RUNNING' &&
-      candidate.kind === 'RUNNING_LEASE_EXPIRED')
+      candidate.kind === 'RUNNING_LEASE_EXPIRED') ||
+    (['QUEUED', 'DISPATCHED', 'RUNNING'].includes(candidate.status) &&
+      candidate.kind === 'PARENT_STATE_MISMATCH')
   );
 }
 
@@ -173,6 +175,8 @@ function recoveryReason(
       return 'supervisor_execution_legacy_dispatched_timeout';
     case 'RUNNING_LEASE_EXPIRED':
       return 'supervisor_execution_lease_expired';
+    case 'PARENT_STATE_MISMATCH':
+      return 'supervisor_execution_parent_state_mismatch';
   }
 }
 
@@ -435,6 +439,8 @@ export class PrismaSupervisorLifecycleStore
 
         const currentExecution = mapExecutionRecord(executionRow);
         const currentTask = mapTaskRecord(taskRow);
+        const parentStateMismatch =
+          input.candidate.kind === 'PARENT_STATE_MISMATCH';
         if (
           currentExecution.id !== input.candidate.executionId ||
           currentExecution.taskId !== input.candidate.taskId ||
@@ -444,15 +450,58 @@ export class PrismaSupervisorLifecycleStore
           currentExecution.createdAt.getTime() !==
             input.candidate.createdAt.getTime() ||
           !sameDate(currentExecution.leaseExpiresAt, input.candidate.leaseExpiresAt) ||
-          currentTask.status !== 'WORKING' ||
           !isRecoveryKindForStatus(input.candidate) ||
-          (input.candidate.status === 'RUNNING' &&
+          (!parentStateMismatch &&
+            input.candidate.status === 'RUNNING' &&
             (!currentExecution.leaseExpiresAt ||
               currentExecution.leaseExpiresAt.getTime() > input.now.getTime()))
         ) {
           return null;
         }
 
+        const executionPurpose =
+          currentExecution.assignment.executionPurpose ?? 'IMPLEMENTATION';
+        const parentAllowsExecution =
+          executionPurpose === 'INDEPENDENT_VERIFICATION'
+            ? currentTask.status === 'VERIFYING'
+            : currentTask.status === 'WORKING';
+
+        if (parentStateMismatch) {
+          if (parentAllowsExecution) return null;
+          const reason = recoveryReason(input.candidate.kind);
+          const nextClaimEpoch = currentExecution.claimEpoch + 1;
+          const assignment = { ...currentExecution.assignment };
+          assignment.workerCapability = undefined;
+          delete assignment.runnerId;
+          delete assignment.leaseId;
+          assignment.claimEpoch = nextClaimEpoch;
+          const cancelledExecution: SupervisorExecution = {
+            ...currentExecution,
+            status: 'CANCELLED',
+            completedAt: new Date(input.now),
+            error: reason,
+            claimEpoch: nextClaimEpoch,
+            runnerId: null,
+            leaseExpiresAt: null,
+            assignment,
+          };
+          const executionUpdate = await tx.supervisorExecution.updateMany({
+            where: {
+              id: currentExecution.id,
+              taskId: currentExecution.taskId,
+              status: currentExecution.status,
+              claimEpoch: currentExecution.claimEpoch,
+              runnerId: currentExecution.runnerId,
+              createdAt: currentExecution.createdAt,
+              leaseExpiresAt: currentExecution.leaseExpiresAt,
+            },
+            data: executionUpdateData(cancelledExecution),
+          });
+          if (executionUpdate.count !== 1) return null;
+          return { execution: cancelledExecution, task: currentTask };
+        }
+
+        if (currentTask.status !== 'WORKING') return null;
         const reason = recoveryReason(input.candidate.kind);
         const nextClaimEpoch = currentExecution.claimEpoch + 1;
         const assignment = { ...currentExecution.assignment };
