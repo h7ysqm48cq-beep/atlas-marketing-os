@@ -435,6 +435,11 @@ export class PrismaSupervisorLifecycleStore
 
         const currentExecution = mapExecutionRecord(executionRow);
         const currentTask = mapTaskRecord(taskRow);
+        const taskStatusSupportsRecovery =
+          currentTask.status === 'WORKING' ||
+          (currentTask.status === 'VERIFYING' &&
+            currentExecution.assignment.executionPurpose ===
+              'INDEPENDENT_VERIFICATION');
         if (
           currentExecution.id !== input.candidate.executionId ||
           currentExecution.taskId !== input.candidate.taskId ||
@@ -444,7 +449,7 @@ export class PrismaSupervisorLifecycleStore
           currentExecution.createdAt.getTime() !==
             input.candidate.createdAt.getTime() ||
           !sameDate(currentExecution.leaseExpiresAt, input.candidate.leaseExpiresAt) ||
-          currentTask.status !== 'WORKING' ||
+          !taskStatusSupportsRecovery ||
           !isRecoveryKindForStatus(input.candidate) ||
           (input.candidate.status === 'RUNNING' &&
             (!currentExecution.leaseExpiresAt ||
@@ -494,7 +499,7 @@ export class PrismaSupervisorLifecycleStore
         const taskUpdate = await tx.supervisorTask.updateMany({
           where: {
             id: currentTask.id,
-            status: 'WORKING',
+            status: currentTask.status,
           },
           data: taskUpdateData(blockedTask),
         });

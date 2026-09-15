@@ -532,6 +532,82 @@ describe('PrismaSupervisorLifecycleStore', () => {
     });
   });
 
+  it('recovers an expired independent verifier while the parent task is VERIFYING', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const current = execution({
+      assignment: {
+        ...execution().assignment,
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+      },
+    });
+    const candidate = recoveryCandidate();
+    const now = new Date('2026-09-13T00:02:00.000Z');
+    transaction.supervisorExecution.findUnique.mockResolvedValue(current);
+    transaction.supervisorTask.findUnique.mockResolvedValue(
+      task({ status: 'VERIFYING' }),
+    );
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.supervisorFileLock.deleteMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const recovered = await recoveryStore(store).recoverExecutionAndBlockTask({
+      candidate,
+      now,
+    });
+
+    expect(recovered).toMatchObject({
+      execution: {
+        id: candidate.executionId,
+        status: 'FAILED',
+        error: 'supervisor_execution_lease_expired',
+      },
+      task: {
+        id: candidate.taskId,
+        status: 'BLOCKED',
+        blockingReason: 'supervisor_execution_lease_expired',
+      },
+    });
+    expect(transaction.supervisorTask.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: candidate.taskId,
+        status: 'VERIFYING',
+      },
+      data: expect.objectContaining({
+        status: 'BLOCKED',
+      }),
+    });
+    expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: candidate.taskId },
+    });
+  });
+
+  it('does not recover an implementation execution while the parent task is VERIFYING', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    transaction.supervisorExecution.findUnique.mockResolvedValue(
+      execution({
+        assignment: {
+          ...execution().assignment,
+          executionPurpose: 'IMPLEMENTATION',
+        },
+      }),
+    );
+    transaction.supervisorTask.findUnique.mockResolvedValue(
+      task({ status: 'VERIFYING' }),
+    );
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(
+      recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate: recoveryCandidate(),
+        now: new Date('2026-09-13T00:02:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+    expect(transaction.supervisorExecution.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('invalidates the old claim while preserving the execution audit envelope', async () => {
     const { prisma, transaction } = recoveryTransaction();
     const current = execution();
