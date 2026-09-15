@@ -316,7 +316,21 @@ export class PrismaSupervisorExecutionStore
           JOIN "SupervisorTask" AS t
             ON t."id" = e."taskId"
           WHERE e."status" = ${'QUEUED'}
-            AND t."status" = ${'WORKING'}
+            AND (
+              (
+                t."status" = ${'WORKING'}
+                AND COALESCE(
+                  e."assignment"->>'executionPurpose',
+                  'IMPLEMENTATION'
+                ) = 'IMPLEMENTATION'
+              )
+              OR
+              (
+                t."status" = ${'VERIFYING'}
+                AND e."assignment"->>'executionPurpose' =
+                  'INDEPENDENT_VERIFICATION'
+              )
+            )
             AND e."workerRole" = ${input.workerRole}
           ORDER BY e."createdAt" ASC, e."id" ASC
           FOR UPDATE OF e, t SKIP LOCKED
@@ -469,6 +483,13 @@ export class PrismaSupervisorExecutionStore
             e."taskId",
             e."status",
             CASE
+              WHEN (
+                COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') = 'INDEPENDENT_VERIFICATION'
+                AND t."status" <> 'VERIFYING'
+              ) OR (
+                COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') <> 'INDEPENDENT_VERIFICATION'
+                AND t."status" <> 'WORKING'
+              ) THEN 'PARENT_STATE_MISMATCH'
               WHEN e."status" = 'QUEUED' THEN 'QUEUED_TIMEOUT'
               WHEN e."status" = 'DISPATCHED' THEN 'LEGACY_DISPATCHED_TIMEOUT'
               ELSE 'RUNNING_LEASE_EXPIRED'
@@ -478,16 +499,26 @@ export class PrismaSupervisorExecutionStore
             e."createdAt",
             e."leaseExpiresAt"
           FROM "SupervisorExecution" AS e
-          WHERE (
-            e."status" = 'QUEUED'
-            AND e."createdAt" <= ${input.queuedBefore}
-          ) OR (
-            e."status" = 'DISPATCHED'
-            AND e."createdAt" <= ${input.queuedBefore}
-          ) OR (
-            e."status" = 'RUNNING'
-            AND e."leaseExpiresAt" <= ${input.now}
-          )
+          INNER JOIN "SupervisorTask" AS t ON t."id" = e."taskId"
+          WHERE e."status" IN ('QUEUED', 'DISPATCHED', 'RUNNING')
+            AND (
+              (
+                COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') = 'INDEPENDENT_VERIFICATION'
+                AND t."status" <> 'VERIFYING'
+              ) OR (
+                COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') <> 'INDEPENDENT_VERIFICATION'
+                AND t."status" <> 'WORKING'
+              ) OR (
+                e."status" = 'QUEUED'
+                AND e."createdAt" <= ${input.queuedBefore}
+              ) OR (
+                e."status" = 'DISPATCHED'
+                AND e."createdAt" <= ${input.queuedBefore}
+              ) OR (
+                e."status" = 'RUNNING'
+                AND e."leaseExpiresAt" <= ${input.now}
+              )
+            )
           ORDER BY e."createdAt" ASC, e."id" ASC
           LIMIT ${input.limit}
         `;

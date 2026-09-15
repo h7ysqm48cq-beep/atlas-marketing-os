@@ -110,7 +110,8 @@ type ReconciliationCandidate = {
   kind:
     | 'QUEUED_TIMEOUT'
     | 'LEGACY_DISPATCHED_TIMEOUT'
-    | 'RUNNING_LEASE_EXPIRED';
+    | 'RUNNING_LEASE_EXPIRED'
+    | 'PARENT_STATE_MISMATCH';
   claimEpoch: number;
   runnerId: string | null;
   createdAt: Date;
@@ -587,6 +588,37 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(transaction.$queryRawUnsafe).not.toHaveBeenCalled();
   });
 
+  it('allows verifier claims only while the parent task is VERIFYING', async () => {
+    const prisma = mockPrisma();
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      supervisorExecution: {
+        update: jest.fn(),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await claimStore(store).claimNext({
+      workerRole: 'infra',
+      runnerId: 'runner-verifier-claim',
+      leaseId: 'lease-verifier-claim',
+      now: new Date('2026-09-15T10:30:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-15T10:31:00.000Z'),
+    });
+
+    const call = transaction.$queryRaw.mock.calls[0] as unknown[];
+    const query = `${rawSqlText(call[0])} ${JSON.stringify(call)}`;
+    expect(query).toMatch(/executionPurpose/i);
+    expect(query).toMatch(/INDEPENDENT_VERIFICATION/i);
+    expect(query).toMatch(/VERIFYING/i);
+    expect(query).toMatch(/IMPLEMENTATION/i);
+    expect(query).toMatch(/WORKING/i);
+  });
+
   it('returns null for no eligible candidate without mutation', async () => {
     const prisma = mockPrisma();
     const transaction = {
@@ -936,6 +968,32 @@ describe('PrismaSupervisorExecutionStore', () => {
     )}`;
     expect(query).toMatch(/DISPATCHED/i);
     expect(query).toMatch(/createdAt/i);
+  });
+
+  it('discovers active executions whose parent task no longer permits their purpose', async () => {
+    const stale = reconciliationCandidate({
+      status: 'DISPATCHED',
+      kind: 'PARENT_STATE_MISMATCH',
+    });
+    const { prisma, transaction } = reconciliationTransaction([stale]);
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await expect(
+      reconciliationStore(store).findReconciliationCandidates({
+        now: new Date('2026-09-13T00:00:01.000Z'),
+        queuedBefore: new Date('2026-09-12T00:00:00.000Z'),
+        limit: 10,
+      }),
+    ).resolves.toEqual([stale]);
+
+    const query = `${rawSqlText(transaction.$queryRaw.mock.calls[0]?.[0])} ${JSON.stringify(
+      transaction.$queryRaw.mock.calls[0],
+    )}`;
+    expect(query).toMatch(/SupervisorTask/i);
+    expect(query).toMatch(/executionPurpose/i);
+    expect(query).toMatch(/PARENT_STATE_MISMATCH/i);
+    expect(query).toMatch(/VERIFYING/i);
+    expect(query).toMatch(/WORKING/i);
   });
 
   it('discovers RUNNING executions whose lease is expired at now', async () => {

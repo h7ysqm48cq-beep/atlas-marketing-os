@@ -7,7 +7,8 @@ type Candidate = {
   kind:
     | 'QUEUED_TIMEOUT'
     | 'LEGACY_DISPATCHED_TIMEOUT'
-    | 'RUNNING_LEASE_EXPIRED';
+    | 'RUNNING_LEASE_EXPIRED'
+    | 'PARENT_STATE_MISMATCH';
   claimEpoch: number;
   runnerId: string | null;
   createdAt: Date;
@@ -135,6 +136,23 @@ describe('SupervisorExecutionReconcilerService RED contract', () => {
 
     await expect(cycle(service)()).resolves.toBeUndefined();
     expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledTimes(3);
+  });
+
+  it('routes parent-state mismatch candidates through the same atomic recovery boundary', async () => {
+    const { service, reconciliationStore, recoveryStore } = createReconciler();
+    const mismatch = candidate({
+      status: 'DISPATCHED',
+      kind: 'PARENT_STATE_MISMATCH',
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    reconciliationStore.findReconciliationCandidates.mockResolvedValue([mismatch]);
+    recoveryStore.recoverExecutionAndBlockTask.mockResolvedValue(null);
+
+    await expect(cycle(service)()).resolves.toBeUndefined();
+    expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledWith(
+      expect.objectContaining({ candidate: mismatch, now: expect.any(Date) }),
+    );
   });
 
   it('treats a null recovery result as a benign CAS loser', async () => {

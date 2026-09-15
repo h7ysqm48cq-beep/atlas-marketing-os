@@ -461,10 +461,10 @@ export async function runSupervisorAdmission(
   if (
     typeof executionId !== "string" ||
     !executionId.trim() ||
-    executionStatus !== "DISPATCHED"
+    !["QUEUED", "DISPATCHED"].includes(String(executionStatus))
   ) {
     throw new SupervisorAdmissionError(
-      "dispatch response did not confirm a DISPATCHED execution. Stop and verify Supervisor state.",
+      "dispatch response did not confirm a QUEUED execution (or legacy DISPATCHED execution). Stop and verify Supervisor state.",
       {
         taskId,
         taskStatus: "WORKING",
@@ -484,7 +484,7 @@ export async function runSupervisorAdmission(
     taskId,
     taskStatus: "WORKING",
     executionId,
-    executionStatus: "DISPATCHED",
+    executionStatus: String(executionStatus),
   };
 }
 

@@ -176,6 +176,26 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     expect(input.leaseId).not.toBe('caller-lease');
   });
 
+  it('claims with the exact server-resolved engineering role and ignores caller role fields', async () => {
+    const value = request({
+      supervisorWorkerBootstrapRole: 'engineering',
+      workerRole: 'frontend',
+      query: { workerRole: 'qa' },
+      headers: { 'x-atlas-supervisor-worker-role': 'database' },
+    });
+    const setupValue = setup();
+    if (!setupValue) return;
+
+    await invoke(setupValue.controller, value, { workerRole: 'infra' });
+
+    expect(setupValue.calls.claimNext).toHaveBeenCalledWith(
+      expect.objectContaining({ workerRole: 'engineering' }),
+    );
+    expect(setupValue.calls.claimNext).not.toHaveBeenCalledWith(
+      expect.objectContaining({ workerRole: 'frontend' }),
+    );
+  });
+
   it('returns no content without issuing or persisting a capability when no work exists', async () => {
     const setupValue = setup(null);
     if (!setupValue) return;
