@@ -192,6 +192,24 @@ const profilesRoot =
 const workerToken =
   process.env.BROWSER_WORKER_TOKEN?.trim();
 
+function resolveEffectiveHeadless(
+  requestedHeadless: boolean,
+) {
+  if (requestedHeadless) {
+    return true;
+  }
+
+  if (process.platform !== "linux") {
+    return false;
+  }
+
+  const hasDisplayServer =
+    Boolean(process.env.DISPLAY?.trim()) ||
+    Boolean(process.env.WAYLAND_DISPLAY?.trim());
+
+  return !hasDisplayServer;
+}
+
 const sessions =
   new Map<
     string,
@@ -1424,8 +1442,13 @@ app.post(
       input.proxyType ||
       "DIRECT";
 
-    const headless =
+    const requestedHeadless =
       input.headless ?? false;
+
+    const effectiveHeadless =
+      resolveEffectiveHeadless(
+        requestedHeadless,
+      );
 
     const browserEngine =
       input.browserEngine
@@ -1516,7 +1539,7 @@ app.post(
 
       const launchOptions = {
         executablePath,
-        headless,
+        headless: effectiveHeadless,
 
         locale,
 
@@ -1652,7 +1675,8 @@ app.post(
           identityLocked,
           identityVersion,
 
-          headless,
+          headless:
+            effectiveHeadless,
 
           currentUrl:
             page.url(),
