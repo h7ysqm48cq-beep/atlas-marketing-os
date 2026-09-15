@@ -316,7 +316,21 @@ export class PrismaSupervisorExecutionStore
           JOIN "SupervisorTask" AS t
             ON t."id" = e."taskId"
           WHERE e."status" = ${'QUEUED'}
-            AND t."status" = ${'WORKING'}
+            AND (
+              (
+                t."status" = ${'WORKING'}
+                AND COALESCE(
+                  e."assignment"->>'executionPurpose',
+                  'IMPLEMENTATION'
+                ) = 'IMPLEMENTATION'
+              )
+              OR
+              (
+                t."status" = ${'VERIFYING'}
+                AND e."assignment"->>'executionPurpose' =
+                  'INDEPENDENT_VERIFICATION'
+              )
+            )
             AND e."workerRole" = ${input.workerRole}
           ORDER BY e."createdAt" ASC, e."id" ASC
           FOR UPDATE OF e, t SKIP LOCKED
