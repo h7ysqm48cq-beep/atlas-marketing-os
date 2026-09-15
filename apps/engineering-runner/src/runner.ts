@@ -83,11 +83,11 @@ export class EngineeringRunner {
     const session = await this.client.claimNext();
     if (!session) return 'idle';
 
-    const before = await this.workspace.listChangedFiles();
     let heartbeatError: unknown;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
     try {
+      const before = await this.workspace.listChangedFiles();
       await session.heartbeat();
       heartbeatTimer = setInterval(() => {
         void session.heartbeat().catch((error) => {

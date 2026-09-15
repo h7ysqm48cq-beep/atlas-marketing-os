@@ -69,6 +69,41 @@ test('EngineeringRunner returns idle when claim-next has no work', async () => {
   assert.equal(executed, 0);
 });
 
+test('EngineeringRunner fails a claimed execution when initial workspace snapshot throws', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { runOnce(): Promise<unknown> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const active = session();
+  let complete = 0;
+  let fail = 0;
+  let failReason = '';
+  active.complete = async () => { complete += 1; };
+  active.fail = async (reason: string) => { fail += 1; failReason = reason; };
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: {
+      listChangedFiles: async () => {
+        throw new Error('spawn git ENOENT');
+      },
+    },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(fail, 1);
+  assert.equal(complete, 0);
+  assert.match(failReason, /spawn git ENOENT/);
+});
+
 test('EngineeringRunner heartbeats, enforces exact implementation scope, and completes evidence once', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as
