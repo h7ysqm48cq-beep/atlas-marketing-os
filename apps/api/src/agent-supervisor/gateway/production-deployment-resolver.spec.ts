@@ -278,6 +278,29 @@ describe('Production deployment resolver', () => {
     expect(execution.id).toBeDefined();
   });
 
+  it('prefers the unique unconsumed authorization when an older same-SHA authorization is already consumed', async () => {
+    const consumed = await createApprovedDeployment('api');
+    await resolve({ service: 'api', github: CANONICAL_GITHUB });
+
+    const fresh = await createApprovedDeployment('api', {
+      runtimeRefresh: true,
+    });
+
+    await expect(
+      resolve({ service: 'api', github: CANONICAL_GITHUB }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: fresh.task.id,
+      executionId: fresh.execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(consumed.task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toBeDefined();
+  });
+
   it('rejects when no approved deployment receipt matches the provenance', async () => {
     await expect(
       resolve({ service: 'api', github: CANONICAL_GITHUB }),
