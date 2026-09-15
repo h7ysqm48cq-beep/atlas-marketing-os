@@ -587,6 +587,37 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(transaction.$queryRawUnsafe).not.toHaveBeenCalled();
   });
 
+  it('allows verifier claims only while the parent task is VERIFYING', async () => {
+    const prisma = mockPrisma();
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      supervisorExecution: {
+        update: jest.fn(),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+
+    await claimStore(store).claimNext({
+      workerRole: 'infra',
+      runnerId: 'runner-verifier-claim',
+      leaseId: 'lease-verifier-claim',
+      now: new Date('2026-09-15T10:30:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-15T10:31:00.000Z'),
+    });
+
+    const call = transaction.$queryRaw.mock.calls[0] as unknown[];
+    const query = `${rawSqlText(call[0])} ${JSON.stringify(call)}`;
+    expect(query).toMatch(/executionPurpose/i);
+    expect(query).toMatch(/INDEPENDENT_VERIFICATION/i);
+    expect(query).toMatch(/VERIFYING/i);
+    expect(query).toMatch(/IMPLEMENTATION/i);
+    expect(query).toMatch(/WORKING/i);
+  });
+
   it('returns null for no eligible candidate without mutation', async () => {
     const prisma = mockPrisma();
     const transaction = {
