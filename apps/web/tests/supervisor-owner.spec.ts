@@ -52,6 +52,25 @@ async function main() {
     executionStatus: null,
   });
 
+  const queuedCalls: string[] = [];
+  const queuedAdmission = await runSupervisorAdmission(input, async (url, init) => {
+    queuedCalls.push(`${init?.method ?? "GET"} ${String(url)}`);
+    if (String(url).endsWith("/tasks")) return response(201, { id: "task-q" });
+    if (String(url).endsWith("/start")) return response(201, { id: "task-q", status: "WORKING" });
+    return response(201, { execution: { id: "exec-q", status: "QUEUED" } });
+  });
+  assert.deepEqual(queuedCalls, [
+    "POST /api/atlas/engineering/supervisor/tasks",
+    "POST /api/atlas/engineering/supervisor/tasks/task-q/start",
+    "POST /api/atlas/engineering/supervisor/tasks/task-q/dispatch",
+  ]);
+  assert.deepEqual(queuedAdmission, {
+    taskId: "task-q",
+    taskStatus: "WORKING",
+    executionId: "exec-q",
+    executionStatus: "QUEUED",
+  });
+
   const statusCalls: string[] = [];
   const status = await getSupervisorStatus("task-1", null, async (url, init) => {
     statusCalls.push(`${init?.method ?? "GET"} ${String(url)}`);
