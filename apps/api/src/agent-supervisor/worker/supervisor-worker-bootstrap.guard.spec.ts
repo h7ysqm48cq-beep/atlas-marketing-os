@@ -32,7 +32,10 @@ function context(request: Record<string, unknown>): ExecutionContext {
 
 function request(authorization?: string): Record<string, unknown> {
   return {
-    headers: authorization ? { authorization } : {},
+    headers: {
+      ...(authorization ? { authorization } : {}),
+      'x-atlas-supervisor-worker-role': 'frontend',
+    },
     body: { workerRole: 'supervisor' },
     query: { workerRole: 'unknown-role' },
   };
@@ -119,4 +122,43 @@ describe('SupervisorWorkerBootstrapGuard RED contract', () => {
       ).rejects.toThrow();
     }
   });
+
+  it('accepts a server-bound engineering token without caller-selected role authority', async () => {
+    const value = request('Bearer engineering-bootstrap-secret');
+    const target = guard({
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN: 'engineering-bootstrap-secret',
+    });
+    if (!target) return;
+
+    await expect(target.canActivate(context(value))).resolves.toBe(true);
+    expect(value.supervisorWorkerBootstrapRole).toBe('engineering');
+  });
+
+  it('fails closed when one credential maps to multiple server roles', async () => {
+    const target = guard({
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN: 'shared-bootstrap-secret',
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_INFRA_TOKEN: 'shared-bootstrap-secret',
+    });
+    if (!target) return;
+
+    await expect(
+      target.canActivate(context(request('Bearer shared-bootstrap-secret'))),
+    ).rejects.toThrow('worker_bootstrap_credential_ambiguous');
+  });
+
+  it.each([
+    ['ATLAS_SUPERVISOR_OWNER_TOKEN'],
+    ['ATLAS_SUPERVISOR_CI_TOKEN'],
+  ])('never accepts reserved %s credentials as worker bootstrap', async (reservedKey) => {
+    const target = guard({
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN: 'reserved-secret',
+      [reservedKey]: 'reserved-secret',
+    });
+    if (!target) return;
+
+    await expect(
+      target.canActivate(context(request('Bearer reserved-secret'))),
+    ).rejects.toThrow('worker_bootstrap_invalid');
+  });
+
 });
