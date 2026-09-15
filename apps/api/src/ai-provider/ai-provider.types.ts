@@ -1,6 +1,7 @@
 export type AiProviderName =
   | 'openai'
-  | 'google';
+  | 'google'
+  | 'minimax';
 
 export interface AiProviderPrompt {
   system: string;
@@ -15,6 +16,15 @@ export interface AiProviderOptions {
   responseFormat?: 'text' | 'json';
 }
 
+export interface AiProviderRoutingMetadata {
+  requestedProvider: AiProviderName;
+  requestedModel: string;
+  usedProvider: AiProviderName;
+  usedModel: string;
+  fallback: boolean;
+  fallbackReason?: string;
+}
+
 export interface AiProviderResult {
   provider: AiProviderName;
   model: string;
@@ -25,6 +35,7 @@ export interface AiProviderResult {
     totalTokens: number;
   };
   durationMs: number;
+  routing?: AiProviderRoutingMetadata;
 }
 
 export interface AiProvider {
