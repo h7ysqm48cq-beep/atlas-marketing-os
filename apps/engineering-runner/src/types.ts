@@ -32,6 +32,14 @@ export interface CandidatePublicationReceipt {
   remoteVerified: true;
 }
 
+export interface WorkerReviewCandidate {
+  action: 'merge';
+  targetBranch: 'production/atlas';
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+}
+
 export interface WorkerExecutionEvidence {
   rootCause: string;
   changedFiles: string[];
@@ -41,6 +49,8 @@ export interface WorkerExecutionEvidence {
   deploymentState: string;
   gitState: string;
   remainingRisk: string[];
+  candidatePublication?: CandidatePublicationReceipt;
+  reviewCandidate?: WorkerReviewCandidate;
 }
 
 export interface WorkerExecutionResult {
