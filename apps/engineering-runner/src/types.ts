@@ -11,11 +11,25 @@ export interface WorkerAssignment {
   dependencies: string[];
   acceptance: string[];
   requiredEvidence: string[];
+  frozenBaseSha?: string;
   manifestHash?: string;
   claimEpoch?: number;
   leaseId?: string;
   runnerId?: string;
   workerCapability?: unknown;
+}
+
+
+export interface CandidatePublicationReceipt {
+  taskId: string;
+  executionId: string;
+  candidateBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+  targetBranch: 'production/atlas';
+  remoteHeadSha: string;
+  remoteVerified: true;
 }
 
 export interface WorkerExecutionEvidence {
