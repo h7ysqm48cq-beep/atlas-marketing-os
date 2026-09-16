@@ -263,8 +263,14 @@ export class AgentSupervisorController {
   }
 
   @Post('tasks/:id/dispatch')
-  dispatchTask(@Param('id') id: string) {
-    return this.dispatcher.dispatch(id, 'IMPLEMENTATION');
+  dispatchTask(
+    @Param('id') id: string,
+    @Body() body: { frozenBaseSha?: string } = {},
+  ) {
+    const frozenBaseSha = body.frozenBaseSha;
+    return frozenBaseSha
+      ? this.dispatcher.dispatch(id, 'IMPLEMENTATION', { frozenBaseSha })
+      : this.dispatcher.dispatch(id, 'IMPLEMENTATION');
   }
 
   @Post('tasks/:id/dispatch-verification')

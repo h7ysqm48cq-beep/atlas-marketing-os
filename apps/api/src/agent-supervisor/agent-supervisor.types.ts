@@ -50,6 +50,18 @@ export interface CreateSupervisorTaskInput {
   acceptance: string[];
 }
 
+export interface SupervisorCandidatePublicationReceipt {
+  taskId: string;
+  executionId: string;
+  candidateBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+  targetBranch: 'production/atlas';
+  remoteHeadSha: string;
+  remoteVerified: true;
+}
+
 export interface SupervisorReviewCandidate {
   action: SupervisorIntegrationAction;
   targetBranch: string;
@@ -115,6 +127,7 @@ export interface SupervisorEvidence {
   deploymentState: string;
   gitState: string;
   remainingRisk: string[];
+  candidatePublication?: SupervisorCandidatePublicationReceipt;
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;

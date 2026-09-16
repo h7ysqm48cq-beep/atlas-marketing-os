@@ -1,8 +1,6 @@
-import { CommandExecutor } from './executor.ts';
+import { createEngineeringRunnerOptions } from './bootstrap.ts';
 import { loadEngineeringRunnerConfig } from './config.ts';
 import { EngineeringRunner } from './runner.ts';
-import { ExactScopeGuard, GitWorkspace } from './scope-guard.ts';
-import { SupervisorClient } from './supervisor-client.ts';
 
 async function main(): Promise<void> {
   const config = loadEngineeringRunnerConfig();
@@ -11,22 +9,9 @@ async function main(): Promise<void> {
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);
 
-  const runner = new EngineeringRunner({
-    client: new SupervisorClient({
-      baseUrl: config.supervisorApiUrl,
-      bootstrapToken: config.bootstrapToken,
-    }),
-    executor: new CommandExecutor({
-      command: config.command,
-      args: config.args,
-      cwd: config.workspace,
-      environment: process.env,
-    }),
-    workspace: new GitWorkspace(config.workspace),
-    scopeGuard: new ExactScopeGuard(),
-    pollIntervalMs: config.pollIntervalMs,
-    heartbeatIntervalMs: config.heartbeatIntervalMs,
-  });
+  const runner = new EngineeringRunner(
+    createEngineeringRunnerOptions(config, process.env),
+  );
 
   try {
     await runner.run(controller.signal);

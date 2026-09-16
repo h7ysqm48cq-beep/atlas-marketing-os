@@ -41,6 +41,7 @@ export interface WorkerAssignmentEnvelope {
   dependencies: string[];
   acceptance: string[];
   requiredEvidence: RequiredEvidenceField[];
+  frozenBaseSha?: string;
   /** Authority binding is populated only by an immutable admission manifest. */
   manifestHash?: string;
   claimEpoch?: number;

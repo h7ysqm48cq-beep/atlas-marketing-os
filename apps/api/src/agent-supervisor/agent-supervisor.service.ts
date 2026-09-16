@@ -21,6 +21,7 @@ import type {
   ProductionDeploymentService,
   SupervisorAction,
   SupervisorAgentRole,
+  SupervisorCandidatePublicationReceipt,
   SupervisorEvidence,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
@@ -272,6 +273,9 @@ export class AgentSupervisorService {
       deploymentState: evidence.deploymentState,
       gitState: evidence.gitState,
       remainingRisk: this.unique(evidence.remainingRisk),
+      ...(evidence.candidatePublication
+        ? { candidatePublication: this.cloneCandidatePublication(evidence.candidatePublication) }
+        : {}),
       ...(evidence.reviewCandidate
         ? { reviewCandidate: this.cloneCandidate(evidence.reviewCandidate) }
         : {}),
@@ -1140,6 +1144,24 @@ export class AgentSupervisorService {
     if (!evidence.gitState?.trim()) {
       throw new BadRequestException('git_state_required');
     }
+    if (evidence.candidatePublication) {
+      const receipt = evidence.candidatePublication;
+      const fullSha = /^[0-9a-f]{40}$/;
+      if (receipt.remoteVerified !== true) {
+        throw new BadRequestException({ code: 'candidate_publication_not_verified' });
+      }
+      if (
+        !fullSha.test(receipt.baseSha) ||
+        !fullSha.test(receipt.headSha) ||
+        !fullSha.test(receipt.remoteHeadSha) ||
+        receipt.remoteHeadSha !== receipt.headSha ||
+        receipt.targetBranch !== 'production/atlas' ||
+        !Array.isArray(receipt.changedFiles) ||
+        receipt.changedFiles.some((path) => typeof path !== 'string' || !path.trim())
+      ) {
+        throw new BadRequestException({ code: 'candidate_publication_invalid' });
+      }
+    }
 
     const outsideScope = evidence.changedFiles.filter(
       (path) => !task.allowedPaths.includes(path),
@@ -1150,6 +1172,15 @@ export class AgentSupervisorService {
         paths: outsideScope,
       });
     }
+  }
+
+  private cloneCandidatePublication(
+    receipt: SupervisorCandidatePublicationReceipt,
+  ): SupervisorCandidatePublicationReceipt {
+    return {
+      ...receipt,
+      changedFiles: [...receipt.changedFiles],
+    };
   }
 
   private normalizeCandidate(
