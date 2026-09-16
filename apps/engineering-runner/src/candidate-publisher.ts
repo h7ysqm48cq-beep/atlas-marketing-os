@@ -50,13 +50,21 @@ export interface CandidatePublicationRequest {
 
 export interface CandidatePublisherOptions {
   remote: string;
+  environment?: NodeJS.ProcessEnv;
 }
 
 export class CandidatePublisher {
   private readonly remote: string;
+  private readonly environment: NodeJS.ProcessEnv;
 
   constructor(options: CandidatePublisherOptions) {
     this.remote = options.remote;
+    const source = options.environment ?? process.env;
+    this.environment = Object.fromEntries(
+      ['PATH', 'HOME', 'TMPDIR'].flatMap((key) =>
+        source[key] === undefined ? [] : [[key, source[key]]],
+      ),
+    );
   }
 
   private async gitRaw(cwd: string, args: string[]): Promise<string> {
@@ -64,6 +72,7 @@ export class CandidatePublisher {
       cwd,
       encoding: 'utf8',
       maxBuffer: 4 * 1024 * 1024,
+      env: this.environment,
     });
     return stdout;
   }
