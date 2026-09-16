@@ -1,3 +1,9 @@
+export interface EngineeringRunnerCandidateConfig {
+  repositoryRoot: string;
+  workspaceRoot: string;
+  remote: string;
+}
+
 export interface EngineeringRunnerConfig {
   supervisorApiUrl: string;
   bootstrapToken: string;
@@ -6,6 +12,7 @@ export interface EngineeringRunnerConfig {
   workspace: string;
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
+  candidate?: EngineeringRunnerCandidateConfig;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -42,9 +49,28 @@ function stringArray(raw: string | undefined): string[] {
   return parsed;
 }
 
+
+function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConfig | undefined {
+  const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
+  const workspaceRoot = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
+  const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
+  const values = [repositoryRoot, workspaceRoot, remote];
+  const configured = values.filter(Boolean).length;
+  if (configured === 0) return undefined;
+  if (configured !== values.length) {
+    throw new Error('runner_candidate_config_incomplete');
+  }
+  return {
+    repositoryRoot: repositoryRoot!,
+    workspaceRoot: workspaceRoot!,
+    remote: remote!,
+  };
+}
+
 export function loadEngineeringRunnerConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): EngineeringRunnerConfig {
+  const candidate = candidateConfig(env);
   return {
     supervisorApiUrl: required(env, 'ATLAS_SUPERVISOR_API_URL'),
     bootstrapToken: required(
@@ -65,5 +91,6 @@ export function loadEngineeringRunnerConfig(
       'ATLAS_ENGINEERING_RUNNER_HEARTBEAT_INTERVAL_MS',
       20_000,
     ),
+    ...(candidate ? { candidate } : {}),
   };
 }

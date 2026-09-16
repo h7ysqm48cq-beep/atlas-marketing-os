@@ -56,6 +56,7 @@ test('CommandExecutor passes assignment only and strips Supervisor/Owner secrets
       ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN: 'bootstrap-secret',
       ATLAS_SUPERVISOR_OWNER_TOKEN: 'owner-secret',
       ATLAS_EXECUTION_CAPABILITY: 'capability-secret',
+      ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN: 'publisher-secret',
     },
     runProcess: async (input: Record<string, unknown>) => {
       captured = input;
@@ -75,6 +76,7 @@ test('CommandExecutor passes assignment only and strips Supervisor/Owner secrets
   assert.equal(env.ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN, undefined);
   assert.equal(env.ATLAS_SUPERVISOR_OWNER_TOKEN, undefined);
   assert.equal(env.ATLAS_EXECUTION_CAPABILITY, undefined);
+  assert.equal(env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN, undefined);
 });
 
 test('CommandExecutor returns a validated WorkerExecutionResult', async () => {

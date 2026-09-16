@@ -88,6 +88,12 @@ test('CandidatePublisher publishes one exact remote-verified candidate branch', 
       `refs/heads/${receipt.candidateBranch}`,
     ]);
     assert.match(remoteRef, new RegExp(`^${receipt.headSha}\\s`));
+    const sourceHead = await git(path.join(root, 'source'), ['rev-parse', 'HEAD']);
+    assert.equal(sourceHead, head);
+    const productionRef = await git(path.join(root, 'source'), [
+      'show-ref', '--verify', '--hash', 'refs/heads/production/atlas',
+    ]).catch(() => '');
+    assert.equal(productionRef, '');
     await lease.cleanup();
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -507,6 +513,37 @@ test('CandidatePublisher rejects a staged-file mismatch immediately after exact 
     assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), head);
     await lease.cleanup();
   } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('CandidatePublisher does not inherit Supervisor or Owner secrets into Git hooks', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-env-'));
+  const previousOwner = process.env.ATLAS_SUPERVISOR_OWNER_TOKEN;
+  try {
+    const { remote, head, lease } = await fixture(root);
+    await writeFile(path.join(lease.path, 'allowed.txt'), 'changed\n');
+    const hooks = path.join(root, 'hooks');
+    await mkdir(hooks);
+    const hook = path.join(hooks, 'pre-push');
+    await writeFile(hook, '#!/bin/sh\n[ -z "$ATLAS_SUPERVISOR_OWNER_TOKEN" ] || exit 73\n');
+    await chmod(hook, 0o755);
+    await git(lease.path, ['config', 'core.hooksPath', hooks]);
+    process.env.ATLAS_SUPERVISOR_OWNER_TOKEN = 'must-not-reach-git';
+    const { CandidatePublisher } = await import('./candidate-publisher.ts');
+    const publisher = new CandidatePublisher({ remote });
+
+    const receipt = await publisher.publish({
+      taskId: 'ATLAS-task-env', executionId: 'ATLAS-EXEC-env',
+      executionPurpose: 'IMPLEMENTATION', workspace: lease.path,
+      frozenBaseSha: head, targetBranch: 'production/atlas',
+      changedFiles: ['allowed.txt'],
+    });
+    assert.equal(receipt.remoteVerified, true);
+    await lease.cleanup();
+  } finally {
+    if (previousOwner === undefined) delete process.env.ATLAS_SUPERVISOR_OWNER_TOKEN;
+    else process.env.ATLAS_SUPERVISOR_OWNER_TOKEN = previousOwner;
     await rm(root, { recursive: true, force: true });
   }
 });
