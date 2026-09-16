@@ -62,6 +62,8 @@ const VERIFIER_FORBIDDEN_ACTIONS: SupervisorAction[] = [
   'delete_branch_for_integration',
 ];
 
+const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+
 const ACTIVE_EXECUTION_STATUSES: SupervisorExecutionStatus[] = [
   'QUEUED',
   'DISPATCHED',
@@ -81,6 +83,7 @@ export class WorkerDispatcherService {
   async dispatch(
     taskId: string,
     executionPurpose: SupervisorExecutionPurpose = 'IMPLEMENTATION',
+    options: { frozenBaseSha?: string } = {},
   ): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
@@ -135,6 +138,20 @@ export class WorkerDispatcherService {
       });
     }
 
+    let frozenBaseSha: string | undefined;
+    if (options.frozenBaseSha !== undefined) {
+      if (executionPurpose === 'INDEPENDENT_VERIFICATION') {
+        throw new BadRequestException(
+          'frozen_base_sha_not_allowed_for_verification',
+        );
+      }
+      const normalized = options.frozenBaseSha.trim().toLowerCase();
+      if (!FULL_GIT_SHA.test(normalized)) {
+        throw new BadRequestException('frozen_base_sha_invalid');
+      }
+      frozenBaseSha = normalized;
+    }
+
     const now = new Date();
     const executionId = this.nextExecutionId(now);
     const enforcedForbiddenActions =
@@ -157,6 +174,7 @@ export class WorkerDispatcherService {
       dependencies: [...task.dependsOn],
       acceptance: [...task.acceptance],
       requiredEvidence: [...REQUIRED_EVIDENCE],
+      ...(frozenBaseSha ? { frozenBaseSha } : {}),
     };
 
     const authorityBinding =
