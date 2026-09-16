@@ -82,6 +82,7 @@ The Publisher input is a narrow immutable request:
 interface CandidatePublicationRequest {
   taskId: string;
   executionId: string;
+  executionPurpose: 'IMPLEMENTATION';
   workspace: string;
   frozenBaseSha: string;
   targetBranch: 'production/atlas';
