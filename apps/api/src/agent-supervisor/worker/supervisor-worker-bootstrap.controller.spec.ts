@@ -162,6 +162,7 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     expect(setupValue.calls.claimNext).toHaveBeenCalledWith(
       expect.objectContaining({
         workerRole: 'backend',
+        executionPurpose: 'IMPLEMENTATION',
         runnerId: expect.any(String),
         leaseId: expect.any(String),
         now: expect.any(Date),
@@ -174,6 +175,20 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     );
     expect(input.runnerId).not.toBe('caller-runner');
     expect(input.leaseId).not.toBe('caller-lease');
+  });
+
+  it('rejects an invalid execution purpose before claiming any execution', async () => {
+    const setupValue = setup();
+    if (!setupValue) return;
+
+    await expect(
+      invoke(setupValue.controller, request(), {
+        executionPurpose: 'DEPLOY_PRODUCTION',
+      }),
+    ).rejects.toThrow('worker_execution_purpose_invalid');
+    expect(setupValue.calls.claimNext).not.toHaveBeenCalled();
+    expect(setupValue.calls.issueWorker).not.toHaveBeenCalled();
+    expect(setupValue.calls.issueVerifier).not.toHaveBeenCalled();
   });
 
   it('returns no content without issuing or persisting a capability when no work exists', async () => {
@@ -240,7 +255,15 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     const setupValue = setup(claimed);
     if (!setupValue) return;
 
-    await invoke(setupValue.controller);
+    await invoke(setupValue.controller, request(), {
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+    });
+    expect(setupValue.calls.claimNext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workerRole: 'backend',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+      }),
+    );
     expect(setupValue.calls.issueWorker).not.toHaveBeenCalled();
     expect(setupValue.calls.issueVerifier).toHaveBeenCalledWith(
       expect.objectContaining({

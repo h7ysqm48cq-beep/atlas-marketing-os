@@ -74,13 +74,17 @@ export class MemorySupervisorExecutionStore
   claimNext(
     input: SupervisorExecutionClaimInput,
   ): Promise<SupervisorExecution | null> {
+    const requestedPurpose = input.executionPurpose ?? 'IMPLEMENTATION';
     let selected: SupervisorExecution | undefined;
     for (const id of this.order) {
       const candidate = this.executions.get(id);
+      const candidatePurpose =
+        candidate?.assignment.executionPurpose ?? 'IMPLEMENTATION';
       if (
         !candidate ||
         candidate.status !== 'QUEUED' ||
         candidate.workerRole !== input.workerRole ||
+        candidatePurpose !== requestedPurpose ||
         (selected &&
           (candidate.createdAt.getTime() > selected.createdAt.getTime() ||
             (candidate.createdAt.getTime() === selected.createdAt.getTime() &&

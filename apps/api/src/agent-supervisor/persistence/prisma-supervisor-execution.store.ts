@@ -308,6 +308,11 @@ export class PrismaSupervisorExecutionStore
   async claimNext(
     input: SupervisorExecutionClaimInput,
   ): Promise<SupervisorExecution | null> {
+    const executionPurpose = input.executionPurpose ?? 'IMPLEMENTATION';
+    const requiredTaskStatus =
+      executionPurpose === 'INDEPENDENT_VERIFICATION'
+        ? 'VERIFYING'
+        : 'WORKING';
     return this.withPersistenceBoundary(null, async () =>
       this.prisma.$transaction(async (transaction) => {
         const rows = await transaction.$queryRaw<SupervisorExecutionRecord[]>`
@@ -316,21 +321,11 @@ export class PrismaSupervisorExecutionStore
           JOIN "SupervisorTask" AS t
             ON t."id" = e."taskId"
           WHERE e."status" = ${'QUEUED'}
-            AND (
-              (
-                t."status" = ${'WORKING'}
-                AND COALESCE(
-                  e."assignment"->>'executionPurpose',
-                  'IMPLEMENTATION'
-                ) = 'IMPLEMENTATION'
-              )
-              OR
-              (
-                t."status" = ${'VERIFYING'}
-                AND e."assignment"->>'executionPurpose' =
-                  'INDEPENDENT_VERIFICATION'
-              )
-            )
+            AND t."status" = ${requiredTaskStatus}
+            AND COALESCE(
+              e."assignment"->>'executionPurpose',
+              'IMPLEMENTATION'
+            ) = ${executionPurpose}
             AND e."workerRole" = ${input.workerRole}
           ORDER BY e."createdAt" ASC, e."id" ASC
           FOR UPDATE OF e, t SKIP LOCKED

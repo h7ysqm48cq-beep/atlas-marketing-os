@@ -1,5 +1,6 @@
 import type {
   SupervisorExecution,
+  SupervisorExecutionPurpose,
   SupervisorExecutionStatus,
   SupervisorWorkerRole,
 } from '../execution/supervisor-execution.types';
@@ -17,6 +18,7 @@ export const SUPERVISOR_EXECUTION_RECONCILIATION_STORE = Symbol(
 
 export interface SupervisorExecutionClaimInput {
   workerRole: SupervisorWorkerRole;
+  executionPurpose?: SupervisorExecutionPurpose;
   runnerId: string;
   leaseId: string;
   now: Date;

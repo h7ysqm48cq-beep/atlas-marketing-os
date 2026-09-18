@@ -70,6 +70,7 @@ function executionWithLiveness(
 
 type ClaimNextInput = {
   workerRole: SupervisorExecution['workerRole'];
+  executionPurpose?: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
   runnerId: string;
   leaseId: string;
   now: Date;
@@ -579,6 +580,7 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(query).toMatch(/status/i);
     expect(query).toMatch(/QUEUED/i);
     expect(query).toMatch(/WORKING/i);
+    expect(query).not.toMatch(/VERIFYING/i);
     expect(query).toMatch(/workerRole/i);
     expect(query).toMatch(/createdAt/i);
     expect(query).toMatch(/id/i);
@@ -603,6 +605,7 @@ describe('PrismaSupervisorExecutionStore', () => {
 
     await claimStore(store).claimNext({
       workerRole: 'infra',
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
       runnerId: 'runner-verifier-claim',
       leaseId: 'lease-verifier-claim',
       now: new Date('2026-09-15T10:30:00.000Z'),
@@ -615,7 +618,7 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(query).toMatch(/INDEPENDENT_VERIFICATION/i);
     expect(query).toMatch(/VERIFYING/i);
     expect(query).toMatch(/IMPLEMENTATION/i);
-    expect(query).toMatch(/WORKING/i);
+    expect(query).not.toMatch(/WORKING/i);
   });
 
   it('returns null for no eligible candidate without mutation', async () => {

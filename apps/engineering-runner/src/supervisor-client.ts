@@ -13,6 +13,7 @@ type FetchLike = (
 export interface SupervisorClientOptions {
   baseUrl: string;
   bootstrapToken: string;
+  executionPurpose?: ExecutionPurpose;
   fetch?: FetchLike;
 }
 
@@ -74,6 +75,7 @@ async function decodeJson(response: Response): Promise<unknown> {
 export class SupervisorClient {
   private readonly baseUrl: string;
   private readonly bootstrapToken: string;
+  private readonly executionPurpose: ExecutionPurpose;
   private readonly fetcher: FetchLike;
 
   constructor(options: SupervisorClientOptions) {
@@ -82,6 +84,7 @@ export class SupervisorClient {
     }
     this.baseUrl = trimSlash(options.baseUrl);
     this.bootstrapToken = options.bootstrapToken;
+    this.executionPurpose = options.executionPurpose ?? 'IMPLEMENTATION';
     this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -94,7 +97,7 @@ export class SupervisorClient {
           authorization: `Bearer ${this.bootstrapToken}`,
           'content-type': 'application/json',
         },
-        body: '{}',
+        body: JSON.stringify({ executionPurpose: this.executionPurpose }),
       },
     );
 
@@ -118,6 +121,9 @@ export class SupervisorClient {
       assignment.executionPurpose === 'INDEPENDENT_VERIFICATION'
         ? 'INDEPENDENT_VERIFICATION'
         : 'IMPLEMENTATION';
+    if (purpose !== this.executionPurpose) {
+      throw new Error('supervisor_claim_purpose_mismatch');
+    }
     const plane =
       purpose === 'INDEPENDENT_VERIFICATION' ? 'verifier' : 'worker';
     const route = `${this.baseUrl}/engineering/supervisor/${plane}/tasks/${encodeURIComponent(assignment.taskId)}/executions/${encodeURIComponent(assignment.executionId)}`;

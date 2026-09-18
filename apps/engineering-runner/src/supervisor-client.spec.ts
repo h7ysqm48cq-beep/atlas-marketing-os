@@ -60,6 +60,58 @@ test('SupervisorClient treats 204 claim-next as no work', async () => {
   assert.equal(await client.claimNext(), null);
 });
 
+test('SupervisorClient claims IMPLEMENTATION by default', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as
+    | (new (options: Record<string, unknown>) => { claimNext(): Promise<unknown> })
+    | undefined;
+  assert.ok(Client, 'SupervisorClient must exist');
+
+  let claimBody: unknown;
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    fetch: async (_input: string | URL | Request, init?: RequestInit) => {
+      claimBody = JSON.parse(String(init?.body));
+      return new Response(null, { status: 204 });
+    },
+  });
+
+  assert.equal(await client.claimNext(), null);
+  assert.deepEqual(claimBody, { executionPurpose: 'IMPLEMENTATION' });
+});
+
+test('SupervisorClient fails closed when server returns a different execution purpose', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as
+    | (new (options: Record<string, unknown>) => { claimNext(): Promise<unknown> })
+    | undefined;
+  assert.ok(Client, 'SupervisorClient must exist');
+
+  const verificationAssignment = {
+    ...assignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+  };
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    fetch: async () =>
+      new Response(
+        JSON.stringify({
+          execution: { ...execution, assignment: verificationAssignment },
+          assignment: verificationAssignment,
+          capability: 'verifier-capability',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+  });
+
+  await assert.rejects(
+    () => client.claimNext(),
+    /supervisor_claim_purpose_mismatch/,
+  );
+});
+
 test('SupervisorClient never exposes bootstrap or execution capability on the claimed session', async () => {
   const mod = await loadModule();
   const Client = mod.SupervisorClient as
@@ -128,6 +180,7 @@ test('SupervisorClient routes independent verification through verifier transpor
   const client = new Client({
     baseUrl: 'https://api.example.test',
     bootstrapToken: 'bootstrap-secret',
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
     fetch,
   });
   const session = await client.claimNext();

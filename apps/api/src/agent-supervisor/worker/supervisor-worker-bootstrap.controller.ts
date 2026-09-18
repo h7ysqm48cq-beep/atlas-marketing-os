@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -49,7 +50,7 @@ export class SupervisorWorkerBootstrapController {
   @HttpCode(HttpStatus.OK)
   async claimNext(
     @Req() request: BootstrapRequest,
-    @Body() _body: Record<string, unknown> = {},
+    @Body() body: { executionPurpose?: unknown } = {},
     @Res({ passthrough: true }) response?: Response,
   ): Promise<
     | {
@@ -59,6 +60,17 @@ export class SupervisorWorkerBootstrapController {
       }
     | undefined
   > {
+    const executionPurpose =
+      body.executionPurpose === undefined
+        ? 'IMPLEMENTATION'
+        : body.executionPurpose;
+    if (
+      executionPurpose !== 'IMPLEMENTATION' &&
+      executionPurpose !== 'INDEPENDENT_VERIFICATION'
+    ) {
+      throw new BadRequestException('worker_execution_purpose_invalid');
+    }
+
     const now = new Date();
     const runnerId = randomUUID();
     const leaseId = randomUUID();
@@ -66,6 +78,7 @@ export class SupervisorWorkerBootstrapController {
 
     const claimed = await this.claimStore.claimNext({
       workerRole: request.supervisorWorkerBootstrapRole!,
+      executionPurpose,
       runnerId,
       leaseId,
       now,
