@@ -10,6 +10,7 @@ import {
   findFacebookCreatePostDialog,
   isFacebookComposerImagePreviewCandidate,
   normalizeFacebookComposerImagePreviewSource,
+  retryFacebookComposerImageUploadWithScopedInput,
   uploadFacebookComposerImages,
   type FacebookComposerImagePreviewCandidate,
   type FacebookComposerMediaControlDiagnostics,
@@ -693,6 +694,104 @@ test("defers a consumed chooser input to composer preview verification", async (
   assert.equal(
     result.inputFileCount,
     0,
+  );
+});
+
+test("retries a consumed chooser through a replacement composer-scoped image input", async () => {
+  const selectedPaths:
+    string[][] = [];
+  const replacementInput =
+    createMockLocator({
+      accept: "image/*",
+      multiple: true,
+      retainedFileCount: 1,
+      onSetInputFiles: (
+        imagePaths,
+      ) => {
+        selectedPaths.push(
+          imagePaths,
+        );
+      },
+    });
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      fileInputs:
+        replacementInput,
+    });
+
+  const result =
+    await retryFacebookComposerImageUploadWithScopedInput(
+      dialog as unknown as Locator,
+      ["/tmp/one.jpg"],
+      {
+        photoButtonClicked: true,
+        controlDiagnostics: {
+          anchorFound: true,
+          anchorText: "Add to your post",
+          evaluationError: null,
+          strategy:
+            "ADD_TO_YOUR_POST_ROW",
+          candidates: [],
+          selected: null,
+        },
+        timeoutMs: 250,
+      },
+    );
+
+  assert.equal(
+    result.strategy,
+    "COMPOSER_FILE_INPUT",
+  );
+  assert.equal(
+    result.inputFileCount,
+    1,
+  );
+  assert.equal(
+    result.photoButtonClicked,
+    true,
+  );
+  assert.deepEqual(
+    selectedPaths,
+    [["/tmp/one.jpg"]],
+  );
+});
+
+test("fails closed when no replacement composer-scoped image input appears", async () => {
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      fileInputs:
+        createMockLocator({
+          count: 0,
+        }),
+    });
+
+  await assert.rejects(
+    retryFacebookComposerImageUploadWithScopedInput(
+      dialog as unknown as Locator,
+      ["/tmp/one.jpg"],
+      {
+        photoButtonClicked: true,
+        controlDiagnostics: {
+          anchorFound: true,
+          anchorText: "Add to your post",
+          evaluationError: null,
+          strategy:
+            "ADD_TO_YOUR_POST_ROW",
+          candidates: [],
+          selected: null,
+        },
+        timeoutMs: 250,
+      },
+    ),
+    /composer-scoped image input did not appear/i,
   );
 });
 
