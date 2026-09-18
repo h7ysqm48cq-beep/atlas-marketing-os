@@ -6,6 +6,7 @@ import {
   facebookPageSwitchActionPattern,
   hasFacebookPageTargetIdentityEvidence,
   hasFacebookPageSwitchPrompt,
+  shouldRestoreFacebookPublishingTarget,
 } from "./page-identity.js";
 
 test("matches both Facebook Page identity switch labels", () => {
@@ -262,4 +263,42 @@ test("fails closed when the Page switch action cannot be found", async () => {
   assert.equal(result.verified, false);
   assert.equal(result.reason, "ACTION_NOT_FOUND");
   assert.equal(result.attempts, 0);
+});
+
+
+test("restores the Facebook publishing target after Business Suite redirect", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTarget(
+      "https://business.facebook.com/latest/inbox/all?asset_id=123",
+      "https://www.facebook.com/profile.php?id=123",
+    ),
+    true,
+  );
+});
+
+test("does not restore when identity switch remains on normal Facebook", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTarget(
+      "https://www.facebook.com/",
+      "https://www.facebook.com/profile.php?id=123",
+    ),
+    false,
+  );
+  assert.equal(
+    shouldRestoreFacebookPublishingTarget(
+      "https://facebook.com/123",
+      "https://www.facebook.com/profile.php?id=123",
+    ),
+    false,
+  );
+});
+
+test("fails closed for malformed Facebook publishing URLs", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTarget(
+      "not-a-url",
+      "https://www.facebook.com/profile.php?id=123",
+    ),
+    false,
+  );
 });

@@ -88,6 +88,37 @@ export function hasFacebookPageTargetIdentityEvidence(
   );
 }
 
+export function shouldRestoreFacebookPublishingTarget(
+  currentUrl: string,
+  targetUrl: string,
+) {
+  try {
+    const current =
+      new URL(currentUrl);
+    const target =
+      new URL(targetUrl);
+    const normalizeFacebookHost = (
+      value: string,
+    ) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/^www\./, "");
+
+    return (
+      normalizeFacebookHost(
+        target.hostname,
+      ) === "facebook.com" &&
+      normalizeFacebookHost(
+        current.hostname,
+      ) !== "facebook.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+
 export async function ensureFacebookPageIdentitySwitch(
   input: {
     inspectState: () => Promise<FacebookPageIdentitySwitchState>;
