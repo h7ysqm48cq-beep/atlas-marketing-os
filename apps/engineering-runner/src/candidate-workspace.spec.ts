@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -55,6 +55,42 @@ test('CandidateWorkspaceManager prepares a clean detached worktree at the frozen
     assert.equal(await git(lease.path, ['branch', '--show-current']), '');
     assert.deepEqual(await lease.workspace.listChangedFiles(), []);
     assert.equal(lease.baseSha, head);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('CandidateWorkspaceManager suppresses checkout hooks and returns a clean frozen workspace', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-workspace-hook-'));
+  try {
+    const { repo, head } = await sourceRepository(root);
+    const hooks = path.join(root, 'hooks');
+    await mkdir(hooks);
+    const hook = path.join(hooks, 'post-checkout');
+    await writeFile(
+      hook,
+      '#!/bin/sh\nprintf "ambient-hook-change\\n" > allowed.txt\n',
+    );
+    await chmod(hook, 0o755);
+    await git(repo, ['config', 'core.hooksPath', hooks]);
+
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+    });
+    const lease = await manager.prepare({
+      taskId: 'ATLAS-task-hook',
+      executionId: 'ATLAS-EXEC-hook',
+      frozenBaseSha: head,
+      allowedPaths: ['allowed.txt'],
+    });
+
+    assert.equal(await readFile(path.join(lease.path, 'allowed.txt'), 'utf8'), 'base\n');
+    assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), head);
+    assert.equal(await git(lease.path, ['branch', '--show-current']), '');
+    assert.deepEqual(await lease.workspace.listChangedFiles(), []);
     await lease.cleanup();
   } finally {
     await rm(root, { recursive: true, force: true });

@@ -135,13 +135,44 @@ export class CandidateWorkspaceManager {
 
     await execFileAsync(
       'git',
-      ['worktree', 'add', '--detach', workspacePath, frozenBaseSha],
+      [
+        '-c',
+        'core.hooksPath=/dev/null',
+        'worktree',
+        'add',
+        '--detach',
+        workspacePath,
+        frozenBaseSha,
+      ],
       { cwd: this.repositoryRoot },
     );
 
+    const workspace = new GitWorkspace(workspacePath);
     try {
       for (const allowedPath of input.allowedPaths) {
         await requireAllowedPathInsideWorkspace(workspacePath, allowedPath);
+      }
+
+      const { stdout: headOutput } = await execFileAsync(
+        'git',
+        ['rev-parse', 'HEAD'],
+        { cwd: workspacePath, encoding: 'utf8' },
+      );
+      if (headOutput.trim().toLowerCase() !== frozenBaseSha) {
+        throw new Error('candidate_workspace_head_mismatch');
+      }
+
+      const { stdout: branchOutput } = await execFileAsync(
+        'git',
+        ['branch', '--show-current'],
+        { cwd: workspacePath, encoding: 'utf8' },
+      );
+      if (branchOutput.trim()) {
+        throw new Error('candidate_workspace_branch_attached');
+      }
+
+      if ((await workspace.listChangedFiles()).length > 0) {
+        throw new Error('candidate_workspace_not_clean');
       }
     } catch (error) {
       await execFileAsync(
@@ -151,8 +182,6 @@ export class CandidateWorkspaceManager {
       ).catch(() => undefined);
       throw error;
     }
-
-    const workspace = new GitWorkspace(workspacePath);
     return {
       path: workspacePath,
       baseSha: frozenBaseSha,
