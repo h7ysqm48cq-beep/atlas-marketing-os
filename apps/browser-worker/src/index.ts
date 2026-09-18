@@ -46,6 +46,7 @@ import {
   facebookPageSwitchActionPattern,
   hasFacebookPageSwitchPrompt,
   shouldRestoreFacebookPublishingTarget,
+  shouldRestoreFacebookPublishingTargetAfterIdentityCheck,
 } from "./facebook/page-identity.js";
 import {
   filterFacebookPageCandidates,
@@ -4538,11 +4539,15 @@ app.post(
        * must run on the normal facebook.com Page surface.
        */
       if (
-        pageIdentitySwitch.required &&
-        pageIdentitySwitch.verified &&
-        shouldRestoreFacebookPublishingTarget(
-          page.url(),
-          targetUrl,
+        shouldRestoreFacebookPublishingTargetAfterIdentityCheck(
+          {
+            currentUrl:
+              page.url(),
+            targetUrl,
+            identityVerified:
+              pageIdentitySwitch
+                .verified,
+          },
         )
       ) {
         const redirectedFrom =

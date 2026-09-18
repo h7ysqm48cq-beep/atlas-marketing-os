@@ -119,6 +119,23 @@ export function shouldRestoreFacebookPublishingTarget(
 }
 
 
+export function shouldRestoreFacebookPublishingTargetAfterIdentityCheck(
+  input: {
+    currentUrl: string;
+    targetUrl: string;
+    identityVerified: boolean;
+  },
+) {
+  return (
+    input.identityVerified &&
+    shouldRestoreFacebookPublishingTarget(
+      input.currentUrl,
+      input.targetUrl,
+    )
+  );
+}
+
+
 export async function ensureFacebookPageIdentitySwitch(
   input: {
     inspectState: () => Promise<FacebookPageIdentitySwitchState>;
