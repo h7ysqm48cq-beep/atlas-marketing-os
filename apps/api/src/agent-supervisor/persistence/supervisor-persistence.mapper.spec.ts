@@ -242,6 +242,7 @@ function assignmentFixture() {
     taskId: 'ATLAS-20260830-0001',
     workerRole: 'backend',
     executionPurpose: 'IMPLEMENTATION',
+    frozenBaseSha: 'f'.repeat(40),
     objective: 'Persist supervisor task',
     allowedPaths: ['apps/api/src/example.ts'],
     forbiddenActions: ['merge'],
