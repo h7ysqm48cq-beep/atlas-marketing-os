@@ -4575,6 +4575,90 @@ app.post(
               page.url(),
           },
         );
+
+        /*
+         * FACEBOOK_PAGE_IDENTITY_RECHECK_AFTER_TARGET_RESTORE_V1
+         *
+         * The Business Suite redirect can hide the Page actor-switch prompt.
+         * After restoring the normal Facebook Page surface, run the same
+         * fail-closed identity switch again before composer discovery.
+         */
+        const restoredPageIdentitySwitch =
+          await ensureFacebookPageIdentitySwitch({
+            inspectState: async () => ({
+              bodyText:
+                await page
+                  .locator("body")
+                  .innerText()
+                  .catch(() => ""),
+              hasVisibleSwitchAction:
+                Boolean(
+                  await getVisibleSwitchAction(),
+                ),
+            }),
+            clickSwitchAction: async () => {
+              const candidate =
+                await getVisibleSwitchAction();
+
+              if (!candidate) {
+                return false;
+              }
+
+              return candidate
+                .click({
+                  timeout: 5000,
+                  force: true,
+                })
+                .then(() => true)
+                .catch(() => false);
+            },
+            waitForSettled: async () => {
+              await page.waitForTimeout(2500);
+              await page
+                .waitForLoadState(
+                  "domcontentloaded",
+                  {
+                    timeout: 5000,
+                  },
+                )
+                .catch(() => undefined);
+            },
+            maxAttempts: 3,
+          });
+
+        console.log(
+          "[facebook/page-identity-switch-after-target-restore]",
+          {
+            url:
+              page.url(),
+            required:
+              restoredPageIdentitySwitch.required,
+            verified:
+              restoredPageIdentitySwitch.verified,
+            attempts:
+              restoredPageIdentitySwitch.attempts,
+            targetPageName:
+              restoredPageIdentitySwitch.targetPageName,
+            reason:
+              restoredPageIdentitySwitch.reason,
+          },
+        );
+
+        if (!restoredPageIdentitySwitch.verified) {
+          throw new Error(
+            [
+              "Facebook Page identity switch after target restore did not complete.",
+              restoredPageIdentitySwitch.targetPageName
+                ? `Target Page: ${restoredPageIdentitySwitch.targetPageName}.`
+                : null,
+              `Attempts: ${restoredPageIdentitySwitch.attempts}.`,
+              `Reason: ${restoredPageIdentitySwitch.reason}.`,
+              `URL: ${page.url()}.`,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          );
+        }
       }
 
       /*
