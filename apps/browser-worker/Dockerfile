@@ -16,6 +16,7 @@ RUN apt-get update \
         fonts-noto-cjk \
         fonts-noto-color-emoji \
         procps \
+        tini \
     && rm -rf /var/lib/apt/lists/*
 
 ENV CHROME_EXECUTABLE_PATH=/usr/bin/chromium
@@ -45,4 +46,6 @@ RUN chmod +x /app/apps/browser-worker/docker-entrypoint.sh
 EXPOSE 4010
 EXPOSE 6080
 
-ENTRYPOINT ["/app/apps/browser-worker/docker-entrypoint.sh"]
+# Chromium creates a multi-process tree. Keep a real init process as PID 1 so
+# orphaned browser children are reaped instead of accumulating as zombies.
+ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/app/apps/browser-worker/docker-entrypoint.sh"]
