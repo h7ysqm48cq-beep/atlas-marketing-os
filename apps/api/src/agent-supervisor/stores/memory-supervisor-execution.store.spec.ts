@@ -66,6 +66,7 @@ function executionWithLiveness(
 type ClaimNextInput = {
   workerRole: SupervisorExecution['workerRole'];
   executionPurpose?: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+  requireFrozenBaseSha?: boolean;
   runnerId: string;
   leaseId: string;
   now: Date;
@@ -317,6 +318,36 @@ describe('MemorySupervisorExecutionStore', () => {
     });
 
     expect(verifierClaim?.id).toBe('EXEC-VERIFY');
+  });
+
+  it('candidate-only claims skip older implementation work without a valid frozen base', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const legacy = executionFixture('EXEC-LEGACY', 'ATLAS-LEGACY');
+    legacy.createdAt = new Date('2026-09-13T00:01:00.000Z');
+    legacy.assignment.executionPurpose = 'IMPLEMENTATION';
+
+    const candidate = executionFixture('EXEC-CANDIDATE', 'ATLAS-CANDIDATE');
+    candidate.createdAt = new Date('2026-09-13T00:02:00.000Z');
+    candidate.assignment.executionPurpose = 'IMPLEMENTATION';
+    candidate.assignment.frozenBaseSha = 'a'.repeat(40);
+
+    await store.create(legacy);
+    await store.create(candidate);
+
+    const claimed = await claimStore(store).claimNext({
+      workerRole: 'backend',
+      executionPurpose: 'IMPLEMENTATION',
+      requireFrozenBaseSha: true,
+      runnerId: 'runner-candidate-only',
+      leaseId: 'lease-candidate-only',
+      now: new Date('2026-09-13T00:03:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-13T00:13:00.000Z'),
+    });
+
+    expect(claimed?.id).toBe('EXEC-CANDIDATE');
+    await expect(store.get('EXEC-LEGACY')).resolves.toMatchObject({
+      status: 'QUEUED',
+    });
   });
 
   it('skips non-QUEUED and role-incompatible executions', async () => {

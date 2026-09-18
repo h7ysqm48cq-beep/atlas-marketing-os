@@ -163,6 +163,7 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
       expect.objectContaining({
         workerRole: 'backend',
         executionPurpose: 'IMPLEMENTATION',
+        requireFrozenBaseSha: false,
         runnerId: expect.any(String),
         leaseId: expect.any(String),
         now: expect.any(Date),
@@ -189,6 +190,37 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     expect(setupValue.calls.claimNext).not.toHaveBeenCalled();
     expect(setupValue.calls.issueWorker).not.toHaveBeenCalled();
     expect(setupValue.calls.issueVerifier).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-boolean frozen-base requirement before claiming', async () => {
+    const setupValue = setup();
+    if (!setupValue) return;
+
+    await expect(
+      invoke(setupValue.controller, request(), {
+        executionPurpose: 'IMPLEMENTATION',
+        requireFrozenBaseSha: 'yes',
+      }),
+    ).rejects.toThrow('worker_frozen_base_requirement_invalid');
+    expect(setupValue.calls.claimNext).not.toHaveBeenCalled();
+  });
+
+  it('passes candidate-only frozen-base requirement into atomic claim selection', async () => {
+    const setupValue = setup(null);
+    if (!setupValue) return;
+
+    await invoke(setupValue.controller, request(), {
+      executionPurpose: 'IMPLEMENTATION',
+      requireFrozenBaseSha: true,
+    });
+
+    expect(setupValue.calls.claimNext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workerRole: 'backend',
+        executionPurpose: 'IMPLEMENTATION',
+        requireFrozenBaseSha: true,
+      }),
+    );
   });
 
   it('returns no content without issuing or persisting a capability when no work exists', async () => {
@@ -262,6 +294,7 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
       expect.objectContaining({
         workerRole: 'backend',
         executionPurpose: 'INDEPENDENT_VERIFICATION',
+        requireFrozenBaseSha: false,
       }),
     );
     expect(setupValue.calls.issueWorker).not.toHaveBeenCalled();

@@ -50,7 +50,10 @@ export class SupervisorWorkerBootstrapController {
   @HttpCode(HttpStatus.OK)
   async claimNext(
     @Req() request: BootstrapRequest,
-    @Body() body: { executionPurpose?: unknown } = {},
+    @Body() body: {
+      executionPurpose?: unknown;
+      requireFrozenBaseSha?: unknown;
+    } = {},
     @Res({ passthrough: true }) response?: Response,
   ): Promise<
     | {
@@ -70,6 +73,13 @@ export class SupervisorWorkerBootstrapController {
     ) {
       throw new BadRequestException('worker_execution_purpose_invalid');
     }
+    if (
+      body.requireFrozenBaseSha !== undefined &&
+      typeof body.requireFrozenBaseSha !== 'boolean'
+    ) {
+      throw new BadRequestException('worker_frozen_base_requirement_invalid');
+    }
+    const requireFrozenBaseSha = body.requireFrozenBaseSha === true;
 
     const now = new Date();
     const runnerId = randomUUID();
@@ -79,6 +89,7 @@ export class SupervisorWorkerBootstrapController {
     const claimed = await this.claimStore.claimNext({
       workerRole: request.supervisorWorkerBootstrapRole!,
       executionPurpose,
+      requireFrozenBaseSha,
       runnerId,
       leaseId,
       now,

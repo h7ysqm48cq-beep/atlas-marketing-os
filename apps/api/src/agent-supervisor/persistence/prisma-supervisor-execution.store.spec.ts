@@ -71,6 +71,7 @@ function executionWithLiveness(
 type ClaimNextInput = {
   workerRole: SupervisorExecution['workerRole'];
   executionPurpose?: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+  requireFrozenBaseSha?: boolean;
   runnerId: string;
   leaseId: string;
   now: Date;
@@ -565,6 +566,8 @@ describe('PrismaSupervisorExecutionStore', () => {
 
     await claimStore(store).claimNext({
       workerRole: 'backend',
+      executionPurpose: 'IMPLEMENTATION',
+      requireFrozenBaseSha: true,
       runnerId: 'runner-s4a-claim',
       leaseId: 'lease-s4a-claim',
       now: new Date('2026-09-13T00:03:00.000Z'),
@@ -581,6 +584,8 @@ describe('PrismaSupervisorExecutionStore', () => {
     expect(query).toMatch(/QUEUED/i);
     expect(query).toMatch(/WORKING/i);
     expect(query).not.toMatch(/VERIFYING/i);
+    expect(query).toMatch(/frozenBaseSha/i);
+    expect(call).toContain(true);
     expect(query).toMatch(/workerRole/i);
     expect(query).toMatch(/createdAt/i);
     expect(query).toMatch(/id/i);

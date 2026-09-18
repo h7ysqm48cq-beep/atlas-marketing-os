@@ -313,6 +313,7 @@ export class PrismaSupervisorExecutionStore
       executionPurpose === 'INDEPENDENT_VERIFICATION'
         ? 'VERIFYING'
         : 'WORKING';
+    const requireFrozenBaseSha = input.requireFrozenBaseSha === true;
     return this.withPersistenceBoundary(null, async () =>
       this.prisma.$transaction(async (transaction) => {
         const rows = await transaction.$queryRaw<SupervisorExecutionRecord[]>`
@@ -326,6 +327,10 @@ export class PrismaSupervisorExecutionStore
               e."assignment"->>'executionPurpose',
               'IMPLEMENTATION'
             ) = ${executionPurpose}
+            AND (
+              ${requireFrozenBaseSha} = false
+              OR e."assignment"->>'frozenBaseSha' ~ '^[0-9a-fA-F]{40}$'
+            )
             AND e."workerRole" = ${input.workerRole}
           ORDER BY e."createdAt" ASC, e."id" ASC
           FOR UPDATE OF e, t SKIP LOCKED

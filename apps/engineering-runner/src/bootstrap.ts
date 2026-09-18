@@ -15,6 +15,7 @@ export function createEngineeringRunnerOptions(
     client: new SupervisorClient({
       baseUrl: config.supervisorApiUrl,
       bootstrapToken: config.bootstrapToken,
+      requireFrozenBaseSha: Boolean(config.candidate),
     }),
     executor: new CommandExecutor({
       command: config.command, args: config.args,

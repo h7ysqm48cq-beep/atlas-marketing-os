@@ -20,6 +20,7 @@ test('candidate config wires isolated workspace, publisher, and cwd-bound execut
     },
   };
   const options = createOptions(config, { PATH: '/usr/bin', HOME: '/tmp' });
+  assert.equal((options.client as any).requireFrozenBaseSha, true);
   assert.equal(typeof options.preflight, 'function');
   assert.ok(options.candidateWorkspaceManager);
   assert.ok(options.candidatePublisher);
@@ -35,6 +36,7 @@ test('legacy config leaves candidate flow dependencies absent', async () => {
     pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
   };
   const options = createEngineeringRunnerOptions(config, { PATH: '/usr/bin' });
+  assert.equal((options.client as any).requireFrozenBaseSha, false);
   assert.equal(options.preflight, undefined);
   assert.equal(options.candidateWorkspaceManager, undefined);
   assert.equal(options.candidatePublisher, undefined);

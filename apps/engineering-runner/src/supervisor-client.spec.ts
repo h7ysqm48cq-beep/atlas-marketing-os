@@ -78,7 +78,45 @@ test('SupervisorClient claims IMPLEMENTATION by default', async () => {
   });
 
   assert.equal(await client.claimNext(), null);
-  assert.deepEqual(claimBody, { executionPurpose: 'IMPLEMENTATION' });
+  assert.deepEqual(claimBody, {
+    executionPurpose: 'IMPLEMENTATION',
+    requireFrozenBaseSha: false,
+  });
+});
+
+test('SupervisorClient candidate-only mode requires and requests a frozen base', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as
+    | (new (options: Record<string, unknown>) => { claimNext(): Promise<unknown> })
+    | undefined;
+  assert.ok(Client, 'SupervisorClient must exist');
+
+  let claimBody: unknown;
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    requireFrozenBaseSha: true,
+    fetch: async (_input: string | URL | Request, init?: RequestInit) => {
+      claimBody = JSON.parse(String(init?.body));
+      return new Response(
+        JSON.stringify({
+          execution,
+          assignment,
+          capability: 'worker-capability',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    },
+  });
+
+  await assert.rejects(
+    () => client.claimNext(),
+    /supervisor_claim_frozen_base_mismatch/,
+  );
+  assert.deepEqual(claimBody, {
+    executionPurpose: 'IMPLEMENTATION',
+    requireFrozenBaseSha: true,
+  });
 });
 
 test('SupervisorClient fails closed when server returns a different execution purpose', async () => {

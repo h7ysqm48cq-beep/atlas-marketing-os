@@ -14,6 +14,7 @@ export interface SupervisorClientOptions {
   baseUrl: string;
   bootstrapToken: string;
   executionPurpose?: ExecutionPurpose;
+  requireFrozenBaseSha?: boolean;
   fetch?: FetchLike;
 }
 
@@ -76,6 +77,7 @@ export class SupervisorClient {
   private readonly baseUrl: string;
   private readonly bootstrapToken: string;
   private readonly executionPurpose: ExecutionPurpose;
+  private readonly requireFrozenBaseSha: boolean;
   private readonly fetcher: FetchLike;
 
   constructor(options: SupervisorClientOptions) {
@@ -85,6 +87,7 @@ export class SupervisorClient {
     this.baseUrl = trimSlash(options.baseUrl);
     this.bootstrapToken = options.bootstrapToken;
     this.executionPurpose = options.executionPurpose ?? 'IMPLEMENTATION';
+    this.requireFrozenBaseSha = options.requireFrozenBaseSha === true;
     this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -97,7 +100,10 @@ export class SupervisorClient {
           authorization: `Bearer ${this.bootstrapToken}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ executionPurpose: this.executionPurpose }),
+        body: JSON.stringify({
+          executionPurpose: this.executionPurpose,
+          requireFrozenBaseSha: this.requireFrozenBaseSha,
+        }),
       },
     );
 
@@ -123,6 +129,13 @@ export class SupervisorClient {
         : 'IMPLEMENTATION';
     if (purpose !== this.executionPurpose) {
       throw new Error('supervisor_claim_purpose_mismatch');
+    }
+    if (
+      this.requireFrozenBaseSha &&
+      (typeof assignment.frozenBaseSha !== 'string' ||
+        !/^[0-9a-f]{40}$/i.test(assignment.frozenBaseSha))
+    ) {
+      throw new Error('supervisor_claim_frozen_base_mismatch');
     }
     const plane =
       purpose === 'INDEPENDENT_VERIFICATION' ? 'verifier' : 'worker';
