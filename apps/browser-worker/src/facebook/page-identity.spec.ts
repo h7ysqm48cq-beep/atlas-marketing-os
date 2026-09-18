@@ -343,3 +343,78 @@ test("does not restore verified identity checks already on facebook.com", () => 
     false,
   );
 });
+
+
+test("rechecks Page actor identity after restoring the publishing target", async () => {
+  const targetPageId = "1292937667230187";
+  const currentActorProfileId = "61592884960509";
+  let clicks = 0;
+
+  const preRestore = await ensureFacebookPageIdentitySwitch({
+    inspectState: async () => ({
+      bodyText:
+        `Inbox asset_id=${targetPageId} Meta Business Suite`,
+      hasVisibleSwitchAction: false,
+    }),
+    clickSwitchAction: async () => {
+      clicks += 1;
+      return true;
+    },
+    waitForSettled: async () => undefined,
+  });
+
+  assert.equal(preRestore.verified, true);
+  assert.equal(preRestore.required, false);
+  assert.equal(preRestore.reason, "NOT_REQUIRED");
+  assert.equal(clicks, 0);
+
+  let restoredState = 0;
+  const restoredStates = [
+    {
+      bodyText:
+        `Manage Page M Story Switch into M Story's Page to take more actions Switch profile=${currentActorProfileId}`,
+      hasVisibleSwitchAction: true,
+    },
+    {
+      bodyText:
+        `Manage Page M Story Create post actor=M Story target=${targetPageId}`,
+      hasVisibleSwitchAction: false,
+    },
+  ];
+
+  const postRestore =
+    await ensureFacebookPageIdentitySwitch({
+      inspectState: async () =>
+        restoredStates[restoredState],
+      clickSwitchAction: async () => {
+        clicks += 1;
+        return true;
+      },
+      waitForSettled: async () => {
+        restoredState += 1;
+      },
+    });
+
+  assert.equal(postRestore.verified, true);
+  assert.equal(postRestore.required, true);
+  assert.equal(postRestore.reason, "VERIFIED");
+  assert.equal(postRestore.targetPageName, "M Story");
+  assert.equal(clicks, 1);
+});
+
+test("fails closed when the restored Page actor switch control is absent", async () => {
+  const result =
+    await ensureFacebookPageIdentitySwitch({
+      inspectState: async () => ({
+        bodyText:
+          "Manage Page M Story Switch into M Story's Page to take more actions",
+        hasVisibleSwitchAction: false,
+      }),
+      clickSwitchAction: async () => false,
+      waitForSettled: async () => undefined,
+    });
+
+  assert.equal(result.verified, false);
+  assert.equal(result.required, true);
+  assert.equal(result.reason, "ACTION_NOT_FOUND");
+});
