@@ -654,7 +654,11 @@ function sameDeploymentCandidate(
 
 export function findEligibleBrowserWorkerDeploymentCandidate(
   tasks: unknown[],
+  exactTaskId?: string,
 ): { task: JsonRecord; candidate: DeploymentCandidate } {
+  const normalizedTaskId =
+    exactTaskId?.trim() || null;
+
   const candidates = tasks.flatMap((value) => {
     const task = asRecord(value);
     const evidence = asRecord(task?.evidence);
@@ -666,6 +670,8 @@ export function findEligibleBrowserWorkerDeploymentCandidate(
       !task ||
       !hasString(task.status, "APPROVED") ||
       typeof task.id !== "string" ||
+      (normalizedTaskId !== null &&
+        task.id !== normalizedTaskId) ||
       !candidate ||
       !hasPathPrefixInArray(
         candidate.changedFiles,
@@ -680,7 +686,11 @@ export function findEligibleBrowserWorkerDeploymentCandidate(
 
   if (candidates.length === 0) {
     throw new Error(
-      "No approved browser-worker production deployment candidate was found.",
+      normalizedTaskId
+        ? "No approved browser-worker production deployment candidate was found for task " +
+          normalizedTaskId +
+          "."
+        : "No approved browser-worker production deployment candidate was found.",
     );
   }
 
@@ -695,6 +705,7 @@ export function findEligibleBrowserWorkerDeploymentCandidate(
 
 export async function authorizeEligibleBrowserWorkerDeployment(
   fetchImpl: FetchLike = fetch,
+  exactTaskId?: string,
 ): Promise<SupervisorAdmissionResult> {
   const listed = await getSupervisor(
     "list Supervisor tasks",
@@ -712,7 +723,10 @@ export async function authorizeEligibleBrowserWorkerDeployment(
   }
 
   const { task, candidate } =
-    findEligibleBrowserWorkerDeploymentCandidate(tasks);
+    findEligibleBrowserWorkerDeploymentCandidate(
+      tasks,
+      exactTaskId,
+    );
   const taskId = requireStringField(
     task,
     "id",
@@ -947,6 +961,8 @@ export function SupervisorOwnerPanel() {
     useState<SupervisorAdmissionResult | null>(null);
   const [deploymentAuthorization, setDeploymentAuthorization] =
     useState<SupervisorAdmissionResult | null>(null);
+  const [deploymentTaskId, setDeploymentTaskId] =
+    useState("");
 
   const scopeCount = useMemo(
     () =>
@@ -1068,7 +1084,10 @@ export function SupervisorOwnerPanel() {
 
     try {
       setDeploymentAuthorization(
-        await authorizeEligibleBrowserWorkerDeployment(),
+        await authorizeEligibleBrowserWorkerDeployment(
+          fetch,
+          deploymentTaskId,
+        ),
       );
     } catch (caught) {
       setError(
@@ -1205,6 +1224,25 @@ export function SupervisorOwnerPanel() {
             placeholder="Exact acceptance conditions"
             disabled={busy}
           />
+        </label>
+
+        <label style={labelStyle}>
+          Browser-worker deployment task ID — optional
+          <input
+            value={deploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Set this when historical APPROVED deployment candidates exist.
+            Authorization fails closed unless this exact task is eligible.
+          </span>
         </label>
 
         <div
