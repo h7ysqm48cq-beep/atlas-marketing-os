@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { execFile } from 'node:child_process';
 import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
@@ -50,35 +51,122 @@ export interface CandidatePublicationRequest {
 
 export interface CandidatePublisherOptions {
   remote: string;
+  publisherToken?: string;
   environment?: NodeJS.ProcessEnv;
+}
+
+const CANONICAL_CANDIDATE_REMOTE =
+  'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+
+function dangerousTransportConfig(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  return (
+    normalized.startsWith('credential.') ||
+    normalized.startsWith('http.') ||
+    normalized.startsWith('https.') ||
+    normalized.startsWith('include.') ||
+    normalized.startsWith('includeif.') ||
+    normalized === 'core.sshcommand' ||
+    normalized === 'core.gitproxy' ||
+    normalized.startsWith('protocol.') ||
+    (normalized.startsWith('url.') &&
+      (normalized.endsWith('.insteadof') ||
+        normalized.endsWith('.pushinsteadof')))
+  );
 }
 
 export class CandidatePublisher {
   private readonly remote: string;
+  private readonly publisherToken?: string;
   private readonly environment: NodeJS.ProcessEnv;
 
   constructor(options: CandidatePublisherOptions) {
     this.remote = options.remote;
+    this.publisherToken = options.publisherToken?.trim() || undefined;
+
+    const remoteLooksNetworked = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.remote);
+    if (remoteLooksNetworked) {
+      if (this.remote !== CANONICAL_CANDIDATE_REMOTE) {
+        throw new Error('candidate_publication_remote_not_canonical');
+      }
+      if (!this.publisherToken) {
+        throw new Error('candidate_publication_publisher_token_required');
+      }
+    }
+
     const source = options.environment ?? process.env;
-    this.environment = Object.fromEntries(
-      ['PATH', 'HOME', 'TMPDIR'].flatMap((key) =>
-        source[key] === undefined ? [] : [[key, source[key]]],
+    this.environment = {
+      ...Object.fromEntries(
+        ['PATH', 'TMPDIR'].flatMap((key) =>
+          source[key] === undefined ? [] : [[key, source[key]]],
+        ),
       ),
-    );
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_TERMINAL_PROMPT: '0',
+      GCM_INTERACTIVE: 'never',
+    };
   }
 
-  private async gitRaw(cwd: string, args: string[]): Promise<string> {
-    const { stdout } = await execFileAsync('git', args, {
+  private gitEnvironment(transport = false): NodeJS.ProcessEnv {
+    if (!transport || !this.publisherToken) {
+      return { ...this.environment };
+    }
+
+    const authorization = Buffer.from(
+      `x-access-token:${this.publisherToken}`,
+      'utf8',
+    ).toString('base64');
+
+    return {
+      ...this.environment,
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'http.extraHeader',
+      GIT_CONFIG_VALUE_0: `Authorization: Basic ${authorization}`,
+    };
+  }
+
+  private async gitRaw(
+    cwd: string,
+    args: string[],
+    transport = false,
+  ): Promise<string> {
+    const safeArgs = [
+      '-c',
+      'core.hooksPath=/dev/null',
+      '-c',
+      'credential.helper=',
+      ...args,
+    ];
+    const { stdout } = await execFileAsync('git', safeArgs, {
       cwd,
       encoding: 'utf8',
       maxBuffer: 4 * 1024 * 1024,
-      env: this.environment,
+      env: this.gitEnvironment(transport),
     });
     return stdout;
   }
 
-  private async git(cwd: string, args: string[]): Promise<string> {
-    return (await this.gitRaw(cwd, args)).trim();
+  private async git(
+    cwd: string,
+    args: string[],
+    transport = false,
+  ): Promise<string> {
+    return (await this.gitRaw(cwd, args, transport)).trim();
+  }
+
+  private async assertTransportConfigSafe(cwd: string): Promise<void> {
+    const raw = await this.gitRaw(cwd, [
+      'config',
+      '--local',
+      '--list',
+      '--name-only',
+      '-z',
+    ]);
+    const unsafe = raw.split('\0').filter(Boolean).find(dangerousTransportConfig);
+    if (unsafe) {
+      throw new Error('candidate_publication_transport_config_unsafe');
+    }
   }
 
   async publish(
@@ -169,28 +257,41 @@ export class CandidatePublisher {
     const candidateBranch =
       `atlas/candidate/${request.taskId}/${request.executionId}`;
     const remoteRef = `refs/heads/${candidateBranch}`;
-    const existingRemoteRef = await this.git(request.workspace, [
-      'ls-remote',
-      '--heads',
-      this.remote,
-      remoteRef,
-    ]);
+    await this.assertTransportConfigSafe(request.workspace);
+    const existingRemoteRef = await this.git(
+      request.workspace,
+      [
+        'ls-remote',
+        '--heads',
+        this.remote,
+        remoteRef,
+      ],
+      true,
+    );
     if (existingRemoteRef) {
       throw new Error('candidate_publication_remote_branch_exists');
     }
 
-    await this.git(request.workspace, [
-      'push',
-      this.remote,
-      `${candidateHead}:${remoteRef}`,
-    ]);
+    await this.git(
+      request.workspace,
+      [
+        'push',
+        this.remote,
+        `${candidateHead}:${remoteRef}`,
+      ],
+      true,
+    );
 
-    const verifiedRemoteRef = await this.git(request.workspace, [
-      'ls-remote',
-      '--heads',
-      this.remote,
-      remoteRef,
-    ]);
+    const verifiedRemoteRef = await this.git(
+      request.workspace,
+      [
+        'ls-remote',
+        '--heads',
+        this.remote,
+        remoteRef,
+      ],
+      true,
+    );
     const remoteHeadSha = verifiedRemoteRef.split(/\s+/)[0]?.toLowerCase() ?? '';
     if (remoteHeadSha !== candidateHead) {
       throw new Error('candidate_publication_remote_sha_mismatch');

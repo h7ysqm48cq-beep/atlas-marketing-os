@@ -2,6 +2,7 @@ export interface EngineeringRunnerCandidateConfig {
   repositoryRoot: string;
   workspaceRoot: string;
   remote: string;
+  publisherToken: string;
 }
 
 export interface EngineeringRunnerConfig {
@@ -50,20 +51,28 @@ function stringArray(raw: string | undefined): string[] {
 }
 
 
+const CANONICAL_CANDIDATE_REMOTE =
+  'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+
 function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConfig | undefined {
   const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
   const workspaceRoot = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
   const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
-  const values = [repositoryRoot, workspaceRoot, remote];
+  const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
+  const values = [repositoryRoot, workspaceRoot, remote, publisherToken];
   const configured = values.filter(Boolean).length;
   if (configured === 0) return undefined;
   if (configured !== values.length) {
     throw new Error('runner_candidate_config_incomplete');
   }
+  if (remote !== CANONICAL_CANDIDATE_REMOTE) {
+    throw new Error('runner_candidate_remote_not_canonical');
+  }
   return {
     repositoryRoot: repositoryRoot!,
     workspaceRoot: workspaceRoot!,
     remote: remote!,
+    publisherToken: publisherToken!,
   };
 }
 

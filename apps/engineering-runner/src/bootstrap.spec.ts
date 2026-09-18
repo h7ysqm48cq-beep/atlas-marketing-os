@@ -11,7 +11,12 @@ test('candidate config wires isolated workspace, publisher, and cwd-bound execut
     supervisorApiUrl: 'https://example.invalid', bootstrapToken: 'bootstrap',
     command: 'python3', args: [], workspace: '/legacy',
     pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
-    candidate: { repositoryRoot: '/repo', workspaceRoot: '/workspaces', remote: 'origin' },
+    candidate: {
+      repositoryRoot: '/repo',
+      workspaceRoot: '/workspaces',
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherToken: 'publisher-token',
+    },
   };
   const options = createOptions(config, { PATH: '/usr/bin', HOME: '/tmp' });
   assert.ok(options.candidateWorkspaceManager);

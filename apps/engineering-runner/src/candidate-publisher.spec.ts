@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, rm, symlink, unlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -100,6 +100,103 @@ test('CandidatePublisher publishes one exact remote-verified candidate branch', 
   }
 });
 
+
+test('CandidatePublisher requires the canonical GitHub remote and a dedicated publisher token for network transport', async () => {
+  const { CandidatePublisher } = await import('./candidate-publisher.ts');
+  assert.throws(
+    () => new CandidatePublisher({
+      remote: 'https://github.com/example/other.git',
+      publisherToken: 'publisher-token',
+    }),
+    /candidate_publication_remote_not_canonical/,
+  );
+  assert.throws(
+    () => new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+    }),
+    /candidate_publication_publisher_token_required/,
+  );
+  assert.doesNotThrow(
+    () => new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherToken: 'publisher-token',
+    }),
+  );
+});
+
+test('CandidatePublisher strips ambient credential authority and exposes the publisher token only to transport Git', async () => {
+  const { CandidatePublisher } = await import('./candidate-publisher.ts');
+  const publisher = new CandidatePublisher({
+    remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+    publisherToken: 'publisher-secret',
+    environment: {
+      PATH: '/usr/bin',
+      HOME: '/sensitive/home',
+      SSH_AUTH_SOCK: '/tmp/ssh-agent',
+      ATLAS_SUPERVISOR_OWNER_TOKEN: 'owner-secret',
+      ATLAS_SUPERVISOR_CI_TOKEN: 'ci-secret',
+    },
+  }) as any;
+
+  const baseEnv = publisher.gitEnvironment(false);
+  assert.equal(baseEnv.HOME, undefined);
+  assert.equal(baseEnv.SSH_AUTH_SOCK, undefined);
+  assert.equal(baseEnv.ATLAS_SUPERVISOR_OWNER_TOKEN, undefined);
+  assert.equal(baseEnv.ATLAS_SUPERVISOR_CI_TOKEN, undefined);
+  assert.equal(JSON.stringify(baseEnv).includes('publisher-secret'), false);
+
+  const transportEnv = publisher.gitEnvironment(true);
+  assert.equal(transportEnv.HOME, undefined);
+  assert.equal(transportEnv.SSH_AUTH_SOCK, undefined);
+  assert.equal(transportEnv.GIT_TERMINAL_PROMPT, '0');
+  assert.equal(transportEnv.GIT_CONFIG_KEY_0, 'http.extraHeader');
+  assert.equal(
+    Buffer.from(
+      transportEnv.GIT_CONFIG_VALUE_0.replace('Authorization: Basic ', ''),
+      'base64',
+    ).toString('utf8'),
+    'x-access-token:publisher-secret',
+  );
+});
+
+test('CandidatePublisher rejects repository-local transport rewrites before any remote operation', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-config-'));
+  try {
+    const { remote, head, lease } = await fixture(root);
+    await git(lease.path, [
+      'config',
+      'url.https://evil.invalid/.insteadOf',
+      'https://github.com/',
+    ]);
+    await writeFile(path.join(lease.path, 'allowed.txt'), 'changed\n');
+    const { CandidatePublisher } = await import('./candidate-publisher.ts');
+    const publisher = new CandidatePublisher({ remote });
+
+    await assert.rejects(
+      () => publisher.publish({
+        taskId: 'ATLAS-task-config',
+        executionId: 'ATLAS-EXEC-config',
+        executionPurpose: 'IMPLEMENTATION',
+        workspace: lease.path,
+        frozenBaseSha: head,
+        targetBranch: 'production/atlas',
+        changedFiles: ['allowed.txt'],
+      }),
+      /candidate_publication_transport_config_unsafe/,
+    );
+
+    const remoteRef = await git(lease.path, [
+      'ls-remote',
+      '--heads',
+      remote,
+      'refs/heads/atlas/candidate/ATLAS-task-config/ATLAS-EXEC-config',
+    ]);
+    assert.equal(remoteRef, '');
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test('CandidatePublisher rejects an extra tracked change before commit', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-'));
@@ -425,7 +522,7 @@ test('CandidatePublisher rejects a candidate commit whose parents are not exactl
   }
 });
 
-test('CandidatePublisher rejects post-commit diff expansion introduced by a commit hook', async () => {
+test('CandidatePublisher suppresses commit hooks before creating the candidate', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-'));
   try {
     const { remote, head, lease } = await fixture(root);
@@ -439,20 +536,21 @@ test('CandidatePublisher rejects post-commit diff expansion introduced by a comm
     const { CandidatePublisher } = await import('./candidate-publisher.ts');
     const publisher = new CandidatePublisher({ remote });
 
-    await assert.rejects(
-      () => publisher.publish({
-        taskId: 'ATLAS-task-12', executionId: 'ATLAS-EXEC-exec-12',
-        executionPurpose: 'IMPLEMENTATION', workspace: lease.path,
-        frozenBaseSha: head, targetBranch: 'production/atlas',
-        changedFiles: ['allowed.txt'],
-      }),
-      /candidate_publication_diff_mismatch/,
+    const receipt = await publisher.publish({
+      taskId: 'ATLAS-task-12', executionId: 'ATLAS-EXEC-exec-12',
+      executionPurpose: 'IMPLEMENTATION', workspace: lease.path,
+      frozenBaseSha: head, targetBranch: 'production/atlas',
+      changedFiles: ['allowed.txt'],
+    });
+    assert.equal(receipt.remoteVerified, true);
+    assert.equal(
+      await readFile(path.join(lease.path, 'other.txt'), 'utf8'),
+      'other-base\n',
     );
-    const remoteRef = await git(lease.path, [
-      'ls-remote', '--heads', remote,
-      'refs/heads/atlas/candidate/ATLAS-task-12/ATLAS-EXEC-exec-12',
-    ]);
-    assert.equal(remoteRef, '');
+    assert.equal(
+      await git(lease.path, ['diff', '--name-only', `${head}..${receipt.headSha}`]),
+      'allowed.txt',
+    );
     await lease.cleanup();
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -483,7 +581,7 @@ test('CandidatePublisher rejects unsafe task or execution ids before committing'
   }
 });
 
-test('CandidatePublisher rejects a staged-file mismatch immediately after exact git add', async () => {
+test('CandidatePublisher suppresses post-index-change hooks during exact staging', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-'));
   try {
     const { remote, head, lease } = await fixture(root);
@@ -501,16 +599,18 @@ test('CandidatePublisher rejects a staged-file mismatch immediately after exact 
     const { CandidatePublisher } = await import('./candidate-publisher.ts');
     const publisher = new CandidatePublisher({ remote });
 
-    await assert.rejects(
-      () => publisher.publish({
-        taskId: 'ATLAS-task-14', executionId: 'ATLAS-EXEC-exec-14',
-        executionPurpose: 'IMPLEMENTATION', workspace: lease.path,
-        frozenBaseSha: head, targetBranch: 'production/atlas',
-        changedFiles: ['allowed.txt'],
-      }),
-      /candidate_publication_staged_files_mismatch/,
+    const receipt = await publisher.publish({
+      taskId: 'ATLAS-task-14', executionId: 'ATLAS-EXEC-exec-14',
+      executionPurpose: 'IMPLEMENTATION', workspace: lease.path,
+      frozenBaseSha: head, targetBranch: 'production/atlas',
+      changedFiles: ['allowed.txt'],
+    });
+    assert.equal(receipt.remoteVerified, true);
+    assert.equal(
+      await readFile(path.join(lease.path, 'other.txt'), 'utf8'),
+      'other-base\n',
     );
-    assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), head);
+    await assert.rejects(() => readFile(guard, 'utf8'), /ENOENT/);
     await lease.cleanup();
   } finally {
     await rm(root, { recursive: true, force: true });
