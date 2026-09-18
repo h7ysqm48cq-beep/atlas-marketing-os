@@ -1,38 +1,37 @@
-import { Buffer } from 'node:buffer';
-import { execFile } from 'node:child_process';
-import { lstat, mkdir } from 'node:fs/promises';
-import path from 'node:path';
-import { promisify } from 'node:util';
+import { Buffer } from "node:buffer";
+import { execFile } from "node:child_process";
+import { lstat, mkdir } from "node:fs/promises";
+import path from "node:path";
+import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const CANONICAL_CANDIDATE_REMOTE =
-  'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
-const PRODUCTION_SOURCE_REF = 'refs/atlas/source/production';
+  "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
+const PRODUCTION_SOURCE_REF = "refs/atlas/source/production";
 
 function dangerousTransportConfig(key: string): boolean {
   const value = key.trim().toLowerCase();
   return (
-    value.startsWith('credential.') ||
-    value.startsWith('http.') ||
-    value.startsWith('https.') ||
-    value.startsWith('include.') ||
-    value.startsWith('includeif.') ||
-    value.startsWith('filter.') ||
-    value === 'core.sshcommand' ||
-    value === 'core.gitproxy' ||
-    value === 'core.fsmonitor' ||
-    value === 'core.attributesfile' ||
-    value === 'core.excludesfile' ||
-    value === 'diff.external' ||
-    (value.startsWith('diff.') && value.endsWith('.command')) ||
-    (value.startsWith('merge.') && value.endsWith('.driver')) ||
-    value === 'gpg.program' ||
-    value === 'commit.gpgsign' ||
-    value.startsWith('protocol.') ||
-    (value.startsWith('url.') &&
-      (value.endsWith('.insteadof') ||
-        value.endsWith('.pushinsteadof')))
+    value.startsWith("credential.") ||
+    value.startsWith("http.") ||
+    value.startsWith("https.") ||
+    value.startsWith("include.") ||
+    value.startsWith("includeif.") ||
+    value.startsWith("filter.") ||
+    value === "core.sshcommand" ||
+    value === "core.gitproxy" ||
+    value === "core.fsmonitor" ||
+    value === "core.attributesfile" ||
+    value === "core.excludesfile" ||
+    value === "diff.external" ||
+    (value.startsWith("diff.") && value.endsWith(".command")) ||
+    (value.startsWith("merge.") && value.endsWith(".driver")) ||
+    value === "gpg.program" ||
+    value === "commit.gpgsign" ||
+    value.startsWith("protocol.") ||
+    (value.startsWith("url.") &&
+      (value.endsWith(".insteadof") || value.endsWith(".pushinsteadof")))
   );
 }
 export interface CandidateSourceRepositoryOptions {
@@ -55,23 +54,19 @@ export class CandidateSourceRepository {
 
     const networked = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.remote);
     if (networked && this.remote !== CANONICAL_CANDIDATE_REMOTE) {
-      throw new Error('candidate_source_remote_not_canonical');
+      throw new Error("candidate_source_remote_not_canonical");
     }
-    if (networked && !this.sourceToken) {
-      throw new Error('candidate_source_token_required');
-    }
-
     const source = options.environment ?? process.env;
     this.environment = {
       ...Object.fromEntries(
-        ['PATH', 'TMPDIR'].flatMap((key) =>
+        ["PATH", "TMPDIR"].flatMap((key) =>
           source[key] === undefined ? [] : [[key, source[key]]],
         ),
       ),
-      GIT_CONFIG_NOSYSTEM: '1',
-      GIT_CONFIG_GLOBAL: '/dev/null',
-      GIT_TERMINAL_PROMPT: '0',
-      GCM_INTERACTIVE: 'never',
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_TERMINAL_PROMPT: "0",
+      GCM_INTERACTIVE: "never",
     };
   }
 
@@ -81,12 +76,12 @@ export class CandidateSourceRepository {
     }
     const authorization = Buffer.from(
       `x-access-token:${this.sourceToken}`,
-      'utf8',
-    ).toString('base64');
+      "utf8",
+    ).toString("base64");
     return {
       ...this.environment,
-      GIT_CONFIG_COUNT: '1',
-      GIT_CONFIG_KEY_0: 'http.extraHeader',
+      GIT_CONFIG_COUNT: "1",
+      GIT_CONFIG_KEY_0: "http.extraHeader",
       GIT_CONFIG_VALUE_0: `Authorization: Basic ${authorization}`,
     };
   }
@@ -96,15 +91,15 @@ export class CandidateSourceRepository {
     transport = false,
   ): Promise<string> {
     const safeArgs = [
-      '-c',
-      'core.hooksPath=/dev/null',
-      '-c',
-      'credential.helper=',
+      "-c",
+      "core.hooksPath=/dev/null",
+      "-c",
+      "credential.helper=",
       ...args,
     ];
-    const { stdout } = await execFileAsync('git', safeArgs, {
+    const { stdout } = await execFileAsync("git", safeArgs, {
       cwd,
-      encoding: 'utf8',
+      encoding: "utf8",
       maxBuffer: 4 * 1024 * 1024,
       env: this.gitEnvironment(transport),
     });
@@ -115,40 +110,40 @@ export class CandidateSourceRepository {
     try {
       await lstat(this.repositoryRoot);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+      if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;
       await mkdir(path.dirname(this.repositoryRoot), { recursive: true });
       await this.gitRaw(path.dirname(this.repositoryRoot), [
-        'init',
-        '--bare',
+        "init",
+        "--bare",
         this.repositoryRoot,
       ]);
     }
-    let isBare = '';
+    let isBare = "";
     try {
       isBare = (
         await this.gitRaw(this.repositoryRoot, [
-          'rev-parse',
-          '--is-bare-repository',
+          "rev-parse",
+          "--is-bare-repository",
         ])
       ).trim();
     } catch {
-      throw new Error('candidate_source_repository_invalid');
+      throw new Error("candidate_source_repository_invalid");
     }
-    if (isBare !== 'true') {
-      throw new Error('candidate_source_repository_not_bare');
+    if (isBare !== "true") {
+      throw new Error("candidate_source_repository_not_bare");
     }
   }
 
   private async assertTransportConfigSafe(): Promise<void> {
     const raw = await this.gitRaw(this.repositoryRoot, [
-      'config',
-      '--local',
-      '--list',
-      '--name-only',
-      '-z',
+      "config",
+      "--local",
+      "--list",
+      "--name-only",
+      "-z",
     ]);
-    if (raw.split('\0').filter(Boolean).some(dangerousTransportConfig)) {
-      throw new Error('candidate_source_transport_config_unsafe');
+    if (raw.split("\0").filter(Boolean).some(dangerousTransportConfig)) {
+      throw new Error("candidate_source_transport_config_unsafe");
     }
   }
   async refresh(): Promise<void> {
@@ -157,9 +152,9 @@ export class CandidateSourceRepository {
     await this.gitRaw(
       this.repositoryRoot,
       [
-        'fetch',
-        '--no-tags',
-        '--no-recurse-submodules',
+        "fetch",
+        "--no-tags",
+        "--no-recurse-submodules",
         this.remote,
         `refs/heads/production/atlas:${PRODUCTION_SOURCE_REF}`,
       ],
@@ -170,7 +165,7 @@ export class CandidateSourceRepository {
   async ensureBase(frozenBaseSha: string): Promise<void> {
     const baseSha = frozenBaseSha.trim().toLowerCase();
     if (!FULL_GIT_SHA.test(baseSha)) {
-      throw new Error('candidate_source_base_invalid');
+      throw new Error("candidate_source_base_invalid");
     }
 
     await this.refresh();
@@ -178,24 +173,26 @@ export class CandidateSourceRepository {
     try {
       const resolved = (
         await this.gitRaw(this.repositoryRoot, [
-          'rev-parse',
-          '--verify',
+          "rev-parse",
+          "--verify",
           `${baseSha}^{commit}`,
         ])
-      ).trim().toLowerCase();
-      if (resolved !== baseSha) throw new Error('mismatch');
+      )
+        .trim()
+        .toLowerCase();
+      if (resolved !== baseSha) throw new Error("mismatch");
     } catch {
-      throw new Error('candidate_source_base_unavailable');
+      throw new Error("candidate_source_base_unavailable");
     }
     try {
       await this.gitRaw(this.repositoryRoot, [
-        'merge-base',
-        '--is-ancestor',
+        "merge-base",
+        "--is-ancestor",
         baseSha,
         PRODUCTION_SOURCE_REF,
       ]);
     } catch {
-      throw new Error('candidate_source_base_not_production_ancestor');
+      throw new Error("candidate_source_base_not_production_ancestor");
     }
   }
 }

@@ -2,7 +2,7 @@ export interface EngineeringRunnerCandidateConfig {
   repositoryRoot: string;
   workspaceRoot: string;
   remote: string;
-  sourceToken: string;
+  sourceToken?: string;
   publisherToken: string;
 }
 
@@ -43,38 +43,48 @@ function stringArray(raw: string | undefined): string[] {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS');
+    throw new Error("runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS");
   }
-  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
-    throw new Error('runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS');
+  if (
+    !Array.isArray(parsed) ||
+    !parsed.every((item) => typeof item === "string")
+  ) {
+    throw new Error("runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS");
   }
   return parsed;
 }
 
-
 const CANONICAL_CANDIDATE_REMOTE =
-  'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+  "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
 
-function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConfig | undefined {
+function candidateConfig(
+  env: NodeJS.ProcessEnv,
+): EngineeringRunnerCandidateConfig | undefined {
   const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
-  const workspaceRoot = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
+  const workspaceRoot =
+    env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
   const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
   const sourceToken = env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN?.trim();
   const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
-  const values = [repositoryRoot, workspaceRoot, remote, sourceToken, publisherToken];
-  const configured = values.filter(Boolean).length;
-  if (configured === 0) return undefined;
-  if (configured !== values.length) {
-    throw new Error('runner_candidate_config_incomplete');
+  const requiredValues = [
+    repositoryRoot,
+    workspaceRoot,
+    remote,
+    publisherToken,
+  ];
+  const configured = requiredValues.filter(Boolean).length;
+  if (configured === 0 && !sourceToken) return undefined;
+  if (configured !== requiredValues.length) {
+    throw new Error("runner_candidate_config_incomplete");
   }
   if (remote !== CANONICAL_CANDIDATE_REMOTE) {
-    throw new Error('runner_candidate_remote_not_canonical');
+    throw new Error("runner_candidate_remote_not_canonical");
   }
   return {
     repositoryRoot: repositoryRoot!,
     workspaceRoot: workspaceRoot!,
     remote: remote!,
-    sourceToken: sourceToken!,
+    ...(sourceToken ? { sourceToken } : {}),
     publisherToken: publisherToken!,
   };
 }
@@ -84,34 +94,33 @@ export function loadEngineeringRunnerConfig(
 ): EngineeringRunnerConfig {
   const bootstrapToken = required(
     env,
-    'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN',
+    "ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN",
   );
   const candidate = candidateConfig(env);
-  if (
-    candidate &&
-    new Set([
+  if (candidate) {
+    const credentials = [
       bootstrapToken,
-      candidate.sourceToken,
       candidate.publisherToken,
-    ]).size !== 3
-  ) {
-    throw new Error('runner_candidate_credentials_not_separated');
+      ...(candidate.sourceToken ? [candidate.sourceToken] : []),
+    ];
+    if (new Set(credentials).size !== credentials.length) {
+      throw new Error("runner_candidate_credentials_not_separated");
+    }
   }
   return {
-    supervisorApiUrl: required(env, 'ATLAS_SUPERVISOR_API_URL'),
+    supervisorApiUrl: required(env, "ATLAS_SUPERVISOR_API_URL"),
     bootstrapToken,
-    command: required(env, 'ATLAS_ENGINEERING_RUNNER_COMMAND'),
+    command: required(env, "ATLAS_ENGINEERING_RUNNER_COMMAND"),
     args: stringArray(env.ATLAS_ENGINEERING_RUNNER_ARGS),
-    workspace:
-      env.ATLAS_ENGINEERING_RUNNER_WORKSPACE?.trim() || process.cwd(),
+    workspace: env.ATLAS_ENGINEERING_RUNNER_WORKSPACE?.trim() || process.cwd(),
     pollIntervalMs: positiveInteger(
       env,
-      'ATLAS_ENGINEERING_RUNNER_POLL_INTERVAL_MS',
+      "ATLAS_ENGINEERING_RUNNER_POLL_INTERVAL_MS",
       5_000,
     ),
     heartbeatIntervalMs: positiveInteger(
       env,
-      'ATLAS_ENGINEERING_RUNNER_HEARTBEAT_INTERVAL_MS',
+      "ATLAS_ENGINEERING_RUNNER_HEARTBEAT_INTERVAL_MS",
       20_000,
     ),
     ...(candidate ? { candidate } : {}),
