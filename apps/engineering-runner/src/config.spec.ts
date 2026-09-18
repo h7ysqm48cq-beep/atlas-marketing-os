@@ -50,6 +50,23 @@ test("candidate publication config supports SSH deploy-key publisher auth", () =
   );
 });
 
+test("candidate publication config supports persistent SSH publisher key path", () => {
+  const env = baseEnv();
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = "/repo";
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = "/workspaces";
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
+    "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
+  env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH =
+    "/data/publisher/id_ed25519";
+  const config = loadEngineeringRunnerConfig(env) as any;
+  assert.equal(config.candidate.publisherToken, undefined);
+  assert.equal(config.candidate.publisherSshPrivateKey, undefined);
+  assert.equal(
+    config.candidate.publisherSshPrivateKeyPath,
+    "/data/publisher/id_ed25519",
+  );
+});
+
 test("candidate publication config rejects missing or ambiguous publisher auth", () => {
   const base = baseEnv();
   base.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = "/repo";
@@ -69,6 +86,17 @@ test("candidate publication config rejects missing or ambiguous publisher auth",
         ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN: "publisher-token",
         ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY:
           "-----BEGIN OPENSSH PRIVATE KEY-----\ndummy\n-----END OPENSSH PRIVATE KEY-----",
+      }),
+    /runner_candidate_publisher_auth_invalid/,
+  );
+
+  assert.throws(
+    () =>
+      loadEngineeringRunnerConfig({
+        ...base,
+        ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN: "publisher-token",
+        ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH:
+          "/data/publisher/id_ed25519",
       }),
     /runner_candidate_publisher_auth_invalid/,
   );

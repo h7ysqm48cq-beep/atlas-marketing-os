@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process';
 import {
   chmod,
   lstat,
+  mkdir,
   mkdtemp,
   realpath,
   rm,
@@ -61,6 +62,7 @@ export interface CandidatePublisherOptions {
   remote: string;
   publisherToken?: string;
   publisherSshPrivateKey?: string;
+  publisherSshPrivateKeyPath?: string;
   environment?: NodeJS.ProcessEnv;
 }
 
@@ -102,6 +104,7 @@ export class CandidatePublisher {
   private readonly transportRemote: string;
   private readonly publisherToken?: string;
   private readonly publisherSshPrivateKey?: string;
+  private readonly publisherSshPrivateKeyPath?: string;
   private readonly environment: NodeJS.ProcessEnv;
 
   constructor(options: CandidatePublisherOptions) {
@@ -109,13 +112,20 @@ export class CandidatePublisher {
     this.publisherToken = options.publisherToken?.trim() || undefined;
     this.publisherSshPrivateKey =
       options.publisherSshPrivateKey?.trim() || undefined;
+    this.publisherSshPrivateKeyPath =
+      options.publisherSshPrivateKeyPath?.trim() || undefined;
 
     const remoteLooksNetworked = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.remote);
     if (remoteLooksNetworked) {
       if (this.remote !== CANONICAL_CANDIDATE_REMOTE) {
         throw new Error('candidate_publication_remote_not_canonical');
       }
-      if (Boolean(this.publisherToken) === Boolean(this.publisherSshPrivateKey)) {
+      const authModes = [
+        this.publisherToken,
+        this.publisherSshPrivateKey,
+        this.publisherSshPrivateKeyPath,
+      ].filter(Boolean).length;
+      if (authModes !== 1) {
         throw new Error('candidate_publication_publisher_auth_invalid');
       }
       if (
@@ -126,10 +136,17 @@ export class CandidatePublisher {
       ) {
         throw new Error('candidate_publication_ssh_key_invalid');
       }
+      if (
+        this.publisherSshPrivateKeyPath &&
+        !path.isAbsolute(this.publisherSshPrivateKeyPath)
+      ) {
+        throw new Error('candidate_publication_ssh_key_path_invalid');
+      }
     }
-    this.transportRemote = this.publisherSshPrivateKey
-      ? CANONICAL_CANDIDATE_SSH_REMOTE
-      : this.remote;
+    this.transportRemote =
+      this.publisherSshPrivateKey || this.publisherSshPrivateKeyPath
+        ? CANONICAL_CANDIDATE_SSH_REMOTE
+        : this.remote;
 
     const source = options.environment ?? process.env;
     this.environment = {
@@ -167,7 +184,7 @@ export class CandidatePublisher {
     environment: NodeJS.ProcessEnv;
     cleanup: () => Promise<void>;
   }> {
-    if (!this.publisherSshPrivateKey) {
+    if (!this.publisherSshPrivateKey && !this.publisherSshPrivateKeyPath) {
       return {
         environment: { ...this.environment },
         cleanup: async () => undefined,
@@ -178,11 +195,19 @@ export class CandidatePublisher {
       path.join(this.environment.TMPDIR || tmpdir(), 'atlas-publisher-ssh-'),
     );
     await chmod(root, 0o700);
-    const keyPath = path.join(root, 'publisher_key');
+    const keyPath =
+      this.publisherSshPrivateKeyPath ?? path.join(root, 'publisher_key');
     const knownHostsPath = path.join(root, 'known_hosts');
-    await writeFile(keyPath, `${this.publisherSshPrivateKey}\n`, {
-      mode: 0o600,
-    });
+    if (this.publisherSshPrivateKey) {
+      await writeFile(keyPath, `${this.publisherSshPrivateKey}\n`, {
+        mode: 0o600,
+      });
+    } else {
+      const keyStat = await lstat(keyPath);
+      if (!keyStat.isFile() || keyStat.isSymbolicLink()) {
+        throw new Error('candidate_publication_ssh_key_path_invalid');
+      }
+    }
     await writeFile(knownHostsPath, GITHUB_ED25519_KNOWN_HOST, {
       mode: 0o600,
     });
@@ -223,7 +248,8 @@ export class CandidatePublisher {
       ...args,
     ];
     const sshTransport =
-      transport && this.publisherSshPrivateKey
+      transport &&
+      (this.publisherSshPrivateKey || this.publisherSshPrivateKeyPath)
         ? await this.sshTransportEnvironment()
         : undefined;
     try {
@@ -258,6 +284,93 @@ export class CandidatePublisher {
     const unsafe = raw.split('\0').filter(Boolean).find(dangerousTransportConfig);
     if (unsafe) {
       throw new Error('candidate_publication_transport_config_unsafe');
+    }
+  }
+
+  async prepare(): Promise<void> {
+    if (!this.publisherSshPrivateKeyPath) return;
+
+    const keyPath = this.publisherSshPrivateKeyPath;
+    const parent = path.dirname(keyPath);
+    await mkdir(parent, { recursive: true, mode: 0o700 });
+    await chmod(parent, 0o700);
+
+    let generated = false;
+    try {
+      const keyStat = await lstat(keyPath);
+      if (!keyStat.isFile() || keyStat.isSymbolicLink()) {
+        throw new Error('candidate_publication_ssh_key_path_invalid');
+      }
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') throw error;
+      await execFileAsync(
+        'ssh-keygen',
+        [
+          '-q',
+          '-t',
+          'ed25519',
+          '-N',
+          '',
+          '-C',
+          'atlas-engineering-runner-publisher',
+          '-f',
+          keyPath,
+        ],
+        {
+          cwd: parent,
+          encoding: 'utf8',
+          maxBuffer: 1024 * 1024,
+          env: this.environment,
+        },
+      );
+      generated = true;
+    }
+
+    await chmod(keyPath, 0o600);
+    const { stdout } = await execFileAsync(
+      'ssh-keygen',
+      ['-y', '-f', keyPath],
+      {
+        cwd: parent,
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+        env: this.environment,
+      },
+    );
+    const publicKey = stdout.trim();
+    if (!publicKey.startsWith('ssh-ed25519 ')) {
+      throw new Error('candidate_publication_ssh_public_key_invalid');
+    }
+    await writeFile(
+      `${keyPath}.pub`,
+      `${publicKey} atlas-engineering-runner-publisher\n`,
+      { mode: 0o644 },
+    );
+
+    if (generated) {
+      throw new Error(
+        `candidate_publication_deploy_key_registration_required:${publicKey}`,
+      );
+    }
+
+    try {
+      const remoteRef = await this.git(
+        parent,
+        [
+          'ls-remote',
+          '--heads',
+          this.transportRemote,
+          'refs/heads/production/atlas',
+        ],
+        true,
+      );
+      if (!/^[0-9a-f]{40}\s+refs\/heads\/production\/atlas$/i.test(remoteRef)) {
+        throw new Error('candidate_publication_ssh_preflight_invalid');
+      }
+    } catch {
+      throw new Error(
+        `candidate_publication_deploy_key_registration_required:${publicKey}`,
+      );
     }
   }
 

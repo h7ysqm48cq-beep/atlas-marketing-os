@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, mkdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  symlink,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -223,6 +233,64 @@ test('CandidatePublisher isolates SSH deploy-key transport and removes temporary
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('CandidatePublisher generates a persistent SSH deploy key and blocks startup until registration', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-publisher-persistent-'));
+  const keyPath = path.join(root, 'publisher', 'id_ed25519');
+  try {
+    const { CandidatePublisher } = await import('./candidate-publisher.ts');
+    const publisher = new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherSshPrivateKeyPath: keyPath,
+      environment: {
+        PATH: process.env.PATH,
+        TMPDIR: root,
+      },
+    }) as any;
+
+    await assert.rejects(
+      () => publisher.prepare(),
+      /candidate_publication_deploy_key_registration_required:ssh-ed25519 /,
+    );
+
+    const privateKey = await readFile(keyPath, 'utf8');
+    const publicKey = await readFile(`${keyPath}.pub`, 'utf8');
+    assert.match(privateKey, /^-----BEGIN OPENSSH PRIVATE KEY-----/);
+    assert.match(publicKey, /^ssh-ed25519 /);
+    assert.equal((await stat(path.dirname(keyPath))).mode & 0o777, 0o700);
+    assert.equal((await stat(keyPath)).mode & 0o777, 0o600);
+
+    const transport = await publisher.sshTransportEnvironment();
+    assert.equal(
+      transport.environment.ATLAS_PUBLISHER_SSH_KEY_FILE,
+      keyPath,
+    );
+    assert.equal(
+      JSON.stringify(transport.environment).includes(privateKey),
+      false,
+    );
+    await transport.cleanup();
+
+    assert.match(
+      await readFile(keyPath, 'utf8'),
+      /^-----BEGIN OPENSSH PRIVATE KEY-----/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('CandidatePublisher rejects a relative persistent SSH key path', async () => {
+  const { CandidatePublisher } = await import('./candidate-publisher.ts');
+  assert.throws(
+    () =>
+      new CandidatePublisher({
+        remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+        publisherSshPrivateKeyPath: 'publisher/id_ed25519',
+      }),
+    /candidate_publication_ssh_key_path_invalid/,
+  );
 });
 
 test('CandidatePublisher rejects repository-local transport rewrites before any remote operation', async () => {

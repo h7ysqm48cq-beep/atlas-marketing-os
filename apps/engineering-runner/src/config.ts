@@ -5,6 +5,7 @@ export interface EngineeringRunnerCandidateConfig {
   sourceToken?: string;
   publisherToken?: string;
   publisherSshPrivateKey?: string;
+  publisherSshPrivateKeyPath?: string;
 }
 
 export interface EngineeringRunnerConfig {
@@ -69,20 +70,28 @@ function candidateConfig(
   const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
   const publisherSshPrivateKey =
     env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY?.trim();
+  const publisherSshPrivateKeyPath =
+    env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH?.trim();
   const requiredValues = [repositoryRoot, workspaceRoot, remote];
   const configured = requiredValues.filter(Boolean).length;
   if (
     configured === 0 &&
     !sourceToken &&
     !publisherToken &&
-    !publisherSshPrivateKey
+    !publisherSshPrivateKey &&
+    !publisherSshPrivateKeyPath
   ) {
     return undefined;
   }
   if (configured !== requiredValues.length) {
     throw new Error("runner_candidate_config_incomplete");
   }
-  if (Boolean(publisherToken) === Boolean(publisherSshPrivateKey)) {
+  const publisherAuthModes = [
+    publisherToken,
+    publisherSshPrivateKey,
+    publisherSshPrivateKeyPath,
+  ].filter(Boolean).length;
+  if (publisherAuthModes !== 1) {
     throw new Error("runner_candidate_publisher_auth_invalid");
   }
   if (remote !== CANONICAL_CANDIDATE_REMOTE) {
@@ -95,6 +104,7 @@ function candidateConfig(
     ...(sourceToken ? { sourceToken } : {}),
     ...(publisherToken ? { publisherToken } : {}),
     ...(publisherSshPrivateKey ? { publisherSshPrivateKey } : {}),
+    ...(publisherSshPrivateKeyPath ? { publisherSshPrivateKeyPath } : {}),
   };
 }
 

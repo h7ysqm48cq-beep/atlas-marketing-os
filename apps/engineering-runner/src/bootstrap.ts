@@ -33,20 +33,25 @@ export function createEngineeringRunnerOptions(
     sourceToken: config.candidate.sourceToken,
     environment,
   });
+  const candidatePublisher = new CandidatePublisher({
+    remote: config.candidate.remote,
+    publisherToken: config.candidate.publisherToken,
+    publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
+    publisherSshPrivateKeyPath: config.candidate.publisherSshPrivateKeyPath,
+    environment,
+  });
   return {
     ...base,
-    preflight: () => candidateSource.refresh(),
+    preflight: async () => {
+      await candidateSource.refresh();
+      await candidatePublisher.prepare();
+    },
     candidateWorkspaceManager: new CandidateWorkspaceManager({
       repositoryRoot: config.candidate.repositoryRoot,
       workspaceRoot: config.candidate.workspaceRoot,
       ensureBase: (frozenBaseSha) => candidateSource.ensureBase(frozenBaseSha),
     }),
-    candidatePublisher: new CandidatePublisher({
-      remote: config.candidate.remote,
-      publisherToken: config.candidate.publisherToken,
-      publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
-      environment,
-    }),
+    candidatePublisher,
     executorFactory: (cwd: string) => new CommandExecutor({
       command: config.command,
       args: config.args,
