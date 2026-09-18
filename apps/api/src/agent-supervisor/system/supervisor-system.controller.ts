@@ -4,6 +4,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { Public } from '../../auth/public.decorator';
 import {
   SupervisorSystemGuard,
   SupervisorSystemPurposeRequired,
@@ -13,6 +14,7 @@ import {
   SupervisorSystemAdmissionService,
 } from './supervisor-system-admission.service';
 
+@Public()
 @UseGuards(SupervisorSystemGuard)
 @Controller('engineering/supervisor/system')
 export class SupervisorSystemController {
