@@ -286,6 +286,111 @@ async function main() {
     executionId: "browser-worker-deploy-execution",
     executionStatus: "COMPLETED",
   });
+  const selectedCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: "c".repeat(40),
+    headSha: "d".repeat(40),
+    changedFiles: ["apps/browser-worker/src/index.ts"],
+  };
+  const selectedCalls: string[] = [];
+  const selected =
+    await authorizeEligibleBrowserWorkerDeployment(
+      async (url, init) => {
+        selectedCalls.push(
+          (init?.method ?? "GET") + " " + String(url),
+        );
+
+        if (String(url).endsWith("/tasks")) {
+          return response(200, [
+            {
+              id: "historical-browser-worker-task",
+              status: "APPROVED",
+              evidence: { reviewCandidate: candidate },
+            },
+            {
+              id: "current-browser-worker-task",
+              status: "APPROVED",
+              evidence: { reviewCandidate: selectedCandidate },
+            },
+          ]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/current-browser-worker-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "current-browser-worker-execution",
+              status: "COMPLETED",
+              evidence: { reviewCandidate: selectedCandidate },
+            },
+          ]);
+        }
+
+        return response(201, { status: "APPROVED" });
+      },
+      " current-browser-worker-task ",
+    );
+
+  assert.deepEqual(selected, {
+    taskId: "current-browser-worker-task",
+    taskStatus: "APPROVED",
+    executionId: "current-browser-worker-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(selectedCalls, [
+    "GET /api/atlas/engineering/supervisor/tasks",
+    "GET /api/atlas/engineering/supervisor/tasks/current-browser-worker-task/executions",
+    "POST /api/atlas/engineering/supervisor/tasks/current-browser-worker-task/authorize-production-deployment",
+  ]);
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleBrowserWorkerDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "historical-browser-worker-task",
+                status: "APPROVED",
+                evidence: { reviewCandidate: candidate },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+        "missing-browser-worker-task",
+      ),
+    /No approved browser-worker production deployment candidate was found for task missing-browser-worker-task/,
+  );
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleBrowserWorkerDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "browser-worker-task-a",
+                status: "APPROVED",
+                evidence: { reviewCandidate: candidate },
+              },
+              {
+                id: "browser-worker-task-b",
+                status: "APPROVED",
+                evidence: { reviewCandidate: selectedCandidate },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+      ),
+    /More than one approved browser-worker production deployment candidate was found/,
+  );
+
 }
 
 void main();
