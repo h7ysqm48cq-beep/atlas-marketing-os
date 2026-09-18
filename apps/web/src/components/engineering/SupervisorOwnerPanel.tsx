@@ -793,6 +793,147 @@ export async function authorizeEligibleBrowserWorkerDeployment(
   };
 }
 
+export function findEligibleWebDeploymentCandidate(
+  tasks: unknown[],
+  exactTaskId?: string,
+): { task: JsonRecord; candidate: DeploymentCandidate } {
+  const normalizedTaskId =
+    exactTaskId?.trim() || null;
+
+  const candidates = tasks.flatMap((value) => {
+    const task = asRecord(value);
+    const evidence = asRecord(task?.evidence);
+    const candidate = asDeploymentCandidate(
+      evidence?.reviewCandidate,
+    );
+
+    if (
+      !task ||
+      !hasString(task.status, "APPROVED") ||
+      typeof task.id !== "string" ||
+      (normalizedTaskId !== null &&
+        task.id !== normalizedTaskId) ||
+      !candidate ||
+      !hasPathPrefixInArray(
+        candidate.changedFiles,
+        "apps/web/",
+      )
+    ) {
+      return [];
+    }
+
+    return [{ task, candidate }];
+  });
+
+  if (candidates.length === 0) {
+    throw new Error(
+      normalizedTaskId
+        ? "No approved web production deployment candidate was found for task " +
+          normalizedTaskId +
+          "."
+        : "No approved web production deployment candidate was found.",
+    );
+  }
+
+  if (candidates.length > 1) {
+    throw new Error(
+      "More than one approved web production deployment candidate was found. Stop and review them manually.",
+    );
+  }
+
+  return candidates[0];
+}
+
+export async function authorizeEligibleWebDeployment(
+  fetchImpl: FetchLike = fetch,
+  exactTaskId?: string,
+): Promise<SupervisorAdmissionResult> {
+  const listed = await getSupervisor(
+    "list Supervisor tasks",
+    "/tasks",
+    fetchImpl,
+  );
+  const tasks = Array.isArray(listed)
+    ? listed
+    : asRecord(listed)?.tasks;
+
+  if (!Array.isArray(tasks)) {
+    throw new Error(
+      "list Supervisor tasks response is missing tasks.",
+    );
+  }
+
+  const { task, candidate } =
+    findEligibleWebDeploymentCandidate(
+      tasks,
+      exactTaskId,
+    );
+  const taskId = requireStringField(
+    task,
+    "id",
+    "web deployment candidate",
+  );
+  const listedExecutions = await getSupervisor(
+    "list candidate executions",
+    `/tasks/${encodeURIComponent(taskId)}/executions`,
+    fetchImpl,
+  );
+  const executions = Array.isArray(listedExecutions)
+    ? listedExecutions
+    : asRecord(listedExecutions)?.executions;
+  const matchingExecutions = Array.isArray(executions)
+    ? executions.filter((value) => {
+        const execution = asRecord(value);
+        const result = asRecord(execution?.result);
+        const evidence = asRecord(result?.evidence);
+        const executionCandidate =
+          asDeploymentCandidate(evidence?.reviewCandidate);
+
+        return (
+          hasString(execution?.status, "COMPLETED") &&
+          Boolean(
+            executionCandidate &&
+              sameDeploymentCandidate(
+                candidate,
+                executionCandidate,
+              ),
+          )
+        );
+      })
+    : [];
+
+  if (matchingExecutions.length === 0) {
+    throw new Error(
+      "The approved web candidate has no matching completed execution.",
+    );
+  }
+
+  if (matchingExecutions.length > 1) {
+    throw new Error(
+      "The approved web candidate has multiple matching completed executions. Stop and review them manually.",
+    );
+  }
+
+  const executionId = requireStringField(
+    matchingExecutions[0],
+    "id",
+    "web deployment execution",
+  );
+  await postSupervisor(
+    "authorize web production deployment",
+    `/tasks/${encodeURIComponent(taskId)}/authorize-production-deployment`,
+    { candidate, service: "web" },
+    fetchImpl,
+  );
+
+  return {
+    taskId,
+    taskStatus: "APPROVED",
+    executionId,
+    executionStatus: "COMPLETED",
+  };
+}
+
 export function findStaleBrowserWorkerTask(
   tasks: unknown[],
 ): JsonRecord {
@@ -964,6 +1105,8 @@ export function SupervisorOwnerPanel() {
     useState<SupervisorAdmissionResult | null>(null);
   const [deploymentTaskId, setDeploymentTaskId] =
     useState("");
+  const [webDeploymentTaskId, setWebDeploymentTaskId] =
+    useState("");
 
   const scopeCount = useMemo(
     () =>
@@ -1095,6 +1238,33 @@ export function SupervisorOwnerPanel() {
         caught instanceof Error
           ? caught.message
           : "Production candidate authorization failed.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function authorizeWebDeployment() {
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setDeploymentAuthorization(null);
+
+    try {
+      setDeploymentAuthorization(
+        await authorizeEligibleWebDeployment(
+          fetch,
+          webDeploymentTaskId,
+        ),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Web production candidate authorization failed.",
       );
     } finally {
       setBusy(false);
@@ -1246,6 +1416,25 @@ export function SupervisorOwnerPanel() {
           </span>
         </label>
 
+        <label style={labelStyle}>
+          Web deployment task ID — optional
+          <input
+            value={webDeploymentTaskId}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setWebDeploymentTaskId(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="ATLAS-WEB-..."
+            disabled={busy}
+          />
+          <span style={{ opacity: 0.68, fontSize: 13 }}>
+            Select an exact APPROVED Web deployment candidate.
+            Authorization fails closed unless the candidate includes apps/web changes.
+          </span>
+        </label>
+
         <div
           style={{
             marginTop: 22,
@@ -1330,6 +1519,26 @@ export function SupervisorOwnerPanel() {
             {busy
               ? "Checking candidate…"
               : "Authorize browser-worker candidate"}
+          </button>
+
+          <button
+            type="button"
+            onClick={authorizeWebDeployment}
+            disabled={busy}
+            style={{
+              border: "1px solid rgba(52, 211, 153, 0.55)",
+              borderRadius: 10,
+              padding: "10px 14px",
+              font: "inherit",
+              fontWeight: 700,
+              cursor: busy
+                ? "not-allowed"
+                : "pointer",
+            }}
+          >
+            {busy
+              ? "Checking Web candidate…"
+              : "Authorize web candidate"}
           </button>
 
           <span style={{ opacity: 0.68, fontSize: 13 }}>
