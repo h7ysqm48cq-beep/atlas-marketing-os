@@ -44,6 +44,7 @@ export function createEngineeringRunnerOptions(
     candidatePublisher: new CandidatePublisher({
       remote: config.candidate.remote,
       publisherToken: config.candidate.publisherToken,
+      publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
       environment,
     }),
     executorFactory: (cwd: string) => new CommandExecutor({

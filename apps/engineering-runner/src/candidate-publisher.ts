@@ -1,6 +1,14 @@
 import { Buffer } from 'node:buffer';
 import { execFile } from 'node:child_process';
-import { lstat, realpath } from 'node:fs/promises';
+import {
+  chmod,
+  lstat,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -52,11 +60,16 @@ export interface CandidatePublicationRequest {
 export interface CandidatePublisherOptions {
   remote: string;
   publisherToken?: string;
+  publisherSshPrivateKey?: string;
   environment?: NodeJS.ProcessEnv;
 }
 
 const CANONICAL_CANDIDATE_REMOTE =
   'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+const CANONICAL_CANDIDATE_SSH_REMOTE =
+  'git@github.com:h7ysqm48cq-beep/atlas-marketing-os.git';
+const GITHUB_ED25519_KNOWN_HOST =
+  'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n';
 
 function dangerousTransportConfig(key: string): boolean {
   const normalized = key.trim().toLowerCase();
@@ -86,22 +99,37 @@ function dangerousTransportConfig(key: string): boolean {
 
 export class CandidatePublisher {
   private readonly remote: string;
+  private readonly transportRemote: string;
   private readonly publisherToken?: string;
+  private readonly publisherSshPrivateKey?: string;
   private readonly environment: NodeJS.ProcessEnv;
 
   constructor(options: CandidatePublisherOptions) {
     this.remote = options.remote;
     this.publisherToken = options.publisherToken?.trim() || undefined;
+    this.publisherSshPrivateKey =
+      options.publisherSshPrivateKey?.trim() || undefined;
 
     const remoteLooksNetworked = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.remote);
     if (remoteLooksNetworked) {
       if (this.remote !== CANONICAL_CANDIDATE_REMOTE) {
         throw new Error('candidate_publication_remote_not_canonical');
       }
-      if (!this.publisherToken) {
-        throw new Error('candidate_publication_publisher_token_required');
+      if (Boolean(this.publisherToken) === Boolean(this.publisherSshPrivateKey)) {
+        throw new Error('candidate_publication_publisher_auth_invalid');
+      }
+      if (
+        this.publisherSshPrivateKey &&
+        !this.publisherSshPrivateKey.startsWith(
+          '-----BEGIN OPENSSH PRIVATE KEY-----',
+        )
+      ) {
+        throw new Error('candidate_publication_ssh_key_invalid');
       }
     }
+    this.transportRemote = this.publisherSshPrivateKey
+      ? CANONICAL_CANDIDATE_SSH_REMOTE
+      : this.remote;
 
     const source = options.environment ?? process.env;
     this.environment = {
@@ -135,6 +163,53 @@ export class CandidatePublisher {
     };
   }
 
+  private async sshTransportEnvironment(): Promise<{
+    environment: NodeJS.ProcessEnv;
+    cleanup: () => Promise<void>;
+  }> {
+    if (!this.publisherSshPrivateKey) {
+      return {
+        environment: { ...this.environment },
+        cleanup: async () => undefined,
+      };
+    }
+
+    const root = await mkdtemp(
+      path.join(this.environment.TMPDIR || tmpdir(), 'atlas-publisher-ssh-'),
+    );
+    await chmod(root, 0o700);
+    const keyPath = path.join(root, 'publisher_key');
+    const knownHostsPath = path.join(root, 'known_hosts');
+    await writeFile(keyPath, `${this.publisherSshPrivateKey}\n`, {
+      mode: 0o600,
+    });
+    await writeFile(knownHostsPath, GITHUB_ED25519_KNOWN_HOST, {
+      mode: 0o600,
+    });
+
+    return {
+      environment: {
+        ...this.environment,
+        ATLAS_PUBLISHER_SSH_KEY_FILE: keyPath,
+        ATLAS_PUBLISHER_KNOWN_HOSTS_FILE: knownHostsPath,
+        GIT_SSH_VARIANT: 'ssh',
+        GIT_SSH_COMMAND:
+          'ssh -i "$ATLAS_PUBLISHER_SSH_KEY_FILE" ' +
+          '-o IdentitiesOnly=yes ' +
+          '-o StrictHostKeyChecking=yes ' +
+          '-o HostKeyAlgorithms=ssh-ed25519 ' +
+          '-o UserKnownHostsFile="$ATLAS_PUBLISHER_KNOWN_HOSTS_FILE" ' +
+          '-o GlobalKnownHostsFile=/dev/null ' +
+          '-o PasswordAuthentication=no ' +
+          '-o KbdInteractiveAuthentication=no ' +
+          '-o BatchMode=yes',
+      },
+      cleanup: async () => {
+        await rm(root, { recursive: true, force: true });
+      },
+    };
+  }
+
   private async gitRaw(
     cwd: string,
     args: string[],
@@ -147,13 +222,21 @@ export class CandidatePublisher {
       'credential.helper=',
       ...args,
     ];
-    const { stdout } = await execFileAsync('git', safeArgs, {
-      cwd,
-      encoding: 'utf8',
-      maxBuffer: 4 * 1024 * 1024,
-      env: this.gitEnvironment(transport),
-    });
-    return stdout;
+    const sshTransport =
+      transport && this.publisherSshPrivateKey
+        ? await this.sshTransportEnvironment()
+        : undefined;
+    try {
+      const { stdout } = await execFileAsync('git', safeArgs, {
+        cwd,
+        encoding: 'utf8',
+        maxBuffer: 4 * 1024 * 1024,
+        env: sshTransport?.environment ?? this.gitEnvironment(transport),
+      });
+      return stdout;
+    } finally {
+      await sshTransport?.cleanup();
+    }
   }
 
   private async git(
@@ -273,7 +356,7 @@ export class CandidatePublisher {
       [
         'ls-remote',
         '--heads',
-        this.remote,
+        this.transportRemote,
         remoteRef,
       ],
       true,
@@ -286,7 +369,7 @@ export class CandidatePublisher {
       request.workspace,
       [
         'push',
-        this.remote,
+        this.transportRemote,
         `${candidateHead}:${remoteRef}`,
       ],
       true,
@@ -297,7 +380,7 @@ export class CandidatePublisher {
       [
         'ls-remote',
         '--heads',
-        this.remote,
+        this.transportRemote,
         remoteRef,
       ],
       true,

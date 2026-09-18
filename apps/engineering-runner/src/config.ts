@@ -3,7 +3,8 @@ export interface EngineeringRunnerCandidateConfig {
   workspaceRoot: string;
   remote: string;
   sourceToken?: string;
-  publisherToken: string;
+  publisherToken?: string;
+  publisherSshPrivateKey?: string;
 }
 
 export interface EngineeringRunnerConfig {
@@ -66,16 +67,23 @@ function candidateConfig(
   const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
   const sourceToken = env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN?.trim();
   const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
-  const requiredValues = [
-    repositoryRoot,
-    workspaceRoot,
-    remote,
-    publisherToken,
-  ];
+  const publisherSshPrivateKey =
+    env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY?.trim();
+  const requiredValues = [repositoryRoot, workspaceRoot, remote];
   const configured = requiredValues.filter(Boolean).length;
-  if (configured === 0 && !sourceToken) return undefined;
+  if (
+    configured === 0 &&
+    !sourceToken &&
+    !publisherToken &&
+    !publisherSshPrivateKey
+  ) {
+    return undefined;
+  }
   if (configured !== requiredValues.length) {
     throw new Error("runner_candidate_config_incomplete");
+  }
+  if (Boolean(publisherToken) === Boolean(publisherSshPrivateKey)) {
+    throw new Error("runner_candidate_publisher_auth_invalid");
   }
   if (remote !== CANONICAL_CANDIDATE_REMOTE) {
     throw new Error("runner_candidate_remote_not_canonical");
@@ -85,7 +93,8 @@ function candidateConfig(
     workspaceRoot: workspaceRoot!,
     remote: remote!,
     ...(sourceToken ? { sourceToken } : {}),
-    publisherToken: publisherToken!,
+    ...(publisherToken ? { publisherToken } : {}),
+    ...(publisherSshPrivateKey ? { publisherSshPrivateKey } : {}),
   };
 }
 
@@ -100,7 +109,10 @@ export function loadEngineeringRunnerConfig(
   if (candidate) {
     const credentials = [
       bootstrapToken,
-      candidate.publisherToken,
+      ...(candidate.publisherToken ? [candidate.publisherToken] : []),
+      ...(candidate.publisherSshPrivateKey
+        ? [candidate.publisherSshPrivateKey]
+        : []),
       ...(candidate.sourceToken ? [candidate.sourceToken] : []),
     ];
     if (new Set(credentials).size !== credentials.length) {

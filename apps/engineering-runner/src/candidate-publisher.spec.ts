@@ -101,8 +101,10 @@ test('CandidatePublisher publishes one exact remote-verified candidate branch', 
 });
 
 
-test('CandidatePublisher requires the canonical GitHub remote and a dedicated publisher token for network transport', async () => {
+test('CandidatePublisher requires canonical transport and exactly one publisher credential', async () => {
   const { CandidatePublisher } = await import('./candidate-publisher.ts');
+  const sshKey =
+    '-----BEGIN OPENSSH PRIVATE KEY-----\ndummy\n-----END OPENSSH PRIVATE KEY-----';
   assert.throws(
     () => new CandidatePublisher({
       remote: 'https://github.com/example/other.git',
@@ -114,12 +116,26 @@ test('CandidatePublisher requires the canonical GitHub remote and a dedicated pu
     () => new CandidatePublisher({
       remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
     }),
-    /candidate_publication_publisher_token_required/,
+    /candidate_publication_publisher_auth_invalid/,
+  );
+  assert.throws(
+    () => new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherToken: 'publisher-token',
+      publisherSshPrivateKey: sshKey,
+    }),
+    /candidate_publication_publisher_auth_invalid/,
   );
   assert.doesNotThrow(
     () => new CandidatePublisher({
       remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
       publisherToken: 'publisher-token',
+    }),
+  );
+  assert.doesNotThrow(
+    () => new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherSshPrivateKey: sshKey,
     }),
   );
 });
@@ -157,6 +173,56 @@ test('CandidatePublisher strips ambient credential authority and exposes the pub
     ).toString('utf8'),
     'x-access-token:publisher-secret',
   );
+});
+
+test('CandidatePublisher isolates SSH deploy-key transport and removes temporary key material', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-publisher-ssh-test-'));
+  const sshKey =
+    '-----BEGIN OPENSSH PRIVATE KEY-----\ndummy\n-----END OPENSSH PRIVATE KEY-----';
+  try {
+    const { CandidatePublisher } = await import('./candidate-publisher.ts');
+    const publisher = new CandidatePublisher({
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      publisherSshPrivateKey: sshKey,
+      environment: {
+        PATH: '/usr/bin:/bin',
+        TMPDIR: root,
+        HOME: '/sensitive/home',
+        SSH_AUTH_SOCK: '/tmp/ssh-agent',
+      },
+    }) as any;
+
+    assert.equal(
+      publisher.transportRemote,
+      'git@github.com:h7ysqm48cq-beep/atlas-marketing-os.git',
+    );
+    const transport = await publisher.sshTransportEnvironment();
+    const keyPath = transport.environment.ATLAS_PUBLISHER_SSH_KEY_FILE;
+    const knownHostsPath =
+      transport.environment.ATLAS_PUBLISHER_KNOWN_HOSTS_FILE;
+    assert.equal(JSON.stringify(transport.environment).includes(sshKey), false);
+    assert.equal(await readFile(keyPath, 'utf8'), `${sshKey}\n`);
+    assert.match(
+      await readFile(knownHostsPath, 'utf8'),
+      /^github\.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkV/,
+    );
+    assert.match(
+      transport.environment.GIT_SSH_COMMAND,
+      /StrictHostKeyChecking=yes/,
+    );
+    assert.match(
+      transport.environment.GIT_SSH_COMMAND,
+      /HostKeyAlgorithms=ssh-ed25519/,
+    );
+    assert.equal(transport.environment.HOME, undefined);
+    assert.equal(transport.environment.SSH_AUTH_SOCK, undefined);
+
+    await transport.cleanup();
+    await assert.rejects(() => readFile(keyPath, 'utf8'), /ENOENT/);
+    await assert.rejects(() => readFile(knownHostsPath, 'utf8'), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('CandidatePublisher rejects repository-local transport rewrites before any remote operation', async () => {
