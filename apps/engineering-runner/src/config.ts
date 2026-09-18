@@ -82,13 +82,24 @@ function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConf
 export function loadEngineeringRunnerConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): EngineeringRunnerConfig {
+  const bootstrapToken = required(
+    env,
+    'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN',
+  );
   const candidate = candidateConfig(env);
+  if (
+    candidate &&
+    new Set([
+      bootstrapToken,
+      candidate.sourceToken,
+      candidate.publisherToken,
+    ]).size !== 3
+  ) {
+    throw new Error('runner_candidate_credentials_not_separated');
+  }
   return {
     supervisorApiUrl: required(env, 'ATLAS_SUPERVISOR_API_URL'),
-    bootstrapToken: required(
-      env,
-      'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN',
-    ),
+    bootstrapToken,
     command: required(env, 'ATLAS_ENGINEERING_RUNNER_COMMAND'),
     args: stringArray(env.ATLAS_ENGINEERING_RUNNER_ARGS),
     workspace:

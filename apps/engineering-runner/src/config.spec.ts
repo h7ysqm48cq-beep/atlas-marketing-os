@@ -45,6 +45,28 @@ test('candidate publication config fails closed when only some candidate keys ar
   );
 });
 
+test('candidate publication config requires distinct bootstrap, source, and publisher credentials', () => {
+  for (const [bootstrapToken, sourceToken, publisherToken] of [
+    ['bootstrap', 'same-token', 'same-token'],
+    ['bootstrap', 'bootstrap', 'publisher-token'],
+    ['bootstrap', 'source-token', 'bootstrap'],
+  ]) {
+    const env = baseEnv();
+    env.ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN = bootstrapToken;
+    env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = '/repo';
+    env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = '/workspaces';
+    env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
+      'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+    env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN = sourceToken;
+    env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN = publisherToken;
+
+    assert.throws(
+      () => loadEngineeringRunnerConfig(env),
+      /runner_candidate_credentials_not_separated/,
+    );
+  }
+});
+
 test('candidate publication config rejects any non-canonical network remote', () => {
   const env = baseEnv();
   env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = '/repo';

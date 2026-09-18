@@ -27,6 +27,32 @@ function canonicalList(values: string[]): string[] {
   return [...new Set(values.map(canonicalRepositoryPath))].sort();
 }
 
+function dangerousGitConfig(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  return (
+    normalized.startsWith('credential.') ||
+    normalized.startsWith('http.') ||
+    normalized.startsWith('https.') ||
+    normalized.startsWith('include.') ||
+    normalized.startsWith('includeif.') ||
+    normalized.startsWith('filter.') ||
+    normalized === 'core.sshcommand' ||
+    normalized === 'core.gitproxy' ||
+    normalized === 'core.fsmonitor' ||
+    normalized === 'core.attributesfile' ||
+    normalized === 'core.excludesfile' ||
+    normalized === 'diff.external' ||
+    (normalized.startsWith('diff.') && normalized.endsWith('.command')) ||
+    (normalized.startsWith('merge.') && normalized.endsWith('.driver')) ||
+    normalized === 'gpg.program' ||
+    normalized === 'commit.gpgsign' ||
+    normalized.startsWith('protocol.') ||
+    (normalized.startsWith('url.') &&
+      (normalized.endsWith('.insteadof') ||
+        normalized.endsWith('.pushinsteadof')))
+  );
+}
+
 export function parseGitStatusPorcelainZ(input: string): string[] {
   if (!input) return [];
   const records = input.split('\0');
@@ -78,7 +104,7 @@ export class GitWorkspace {
     };
   }
 
-  async listChangedFiles(): Promise<string[]> {
+  private async gitRaw(args: string[]): Promise<string> {
     const { stdout } = await execFileAsync(
       'git',
       [
@@ -88,10 +114,7 @@ export class GitWorkspace {
         'core.fsmonitor=false',
         '-c',
         'credential.helper=',
-        'status',
-        '--porcelain=v1',
-        '-z',
-        '--untracked-files=all',
+        ...args,
       ],
       {
         cwd: this.cwd,
@@ -100,6 +123,30 @@ export class GitWorkspace {
         env: this.environment,
       },
     );
+    return stdout;
+  }
+
+  private async assertGitConfigSafe(): Promise<void> {
+    const raw = await this.gitRaw([
+      'config',
+      '--local',
+      '--list',
+      '--name-only',
+      '-z',
+    ]);
+    if (raw.split('\0').filter(Boolean).some(dangerousGitConfig)) {
+      throw new Error('workspace_git_config_unsafe');
+    }
+  }
+
+  async listChangedFiles(): Promise<string[]> {
+    await this.assertGitConfigSafe();
+    const stdout = await this.gitRaw([
+      'status',
+      '--porcelain=v1',
+      '-z',
+      '--untracked-files=all',
+    ]);
     return parseGitStatusPorcelainZ(stdout);
   }
 }

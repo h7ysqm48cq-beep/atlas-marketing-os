@@ -130,9 +130,46 @@ test('GitWorkspace suppresses repository fsmonitor commands and strips runner se
       ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN: 'source-secret',
     });
 
-    assert.deepEqual(await workspace.listChangedFiles(), []);
+    await assert.rejects(
+      () => workspace.listChangedFiles(),
+      /workspace_git_config_unsafe/,
+    );
     assert.equal(workspace.environment.HOME, undefined);
     assert.equal(workspace.environment.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN, undefined);
+    await assert.rejects(() => readFile(sentinel, 'utf8'), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('GitWorkspace rejects executable clean filters before status inspection', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-scope-filter-'));
+  try {
+    const repo = path.join(root, 'repo');
+    await mkdir(repo);
+    await execFileAsync('git', ['init', '-q'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.name', 'Atlas Test'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.email', 'atlas-test@example.invalid'], { cwd: repo });
+    await writeFile(path.join(repo, 'tracked.txt'), 'base\n');
+    await execFileAsync('git', ['add', '--', 'tracked.txt'], { cwd: repo });
+    await execFileAsync('git', ['commit', '-qm', 'base'], { cwd: repo });
+
+    const sentinel = path.join(root, 'filter-ran');
+    const filter = path.join(root, 'filter.sh');
+    await writeFile(filter, `#!/bin/sh\ntouch '${sentinel}'\ncat\n`);
+    await chmod(filter, 0o755);
+    await execFileAsync('git', ['config', 'filter.atlas.clean', filter], {
+      cwd: repo,
+    });
+
+    const mod = await loadModule();
+    const Workspace = mod.GitWorkspace as any;
+    const workspace = new Workspace(repo, { PATH: process.env.PATH });
+
+    await assert.rejects(
+      () => workspace.listChangedFiles(),
+      /workspace_git_config_unsafe/,
+    );
     await assert.rejects(() => readFile(sentinel, 'utf8'), /ENOENT/);
   } finally {
     await rm(root, { recursive: true, force: true });
