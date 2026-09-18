@@ -45,6 +45,7 @@ import {
   ensureFacebookPageIdentitySwitch,
   facebookPageSwitchActionPattern,
   hasFacebookPageSwitchPrompt,
+  shouldRestoreFacebookPublishingTarget,
 } from "./facebook/page-identity.js";
 import {
   filterFacebookPageCandidates,
@@ -4525,6 +4526,49 @@ app.post(
           ]
             .filter(Boolean)
             .join(" "),
+        );
+      }
+
+      /*
+       * FACEBOOK_PAGE_TARGET_RESTORE_AFTER_IDENTITY_SWITCH_V1
+       *
+       * Meta may complete a Page identity switch by redirecting the
+       * automation tab to Business Suite (for example Inbox). The Page
+       * identity is already switched at that point, but composer discovery
+       * must run on the normal facebook.com Page surface.
+       */
+      if (
+        pageIdentitySwitch.required &&
+        pageIdentitySwitch.verified &&
+        shouldRestoreFacebookPublishingTarget(
+          page.url(),
+          targetUrl,
+        )
+      ) {
+        const redirectedFrom =
+          page.url();
+
+        await page.goto(
+          targetUrl,
+          {
+            waitUntil:
+              "domcontentloaded",
+            timeout: 30000,
+          },
+        );
+
+        await page.waitForTimeout(
+          2500,
+        );
+
+        console.log(
+          "[facebook/page-target-restored-after-identity-switch]",
+          {
+            redirectedFrom,
+            targetUrl,
+            finalUrl:
+              page.url(),
+          },
         );
       }
 
