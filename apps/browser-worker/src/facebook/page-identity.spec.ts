@@ -7,6 +7,7 @@ import {
   hasFacebookPageTargetIdentityEvidence,
   hasFacebookPageSwitchPrompt,
   shouldRestoreFacebookPublishingTarget,
+  shouldRestoreFacebookPublishingTargetAfterIdentityCheck,
 } from "./page-identity.js";
 
 test("matches both Facebook Page identity switch labels", () => {
@@ -299,6 +300,46 @@ test("fails closed for malformed Facebook publishing URLs", () => {
       "not-a-url",
       "https://www.facebook.com/profile.php?id=123",
     ),
+    false,
+  );
+});
+
+
+test("restores after verified NOT_REQUIRED identity check when Meta already redirected", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTargetAfterIdentityCheck({
+      currentUrl:
+        "https://business.facebook.com/latest/inbox/all?asset_id=123",
+      targetUrl:
+        "https://www.facebook.com/profile.php?id=123",
+      identityVerified: true,
+    }),
+    true,
+  );
+});
+
+test("does not restore when identity verification is false", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTargetAfterIdentityCheck({
+      currentUrl:
+        "https://business.facebook.com/latest/inbox/all?asset_id=123",
+      targetUrl:
+        "https://www.facebook.com/profile.php?id=123",
+      identityVerified: false,
+    }),
+    false,
+  );
+});
+
+test("does not restore verified identity checks already on facebook.com", () => {
+  assert.equal(
+    shouldRestoreFacebookPublishingTargetAfterIdentityCheck({
+      currentUrl:
+        "https://www.facebook.com/",
+      targetUrl:
+        "https://www.facebook.com/profile.php?id=123",
+      identityVerified: true,
+    }),
     false,
   );
 });
