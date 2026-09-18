@@ -252,7 +252,9 @@ async function main() {
           {
             id: "browser-worker-deploy-execution",
             status: "COMPLETED",
-            evidence: { reviewCandidate: candidate },
+            result: {
+              evidence: { reviewCandidate: candidate },
+            },
           },
         ]);
       }
@@ -325,7 +327,9 @@ async function main() {
             {
               id: "current-browser-worker-execution",
               status: "COMPLETED",
-              evidence: { reviewCandidate: selectedCandidate },
+              result: {
+                evidence: { reviewCandidate: selectedCandidate },
+              },
             },
           ]);
         }
@@ -389,6 +393,41 @@ async function main() {
         },
       ),
     /More than one approved browser-worker production deployment candidate was found/,
+  );
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleBrowserWorkerDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "browser-worker-top-level-evidence-only",
+                status: "APPROVED",
+                evidence: { reviewCandidate: candidate },
+              },
+            ]);
+          }
+
+          if (
+            String(url).endsWith(
+              "/tasks/browser-worker-top-level-evidence-only/executions",
+            )
+          ) {
+            return response(200, [
+              {
+                id: "top-level-evidence-only-execution",
+                status: "COMPLETED",
+                evidence: { reviewCandidate: candidate },
+              },
+            ]);
+          }
+
+          throw new Error("unexpected request");
+        },
+        "browser-worker-top-level-evidence-only",
+      ),
+    /The approved browser-worker candidate has no matching completed execution/,
   );
 
 }

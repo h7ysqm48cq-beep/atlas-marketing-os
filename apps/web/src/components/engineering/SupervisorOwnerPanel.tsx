@@ -743,7 +743,8 @@ export async function authorizeEligibleBrowserWorkerDeployment(
   const matchingExecutions = Array.isArray(executions)
     ? executions.filter((value) => {
         const execution = asRecord(value);
-        const evidence = asRecord(execution?.evidence);
+        const result = asRecord(execution?.result);
+        const evidence = asRecord(result?.evidence);
         const executionCandidate =
           asDeploymentCandidate(evidence?.reviewCandidate);
 
