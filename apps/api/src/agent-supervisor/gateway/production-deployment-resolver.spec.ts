@@ -153,7 +153,7 @@ describe('Production deployment resolver', () => {
   });
 
   async function createApprovedDeployment(
-    service: 'api' | 'web' | 'browser-worker' = 'api',
+    service: 'api' | 'web' | 'browser-worker' | 'engineering-runner' = 'api',
     options: { runtimeRefresh?: boolean } = {},
   ) {
     const task = await supervisor.createTask({

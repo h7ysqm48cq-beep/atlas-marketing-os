@@ -361,7 +361,7 @@ describe('AgentGatewayService', () => {
       authorizeProductionDeployment?: (
         id: string,
         candidate: typeof reviewCandidate,
-        service: 'api' | 'web' | 'browser-worker',
+        service: 'api' | 'web' | 'browser-worker' | 'engineering-runner',
         authorization: Parameters<
           AgentSupervisorService['authorizeProductionDeployment']
         >[3],
