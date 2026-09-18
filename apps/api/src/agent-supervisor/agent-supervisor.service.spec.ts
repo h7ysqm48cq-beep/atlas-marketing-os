@@ -1827,3 +1827,180 @@ describe('S7 Human Owner abort RED service contract', () => {
     expect(recoveryStore.recoverExecutionAndBlockTask).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('P0B-6B candidate publication evidence', () => {
+  const receipt = {
+    taskId: 'ATLAS-TASK-PUBLISH-1',
+    executionId: 'ATLAS-EXEC-PUBLISH-1',
+    candidateBranch: 'atlas/candidate/ATLAS-TASK-PUBLISH-1/ATLAS-EXEC-PUBLISH-1',
+    baseSha: 'a'.repeat(40),
+    headSha: 'b'.repeat(40),
+    changedFiles: [CHANGED_FILE],
+    targetBranch: 'production/atlas',
+    remoteHeadSha: 'b'.repeat(40),
+    remoteVerified: true,
+  };
+
+  it('persists a valid candidate publication receipt with implementation evidence', async () => {
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+    );
+    const task = await service.createTask({
+      objective: 'Persist candidate publication receipt',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge'],
+      dependsOn: [],
+      acceptance: ['receipt persists'],
+    });
+    await service.startTask(task.id);
+
+    const taskReceipt = {
+      ...receipt,
+      taskId: task.id,
+      candidateBranch: `atlas/candidate/${task.id}/${receipt.executionId}`,
+    };
+    const implemented = await service.submitImplementation(task.id, {
+      rootCause: 'Implemented', changedFiles: [CHANGED_FILE], tests: ['PASS'],
+      build: 'PASS', regression: ['PASS'], deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANDIDATE_PUBLISHED', remainingRisk: [],
+      candidatePublication: taskReceipt,
+      reviewCandidate: {
+        action: 'merge', targetBranch: 'production/atlas',
+        baseSha: taskReceipt.baseSha, headSha: taskReceipt.headSha,
+        changedFiles: taskReceipt.changedFiles,
+      },
+    } as any);
+
+    expect((implemented.evidence as any)?.candidatePublication).toEqual(taskReceipt);
+  });
+
+  it('rejects a candidate publication receipt that is not remotely verified', async () => {
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(),
+      new MemoryFileOwnershipStore(),
+    );
+    const task = await service.createTask({
+      objective: 'Reject unverified candidate receipt', owner: 'backend',
+      allowedPaths: [CHANGED_FILE], forbiddenActions: ['merge'],
+      dependsOn: [], acceptance: ['unverified receipt rejected'],
+    });
+    await service.startTask(task.id);
+
+    await expect(service.submitImplementation(task.id, {
+      rootCause: 'Implemented', changedFiles: [CHANGED_FILE], tests: ['PASS'],
+      build: 'PASS', regression: ['PASS'], deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANDIDATE_PUBLISHED', remainingRisk: [],
+      candidatePublication: { ...receipt, remoteVerified: false },
+    } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('P0B-6B candidate publication receipt validation', () => {
+  it('rejects malformed candidate publication SHA provenance', async () => {
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const task = await service.createTask({
+      objective: 'Reject malformed candidate SHA', owner: 'backend',
+      allowedPaths: [CHANGED_FILE], forbiddenActions: ['merge'],
+      dependsOn: [], acceptance: ['invalid receipt rejected'],
+    });
+    await service.startTask(task.id);
+    await expect(service.submitImplementation(task.id, {
+      rootCause: 'Implemented', changedFiles: [CHANGED_FILE], tests: ['PASS'],
+      build: 'PASS', regression: ['PASS'], deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANDIDATE_PUBLISHED', remainingRisk: [],
+      candidatePublication: {
+        taskId: task.id, executionId: 'ATLAS-EXEC-PUBLISH-INVALID',
+        candidateBranch: 'atlas/candidate/x/y', baseSha: 'not-a-sha',
+        headSha: 'b'.repeat(40), changedFiles: [CHANGED_FILE],
+        targetBranch: 'production/atlas', remoteHeadSha: 'b'.repeat(40),
+        remoteVerified: true,
+      },
+    } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+describe('P0B-6B candidate publication binding', () => {
+  async function workingTask(allowedPaths: string[]) {
+    const service = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const task = await service.createTask({
+      objective: 'Bind candidate publication provenance', owner: 'backend',
+      allowedPaths, forbiddenActions: ['merge'], dependsOn: [],
+      acceptance: ['publication binding enforced'],
+    });
+    await service.startTask(task.id);
+    return { service, task };
+  }
+
+  function evidence(receipt: Record<string, unknown>, changedFiles = [CHANGED_FILE]) {
+    return {
+      rootCause: 'Implemented', changedFiles, tests: ['PASS'], build: 'PASS',
+      regression: ['PASS'], deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANDIDATE_PUBLISHED', remainingRisk: [],
+      candidatePublication: receipt,
+      reviewCandidate: {
+        action: 'merge', targetBranch: 'production/atlas',
+        baseSha: receipt.baseSha, headSha: receipt.headSha, changedFiles,
+      },
+    } as any;
+  }
+  it('rejects receipt changedFiles that differ from implementation evidence', async () => {
+    const other = 'apps/api/src/other.ts';
+    const { service, task } = await workingTask([CHANGED_FILE, other]);
+    const receipt = {
+      taskId: task.id, executionId: 'ATLAS-EXEC-BIND-1',
+      candidateBranch: `atlas/candidate/${task.id}/ATLAS-EXEC-BIND-1`,
+      baseSha: 'a'.repeat(40), headSha: 'b'.repeat(40),
+      changedFiles: [other], targetBranch: 'production/atlas',
+      remoteHeadSha: 'b'.repeat(40), remoteVerified: true,
+    };
+
+    await expect(
+      service.submitImplementation(task.id, evidence(receipt, [CHANGED_FILE])),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_changed_files_mismatch' },
+    });
+  });
+
+  it('rejects a receipt bound to a different task id', async () => {
+    const { service, task } = await workingTask([CHANGED_FILE]);
+    const receipt = {
+      taskId: 'ATLAS-TASK-OTHER', executionId: 'ATLAS-EXEC-BIND-2',
+      candidateBranch: 'atlas/candidate/ATLAS-TASK-OTHER/ATLAS-EXEC-BIND-2',
+      baseSha: 'a'.repeat(40), headSha: 'b'.repeat(40),
+      changedFiles: [CHANGED_FILE], targetBranch: 'production/atlas',
+      remoteHeadSha: 'b'.repeat(40), remoteVerified: true,
+    };
+    await expect(
+      service.submitImplementation(task.id, evidence(receipt)),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_task_mismatch' },
+    });
+  });
+
+  it('rejects reviewCandidate provenance that differs from the receipt', async () => {
+    const { service, task } = await workingTask([CHANGED_FILE]);
+    const receipt = {
+      taskId: task.id, executionId: 'ATLAS-EXEC-BIND-3',
+      candidateBranch: `atlas/candidate/${task.id}/ATLAS-EXEC-BIND-3`,
+      baseSha: 'a'.repeat(40), headSha: 'b'.repeat(40),
+      changedFiles: [CHANGED_FILE], targetBranch: 'production/atlas',
+      remoteHeadSha: 'b'.repeat(40), remoteVerified: true,
+    };
+    const input = evidence(receipt);
+    input.reviewCandidate = {
+      ...input.reviewCandidate,
+      headSha: 'c'.repeat(40),
+    };
+
+    await expect(
+      service.submitImplementation(task.id, input),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_review_candidate_mismatch' },
+    });
+  });
+});

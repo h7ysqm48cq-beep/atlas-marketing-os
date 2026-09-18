@@ -98,6 +98,10 @@ export type SupervisorAdmissionResult = {
   executionStatus: string | null;
 };
 
+export type SupervisorAdmissionOptions = {
+  frozenBaseSha?: string;
+};
+
 const STALE_BROWSER_WORKER_RELEASE_REASON =
   "Release stale browser-worker production deployment ownership before resuming the authorized deployment flow.";
 
@@ -369,7 +373,20 @@ function requireStringField(
 export async function runSupervisorAdmission(
   input: SupervisorTaskInput,
   fetchImpl: FetchLike = fetch,
+  options: SupervisorAdmissionOptions = {},
 ): Promise<SupervisorAdmissionResult> {
+  const frozenBaseSha =
+    options.frozenBaseSha?.trim().toLowerCase() ?? "";
+
+  if (
+    frozenBaseSha &&
+    !/^[0-9a-f]{40}$/u.test(frozenBaseSha)
+  ) {
+    throw new Error(
+      "Frozen base SHA must be exactly 40 hexadecimal characters.",
+    );
+  }
+
   const created = await postSupervisor(
     "create task",
     "/tasks",
@@ -432,7 +449,9 @@ export async function runSupervisorAdmission(
     dispatched = await postSupervisor(
       "dispatch execution",
       `/tasks/${encodeURIComponent(taskId)}/dispatch`,
-      {},
+      frozenBaseSha
+        ? { frozenBaseSha }
+        : {},
       fetchImpl,
     );
   } catch (error) {
@@ -461,10 +480,14 @@ export async function runSupervisorAdmission(
   if (
     typeof executionId !== "string" ||
     !executionId.trim() ||
-    executionStatus !== "DISPATCHED"
+    !["QUEUED", "DISPATCHED"].includes(
+      typeof executionStatus === "string"
+        ? executionStatus
+        : "",
+    )
   ) {
     throw new SupervisorAdmissionError(
-      "dispatch response did not confirm a DISPATCHED execution. Stop and verify Supervisor state.",
+      "dispatch response did not confirm a QUEUED or DISPATCHED execution. Stop and verify Supervisor state.",
       {
         taskId,
         taskStatus: "WORKING",
@@ -484,7 +507,8 @@ export async function runSupervisorAdmission(
     taskId,
     taskStatus: "WORKING",
     executionId,
-    executionStatus: "DISPATCHED",
+    executionStatus:
+      executionStatus as "QUEUED" | "DISPATCHED",
   };
 }
 
@@ -905,6 +929,8 @@ export function SupervisorOwnerPanel() {
     useState(STANDARD_OBJECTIVE);
   const [owner, setOwner] =
     useState<WorkerOwner>("frontend");
+  const [frozenBaseSha, setFrozenBaseSha] =
+    useState("");
   const [allowedPathsText, setAllowedPathsText] =
     useState(STANDARD_ALLOWED_PATHS);
   const [forbiddenActionsText, setForbiddenActionsText] =
@@ -959,7 +985,11 @@ export function SupervisorOwnerPanel() {
       });
 
       const admission =
-        await runSupervisorAdmission(input);
+        await runSupervisorAdmission(
+          input,
+          fetch,
+          { frozenBaseSha },
+        );
 
       setResult(admission);
     } catch (caught) {
@@ -1106,6 +1136,21 @@ export function SupervisorOwnerPanel() {
               </option>
             ))}
           </select>
+        </label>
+
+        <label style={labelStyle}>
+          Frozen base SHA — optional
+          <input
+            value={frozenBaseSha}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setFrozenBaseSha(event.target.value)
+            }
+            spellCheck={false}
+            autoComplete="off"
+            style={fieldStyle}
+            placeholder="40-character Git commit SHA"
+            disabled={busy}
+          />
         </label>
 
         <label style={labelStyle}>

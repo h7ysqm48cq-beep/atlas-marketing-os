@@ -22,6 +22,14 @@ const BROWSER_WORKER_RAILWAY_CONFIG_PATH = resolve(
   process.cwd(),
   '../browser-worker/railway.json',
 );
+const ENGINEERING_RUNNER_RAILWAY_CONFIG_PATH = resolve(
+  process.cwd(),
+  '../engineering-runner/railway.json',
+);
+const ENGINEERING_RUNNER_DOCKERFILE_PATH = resolve(
+  process.cwd(),
+  '../engineering-runner/Dockerfile',
+);
 
 function loadGate(): Required<GateModule> {
   let loaded: GateModule;
@@ -195,6 +203,36 @@ describe('repository-owned production deployment gate', () => {
     });
   });
 
+  it('sends exact engineering-runner provenance when that production service is selected', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn().mockResolvedValue(
+      response(200, {
+        allowed: true,
+        reason: null,
+        taskId: 'ATLAS-DEPLOY-RUNNER-1',
+        executionId: 'ATLAS-DEPLOY-RUNNER-EXEC-1',
+      }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({ ATLAS_DEPLOYMENT_SERVICE: 'engineering-runner' }),
+        fetchImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-DEPLOY-RUNNER-1',
+      executionId: 'ATLAS-DEPLOY-RUNNER-EXEC-1',
+    });
+
+    const [, init] = (fetchImpl as unknown as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      service: 'engineering-runner',
+    });
+  });
+
   it('fails closed before calling the resolver when the deployment service is unsupported', async () => {
     const gate = loadGate();
     const fetchImpl = jest.fn() as unknown as typeof fetch;
@@ -234,5 +272,35 @@ describe('repository-owned production deployment gate', () => {
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
+  it('keeps Engineering Runner Railway preDeploy service-bound and migration-free', () => {
+    const config = JSON.parse(
+      readFileSync(ENGINEERING_RUNNER_RAILWAY_CONFIG_PATH, 'utf8'),
+    ) as {
+      deploy?: { preDeployCommand?: string[] };
+    };
 
+    const commands = config.deploy?.preDeployCommand ?? [];
+
+    expect(commands).toEqual([
+      'ATLAS_DEPLOYMENT_SERVICE=engineering-runner node apps/api/scripts/check-production-deployment-gate.cjs',
+    ]);
+    expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
+  });
+
+  it('packages Engineering Runner as a persistent Git/Python-capable worker without embedding runtime credentials', () => {
+    const dockerfile = readFileSync(ENGINEERING_RUNNER_DOCKERFILE_PATH, 'utf8');
+
+    expect(dockerfile).toMatch(/FROM node:22-bookworm/);
+    expect(dockerfile).toMatch(/\bgit\b/);
+    expect(dockerfile).toMatch(/\bpython3\b/);
+    expect(dockerfile).toMatch(
+      /npm run build --workspace apps\/engineering-runner/,
+    );
+    expect(dockerfile).toMatch(
+      /CMD \["npm", "run", "start", "--workspace", "apps\/engineering-runner"\]/,
+    );
+    expect(dockerfile).not.toMatch(
+      /ATLAS_SUPERVISOR_|ATLAS_ENGINEERING_RUNNER_(SOURCE|PUBLISHER)_TOKEN|db:migrate|prisma migrate/i,
+    );
+  });
 });

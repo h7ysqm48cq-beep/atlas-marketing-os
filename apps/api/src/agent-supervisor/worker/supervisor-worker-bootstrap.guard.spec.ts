@@ -91,6 +91,45 @@ describe('SupervisorWorkerBootstrapGuard RED contract', () => {
     expect(value.supervisorWorkerBootstrapRole).not.toBe(value.body);
   });
 
+  it('supports an independent role-specific engineering bootstrap token', async () => {
+    const value = request('Bearer engineering-bootstrap-secret');
+    const target = guard({
+      ...validConfig,
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN:
+        'engineering-bootstrap-secret',
+    });
+    if (!target) return;
+
+    await expect(target.canActivate(context(value))).resolves.toBe(true);
+    expect(value.supervisorWorkerBootstrapRole).toBe('engineering');
+  });
+
+  it('keeps the legacy bootstrap role working beside role-specific tokens', async () => {
+    const value = request('Bearer bootstrap-test-secret');
+    const target = guard({
+      ...validConfig,
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN:
+        'engineering-bootstrap-secret',
+    });
+    if (!target) return;
+
+    await expect(target.canActivate(context(value))).resolves.toBe(true);
+    expect(value.supervisorWorkerBootstrapRole).toBe('backend');
+  });
+
+  it('fails closed when different roles share the same bootstrap token', async () => {
+    const target = guard({
+      ...validConfig,
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ENGINEERING_TOKEN:
+        'bootstrap-test-secret',
+    });
+    if (!target) return;
+
+    await expect(
+      target.canActivate(context(request('Bearer bootstrap-test-secret'))),
+    ).rejects.toThrow('worker_bootstrap_tokens_not_separated');
+  });
+
   it('fails closed for missing or invalid bootstrap configuration', async () => {
     const cases: ConfigValues[] = [
       {},

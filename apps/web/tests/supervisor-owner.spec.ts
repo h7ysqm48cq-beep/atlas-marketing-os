@@ -52,6 +52,80 @@ async function main() {
     executionStatus: null,
   });
 
+  const frozenBaseSha = "A".repeat(40);
+  const admissionCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const queuedAdmission = await runSupervisorAdmission(
+    input,
+    async (url, init) => {
+      admissionCalls.push({
+        method: init?.method ?? "GET",
+        url: String(url),
+        body: typeof init?.body === "string" ? init.body : undefined,
+      });
+
+      if (String(url).endsWith("/tasks")) {
+        return response(201, { id: "task-queued" });
+      }
+      if (String(url).endsWith("/start")) {
+        return response(200, { id: "task-queued", status: "WORKING" });
+      }
+      return response(200, {
+        execution: {
+          id: "execution-queued",
+          status: "QUEUED",
+        },
+      });
+    },
+    { frozenBaseSha },
+  );
+
+  assert.deepEqual(queuedAdmission, {
+    taskId: "task-queued",
+    taskStatus: "WORKING",
+    executionId: "execution-queued",
+    executionStatus: "QUEUED",
+  });
+  assert.deepEqual(admissionCalls, [
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks",
+      body: JSON.stringify(input),
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/task-queued/start",
+      body: "{}",
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/task-queued/dispatch",
+      body: JSON.stringify({
+        frozenBaseSha: frozenBaseSha.toLowerCase(),
+      }),
+    },
+  ]);
+
+  let invalidFrozenBaseError: unknown;
+  try {
+    await runSupervisorAdmission(
+      input,
+      async () => {
+        throw new Error("network must not be called");
+      },
+      { frozenBaseSha: "not-a-sha" },
+    );
+  } catch (error) {
+    invalidFrozenBaseError = error;
+  }
+  assert.match(
+    (invalidFrozenBaseError as Error).message,
+    /Frozen base SHA must be exactly 40 hexadecimal characters/,
+  );
+
   const statusCalls: string[] = [];
   const status = await getSupervisorStatus("task-1", null, async (url, init) => {
     statusCalls.push(`${init?.method ?? "GET"} ${String(url)}`);

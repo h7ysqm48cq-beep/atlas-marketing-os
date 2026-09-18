@@ -1,8 +1,38 @@
 import type {
   AssignmentExecutor,
+  CandidatePublicationReceipt,
   SupervisorClientLike,
   WorkspaceInspector,
 } from './types.ts';
+
+
+interface CandidateWorkspaceLeaseLike {
+  path: string;
+  baseSha: string;
+  workspace: WorkspaceInspector;
+  cleanup(): Promise<void>;
+}
+
+interface CandidateWorkspaceManagerLike {
+  prepare(input: {
+    taskId: string;
+    executionId: string;
+    frozenBaseSha: string;
+    allowedPaths: string[];
+  }): Promise<CandidateWorkspaceLeaseLike>;
+}
+
+interface CandidatePublisherLike {
+  publish(input: {
+    taskId: string;
+    executionId: string;
+    executionPurpose: 'IMPLEMENTATION';
+    workspace: string;
+    frozenBaseSha: string;
+    targetBranch: 'production/atlas';
+    changedFiles: string[];
+  }): Promise<CandidatePublicationReceipt>;
+}
 
 interface ScopeGuardLike {
   assertImplementationScope(changed: string[], allowed: string[]): void;
@@ -16,6 +46,10 @@ export interface EngineeringRunnerOptions {
   scopeGuard: ScopeGuardLike;
   pollIntervalMs?: number;
   heartbeatIntervalMs?: number;
+  candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
+  candidatePublisher?: CandidatePublisherLike;
+  executorFactory?: (cwd: string) => AssignmentExecutor;
+  preflight?: () => Promise<void>;
 }
 
 function errorReason(error: unknown): string {
@@ -66,6 +100,10 @@ export class EngineeringRunner {
   private readonly scopeGuard: ScopeGuardLike;
   private readonly pollIntervalMs: number;
   private readonly heartbeatIntervalMs: number;
+  private readonly candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
+  private readonly candidatePublisher?: CandidatePublisherLike;
+  private readonly executorFactory?: (cwd: string) => AssignmentExecutor;
+  private readonly preflight?: () => Promise<void>;
 
   constructor(options: EngineeringRunnerOptions) {
     this.client = options.client;
@@ -74,6 +112,10 @@ export class EngineeringRunner {
     this.scopeGuard = options.scopeGuard;
     this.pollIntervalMs = options.pollIntervalMs ?? 5_000;
     this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? 20_000;
+    this.candidateWorkspaceManager = options.candidateWorkspaceManager;
+    this.candidatePublisher = options.candidatePublisher;
+    this.executorFactory = options.executorFactory;
+    this.preflight = options.preflight;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
       throw new Error('runner_timing_invalid');
     }
@@ -85,9 +127,35 @@ export class EngineeringRunner {
 
     let heartbeatError: unknown;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let candidateLease: CandidateWorkspaceLeaseLike | undefined;
+    let terminalRecorded = false;
 
     try {
-      const before = await this.workspace.listChangedFiles();
+      let activeWorkspace = this.workspace;
+      let activeExecutor = this.executor;
+      const frozenBaseSha = session.assignment.frozenBaseSha;
+      const useCandidateFlow =
+        session.purpose === 'IMPLEMENTATION' && Boolean(frozenBaseSha);
+
+      if (useCandidateFlow) {
+        if (
+          !this.candidateWorkspaceManager ||
+          !this.candidatePublisher ||
+          !this.executorFactory
+        ) {
+          throw new Error('candidate_flow_configuration_missing');
+        }
+        candidateLease = await this.candidateWorkspaceManager.prepare({
+          taskId: session.assignment.taskId,
+          executionId: session.assignment.executionId,
+          frozenBaseSha: frozenBaseSha!,
+          allowedPaths: session.assignment.allowedPaths,
+        });
+        activeWorkspace = candidateLease.workspace;
+        activeExecutor = this.executorFactory(candidateLease.path);
+      }
+
+      const before = await activeWorkspace.listChangedFiles();
       await session.heartbeat();
       heartbeatTimer = setInterval(() => {
         void session.heartbeat().catch((error) => {
@@ -95,11 +163,11 @@ export class EngineeringRunner {
         });
       }, this.heartbeatIntervalMs);
 
-      const executionResult = await this.executor.execute(
+      const executionResult = await activeExecutor.execute(
         session.assignment,
         signal,
       );
-      const after = await this.workspace.listChangedFiles();
+      const after = await activeWorkspace.listChangedFiles();
 
       if (heartbeatError) throw heartbeatError;
       if (session.purpose === 'INDEPENDENT_VERIFICATION') {
@@ -115,9 +183,37 @@ export class EngineeringRunner {
         );
       }
 
+      let completionResult = executionResult;
+      if (useCandidateFlow) {
+        const receipt = await this.candidatePublisher!.publish({
+          taskId: session.assignment.taskId,
+          executionId: session.assignment.executionId,
+          executionPurpose: 'IMPLEMENTATION',
+          workspace: candidateLease!.path,
+          frozenBaseSha: frozenBaseSha!,
+          targetBranch: 'production/atlas',
+          changedFiles: [...after],
+        });
+        completionResult = {
+          summary: executionResult.summary,
+          evidence: {
+            ...executionResult.evidence,
+            candidatePublication: receipt,
+            reviewCandidate: {
+              action: 'merge',
+              targetBranch: receipt.targetBranch,
+              baseSha: receipt.baseSha,
+              headSha: receipt.headSha,
+              changedFiles: [...receipt.changedFiles],
+            },
+          },
+        };
+      }
+
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       heartbeatTimer = undefined;
-      await session.complete(executionResult);
+      await session.complete(completionResult);
+      terminalRecorded = true;
       return 'completed';
     } catch (error) {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -129,6 +225,7 @@ export class EngineeringRunner {
       if (signal?.aborted) {
         try {
           await session.cancel('runner_aborted');
+          terminalRecorded = true;
         } catch (cancelError) {
           if (isAmbiguousMutation(cancelError)) throw cancelError;
           throw cancelError;
@@ -138,15 +235,28 @@ export class EngineeringRunner {
 
       try {
         await session.fail(errorReason(error));
+        terminalRecorded = true;
       } catch (failError) {
         if (isAmbiguousMutation(failError)) throw failError;
         throw failError;
       }
       return 'failed';
+    } finally {
+      if (terminalRecorded && candidateLease) {
+        try {
+          await candidateLease.cleanup();
+        } catch {
+          // Terminal Supervisor state is authoritative; cleanup is best-effort.
+        }
+      }
     }
   }
 
   async run(signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return;
+    if (this.preflight) {
+      await this.preflight();
+    }
     while (!signal.aborted) {
       await this.runOnce(signal);
       if (signal.aborted) break;

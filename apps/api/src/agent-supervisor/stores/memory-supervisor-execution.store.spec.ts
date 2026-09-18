@@ -65,6 +65,8 @@ function executionWithLiveness(
 
 type ClaimNextInput = {
   workerRole: SupervisorExecution['workerRole'];
+  executionPurpose?: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+  requireFrozenBaseSha?: boolean;
   runnerId: string;
   leaseId: string;
   now: Date;
@@ -276,6 +278,75 @@ describe('MemorySupervisorExecutionStore', () => {
     await expect(store.get('EXEC-FRONTEND')).resolves.toMatchObject({
       status: 'QUEUED',
       workerRole: 'frontend',
+    });
+  });
+
+  it('claims only the requested execution purpose for the same worker role', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const verifier = executionFixture('EXEC-VERIFY', 'ATLAS-VERIFY');
+    verifier.createdAt = new Date('2026-09-13T00:01:00.000Z');
+    verifier.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
+    const implementation = executionFixture('EXEC-IMPLEMENT', 'ATLAS-IMPLEMENT');
+    implementation.createdAt = new Date('2026-09-13T00:02:00.000Z');
+    implementation.assignment.executionPurpose = 'IMPLEMENTATION';
+
+    await store.create(verifier);
+    await store.create(implementation);
+
+    const implementationClaim = await claimStore(store).claimNext({
+      workerRole: 'backend',
+      executionPurpose: 'IMPLEMENTATION',
+      runnerId: 'runner-implementation',
+      leaseId: 'lease-implementation',
+      now: new Date('2026-09-13T00:03:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-13T00:13:00.000Z'),
+    });
+
+    expect(implementationClaim?.id).toBe('EXEC-IMPLEMENT');
+    await expect(store.get('EXEC-VERIFY')).resolves.toMatchObject({
+      status: 'QUEUED',
+      assignment: { executionPurpose: 'INDEPENDENT_VERIFICATION' },
+    });
+
+    const verifierClaim = await claimStore(store).claimNext({
+      workerRole: 'backend',
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      runnerId: 'runner-verifier',
+      leaseId: 'lease-verifier',
+      now: new Date('2026-09-13T00:04:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-13T00:14:00.000Z'),
+    });
+
+    expect(verifierClaim?.id).toBe('EXEC-VERIFY');
+  });
+
+  it('candidate-only claims skip older implementation work without a valid frozen base', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const legacy = executionFixture('EXEC-LEGACY', 'ATLAS-LEGACY');
+    legacy.createdAt = new Date('2026-09-13T00:01:00.000Z');
+    legacy.assignment.executionPurpose = 'IMPLEMENTATION';
+
+    const candidate = executionFixture('EXEC-CANDIDATE', 'ATLAS-CANDIDATE');
+    candidate.createdAt = new Date('2026-09-13T00:02:00.000Z');
+    candidate.assignment.executionPurpose = 'IMPLEMENTATION';
+    candidate.assignment.frozenBaseSha = 'a'.repeat(40);
+
+    await store.create(legacy);
+    await store.create(candidate);
+
+    const claimed = await claimStore(store).claimNext({
+      workerRole: 'backend',
+      executionPurpose: 'IMPLEMENTATION',
+      requireFrozenBaseSha: true,
+      runnerId: 'runner-candidate-only',
+      leaseId: 'lease-candidate-only',
+      now: new Date('2026-09-13T00:03:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-13T00:13:00.000Z'),
+    });
+
+    expect(claimed?.id).toBe('EXEC-CANDIDATE');
+    await expect(store.get('EXEC-LEGACY')).resolves.toMatchObject({
+      status: 'QUEUED',
     });
   });
 

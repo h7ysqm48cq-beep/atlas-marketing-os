@@ -216,6 +216,57 @@ describe('AgentGatewayService', () => {
     return { task, execution };
   }
 
+  async function createRunningCandidateExecution() {
+    const task = await supervisor.createTask({
+      objective: 'Implement frozen candidate change',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['candidate provenance is bound'],
+    });
+    await supervisor.startTask(task.id);
+    const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION', {
+      frozenBaseSha: BASE_SHA,
+    });
+    await moveQueuedToLegacyDispatched(queued.execution.id);
+    const execution = await dispatcher.markRunning(queued.execution.id);
+    return { task, execution };
+  }
+
+  function candidateEvidence(taskId: string, executionId: string) {
+    const candidateBranch = `atlas/candidate/${taskId}/${executionId}`;
+    const candidatePublication = {
+      taskId,
+      executionId,
+      candidateBranch,
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: [CHANGED_FILE],
+      targetBranch: 'production/atlas' as const,
+      remoteHeadSha: HEAD_SHA,
+      remoteVerified: true as const,
+    };
+    return {
+      rootCause: 'Confirmed candidate provenance',
+      changedFiles: [CHANGED_FILE],
+      tests: ['candidate provenance PASS'],
+      build: 'PASS',
+      regression: ['supervisor PASS'],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANDIDATE_PUBLISHED',
+      remainingRisk: [],
+      candidatePublication,
+      reviewCandidate: {
+        action: 'merge' as const,
+        targetBranch: 'production/atlas',
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        changedFiles: [CHANGED_FILE],
+      },
+    };
+  }
+
   async function moveQueuedToLegacyDispatched(executionId: string) {
     const execution = await executionStore.get(executionId);
     if (!execution) {
@@ -310,7 +361,7 @@ describe('AgentGatewayService', () => {
       authorizeProductionDeployment?: (
         id: string,
         candidate: typeof reviewCandidate,
-        service: 'api' | 'web' | 'browser-worker',
+        service: 'api' | 'web' | 'browser-worker' | 'engineering-runner',
         authorization: Parameters<
           AgentSupervisorService['authorizeProductionDeployment']
         >[3],
@@ -575,6 +626,86 @@ describe('AgentGatewayService', () => {
 
     expect(implemented.status).toBe('IMPLEMENTED');
     expect(implemented.evidence?.changedFiles).toEqual([CHANGED_FILE]);
+  });
+
+  it('accepts candidate publication only when receipt is bound to the frozen execution', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Published frozen candidate',
+      evidence: candidateEvidence(task.id, execution.id),
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).resolves.toMatchObject({ status: 'IMPLEMENTED' });
+  });
+
+  it('rejects candidate publication bound to a different execution id', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const evidence = candidateEvidence(task.id, 'ATLAS-EXEC-OTHER');
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Published mismatched candidate',
+      evidence,
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_execution_binding_mismatch' },
+    });
+  });
+
+  it('rejects candidate publication with a non-deterministic branch', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const evidence = candidateEvidence(task.id, execution.id);
+    evidence.candidatePublication.candidateBranch = 'atlas/candidate/other/ref';
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Published wrong candidate branch',
+      evidence,
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_execution_binding_mismatch' },
+    });
+  });
+
+  it('rejects a frozen candidate execution that completes without publication evidence', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Frozen execution omitted candidate publication',
+      evidence: {
+        rootCause: 'Candidate publication was omitted',
+        changedFiles: [CHANGED_FILE],
+        tests: ['candidate provenance FAIL'],
+        build: 'PASS',
+        regression: [],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'NO_CANDIDATE_PUBLICATION',
+        remainingRisk: ['candidate receipt missing'],
+      },
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_required_for_frozen_base' },
+    });
+  });
+
+  it('rejects candidate publication evidence when the execution has no frozen base', async () => {
+    const { task, execution } = await createRunningExecution();
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Legacy execution tried to publish candidate receipt',
+      evidence: candidateEvidence(task.id, execution.id),
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).rejects.toMatchObject({
+      response: { code: 'candidate_publication_frozen_base_required' },
+    });
   });
 
   it('rejects implementation submission from a non-completed execution', async () => {

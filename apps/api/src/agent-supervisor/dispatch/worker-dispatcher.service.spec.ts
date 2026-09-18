@@ -258,6 +258,67 @@ describe('WorkerDispatcherService', () => {
     ).toBe('IMPLEMENTATION');
   });
 
+  it('binds a normalized frozen base SHA into the implementation assignment and admission input', async () => {
+    const task = await createWorkingTask();
+    const createBinding = jest.fn((input: Record<string, unknown>) =>
+      new SupervisorAdmissionManifestService().createBinding(input as never),
+    );
+    const boundDispatcher = new WorkerDispatcherService(
+      supervisor,
+      executionStore,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      { createBinding } as never,
+    );
+    const base = 'A'.repeat(40);
+
+    const result = await (boundDispatcher as unknown as {
+      dispatch(
+        taskId: string,
+        purpose: 'IMPLEMENTATION',
+        options: { frozenBaseSha: string },
+      ): ReturnType<WorkerDispatcherService['dispatch']>;
+    }).dispatch(task.id, 'IMPLEMENTATION', { frozenBaseSha: base });
+
+    expect((result.assignment as unknown as Record<string, unknown>).frozenBaseSha).toBe(
+      base.toLowerCase(),
+    );
+    expect(createBinding).toHaveBeenCalledWith(
+      expect.objectContaining({ frozenBaseSha: base.toLowerCase() }),
+    );
+  });
+
+  it('rejects a malformed frozen base SHA before persistence', async () => {
+    const task = await createWorkingTask();
+
+    await expect(
+      (dispatcher as unknown as {
+        dispatch(
+          taskId: string,
+          purpose: 'IMPLEMENTATION',
+          options: { frozenBaseSha: string },
+        ): ReturnType<WorkerDispatcherService['dispatch']>;
+      }).dispatch(task.id, 'IMPLEMENTATION', { frozenBaseSha: 'not-a-sha' }),
+    ).rejects.toThrow('frozen_base_sha_invalid');
+
+    expect(await executionStore.listByTask(task.id)).toHaveLength(0);
+  });
+
+  it('rejects a caller-supplied frozen base for independent verification', async () => {
+    const task = await createVerifyingTask();
+
+    await expect(
+      (dispatcher as unknown as {
+        dispatch(
+          taskId: string,
+          purpose: 'INDEPENDENT_VERIFICATION',
+          options: { frozenBaseSha: string },
+        ): ReturnType<WorkerDispatcherService['dispatch']>;
+      }).dispatch(task.id, 'INDEPENDENT_VERIFICATION', {
+        frozenBaseSha: 'a'.repeat(40),
+      }),
+    ).rejects.toThrow('frozen_base_sha_not_allowed_for_verification');
+  });
+
   it('fails closed when the server admission producer returns a malformed binding', async () => {
     const task = await createWorkingTask();
 

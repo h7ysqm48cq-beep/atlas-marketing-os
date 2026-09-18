@@ -50,6 +50,18 @@ export interface CreateSupervisorTaskInput {
   acceptance: string[];
 }
 
+export interface SupervisorCandidatePublicationReceipt {
+  taskId: string;
+  executionId: string;
+  candidateBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+  targetBranch: 'production/atlas';
+  remoteHeadSha: string;
+  remoteVerified: true;
+}
+
 export interface SupervisorReviewCandidate {
   action: SupervisorIntegrationAction;
   targetBranch: string;
@@ -115,6 +127,7 @@ export interface SupervisorEvidence {
   deploymentState: string;
   gitState: string;
   remainingRisk: string[];
+  candidatePublication?: SupervisorCandidatePublicationReceipt;
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
@@ -179,7 +192,8 @@ export interface SupervisorGateDecision {
   executionId: string;
 }
 
-export type ProductionDeploymentService = 'api' | 'web' | 'browser-worker';
+export type ProductionDeploymentService =
+  'api' | 'web' | 'browser-worker' | 'engineering-runner';
 
 export type ProductionDeploymentDriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';

@@ -121,6 +121,7 @@ export class AgentGatewayService {
       execution.assignment.allowedPaths,
       execution.result.evidence.changedFiles,
     );
+    this.validateCandidatePublicationBinding(task, execution);
 
     return this.supervisor.submitImplementation(
       task.id,
@@ -352,6 +353,41 @@ export class AgentGatewayService {
       'deploy-gate',
     );
     return this.allowed(validated.task.id, validated.execution.id);
+  }
+
+  private validateCandidatePublicationBinding(
+    task: SupervisorTask,
+    execution: SupervisorExecution,
+  ): void {
+    const frozenBaseSha = execution.assignment.frozenBaseSha?.trim().toLowerCase();
+    const receipt = execution.result?.evidence.candidatePublication;
+
+    if (!frozenBaseSha) {
+      if (receipt) {
+        throw new BadRequestException({
+          code: 'candidate_publication_frozen_base_required',
+        });
+      }
+      return;
+    }
+
+    if (!receipt) {
+      throw new BadRequestException({
+        code: 'candidate_publication_required_for_frozen_base',
+      });
+    }
+
+    const expectedBranch = `atlas/candidate/${task.id}/${execution.id}`;
+    if (
+      receipt.taskId !== task.id ||
+      receipt.executionId !== execution.id ||
+      receipt.baseSha.toLowerCase() !== frozenBaseSha ||
+      receipt.candidateBranch !== expectedBranch
+    ) {
+      throw new BadRequestException({
+        code: 'candidate_publication_execution_binding_mismatch',
+      });
+    }
   }
 
   private async validateIntegrationCandidate(input: IntegrationGateInput) {

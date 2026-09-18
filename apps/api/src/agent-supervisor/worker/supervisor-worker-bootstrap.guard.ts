@@ -9,14 +9,20 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { SupervisorWorkerRole } from '../execution/supervisor-execution.types';
 
-const WORKER_ROLES = new Set<SupervisorWorkerRole>([
+const WORKER_ROLES: SupervisorWorkerRole[] = [
   'engineering',
   'frontend',
   'backend',
   'database',
   'qa',
   'infra',
-]);
+];
+
+const WORKER_ROLE_SET = new Set<SupervisorWorkerRole>(WORKER_ROLES);
+
+function roleTokenKey(role: SupervisorWorkerRole): string {
+  return `ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_${role.toUpperCase()}_TOKEN`;
+}
 
 type BootstrapRequest = {
   headers?: { authorization?: unknown };
@@ -28,18 +34,43 @@ export class SupervisorWorkerBootstrapGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const configuredToken = this.config.get<string>(
+    const legacyToken = this.config.get<string>(
       'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN',
     );
-    if (!configuredToken) {
+    const legacyRole = this.config.get<string>(
+      'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ROLE',
+    );
+
+    if (
+      legacyToken &&
+      (!legacyRole || !WORKER_ROLE_SET.has(legacyRole as SupervisorWorkerRole))
+    ) {
+      throw new ForbiddenException('worker_bootstrap_role_invalid');
+    }
+
+    const roleTokens = WORKER_ROLES.flatMap((role) => {
+      const token = this.config.get<string>(roleTokenKey(role));
+      return token ? [{ role, token }] : [];
+    });
+    const configured = [
+      ...(legacyToken && legacyRole
+        ? [{ role: legacyRole as SupervisorWorkerRole, token: legacyToken }]
+        : []),
+      ...roleTokens,
+    ];
+    if (configured.length === 0) {
       throw new ForbiddenException('worker_bootstrap_not_configured');
     }
 
-    const configuredRole = this.config.get<string>(
-      'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_ROLE',
-    );
-    if (!configuredRole || !WORKER_ROLES.has(configuredRole as SupervisorWorkerRole)) {
-      throw new ForbiddenException('worker_bootstrap_role_invalid');
+    for (let index = 0; index < configured.length; index += 1) {
+      for (let other = index + 1; other < configured.length; other += 1) {
+        if (
+          configured[index].role !== configured[other].role &&
+          this.equalSecret(configured[index].token, configured[other].token)
+        ) {
+          throw new ForbiddenException('worker_bootstrap_tokens_not_separated');
+        }
+      }
     }
 
     const request = context.switchToHttp().getRequest<BootstrapRequest>();
@@ -52,11 +83,14 @@ export class SupervisorWorkerBootstrapGuard implements CanActivate {
     }
 
     const suppliedToken = authorization.slice('Bearer '.length);
-    if (!this.equalSecret(suppliedToken, configuredToken)) {
+    const matched = configured.find(({ token }) =>
+      this.equalSecret(suppliedToken, token),
+    );
+    if (!matched) {
       throw new UnauthorizedException('worker_bootstrap_invalid');
     }
 
-    request.supervisorWorkerBootstrapRole = configuredRole as SupervisorWorkerRole;
+    request.supervisorWorkerBootstrapRole = matched.role;
     return true;
   }
 

@@ -353,6 +353,29 @@ describe('AgentSupervisorController', () => {
     expect(result.assignment.forbiddenActions).toContain('merge');
   });
 
+  it('forwards only frozenBaseSha from the implementation dispatch body', async () => {
+    const dispatch = jest.fn().mockResolvedValue({
+      execution: { id: 'ATLAS-EXEC-BASE-1', status: 'QUEUED' },
+    });
+    const dispatchController = Object.create(
+      AgentSupervisorController.prototype,
+    ) as any;
+    dispatchController.dispatcher = { dispatch };
+
+    const frozenBaseSha = 'A'.repeat(40);
+    await dispatchController.dispatchTask('ATLAS-TASK-BASE-1', {
+      frozenBaseSha,
+      manifestHash: 'caller-controlled',
+      runnerId: 'caller-controlled',
+    });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      'ATLAS-TASK-BASE-1',
+      'IMPLEMENTATION',
+      { frozenBaseSha },
+    );
+  });
+
   it('exposes a server-fixed Human Owner verifier dispatch route', () => {
     const prototype =
       AgentSupervisorController.prototype as unknown as Record<

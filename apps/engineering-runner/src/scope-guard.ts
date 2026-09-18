@@ -27,6 +27,32 @@ function canonicalList(values: string[]): string[] {
   return [...new Set(values.map(canonicalRepositoryPath))].sort();
 }
 
+function dangerousGitConfig(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  return (
+    normalized.startsWith('credential.') ||
+    normalized.startsWith('http.') ||
+    normalized.startsWith('https.') ||
+    normalized.startsWith('include.') ||
+    normalized.startsWith('includeif.') ||
+    normalized.startsWith('filter.') ||
+    normalized === 'core.sshcommand' ||
+    normalized === 'core.gitproxy' ||
+    normalized === 'core.fsmonitor' ||
+    normalized === 'core.attributesfile' ||
+    normalized === 'core.excludesfile' ||
+    normalized === 'diff.external' ||
+    (normalized.startsWith('diff.') && normalized.endsWith('.command')) ||
+    (normalized.startsWith('merge.') && normalized.endsWith('.driver')) ||
+    normalized === 'gpg.program' ||
+    normalized === 'commit.gpgsign' ||
+    normalized.startsWith('protocol.') ||
+    (normalized.startsWith('url.') &&
+      (normalized.endsWith('.insteadof') ||
+        normalized.endsWith('.pushinsteadof')))
+  );
+}
+
 export function parseGitStatusPorcelainZ(input: string): string[] {
   if (!input) return [];
   const records = input.split('\0');
@@ -61,22 +87,66 @@ export function parseGitStatusPorcelainZ(input: string): string[] {
 
 export class GitWorkspace {
   private readonly cwd: string;
+  private readonly environment: NodeJS.ProcessEnv;
 
-  constructor(cwd: string) {
+  constructor(cwd: string, environment: NodeJS.ProcessEnv = process.env) {
     if (!cwd) throw new Error('workspace_cwd_required');
     this.cwd = cwd;
+    this.environment = {
+      ...Object.fromEntries(
+        ['PATH', 'TMPDIR'].flatMap((key) =>
+          environment[key] === undefined ? [] : [[key, environment[key]]],
+        ),
+      ),
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_TERMINAL_PROMPT: '0',
+    };
   }
 
-  async listChangedFiles(): Promise<string[]> {
+  private async gitRaw(args: string[]): Promise<string> {
     const { stdout } = await execFileAsync(
       'git',
-      ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      [
+        '-c',
+        'core.hooksPath=/dev/null',
+        '-c',
+        'core.fsmonitor=false',
+        '-c',
+        'credential.helper=',
+        ...args,
+      ],
       {
         cwd: this.cwd,
         encoding: 'utf8',
         maxBuffer: 4 * 1024 * 1024,
+        env: this.environment,
       },
     );
+    return stdout;
+  }
+
+  private async assertGitConfigSafe(): Promise<void> {
+    const raw = await this.gitRaw([
+      'config',
+      '--local',
+      '--list',
+      '--name-only',
+      '-z',
+    ]);
+    if (raw.split('\0').filter(Boolean).some(dangerousGitConfig)) {
+      throw new Error('workspace_git_config_unsafe');
+    }
+  }
+
+  async listChangedFiles(): Promise<string[]> {
+    await this.assertGitConfigSafe();
+    const stdout = await this.gitRaw([
+      'status',
+      '--porcelain=v1',
+      '-z',
+      '--untracked-files=all',
+    ]);
     return parseGitStatusPorcelainZ(stdout);
   }
 }

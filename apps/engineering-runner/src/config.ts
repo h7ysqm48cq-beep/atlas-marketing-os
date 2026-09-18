@@ -1,3 +1,13 @@
+export interface EngineeringRunnerCandidateConfig {
+  repositoryRoot: string;
+  workspaceRoot: string;
+  remote: string;
+  sourceToken?: string;
+  publisherToken?: string;
+  publisherSshPrivateKey?: string;
+  publisherSshPrivateKeyPath?: string;
+}
+
 export interface EngineeringRunnerConfig {
   supervisorApiUrl: string;
   bootstrapToken: string;
@@ -6,6 +16,7 @@ export interface EngineeringRunnerConfig {
   workspace: string;
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
+  candidate?: EngineeringRunnerCandidateConfig;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -34,36 +45,106 @@ function stringArray(raw: string | undefined): string[] {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS');
+    throw new Error("runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS");
   }
-  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
-    throw new Error('runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS');
+  if (
+    !Array.isArray(parsed) ||
+    !parsed.every((item) => typeof item === "string")
+  ) {
+    throw new Error("runner_config_invalid:ATLAS_ENGINEERING_RUNNER_ARGS");
   }
   return parsed;
+}
+
+const CANONICAL_CANDIDATE_REMOTE =
+  "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
+
+function candidateConfig(
+  env: NodeJS.ProcessEnv,
+): EngineeringRunnerCandidateConfig | undefined {
+  const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
+  const workspaceRoot =
+    env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
+  const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
+  const sourceToken = env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN?.trim();
+  const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
+  const publisherSshPrivateKey =
+    env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY?.trim();
+  const publisherSshPrivateKeyPath =
+    env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH?.trim();
+  const requiredValues = [repositoryRoot, workspaceRoot, remote];
+  const configured = requiredValues.filter(Boolean).length;
+  if (
+    configured === 0 &&
+    !sourceToken &&
+    !publisherToken &&
+    !publisherSshPrivateKey &&
+    !publisherSshPrivateKeyPath
+  ) {
+    return undefined;
+  }
+  if (configured !== requiredValues.length) {
+    throw new Error("runner_candidate_config_incomplete");
+  }
+  const publisherAuthModes = [
+    publisherToken,
+    publisherSshPrivateKey,
+    publisherSshPrivateKeyPath,
+  ].filter(Boolean).length;
+  if (publisherAuthModes !== 1) {
+    throw new Error("runner_candidate_publisher_auth_invalid");
+  }
+  if (remote !== CANONICAL_CANDIDATE_REMOTE) {
+    throw new Error("runner_candidate_remote_not_canonical");
+  }
+  return {
+    repositoryRoot: repositoryRoot!,
+    workspaceRoot: workspaceRoot!,
+    remote: remote!,
+    ...(sourceToken ? { sourceToken } : {}),
+    ...(publisherToken ? { publisherToken } : {}),
+    ...(publisherSshPrivateKey ? { publisherSshPrivateKey } : {}),
+    ...(publisherSshPrivateKeyPath ? { publisherSshPrivateKeyPath } : {}),
+  };
 }
 
 export function loadEngineeringRunnerConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): EngineeringRunnerConfig {
+  const bootstrapToken = required(
+    env,
+    "ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN",
+  );
+  const candidate = candidateConfig(env);
+  if (candidate) {
+    const credentials = [
+      bootstrapToken,
+      ...(candidate.publisherToken ? [candidate.publisherToken] : []),
+      ...(candidate.publisherSshPrivateKey
+        ? [candidate.publisherSshPrivateKey]
+        : []),
+      ...(candidate.sourceToken ? [candidate.sourceToken] : []),
+    ];
+    if (new Set(credentials).size !== credentials.length) {
+      throw new Error("runner_candidate_credentials_not_separated");
+    }
+  }
   return {
-    supervisorApiUrl: required(env, 'ATLAS_SUPERVISOR_API_URL'),
-    bootstrapToken: required(
-      env,
-      'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN',
-    ),
-    command: required(env, 'ATLAS_ENGINEERING_RUNNER_COMMAND'),
+    supervisorApiUrl: required(env, "ATLAS_SUPERVISOR_API_URL"),
+    bootstrapToken,
+    command: required(env, "ATLAS_ENGINEERING_RUNNER_COMMAND"),
     args: stringArray(env.ATLAS_ENGINEERING_RUNNER_ARGS),
-    workspace:
-      env.ATLAS_ENGINEERING_RUNNER_WORKSPACE?.trim() || process.cwd(),
+    workspace: env.ATLAS_ENGINEERING_RUNNER_WORKSPACE?.trim() || process.cwd(),
     pollIntervalMs: positiveInteger(
       env,
-      'ATLAS_ENGINEERING_RUNNER_POLL_INTERVAL_MS',
+      "ATLAS_ENGINEERING_RUNNER_POLL_INTERVAL_MS",
       5_000,
     ),
     heartbeatIntervalMs: positiveInteger(
       env,
-      'ATLAS_ENGINEERING_RUNNER_HEARTBEAT_INTERVAL_MS',
+      "ATLAS_ENGINEERING_RUNNER_HEARTBEAT_INTERVAL_MS",
       20_000,
     ),
+    ...(candidate ? { candidate } : {}),
   };
 }

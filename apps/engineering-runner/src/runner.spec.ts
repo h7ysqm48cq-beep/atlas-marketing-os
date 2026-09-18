@@ -278,3 +278,263 @@ test('EngineeringRunner stops its polling loop after AbortSignal cancellation', 
   await runner.run(controller.signal);
   assert.equal(claims, 1);
 });
+
+test('EngineeringRunner runs persistent-source preflight exactly once before polling', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let preflight = 0;
+  let claims = 0;
+  const order: string[] = [];
+  const controller = new AbortController();
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        order.push('claim');
+        controller.abort();
+        return null;
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    preflight: async () => {
+      preflight += 1;
+      order.push('preflight');
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await runner.run(controller.signal);
+  assert.equal(preflight, 1);
+  assert.equal(claims, 1);
+  assert.deepEqual(order, ['preflight', 'claim']);
+});
+
+test('EngineeringRunner fails startup preflight before claiming any execution', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let claims = 0;
+  const controller = new AbortController();
+  const runner = new Runner({
+    client: { claimNext: async () => { claims += 1; return null; } },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    preflight: async () => {
+      throw new Error('candidate_source_preflight_failed');
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await assert.rejects(
+    () => runner.run(controller.signal),
+    /candidate_source_preflight_failed/,
+  );
+  assert.equal(claims, 0);
+});
+
+test('EngineeringRunner derives the implementation review candidate only from a published receipt', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { runOnce(): Promise<unknown> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const frozenBaseSha = 'a'.repeat(40);
+  const assignment = { ...implementationAssignment, frozenBaseSha };
+  const active = session(assignment);
+  let completed: any;
+  let failed = 0;
+  active.complete = async (value: unknown) => { completed = value; };
+  active.fail = async () => { failed += 1; };
+
+  const receipt = {
+    taskId: assignment.taskId,
+    executionId: assignment.executionId,
+    candidateBranch: `atlas/candidate/${assignment.taskId}/${assignment.executionId}`,
+    baseSha: frozenBaseSha,
+    headSha: 'b'.repeat(40),
+    changedFiles: ['apps/example.ts'],
+    targetBranch: 'production/atlas',
+    remoteHeadSha: 'b'.repeat(40),
+    remoteVerified: true,
+  };
+  let prepared = 0;
+  let published: any;
+  let cleaned = 0;
+  const snapshots = [[], ['apps/example.ts']];
+  const fakeExecutorResult: any = {
+    ...result,
+    evidence: {
+      ...result.evidence,
+      reviewCandidate: {
+        action: 'merge', targetBranch: 'production/atlas',
+        baseSha: 'c'.repeat(40), headSha: 'd'.repeat(40),
+        changedFiles: ['fake.ts'],
+      },
+    },
+  };
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('legacy_executor_used'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('legacy_workspace_used'); } },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => {
+        prepared += 1;
+        return {
+          path: '/isolated/candidate',
+          baseSha: frozenBaseSha,
+          workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+          cleanup: async () => { cleaned += 1; },
+        };
+      },
+    },
+    executorFactory: (cwd: string) => {
+      assert.equal(cwd, '/isolated/candidate');
+      return { execute: async () => fakeExecutorResult };
+    },
+    candidatePublisher: {
+      publish: async (input: unknown) => {
+        published = input;
+        return receipt;
+      },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(prepared, 1);
+  assert.equal(failed, 0);
+  assert.equal(cleaned, 1);
+  assert.equal(published.workspace, '/isolated/candidate');
+  assert.deepEqual(completed.evidence.candidatePublication, receipt);
+  assert.deepEqual(completed.evidence.reviewCandidate, {
+    action: 'merge',
+    targetBranch: 'production/atlas',
+    baseSha: receipt.baseSha,
+    headSha: receipt.headSha,
+    changedFiles: receipt.changedFiles,
+  });
+});
+
+test('EngineeringRunner fails once and never completes when candidate publication fails', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { runOnce(): Promise<unknown> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const assignment = { ...implementationAssignment, frozenBaseSha: 'a'.repeat(40) };
+  const active = session(assignment);
+  let complete = 0;
+  let fail = 0;
+  let failReason = '';
+  let cleaned = 0;
+  active.complete = async () => { complete += 1; };
+  active.fail = async (reason: string) => { fail += 1; failReason = reason; };
+  const snapshots = [[], ['apps/example.ts']];
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/isolated/failure',
+        baseSha: assignment.frozenBaseSha,
+        workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+        cleanup: async () => { cleaned += 1; },
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    candidatePublisher: {
+      publish: async () => { throw new Error('candidate_push_failed'); },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(fail, 1);
+  assert.equal(complete, 0);
+  assert.match(failReason, /candidate_push_failed/);
+  assert.equal(cleaned, 1);
+});
+
+test('EngineeringRunner never invokes candidate publication for independent verification', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { runOnce(): Promise<unknown> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    frozenBaseSha: 'a'.repeat(40),
+  };
+  const active = session(assignment);
+  let prepared = 0;
+  let published = 0;
+  let completed = 0;
+  active.complete = async () => { completed += 1; };
+  const verificationResult = {
+    ...result,
+    evidence: { ...result.evidence, changedFiles: [] },
+  };
+  const snapshots = [[], []];
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => verificationResult },
+    workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => {
+        prepared += 1;
+        throw new Error('verifier_candidate_workspace_forbidden');
+      },
+    },
+    executorFactory: () => ({ execute: async () => verificationResult }),
+    candidatePublisher: {
+      publish: async () => {
+        published += 1;
+        throw new Error('verifier_publication_forbidden');
+      },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(prepared, 0);
+  assert.equal(published, 0);
+  assert.equal(completed, 1);
+});
