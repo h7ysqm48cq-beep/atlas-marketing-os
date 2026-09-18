@@ -76,6 +76,8 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
 ]);
 
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+const SYSTEM_TASK_ID =
+  /^ATLAS-SYS-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
   'web',
@@ -138,23 +140,40 @@ export class AgentSupervisorService {
     this.validateCreateInput(input);
 
     const now = new Date();
-    const task: SupervisorTask = {
-      id: this.nextTaskId(now),
-      objective: input.objective.trim(),
-      owner: input.owner,
-      status: 'DRAFT',
-      allowedPaths: this.unique(input.allowedPaths),
-      forbiddenActions: this.unique(input.forbiddenActions),
-      dependsOn: this.unique(input.dependsOn),
-      acceptance: this.unique(input.acceptance),
-      evidence: null,
-      blockingReason: null,
-      failureReason: null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    return this.taskStore.create(
+      this.buildTask(this.nextTaskId(now), input, now),
+    );
+  }
 
-    return this.taskStore.create(task);
+  async createSystemTask(
+    id: string,
+    input: CreateSupervisorTaskInput,
+  ): Promise<SupervisorTask> {
+    this.validateCreateInput(input);
+    const normalizedId = id.trim();
+    if (!SYSTEM_TASK_ID.test(normalizedId)) {
+      throw new BadRequestException('system_task_id_invalid');
+    }
+
+    const existing = await this.taskStore.get(normalizedId);
+    if (existing) {
+      this.assertSameTaskDefinition(existing, input);
+      return existing;
+    }
+
+    const now = new Date();
+    const task = this.buildTask(normalizedId, input, now);
+
+    try {
+      return await this.taskStore.create(task);
+    } catch (error) {
+      const raced = await this.taskStore.get(normalizedId);
+      if (!raced) {
+        throw error;
+      }
+      this.assertSameTaskDefinition(raced, input);
+      return raced;
+    }
   }
 
   async startTask(id: string): Promise<SupervisorTask> {
@@ -1486,6 +1505,53 @@ export class AgentSupervisorService {
   private nextTaskId(now: Date) {
     const date = now.toISOString().slice(0, 10).replace(/-/g, '');
     return `ATLAS-${date}-${randomUUID()}`;
+  }
+
+  private buildTask(
+    id: string,
+    input: CreateSupervisorTaskInput,
+    now: Date,
+  ): SupervisorTask {
+    return {
+      id,
+      objective: input.objective.trim(),
+      owner: input.owner,
+      status: 'DRAFT',
+      allowedPaths: this.unique(input.allowedPaths),
+      forbiddenActions: this.unique(input.forbiddenActions),
+      dependsOn: this.unique(input.dependsOn),
+      acceptance: this.unique(input.acceptance),
+      evidence: null,
+      blockingReason: null,
+      failureReason: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  private assertSameTaskDefinition(
+    task: SupervisorTask,
+    input: CreateSupervisorTaskInput,
+  ): void {
+    const expected = this.buildTask(task.id, input, task.createdAt);
+    const definition = (value: SupervisorTask) => ({
+      objective: value.objective,
+      owner: value.owner,
+      allowedPaths: value.allowedPaths,
+      forbiddenActions: value.forbiddenActions,
+      dependsOn: value.dependsOn,
+      acceptance: value.acceptance,
+    });
+
+    if (
+      canonicalizeAuthorityValue(definition(task)) !==
+      canonicalizeAuthorityValue(definition(expected))
+    ) {
+      throw new ConflictException({
+        code: 'system_admission_idempotency_mismatch',
+        taskId: task.id,
+      });
+    }
   }
 
   private unique<T>(items: T[]): T[] {

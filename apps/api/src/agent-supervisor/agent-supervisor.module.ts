@@ -45,6 +45,9 @@ import {
   SupervisorAuthorityService,
 } from './authority/supervisor-authority.service';
 import { VerifierCapabilityService } from './authority/verifier-capability.service';
+import { SupervisorSystemAdmissionService } from './system/supervisor-system-admission.service';
+import { SupervisorSystemController } from './system/supervisor-system.controller';
+import { SupervisorSystemGuard } from './system/supervisor-system.guard';
 
 @Module({
   controllers: [
@@ -53,6 +56,7 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SupervisorWorkerController,
     SupervisorWorkerBootstrapController,
     SupervisorVerifierController,
+    SupervisorSystemController,
   ],
   providers: [
     AgentSupervisorService,
@@ -70,6 +74,8 @@ import { VerifierCapabilityService } from './authority/verifier-capability.servi
     SupervisorAuthorityService,
     HumanOwnerApprovalService,
     VerifierCapabilityService,
+    SupervisorSystemAdmissionService,
+    SupervisorSystemGuard,
     {
       provide: SUPERVISOR_AUTHORITY_KEYRING,
       useFactory: (config: ConfigService) =>

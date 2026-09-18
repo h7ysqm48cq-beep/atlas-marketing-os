@@ -10,6 +10,7 @@ import {
   SupervisorAuthorityService,
 } from './authority/supervisor-authority.service';
 import type {
+  CreateSupervisorTaskInput,
   ProductionDeploymentService,
   SupervisorReviewCandidate,
   SupervisorTask,
@@ -530,6 +531,44 @@ describe('AgentSupervisorService', () => {
     );
     expect(task.status).toBe('DRAFT');
     expect(task.owner).toBe('frontend');
+  });
+
+  it('creates idempotent system tasks and rejects definition drift', async () => {
+    const taskId =
+      'ATLAS-SYS-11111111-2222-3333-4444-555555555555';
+    const input: CreateSupervisorTaskInput = {
+      objective: 'Executive Supervisor admission',
+      owner: 'engineering',
+      allowedPaths: ['apps/api/src/example.ts'],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['passes'],
+    };
+
+    const first = await service.createSystemTask(
+      taskId,
+      input,
+    );
+    const second = await service.createSystemTask(
+      taskId,
+      input,
+    );
+
+    expect(first.id).toBe(taskId);
+    expect(second.id).toBe(first.id);
+    expect((await service.listTasks())).toHaveLength(1);
+
+    await expect(
+      service.createSystemTask(taskId, {
+        ...input,
+        objective: 'Different admission intent',
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'system_admission_idempotency_mismatch',
+        taskId,
+      },
+    });
   });
 
   it('generates different task ids across fresh service instances', async () => {
