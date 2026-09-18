@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   authorizeEligibleBrowserWorkerDeployment,
+  authorizeEligibleWebDeployment,
   recoverStaleBrowserWorkerTask,
   getSupervisorStatus,
   runSupervisorAdmission,
@@ -428,6 +429,117 @@ async function main() {
         "browser-worker-top-level-evidence-only",
       ),
     /The approved browser-worker candidate has no matching completed execution/,
+  );
+
+  const webCandidate = {
+    action: "deploy_production",
+    targetBranch: "production/atlas",
+    baseSha: "e".repeat(40),
+    headSha: "f".repeat(40),
+    changedFiles: [
+      "apps/web/src/components/engineering/SupervisorOwnerPanel.tsx",
+    ],
+  };
+  const webAuthorizationCalls: Array<{
+    method: string;
+    url: string;
+    body?: string;
+  }> = [];
+  const webAuthorized =
+    await authorizeEligibleWebDeployment(
+      async (url, init) => {
+        webAuthorizationCalls.push({
+          method: init?.method ?? "GET",
+          url: String(url),
+          body:
+            typeof init?.body === "string"
+              ? init.body
+              : undefined,
+        });
+
+        if (String(url).endsWith("/tasks")) {
+          return response(200, [
+            {
+              id: "web-deploy-task",
+              status: "APPROVED",
+              evidence: { reviewCandidate: webCandidate },
+            },
+          ]);
+        }
+
+        if (
+          String(url).endsWith(
+            "/tasks/web-deploy-task/executions",
+          )
+        ) {
+          return response(200, [
+            {
+              id: "web-deploy-execution",
+              status: "COMPLETED",
+              result: {
+                evidence: { reviewCandidate: webCandidate },
+              },
+            },
+          ]);
+        }
+
+        return response(201, { status: "APPROVED" });
+      },
+      " web-deploy-task ",
+    );
+
+  assert.deepEqual(webAuthorized, {
+    taskId: "web-deploy-task",
+    taskStatus: "APPROVED",
+    executionId: "web-deploy-execution",
+    executionStatus: "COMPLETED",
+  });
+  assert.deepEqual(webAuthorizationCalls, [
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks",
+      body: undefined,
+    },
+    {
+      method: "GET",
+      url: "/api/atlas/engineering/supervisor/tasks/web-deploy-task/executions",
+      body: undefined,
+    },
+    {
+      method: "POST",
+      url: "/api/atlas/engineering/supervisor/tasks/web-deploy-task/authorize-production-deployment",
+      body: JSON.stringify({
+        candidate: webCandidate,
+        service: "web",
+      }),
+    },
+  ]);
+
+  await assert.rejects(
+    () =>
+      authorizeEligibleWebDeployment(
+        async (url) => {
+          if (String(url).endsWith("/tasks")) {
+            return response(200, [
+              {
+                id: "web-invalid-path-task",
+                status: "APPROVED",
+                evidence: {
+                  reviewCandidate: {
+                    ...webCandidate,
+                    changedFiles: [
+                      "apps/browser-worker/src/index.ts",
+                    ],
+                  },
+                },
+              },
+            ]);
+          }
+          throw new Error("unexpected request");
+        },
+        "web-invalid-path-task",
+      ),
+    /No approved web production deployment candidate was found for task web-invalid-path-task/,
   );
 
 }
