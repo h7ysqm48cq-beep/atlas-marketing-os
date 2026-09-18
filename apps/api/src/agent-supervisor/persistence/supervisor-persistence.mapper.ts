@@ -432,12 +432,20 @@ function mapEvidence(value: unknown): SupervisorEvidence {
 function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const object = requireObject(value);
   const executionPurpose = object.executionPurpose;
+  const frozenBaseSha = object.frozenBaseSha;
   const claimEpoch = object.claimEpoch;
   const workerCapability = object.workerCapability;
   if (
     executionPurpose !== undefined &&
     executionPurpose !== 'IMPLEMENTATION' &&
     executionPurpose !== 'INDEPENDENT_VERIFICATION'
+  ) {
+    throw persistenceError();
+  }
+  if (
+    frozenBaseSha !== undefined &&
+    (typeof frozenBaseSha !== 'string' ||
+      !FULL_GIT_SHA.test(frozenBaseSha))
   ) {
     throw persistenceError();
   }
@@ -468,6 +476,7 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
       object.requiredEvidence,
     ) as RequiredEvidenceField[],
     ...(executionPurpose !== undefined ? { executionPurpose } : {}),
+    ...(frozenBaseSha !== undefined ? { frozenBaseSha } : {}),
     ...(object.manifestHash !== undefined
       ? { manifestHash: requireString(object.manifestHash) }
       : {}),
