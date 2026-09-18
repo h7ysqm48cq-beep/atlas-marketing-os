@@ -35,7 +35,7 @@ function sanitizeEnvironment(
     if (/^ATLAS_SUPERVISOR_/i.test(key)) continue;
     if (/^ATLAS_EXECUTION_CAPABILITY$/i.test(key)) continue;
     if (/^ATLAS_OWNER_/i.test(key)) continue;
-    if (/^ATLAS_ENGINEERING_RUNNER_PUBLISHER_/i.test(key)) continue;
+    if (/^ATLAS_ENGINEERING_RUNNER_/i.test(key)) continue;
     clean[key] = value;
   }
   return clean;

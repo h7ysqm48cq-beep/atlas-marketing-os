@@ -198,6 +198,39 @@ test('CandidatePublisher rejects repository-local transport rewrites before any 
   }
 });
 
+test('CandidatePublisher rejects repository-local executable Git config before inspection', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-fsmonitor-'));
+  try {
+    const { remote, head, lease } = await fixture(root);
+    const sentinel = path.join(root, 'fsmonitor-ran');
+    const fsmonitor = path.join(root, 'fsmonitor.sh');
+    await writeFile(fsmonitor, `#!/bin/sh\ntouch '${sentinel}'\n`);
+    await chmod(fsmonitor, 0o755);
+    await git(lease.path, ['config', 'core.fsmonitor', fsmonitor]);
+    await writeFile(path.join(lease.path, 'allowed.txt'), 'changed\n');
+    const { CandidatePublisher } = await import('./candidate-publisher.ts');
+    const publisher = new CandidatePublisher({ remote });
+
+    await assert.rejects(
+      () => publisher.publish({
+        taskId: 'ATLAS-task-fsmonitor',
+        executionId: 'ATLAS-EXEC-fsmonitor',
+        executionPurpose: 'IMPLEMENTATION',
+        workspace: lease.path,
+        frozenBaseSha: head,
+        targetBranch: 'production/atlas',
+        changedFiles: ['allowed.txt'],
+      }),
+      /candidate_publication_transport_config_unsafe/,
+    );
+
+    await assert.rejects(() => readFile(sentinel, 'utf8'), /ENOENT/);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('CandidatePublisher rejects an extra tracked change before commit', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-publisher-'));
   try {

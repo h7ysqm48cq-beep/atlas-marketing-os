@@ -15,10 +15,12 @@ test('candidate config wires isolated workspace, publisher, and cwd-bound execut
       repositoryRoot: '/repo',
       workspaceRoot: '/workspaces',
       remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+      sourceToken: 'source-token',
       publisherToken: 'publisher-token',
     },
   };
   const options = createOptions(config, { PATH: '/usr/bin', HOME: '/tmp' });
+  assert.equal(typeof options.preflight, 'function');
   assert.ok(options.candidateWorkspaceManager);
   assert.ok(options.candidatePublisher);
   assert.equal(typeof options.executorFactory, 'function');
@@ -33,6 +35,7 @@ test('legacy config leaves candidate flow dependencies absent', async () => {
     pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
   };
   const options = createEngineeringRunnerOptions(config, { PATH: '/usr/bin' });
+  assert.equal(options.preflight, undefined);
   assert.equal(options.candidateWorkspaceManager, undefined);
   assert.equal(options.candidatePublisher, undefined);
   assert.equal(options.executorFactory, undefined);

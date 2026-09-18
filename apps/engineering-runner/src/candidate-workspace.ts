@@ -84,15 +84,18 @@ export interface CandidateWorkspaceLease {
 export interface CandidateWorkspaceManagerOptions {
   repositoryRoot: string;
   workspaceRoot: string;
+  ensureBase?: (frozenBaseSha: string) => Promise<void>;
 }
 
 export class CandidateWorkspaceManager {
   private readonly repositoryRoot: string;
   private readonly workspaceRoot: string;
+  private readonly ensureBase?: (frozenBaseSha: string) => Promise<void>;
 
   constructor(options: CandidateWorkspaceManagerOptions) {
     this.repositoryRoot = options.repositoryRoot;
     this.workspaceRoot = options.workspaceRoot;
+    this.ensureBase = options.ensureBase;
   }
 
   async prepare(input: CandidateWorkspaceInput): Promise<CandidateWorkspaceLease> {
@@ -103,6 +106,9 @@ export class CandidateWorkspaceManager {
     const frozenBaseSha = input.frozenBaseSha.trim().toLowerCase();
     if (!FULL_GIT_SHA.test(frozenBaseSha)) {
       throw new Error('candidate_workspace_base_invalid');
+    }
+    if (this.ensureBase) {
+      await this.ensureBase(frozenBaseSha);
     }
     try {
       const { stdout } = await execFileAsync(

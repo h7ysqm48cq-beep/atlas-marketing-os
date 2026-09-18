@@ -1,5 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 async function loadModule(): Promise<Record<string, unknown>> {
   try {
@@ -95,6 +102,41 @@ test('GitWorkspace is exported from scope-guard.ts for scope-owned workspace ins
     () => new Workspace(''),
     /workspace_cwd_required/,
   );
+});
+
+test('GitWorkspace suppresses repository fsmonitor commands and strips runner secrets from Git inspection', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-scope-workspace-'));
+  try {
+    const repo = path.join(root, 'repo');
+    await mkdir(repo);
+    await execFileAsync('git', ['init', '-q'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.name', 'Atlas Test'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.email', 'atlas-test@example.invalid'], { cwd: repo });
+    await writeFile(path.join(repo, 'tracked.txt'), 'base\n');
+    await execFileAsync('git', ['add', '--', 'tracked.txt'], { cwd: repo });
+    await execFileAsync('git', ['commit', '-qm', 'base'], { cwd: repo });
+
+    const sentinel = path.join(root, 'fsmonitor-ran');
+    const fsmonitor = path.join(root, 'fsmonitor.sh');
+    await writeFile(fsmonitor, `#!/bin/sh\nprintf '%s' "$ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN" > '${sentinel}'\n`);
+    await chmod(fsmonitor, 0o755);
+    await execFileAsync('git', ['config', 'core.fsmonitor', fsmonitor], { cwd: repo });
+
+    const mod = await loadModule();
+    const Workspace = mod.GitWorkspace as any;
+    const workspace = new Workspace(repo, {
+      PATH: process.env.PATH,
+      HOME: '/sensitive/home',
+      ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN: 'source-secret',
+    });
+
+    assert.deepEqual(await workspace.listChangedFiles(), []);
+    assert.equal(workspace.environment.HOME, undefined);
+    assert.equal(workspace.environment.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN, undefined);
+    await assert.rejects(() => readFile(sentinel, 'utf8'), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('parseGitStatusPorcelainZ fail-closes rename and copy scope by returning both destination and source in -z order', async () => {

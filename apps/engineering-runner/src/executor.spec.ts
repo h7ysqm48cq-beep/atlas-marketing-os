@@ -36,7 +36,7 @@ const result = {
   },
 };
 
-test('CommandExecutor passes assignment only and strips Supervisor/Owner secrets from child env', async () => {
+test('CommandExecutor passes assignment only and strips Supervisor, Owner, and Runner authority from child env', async () => {
   const mod = await loadModule();
   const Executor = mod.CommandExecutor as
     | (new (options: Record<string, unknown>) => {
@@ -56,7 +56,9 @@ test('CommandExecutor passes assignment only and strips Supervisor/Owner secrets
       ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN: 'bootstrap-secret',
       ATLAS_SUPERVISOR_OWNER_TOKEN: 'owner-secret',
       ATLAS_EXECUTION_CAPABILITY: 'capability-secret',
+      ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN: 'source-secret',
       ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN: 'publisher-secret',
+      ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE: 'https://example.invalid/repo.git',
     },
     runProcess: async (input: Record<string, unknown>) => {
       captured = input;
@@ -76,7 +78,9 @@ test('CommandExecutor passes assignment only and strips Supervisor/Owner secrets
   assert.equal(env.ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN, undefined);
   assert.equal(env.ATLAS_SUPERVISOR_OWNER_TOKEN, undefined);
   assert.equal(env.ATLAS_EXECUTION_CAPABILITY, undefined);
+  assert.equal(env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN, undefined);
   assert.equal(env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN, undefined);
+  assert.equal(env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE, undefined);
 });
 
 test('CommandExecutor returns a validated WorkerExecutionResult', async () => {

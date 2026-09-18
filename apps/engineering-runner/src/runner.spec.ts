@@ -279,6 +279,77 @@ test('EngineeringRunner stops its polling loop after AbortSignal cancellation', 
   assert.equal(claims, 1);
 });
 
+test('EngineeringRunner runs persistent-source preflight exactly once before polling', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let preflight = 0;
+  let claims = 0;
+  const order: string[] = [];
+  const controller = new AbortController();
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        order.push('claim');
+        controller.abort();
+        return null;
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    preflight: async () => {
+      preflight += 1;
+      order.push('preflight');
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await runner.run(controller.signal);
+  assert.equal(preflight, 1);
+  assert.equal(claims, 1);
+  assert.deepEqual(order, ['preflight', 'claim']);
+});
+
+test('EngineeringRunner fails startup preflight before claiming any execution', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let claims = 0;
+  const controller = new AbortController();
+  const runner = new Runner({
+    client: { claimNext: async () => { claims += 1; return null; } },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    preflight: async () => {
+      throw new Error('candidate_source_preflight_failed');
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await assert.rejects(
+    () => runner.run(controller.signal),
+    /candidate_source_preflight_failed/,
+  );
+  assert.equal(claims, 0);
+});
+
 test('EngineeringRunner derives the implementation review candidate only from a published receipt', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as

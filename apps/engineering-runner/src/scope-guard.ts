@@ -61,20 +61,43 @@ export function parseGitStatusPorcelainZ(input: string): string[] {
 
 export class GitWorkspace {
   private readonly cwd: string;
+  private readonly environment: NodeJS.ProcessEnv;
 
-  constructor(cwd: string) {
+  constructor(cwd: string, environment: NodeJS.ProcessEnv = process.env) {
     if (!cwd) throw new Error('workspace_cwd_required');
     this.cwd = cwd;
+    this.environment = {
+      ...Object.fromEntries(
+        ['PATH', 'TMPDIR'].flatMap((key) =>
+          environment[key] === undefined ? [] : [[key, environment[key]]],
+        ),
+      ),
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_TERMINAL_PROMPT: '0',
+    };
   }
 
   async listChangedFiles(): Promise<string[]> {
     const { stdout } = await execFileAsync(
       'git',
-      ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      [
+        '-c',
+        'core.hooksPath=/dev/null',
+        '-c',
+        'core.fsmonitor=false',
+        '-c',
+        'credential.helper=',
+        'status',
+        '--porcelain=v1',
+        '-z',
+        '--untracked-files=all',
+      ],
       {
         cwd: this.cwd,
         encoding: 'utf8',
         maxBuffer: 4 * 1024 * 1024,
+        env: this.environment,
       },
     );
     return parseGitStatusPorcelainZ(stdout);

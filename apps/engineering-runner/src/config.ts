@@ -2,6 +2,7 @@ export interface EngineeringRunnerCandidateConfig {
   repositoryRoot: string;
   workspaceRoot: string;
   remote: string;
+  sourceToken: string;
   publisherToken: string;
 }
 
@@ -58,8 +59,9 @@ function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConf
   const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
   const workspaceRoot = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT?.trim();
   const remote = env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE?.trim();
+  const sourceToken = env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN?.trim();
   const publisherToken = env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN?.trim();
-  const values = [repositoryRoot, workspaceRoot, remote, publisherToken];
+  const values = [repositoryRoot, workspaceRoot, remote, sourceToken, publisherToken];
   const configured = values.filter(Boolean).length;
   if (configured === 0) return undefined;
   if (configured !== values.length) {
@@ -72,6 +74,7 @@ function candidateConfig(env: NodeJS.ProcessEnv): EngineeringRunnerCandidateConf
     repositoryRoot: repositoryRoot!,
     workspaceRoot: workspaceRoot!,
     remote: remote!,
+    sourceToken: sourceToken!,
     publisherToken: publisherToken!,
   };
 }

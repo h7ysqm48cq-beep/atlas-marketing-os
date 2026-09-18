@@ -66,8 +66,17 @@ function dangerousTransportConfig(key: string): boolean {
     normalized.startsWith('https.') ||
     normalized.startsWith('include.') ||
     normalized.startsWith('includeif.') ||
+    normalized.startsWith('filter.') ||
     normalized === 'core.sshcommand' ||
     normalized === 'core.gitproxy' ||
+    normalized === 'core.fsmonitor' ||
+    normalized === 'core.attributesfile' ||
+    normalized === 'core.excludesfile' ||
+    normalized === 'diff.external' ||
+    (normalized.startsWith('diff.') && normalized.endsWith('.command')) ||
+    (normalized.startsWith('merge.') && normalized.endsWith('.driver')) ||
+    normalized === 'gpg.program' ||
+    normalized === 'commit.gpgsign' ||
     normalized.startsWith('protocol.') ||
     (normalized.startsWith('url.') &&
       (normalized.endsWith('.insteadof') ||
@@ -181,6 +190,7 @@ export class CandidatePublisher {
     if (request.targetBranch !== 'production/atlas') {
       throw new Error('candidate_publication_target_invalid');
     }
+    await this.assertTransportConfigSafe(request.workspace);
     const changedFiles = [...request.changedFiles];
     const head = (await this.git(request.workspace, ['rev-parse', 'HEAD'])).toLowerCase();
     const frozenBaseSha = request.frozenBaseSha.trim().toLowerCase();

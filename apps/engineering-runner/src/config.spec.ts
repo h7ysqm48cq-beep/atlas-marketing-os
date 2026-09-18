@@ -24,12 +24,14 @@ test('candidate publication config loads only as a complete tuple', () => {
   env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = '/workspaces';
   env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
     'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN = 'source-token';
   env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN = 'publisher-token';
   const config = loadEngineeringRunnerConfig(env) as any;
   assert.deepEqual(config.candidate, {
     repositoryRoot: '/repo',
     workspaceRoot: '/workspaces',
     remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+    sourceToken: 'source-token',
     publisherToken: 'publisher-token',
   });
 });
@@ -49,6 +51,7 @@ test('candidate publication config rejects any non-canonical network remote', ()
   env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = '/workspaces';
   env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
     'https://github.com/example/other.git';
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN = 'source-token';
   env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN = 'publisher-token';
   assert.throws(
     () => loadEngineeringRunnerConfig(env),

@@ -49,6 +49,7 @@ export interface EngineeringRunnerOptions {
   candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   candidatePublisher?: CandidatePublisherLike;
   executorFactory?: (cwd: string) => AssignmentExecutor;
+  preflight?: () => Promise<void>;
 }
 
 function errorReason(error: unknown): string {
@@ -102,6 +103,7 @@ export class EngineeringRunner {
   private readonly candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   private readonly candidatePublisher?: CandidatePublisherLike;
   private readonly executorFactory?: (cwd: string) => AssignmentExecutor;
+  private readonly preflight?: () => Promise<void>;
 
   constructor(options: EngineeringRunnerOptions) {
     this.client = options.client;
@@ -113,6 +115,7 @@ export class EngineeringRunner {
     this.candidateWorkspaceManager = options.candidateWorkspaceManager;
     this.candidatePublisher = options.candidatePublisher;
     this.executorFactory = options.executorFactory;
+    this.preflight = options.preflight;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
       throw new Error('runner_timing_invalid');
     }
@@ -250,6 +253,10 @@ export class EngineeringRunner {
   }
 
   async run(signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return;
+    if (this.preflight) {
+      await this.preflight();
+    }
     while (!signal.aborted) {
       await this.runOnce(signal);
       if (signal.aborted) break;
