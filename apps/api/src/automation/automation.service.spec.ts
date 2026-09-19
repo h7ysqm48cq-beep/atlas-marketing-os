@@ -1,4 +1,5 @@
 import {
+  PublishAttemptStatus,
   ScheduledPostStatus,
   SocialChannelStatus,
   SocialPlatform,
@@ -456,3 +457,144 @@ describe(
     );
   },
 );
+
+describe('AutomationService Facebook publish reconciliation', () => {
+  const makeService = () => {
+    const publishAttemptUpdate = jest.fn().mockResolvedValue({});
+    const scheduledPostUpdate = jest.fn().mockImplementation(({ data }) =>
+      Promise.resolve({ id: 'post-1', ...data }),
+    );
+    const prisma = {
+      publishAttempt: {
+        update: publishAttemptUpdate,
+      },
+      scheduledPost: {
+        update: scheduledPostUpdate,
+      },
+      $transaction: jest.fn(
+        async (callback: (input: unknown) => Promise<unknown>) =>
+          callback(prisma),
+      ),
+    };
+    const browserRuntime = {
+      findFacebookPublishedPost: jest.fn().mockResolvedValue({
+        found: true,
+        reference: {
+          externalPostId: '61592884960509_122112144501429498',
+          postUrl:
+            'https://www.facebook.com/permalink.php?story_fbid=122112144501429498&id=61592884960509',
+          matchedBy: 'caption-post-path',
+        },
+      }),
+    };
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      undefined,
+      browserRuntime as never,
+    );
+
+    return {
+      prisma,
+      browserRuntime,
+      publishAttemptUpdate,
+      scheduledPostUpdate,
+      service,
+    };
+  };
+
+  it('reconciles a confirmed unconfirmed Facebook publish without republishing', async () => {
+    const {
+      browserRuntime,
+      publishAttemptUpdate,
+      scheduledPostUpdate,
+      service,
+    } = makeService();
+    const completedAt =
+      new Date('2026-09-19T01:26:40.946Z');
+
+    jest.spyOn(service, 'getPost').mockResolvedValue({
+      id: 'post-1',
+      channelId: 'channel-1',
+      platform: SocialPlatform.FACEBOOK,
+      content: 'M BUSINESS｜M STORY 037\n99 Speedmart',
+      status: ScheduledPostStatus.FAILED,
+      publishedAt: null,
+      externalPostId: null,
+      externalPostUrl: null,
+      lastError:
+        'Browser Runtime Facebook publishing was not confirmed. Verification: UNCONFIRMED.',
+      attempts: [
+        {
+          id: 'attempt-6',
+          attemptNumber: 6,
+          status: PublishAttemptStatus.FAILED,
+          completedAt,
+        },
+      ],
+    } as never);
+
+    await service.reconcileFacebookPublish('post-1');
+
+    expect(
+      browserRuntime.findFacebookPublishedPost,
+    ).toHaveBeenCalledWith(
+      'channel-1',
+      'M BUSINESS｜M STORY 037\n99 Speedmart',
+    );
+    expect(publishAttemptUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'attempt-6' },
+        data: expect.objectContaining({
+          status: PublishAttemptStatus.SUCCESS,
+          errorMessage: null,
+          completedAt,
+        }),
+      }),
+    );
+    expect(scheduledPostUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'post-1' },
+        data: expect.objectContaining({
+          status: ScheduledPostStatus.PUBLISHED,
+          publishedAt: completedAt,
+          externalPostId:
+            '61592884960509_122112144501429498',
+          externalPostUrl:
+            'https://www.facebook.com/permalink.php?story_fbid=122112144501429498&id=61592884960509',
+          lastError: null,
+        }),
+      }),
+    );
+  });
+
+  it('fails closed for a Facebook failure that was not unconfirmed', async () => {
+    const {
+      browserRuntime,
+      service,
+    } = makeService();
+
+    jest.spyOn(service, 'getPost').mockResolvedValue({
+      id: 'post-1',
+      channelId: 'channel-1',
+      platform: SocialPlatform.FACEBOOK,
+      content: 'caption',
+      status: ScheduledPostStatus.FAILED,
+      lastError: 'Facebook image upload could not be verified.',
+      attempts: [],
+    } as never);
+
+    await expect(
+      service.reconcileFacebookPublish('post-1'),
+    ).rejects.toThrow(
+      'Only an unconfirmed failed Facebook publish can be reconciled.',
+    );
+    expect(
+      browserRuntime.findFacebookPublishedPost,
+    ).not.toHaveBeenCalled();
+  });
+});
