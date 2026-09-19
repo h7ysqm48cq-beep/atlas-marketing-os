@@ -1337,6 +1337,14 @@ export class AutomationController {
     };
   }
 
+  @Post('posts/:id/reconcile-facebook-publish')
+  reconcileFacebookPublish(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .reconcileFacebookPublish(id);
+  }
+
   @Post('posts/:id/publish-now')
   async publishPostNow(@Param('id') id: string) {
     const post = await this.automationService.getPost(id);

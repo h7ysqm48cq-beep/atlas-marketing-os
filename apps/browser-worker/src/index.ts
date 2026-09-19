@@ -2153,6 +2153,102 @@ app.post(
 
 
 app.post(
+  "/profiles/:profileKey/facebook/find-published-post",
+  async (request, response) => {
+    const profileKey =
+      request.params.profileKey;
+    const session =
+      sessions.get(profileKey);
+
+    if (!session) {
+      response.status(404).json({
+        found: false,
+        message:
+          "Browser profile is not running.",
+      });
+      return;
+    }
+
+    const input =
+      request.body as {
+        caption?: string;
+      };
+    const caption =
+      input.caption?.trim() || "";
+
+    if (!caption) {
+      response.status(400).json({
+        found: false,
+        message:
+          "Caption is required.",
+      });
+      return;
+    }
+
+    const facebookPages =
+      session.context
+        .pages()
+        .filter((page) => {
+          try {
+            const host =
+              new URL(page.url())
+                .hostname
+                .toLowerCase()
+                .replace(/^www\./, "");
+            return host === "facebook.com";
+          } catch {
+            return false;
+          }
+        })
+        .reverse();
+
+    for (const page of facebookPages) {
+      let reference =
+        await findFacebookPublishedPostReference(
+          page,
+          caption,
+          5000,
+        );
+
+      if (!reference) {
+        await page
+          .reload({
+            waitUntil:
+              "domcontentloaded",
+            timeout: 15000,
+          })
+          .catch(() => undefined);
+        await page
+          .waitForTimeout(1500)
+          .catch(() => undefined);
+
+        reference =
+          await findFacebookPublishedPostReference(
+            page,
+            caption,
+            8000,
+          );
+      }
+
+      if (reference) {
+        response.json({
+          found: true,
+          reference,
+        });
+        return;
+      }
+    }
+
+    response.status(404).json({
+      found: false,
+      message:
+        "Published Facebook post reference was not found.",
+    });
+  },
+);
+
+
+app.post(
   "/profiles/:profileKey/facebook/publish-post",
   async (request, response) => {
     const profileKey =

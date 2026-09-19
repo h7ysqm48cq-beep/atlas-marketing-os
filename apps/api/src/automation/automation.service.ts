@@ -5,6 +5,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import {
+  PublishAttemptStatus,
   ScheduledPostStatus,
   SocialChannelStatus,
   SocialPlatform,
@@ -1628,6 +1629,157 @@ export class AutomationService {
       count: createdPosts.length,
       posts: createdPosts,
     };
+  }
+
+  async reconcileFacebookPublish(id: string) {
+    const current =
+      await this.getPost(id);
+
+    if (
+      current.platform !==
+      SocialPlatform.FACEBOOK
+    ) {
+      throw new BadRequestException(
+        'Only Facebook posts can be reconciled.',
+      );
+    }
+
+    if (
+      current.status ===
+      ScheduledPostStatus.PUBLISHED
+    ) {
+      return current;
+    }
+
+    if (
+      current.status !==
+        ScheduledPostStatus.FAILED ||
+      !current.lastError?.includes(
+        'Facebook publishing was not confirmed',
+      )
+    ) {
+      throw new BadRequestException(
+        'Only an unconfirmed failed Facebook publish can be reconciled.',
+      );
+    }
+
+    if (!this.browserRuntime) {
+      throw new BadRequestException(
+        'Browser Runtime is unavailable.',
+      );
+    }
+
+    const lookup =
+      await this.browserRuntime
+        .findFacebookPublishedPost(
+          current.channelId,
+          current.content,
+        ) as {
+          found?: boolean;
+          reference?: {
+            externalPostId?: string;
+            postUrl?: string;
+            matchedBy?: string;
+          };
+        };
+
+    const externalPostId =
+      lookup.reference
+        ?.externalPostId
+        ?.trim();
+    const externalPostUrl =
+      lookup.reference
+        ?.postUrl
+        ?.trim();
+
+    if (
+      lookup.found !== true ||
+      !externalPostId ||
+      !externalPostUrl
+    ) {
+      throw new BadRequestException(
+        'Published Facebook post could not be confirmed for reconciliation.',
+      );
+    }
+
+    const latestAttempt =
+      current.attempts?.[0] ??
+      null;
+    const publishedAt =
+      latestAttempt
+        ?.completedAt ??
+      new Date();
+
+    return this.prisma.$transaction(
+      async (transaction) => {
+        if (
+          latestAttempt &&
+          latestAttempt.status ===
+            PublishAttemptStatus.FAILED
+        ) {
+          await transaction
+            .publishAttempt
+            .update({
+              where: {
+                id:
+                  latestAttempt.id,
+              },
+              data: {
+                status:
+                  PublishAttemptStatus.SUCCESS,
+                errorMessage:
+                  null,
+                responsePayload: {
+                  reconciled:
+                    true,
+                  externalPostId,
+                  postUrl:
+                    externalPostUrl,
+                  matchedBy:
+                    lookup.reference
+                      ?.matchedBy ??
+                    null,
+                },
+                completedAt:
+                  publishedAt,
+              },
+            });
+        }
+
+        return transaction
+          .scheduledPost
+          .update({
+            where: {
+              id,
+            },
+            data: {
+              status:
+                ScheduledPostStatus
+                  .PUBLISHED,
+              publishedAt,
+              externalPostId,
+              externalPostUrl,
+              lastError:
+                null,
+            },
+            include: {
+              channel: true,
+              brand: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              campaign: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          });
+      },
+    );
   }
 
   async updatePost(id: string, input: UpdatePostInput) {

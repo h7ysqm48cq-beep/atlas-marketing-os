@@ -320,6 +320,39 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
+  async findFacebookPublishedPost(
+    channelId: string,
+    caption: string,
+  ) {
+    const profile =
+      await this.ensureProfile(
+        channelId,
+        {
+          headless: false,
+          startUrl:
+            'https://www.facebook.com/',
+        },
+      );
+
+    return this.request(
+      `/profiles/${encodeURIComponent(
+        profile.browserProfileKey,
+      )}/facebook/find-published-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          caption,
+        }),
+      },
+      true,
+      30_000,
+    );
+  }
+
   async publishFacebookPost(
     channelId: string,
     confirmation: string,
