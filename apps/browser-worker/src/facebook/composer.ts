@@ -696,6 +696,110 @@ export async function uploadFacebookComposerImages(
   );
 }
 
+export async function retryFacebookComposerImagesViaScopedInput(
+  dialog: Locator,
+  imagePaths: string[],
+): Promise<FacebookComposerImageUploadResult | null> {
+  if (imagePaths.length === 0) {
+    return null;
+  }
+
+  /*
+   * FACEBOOK_COMPOSER_REATTACH_AFTER_CONSUMED_CHOOSER_V1
+   *
+   * Facebook can replace the temporary chooser input immediately after
+   * setFiles() without actually materialising a preview. In that state,
+   * rescan only the currently active composer scope for a fresh image input
+   * and retry exactly once. Never fall back to page-level upload inputs.
+   */
+  const fileInputs =
+    dialog.locator(
+      'input[type="file"]',
+    );
+  const inputCount =
+    await fileInputs
+      .count()
+      .catch(() => 0);
+
+  for (
+    let index = 0;
+    index < inputCount;
+    index += 1
+  ) {
+    const fileInput =
+      fileInputs.nth(index);
+    const accept =
+      await fileInput
+        .getAttribute("accept")
+        .catch(() => null);
+
+    if (
+      !acceptsFacebookImageFiles(
+        accept,
+      )
+    ) {
+      continue;
+    }
+
+    const uploaded =
+      await fileInput
+        .setInputFiles(
+          imagePaths,
+        )
+        .then(() => true)
+        .catch(() => false);
+
+    if (!uploaded) {
+      continue;
+    }
+
+    const retainedFileCount =
+      await inputFileCount(
+        fileInput,
+      );
+
+    console.log(
+      "[facebook/composer-image-reattach]",
+      {
+        expectedFileCount:
+          imagePaths.length,
+        inputFileCount:
+          retainedFileCount,
+      },
+    );
+
+    return {
+      strategy:
+        "COMPOSER_FILE_INPUT",
+      expectedFileCount:
+        imagePaths.length,
+      inputFileCount:
+        retainedFileCount,
+      photoButtonClicked:
+        false,
+      inputAccept:
+        accept,
+      multiple:
+        await fileInput
+          .getAttribute("multiple")
+          .then((value) =>
+            value !== null,
+          )
+          .catch(() => null),
+      controlDiagnostics: {
+        anchorFound: false,
+        anchorText: null,
+        evaluationError: null,
+        strategy: null,
+        candidates: [],
+        selected: null,
+      },
+    };
+  }
+
+  return null;
+}
+
 export async function resetFacebookComposer(
   page: Page,
 ) {

@@ -10,6 +10,7 @@ import {
   findFacebookCreatePostDialog,
   isFacebookComposerImagePreviewCandidate,
   normalizeFacebookComposerImagePreviewSource,
+  retryFacebookComposerImagesViaScopedInput,
   uploadFacebookComposerImages,
   type FacebookComposerImagePreviewCandidate,
   type FacebookComposerMediaControlDiagnostics,
@@ -735,6 +736,81 @@ test("defers a consumed composer-scoped input to preview verification", async ()
   assert.equal(
     result.inputFileCount,
     0,
+  );
+});
+
+test("reattaches consumed chooser media only through a composer-scoped image input", async () => {
+  const selectedPaths:
+    string[][] = [];
+  const fileInput =
+    createMockLocator({
+      accept: "image/*",
+      multiple: true,
+      retainedFileCount: 1,
+      onSetInputFiles: (
+        imagePaths,
+      ) => {
+        selectedPaths.push(
+          imagePaths,
+        );
+      },
+    });
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      fileInputs:
+        fileInput,
+    });
+
+  const result =
+    await retryFacebookComposerImagesViaScopedInput(
+      dialog,
+      ["/tmp/one.jpg"],
+    );
+
+  assert.ok(result);
+  assert.equal(
+    result.strategy,
+    "COMPOSER_FILE_INPUT",
+  );
+  assert.equal(
+    result.inputFileCount,
+    1,
+  );
+  assert.deepEqual(
+    selectedPaths,
+    [["/tmp/one.jpg"]],
+  );
+});
+
+test("does not reattach through a non-image composer input", async () => {
+  const fileInput =
+    createMockLocator({
+      accept: "video/*",
+      retainedFileCount: 0,
+    });
+  const dialog =
+    createUploadDialog({
+      photoButton:
+        createMockLocator({
+          count: 0,
+        }),
+      fileInputs:
+        fileInput,
+    });
+
+  const result =
+    await retryFacebookComposerImagesViaScopedInput(
+      dialog,
+      ["/tmp/one.jpg"],
+    );
+
+  assert.equal(
+    result,
+    null,
   );
 });
 

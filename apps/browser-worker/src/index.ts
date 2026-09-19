@@ -30,6 +30,7 @@ import {
   fillFacebookComposerCaption,
   resetFacebookComposer,
   uploadFacebookComposerImages,
+  retryFacebookComposerImagesViaScopedInput,
   waitForFacebookComposerImagePreviews,
   waitForFacebookComposerStable,
 } from "./facebook/composer.js";
@@ -5268,13 +5269,49 @@ app.post(
 
         const imageDialogHandling = await handleFacebookOnboarding(page);
 
-        const previewResult = await waitForFacebookComposerImagePreviews(
+        let previewResult = await waitForFacebookComposerImagePreviews(
           visibleComposerDialogs,
           {
             baselineCount: baselineMediaCount,
             expectedAddedCount: imagePaths.length,
+            timeoutMs:
+              imageUpload.inputFileCount === 0
+                ? 3500
+                : 20000,
           },
         );
+
+        let imageReattach:
+          Awaited<
+            ReturnType<
+              typeof retryFacebookComposerImagesViaScopedInput
+            >
+          > = null;
+
+        if (
+          !previewResult.attached &&
+          imageUpload.inputFileCount === 0
+        ) {
+          imageReattach =
+            await retryFacebookComposerImagesViaScopedInput(
+              visibleComposerDialogs,
+              imagePaths,
+            );
+
+          if (imageReattach) {
+            previewResult =
+              await waitForFacebookComposerImagePreviews(
+                visibleComposerDialogs,
+                {
+                  baselineCount:
+                    baselineMediaCount,
+                  expectedAddedCount:
+                    imagePaths.length,
+                  timeoutMs: 20000,
+                },
+              );
+          }
+        }
 
         imageAttached = previewResult.attached;
         attachedMediaCount = previewResult.addedCount;
@@ -5296,6 +5333,7 @@ app.post(
               previewResult.previewCandidates,
             imagePaths,
             imageUpload,
+            imageReattach,
             imageDialogHandling,
           },
           errorMessage: imageAttached
