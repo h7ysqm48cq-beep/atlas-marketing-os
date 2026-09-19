@@ -147,7 +147,7 @@ test("refreshes confirmation when Facebook leaves the composer unresolved", () =
   );
 });
 
-test("does not refresh confirmation after a clean composer close", () => {
+test("refreshes confirmation after a clean composer close when no reference is visible yet", () => {
   assert.equal(
     shouldRefreshFacebookPublishConfirmation({
       errorSignal: false,
@@ -155,7 +155,7 @@ test("does not refresh confirmation after a clean composer close", () => {
       composerStillVisible: false,
       postReferenceFound: false,
     }),
-    false,
+    true,
   );
 });
 
