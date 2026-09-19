@@ -204,6 +204,9 @@ const sessions =
 const openingProfiles =
   new Set<string>();
 
+const BROWSER_PROFILE_LAUNCH_TIMEOUT_MS =
+  30000;
+
 async function getPreferredFacebookPage(
   context: BrowserContext,
 ) {
@@ -1520,6 +1523,8 @@ app.post(
       const launchOptions = {
         executablePath,
         headless,
+        timeout:
+          BROWSER_PROFILE_LAUNCH_TIMEOUT_MS,
 
         locale,
 
