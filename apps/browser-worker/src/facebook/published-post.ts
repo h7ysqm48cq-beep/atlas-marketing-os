@@ -204,6 +204,34 @@ export const FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS = 40;
 export const FACEBOOK_PUBLISHED_POST_MAX_SCROLLS = 6;
 export const FACEBOOK_PUBLISHED_POST_SCROLL_INTERVAL_MS = 700;
 
+export function selectFacebookPublishedPostArticleIndexes(
+  totalArticles: number,
+  maxArticles = FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
+) {
+  const total = Math.max(0, Math.floor(totalArticles));
+  const limit = Math.max(0, Math.floor(maxArticles));
+
+  if (total === 0 || limit === 0) {
+    return [] as number[];
+  }
+
+  if (total <= limit) {
+    return Array.from({ length: total }, (_, index) => index);
+  }
+
+  const leadingCount = Math.floor(limit / 2);
+  const trailingCount = limit - leadingCount;
+  const trailingStart = Math.max(leadingCount, total - trailingCount);
+
+  return [
+    ...Array.from({ length: leadingCount }, (_, index) => index),
+    ...Array.from(
+      { length: total - trailingStart },
+      (_, index) => trailingStart + index,
+    ),
+  ];
+}
+
 export function shouldAdvanceFacebookPublishedPostSearch(input: {
   elapsedMs: number;
   lastScrollElapsedMs: number;
@@ -240,13 +268,12 @@ export async function findFacebookPublishedPostReference(
 
   while (Date.now() - startedAt < timeoutMs) {
     const articles = page.locator('[role="article"]');
-    const articleCount = Math.min(
+    const articleIndexes = selectFacebookPublishedPostArticleIndexes(
       await articles.count().catch(() => 0),
-      FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
     );
 
-    for (let index = 0; index < articleCount; index += 1) {
-      const article = articles.nth(index);
+    for (const articleIndex of articleIndexes) {
+      const article = articles.nth(articleIndex);
       const articleText = normalizeText(
         await article.innerText().catch(() => ""),
       ).toLocaleLowerCase();
