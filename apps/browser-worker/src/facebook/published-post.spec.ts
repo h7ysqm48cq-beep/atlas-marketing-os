@@ -10,6 +10,9 @@ import {
   resolveFacebookPublishedFlag,
   resolveFacebookPublishVerificationStatus,
   shouldRefreshFacebookPublishConfirmation,
+  shouldAdvanceFacebookPublishedPostSearch,
+  FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
+  FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
 } from "./published-post.js";
 
 test("uses the first content line as the caption fingerprint", () => {
@@ -199,5 +202,37 @@ test("reports published when a real post reference confirms the publish", () => 
       postReferenceFound: true,
     }),
     true,
+  );
+});
+
+test("keeps published-post timeline search bounded while allowing older posts to load", () => {
+  assert.equal(FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS, 40);
+  assert.equal(FACEBOOK_PUBLISHED_POST_MAX_SCROLLS, 6);
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 699,
+      lastScrollElapsedMs: 0,
+      scrollCount: 0,
+    }),
+    false,
+  );
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 700,
+      lastScrollElapsedMs: 0,
+      scrollCount: 0,
+    }),
+    true,
+  );
+
+  assert.equal(
+    shouldAdvanceFacebookPublishedPostSearch({
+      elapsedMs: 5000,
+      lastScrollElapsedMs: 0,
+      scrollCount: FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
+    }),
+    false,
   );
 });

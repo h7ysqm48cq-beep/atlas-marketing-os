@@ -200,6 +200,28 @@ export function buildFacebookPublishedPostReference(
   return null;
 }
 
+export const FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS = 40;
+export const FACEBOOK_PUBLISHED_POST_MAX_SCROLLS = 6;
+export const FACEBOOK_PUBLISHED_POST_SCROLL_INTERVAL_MS = 700;
+
+export function shouldAdvanceFacebookPublishedPostSearch(input: {
+  elapsedMs: number;
+  lastScrollElapsedMs: number;
+  scrollCount: number;
+  maxScrolls?: number;
+  scrollIntervalMs?: number;
+}) {
+  const maxScrolls =
+    input.maxScrolls ?? FACEBOOK_PUBLISHED_POST_MAX_SCROLLS;
+  const scrollIntervalMs =
+    input.scrollIntervalMs ?? FACEBOOK_PUBLISHED_POST_SCROLL_INTERVAL_MS;
+
+  return (
+    input.scrollCount < maxScrolls &&
+    input.elapsedMs - input.lastScrollElapsedMs >= scrollIntervalMs
+  );
+}
+
 export async function findFacebookPublishedPostReference(
   page: Page,
   caption: string,
@@ -213,10 +235,15 @@ export async function findFacebookPublishedPostReference(
 
   const normalizedFingerprint = normalizeText(fingerprint).toLocaleLowerCase();
   const startedAt = Date.now();
+  let scrollCount = 0;
+  let lastScrollElapsedMs = 0;
 
   while (Date.now() - startedAt < timeoutMs) {
     const articles = page.locator('[role="article"]');
-    const articleCount = Math.min(await articles.count().catch(() => 0), 12);
+    const articleCount = Math.min(
+      await articles.count().catch(() => 0),
+      FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
+    );
 
     for (let index = 0; index < articleCount; index += 1) {
       const article = articles.nth(index);
@@ -278,7 +305,36 @@ export async function findFacebookPublishedPostReference(
       }
     }
 
-    await page.waitForTimeout(400);
+    const elapsedMs = Date.now() - startedAt;
+
+    if (
+      shouldAdvanceFacebookPublishedPostSearch({
+        elapsedMs,
+        lastScrollElapsedMs,
+        scrollCount,
+      })
+    ) {
+      await page
+        .evaluate(() => {
+          const distance = Math.max(
+            Math.floor(window.innerHeight * 0.9),
+            700,
+          );
+          window.scrollBy(0, distance);
+        })
+        .catch(() => undefined);
+
+      scrollCount += 1;
+      lastScrollElapsedMs = elapsedMs;
+
+      await page
+        .waitForTimeout(650)
+        .catch(() => undefined);
+
+      continue;
+    }
+
+    await page.waitForTimeout(250);
   }
 
   return null;
