@@ -14,6 +14,7 @@ import {
   FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
   FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
   selectFacebookPublishedPostArticleIndexes,
+  findFacebookPublishedPostReference,
 } from "./published-post.js";
 
 test("uses the first content line as the caption fingerprint", () => {
@@ -253,4 +254,73 @@ test("scans a bounded leading and trailing article window when Facebook appends 
     Array.from({ length: 20 }, (_, index) => 80 + index),
   );
   assert.equal(new Set(indexes).size, indexes.length);
+});
+
+test("finds a caption-matching article even when it sits outside the bounded article window", async () => {
+  const href =
+    "https://www.facebook.com/photo/?fbid=122117280399429498&set=a.122103684285429498";
+
+  const article = {
+    locator(selector: string) {
+      assert.equal(selector, "a[href]");
+      return {
+        async evaluateAll() {
+          return [href];
+        },
+      };
+    },
+  };
+
+  const matchingArticles = {
+    async count() {
+      return 1;
+    },
+    nth(index: number) {
+      assert.equal(index, 0);
+      return article;
+    },
+  };
+
+  const articles = {
+    filter(input: { hasText: string }) {
+      assert.equal(input.hasText, "M BUSINESS｜M STORY 037");
+      return matchingArticles;
+    },
+    async count() {
+      return 100;
+    },
+    nth() {
+      throw new Error("bounded window fallback should not run after a direct caption match");
+    },
+  };
+
+  const page = {
+    locator(selector: string) {
+      if (selector === '[role="article"]') {
+        return articles;
+      }
+
+      throw new Error("unexpected selector: " + selector);
+    },
+    url() {
+      return "https://www.facebook.com/profile.php?id=61592884960509";
+    },
+    async waitForTimeout() {},
+    async evaluate() {},
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M  BUSINESS｜M STORY 037\n99 Speedmart｜为什么它不需要把购物变成体验",
+    1000,
+  );
+
+  assert.deepEqual(reference, {
+    pageId: "61592884960509",
+    facebookPostId: "122117280399429498",
+    externalPostId: "61592884960509_122117280399429498",
+    postUrl:
+      "https://www.facebook.com/permalink.php?story_fbid=122117280399429498&id=61592884960509",
+    matchedBy: "caption-article-photo-fbid",
+  });
 });
