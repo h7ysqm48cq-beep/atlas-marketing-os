@@ -411,6 +411,158 @@ async function inputFileCount(
     .catch(() => 0);
 }
 
+async function uploadFacebookComposerImagesFromScopedInput(
+  dialog: Locator,
+  imagePaths: string[],
+  input: {
+    photoButtonClicked: boolean;
+    controlDiagnostics: FacebookComposerMediaControlDiagnostics;
+  },
+): Promise<FacebookComposerImageUploadResult | null> {
+  const fileInputs =
+    dialog.locator(
+      'input[type="file"]',
+    );
+  const inputCount =
+    await fileInputs
+      .count()
+      .catch(() => 0);
+
+  for (
+    let index = 0;
+    index < inputCount;
+    index += 1
+  ) {
+    const fileInput =
+      fileInputs.nth(index);
+    const accept =
+      await fileInput
+        .getAttribute("accept")
+        .catch(() => null);
+
+    if (
+      !acceptsFacebookImageFiles(
+        accept,
+      )
+    ) {
+      continue;
+    }
+
+    const uploaded =
+      await fileInput
+        .setInputFiles(
+          imagePaths,
+        )
+        .then(() => true)
+        .catch(() => false);
+
+    if (!uploaded) {
+      continue;
+    }
+
+    const retainedFileCount =
+      await inputFileCount(
+        fileInput,
+      );
+
+    if (
+      retainedFileCount !==
+      imagePaths.length
+    ) {
+      console.warn(
+        "[facebook/composer-input-consumed]",
+        {
+          expectedFileCount:
+            imagePaths.length,
+          inputFileCount:
+            retainedFileCount,
+        },
+      );
+    }
+
+    return {
+      strategy:
+        "COMPOSER_FILE_INPUT",
+      expectedFileCount:
+        imagePaths.length,
+      inputFileCount:
+        retainedFileCount,
+      photoButtonClicked:
+        input.photoButtonClicked,
+      inputAccept:
+        accept,
+      multiple:
+        await fileInput
+          .getAttribute("multiple")
+          .then((value) =>
+            value !== null,
+          )
+          .catch(() => null),
+      controlDiagnostics:
+        input.controlDiagnostics,
+    };
+  }
+
+  return null;
+}
+
+export async function retryFacebookComposerImageUploadWithScopedInput(
+  dialog: Locator,
+  imagePaths: string[],
+  input: {
+    photoButtonClicked: boolean;
+    controlDiagnostics: FacebookComposerMediaControlDiagnostics;
+    timeoutMs?: number;
+  },
+): Promise<FacebookComposerImageUploadResult> {
+  const timeoutMs =
+    Math.max(
+      250,
+      input.timeoutMs ?? 5000,
+    );
+  const startedAt =
+    Date.now();
+
+  while (
+    Date.now() - startedAt <
+    timeoutMs
+  ) {
+    const result =
+      await uploadFacebookComposerImagesFromScopedInput(
+        dialog,
+        imagePaths,
+        input,
+      );
+
+    if (result) {
+      console.log(
+        "[facebook/composer-scoped-image-input-retry]",
+        {
+          expectedFileCount:
+            imagePaths.length,
+          inputFileCount:
+            result.inputFileCount,
+          waitedMs:
+            Date.now() -
+            startedAt,
+        },
+      );
+
+      return result;
+    }
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(resolve, 250),
+    );
+  }
+
+  throw new FacebookComposerImageUploadError(
+    "Facebook composer-scoped image input did not appear after the consumed file chooser.",
+    input.controlDiagnostics,
+  );
+}
+
 /**
  * Upload images through the file chooser opened by the active Facebook
  * composer. A composer-scoped input is retained as a fallback for Facebook
@@ -601,86 +753,18 @@ export async function uploadFacebookComposerImages(
    * mounted outside the composer; accepting one of those makes
    * setInputFiles succeed without attaching media to the post.
    */
-  const fileInputs =
-    dialog.locator(
-      'input[type="file"]',
+  const scopedInputUpload =
+    await uploadFacebookComposerImagesFromScopedInput(
+      dialog,
+      imagePaths,
+      {
+        photoButtonClicked,
+        controlDiagnostics,
+      },
     );
-  const inputCount =
-    await fileInputs
-      .count()
-      .catch(() => 0);
 
-  for (
-    let index = 0;
-    index < inputCount;
-    index += 1
-  ) {
-    const fileInput =
-      fileInputs.nth(index);
-    const accept =
-      await fileInput
-        .getAttribute("accept")
-        .catch(() => null);
-
-    if (
-      !acceptsFacebookImageFiles(
-        accept,
-      )
-    ) {
-      continue;
-    }
-
-    const uploaded =
-      await fileInput
-        .setInputFiles(
-          imagePaths,
-        )
-        .then(() => true)
-        .catch(() => false);
-
-    if (!uploaded) {
-      continue;
-    }
-
-    const retainedFileCount =
-      await inputFileCount(
-        fileInput,
-      );
-
-    if (
-      retainedFileCount !==
-      imagePaths.length
-    ) {
-      console.warn(
-        "[facebook/composer-input-consumed]",
-        {
-          expectedFileCount:
-            imagePaths.length,
-          inputFileCount:
-            retainedFileCount,
-        },
-      );
-    }
-
-    return {
-      strategy:
-        "COMPOSER_FILE_INPUT",
-      expectedFileCount:
-        imagePaths.length,
-      inputFileCount:
-        retainedFileCount,
-      photoButtonClicked,
-      inputAccept:
-        accept,
-      multiple:
-        await fileInput
-          .getAttribute("multiple")
-          .then((value) =>
-            value !== null,
-          )
-          .catch(() => null),
-      controlDiagnostics,
-    };
+  if (scopedInputUpload) {
+    return scopedInputUpload;
   }
 
   console.error(

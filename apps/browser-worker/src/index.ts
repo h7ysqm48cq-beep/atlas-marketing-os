@@ -29,6 +29,7 @@ import {
   findFacebookCreatePostDialog,
   fillFacebookComposerCaption,
   resetFacebookComposer,
+  retryFacebookComposerImageUploadWithScopedInput,
   uploadFacebookComposerImages,
   waitForFacebookComposerImagePreviews,
   waitForFacebookComposerStable,
@@ -5268,13 +5269,80 @@ app.post(
 
         const imageDialogHandling = await handleFacebookOnboarding(page);
 
-        const previewResult = await waitForFacebookComposerImagePreviews(
-          visibleComposerDialogs,
-          {
-            baselineCount: baselineMediaCount,
-            expectedAddedCount: imagePaths.length,
-          },
-        );
+        let previewResult =
+          await waitForFacebookComposerImagePreviews(
+            visibleComposerDialogs,
+            {
+              baselineCount: baselineMediaCount,
+              expectedAddedCount: imagePaths.length,
+            },
+          );
+
+        let scopedInputRetry:
+          Awaited<
+            ReturnType<
+              typeof retryFacebookComposerImageUploadWithScopedInput
+            >
+          > | null = null;
+        let scopedInputRetryError:
+          string | null = null;
+
+        if (
+          !previewResult.attached &&
+          imageUpload.strategy ===
+            "PHOTO_VIDEO_FILE_CHOOSER" &&
+          imageUpload.inputFileCount === 0
+        ) {
+          try {
+            const retryDialog =
+              await findFacebookCreatePostDialog(
+                page,
+                5000,
+              );
+
+            scopedInputRetry =
+              await retryFacebookComposerImageUploadWithScopedInput(
+                retryDialog,
+                imagePaths,
+                {
+                  photoButtonClicked:
+                    imageUpload.photoButtonClicked,
+                  controlDiagnostics:
+                    imageUpload.controlDiagnostics,
+                  timeoutMs: 5000,
+                },
+              );
+
+            await handleFacebookOnboarding(
+              page,
+            );
+
+            previewResult =
+              await waitForFacebookComposerImagePreviews(
+                visibleComposerDialogs,
+                {
+                  baselineCount:
+                    baselineMediaCount,
+                  expectedAddedCount:
+                    imagePaths.length,
+                  timeoutMs: 20000,
+                },
+              );
+          } catch (error) {
+            scopedInputRetryError =
+              error instanceof Error
+                ? error.message
+                : String(error);
+
+            console.warn(
+              "[facebook/composer-scoped-image-input-retry-failed]",
+              {
+                message:
+                  scopedInputRetryError,
+              },
+            );
+          }
+        }
 
         imageAttached = previewResult.attached;
         attachedMediaCount = previewResult.addedCount;
@@ -5297,6 +5365,8 @@ app.post(
             imagePaths,
             imageUpload,
             imageDialogHandling,
+            scopedInputRetry,
+            scopedInputRetryError,
           },
           errorMessage: imageAttached
             ? null
