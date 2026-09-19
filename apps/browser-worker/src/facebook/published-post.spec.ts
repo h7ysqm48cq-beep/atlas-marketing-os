@@ -13,6 +13,7 @@ import {
   shouldAdvanceFacebookPublishedPostSearch,
   FACEBOOK_PUBLISHED_POST_MAX_ARTICLES_PER_PASS,
   FACEBOOK_PUBLISHED_POST_MAX_SCROLLS,
+  selectFacebookPublishedPostArticleIndexes,
 } from "./published-post.js";
 
 test("uses the first content line as the caption fingerprint", () => {
@@ -235,4 +236,21 @@ test("keeps published-post timeline search bounded while allowing older posts to
     }),
     false,
   );
+});
+
+test("scans a bounded leading and trailing article window when Facebook appends older posts", () => {
+  assert.deepEqual(
+    selectFacebookPublishedPostArticleIndexes(12, 40),
+    Array.from({ length: 12 }, (_, index) => index),
+  );
+
+  const indexes = selectFacebookPublishedPostArticleIndexes(100, 40);
+
+  assert.equal(indexes.length, 40);
+  assert.deepEqual(indexes.slice(0, 20), Array.from({ length: 20 }, (_, index) => index));
+  assert.deepEqual(
+    indexes.slice(20),
+    Array.from({ length: 20 }, (_, index) => 80 + index),
+  );
+  assert.equal(new Set(indexes).size, indexes.length);
 });
