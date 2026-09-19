@@ -268,6 +268,36 @@ export async function findFacebookPublishedPostReference(
 
   while (Date.now() - startedAt < timeoutMs) {
     const articles = page.locator('[role="article"]');
+
+    const matchingArticles = articles.filter({
+      hasText: fingerprint,
+    });
+    const matchingArticleCount = Math.min(
+      await matchingArticles.count().catch(() => 0),
+      5,
+    );
+
+    for (let index = 0; index < matchingArticleCount; index += 1) {
+      const hrefs = await matchingArticles
+        .nth(index)
+        .locator("a[href]")
+        .evaluateAll((anchors) =>
+          anchors
+            .map((anchor) => anchor.getAttribute("href"))
+            .filter((href): href is string => Boolean(href)),
+        )
+        .catch(() => []);
+
+      const reference = buildFacebookPublishedPostReference(page.url(), hrefs);
+
+      if (reference) {
+        return {
+          ...reference,
+          matchedBy: `caption-article-${reference.matchedBy}`,
+        };
+      }
+    }
+
     const articleIndexes = selectFacebookPublishedPostArticleIndexes(
       await articles.count().catch(() => 0),
     );
