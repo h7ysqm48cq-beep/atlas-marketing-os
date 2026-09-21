@@ -339,6 +339,68 @@ function expectPersistenceError(callback: () => unknown) {
 }
 
 describe('supervisor persistence mapper', () => {
+  const receiptFixture = () => ({
+    taskId: 'ATLAS-20260830-0001',
+    executionId: 'ATLAS-EXEC-20260830-0001',
+    candidateBranch:
+      'atlas/candidate/ATLAS-20260830-0001/ATLAS-EXEC-20260830-0001',
+    baseSha: 'f'.repeat(40),
+    headSha: 'b'.repeat(40),
+    changedFiles: ['apps/api/src/example.ts'],
+    targetBranch: 'production/atlas',
+    remoteHeadSha: 'b'.repeat(40),
+    remoteVerified: true,
+  });
+
+  it('preserves a persisted verified publication receipt on both task and execution', () => {
+    const receipt = receiptFixture();
+    const evidence = { ...evidenceFixture(), candidatePublication: receipt };
+    const task = mapTaskRecord(taskRecord({ evidence }));
+    const execution = mapExecutionRecord(
+      executionRecord({ result: { summary: 'Implemented', evidence } }),
+    );
+    expect(task.evidence?.candidatePublication).toEqual(receipt);
+    expect(execution.result?.evidence.candidatePublication).toEqual(receipt);
+    expect(task.evidence?.candidatePublication).not.toBe(receipt);
+    expect(execution.result?.evidence.candidatePublication).not.toBe(receipt);
+    expect(task.evidence?.candidatePublication?.changedFiles).not.toBe(
+      receipt.changedFiles,
+    );
+    expect(execution.result?.evidence.candidatePublication?.changedFiles).not.toBe(
+      receipt.changedFiles,
+    );
+    receipt.changedFiles.push('apps/api/src/elsewhere.ts');
+    expect(task.evidence?.candidatePublication?.changedFiles).toEqual([
+      'apps/api/src/example.ts',
+    ]);
+    expect(execution.result?.evidence.candidatePublication?.changedFiles).toEqual([
+      'apps/api/src/example.ts',
+    ]);
+  });
+
+  it('rejects malformed persisted candidate publication receipts', () => {
+    const valid = receiptFixture();
+    const malformed: Array<Record<string, unknown>> = [
+      { ...valid, remoteVerified: false },
+      { ...valid, remoteVerified: 'true' },
+      { ...valid, remoteVerified: undefined },
+      { ...valid, candidateBranch: 'atlas/candidate/another-task/another-execution' },
+      { ...valid, targetBranch: 'main' },
+      { ...valid, headSha: 'not-a-git-sha' },
+      { ...valid, remoteHeadSha: 'c'.repeat(40) },
+      { ...valid, changedFiles: 'apps/api/src/example.ts' },
+      { ...valid, changedFiles: [] },
+      { ...valid, executionId: '' },
+    ];
+    for (const receipt of malformed) {
+      const evidence = { ...evidenceFixture(), candidatePublication: receipt };
+      expectPersistenceError(() => mapTaskRecord(taskRecord({ evidence })));
+      expectPersistenceError(() => mapExecutionRecord(
+        executionRecord({ result: { summary: 'Implemented', evidence } }),
+      ));
+    }
+  });
+
   it('maps a valid task record and clones arrays plus exact review candidate', () => {
     const record = taskRecord();
     const task = mapTaskRecord(record);
