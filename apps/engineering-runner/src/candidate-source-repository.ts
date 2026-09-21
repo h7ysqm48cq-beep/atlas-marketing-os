@@ -162,6 +162,47 @@ export class CandidateSourceRepository {
     );
   }
 
+  async ensureProductionHead(expectedSha: string): Promise<void> {
+    if (!FULL_GIT_SHA.test(expectedSha)) {
+      throw new Error('existing_candidate_production_baseline_invalid');
+    }
+    await this.refresh();
+    const remoteHead = (await this.gitRaw(this.repositoryRoot, [
+      'rev-parse', '--verify', PRODUCTION_SOURCE_REF,
+    ])).trim().toLowerCase();
+    if (remoteHead !== expectedSha.toLowerCase()) {
+      throw new Error('existing_candidate_production_baseline_drift');
+    }
+  }
+
+  async ensureExistingCandidate(baseSha: string, headSha: string): Promise<void> {
+    if (!FULL_GIT_SHA.test(baseSha) || !FULL_GIT_SHA.test(headSha) ||
+        baseSha.toLowerCase() === headSha.toLowerCase()) {
+      throw new Error('existing_candidate_identity_invalid');
+    }
+    // Source and base must be production-ancestry verified, while the
+    // unmerged exact head may not yet be reachable from production.
+    await this.ensureBase(baseSha);
+    await this.assertTransportConfigSafe();
+    try {
+      await this.gitRaw(this.repositoryRoot, [
+        'fetch', '--no-tags', '--no-recurse-submodules',
+        this.remote, headSha.toLowerCase(),
+      ], true);
+      const fetched = (await this.gitRaw(this.repositoryRoot, [
+        'rev-parse', '--verify', 'FETCH_HEAD^{commit}',
+      ])).trim().toLowerCase();
+      if (fetched !== headSha.toLowerCase()) {
+        throw new Error('existing_candidate_fetch_head_mismatch');
+      }
+      await this.gitRaw(this.repositoryRoot, [
+        'merge-base', '--is-ancestor', baseSha.toLowerCase(), fetched,
+      ]);
+    } catch {
+      throw new Error('existing_candidate_source_identity_unverified');
+    }
+  }
+
   async ensureBase(frozenBaseSha: string): Promise<void> {
     const baseSha = frozenBaseSha.trim().toLowerCase();
     if (!FULL_GIT_SHA.test(baseSha)) {

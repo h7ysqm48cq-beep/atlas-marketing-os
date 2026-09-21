@@ -225,3 +225,44 @@ test('CandidateWorkspaceManager rejects a pre-existing execution workspace path'
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Existing candidate opens the exact detached head and verifies immutable base-to-head path set', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-existing-candidate-head-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    let verified = 0;
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo, workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async (verifiedBase, verifiedHead) => {
+        assert.equal(verifiedBase, base);
+        assert.equal(verifiedHead, head);
+        verified++;
+      },
+      ensureProductionHead: async expected => assert.equal(expected, base),
+    });
+    const lease = await manager.prepare({
+      taskId: 'ATLAS-PR141', executionId: 'ATLAS-EXEC-PR141',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, allowedPaths: ['allowed.txt'],
+    });
+    assert.equal(verified, 1);
+    assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), head);
+    assert.equal(await git(lease.path, ['branch', '--show-current']), '');
+    assert.deepEqual(lease.verifiedChangedPaths, ['allowed.txt']);
+    assert.equal(lease.verifiedHeadSha, head);
+    assert.deepEqual(await lease.workspace.listChangedFiles(), []);
+    await lease.cleanup();
+    await assert.rejects(manager.prepare({
+      taskId: 'ATLAS-PR141', executionId: 'ATLAS-EXEC-DRIFT',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, allowedPaths: ['wrong.txt'],
+    }), /existing_candidate_scope_mismatch/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

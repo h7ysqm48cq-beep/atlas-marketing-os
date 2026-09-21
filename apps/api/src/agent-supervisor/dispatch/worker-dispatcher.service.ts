@@ -5,8 +5,13 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
+import {
+  SUPERVISOR_LIFECYCLE_STORE,
+  type ExistingCandidateAtomicAdmission,
+} from '../stores/supervisor-lifecycle.store';
 import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
 import type { SupervisorAction } from '../agent-supervisor.types';
 import type {
@@ -78,12 +83,21 @@ export class WorkerDispatcherService {
     private readonly executionStore: SupervisorExecutionStore,
     private readonly capabilityService: SupervisorWorkerCapabilityService,
     private readonly admissionManifestService: SupervisorAdmissionManifestService,
+    @Optional()
+    @Inject(SUPERVISOR_LIFECYCLE_STORE)
+    private readonly atomicAdmission?: ExistingCandidateAtomicAdmission,
   ) {}
 
   async dispatch(
     taskId: string,
     executionPurpose: SupervisorExecutionPurpose = 'IMPLEMENTATION',
-    options: { frozenBaseSha?: string } = {},
+    options: {
+      frozenBaseSha?: string;
+      verificationMode?: 'EXISTING_CANDIDATE';
+      candidateBaseSha?: string;
+      candidateHeadSha?: string;
+      productionBaselineSha?: string;
+    } = {},
   ): Promise<{
     execution: SupervisorExecution;
     assignment: WorkerAssignmentEnvelope;
@@ -175,6 +189,12 @@ export class WorkerDispatcherService {
       acceptance: [...task.acceptance],
       requiredEvidence: [...REQUIRED_EVIDENCE],
       ...(frozenBaseSha ? { frozenBaseSha } : {}),
+      ...(options.verificationMode ? {
+        verificationMode: options.verificationMode,
+        candidateBaseSha: options.candidateBaseSha,
+        candidateHeadSha: options.candidateHeadSha,
+        productionBaselineSha: options.productionBaselineSha,
+      } : {}),
     };
 
     const authorityBinding =
@@ -208,6 +228,164 @@ export class WorkerDispatcherService {
       execution,
       assignment: execution.assignment,
     };
+  }
+
+  async dispatchExistingCandidateVerification(
+    taskId: string,
+    input: {
+      candidateBaseSha: string;
+      candidateHeadSha: string;
+      productionBaselineSha: string;
+      changedPaths: string[];
+    },
+  ) {
+    const task = await this.supervisor.getTask(taskId);
+    if (!['BLOCKED', 'DRAFT'].includes(task.status) || task.evidence) {
+      throw new BadRequestException('existing_candidate_task_not_admissible');
+    }
+    const executions = await this.executionStore.listByTask(taskId);
+    if (task.status === 'DRAFT') {
+      // Owner-created immutable candidate: no synthetic implementation execution.
+      if (executions.length !== 0) {
+        throw new BadRequestException('draft_existing_candidate_requires_empty_history');
+      }
+      // Bind the new task's recorded frozen identity, not arbitrary caller SHAs.
+      if (!task.objective.toLowerCase().includes(input.candidateBaseSha?.toLowerCase()) ||
+          !task.objective.toLowerCase().includes(input.candidateHeadSha?.toLowerCase())) {
+        throw new BadRequestException('draft_existing_candidate_identity_mismatch');
+      }
+    } else if (!executions.some((execution) =>
+      execution.status === 'FAILED' &&
+      (execution.assignment.executionPurpose ?? 'IMPLEMENTATION') === 'IMPLEMENTATION',
+    )) {
+      throw new BadRequestException('failed_implementation_execution_required');
+    }
+    for (const sha of [
+      input.candidateBaseSha,
+      input.candidateHeadSha,
+      input.productionBaselineSha,
+    ]) {
+      if (!FULL_GIT_SHA.test(sha)) {
+        throw new BadRequestException('existing_candidate_sha_invalid');
+      }
+    }
+    if (!Array.isArray(input.changedPaths) ||
+        input.changedPaths.some(path => typeof path !== 'string' || !path.trim())) {
+      throw new BadRequestException('existing_candidate_paths_invalid');
+    }
+    if (task.status === 'DRAFT' &&
+        input.productionBaselineSha.toLowerCase() !== input.candidateBaseSha.toLowerCase()) {
+      throw new BadRequestException('draft_existing_candidate_baseline_mismatch');
+    }
+    const canonical = (values: string[]) => [...new Set(values)].sort();
+    if (
+      JSON.stringify(canonical(input.changedPaths)) !==
+      JSON.stringify(canonical(task.allowedPaths))
+    ) {
+      throw new BadRequestException('existing_candidate_scope_mismatch');
+    }
+    if (this.atomicAdmission) {
+      if (!(await this.supervisor.dependenciesReady(taskId))) {
+        throw new BadRequestException('dependencies_not_ready');
+      }
+      const permission = this.supervisor.checkPermission(task.owner, 'read_repo', {
+        taskScopeIncludesAction: true,
+      });
+      if (!permission.allowed) {
+        throw new BadRequestException({ code: 'verifier_permission_denied' });
+      }
+      const now = new Date();
+      const executionId = this.nextExecutionId(now);
+      const assignmentCore = {
+        executionId, taskId: task.id, workerRole: task.owner,
+        executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+        objective: task.objective, allowedPaths: [...task.allowedPaths],
+        forbiddenActions: Array.from(new Set([
+          ...task.forbiddenActions, ...VERIFIER_FORBIDDEN_ACTIONS,
+        ])),
+        dependencies: [...task.dependsOn], acceptance: [...task.acceptance],
+        requiredEvidence: [...REQUIRED_EVIDENCE],
+        verificationMode: 'EXISTING_CANDIDATE' as const,
+        candidateBaseSha: input.candidateBaseSha.toLowerCase(),
+        candidateHeadSha: input.candidateHeadSha.toLowerCase(),
+        productionBaselineSha: input.productionBaselineSha.toLowerCase(),
+      };
+      const assignment: WorkerAssignmentEnvelope = {
+        ...assignmentCore,
+        ...this.admissionManifestService.createBinding(assignmentCore),
+      };
+      this.requireAdmissionAuthorityBinding(assignment);
+      const queued: SupervisorExecution = {
+        id: executionId, taskId: task.id, workerRole: task.owner,
+        status: 'QUEUED', assignment, result: null, error: null,
+        createdAt: now, startedAt: null, completedAt: null,
+        runnerId: null, claimEpoch: 0,
+        lastHeartbeatAt: null, leaseExpiresAt: null,
+      };
+      const admitted = await this.atomicAdmission.admitExistingCandidateAndQueue(
+        task, queued,
+      );
+      if (!admitted) {
+        throw new ConflictException({ code: 'existing_candidate_atomic_admission_conflict' });
+      }
+      return { execution: admitted.execution, assignment: admitted.execution.assignment };
+    }
+    // Memory-only test fallback. Production MUST inject the atomic lifecycle store.
+    await this.supervisor.admitExistingCandidateVerification(taskId);
+    return this.dispatch(taskId, 'INDEPENDENT_VERIFICATION', {
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: input.candidateBaseSha.toLowerCase(),
+      candidateHeadSha: input.candidateHeadSha.toLowerCase(),
+      productionBaselineSha: input.productionBaselineSha.toLowerCase(),
+    });
+  }
+
+  async adoptExistingCandidateVerification(taskId: string, executionId: string) {
+    const task = await this.supervisor.getTask(taskId);
+    if (task.status !== 'VERIFYING' || task.evidence) {
+      throw new BadRequestException('existing_candidate_task_not_reviewable');
+    }
+    if (!(await this.supervisor.ownsAllowedPaths(taskId))) {
+      throw new BadRequestException('existing_candidate_file_ownership_missing');
+    }
+    const execution = await this.executionStore.get(executionId);
+    if (!execution || execution.taskId !== taskId ||
+        execution.status !== 'COMPLETED' || !execution.result ||
+        execution.assignment.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
+        execution.assignment.verificationMode !== 'EXISTING_CANDIDATE') {
+      throw new BadRequestException('existing_candidate_completed_verifier_required');
+    }
+    const a = execution.assignment;
+    const evidence = execution.result.evidence;
+    const proof = evidence.existingCandidateVerification;
+    const review = evidence.reviewCandidate;
+    const paths = (xs: string[]) => [...new Set(xs)].sort();
+    const identical = (left: string[], right: string[]) =>
+      JSON.stringify(paths(left)) === JSON.stringify(paths(right));
+    if (!proof || proof.mode !== 'EXISTING_CANDIDATE' ||
+        proof.sourceVerified !== true ||
+        proof.taskId !== taskId || proof.executionId !== executionId ||
+        proof.baseSha !== a.candidateBaseSha ||
+        proof.headSha !== a.candidateHeadSha ||
+        proof.productionBaselineSha !== a.productionBaselineSha ||
+        !/^[0-9a-f]{64}$/i.test(proof.gitFingerprint) ||
+        !a.manifestHash || !/^[0-9a-f]{64}$/i.test(a.manifestHash) ||
+        !a.claimEpoch || a.claimEpoch < 1 ||
+        !a.runnerId || !a.leaseId ||
+        !task.objective.toLowerCase().includes(proof.baseSha.toLowerCase()) ||
+        !task.objective.toLowerCase().includes(proof.headSha.toLowerCase()) ||
+        !identical(proof.changedFiles, task.allowedPaths) ||
+        !identical(evidence.changedFiles, task.allowedPaths) ||
+        !identical(a.allowedPaths, task.allowedPaths) ||
+        !review || review.action !== 'merge' ||
+        review.targetBranch !== 'production/atlas' ||
+        review.baseSha !== proof.baseSha ||
+        review.headSha !== proof.headSha ||
+        !identical(review.changedFiles, task.allowedPaths) ||
+        evidence.candidatePublication) {
+      throw new BadRequestException('existing_candidate_verifier_identity_mismatch');
+    }
+    return this.supervisor.adoptExistingCandidateVerification(taskId, evidence);
   }
 
   async listByTask(taskId: string): Promise<SupervisorExecution[]> {

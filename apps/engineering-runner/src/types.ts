@@ -12,6 +12,10 @@ export interface WorkerAssignment {
   acceptance: string[];
   requiredEvidence: string[];
   frozenBaseSha?: string;
+  verificationMode?: 'EXISTING_CANDIDATE';
+  candidateBaseSha?: string;
+  candidateHeadSha?: string;
+  productionBaselineSha?: string;
   manifestHash?: string;
   claimEpoch?: number;
   leaseId?: string;
@@ -50,6 +54,12 @@ export interface WorkerExecutionEvidence {
   gitState: string;
   remainingRisk: string[];
   candidatePublication?: CandidatePublicationReceipt;
+  existingCandidateVerification?: {
+    mode: 'EXISTING_CANDIDATE';
+    taskId: string; executionId: string;
+    baseSha: string; headSha: string; productionBaselineSha: string;
+    changedFiles: string[]; gitFingerprint: string; sourceVerified: true;
+  };
   reviewCandidate?: WorkerReviewCandidate;
 }
 
@@ -80,4 +90,5 @@ export interface AssignmentExecutor {
 
 export interface WorkspaceInspector {
   listChangedFiles(): Promise<string[]>;
+  fingerprint?(): Promise<string>;
 }

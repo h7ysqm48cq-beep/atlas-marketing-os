@@ -960,3 +960,94 @@ describe('S7 Human Owner abort RED recovery contract', () => {
     expect(transaction.supervisorFileLock.deleteMany).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Existing-candidate admission atomic DB boundary', () => {
+  const valid = () => {
+    const original = task({ status: 'DRAFT', evidence: null });
+    const old = execution();
+    const queued = execution({
+      id: 'ATLAS-EXEC-EXACT-1', status: 'QUEUED',
+      taskId: original.id, workerRole: original.owner,
+      startedAt: null, completedAt: null, runnerId: null,
+      claimEpoch: 0, lastHeartbeatAt: null, leaseExpiresAt: null,
+      result: null, error: null,
+      assignment: {
+        ...old.assignment,
+        executionId: 'ATLAS-EXEC-EXACT-1',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        verificationMode: 'EXISTING_CANDIDATE',
+        candidateBaseSha: 'a'.repeat(40),
+        candidateHeadSha: 'b'.repeat(40),
+        productionBaselineSha: 'a'.repeat(40),
+        allowedPaths: [...original.allowedPaths],
+        workerRole: original.owner,
+      },
+    });
+    return { original, queued };
+  };
+
+  it('persists CAS VERIFYING, exact locks and queued verifier in one transaction', async () => {
+    const { original, queued } = valid();
+    const { prisma, tx } = mockPrisma();
+    const calls: string[] = [];
+    (tx as any).$queryRaw = jest.fn(async () => []);
+    tx.supervisorTask.updateMany.mockImplementation(async () => {
+      calls.push('task-CAS'); return { count: 1 };
+    });
+    tx.supervisorFileLock.findMany.mockResolvedValue([]);
+    tx.supervisorFileLock.createMany.mockImplementation(async () => {
+      calls.push('locks'); return { count: 2 };
+    });
+    (tx.supervisorExecution as any).create = jest.fn(async ({ data }: any) => {
+      calls.push('execution'); return data;
+    });
+    tx.supervisorTask.findUnique.mockImplementation(async () =>
+      persistedRecord(task({ ...original, status: 'VERIFYING',
+        updatedAt: new Date(original.updatedAt.getTime()+1) })),
+    );
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const result = await store.admitExistingCandidateAndQueue(original, queued);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(calls).toEqual(['task-CAS', 'locks', 'execution']);
+    expect(result?.task.status).toBe('VERIFYING');
+    expect(result?.execution.status).toBe('QUEUED');
+    expect((tx.supervisorExecution as any).create).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when DRAFT has any earlier execution; no CAS or locks', async () => {
+    const { original, queued } = valid();
+    const { prisma, tx } = mockPrisma();
+    (tx as any).$queryRaw = jest.fn(async () =>
+      [{ id: 'old', status: 'FAILED', purpose: 'IMPLEMENTATION' }]);
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(store.admitExistingCandidateAndQueue(original, queued))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(tx.supervisorFileLock.createMany).not.toHaveBeenCalled();
+  });
+
+  it('fails version CAS without creating an execution or acquiring locks', async () => {
+    const { original, queued } = valid();
+    const { prisma, tx } = mockPrisma();
+    (tx as any).$queryRaw = jest.fn(async () => []);
+    tx.supervisorTask.updateMany.mockResolvedValue({ count: 0 });
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(store.admitExistingCandidateAndQueue(original, queued))
+      .resolves.toBeNull();
+    expect(tx.supervisorFileLock.findMany).not.toHaveBeenCalled();
+    expect((tx.supervisorExecution as any).create).toBeUndefined();
+  });
+
+  it('rejects a synthetic implementation result instead of queueing', async () => {
+    const { original, queued } = valid();
+    const { prisma, tx } = mockPrisma();
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    await expect(store.admitExistingCandidateAndQueue(original, {
+      ...queued, assignment: {
+        ...queued.assignment, executionPurpose: 'IMPLEMENTATION',
+      },
+    })).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.supervisorTask.updateMany).not.toHaveBeenCalled();
+  });
+});

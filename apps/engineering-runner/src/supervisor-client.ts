@@ -16,6 +16,7 @@ export interface SupervisorClientOptions {
   executionPurpose?: ExecutionPurpose;
   requireFrozenBaseSha?: boolean;
   fetch?: FetchLike;
+  exactTarget?: { taskId: string; executionId: string };
 }
 
 interface ClaimResponse {
@@ -79,6 +80,7 @@ export class SupervisorClient {
   private readonly executionPurpose: ExecutionPurpose;
   private readonly requireFrozenBaseSha: boolean;
   private readonly fetcher: FetchLike;
+  private readonly exactTarget?: { taskId: string; executionId: string };
 
   constructor(options: SupervisorClientOptions) {
     if (!options.baseUrl || !options.bootstrapToken) {
@@ -89,18 +91,25 @@ export class SupervisorClient {
     this.executionPurpose = options.executionPurpose ?? 'IMPLEMENTATION';
     this.requireFrozenBaseSha = options.requireFrozenBaseSha === true;
     this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
+    this.exactTarget = options.exactTarget;
   }
 
   async claimNext(): Promise<ClaimedExecutionSession | null> {
+    const exact = this.exactTarget;
     const response = await this.fetcher(
-      `${this.baseUrl}/engineering/supervisor/worker/claim-next`,
+      `${this.baseUrl}/engineering/supervisor/worker/${exact ? 'claim-exact' : 'claim-next'}`,
       {
         method: 'POST',
         headers: {
           authorization: `Bearer ${this.bootstrapToken}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
+        body: JSON.stringify(exact ? {
+          taskId: exact.taskId,
+          executionId: exact.executionId,
+          executionPurpose: this.executionPurpose,
+          requireCandidateHeadSha: true,
+        } : {
           executionPurpose: this.executionPurpose,
           requireFrozenBaseSha: this.requireFrozenBaseSha,
         }),

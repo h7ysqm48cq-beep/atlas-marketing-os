@@ -75,6 +75,7 @@ function request(overrides: Record<string, unknown> = {}) {
 
 function setup(claimed: SupervisorExecution | null = execution()) {
   const claimNext = jest.fn().mockResolvedValue(claimed);
+  const claimExact = jest.fn().mockResolvedValue(claimed);
   const issueWorker = jest.fn().mockReturnValue({
     token: 'opaque-worker-capability-token',
     metadata: {
@@ -101,12 +102,12 @@ function setup(claimed: SupervisorExecution | null = execution()) {
   if (!Target) return undefined;
   return {
     controller: new Target(
-      { claimNext },
+      { claimNext, claimExact },
       { issue: issueWorker },
       { issue: issueVerifier },
       { saveIfStatus },
     ),
-    calls: { claimNext, issueWorker, issueVerifier, saveIfStatus },
+    calls: { claimNext, claimExact, issueWorker, issueVerifier, saveIfStatus },
   };
 }
 
@@ -141,6 +142,15 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     expect(
       Reflect.getMetadata(HTTP_CODE_METADATA, Target.prototype.claimNext),
     ).toBe(200);
+  });
+
+  it('exposes a separate exact-claim route', () => {
+    const Target = loadBootstrapController();
+    expect(Reflect.getMetadata(PATH_METADATA, Target.prototype.claimExact)).toBe(
+      'claim-exact',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, Target.prototype.claimExact))
+      .toBe(RequestMethod.POST);
   });
 
   it('uses server-fixed role and server-generated runner, lease, and bounded time', async () => {

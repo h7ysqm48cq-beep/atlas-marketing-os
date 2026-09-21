@@ -10,6 +10,7 @@ import type { SupervisorExecution } from '../execution/supervisor-execution.type
 import type { SupervisorExecutionReconciliationCandidate } from '../stores/supervisor-execution.store';
 import type {
   SupervisorLifecycleStore,
+  ExistingCandidateAtomicAdmission,
   SupervisorLockMode,
   SupervisorExecutionRecoveryInput,
   SupervisorExecutionReconciliationInput,
@@ -44,6 +45,7 @@ type TransactionClient = {
     ...values: unknown[]
   ): Promise<T>;
   supervisorExecution: {
+    create(args: { data: Record<string, unknown> }): Promise<SupervisorExecutionRecord>;
     findUnique(args: {
       where: { id: string };
     }): Promise<SupervisorExecutionRecord | null>;
@@ -223,7 +225,7 @@ function isOwnerAbortInput(
 
 @Injectable()
 export class PrismaSupervisorLifecycleStore
-  implements SupervisorLifecycleStore, SupervisorExecutionRecoveryStore
+  implements SupervisorLifecycleStore, SupervisorExecutionRecoveryStore, ExistingCandidateAtomicAdmission
 {
   private readonly prisma: PrismaWithTransaction;
 
@@ -290,6 +292,77 @@ export class PrismaSupervisorLifecycleStore
         throw conflict([]);
       }
 
+      throw persistenceError();
+    }
+  }
+
+  async admitExistingCandidateAndQueue(
+    currentTask: SupervisorTask,
+    execution: SupervisorExecution,
+  ): Promise<{ task: SupervisorTask; execution: SupervisorExecution } | null> {
+    if (!['DRAFT', 'BLOCKED'].includes(currentTask.status) ||
+        currentTask.evidence !== null || execution.taskId !== currentTask.id ||
+        execution.status !== 'QUEUED' ||
+        execution.assignment.verificationMode !== 'EXISTING_CANDIDATE' ||
+        execution.assignment.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
+        execution.workerRole !== currentTask.owner ||
+        JSON.stringify([...execution.assignment.allowedPaths].sort()) !==
+        JSON.stringify([...currentTask.allowedPaths].sort())) {
+      throw new ConflictException({ code: 'existing_candidate_atomic_input_invalid' });
+    }
+    try {
+      return await this.prisma.$transaction(async tx => {
+        const history = await tx.$queryRaw<Array<{ id: string; status: string; purpose: string }>>`
+          SELECT "id", "status",
+            COALESCE("assignment"->>'executionPurpose', 'IMPLEMENTATION') AS purpose
+          FROM "SupervisorExecution"
+          WHERE "taskId" = ${currentTask.id}
+          ORDER BY "id"
+          FOR UPDATE
+        `;
+        if (currentTask.status === 'DRAFT' ? history.length !== 0 :
+            !history.some(row => row.status === 'FAILED' && row.purpose === 'IMPLEMENTATION')) {
+          throw new ConflictException({ code: 'existing_candidate_history_changed' });
+        }
+        if (history.some(row => ['QUEUED','DISPATCHED','RUNNING'].includes(row.status))) {
+          throw new ConflictException({ code: 'active_execution_exists', taskId: currentTask.id });
+        }
+        const nextTask: SupervisorTask = {
+          ...currentTask, status: 'VERIFYING', blockingReason: null,
+          failureReason: null,
+          updatedAt: new Date(Math.max(Date.now(), currentTask.updatedAt.getTime() + 1)),
+        };
+        const updated = await tx.supervisorTask.updateMany({
+          where: {
+            id: currentTask.id, status: currentTask.status,
+            updatedAt: new Date(currentTask.updatedAt),
+          },
+          data: taskUpdateData(nextTask),
+        });
+        if (updated.count !== 1) return null;
+        await this.acquire(tx, nextTask);
+        const row = await tx.supervisorExecution.create({
+          data: {
+            id: execution.id, taskId: execution.taskId,
+            workerRole: execution.workerRole, status: execution.status,
+            assignment: structuredClone(execution.assignment),
+            result: null, error: null, createdAt: new Date(execution.createdAt),
+            startedAt: null, completedAt: null, runnerId: null, claimEpoch: 0,
+            lastHeartbeatAt: null, leaseExpiresAt: null,
+          },
+        });
+        const persistedTask = await tx.supervisorTask.findUnique({
+          where: { id: currentTask.id },
+        });
+        if (!persistedTask) throw persistenceError();
+        return {
+          task: mapTaskRecord(persistedTask),
+          execution: mapExecutionRecord(row),
+        };
+      });
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      if (isPathUniqueError(error)) throw conflict([]);
       throw persistenceError();
     }
   }

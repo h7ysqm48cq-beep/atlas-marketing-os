@@ -210,3 +210,33 @@ test("CandidateSourceRepository rejects a frozen SHA that is not an ancestor of 
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Existing candidate fetches exact unmerged head from source and binds production base', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-existing-source-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await writeFile(path.join(author, 'app.txt'), 'candidate\\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    await source.ensureExistingCandidate(base, head);
+    assert.equal(await git(path.join(root, 'mirror.git'), [
+      'rev-parse', '--verify', 'FETCH_HEAD^{commit}',
+    ]), head);
+    await assert.rejects(source.ensureExistingCandidate(base, 'f'.repeat(40)),
+      /existing_candidate_source_identity_unverified/);
+    await assert.rejects(source.ensureExistingCandidate(head, base),
+      /candidate_source_base_not_production_ancestor/);
+    await source.ensureProductionHead(base);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    await assert.rejects(source.ensureProductionHead(base),
+      /existing_candidate_production_baseline_drift/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

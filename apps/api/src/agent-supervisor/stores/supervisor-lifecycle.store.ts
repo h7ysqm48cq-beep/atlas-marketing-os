@@ -9,6 +9,13 @@ export const SUPERVISOR_EXECUTION_RECOVERY_STORE = Symbol(
 
 export type SupervisorLockMode = 'acquire' | 'release';
 
+export interface ExistingCandidateAtomicAdmission {
+  admitExistingCandidateAndQueue(
+    currentTask: SupervisorTask,
+    execution: SupervisorExecution,
+  ): Promise<{ task: SupervisorTask; execution: SupervisorExecution } | null>;
+}
+
 export interface SupervisorLifecycleStore {
   saveWithLocksIfUnchanged(
     task: SupervisorTask,

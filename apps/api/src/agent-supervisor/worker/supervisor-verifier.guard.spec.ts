@@ -41,6 +41,10 @@ function verifierExecution(
       dependencies: [],
       acceptance: ['independent verification'],
       requiredEvidence: [],
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: 'b'.repeat(40),
+      candidateHeadSha: 'c'.repeat(40),
+      productionBaselineSha: 'd'.repeat(40),
     },
     result: null,
     error: null,
@@ -72,6 +76,7 @@ function verifierInput(value: SupervisorExecution) {
     purpose: 'INDEPENDENT_VERIFICATION' as const,
     leaseId: value.assignment.leaseId!,
     runnerId: value.runnerId!,
+    candidateHeadSha: value.assignment.candidateHeadSha,
   };
 }
 

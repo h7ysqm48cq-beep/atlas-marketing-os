@@ -726,3 +726,47 @@ describe('supervisor persistence mapper', () => {
   });
 
 });
+
+describe('immutable existing-candidate persistence round-trip', () => {
+  const proof = () => ({
+    mode: 'EXISTING_CANDIDATE' as const,
+    taskId: 'ATLAS-20260921-d837f3f0-31c4-4b58-bd5c-15ace24131e6',
+    executionId: 'ATLAS-EXEC-EXACT',
+    baseSha: '078658563cde6b9b21d9be38e883e54d62efd970',
+    headSha: '24dd7bee3b608f8d42a3bffc3daa58df05158444',
+    productionBaselineSha: '078658563cde6b9b21d9be38e883e54d62efd970',
+    changedFiles: ['apps/engineering-runner/package.json', 'package-lock.json'],
+    gitFingerprint: 'a'.repeat(64),
+    sourceVerified: true as const,
+  });
+  it('retains exact assignment and independent verifier proof on DB readback', () => {
+    const p = proof();
+    const record = executionRecord();
+    (record.assignment as any).executionPurpose = 'INDEPENDENT_VERIFICATION';
+    (record.assignment as any).verificationMode = p.mode;
+    (record.assignment as any).candidateBaseSha = p.baseSha;
+    (record.assignment as any).candidateHeadSha = p.headSha;
+    (record.assignment as any).productionBaselineSha = p.productionBaselineSha;
+    (record.result as any).evidence.existingCandidateVerification = p;
+    const mapped = mapExecutionRecord(record);
+    expect(mapped.assignment).toEqual(expect.objectContaining({
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateHeadSha: p.headSha,
+      candidateBaseSha: p.baseSha,
+      productionBaselineSha: p.productionBaselineSha,
+    }));
+    expect(mapped.result?.evidence.existingCandidateVerification).toEqual(p);
+    expect(mapped.result?.evidence.existingCandidateVerification).not.toBe(p);
+  });
+  it('rejects incomplete assignment or false source verification at DB boundary', () => {
+    const record = executionRecord();
+    (record.assignment as any).verificationMode = 'EXISTING_CANDIDATE';
+    expectPersistenceError(() => mapExecutionRecord(record));
+    const p = proof();
+    const result = executionRecord();
+    (result.result as any).evidence.existingCandidateVerification = {
+      ...p, sourceVerified: false,
+    };
+    expectPersistenceError(() => mapExecutionRecord(result));
+  });
+});

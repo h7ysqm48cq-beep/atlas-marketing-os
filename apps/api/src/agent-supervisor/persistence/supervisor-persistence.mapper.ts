@@ -3,6 +3,7 @@ import type {
   ProductionDeploymentService,
   SupervisorAction,
   SupervisorEvidence,
+  SupervisorExistingCandidateVerification,
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
   SupervisorOwnerDeploymentAuthorization,
@@ -372,8 +373,34 @@ function mapOwnerDeploymentAuthorizationRevocations(
   );
 }
 
+function mapExistingCandidateVerification(value: unknown): SupervisorExistingCandidateVerification {
+  const object = requireObject(value);
+  const baseSha = requireString(object.baseSha);
+  const headSha = requireString(object.headSha);
+  const productionBaselineSha = requireString(object.productionBaselineSha);
+  const gitFingerprint = requireString(object.gitFingerprint);
+  if (object.mode !== 'EXISTING_CANDIDATE' || object.sourceVerified !== true ||
+      !FULL_GIT_SHA.test(baseSha) || !FULL_GIT_SHA.test(headSha) ||
+      !FULL_GIT_SHA.test(productionBaselineSha) ||
+      !/^[0-9a-f]{64}$/i.test(gitFingerprint)) {
+    throw persistenceError();
+  }
+  return {
+    mode: 'EXISTING_CANDIDATE',
+    taskId: requireString(object.taskId),
+    executionId: requireString(object.executionId),
+    baseSha, headSha, productionBaselineSha,
+    changedFiles: requireStringArray(object.changedFiles),
+    gitFingerprint, sourceVerified: true,
+  };
+}
+
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
+  const existingCandidateVerification =
+    object.existingCandidateVerification === undefined
+      ? undefined
+      : mapExistingCandidateVerification(object.existingCandidateVerification);
   const reviewCandidate =
     object.reviewCandidate === undefined
       ? undefined
@@ -415,6 +442,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     gitState: requireString(object.gitState),
     remainingRisk: requireStringArray(object.remainingRisk),
     ...(reviewCandidate ? { reviewCandidate } : {}),
+    ...(existingCandidateVerification ? { existingCandidateVerification } : {}),
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
     ...(ownerMergeAuthorizationConsumption
       ? { ownerMergeAuthorizationConsumption }
@@ -435,6 +463,19 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const frozenBaseSha = object.frozenBaseSha;
   const claimEpoch = object.claimEpoch;
   const workerCapability = object.workerCapability;
+  const verificationMode = object.verificationMode;
+  const base = object.candidateBaseSha;
+  const head = object.candidateHeadSha;
+  const baseline = object.productionBaselineSha;
+  if (verificationMode !== undefined || base !== undefined ||
+      head !== undefined || baseline !== undefined) {
+    if (verificationMode !== 'EXISTING_CANDIDATE' ||
+        typeof base !== 'string' || !FULL_GIT_SHA.test(base) ||
+        typeof head !== 'string' || !FULL_GIT_SHA.test(head) ||
+        typeof baseline !== 'string' || !FULL_GIT_SHA.test(baseline)) {
+      throw persistenceError();
+    }
+  }
   if (
     executionPurpose !== undefined &&
     executionPurpose !== 'IMPLEMENTATION' &&
@@ -477,6 +518,11 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
     ) as RequiredEvidenceField[],
     ...(executionPurpose !== undefined ? { executionPurpose } : {}),
     ...(frozenBaseSha !== undefined ? { frozenBaseSha } : {}),
+    ...(verificationMode === 'EXISTING_CANDIDATE' ? {
+      verificationMode, candidateBaseSha: base as string,
+      candidateHeadSha: head as string,
+      productionBaselineSha: baseline as string,
+    } : {}),
     ...(object.manifestHash !== undefined
       ? { manifestHash: requireString(object.manifestHash) }
       : {}),
