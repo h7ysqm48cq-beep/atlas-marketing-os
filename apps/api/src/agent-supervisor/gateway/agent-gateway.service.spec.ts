@@ -1,3 +1,4 @@
+import { completeTestOnlyVerifier, testSupervisorWithVerifier } from '../testing/independent-verifier.test-fixture';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
@@ -184,7 +185,7 @@ describe('AgentGatewayService', () => {
         key === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? OWNER_TOKEN : undefined,
       ),
     } as unknown as ConfigService;
-    supervisor = new AgentSupervisorService(
+    supervisor = testSupervisorWithVerifier(
       taskStore,
       fileStore,
       undefined,
@@ -305,6 +306,7 @@ describe('AgentGatewayService', () => {
     });
     await gateway.submitImplementationFromExecution(task.id, completed.id);
     await supervisor.beginVerification(task.id);
+    await completeTestOnlyVerifier(supervisor, task.id);
     await supervisor.markReadyForReview(task.id);
     if (authorizeMerge) {
       await r2aAuthorizeMergeAsOwner(supervisor, task.id, reviewCandidate, 'owner-user-1');
@@ -339,6 +341,7 @@ describe('AgentGatewayService', () => {
     });
     await gateway.submitImplementationFromExecution(task.id, completed.id);
     await supervisor.beginVerification(task.id);
+    await completeTestOnlyVerifier(supervisor, task.id);
     await supervisor.markReadyForReview(task.id);
     return {
       task: await supervisor.getTask(task.id),

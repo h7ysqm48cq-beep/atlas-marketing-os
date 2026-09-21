@@ -17,6 +17,8 @@ import type {
 } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
+import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execution.store';
+import { testOnlySeparatedExecutions } from './testing/independent-verifier.test-fixture';
 
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
@@ -424,10 +426,40 @@ class PausingMemorySupervisorTaskStore
   }
 }
 
+// TEST-ONLY: attach an execution store, never weaken production ready-review gates.
+const testVerifierStores = new WeakMap<
+  AgentSupervisorService,
+  MemorySupervisorExecutionStore
+>();
+function testSupervisorService(
+  ...args: ConstructorParameters<typeof AgentSupervisorService>
+): AgentSupervisorService {
+  const executions = new MemorySupervisorExecutionStore();
+  const service = new AgentSupervisorService(
+    args[0], args[1], args[2], args[3], args[4], args[5], executions,
+  );
+  testVerifierStores.set(service, executions);
+  return service;
+}
+async function finishTestOnlyVerifier(
+  service: AgentSupervisorService,
+  taskId: string,
+): Promise<void> {
+  const task = await service.getTask(taskId);
+  if (task.status !== 'VERIFYING' || !task.evidence) {
+    throw new Error('test_fixture_requires_verifying_evidence');
+  }
+  const store = testVerifierStores.get(service);
+  if (!store) throw new Error('test_fixture_execution_store_missing');
+  for (const execution of testOnlySeparatedExecutions(task)) {
+    await store.create(execution);
+  }
+}
+
 function createOwnerServiceWithStore(
   taskStore: MemorySupervisorTaskStore,
 ) {
-  return new AgentSupervisorService(
+  return testSupervisorService(
     taskStore,
     new MemoryFileOwnershipStore(),
     undefined,
@@ -462,7 +494,7 @@ function ownerConfig() {
 }
 
 function createOwnerService() {
-  return new AgentSupervisorService(
+  return testSupervisorService(
     new MemorySupervisorTaskStore(),
     new MemoryFileOwnershipStore(),
     undefined,
@@ -496,6 +528,7 @@ async function makeReadyTask(
     reviewCandidate,
   });
   await service.beginVerification(task.id);
+  await finishTestOnlyVerifier(service, task.id);
   await service.markReadyForReview(task.id);
   return service.getTask(task.id);
 }
@@ -504,7 +537,7 @@ describe('AgentSupervisorService', () => {
   let service: AgentSupervisorService;
 
   beforeEach(() => {
-    service = new AgentSupervisorService(
+    service = testSupervisorService(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
@@ -572,11 +605,11 @@ describe('AgentSupervisorService', () => {
   });
 
   it('generates different task ids across fresh service instances', async () => {
-    const first = new AgentSupervisorService(
+    const first = testSupervisorService(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
-    const second = new AgentSupervisorService(
+    const second = testSupervisorService(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
@@ -680,6 +713,7 @@ describe('AgentSupervisorService', () => {
       remainingRisk: [],
     });
     await service.beginVerification(task.id);
+    await finishTestOnlyVerifier(service, task.id);
     const ready = await service.markReadyForReview(task.id);
 
     expect(ready.status).toBe('READY_FOR_REVIEW');
@@ -1777,7 +1811,7 @@ describe('S7 Human Owner abort RED service contract', () => {
     const recoveryStore = {
       recoverExecutionAndBlockTask: jest.fn().mockResolvedValue(recoveryResult),
     };
-    const service = new AgentSupervisorService(
+    const service = testSupervisorService(
       taskStore as never,
       fileOwnershipStore as never,
       recoveryStore as never,
@@ -1881,7 +1915,7 @@ describe('P0B-6B candidate publication evidence', () => {
   };
 
   it('persists a valid candidate publication receipt with implementation evidence', async () => {
-    const service = new AgentSupervisorService(
+    const service = testSupervisorService(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
@@ -1916,7 +1950,7 @@ describe('P0B-6B candidate publication evidence', () => {
   });
 
   it('rejects a candidate publication receipt that is not remotely verified', async () => {
-    const service = new AgentSupervisorService(
+    const service = testSupervisorService(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
@@ -1938,7 +1972,7 @@ describe('P0B-6B candidate publication evidence', () => {
 
 describe('P0B-6B candidate publication receipt validation', () => {
   it('rejects malformed candidate publication SHA provenance', async () => {
-    const service = new AgentSupervisorService(
+    const service = testSupervisorService(
       new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
     );
     const task = await service.createTask({
@@ -1963,7 +1997,7 @@ describe('P0B-6B candidate publication receipt validation', () => {
 });
 describe('P0B-6B candidate publication binding', () => {
   async function workingTask(allowedPaths: string[]) {
-    const service = new AgentSupervisorService(
+    const service = testSupervisorService(
       new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
     );
     const task = await service.createTask({

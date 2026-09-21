@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { generateKeyPairSync } from 'node:crypto';
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,6 +9,8 @@ import { promisify } from "node:util";
 
 import { CandidateSourceRepository } from "./candidate-source-repository.ts";
 import { CandidateWorkspaceManager } from "./candidate-workspace.ts";
+import { createEngineeringRunnerOptions } from './bootstrap.ts';
+import { EngineeringRunner } from './runner.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -205,6 +208,178 @@ test("CandidateSourceRepository rejects a frozen SHA that is not an ancestor of 
     await assert.rejects(
       () => source.ensureBase(candidateHead),
       /candidate_source_base_not_production_ancestor/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('verifier fetches EXACT published candidate ref and detached HEAD', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-verifier-candidate-'));
+  try {
+    const { author, remote, productionHead } = await fixture(root);
+    const taskId = 'ATLAS-140-TEST';
+    const implementationId = 'ATLAS-EXEC-140-TEST';
+    const candidateBranch = 'atlas/candidate/' + taskId + '/' + implementationId;
+    await git(author, ['checkout', '-qb', 'local-candidate']);
+    await writeFile(path.join(author, 'app.txt'), 'candidate\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'candidate']);
+    const headSha = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, [
+      'push', remote, 'HEAD:refs/heads/' + candidateBranch,
+    ]);
+    const repositoryRoot = path.join(root, 'cache.git');
+    const source = new CandidateSourceRepository({ repositoryRoot, remote });
+    const frozen = { taskId, implementationId, candidateBranch,
+      baseSha: productionHead, headSha };
+    await source.ensureCandidate(frozen);
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot,
+      workspaceRoot: path.join(root, 'worktrees'),
+    });
+    const lease = await manager.prepare({
+      taskId, executionId: 'ATLAS-VERIFIER-140-TEST',
+      frozenBaseSha: headSha, allowedPaths: ['app.txt'],
+    });
+    try {
+      assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), headSha);
+      assert.equal(await git(lease.path, ['branch', '--show-current']), '');
+      assert.deepEqual(await lease.workspace.listChangedFiles(), []);
+    } finally {
+      await lease.cleanup();
+    }
+    await assert.rejects(() => source.ensureCandidate({
+      ...frozen, candidateBranch: 'atlas/candidate/OTHER/OTHER',
+    }), /candidate_source_frozen_ref_invalid/);
+    await assert.rejects(() => source.ensureCandidate({
+      ...frozen, headSha: productionHead,
+    }), /candidate_source_frozen_ref_invalid/);
+    await assert.rejects(() => source.ensureCandidate({
+      ...frozen, headSha: 'f'.repeat(40),
+    }), /candidate_source_frozen_head_mismatch/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('verifier rejects exact remote HEAD unrelated to frozen base', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-verifier-orphan-'));
+  try {
+    const { author, remote, productionHead } = await fixture(root);
+    const taskId = 'ATLAS-140-UNRELATED';
+    const implementationId = 'ATLAS-EXEC-140-UNRELATED';
+    const candidateBranch = 'atlas/candidate/' + taskId + '/' + implementationId;
+    await git(author, ['checkout', '--orphan', 'unrelated-candidate']);
+    await git(author, ['rm', '-rf', '.']);
+    await writeFile(path.join(author, 'app.txt'), 'unrelated\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'unrelated']);
+    const headSha = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, [
+      'push', remote, 'HEAD:refs/heads/' + candidateBranch,
+    ]);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'cache.git'), remote,
+    });
+    await assert.rejects(() => source.ensureCandidate({
+      taskId, implementationId, candidateBranch,
+      baseSha: productionHead, headSha,
+    }), /candidate_source_not_based_on_frozen_base/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('actual runner boot verifier executes on fetched exact HEAD, then cleans isolated worktree', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-runner-frozen-head-'));
+  try {
+    const { author, remote, productionHead } = await fixture(root);
+    const taskId = 'ATLAS-140-RUNNER';
+    const implId = 'ATLAS-EXEC-140-IMPL';
+    const executionId = 'ATLAS-EXEC-140-VERIFIER';
+    const candidateBranch = 'atlas/candidate/' + taskId + '/' + implId;
+    await git(author, ['checkout', '-qb', 'candidate-branch']);
+    await writeFile(path.join(author, 'app.txt'), 'published head\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'published candidate']);
+    const headSha = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, [
+      'push', remote, 'HEAD:refs/heads/' + candidateBranch,
+    ]);
+    const pair = generateKeyPairSync('ed25519');
+    const config = {
+      supervisorApiUrl: 'https://api.example.invalid',
+      bootstrapToken: 'TEST_ONLY_ACTOR_TOKEN',
+      command: 'unused', args: [], workspace: '/never-use-this-workspace',
+      pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
+      signed: {
+        kid: 'local-only-verifier',
+        purpose: 'INDEPENDENT_VERIFICATION' as const,
+        privateKeyPem: pair.privateKey.export({
+          type: 'pkcs8', format: 'pem',
+        }).toString(),
+      },
+      verifierSource: {
+        repositoryRoot: path.join(root, 'source.git'),
+        workspaceRoot: path.join(root, 'verified'),
+        remote,
+      },
+    };
+    const options = createEngineeringRunnerOptions(config, {
+      PATH: '/usr/bin', HOME: '/deny/ambient',
+    });
+    let completed = false;
+    let actualHead = '';
+    const result = { summary: 'verified frozen HEAD', evidence: {
+      rootCause: 'test', changedFiles: ['app.txt'],
+      tests: ['PASS'], build: 'PASS', regression: [],
+      deploymentState: 'NOT_DEPLOYED', gitState: 'TEST_ONLY',
+      remainingRisk: [],
+    } };
+    const runner = new EngineeringRunner({
+      ...options,
+      client: {
+        claimNext: async () => ({
+          purpose: 'INDEPENDENT_VERIFICATION' as const,
+          assignment: {
+            taskId, executionId, workerRole: 'engineering',
+            executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+            objective: 'independent verify', allowedPaths: ['app.txt'],
+            forbiddenActions: [], dependencies: [],
+            acceptance: [], requiredEvidence: [],
+            frozenBaseSha: productionHead,
+            reviewCandidate: {
+              action: 'merge' as const,
+              targetBranch: 'production/atlas' as const,
+              baseSha: productionHead, headSha,
+              changedFiles: ['app.txt'],
+            },
+            candidateBranch,
+          },
+          heartbeat: async () => undefined,
+          complete: async () => { completed = true; },
+          fail: async (reason: string) => {
+            throw Error('unexpected_signed_failure:' + reason);
+          },
+          cancel: async () => undefined,
+        }),
+      },
+      executorFactory: (cwd: string) => ({
+        execute: async () => {
+          actualHead = await git(cwd, ['rev-parse', 'HEAD']);
+          assert.equal(await git(cwd, ['branch', '--show-current']), '');
+          assert.equal(actualHead, headSha);
+          return result;
+        },
+      }),
+    });
+    assert.equal(await runner.runOnce(), 'completed');
+    assert.equal(actualHead, headSha);
+    assert.equal(completed, true);
+    await assert.rejects(
+      git(path.join(root, 'verified', taskId + '--' + executionId),
+        ['rev-parse', 'HEAD']),
     );
   } finally {
     await rm(root, { recursive: true, force: true });

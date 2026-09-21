@@ -1,6 +1,7 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import type {
   ProductionDeploymentService,
+  SupervisorCandidatePublicationReceipt,
   SupervisorAction,
   SupervisorEvidence,
   SupervisorIntegrationAction,
@@ -183,6 +184,34 @@ function mapReviewCandidate(value: unknown): SupervisorReviewCandidate {
     headSha: requireString(object.headSha),
     changedFiles: requireStringArray(object.changedFiles),
   };
+}
+
+function mapCandidatePublication(
+  value: unknown,
+): SupervisorCandidatePublicationReceipt {
+  const object = requireObject(value);
+  const taskId = requireString(object.taskId);
+  const executionId = requireString(object.executionId);
+  const candidateBranch = requireString(object.candidateBranch);
+  const baseSha = requireString(object.baseSha);
+  const headSha = requireString(object.headSha);
+  const changedFiles = requireStringArray(object.changedFiles);
+  const targetBranch = requireString(object.targetBranch);
+  const remoteHeadSha = requireString(object.remoteHeadSha);
+  if (!taskId.trim() || !executionId.trim() ||
+      !candidateBranch.trim() || !FULL_GIT_SHA.test(baseSha) ||
+      !FULL_GIT_SHA.test(headSha) ||
+      !FULL_GIT_SHA.test(remoteHeadSha) ||
+      remoteHeadSha !== headSha ||
+      targetBranch !== 'production/atlas' ||
+      object.remoteVerified !== true ||
+      changedFiles.length === 0 ||
+      changedFiles.some(path => !path.trim()) ||
+      new Set(changedFiles).size !== changedFiles.length) {
+    throw persistenceError();
+  }
+  return { taskId, executionId, candidateBranch, baseSha, headSha,
+    changedFiles, targetBranch, remoteHeadSha, remoteVerified: true };
 }
 
 function mapOwnerMergeAuthorization(
@@ -378,6 +407,10 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     object.reviewCandidate === undefined
       ? undefined
       : mapReviewCandidate(object.reviewCandidate);
+  const candidatePublication =
+    object.candidatePublication === undefined
+      ? undefined
+      : mapCandidatePublication(object.candidatePublication);
   const ownerMergeAuthorization =
     object.ownerMergeAuthorization === undefined
       ? undefined
@@ -415,6 +448,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     gitState: requireString(object.gitState),
     remainingRisk: requireStringArray(object.remainingRisk),
     ...(reviewCandidate ? { reviewCandidate } : {}),
+    ...(candidatePublication ? { candidatePublication } : {}),
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
     ...(ownerMergeAuthorizationConsumption
       ? { ownerMergeAuthorizationConsumption }
@@ -426,6 +460,40 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     ...(ownerDeploymentAuthorizationRevocations
       ? { ownerDeploymentAuthorizationRevocations }
       : {}),
+  };
+}
+
+function mapBootstrapActorClaim(
+  value: unknown,
+): NonNullable<WorkerAssignmentEnvelope['bootstrapActor']> {
+  const actor = requireObject(value);
+  // Never allow bootstrap credentials to be persisted or returned via JSON.
+  if (Object.keys(actor).some(k => ![
+    'kid', 'principalId', 'controllingPrincipalId', 'workerRole',
+    'purposes', 'authenticatedAt', 'claimNonce',
+  ].includes(k))) throw persistenceError();
+  const purposes = requireStringArray(actor.purposes);
+  if (purposes.length === 0 ||
+      purposes.some(p => p !== 'IMPLEMENTATION' &&
+        p !== 'INDEPENDENT_VERIFICATION') ||
+      new Set(purposes).size !== purposes.length) throw persistenceError();
+  const authenticatedAt = requireString(actor.authenticatedAt);
+  if (!Number.isFinite(Date.parse(authenticatedAt))) throw persistenceError();
+  const kid = requireString(actor.kid);
+  const principalId = requireString(actor.principalId);
+  const controllingPrincipalId = requireString(actor.controllingPrincipalId);
+  const claimNonce = requireString(actor.claimNonce);
+  if (![kid, principalId, controllingPrincipalId, claimNonce]
+    .every(value => value.trim().length > 0)) throw persistenceError();
+  const workerRole = requireString(actor.workerRole) as SupervisorWorkerRole;
+  if (!['engineering', 'frontend', 'backend', 'database', 'qa', 'infra']
+    .includes(workerRole)) throw persistenceError();
+  return {
+    kid, principalId, controllingPrincipalId, workerRole,
+    purposes: purposes as NonNullable<
+      WorkerAssignmentEnvelope['bootstrapActor']
+    >['purposes'],
+    authenticatedAt, claimNonce,
   };
 }
 
@@ -488,6 +556,9 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
       ? { runnerId: requireString(object.runnerId) }
       : {}),
     ...(mappedCapability ? { workerCapability: mappedCapability } : {}),
+    ...(object.bootstrapActor !== undefined ? {
+      bootstrapActor: mapBootstrapActorClaim(object.bootstrapActor),
+    } : {}),
   };
 }
 

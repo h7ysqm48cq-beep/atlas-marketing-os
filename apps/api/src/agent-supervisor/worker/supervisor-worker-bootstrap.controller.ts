@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Optional,
   Post,
   Req,
   Res,
@@ -12,6 +13,8 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
 import { Public } from '../../auth/public.decorator';
 import type {
   SupervisorExecution,
@@ -26,11 +29,13 @@ import {
 import { VerifierCapabilityService } from '../authority/verifier-capability.service';
 import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
 import { SupervisorWorkerBootstrapGuard } from './supervisor-worker-bootstrap.guard';
+import type { AuthenticatedBootstrapActor } from './supervisor-bootstrap-actor-registry';
 
 const INITIAL_CLAIM_LEASE_MS = 60_000;
 
 type BootstrapRequest = Request & {
   supervisorWorkerBootstrapRole?: SupervisorExecution['workerRole'];
+  supervisorAuthenticatedActor?: AuthenticatedBootstrapActor;
 };
 
 @Public()
@@ -44,6 +49,7 @@ export class SupervisorWorkerBootstrapController {
     private readonly verifierCapabilities: VerifierCapabilityService,
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   @Post('claim-next')
@@ -63,6 +69,9 @@ export class SupervisorWorkerBootstrapController {
       }
     | undefined
   > {
+    if (this.config?.get<string>('ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE') === 'required') {
+      throw new ForbiddenException('signed_worker_claim_required');
+    }
     const executionPurpose =
       body.executionPurpose === undefined
         ? 'IMPLEMENTATION'
@@ -81,6 +90,15 @@ export class SupervisorWorkerBootstrapController {
     }
     const requireFrozenBaseSha = body.requireFrozenBaseSha === true;
 
+    const actor = request.supervisorAuthenticatedActor;
+    // A registry-backed identity may only claim its configured role/purpose.
+    // Legacy role-only credentials are still accepted but remain unproven.
+    if (actor &&
+      (actor.workerRole !== request.supervisorWorkerBootstrapRole ||
+       !actor.purposes.includes(executionPurpose))) {
+      throw new BadRequestException('worker_actor_claim_purpose_denied');
+    }
+
     const now = new Date();
     const runnerId = randomUUID();
     const leaseId = randomUUID();
@@ -92,6 +110,10 @@ export class SupervisorWorkerBootstrapController {
       requireFrozenBaseSha,
       runnerId,
       leaseId,
+      ...(actor ? { bootstrapActor: {
+        ...actor, purposes: [...actor.purposes],
+        authenticatedAt: now.toISOString(), claimNonce: randomUUID(),
+      } } : {}),
       now,
       leaseExpiresAt,
     });
@@ -135,6 +157,9 @@ export class SupervisorWorkerBootstrapController {
           purpose: 'INDEPENDENT_VERIFICATION',
           leaseId: claimed.assignment.leaseId!,
           runnerId: claimed.assignment.runnerId!,
+          ...(claimed.assignment.bootstrapActor ? {
+            bootstrapActor: claimed.assignment.bootstrapActor,
+          } : {}),
         },
         now,
       );

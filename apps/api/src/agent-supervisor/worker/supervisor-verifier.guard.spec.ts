@@ -149,6 +149,35 @@ describe('SupervisorVerifierGuard RED contract', () => {
     ).resolves.toBe(true);
   });
 
+  it('fails closed if persisted verifier identity changes after capability issuance', async () => {
+    const actor = {
+      kid: 'kid-B', principalId: 'principal-B',
+      controllingPrincipalId: 'operator-B', workerRole: 'engineering' as const,
+      purposes: ['INDEPENDENT_VERIFICATION' as const],
+      claimNonce: 'nonce-original', authenticatedAt: NOW.toISOString(),
+    };
+    const value = verifierExecution({
+      assignment: { ...verifierExecution().assignment, bootstrapActor: actor },
+    });
+    const setupValue = setup(value);
+    if (!setupValue) return;
+    await setupValue.store.create(value);
+    const token = setupValue.verifierCapabilities.issue({
+      ...verifierInput(value), bootstrapActor: actor,
+    }, NOW);
+    const ctx = () => context(setupValue.operationKey, 'submit_verification',
+      token, value.taskId, value.id);
+    await expect(setupValue.guard.canActivate(ctx())).resolves.toBe(true);
+
+    await setupValue.store.save({
+      ...value, assignment: { ...value.assignment,
+        bootstrapActor: { ...actor, claimNonce: 'replaced' },
+      },
+    });
+    await expect(setupValue.guard.canActivate(ctx()))
+      .rejects.toThrow('verifier_capability_actor_binding_mismatch');
+  });
+
   it('rejects an implementation worker capability at the verifier gateway', async () => {
     const value = verifierExecution();
     const setupValue = setup(value);

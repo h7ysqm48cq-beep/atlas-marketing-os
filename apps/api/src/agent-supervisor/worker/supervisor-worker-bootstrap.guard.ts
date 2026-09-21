@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { SupervisorWorkerRole } from '../execution/supervisor-execution.types';
+import {
+  parseBootstrapActorRegistry,
+  publicActorBinding,
+  type AuthenticatedBootstrapActor,
+  type ConfiguredBootstrapActor,
+} from './supervisor-bootstrap-actor-registry';
 
 const WORKER_ROLES: SupervisorWorkerRole[] = [
   'engineering',
@@ -27,6 +33,7 @@ function roleTokenKey(role: SupervisorWorkerRole): string {
 type BootstrapRequest = {
   headers?: { authorization?: unknown };
   supervisorWorkerBootstrapRole?: SupervisorWorkerRole;
+  supervisorAuthenticatedActor?: AuthenticatedBootstrapActor;
 };
 
 @Injectable()
@@ -52,11 +59,19 @@ export class SupervisorWorkerBootstrapGuard implements CanActivate {
       const token = this.config.get<string>(roleTokenKey(role));
       return token ? [{ role, token }] : [];
     });
-    const configured = [
+    const actors = parseBootstrapActorRegistry(
+      this.config.get<string>('ATLAS_SUPERVISOR_WORKER_ACTORS_JSON'),
+    );
+    const configured: Array<{
+      role: SupervisorWorkerRole;
+      token: string;
+      actor?: ConfiguredBootstrapActor;
+    }> = [
       ...(legacyToken && legacyRole
         ? [{ role: legacyRole as SupervisorWorkerRole, token: legacyToken }]
         : []),
       ...roleTokens,
+      ...actors.map(actor => ({ role: actor.workerRole, token: actor.token, actor })),
     ];
     if (configured.length === 0) {
       throw new ForbiddenException('worker_bootstrap_not_configured');
@@ -65,7 +80,6 @@ export class SupervisorWorkerBootstrapGuard implements CanActivate {
     for (let index = 0; index < configured.length; index += 1) {
       for (let other = index + 1; other < configured.length; other += 1) {
         if (
-          configured[index].role !== configured[other].role &&
           this.equalSecret(configured[index].token, configured[other].token)
         ) {
           throw new ForbiddenException('worker_bootstrap_tokens_not_separated');
@@ -91,6 +105,10 @@ export class SupervisorWorkerBootstrapGuard implements CanActivate {
     }
 
     request.supervisorWorkerBootstrapRole = matched.role;
+    // Only the server-configured credential registry may supply actor identity.
+    // Legacy role-only credentials deliberately remain UNATTESTED.
+    const actor = 'actor' in matched ? matched.actor : undefined;
+    if (actor) request.supervisorAuthenticatedActor = publicActorBinding(actor);
     return true;
   }
 

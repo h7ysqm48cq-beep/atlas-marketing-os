@@ -107,8 +107,12 @@ export class MemorySupervisorExecutionStore
       claimEpoch: nextClaimEpoch,
       runnerId: input.runnerId,
       leaseId: input.leaseId,
+      ...(input.bootstrapActor ? { bootstrapActor: {
+        ...input.bootstrapActor, purposes: [...input.bootstrapActor.purposes],
+      } } : {}),
     };
     delete assignment.workerCapability;
+    if (!input.bootstrapActor) delete assignment.bootstrapActor;
 
     const stored = this.cloneExecution({
       ...selected,

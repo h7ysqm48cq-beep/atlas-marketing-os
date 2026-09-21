@@ -12,6 +12,8 @@ export interface WorkerAssignment {
   acceptance: string[];
   requiredEvidence: string[];
   frozenBaseSha?: string;
+  reviewCandidate?: WorkerReviewCandidate;
+  candidateBranch?: string;
   manifestHash?: string;
   claimEpoch?: number;
   leaseId?: string;

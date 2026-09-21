@@ -166,7 +166,9 @@ function persistedRecord(value: SupervisorTask) {
 
 function mockPrisma() {
   const tx = {
+    $queryRaw: jest.fn(),
     supervisorExecution: {
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn(),
       update: jest.fn(),
@@ -262,11 +264,11 @@ describe('PrismaSupervisorLifecycleStore', () => {
     });
   });
 
-  it('releases owned locks and saves the task in one version-checked transaction', async () => {
+  it('rejects direct READY_FOR_REVIEW lock release without the verifier invariant', async () => {
     const { prisma, tx } = mockPrisma();
 
     const current = task({
-      status: 'WORKING',
+      status: 'VERIFYING',
     });
 
     const input = task({
@@ -282,10 +284,11 @@ describe('PrismaSupervisorLifecycleStore', () => {
     tx.supervisorFileLock.deleteMany
       .mockResolvedValue({ count: 2 });
 
+    tx.$queryRaw.mockResolvedValue([]);
+    tx.supervisorExecution.findMany.mockResolvedValue([]);
     tx.supervisorTask.findUnique
-      .mockResolvedValue(
-        persistedRecord(input),
-      );
+      .mockResolvedValueOnce(persistedRecord(current))
+      .mockResolvedValueOnce(persistedRecord(input));
 
     const store =
       new PrismaSupervisorLifecycleStore(
@@ -298,21 +301,17 @@ describe('PrismaSupervisorLifecycleStore', () => {
         'release',
         current.updatedAt,
       ),
-    ).resolves.toMatchObject({
-      status: 'READY_FOR_REVIEW',
+    ).rejects.toMatchObject({
+      response: { code: 'independent_verification_required' },
     });
 
     expect(
       tx.supervisorFileLock.deleteMany,
-    ).toHaveBeenCalledWith({
-      where: {
-        taskId: 'ATLAS-1',
-      },
-    });
+    ).not.toHaveBeenCalled();
 
     expect(
       tx.supervisorTask.updateMany,
-    ).toHaveBeenCalledTimes(1);
+    ).not.toHaveBeenCalled();
   });
 
   it('rejects a conflicting lock owner within the version-checked transaction', async () => {

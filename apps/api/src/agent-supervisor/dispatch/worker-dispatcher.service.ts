@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import {
   BadRequestException,
   ConflictException,
   Inject,
   Injectable,
+  Optional,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
@@ -78,6 +81,7 @@ export class WorkerDispatcherService {
     private readonly executionStore: SupervisorExecutionStore,
     private readonly capabilityService: SupervisorWorkerCapabilityService,
     private readonly admissionManifestService: SupervisorAdmissionManifestService,
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   async dispatch(
@@ -139,17 +143,39 @@ export class WorkerDispatcherService {
     }
 
     let frozenBaseSha: string | undefined;
-    if (options.frozenBaseSha !== undefined) {
-      if (executionPurpose === 'INDEPENDENT_VERIFICATION') {
-        throw new BadRequestException(
-          'frozen_base_sha_not_allowed_for_verification',
-        );
+    const signedRequired = this.config?.get<string>(
+      'ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE',
+    ) === 'required';
+    if (options.frozenBaseSha !== undefined &&
+        executionPurpose === 'INDEPENDENT_VERIFICATION') {
+      throw new BadRequestException(
+        'frozen_base_sha_not_allowed_for_verification',
+      );
+    }
+    if (signedRequired && executionPurpose === 'INDEPENDENT_VERIFICATION') {
+      // A verifier cannot choose its own base: bind the frozen, persisted
+      // implementation candidate BEFORE the admission manifest is signed.
+      const candidate = task.evidence?.reviewCandidate;
+      const evidenceFiles = task.evidence?.changedFiles;
+      if (!candidate || !FULL_GIT_SHA.test(candidate.baseSha) ||
+          !FULL_GIT_SHA.test(candidate.headSha) ||
+          candidate.targetBranch !== 'production/atlas' ||
+          !Array.isArray(evidenceFiles) ||
+          candidate.changedFiles.length !== evidenceFiles.length ||
+          [...candidate.changedFiles].sort().join('\u0000') !==
+            [...evidenceFiles].sort().join('\u0000')) {
+        throw new BadRequestException('signed_verifier_frozen_candidate_required');
       }
+      frozenBaseSha = candidate.baseSha.toLowerCase();
+    } else if (options.frozenBaseSha !== undefined) {
       const normalized = options.frozenBaseSha.trim().toLowerCase();
       if (!FULL_GIT_SHA.test(normalized)) {
         throw new BadRequestException('frozen_base_sha_invalid');
       }
       frozenBaseSha = normalized;
+    }
+    if (signedRequired && !frozenBaseSha) {
+      throw new BadRequestException('signed_implementation_frozen_base_required');
     }
 
     const now = new Date();
@@ -220,6 +246,11 @@ export class WorkerDispatcherService {
   }
 
   async markRunning(executionId: string): Promise<SupervisorExecution> {
+    if (this.config?.get<string>(
+      'ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE',
+    ) === 'required') {
+      throw new ForbiddenException('signed_worker_claim_required');
+    }
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['DISPATCHED']);
 
@@ -233,6 +264,9 @@ export class WorkerDispatcherService {
     executionId: string,
     result: WorkerExecutionResult,
   ): Promise<SupervisorExecution> {
+    if (this.config?.get<string>('ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE') === 'required') {
+      throw new ForbiddenException('signed_worker_completion_required');
+    }
     const execution = await this.requireExecution(executionId);
     this.requireExecutionStatus(execution, ['RUNNING']);
     this.validateWorkerResult(result);

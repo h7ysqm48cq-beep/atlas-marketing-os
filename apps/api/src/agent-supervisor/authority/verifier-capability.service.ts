@@ -1,7 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import type { BootstrapActorClaim } from '../worker/supervisor-bootstrap-actor-registry';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import {
   SupervisorAuthorityService,
+  canonicalizeAuthorityValue,
   type AuthorityClaims,
 } from './supervisor-authority.service';
 
@@ -22,6 +24,7 @@ export interface VerifierCapabilityInput {
   purpose?: 'INDEPENDENT_VERIFICATION';
   leaseId: string;
   runnerId: string;
+  bootstrapActor?: BootstrapActorClaim;
 }
 
 export interface VerifierCapability extends AuthorityClaims {
@@ -36,6 +39,7 @@ export interface VerifierCapability extends AuthorityClaims {
   allowedActions: VerifierCapabilityOperation[];
   leaseId: string;
   runnerId: string;
+  actorBindingDigest?: string;
 }
 
 @Injectable()
@@ -71,6 +75,9 @@ export class VerifierCapabilityService {
       allowedActions: [...this.operations],
       leaseId: input.leaseId,
       runnerId: input.runnerId,
+      ...(input.bootstrapActor ? {
+        actorBindingDigest: this.actorBindingDigest(input.bootstrapActor),
+      } : {}),
     });
   }
 
@@ -97,6 +104,11 @@ export class VerifierCapabilityService {
     if (!claims.allowedActions.includes(input.operation)) {
       throw new ForbiddenException('verifier_capability_operation_denied');
     }
+    const expectedActorDigest = input.bootstrapActor
+      ? this.actorBindingDigest(input.bootstrapActor) : undefined;
+    if (claims.actorBindingDigest !== expectedActorDigest) {
+      throw new ForbiddenException('verifier_capability_actor_binding_mismatch');
+    }
     if (claims.leaseId !== input.leaseId || claims.runnerId !== input.runnerId) {
       throw new ForbiddenException('verifier_capability_claim_mismatch');
     }
@@ -107,6 +119,17 @@ export class VerifierCapabilityService {
       throw new ForbiddenException('verifier_capability_scope_mismatch');
     }
     return claims;
+  }
+
+  private actorBindingDigest(actor: BootstrapActorClaim): string {
+    if (!actor.kid?.trim() || !actor.principalId?.trim() ||
+        !actor.controllingPrincipalId?.trim() || !actor.claimNonce?.trim() ||
+        !Number.isFinite(Date.parse(actor.authenticatedAt)) ||
+        !actor.purposes?.includes('INDEPENDENT_VERIFICATION')) {
+      throw new ForbiddenException('verifier_capability_actor_binding_invalid');
+    }
+    return createHash('sha256')
+      .update(canonicalizeAuthorityValue(actor), 'utf8').digest('hex');
   }
 
   private validateBinding(input: VerifierCapabilityInput): void {

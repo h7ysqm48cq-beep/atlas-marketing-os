@@ -244,7 +244,7 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
     expect(await fileStore.findOwner('apps/api/src/shared.ts')).toBe(firstTask.id);
   });
 
-  it('commits task state and lock release together for lifecycle release', async () => {
+  it('refuses direct READY_FOR_REVIEW release from WORKING and keeps original lock', async () => {
     const persistedTask = await taskStore.create(
       task({ status: 'WORKING' }),
     );
@@ -262,18 +262,12 @@ describeIntegration('Supervisor Prisma persistence integration', () => {
         persistedTask.updatedAt,
       );
 
-    expect(saved).not.toBeNull();
-
-    if (!saved) {
-      throw new Error(
-        'expected lifecycle release CAS to succeed',
-      );
-    }
-
-    expect(saved.status).toBe('READY_FOR_REVIEW');
+    expect(saved).toBeNull();
     expect((await taskStore.get(persistedTask.id))?.status).toBe(
-      'READY_FOR_REVIEW',
+      'WORKING',
     );
-    expect(await fileStore.findOwner('apps/api/src/example.ts')).toBeNull();
+    expect(await fileStore.findOwner('apps/api/src/example.ts')).toBe(
+      persistedTask.id,
+    );
   });
 });

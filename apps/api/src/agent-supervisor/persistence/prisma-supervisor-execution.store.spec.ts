@@ -4,6 +4,7 @@ import type {
   SupervisorWorkerRole,
 } from '../execution/supervisor-execution.types';
 import { PrismaSupervisorExecutionStore } from './prisma-supervisor-execution.store';
+import type { BootstrapActorClaim } from '../worker/supervisor-bootstrap-actor-registry';
 
 function execution(
   overrides: Partial<SupervisorExecution> = {},
@@ -72,6 +73,7 @@ type ClaimNextInput = {
   workerRole: SupervisorExecution['workerRole'];
   executionPurpose?: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
   requireFrozenBaseSha?: boolean;
+  bootstrapActor?: BootstrapActorClaim;
   runnerId: string;
   leaseId: string;
   now: Date;
@@ -534,6 +536,70 @@ describe('PrismaSupervisorExecutionStore', () => {
     const store = new PrismaSupervisorExecutionStore(prisma as never);
 
     await expect(store.create(execution())).rejects.toBe(existing);
+  });
+
+  it('atomically persists registered actor provenance in exact Prisma claim update', async () => {
+    const prisma = mockPrisma();
+    const candidate = execution({
+      id: 'EXEC-ISSUE140-CLAIM',
+      workerRole: 'engineering',
+      status: 'QUEUED',
+      assignment: {
+        ...execution().assignment,
+        executionId: 'EXEC-ISSUE140-CLAIM',
+        workerRole: 'engineering',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        manifestHash: 'a'.repeat(64),
+        bootstrapActor: {
+          kid: 'stale', principalId: 'stale', controllingPrincipalId: 'stale',
+          workerRole: 'engineering', purposes: ['IMPLEMENTATION'],
+          authenticatedAt: '2026-09-20T00:00:00.000Z', claimNonce: 'stale',
+        },
+      },
+    });
+    const actor: BootstrapActorClaim = {
+      kid: 'kid-B', principalId: 'principal-B',
+      controllingPrincipalId: 'operator-B',
+      workerRole: 'engineering', purposes: ['INDEPENDENT_VERIFICATION'],
+      authenticatedAt: '2026-09-21T00:00:00.000Z',
+      claimNonce: 'new-claim-nonce',
+    };
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([record(candidate)]),
+      supervisorExecution: {
+        update: jest.fn().mockImplementation(async ({ data }: {
+          data: Partial<SupervisorExecution>,
+        }) => record({ ...candidate, ...data,
+          assignment: data.assignment ?? candidate.assignment })),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (
+      callback: (tx: typeof transaction) => Promise<unknown>,
+    ) => callback(transaction));
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+    const result = await claimStore(store).claimNext({
+      workerRole: 'engineering',
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      runnerId: 'runner-new', leaseId: 'lease-new',
+      now: new Date('2026-09-21T00:00:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-21T00:01:00.000Z'),
+      bootstrapActor: actor,
+    });
+    expect(result?.assignment.bootstrapActor).toEqual(actor);
+    expect(result?.claimEpoch).toBe(1);
+    expect(result?.assignment.runnerId).toBe('runner-new');
+    expect(transaction.supervisorExecution.update).toHaveBeenCalledWith({
+      where: { id: candidate.id, status: 'QUEUED' },
+      data: expect.objectContaining({
+        status: 'RUNNING',
+        assignment: expect.objectContaining({
+          bootstrapActor: actor, claimEpoch: 1,
+          runnerId: 'runner-new', leaseId: 'lease-new',
+        }),
+      }),
+    });
+    expect(JSON.stringify(transaction.supervisorExecution.update.mock.calls))
+      .not.toContain('actor-credential-');
   });
 
   it('claims through one transaction using eligibility ordering and SKIP LOCKED', async () => {

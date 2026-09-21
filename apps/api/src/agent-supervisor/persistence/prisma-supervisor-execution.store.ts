@@ -4,8 +4,11 @@ import {
   HttpException,
   Injectable,
   InternalServerErrorException,
+  ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import type {
   SupervisorExecution,
   SupervisorExecutionStatus,
@@ -239,9 +242,16 @@ export class PrismaSupervisorExecutionStore
   private readonly delegate: SupervisorExecutionDelegate;
   private readonly prisma: PrismaWithSupervisorExecution;
 
-  constructor(prisma: PrismaService) {
+  constructor(prisma: PrismaService,
+    @Optional() private readonly config?: ConfigService) {
     this.prisma = prisma as unknown as PrismaWithSupervisorExecution;
     this.delegate = this.prisma.supervisorExecution;
+  }
+
+  private signedRequired(): boolean {
+    return this.config?.get<string>(
+      'ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE',
+    ) === 'required';
   }
 
   async listByTask(taskId: string): Promise<SupervisorExecution[]> {
@@ -263,6 +273,49 @@ export class PrismaSupervisorExecutionStore
 
   async create(execution: SupervisorExecution): Promise<SupervisorExecution> {
     return this.withPersistenceBoundary(execution.taskId, async () => {
+      if (execution.assignment.executionPurpose === 'INDEPENDENT_VERIFICATION') {
+        if (execution.status !== 'QUEUED') {
+          throw new BadRequestException({
+            code: 'verifier_execution_queue_required',
+          });
+        }
+        // Serialize verifier admission with READY_FOR_REVIEW on the task row.
+        // A dispatch that read VERIFYING earlier MUST re-check while locked.
+        return this.prisma.$transaction(async (tx) => {
+          const tasks = await tx.$queryRaw<Array<{ status: string }>>`
+            SELECT "status" FROM "SupervisorTask"
+            WHERE "id" = ${execution.taskId} FOR UPDATE
+          `;
+          if (tasks.length !== 1 || tasks[0].status !== 'VERIFYING') {
+            throw new BadRequestException({
+              code: 'task_not_dispatchable',
+              current: tasks[0]?.status ?? null,
+              required: 'VERIFYING',
+            });
+          }
+          if (this.signedRequired()) {
+            // Lock task first, then re-check inside SAME transaction. Two
+            // coordinator replicas may both have observed zero verifiers.
+            const already = await tx.$queryRaw<Array<{ id: string }>>`
+              SELECT "id" FROM "SupervisorExecution"
+              WHERE "taskId" = ${execution.taskId}
+                AND "assignment"->>'executionPurpose' =
+                  'INDEPENDENT_VERIFICATION'
+              LIMIT 1
+            `;
+            if (already.length) {
+              throw new ConflictException({
+                code: 'signed_verifier_already_exists',
+                taskId: execution.taskId,
+              });
+            }
+          }
+          const row = await tx.supervisorExecution.create({
+            data: executionCreateData(execution),
+          });
+          return mapExecutionRecord(row);
+        });
+      }
       const row = await this.delegate.create({
         data: executionCreateData(execution),
       });
@@ -271,6 +324,10 @@ export class PrismaSupervisorExecutionStore
   }
 
   async save(execution: SupervisorExecution): Promise<SupervisorExecution> {
+    if (this.signedRequired() &&
+        (execution.status === 'RUNNING' || execution.status === 'COMPLETED')) {
+      throw new ForbiddenException('signed_execution_transition_required');
+    }
     return this.withPersistenceBoundary(execution.taskId, async () => {
       const row = await this.delegate.update({
         where: { id: execution.id },
@@ -284,6 +341,10 @@ export class PrismaSupervisorExecutionStore
     execution: SupervisorExecution,
     expectedStatus: SupervisorExecutionStatus,
   ): Promise<SupervisorExecution> {
+    if (this.signedRequired() &&
+        (execution.status === 'RUNNING' || execution.status === 'COMPLETED')) {
+      throw new ForbiddenException('signed_execution_transition_required');
+    }
     try {
       const row = await this.delegate.update({
         where: { id: execution.id, status: expectedStatus },
@@ -308,6 +369,9 @@ export class PrismaSupervisorExecutionStore
   async claimNext(
     input: SupervisorExecutionClaimInput,
   ): Promise<SupervisorExecution | null> {
+    if (this.signedRequired()) {
+      throw new ForbiddenException('signed_worker_claim_required');
+    }
     const executionPurpose = input.executionPurpose ?? 'IMPLEMENTATION';
     const requiredTaskStatus =
       executionPurpose === 'INDEPENDENT_VERIFICATION'
@@ -348,8 +412,12 @@ export class PrismaSupervisorExecutionStore
           claimEpoch: nextClaimEpoch,
           runnerId: input.runnerId,
           leaseId: input.leaseId,
+          ...(input.bootstrapActor ? { bootstrapActor: {
+            ...input.bootstrapActor, purposes: [...input.bootstrapActor.purposes],
+          } } : {}),
         };
         delete assignment.workerCapability;
+        if (!input.bootstrapActor) delete assignment.bootstrapActor;
 
         const claimed: SupervisorExecution = {
           ...mapped,
@@ -388,6 +456,9 @@ export class PrismaSupervisorExecutionStore
   heartbeat = async (
     input: SupervisorExecutionHeartbeatInput,
   ): Promise<SupervisorExecution | null> => {
+    if (this.signedRequired()) {
+      throw new ForbiddenException('signed_worker_heartbeat_required');
+    }
     return this.withPersistenceBoundary(null, async () =>
       this.prisma.$transaction(async (transaction) => {
         const rows = await transaction.$queryRaw<SupervisorExecutionRecord[]>`

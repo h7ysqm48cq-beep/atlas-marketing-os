@@ -1,3 +1,4 @@
+import { completeTestOnlyVerifier, testSupervisorWithVerifier } from '../testing/independent-verifier.test-fixture';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import { createTestSupervisorAuthority } from '../authority/test-authority';
@@ -125,7 +126,7 @@ describe('Owner production deployment authorization service binding', () => {
         key === 'ATLAS_SUPERVISOR_OWNER_TOKEN' ? OWNER_TOKEN : undefined,
       ),
     } as unknown as ConfigService;
-    supervisor = new AgentSupervisorService(
+    supervisor = testSupervisorWithVerifier(
       taskStore,
       new MemoryFileOwnershipStore(),
       undefined,
@@ -163,6 +164,7 @@ describe('Owner production deployment authorization service binding', () => {
       reviewCandidate: candidate,
     });
     await supervisor.beginVerification(task.id);
+    await completeTestOnlyVerifier(supervisor, task.id);
     await supervisor.markReadyForReview(task.id);
     return { task, candidate };
   }

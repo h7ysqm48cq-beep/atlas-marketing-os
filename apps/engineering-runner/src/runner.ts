@@ -48,13 +48,26 @@ export interface EngineeringRunnerOptions {
   heartbeatIntervalMs?: number;
   candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   candidatePublisher?: CandidatePublisherLike;
+  verifierWorkspaceManager?: {
+    prepare(input: {
+      taskId: string; executionId: string;
+      frozenBaseSha: string; candidateHeadSha: string;
+      candidateBranch: string; allowedPaths: string[];
+    }): Promise<CandidateWorkspaceLeaseLike>;
+  };
   executorFactory?: (cwd: string) => AssignmentExecutor;
   preflight?: () => Promise<void>;
 }
 
 function errorReason(error: unknown): string {
-  if (error instanceof Error) return `${error.name}:${error.message}`;
-  return String(error);
+  // Signed terminal's immutable reason is capped at 1,024 characters.
+  // Build/tool errors can be arbitrarily long; never lose FAILED entirely
+  // because an oversized diagnostic cannot pass server validation.
+  const raw = error instanceof Error
+    ? `${error.name}:${error.message}` : String(error);
+  const reason = raw.trim() || 'unknown_execution_error';
+  return reason.length > 1024
+    ? reason.slice(0, 1021) + '...' : reason;
 }
 
 function isAmbiguousMutation(error: unknown): boolean {
@@ -102,6 +115,7 @@ export class EngineeringRunner {
   private readonly heartbeatIntervalMs: number;
   private readonly candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   private readonly candidatePublisher?: CandidatePublisherLike;
+  private readonly verifierWorkspaceManager?: EngineeringRunnerOptions['verifierWorkspaceManager'];
   private readonly executorFactory?: (cwd: string) => AssignmentExecutor;
   private readonly preflight?: () => Promise<void>;
 
@@ -114,6 +128,7 @@ export class EngineeringRunner {
     this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? 20_000;
     this.candidateWorkspaceManager = options.candidateWorkspaceManager;
     this.candidatePublisher = options.candidatePublisher;
+    this.verifierWorkspaceManager = options.verifierWorkspaceManager;
     this.executorFactory = options.executorFactory;
     this.preflight = options.preflight;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
@@ -131,11 +146,40 @@ export class EngineeringRunner {
     let terminalRecorded = false;
 
     try {
+      // Claim lease starts before Git fetch/worktree setup. Keep it alive
+      // throughout frozen-head preparation, not only executor runtime.
+      await session.heartbeat();
+      heartbeatTimer = setInterval(() => {
+        void session.heartbeat().catch((error) => {
+          heartbeatError ??= error;
+        });
+      }, this.heartbeatIntervalMs);
       let activeWorkspace = this.workspace;
       let activeExecutor = this.executor;
       const frozenBaseSha = session.assignment.frozenBaseSha;
       const useCandidateFlow =
         session.purpose === 'IMPLEMENTATION' && Boolean(frozenBaseSha);
+
+      if (session.purpose === 'INDEPENDENT_VERIFICATION' &&
+          session.assignment.reviewCandidate) {
+        const review = session.assignment.reviewCandidate;
+        const branch = session.assignment.candidateBranch;
+        if (!this.verifierWorkspaceManager ||
+            !this.executorFactory || !branch ||
+            review.baseSha !== frozenBaseSha) {
+          throw new Error('verifier_frozen_workspace_required');
+        }
+        candidateLease = await this.verifierWorkspaceManager.prepare({
+          taskId: session.assignment.taskId,
+          executionId: session.assignment.executionId,
+          frozenBaseSha: review.baseSha,
+          candidateHeadSha: review.headSha,
+          candidateBranch: branch,
+          allowedPaths: session.assignment.allowedPaths,
+        });
+        activeWorkspace = candidateLease.workspace;
+        activeExecutor = this.executorFactory(candidateLease.path);
+      }
 
       if (useCandidateFlow) {
         if (
@@ -156,12 +200,6 @@ export class EngineeringRunner {
       }
 
       const before = await activeWorkspace.listChangedFiles();
-      await session.heartbeat();
-      heartbeatTimer = setInterval(() => {
-        void session.heartbeat().catch((error) => {
-          heartbeatError ??= error;
-        });
-      }, this.heartbeatIntervalMs);
 
       const executionResult = await activeExecutor.execute(
         session.assignment,

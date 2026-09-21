@@ -1,5 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../database/prisma.service';
+import { ConfigTrustedActorRegistry } from './verification/config-trusted-actor-registry';
+import { GitHubCandidatePublicationVerifier } from './verification/github-candidate-publication-verifier';
+import { PrismaSupervisorExactClaimStore } from './persistence/prisma-supervisor-exact-claim.store';
+import { PrismaSupervisorSignedReviewStore } from './persistence/prisma-supervisor-signed-review.store';
+import { SupervisorSignedWorkerController } from './worker/supervisor-signed-worker.controller';
+import { SupervisorSignedReviewController } from './system/supervisor-signed-review.controller';
+import { SupervisorSignedCoordinationService } from './system/supervisor-signed-coordination.service';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorService } from './agent-supervisor.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
@@ -57,6 +65,8 @@ import { SupervisorSystemGuard } from './system/supervisor-system.guard';
     SupervisorWorkerBootstrapController,
     SupervisorVerifierController,
     SupervisorSystemController,
+    SupervisorSignedWorkerController,
+    SupervisorSignedReviewController,
   ],
   providers: [
     AgentSupervisorService,
@@ -76,6 +86,23 @@ import { SupervisorSystemGuard } from './system/supervisor-system.guard';
     VerifierCapabilityService,
     SupervisorSystemAdmissionService,
     SupervisorSystemGuard,
+    SupervisorSignedCoordinationService,
+    ConfigTrustedActorRegistry,
+    GitHubCandidatePublicationVerifier,
+    {
+      provide: PrismaSupervisorExactClaimStore,
+      useFactory: (prisma: PrismaService, keys: ConfigTrustedActorRegistry) =>
+        new PrismaSupervisorExactClaimStore(prisma, keys),
+      inject: [PrismaService, ConfigTrustedActorRegistry],
+    },
+    {
+      provide: PrismaSupervisorSignedReviewStore,
+      useFactory: (prisma: PrismaService, keys: ConfigTrustedActorRegistry,
+        publication: GitHubCandidatePublicationVerifier) =>
+        new PrismaSupervisorSignedReviewStore(prisma, keys, publication),
+      inject: [PrismaService, ConfigTrustedActorRegistry,
+        GitHubCandidatePublicationVerifier],
+    },
     {
       provide: SUPERVISOR_AUTHORITY_KEYRING,
       useFactory: (config: ConfigService) =>

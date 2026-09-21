@@ -46,6 +46,11 @@ import {
   SUPERVISOR_TASK_STORE,
   type SupervisorTaskStore,
 } from './stores/supervisor-task.store';
+import {
+  SUPERVISOR_EXECUTION_STORE,
+  type SupervisorExecutionStore,
+} from './stores/supervisor-execution.store';
+import { requireCompletedIndependentVerification } from './verification/independent-verification-ready';
 
 const PROTECTED_INTEGRATION_ACTIONS = new Set<SupervisorAction>([
   'merge',
@@ -102,6 +107,9 @@ export class AgentSupervisorService {
     @Optional()
     @Inject(SUPERVISOR_EXECUTION_RECOVERY_STORE)
     private readonly recoveryStore?: SupervisorExecutionRecoveryStore,
+    @Optional()
+    @Inject(SUPERVISOR_EXECUTION_STORE)
+    private readonly verificationExecutions?: SupervisorExecutionStore,
   ) {}
 
   async status() {
@@ -369,12 +377,17 @@ export class AgentSupervisorService {
   }
 
   async markReadyForReview(id: string): Promise<SupervisorTask> {
+    if (this._config?.get<string>('ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE') === 'required') {
+      throw new BadRequestException({ code: 'signed_ready_review_required' });
+    }
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
     this.requireStatus(task, ['VERIFYING']);
     if (!task.evidence) {
       throw new BadRequestException('verification_evidence_required');
     }
+
+    await this.requireCompletedIndependentVerification(task);
 
     task.status = 'READY_FOR_REVIEW';
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
@@ -383,7 +396,20 @@ export class AgentSupervisorService {
       task,
       'release',
       expectedUpdatedAt,
+      true,
     );
+  }
+
+  private async requireCompletedIndependentVerification(
+    task: SupervisorTask,
+  ): Promise<void> {
+    if (!this.verificationExecutions) {
+      throw new BadRequestException({
+        code: 'independent_verification_store_required',
+      });
+    }
+    const executions = await this.verificationExecutions.listByTask(task.id);
+    requireCompletedIndependentVerification(task, executions);
   }
 
   async approveTask(
@@ -1093,6 +1119,7 @@ export class AgentSupervisorService {
     task: SupervisorTask,
     mode: SupervisorLockMode,
     expectedUpdatedAt: Date,
+    requireVerifiedReview = false,
   ): Promise<SupervisorTask> {
     if (this.lifecycleStore) {
       const saved =
@@ -1100,6 +1127,7 @@ export class AgentSupervisorService {
           task,
           mode,
           expectedUpdatedAt,
+          requireVerifiedReview,
         );
 
       if (saved) {

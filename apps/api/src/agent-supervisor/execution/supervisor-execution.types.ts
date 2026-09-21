@@ -4,6 +4,7 @@ import type {
   SupervisorTask,
 } from '../agent-supervisor.types';
 import type { SupervisorWorkerCapabilityMetadata } from '../worker/supervisor-worker-capability.types';
+import type { BootstrapActorClaim } from '../worker/supervisor-bootstrap-actor-registry';
 
 export type SupervisorWorkerRole = SupervisorTask['owner'];
 
@@ -48,6 +49,8 @@ export interface WorkerAssignmentEnvelope {
   leaseId?: string;
   runnerId?: string;
   workerCapability?: SupervisorWorkerCapabilityMetadata;
+  /** Captured at server-authorized claim; not independent verifier proof. */
+  bootstrapActor?: BootstrapActorClaim;
 }
 
 export interface WorkerExecutionResult {

@@ -1,12 +1,17 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   Injectable,
   InternalServerErrorException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import type { SupervisorTask } from '../agent-supervisor.types';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import { requireCompletedIndependentVerification } from '../verification/independent-verification-ready';
+import { canonicalizeAuthorityValue } from '../authority/supervisor-authority.service';
 import type { SupervisorExecutionReconciliationCandidate } from '../stores/supervisor-execution.store';
 import type {
   SupervisorLifecycleStore,
@@ -44,6 +49,10 @@ type TransactionClient = {
     ...values: unknown[]
   ): Promise<T>;
   supervisorExecution: {
+    findMany(args: {
+      where: { taskId: string };
+      orderBy: { createdAt: 'asc' };
+    }): Promise<SupervisorExecutionRecord[]>;
     findUnique(args: {
       where: { id: string };
     }): Promise<SupervisorExecutionRecord | null>;
@@ -227,7 +236,8 @@ export class PrismaSupervisorLifecycleStore
 {
   private readonly prisma: PrismaWithTransaction;
 
-  constructor(prisma: PrismaService) {
+  constructor(prisma: PrismaService,
+    @Optional() private readonly config?: ConfigService) {
     this.prisma = prisma as unknown as PrismaWithTransaction;
   }
 
@@ -235,10 +245,65 @@ export class PrismaSupervisorLifecycleStore
     task: SupervisorTask,
     mode: SupervisorLockMode,
     expectedUpdatedAt: Date,
+    requireVerifiedReview = false,
   ): Promise<SupervisorTask | null> {
+    if (this.config?.get<string>('ATLAS_SUPERVISOR_SIGNED_ATTESTATION_MODE') === 'required' &&
+        (task.status === 'READY_FOR_REVIEW' || requireVerifiedReview)) {
+      throw new BadRequestException({ code: 'signed_ready_review_required' });
+    }
     try {
       return await this.prisma.$transaction(
         async (tx) => {
+          if (
+            requireVerifiedReview ||
+            (mode === 'release' && task.status === 'READY_FOR_REVIEW')
+          ) {
+            // READY_FOR_REVIEW must never depend on callers remembering a flag.
+            // Validate inside the task CAS and lock-release transaction.
+            if (mode !== 'release' || task.status !== 'READY_FOR_REVIEW') {
+              throw new BadRequestException({
+                code: 'independent_verification_release_required',
+              });
+            }
+            await tx.$queryRaw`
+              SELECT "id" FROM "SupervisorTask"
+              WHERE "id" = ${task.id} FOR UPDATE
+            `;
+            const persisted = await tx.supervisorTask.findUnique({
+              where: { id: task.id },
+            });
+            if (
+              !persisted ||
+              persisted.status !== 'VERIFYING' ||
+              persisted.updatedAt.getTime() !== expectedUpdatedAt.getTime()
+            ) {
+              return null;
+            }
+            if (
+              canonicalizeAuthorityValue(
+                JSON.parse(JSON.stringify(persisted.evidence)),
+              ) !==
+              canonicalizeAuthorityValue(
+                JSON.parse(JSON.stringify(task.evidence)),
+              )
+            ) {
+              throw new BadRequestException({
+                code: 'review_evidence_changed_or_unmapped',
+              });
+            }
+            await tx.$queryRaw`
+              SELECT "id" FROM "SupervisorExecution"
+              WHERE "taskId" = ${task.id} FOR UPDATE
+            `;
+            const executionRows = await tx.supervisorExecution.findMany({
+              where: { taskId: task.id },
+              orderBy: { createdAt: 'asc' },
+            });
+            requireCompletedIndependentVerification(
+              mapTaskRecord(persisted),
+              executionRows.map(mapExecutionRecord),
+            );
+          }
           const updated =
             await tx.supervisorTask.updateMany({
               where: {

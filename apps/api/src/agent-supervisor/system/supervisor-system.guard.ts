@@ -22,6 +22,12 @@ export const SUPERVISOR_SYSTEM_PURPOSE =
   'atlas-supervisor-system-purpose';
 export const SUPERVISOR_SYSTEM_AUDIENCE =
   'atlas:supervisor.gateway';
+export const SUPERVISOR_SYSTEM_REQUEST_BINDING =
+  'atlas-supervisor-system-request-binding';
+export type SupervisorSystemCoordinationAction = 'SIGNED_ADVANCE' | 'SIGNED_READY';
+export const SupervisorSystemRequestBindingRequired = (
+  action: SupervisorSystemCoordinationAction,
+) => SetMetadata(SUPERVISOR_SYSTEM_REQUEST_BINDING, action);
 
 export const SupervisorSystemPurposeRequired = (
   purpose: AuthorityPurpose,
@@ -51,6 +57,19 @@ export function supervisorSystemAdmissionDigest(
     .digest('hex');
 }
 
+/** Bind one short-lived system assertion to EXACT coordination operation+body. */
+export function supervisorSystemCoordinationDigest(input: {
+  taskId: string; expectedTaskVersion?: string;
+}, action: SupervisorSystemCoordinationAction): string {
+  const canonicalInput = action === 'SIGNED_ADVANCE'
+    ? { action, taskId: input.taskId }
+    : { action, taskId: input.taskId,
+        expectedTaskVersion: input.expectedTaskVersion };
+  return createHash('sha256').update(
+    canonicalizeAuthorityValue(canonicalInput), 'utf8',
+  ).digest('hex');
+}
+
 @Injectable()
 export class SupervisorSystemGuard implements CanActivate {
   constructor(
@@ -74,7 +93,9 @@ export class SupervisorSystemGuard implements CanActivate {
       headers?: {
         authorization?: string | string[];
       };
-      body?: SupervisorSystemAdmissionRequest;
+      body?: SupervisorSystemAdmissionRequest & {
+        taskId?: string; expectedTaskVersion?: string;
+      };
       supervisorSystemAuthorization?: SupervisorSystemAuthorizationContext;
     }>();
     const authorization = request.headers?.authorization;
@@ -120,6 +141,34 @@ export class SupervisorSystemGuard implements CanActivate {
         throw new ForbiddenException(
           'supervisor_system_admission_digest_mismatch',
         );
+      }
+    }
+
+    const action = purpose === 'VERIFICATION_COORDINATION'
+      ? this.reflector.getAllAndOverride<
+          SupervisorSystemCoordinationAction>(
+          SUPERVISOR_SYSTEM_REQUEST_BINDING,
+          [context.getHandler(), context.getClass()],
+        ) : undefined;
+    if (action !== undefined) {
+      if (purpose !== 'VERIFICATION_COORDINATION' ||
+          (action !== 'SIGNED_ADVANCE' && action !== 'SIGNED_READY')) {
+        throw new ForbiddenException('supervisor_system_coordination_purpose_invalid');
+      }
+      const body = request.body;
+      const taskId = body?.taskId;
+      const expectedTaskVersion = body?.expectedTaskVersion;
+      if (typeof taskId !== 'string' || !taskId.trim() ||
+          (action === 'SIGNED_READY' &&
+            (typeof expectedTaskVersion !== 'string' ||
+             !Number.isFinite(Date.parse(expectedTaskVersion)) ||
+             !expectedTaskVersion.endsWith('Z'))) ||
+          claims.taskId !== taskId ||
+          claims.coordinationDigest !== supervisorSystemCoordinationDigest({
+            taskId, ...(action === 'SIGNED_READY'
+              ? { expectedTaskVersion } : {}),
+          }, action)) {
+        throw new ForbiddenException('supervisor_system_coordination_binding_mismatch');
       }
     }
 

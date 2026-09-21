@@ -1,3 +1,4 @@
+import { completeTestOnlyVerifier, testSupervisorWithVerifier } from './testing/independent-verifier.test-fixture';
 import {
   GUARDS_METADATA,
   METHOD_METADATA,
@@ -98,7 +99,7 @@ describe('AgentSupervisorController', () => {
   let controller: AgentSupervisorController;
 
   beforeEach(() => {
-    supervisor = new AgentSupervisorService(
+    supervisor = testSupervisorWithVerifier(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
@@ -132,7 +133,7 @@ describe('AgentSupervisorController', () => {
           : undefined,
       ),
     } as unknown as ConfigService;
-    const ownerSupervisor = new AgentSupervisorService(
+    const ownerSupervisor = testSupervisorWithVerifier(
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
       undefined,
@@ -177,6 +178,7 @@ describe('AgentSupervisorController', () => {
       reviewCandidate,
     });
     await ownerSupervisor.beginVerification(task.id);
+    await completeTestOnlyVerifier(ownerSupervisor, task.id);
     await ownerSupervisor.markReadyForReview(task.id);
 
     const authorized = await ownerController.authorizeMerge(

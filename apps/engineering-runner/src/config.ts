@@ -8,6 +8,13 @@ export interface EngineeringRunnerCandidateConfig {
   publisherSshPrivateKeyPath?: string;
 }
 
+export interface EngineeringRunnerVerifierSourceConfig {
+  repositoryRoot: string;
+  workspaceRoot: string;
+  remote: string;
+  sourceToken?: string;
+}
+
 export interface EngineeringRunnerConfig {
   supervisorApiUrl: string;
   bootstrapToken: string;
@@ -16,7 +23,12 @@ export interface EngineeringRunnerConfig {
   workspace: string;
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
+  signed?: {
+    kid: string; privateKeyPem: string;
+    purpose: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+  };
   candidate?: EngineeringRunnerCandidateConfig;
+  verifierSource?: EngineeringRunnerVerifierSourceConfig;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -111,11 +123,59 @@ function candidateConfig(
 export function loadEngineeringRunnerConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): EngineeringRunnerConfig {
-  const bootstrapToken = required(
-    env,
-    "ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN",
-  );
+  const signedMode = env.ATLAS_ENGINEERING_RUNNER_SIGNED_MODE?.trim();
+  if (signedMode && signedMode !== 'required') {
+    throw new Error('runner_signed_mode_invalid');
+  }
+  if (!signedMode && [
+    env.ATLAS_ENGINEERING_RUNNER_SIGNED_BOOTSTRAP_TOKEN,
+    env.ATLAS_ENGINEERING_RUNNER_SIGNING_KID,
+    env.ATLAS_ENGINEERING_RUNNER_SIGNING_PRIVATE_KEY,
+    env.ATLAS_ENGINEERING_RUNNER_PURPOSE,
+  ].some(Boolean)) {
+    throw new Error('runner_signed_mode_required_for_signer');
+  }
+  const signed = signedMode === 'required' ? {
+    kid: required(env, 'ATLAS_ENGINEERING_RUNNER_SIGNING_KID'),
+    privateKeyPem: required(
+      env, 'ATLAS_ENGINEERING_RUNNER_SIGNING_PRIVATE_KEY'),
+    purpose: required(env, 'ATLAS_ENGINEERING_RUNNER_PURPOSE'),
+  } : undefined;
+  if (signed && signed.purpose !== 'IMPLEMENTATION' &&
+      signed.purpose !== 'INDEPENDENT_VERIFICATION') {
+    throw new Error('runner_signed_purpose_invalid');
+  }
+  const bootstrapToken = required(env, signed
+    ? 'ATLAS_ENGINEERING_RUNNER_SIGNED_BOOTSTRAP_TOKEN'
+    : 'ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN');
   const candidate = candidateConfig(env);
+  const verifierKeys = [
+    env.ATLAS_ENGINEERING_RUNNER_VERIFIER_SOURCE_REPOSITORY?.trim(),
+    env.ATLAS_ENGINEERING_RUNNER_VERIFIER_WORKSPACE_ROOT?.trim(),
+    env.ATLAS_ENGINEERING_RUNNER_VERIFIER_REMOTE?.trim(),
+  ];
+  const verifierSourceToken =
+    env.ATLAS_ENGINEERING_RUNNER_VERIFIER_SOURCE_TOKEN?.trim();
+  if ((verifierKeys.some(Boolean) || verifierSourceToken) &&
+      signed?.purpose !== 'INDEPENDENT_VERIFICATION') {
+    throw new Error('runner_verifier_source_only_for_signed_verifier');
+  }
+  if (signed?.purpose === 'INDEPENDENT_VERIFICATION' &&
+      (verifierKeys.some(value => !value) ||
+       verifierKeys[2] !== CANONICAL_CANDIDATE_REMOTE ||
+       verifierSourceToken === bootstrapToken || candidate)) {
+    throw new Error('runner_signed_verifier_source_invalid');
+  }
+  if (signed?.purpose === 'IMPLEMENTATION' && !candidate) {
+    throw new Error('runner_signed_implementation_candidate_required');
+  }
+  const verifierSource = signed?.purpose === 'INDEPENDENT_VERIFICATION'
+    ? {
+        repositoryRoot: verifierKeys[0]!, workspaceRoot: verifierKeys[1]!,
+        remote: verifierKeys[2]!,
+        ...(verifierSourceToken ? { sourceToken: verifierSourceToken } : {}),
+      }
+    : undefined;
   if (candidate) {
     const credentials = [
       bootstrapToken,
@@ -146,5 +206,12 @@ export function loadEngineeringRunnerConfig(
       20_000,
     ),
     ...(candidate ? { candidate } : {}),
+    ...(verifierSource ? { verifierSource } : {}),
+    ...(signed ? { signed: {
+      kid: signed.kid,
+      privateKeyPem: signed.privateKeyPem,
+      purpose: signed.purpose as 'IMPLEMENTATION' |
+        'INDEPENDENT_VERIFICATION',
+    } } : {}),
   };
 }

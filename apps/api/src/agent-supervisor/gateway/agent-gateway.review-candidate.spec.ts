@@ -1,3 +1,4 @@
+import { completeTestOnlyVerifier, testSupervisorWithVerifier } from '../testing/independent-verifier.test-fixture';
 import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
@@ -198,7 +199,7 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
     execution.status = 'DISPATCHED';
     return executionStore.saveIfStatus(execution, 'QUEUED');
   }
-  const supervisor = new AgentSupervisorService(
+  const supervisor = testSupervisorWithVerifier(
     taskStore,
     fileStore,
     undefined,
@@ -241,6 +242,7 @@ async function makeReadyCandidate(includeReviewCandidate = true) {
   });
   await gateway.submitImplementationFromExecution(task.id, completed.id);
   await supervisor.beginVerification(task.id);
+  await completeTestOnlyVerifier(supervisor, task.id);
   await supervisor.markReadyForReview(task.id);
 
   return {

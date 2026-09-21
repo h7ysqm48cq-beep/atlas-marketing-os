@@ -1,3 +1,4 @@
+import type { BootstrapActorClaim } from '../worker/supervisor-bootstrap-actor-registry';
 import type {
   SupervisorExecution,
   SupervisorExecutionPurpose,
@@ -22,6 +23,8 @@ export interface SupervisorExecutionClaimInput {
   requireFrozenBaseSha?: boolean;
   runnerId: string;
   leaseId: string;
+  /** Guard-authenticated actor; never populated from caller body. */
+  bootstrapActor?: BootstrapActorClaim;
   now: Date;
   leaseExpiresAt: Date;
 }

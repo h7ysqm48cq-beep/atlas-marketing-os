@@ -14,6 +14,7 @@ export interface SupervisorLifecycleStore {
     task: SupervisorTask,
     mode: SupervisorLockMode,
     expectedUpdatedAt: Date,
+    requireVerifiedReview?: boolean,
   ): Promise<SupervisorTask | null>;
 }
 

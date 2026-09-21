@@ -85,6 +85,47 @@ describe('VerifierCapabilityService', () => {
     );
   });
 
+  it('binds the verifier capability to the server-persisted actor claim', () => {
+    const service = new VerifierCapabilityService(authority());
+    const actor = {
+      kid: 'kid-B', principalId: 'principal-B',
+      controllingPrincipalId: 'operator-B', workerRole: 'engineering' as const,
+      purposes: ['INDEPENDENT_VERIFICATION' as const],
+      claimNonce: 'nonce-b', authenticatedAt: NOW.toISOString(),
+    };
+    const assigned = { ...input(), bootstrapActor: actor };
+    const token = service.issue(assigned, NOW);
+    const authorize = (overrides: object = {}) => service.authorize(token, {
+      ...assigned, operation: 'submit_verification',
+      now: new Date(NOW.getTime() + 1000), ...overrides,
+    });
+    expect(authorize().actorBindingDigest).toMatch(/^[0-9a-f]{64}$/);
+    expect(() => authorize({ bootstrapActor: undefined }))
+      .toThrow('verifier_capability_actor_binding_mismatch');
+    expect(() => authorize({ bootstrapActor: {
+      ...actor, controllingPrincipalId: 'other-operator',
+    } })).toThrow('verifier_capability_actor_binding_mismatch');
+    expect(() => authorize({ bootstrapActor: {
+      ...actor, claimNonce: 'stale-claim',
+    } })).toThrow('verifier_capability_actor_binding_mismatch');
+
+    const legacyToken = service.issue(input(), NOW);
+    expect(() => service.authorize(legacyToken, {
+      ...assigned, operation: 'submit_verification',
+      now: new Date(NOW.getTime() + 1000),
+    })).toThrow('verifier_capability_actor_binding_mismatch');
+  });
+
+  it('rejects a forged actor claim for the wrong execution purpose', () => {
+    const service = new VerifierCapabilityService(authority());
+    expect(() => service.issue({ ...input(), bootstrapActor: {
+      kid: 'kid-A', principalId: 'principal-A',
+      controllingPrincipalId: 'operator-A', workerRole: 'engineering',
+      purposes: ['IMPLEMENTATION'],
+      claimNonce: 'nonce-a', authenticatedAt: NOW.toISOString(),
+    } }, NOW)).toThrow('verifier_capability_actor_binding_invalid');
+  });
+
   it('does not accept implementation mutation as a verifier operation', () => {
     const service = new VerifierCapabilityService(authority());
     const token = service.issue(input(), NOW);

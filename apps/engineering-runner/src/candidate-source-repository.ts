@@ -195,4 +195,48 @@ export class CandidateSourceRepository {
       throw new Error("candidate_source_base_not_production_ancestor");
     }
   }
+
+  /** Fetch a frozen, exact candidate ref; never accept a client-chosen repo. */
+  async ensureCandidate(input: {
+    taskId: string; implementationId: string;
+    candidateBranch: string; baseSha: string; headSha: string;
+  }): Promise<void> {
+    const safeId = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
+    const expected = `atlas/candidate/${input.taskId}/${input.implementationId}`;
+    if (!safeId.test(input.taskId) ||
+        !safeId.test(input.implementationId) ||
+        input.candidateBranch !== expected ||
+        !FULL_GIT_SHA.test(input.baseSha) ||
+        !FULL_GIT_SHA.test(input.headSha) ||
+        input.baseSha.toLowerCase() === input.headSha.toLowerCase()) {
+      throw new Error('candidate_source_frozen_ref_invalid');
+    }
+    await this.ensureBase(input.baseSha);
+    const localRef = 'refs/atlas/verified/' +
+      input.taskId + '/' + input.implementationId;
+    await this.gitRaw(this.repositoryRoot, [
+      'fetch', '--no-tags', '--no-recurse-submodules',
+      this.remote,
+      'refs/heads/' + expected + ':' + localRef,
+    ], true);
+    let actual: string;
+    try {
+      actual = (await this.gitRaw(this.repositoryRoot, [
+        'rev-parse', '--verify', localRef + '^{commit}',
+      ])).trim().toLowerCase();
+    } catch {
+      throw new Error('candidate_source_head_unavailable');
+    }
+    if (actual !== input.headSha.toLowerCase()) {
+      throw new Error('candidate_source_frozen_head_mismatch');
+    }
+    try {
+      await this.gitRaw(this.repositoryRoot, [
+        'merge-base', '--is-ancestor',
+        input.baseSha.toLowerCase(), actual,
+      ]);
+    } catch {
+      throw new Error('candidate_source_not_based_on_frozen_base');
+    }
+  }
 }
