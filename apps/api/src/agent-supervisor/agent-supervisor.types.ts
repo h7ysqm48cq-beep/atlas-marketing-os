@@ -118,6 +118,19 @@ export interface SupervisorOwnerDeploymentAuthorizationRevocation {
   reason: string;
 }
 
+/** Read-only verifier provenance, not an implementation or publication receipt. */
+export interface SupervisorExistingCandidateVerification {
+  mode: 'EXISTING_CANDIDATE';
+  taskId: string;
+  executionId: string;
+  baseSha: string;
+  headSha: string;
+  productionBaselineSha: string;
+  changedFiles: string[];
+  gitFingerprint: string;
+  sourceVerified: true;
+}
+
 export interface SupervisorEvidence {
   rootCause: string;
   changedFiles: string[];
@@ -128,6 +141,7 @@ export interface SupervisorEvidence {
   gitState: string;
   remainingRisk: string[];
   candidatePublication?: SupervisorCandidatePublicationReceipt;
+  existingCandidateVerification?: SupervisorExistingCandidateVerification;
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;

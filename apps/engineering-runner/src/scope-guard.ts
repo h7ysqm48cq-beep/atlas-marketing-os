@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -137,6 +138,19 @@ export class GitWorkspace {
     if (raw.split('\0').filter(Boolean).some(dangerousGitConfig)) {
       throw new Error('workspace_git_config_unsafe');
     }
+  }
+
+  async fingerprint(): Promise<string> {
+    await this.assertGitConfigSafe();
+    // Head, stage/index, refs and the complete working-tree status must
+    // remain unchanged; git status by itself misses commit/ref/index drift.
+    const pieces = await Promise.all([
+      this.gitRaw(['rev-parse', '--verify', 'HEAD']),
+      this.gitRaw(['ls-files', '--stage', '-z']),
+      this.gitRaw(['show-ref', '--head']),
+      this.gitRaw(['status', '--porcelain=v1', '-z', '--untracked-files=all']),
+    ]);
+    return createHash('sha256').update(pieces.join('\0')).digest('hex');
   }
 
   async listChangedFiles(): Promise<string[]> {

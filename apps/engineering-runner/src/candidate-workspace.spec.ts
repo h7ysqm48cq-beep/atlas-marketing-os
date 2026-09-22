@@ -225,3 +225,163 @@ test('CandidateWorkspaceManager rejects a pre-existing execution workspace path'
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Existing candidate opens the exact detached head and verifies immutable base-to-head path set', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-existing-candidate-head-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    let verified = 0;
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo, workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async (verifiedBase, verifiedHead) => {
+        assert.equal(verifiedBase, base);
+        assert.equal(verifiedHead, head);
+        verified++;
+      },
+      ensureProductionHead: async expected => assert.equal(expected, base),
+    });
+    const lease = await manager.prepare({
+      taskId: 'ATLAS-PR141', executionId: 'ATLAS-EXEC-PR141',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, allowedPaths: ['allowed.txt'],
+    });
+    assert.equal(verified, 1);
+    assert.equal(await git(lease.path, ['rev-parse', 'HEAD']), head);
+    assert.equal(await git(lease.path, ['branch', '--show-current']), '');
+    assert.deepEqual(lease.verifiedChangedPaths, ['allowed.txt']);
+    assert.equal(lease.verifiedHeadSha, head);
+    assert.deepEqual(await lease.workspace.listChangedFiles(), []);
+    await lease.cleanup();
+    await assert.rejects(manager.prepare({
+      taskId: 'ATLAS-PR141', executionId: 'ATLAS-EXEC-DRIFT',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, allowedPaths: ['wrong.txt'],
+    }), /existing_candidate_scope_mismatch/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Advanced baseline fails closed unless the source supplies an independent conflict verifier', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-post-merge-advance-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const options = {
+      repositoryRoot: repo, workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async sha => assert.equal(sha, production),
+    };
+    const input = {
+      taskId: 'ATLAS-postbase', executionId: 'ATLAS-EXEC-postbase',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, allowedPaths: ['allowed.txt'],
+    };
+    await assert.rejects(
+      new CandidateWorkspaceManager(options).prepare(input),
+      /existing_candidate_production_advance_unverified/,
+    );
+    let called = 0;
+    const manager = new CandidateWorkspaceManager({
+      ...options,
+      ensureProductionAdvance: async (b, p, paths, candidateHead) => {
+        called++;
+        assert.equal(b, base);
+        assert.equal(p, production);
+        assert.deepEqual(paths, ['allowed.txt']);
+        assert.equal(candidateHead, head);
+      },
+    });
+    const lease = await manager.prepare(input);
+    assert.equal(called, 1);
+    assert.equal(lease.verifiedHeadSha, head);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('existing-candidate workspace rejects a production move during candidate fetch', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-source-moves-mid-fetch-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    let baselineChecks = 0;
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async () => {
+        if (++baselineChecks > 1)
+          throw new Error('existing_candidate_production_baseline_drift');
+      },
+    });
+    await assert.rejects(
+      manager.prepare({
+        taskId: 'ATLAS-moving-source',
+        executionId: 'ATLAS-EXEC-moving-source',
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: base,
+        allowedPaths: ['allowed.txt'],
+      }),
+      /existing_candidate_production_baseline_drift/,
+    );
+    assert.equal(baselineChecks, 2);
+    const worktrees = await git(repo, ['worktree', 'list', '--porcelain']);
+    assert.doesNotMatch(worktrees, /ATLAS-moving-source--ATLAS-EXEC-moving-source/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('advanced-baseline source rejection does not create a detached verifier worktree', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-source-overlap-fails-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async () => undefined,
+      ensureProductionAdvance: async () => {
+        throw new Error('existing_candidate_production_scope_overlap');
+      },
+    });
+    await assert.rejects(
+      manager.prepare({
+        taskId: 'ATLAS-adv-overlap',
+        executionId: 'ATLAS-EXEC-adv-overlap',
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: production,
+        allowedPaths: ['allowed.txt'],
+      }),
+      /existing_candidate_production_scope_overlap/,
+    );
+    const worktrees = await git(repo, ['worktree', 'list', '--porcelain']);
+    assert.doesNotMatch(worktrees, /ATLAS-adv-overlap--ATLAS-EXEC-adv-overlap/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

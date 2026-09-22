@@ -2043,3 +2043,25 @@ describe('P0B-6B candidate publication binding', () => {
     });
   });
 });
+
+describe('existing-candidate verification lifecycle', () => {
+  it('moves a blocked evidence-free task to VERIFYING while reacquiring its locks', async () => {
+    const service = createOwnerService();
+    const task = await service.createTask({
+      objective: 'Verify immutable candidate',
+      owner: 'engineering',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['verify exact candidate'],
+    });
+    await service.startTask(task.id);
+    await service.blockTask(task.id, 'implementation execution failed');
+
+    const admitted = await service.admitExistingCandidateVerification(task.id);
+
+    expect(admitted.status).toBe('VERIFYING');
+    expect(admitted.evidence).toBeNull();
+    expect(await service.ownsAllowedPaths(task.id)).toBe(true);
+  });
+});

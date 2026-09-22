@@ -197,3 +197,26 @@ test('parseGitStatusPorcelainZ fail-closes rename and copy scope by returning bo
     ],
   );
 });
+
+test('GitWorkspace fingerprint catches HEAD/ref drift even when worktree status is clean', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-fingerprint-'));
+  try {
+    const repo = path.join(root, 'repo');
+    await mkdir(repo);
+    await execFileAsync('git', ['init', '-q'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.name', 'Atlas Test'], { cwd: repo });
+    await execFileAsync('git', ['config', 'user.email', 'atlas@example.invalid'], { cwd: repo });
+    await writeFile(path.join(repo, 'tracked.txt'), 'base\\n');
+    await execFileAsync('git', ['add', '--', 'tracked.txt'], { cwd: repo });
+    await execFileAsync('git', ['commit', '-qm', 'base'], { cwd: repo });
+    const { GitWorkspace } = await import('./scope-guard.ts');
+    const workspace = new GitWorkspace(repo);
+    const before = await workspace.fingerprint();
+    assert.equal(before, await workspace.fingerprint());
+    await execFileAsync('git', ['commit', '--allow-empty', '-qm', 'change-head'], { cwd: repo });
+    assert.deepEqual(await workspace.listChangedFiles(), []);
+    assert.notEqual(await workspace.fingerprint(), before);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -5,6 +5,7 @@ import type {
 } from '../execution/supervisor-execution.types';
 import type {
   SupervisorExecutionClaimInput,
+  SupervisorExecutionExactClaimInput,
   SupervisorExecutionClaimStore,
   SupervisorExecutionHeartbeatInput,
   SupervisorExecutionHeartbeatStore,
@@ -122,6 +123,39 @@ export class MemorySupervisorExecutionStore
       error: null,
       completedAt: null,
       assignment,
+    });
+    this.executions.set(stored.id, stored);
+    return Promise.resolve(this.cloneExecution(stored));
+  }
+
+  claimExact(
+    input: SupervisorExecutionExactClaimInput,
+  ): Promise<SupervisorExecution | null> {
+    const selected = this.executions.get(input.executionId);
+    const purpose = selected?.assignment.executionPurpose ?? 'IMPLEMENTATION';
+    if (
+      !selected || selected.taskId !== input.taskId || selected.status !== 'QUEUED' ||
+      selected.workerRole !== input.workerRole ||
+      purpose !== (input.executionPurpose ?? 'IMPLEMENTATION') ||
+      (input.requireCandidateHeadSha === true &&
+        !/^[0-9a-f]{40}$/i.test(selected.assignment.candidateHeadSha ?? ''))
+    ) {
+      return Promise.resolve(null);
+    }
+    const nextClaimEpoch = selected.claimEpoch + 1;
+    const assignment = {
+      ...selected.assignment,
+      claimEpoch: nextClaimEpoch,
+      runnerId: input.runnerId,
+      leaseId: input.leaseId,
+    };
+    delete assignment.workerCapability;
+    const stored = this.cloneExecution({
+      ...selected, status: 'RUNNING', runnerId: input.runnerId,
+      claimEpoch: nextClaimEpoch, startedAt: new Date(input.now),
+      lastHeartbeatAt: new Date(input.now),
+      leaseExpiresAt: new Date(input.leaseExpiresAt), result: null,
+      error: null, completedAt: null, assignment,
     });
     this.executions.set(stored.id, stored);
     return Promise.resolve(this.cloneExecution(stored));

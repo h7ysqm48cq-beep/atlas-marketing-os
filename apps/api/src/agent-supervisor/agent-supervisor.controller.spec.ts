@@ -403,6 +403,16 @@ describe('AgentSupervisorController', () => {
     ]);
   });
 
+  it('exposes an owner-only existing-candidate verification admission route', () => {
+    const method = (AgentSupervisorController.prototype as any)
+      .admitExistingCandidateVerification;
+    expect(method).toEqual(expect.any(Function));
+    expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
+      'tasks/:id/admit-existing-candidate-verification',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, method)).toBe(RequestMethod.POST);
+  });
+
   it('dispatches verifier work with a server-fixed execution purpose', async () => {
     const dispatch = jest.fn().mockResolvedValue({
       execution: {

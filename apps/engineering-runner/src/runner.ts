@@ -9,6 +9,9 @@ import type {
 interface CandidateWorkspaceLeaseLike {
   path: string;
   baseSha: string;
+  verifiedHeadSha?: string;
+  verifiedChangedPaths?: string[];
+  verifyProductionBaseline?: () => Promise<void>;
   workspace: WorkspaceInspector;
   cleanup(): Promise<void>;
 }
@@ -17,7 +20,10 @@ interface CandidateWorkspaceManagerLike {
   prepare(input: {
     taskId: string;
     executionId: string;
-    frozenBaseSha: string;
+    frozenBaseSha?: string;
+    candidateBaseSha?: string;
+    candidateHeadSha?: string;
+    productionBaselineSha?: string;
     allowedPaths: string[];
   }): Promise<CandidateWorkspaceLeaseLike>;
 }
@@ -50,6 +56,7 @@ export interface EngineeringRunnerOptions {
   candidatePublisher?: CandidatePublisherLike;
   executorFactory?: (cwd: string) => AssignmentExecutor;
   preflight?: () => Promise<void>;
+  singleShot?: boolean;
 }
 
 function errorReason(error: unknown): string {
@@ -104,6 +111,7 @@ export class EngineeringRunner {
   private readonly candidatePublisher?: CandidatePublisherLike;
   private readonly executorFactory?: (cwd: string) => AssignmentExecutor;
   private readonly preflight?: () => Promise<void>;
+  private readonly singleShot: boolean;
 
   constructor(options: EngineeringRunnerOptions) {
     this.client = options.client;
@@ -116,6 +124,7 @@ export class EngineeringRunner {
     this.candidatePublisher = options.candidatePublisher;
     this.executorFactory = options.executorFactory;
     this.preflight = options.preflight;
+    this.singleShot = options.singleShot === true;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
       throw new Error('runner_timing_invalid');
     }
@@ -136,11 +145,21 @@ export class EngineeringRunner {
       const frozenBaseSha = session.assignment.frozenBaseSha;
       const useCandidateFlow =
         session.purpose === 'IMPLEMENTATION' && Boolean(frozenBaseSha);
+      const useExistingCandidateFlow =
+        session.purpose === 'INDEPENDENT_VERIFICATION' &&
+        session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
+        Boolean(session.assignment.candidateBaseSha) &&
+        Boolean(session.assignment.candidateHeadSha) &&
+        Boolean(session.assignment.productionBaselineSha);
 
-      if (useCandidateFlow) {
+      if (session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
+          !useExistingCandidateFlow) {
+        throw new Error('existing_candidate_identity_incomplete');
+      }
+      if (useCandidateFlow || useExistingCandidateFlow) {
         if (
           !this.candidateWorkspaceManager ||
-          !this.candidatePublisher ||
+          (useCandidateFlow && !this.candidatePublisher) ||
           !this.executorFactory
         ) {
           throw new Error('candidate_flow_configuration_missing');
@@ -148,14 +167,28 @@ export class EngineeringRunner {
         candidateLease = await this.candidateWorkspaceManager.prepare({
           taskId: session.assignment.taskId,
           executionId: session.assignment.executionId,
-          frozenBaseSha: frozenBaseSha!,
+          ...(useCandidateFlow ? { frozenBaseSha: frozenBaseSha! } : {
+            candidateBaseSha: session.assignment.candidateBaseSha!,
+            candidateHeadSha: session.assignment.candidateHeadSha!,
+            productionBaselineSha: session.assignment.productionBaselineSha!,
+          }),
           allowedPaths: session.assignment.allowedPaths,
         });
         activeWorkspace = candidateLease.workspace;
         activeExecutor = this.executorFactory(candidateLease.path);
       }
 
+      if (useExistingCandidateFlow &&
+          (!candidateLease?.verifiedHeadSha ||
+           candidateLease.verifiedHeadSha !== session.assignment.candidateHeadSha ||
+           !candidateLease.verifiedChangedPaths ||
+           !candidateLease.verifyProductionBaseline ||
+           !activeWorkspace.fingerprint)) {
+        throw new Error('existing_candidate_source_identity_unverified');
+      }
       const before = await activeWorkspace.listChangedFiles();
+      const beforeFingerprint = useExistingCandidateFlow
+        ? await activeWorkspace.fingerprint!() : undefined;
       await session.heartbeat();
       heartbeatTimer = setInterval(() => {
         void session.heartbeat().catch((error) => {
@@ -168,10 +201,26 @@ export class EngineeringRunner {
         signal,
       );
       const after = await activeWorkspace.listChangedFiles();
+      const afterFingerprint = useExistingCandidateFlow
+        ? await activeWorkspace.fingerprint!() : undefined;
 
       if (heartbeatError) throw heartbeatError;
+      if (useExistingCandidateFlow && beforeFingerprint !== afterFingerprint) {
+        throw new Error('existing_candidate_git_fingerprint_drift');
+      }
       if (session.purpose === 'INDEPENDENT_VERIFICATION') {
         this.scopeGuard.assertVerificationNoDrift(before, after);
+        if (useExistingCandidateFlow) {
+          if (executionResult.evidence.candidatePublication) {
+            throw new Error('existing_candidate_publication_forbidden');
+          }
+          const verified = [...candidateLease!.verifiedChangedPaths!].sort();
+          const reported = [...new Set(executionResult.evidence.changedFiles)].sort();
+          if (verified.length !== reported.length ||
+              verified.some((path, index) => path !== reported[index])) {
+            throw new Error('existing_candidate_evidence_scope_mismatch');
+          }
+        }
       } else {
         this.scopeGuard.assertImplementationScope(
           after,
@@ -184,6 +233,36 @@ export class EngineeringRunner {
       }
 
       let completionResult = executionResult;
+      if (useExistingCandidateFlow) {
+        const changedFiles = [...candidateLease!.verifiedChangedPaths!];
+        completionResult = {
+          summary: executionResult.summary,
+          evidence: {
+            ...executionResult.evidence,
+            changedFiles,
+            // This is a genuine verifier observation. No implementation or
+            // candidatePublication receipt is manufactured for the old SHA.
+            existingCandidateVerification: {
+              mode: 'EXISTING_CANDIDATE',
+              taskId: session.assignment.taskId,
+              executionId: session.assignment.executionId,
+              baseSha: session.assignment.candidateBaseSha!,
+              headSha: session.assignment.candidateHeadSha!,
+              productionBaselineSha: session.assignment.productionBaselineSha!,
+              changedFiles,
+              gitFingerprint: beforeFingerprint!,
+              sourceVerified: true,
+            },
+            reviewCandidate: {
+              action: 'merge',
+              targetBranch: 'production/atlas',
+              baseSha: session.assignment.candidateBaseSha!,
+              headSha: session.assignment.candidateHeadSha!,
+              changedFiles,
+            },
+          },
+        };
+      }
       if (useCandidateFlow) {
         const receipt = await this.candidatePublisher!.publish({
           taskId: session.assignment.taskId,
@@ -210,10 +289,17 @@ export class EngineeringRunner {
         };
       }
 
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      heartbeatTimer = undefined;
+      // Keep heartbeats active until completion. The final remote source
+      // check can otherwise exceed the remaining Supervisor execution lease.
+      // Verification may outlive the Git source snapshot. A second canonical
+      // remote read immediately before submission rejects production drift.
+      if (useExistingCandidateFlow) {
+        await candidateLease!.verifyProductionBaseline!();
+      }
       await session.complete(completionResult);
       terminalRecorded = true;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = undefined;
       return 'completed';
     } catch (error) {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -256,6 +342,10 @@ export class EngineeringRunner {
     if (signal.aborted) return;
     if (this.preflight) {
       await this.preflight();
+    }
+    if (this.singleShot) {
+      await this.runOnce(signal);
+      return;
     }
     while (!signal.aborted) {
       await this.runOnce(signal);

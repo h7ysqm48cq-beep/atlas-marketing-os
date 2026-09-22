@@ -26,9 +26,19 @@ export interface SupervisorExecutionClaimInput {
   leaseExpiresAt: Date;
 }
 
+export interface SupervisorExecutionExactClaimInput
+  extends SupervisorExecutionClaimInput {
+  taskId: string;
+  executionId: string;
+  requireCandidateHeadSha?: boolean;
+}
+
 export interface SupervisorExecutionClaimStore {
   claimNext(
     input: SupervisorExecutionClaimInput,
+  ): Promise<SupervisorExecution | null>;
+  claimExact(
+    input: SupervisorExecutionExactClaimInput,
   ): Promise<SupervisorExecution | null>;
 }
 

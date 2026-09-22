@@ -12,6 +12,7 @@ import type {
 } from '../execution/supervisor-execution.types';
 import type {
   SupervisorExecutionClaimInput,
+  SupervisorExecutionExactClaimInput,
   SupervisorExecutionClaimStore,
   SupervisorExecutionHeartbeatInput,
   SupervisorExecutionHeartbeatStore,
@@ -379,6 +380,58 @@ export class PrismaSupervisorExecutionStore
           ) {
             return null;
           }
+          throw error;
+        }
+      }),
+    );
+  }
+
+  async claimExact(
+    input: SupervisorExecutionExactClaimInput,
+  ): Promise<SupervisorExecution | null> {
+    const executionPurpose = input.executionPurpose ?? 'IMPLEMENTATION';
+    const requiredTaskStatus = executionPurpose === 'INDEPENDENT_VERIFICATION'
+      ? 'VERIFYING' : 'WORKING';
+    const requireCandidateHeadSha = input.requireCandidateHeadSha === true;
+    return this.withPersistenceBoundary(null, async () =>
+      this.prisma.$transaction(async (transaction) => {
+        const rows = await transaction.$queryRaw<SupervisorExecutionRecord[]>`
+          SELECT e.* FROM "SupervisorExecution" AS e
+          JOIN "SupervisorTask" AS t ON t."id" = e."taskId"
+          WHERE e."id" = ${input.executionId}
+            AND e."taskId" = ${input.taskId}
+            AND e."status" = ${'QUEUED'}
+            AND t."status" = ${requiredTaskStatus}
+            AND e."workerRole" = ${input.workerRole}
+            AND COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') = ${executionPurpose}
+            AND (${requireCandidateHeadSha} = false OR e."assignment"->>'candidateHeadSha' ~ '^[0-9a-fA-F]{40}$')
+          FOR UPDATE OF e, t SKIP LOCKED LIMIT 1
+        `;
+        const selected = rows[0];
+        if (!selected) return null;
+        const mapped = mapExecutionRecord(selected);
+        const claimEpoch = mapped.claimEpoch + 1;
+        const assignment = {
+          ...mapped.assignment, claimEpoch,
+          runnerId: input.runnerId, leaseId: input.leaseId,
+        };
+        delete assignment.workerCapability;
+        const claimed: SupervisorExecution = {
+          ...mapped, status: 'RUNNING', runnerId: input.runnerId,
+          claimEpoch, startedAt: new Date(input.now),
+          lastHeartbeatAt: new Date(input.now),
+          leaseExpiresAt: new Date(input.leaseExpiresAt),
+          result: null, error: null, completedAt: null, assignment,
+        };
+        try {
+          const row = await transaction.supervisorExecution.update({
+            where: { id: mapped.id, taskId: input.taskId, status: 'QUEUED' },
+            data: executionUpdateData(claimed),
+          });
+          return mapExecutionRecord(row);
+        } catch (error) {
+          if (error && typeof error === 'object' &&
+              (error as { code?: unknown }).code === 'P2025') return null;
           throw error;
         }
       }),
