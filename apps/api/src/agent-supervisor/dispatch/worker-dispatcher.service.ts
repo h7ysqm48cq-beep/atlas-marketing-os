@@ -273,10 +273,9 @@ export class WorkerDispatcherService {
         input.changedPaths.some(path => typeof path !== 'string' || !path.trim())) {
       throw new BadRequestException('existing_candidate_paths_invalid');
     }
-    if (task.status === 'DRAFT' &&
-        input.productionBaselineSha.toLowerCase() !== input.candidateBaseSha.toLowerCase()) {
-      throw new BadRequestException('draft_existing_candidate_baseline_mismatch');
-    }
+    // A DRAFT records the immutable candidate base/head, not an eternal
+    // production tip. The runner MUST verify any later production baseline is
+    // the actual canonical branch tip and has no overlapping changed paths.
     const canonical = (values: string[]) => [...new Set(values)].sort();
     if (
       JSON.stringify(canonical(input.changedPaths)) !==

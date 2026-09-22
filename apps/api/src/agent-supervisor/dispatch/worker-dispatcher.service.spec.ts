@@ -908,6 +908,36 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
       allowedPaths: paths,
     }));
   });
+  it('keeps original PR143 frozen base/head while binding a later production baseline', async () => {
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const base = '078658563cde6b9b21d9be38e883e54d62efd970';
+    const head = '4a696fbfde060ae3d2f9d6531a63bc099697fe5c';
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const paths = ['apps/api/src/agent-supervisor/agent-supervisor.service.ts'];
+    const task = await supervisor.createTask({
+      objective: 'PR143 exact frozen base ' + base + '; head ' + head,
+      owner: 'engineering', allowedPaths: paths,
+      forbiddenActions: ['merge'], dependsOn: [],
+      acceptance: ['immutable candidate and new production validated by Git'],
+    });
+    const result = await dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, changedPaths: paths,
+    });
+    expect(result.assignment).toEqual(expect.objectContaining({
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, verificationMode: 'EXISTING_CANDIDATE',
+    }));
+    expect(await executions.listByTask(task.id)).toHaveLength(1);
+  });
   it('rejects altered DRAFT SHA without acquiring locks or dispatching', async () => {
     const executions = new MemorySupervisorExecutionStore();
     const supervisor = new AgentSupervisorService(
@@ -929,9 +959,9 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     })).rejects.toThrow();
     await expect(dispatcher.dispatchExistingCandidateVerification(task.id, {
       candidateBaseSha: 'a'.repeat(40), candidateHeadSha: 'b'.repeat(40),
-      productionBaselineSha: 'c'.repeat(40),
+      productionBaselineSha: 'invalid',
       changedPaths: ['package-lock.json'],
-    })).rejects.toThrow(/draft_existing_candidate_baseline_mismatch/);
+    })).rejects.toThrow(/existing_candidate_sha_invalid/);
     expect((await supervisor.getTask(task.id)).status).toBe('DRAFT');
     expect(await executions.listByTask(task.id)).toHaveLength(0);
   });

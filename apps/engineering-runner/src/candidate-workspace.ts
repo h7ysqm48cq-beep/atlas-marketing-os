@@ -92,6 +92,11 @@ export interface CandidateWorkspaceManagerOptions {
   ensureBase?: (frozenBaseSha: string) => Promise<void>;
   ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
   ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  ensureProductionAdvance?: (
+    candidateBaseSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ) => Promise<void>;
 }
 
 export class CandidateWorkspaceManager {
@@ -100,6 +105,11 @@ export class CandidateWorkspaceManager {
   private readonly ensureBase?: (frozenBaseSha: string) => Promise<void>;
   private readonly ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
   private readonly ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  private readonly ensureProductionAdvance?: (
+    candidateBaseSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ) => Promise<void>;
 
   constructor(options: CandidateWorkspaceManagerOptions) {
     this.repositoryRoot = options.repositoryRoot;
@@ -107,6 +117,7 @@ export class CandidateWorkspaceManager {
     this.ensureBase = options.ensureBase;
     this.ensureCandidate = options.ensureCandidate;
     this.ensureProductionHead = options.ensureProductionHead;
+    this.ensureProductionAdvance = options.ensureProductionAdvance;
   }
 
   async prepare(input: CandidateWorkspaceInput): Promise<CandidateWorkspaceLease> {
@@ -132,6 +143,16 @@ export class CandidateWorkspaceManager {
       await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
       if (this.ensureBase) {
         await this.ensureBase(input.productionBaselineSha!.toLowerCase());
+      }
+      if (input.productionBaselineSha!.toLowerCase() !== frozenBaseSha) {
+        if (!this.ensureProductionAdvance) {
+          throw new Error('existing_candidate_production_advance_unverified');
+        }
+        await this.ensureProductionAdvance(
+          frozenBaseSha,
+          input.productionBaselineSha!.toLowerCase(),
+          input.allowedPaths,
+        );
       }
       await this.ensureCandidate(frozenBaseSha, headSha);
     } else if (this.ensureBase) {

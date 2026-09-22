@@ -266,3 +266,46 @@ test('Existing candidate opens the exact detached head and verifies immutable ba
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('Advanced baseline fails closed unless the source supplies an independent conflict verifier', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-post-merge-advance-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const options = {
+      repositoryRoot: repo, workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async sha => assert.equal(sha, production),
+    };
+    const input = {
+      taskId: 'ATLAS-postbase', executionId: 'ATLAS-EXEC-postbase',
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, allowedPaths: ['allowed.txt'],
+    };
+    await assert.rejects(
+      new CandidateWorkspaceManager(options).prepare(input),
+      /existing_candidate_production_advance_unverified/,
+    );
+    let called = 0;
+    const manager = new CandidateWorkspaceManager({
+      ...options,
+      ensureProductionAdvance: async (b, p, paths) => {
+        called++;
+        assert.equal(b, base);
+        assert.equal(p, production);
+        assert.deepEqual(paths, ['allowed.txt']);
+      },
+    });
+    const lease = await manager.prepare(input);
+    assert.equal(called, 1);
+    assert.equal(lease.verifiedHeadSha, head);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

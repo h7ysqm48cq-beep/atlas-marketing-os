@@ -175,6 +175,41 @@ export class CandidateSourceRepository {
     }
   }
 
+  async ensureProductionAdvance(
+    candidateBaseSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ): Promise<void> {
+    if (!FULL_GIT_SHA.test(candidateBaseSha) ||
+        !FULL_GIT_SHA.test(expectedProductionSha) ||
+        !Array.isArray(candidatePaths) || candidatePaths.length === 0 ||
+        candidatePaths.some(p => !p || p.startsWith('/') ||
+          p.startsWith('../') || p.includes('\\'))) {
+      throw new Error('existing_candidate_production_advance_invalid');
+    }
+    // Re-fetch the canonical branch instead of trusting the caller's baseline.
+    await this.ensureProductionHead(expectedProductionSha);
+    await this.ensureBase(candidateBaseSha);
+    try {
+      await this.gitRaw(this.repositoryRoot, [
+        'merge-base', '--is-ancestor', candidateBaseSha,
+        expectedProductionSha,
+      ]);
+    } catch {
+      throw new Error('existing_candidate_production_not_descendant');
+    }
+    // Conservative: any same-path change since the candidate base rejects
+    // this old-head verifier, even if Git could auto-merge its contents.
+    const raw = await this.gitRaw(this.repositoryRoot, [
+      'diff', '--no-ext-diff', '--no-textconv', '--name-only', '-z',
+      candidateBaseSha, expectedProductionSha,
+    ]);
+    const advancedPaths = new Set(raw.split('\0').filter(Boolean));
+    if (candidatePaths.some(p => advancedPaths.has(p))) {
+      throw new Error('existing_candidate_production_scope_overlap');
+    }
+  }
+
   async ensureExistingCandidate(baseSha: string, headSha: string): Promise<void> {
     if (!FULL_GIT_SHA.test(baseSha) || !FULL_GIT_SHA.test(headSha) ||
         baseSha.toLowerCase() === headSha.toLowerCase()) {

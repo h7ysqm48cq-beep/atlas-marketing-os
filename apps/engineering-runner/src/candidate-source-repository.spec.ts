@@ -240,3 +240,37 @@ test('Existing candidate fetches exact unmerged head from source and binds produ
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('advancing production permits only disjoint frozen candidate scope and rejects overlap', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-production-advance-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await writeFile(path.join(author, 'candidate.txt'), 'candidate\\n');
+    await git(author, ['add', '--', 'candidate.txt']);
+    await git(author, ['commit', '-qm', 'candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    await git(author, ['checkout', 'production/atlas']);
+    await writeFile(path.join(author, 'unrelated.txt'), 'production\\n');
+    await git(author, ['add', '--', 'unrelated.txt']);
+    await git(author, ['commit', '-qm', 'advance production']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    await source.ensureExistingCandidate(base, head);
+    await source.ensureProductionAdvance(base, production, ['candidate.txt']);
+    await assert.rejects(
+      source.ensureProductionAdvance(base, production, ['unrelated.txt']),
+      /existing_candidate_production_scope_overlap/,
+    );
+    await assert.rejects(
+      source.ensureProductionAdvance(base, base, ['candidate.txt']),
+      /existing_candidate_production_baseline_drift/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
