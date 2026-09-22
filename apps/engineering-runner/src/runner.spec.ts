@@ -725,7 +725,20 @@ test('existing-candidate heartbeat survives slow final canonical production chec
         verifiedHeadSha: 'b'.repeat(40),
         verifiedChangedPaths: ['apps/example.ts'],
         verifyProductionBaseline: async () => {
-          await new Promise(resolve => setTimeout(resolve, 65));
+          const heartbeatCountAtStart = heartbeats;
+          const slowCheckStartedAt = Date.now();
+          const deadline = slowCheckStartedAt + 2_000;
+          while (
+            (Date.now() - slowCheckStartedAt < 65 ||
+              heartbeats < heartbeatCountAtStart + 2) &&
+            Date.now() < deadline
+          ) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+          assert.ok(
+            heartbeats >= heartbeatCountAtStart + 2,
+            'heartbeat must continue during the final canonical production check',
+          );
         },
         workspace: {
           listChangedFiles: async () => [],
