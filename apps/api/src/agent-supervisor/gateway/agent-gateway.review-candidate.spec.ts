@@ -505,3 +505,67 @@ describe('AgentGatewayService review candidate', () => {
   });
 
 });
+
+describe('Existing-candidate Gate requires the real verifier provenance binding', () => {
+  it('fails closed if verifier mode is declared without corresponding task/execution proof', async () => {
+    const { task, completed, gateway, executionStore } = await makeReadyCandidate();
+    const execution = (await executionStore.get(completed.id))!;
+    execution.assignment.verificationMode = 'EXISTING_CANDIDATE';
+    await executionStore.save(execution);
+    await expect(gateway.checkReviewCandidate({
+      taskId: task.id, executionId: completed.id,
+      ...candidate(), explicitUserAuthorization: false,
+    })).rejects.toMatchObject({
+      response: { code: 'existing_candidate_verifier_provenance_invalid' },
+    });
+  });
+  it('accepts matching verifier proof only as a pre-Owner gate and rejects tampering', async () => {
+    const {
+      task, completed, gateway, supervisor, taskStore, executionStore,
+    } = await makeReadyCandidate();
+    const execution = (await executionStore.get(completed.id))!;
+    execution.assignment.allowedPaths = [CHANGED_FILE];
+    execution.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
+    execution.assignment.verificationMode = 'EXISTING_CANDIDATE';
+    execution.assignment.candidateBaseSha = BASE_SHA;
+    execution.assignment.candidateHeadSha = HEAD_SHA;
+    execution.assignment.productionBaselineSha = BASE_SHA;
+    execution.assignment.manifestHash = 'd'.repeat(64);
+    execution.assignment.claimEpoch = 1;
+    execution.assignment.runnerId = 'test-runner';
+    execution.assignment.leaseId = 'test-lease';
+    const proof = {
+      mode: 'EXISTING_CANDIDATE' as const,
+      taskId: task.id,
+      executionId: completed.id,
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      productionBaselineSha: BASE_SHA,
+      changedFiles: [CHANGED_FILE],
+      gitFingerprint: 'f'.repeat(64),
+      sourceVerified: true as const,
+    };
+    execution.result!.evidence.existingCandidateVerification = proof;
+    await executionStore.save(execution);
+    const t = (await taskStore.get(task.id))!;
+    const before = new Date(t.updatedAt);
+    t.allowedPaths = [CHANGED_FILE];
+    t.evidence!.existingCandidateVerification = structuredClone(proof);
+    t.updatedAt = new Date(before.getTime() + 1);
+    await taskStore.saveIfUnchanged(t, before);
+    const input = {
+      taskId: task.id, executionId: completed.id,
+      ...candidate(), explicitUserAuthorization: false,
+    };
+    await expect(gateway.checkReviewCandidate(input)).rejects.toMatchObject({
+      response: { code: 'owner_merge_authorization_required' },
+    });
+    const tampered = (await executionStore.get(completed.id))!;
+    tampered.result!.evidence.existingCandidateVerification!.gitFingerprint =
+      'e'.repeat(64);
+    await executionStore.save(tampered);
+    await expect(gateway.checkReviewCandidate(input)).rejects.toMatchObject({
+      response: { code: 'existing_candidate_verifier_provenance_invalid' },
+    });
+  });
+});

@@ -16,6 +16,10 @@ export function createEngineeringRunnerOptions(
       baseUrl: config.supervisorApiUrl,
       bootstrapToken: config.bootstrapToken,
       requireFrozenBaseSha: Boolean(config.candidate),
+      ...(config.exactTarget ? {
+        executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+        exactTarget: config.exactTarget,
+      } : {}),
     }),
     executor: new CommandExecutor({
       command: config.command, args: config.args,
@@ -33,7 +37,7 @@ export function createEngineeringRunnerOptions(
     sourceToken: config.candidate.sourceToken,
     environment,
   });
-  const candidatePublisher = new CandidatePublisher({
+  const candidatePublisher = config.exactTarget ? undefined : new CandidatePublisher({
     remote: config.candidate.remote,
     publisherToken: config.candidate.publisherToken,
     publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
@@ -44,14 +48,23 @@ export function createEngineeringRunnerOptions(
     ...base,
     preflight: async () => {
       await candidateSource.refresh();
-      await candidatePublisher.prepare();
+      await candidatePublisher?.prepare();
     },
     candidateWorkspaceManager: new CandidateWorkspaceManager({
       repositoryRoot: config.candidate.repositoryRoot,
       workspaceRoot: config.candidate.workspaceRoot,
       ensureBase: (frozenBaseSha) => candidateSource.ensureBase(frozenBaseSha),
+      ensureCandidate: (baseSha, headSha) =>
+        candidateSource.ensureExistingCandidate(baseSha, headSha),
+      ensureProductionHead: (headSha) =>
+        candidateSource.ensureProductionHead(headSha),
+      ensureProductionAdvance: (baseSha, productionSha, paths, headSha) =>
+        candidateSource.ensureProductionAdvance(
+          baseSha, productionSha, paths, headSha,
+        ),
     }),
-    candidatePublisher,
+    ...(candidatePublisher ? { candidatePublisher } : {}),
+    singleShot: Boolean(config.exactTarget),
     executorFactory: (cwd: string) => new CommandExecutor({
       command: config.command,
       args: config.args,

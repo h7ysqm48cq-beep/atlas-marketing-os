@@ -37,6 +37,7 @@ function input(): VerifierCapabilityInput {
     allowedPaths: ['apps/api/src/example.ts'],
     leaseId: 'lease-1',
     runnerId: 'verifier-1',
+    candidateHeadSha: 'b'.repeat(40),
   };
 }
 
@@ -97,5 +98,14 @@ describe('VerifierCapabilityService', () => {
         allowedPaths: ['apps/api/src/other.ts'],
       }),
     ).toThrow('verifier_capability_scope_mismatch');
+  });
+
+  it('rejects immutable candidate head drift', () => {
+    const service = new VerifierCapabilityService(authority());
+    const token = service.issue(input(), NOW);
+    expect(() => service.authorize(token, {
+      ...input(), candidateHeadSha: 'c'.repeat(40),
+      operation: 'read_assignment', now: new Date(NOW.getTime() + 1_000),
+    })).toThrow('verifier_capability_candidate_mismatch');
   });
 });

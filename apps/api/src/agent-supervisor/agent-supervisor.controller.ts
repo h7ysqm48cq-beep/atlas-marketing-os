@@ -106,6 +106,14 @@ export class AgentSupervisorController {
     return this.supervisor.returnToWorking(id, body.reason ?? '');
   }
 
+  @Post('tasks/:id/adopt-existing-candidate-verification')
+  adoptExistingCandidateVerification(
+    @Param('id') id: string,
+    @Body() body: { executionId: string },
+  ) {
+    return this.dispatcher.adoptExistingCandidateVerification(id, body.executionId);
+  }
+
   @Post('tasks/:id/ready-for-review')
   markReadyForReview(@Param('id') id: string) {
     return this.supervisor.markReadyForReview(id);
@@ -279,6 +287,19 @@ export class AgentSupervisorController {
       id,
       'INDEPENDENT_VERIFICATION',
     );
+  }
+
+  @Post('tasks/:id/admit-existing-candidate-verification')
+  admitExistingCandidateVerification(
+    @Param('id') id: string,
+    @Body() body: {
+      candidateBaseSha: string;
+      candidateHeadSha: string;
+      productionBaselineSha: string;
+      changedPaths: string[];
+    },
+  ) {
+    return this.dispatcher.dispatchExistingCandidateVerification(id, body);
   }
 
   @Get('tasks/:id/executions')

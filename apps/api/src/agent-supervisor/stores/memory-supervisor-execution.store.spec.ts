@@ -77,6 +77,14 @@ type ClaimNextStore = {
   claimNext(input: ClaimNextInput): Promise<SupervisorExecution | null>;
 };
 
+type ClaimExactStore = {
+  claimExact(input: ClaimNextInput & {
+    taskId: string;
+    executionId: string;
+    requireCandidateHeadSha?: boolean;
+  }): Promise<SupervisorExecution | null>;
+};
+
 function claimStore(store: MemorySupervisorExecutionStore): ClaimNextStore {
   return store as unknown as ClaimNextStore;
 }
@@ -134,6 +142,29 @@ function validHeartbeatInput(): HeartbeatInput {
 }
 
 describe('MemorySupervisorExecutionStore', () => {
+  it('claims only the exact immutable-candidate execution once', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const other = executionFixture('EXEC-OTHER', 'ATLAS-1');
+    const exact = executionFixture('EXEC-EXACT', 'ATLAS-1');
+    exact.assignment.executionPurpose = 'INDEPENDENT_VERIFICATION';
+    exact.assignment.verificationMode = 'EXISTING_CANDIDATE';
+    exact.assignment.candidateHeadSha = 'b'.repeat(40);
+    await store.create(other);
+    await store.create(exact);
+    const input = {
+      taskId: 'ATLAS-1', executionId: 'EXEC-EXACT', workerRole: 'backend' as const,
+      executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+      requireCandidateHeadSha: true, runnerId: 'runner-exact', leaseId: 'lease-exact',
+      now: new Date('2026-09-21T00:00:00.000Z'),
+      leaseExpiresAt: new Date('2026-09-21T00:01:00.000Z'),
+    };
+
+    const claimed = await (store as unknown as ClaimExactStore).claimExact(input);
+    expect(claimed?.id).toBe('EXEC-EXACT');
+    await expect((store as unknown as ClaimExactStore).claimExact(input))
+      .resolves.toBeNull();
+    await expect(store.get('EXEC-OTHER')).resolves.toMatchObject({ status: 'QUEUED' });
+  });
   it('exposes asynchronous store operations', async () => {
     const store = new MemorySupervisorExecutionStore();
     const fixture = executionFixture('EXEC-1', 'ATLAS-1');

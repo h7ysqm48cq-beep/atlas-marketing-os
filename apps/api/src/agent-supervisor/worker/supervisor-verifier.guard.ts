@@ -143,6 +143,7 @@ export class SupervisorVerifierGuard implements CanActivate {
       purpose: 'INDEPENDENT_VERIFICATION',
       leaseId: assignment.leaseId,
       runnerId: execution.runnerId,
+      candidateHeadSha: assignment.candidateHeadSha,
       operation,
       now,
     });

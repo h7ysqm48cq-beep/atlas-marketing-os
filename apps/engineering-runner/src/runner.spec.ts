@@ -538,3 +538,206 @@ test('EngineeringRunner never invokes candidate publication for independent veri
   assert.equal(published, 0);
   assert.equal(completed, 1);
 });
+
+test('EngineeringRunner verifies an existing candidate in its detached workspace without publishing', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as any;
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    verificationMode: 'EXISTING_CANDIDATE',
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment);
+  let prepared: any;
+  let published = 0;
+  active.complete = async () => undefined;
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async (input: any) => {
+        prepared = input;
+        return {
+          path: '/tmp/exact-head', baseSha: input.candidateBaseSha,
+          verifiedHeadSha: input.candidateHeadSha,
+          verifiedChangedPaths: ['apps/example.ts'],
+          verifyProductionBaseline: async () => undefined,
+          workspace: {
+            listChangedFiles: async () => [],
+            fingerprint: async () => 'unchanged-git-state',
+          },
+          cleanup: async () => undefined,
+        };
+      },
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(prepared.candidateHeadSha, 'b'.repeat(40));
+  assert.equal(published, 0);
+});
+
+test('Existing-candidate verifier fails closed when immutable Git fingerprint changes', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'a'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let completed = 0;
+  let failed = '';
+  active.complete = async () => { completed++; };
+  active.fail = async (reason: string) => { failed = reason; };
+  let snapshots = 0;
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => undefined,
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => ++snapshots === 1 ? 'before' : 'after',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+  });
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(completed, 0);
+  assert.match(failed, /existing_candidate_git_fingerprint_drift/);
+});
+
+test('Exact-target runner executes once and does not enter ordinary polling', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  let claims = 0;
+  let preflights = 0;
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => { claims++; return null; } },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    preflight: async () => { preflights++; },
+    singleShot: true,
+  });
+  await runner.run(new AbortController().signal);
+  assert.equal(claims, 1);
+  assert.equal(preflights, 1);
+});
+
+test('Exact existing-candidate verifier refuses completion when production moves during execution', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let completed = 0;
+  let failed = '';
+  active.complete = async () => { completed++; };
+  active.fail = async (reason: string) => { failed = reason; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => {
+          throw new Error('existing_candidate_production_baseline_drift');
+        },
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'unchanged-git-state',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+  });
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(completed, 0);
+  assert.match(failed, /existing_candidate_production_baseline_drift/);
+});
+
+test('existing-candidate heartbeat survives slow final canonical production check', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let heartbeats = 0;
+  let heartbeatsAtCompletion = 0;
+  active.heartbeat = async () => { heartbeats++; };
+  active.complete = async () => { heartbeatsAtCompletion = heartbeats; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => {
+          await new Promise(resolve => setTimeout(resolve, 65));
+        },
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'unchanged-git-state',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 5,
+  });
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.ok(heartbeatsAtCompletion > 2,
+    'heartbeat must continue throughout the final remote source check');
+});

@@ -17,6 +17,7 @@ export interface EngineeringRunnerConfig {
   pollIntervalMs: number;
   heartbeatIntervalMs: number;
   candidate?: EngineeringRunnerCandidateConfig;
+  exactTarget?: { taskId: string; executionId: string };
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -61,6 +62,7 @@ const CANONICAL_CANDIDATE_REMOTE =
 
 function candidateConfig(
   env: NodeJS.ProcessEnv,
+  verifierOnly = false,
 ): EngineeringRunnerCandidateConfig | undefined {
   const repositoryRoot = env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY?.trim();
   const workspaceRoot =
@@ -91,7 +93,7 @@ function candidateConfig(
     publisherSshPrivateKey,
     publisherSshPrivateKeyPath,
   ].filter(Boolean).length;
-  if (publisherAuthModes !== 1) {
+  if (!verifierOnly && publisherAuthModes !== 1) {
     throw new Error("runner_candidate_publisher_auth_invalid");
   }
   if (remote !== CANONICAL_CANDIDATE_REMOTE) {
@@ -102,9 +104,9 @@ function candidateConfig(
     workspaceRoot: workspaceRoot!,
     remote: remote!,
     ...(sourceToken ? { sourceToken } : {}),
-    ...(publisherToken ? { publisherToken } : {}),
-    ...(publisherSshPrivateKey ? { publisherSshPrivateKey } : {}),
-    ...(publisherSshPrivateKeyPath ? { publisherSshPrivateKeyPath } : {}),
+    ...(!verifierOnly && publisherToken ? { publisherToken } : {}),
+    ...(!verifierOnly && publisherSshPrivateKey ? { publisherSshPrivateKey } : {}),
+    ...(!verifierOnly && publisherSshPrivateKeyPath ? { publisherSshPrivateKeyPath } : {}),
   };
 }
 
@@ -115,7 +117,16 @@ export function loadEngineeringRunnerConfig(
     env,
     "ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_TOKEN",
   );
-  const candidate = candidateConfig(env);
+  const exactTaskId = env.ATLAS_ENGINEERING_RUNNER_EXACT_TASK_ID?.trim();
+  const exactExecutionId = env.ATLAS_ENGINEERING_RUNNER_EXACT_EXECUTION_ID?.trim();
+  if (Boolean(exactTaskId) !== Boolean(exactExecutionId)) {
+    throw new Error('runner_exact_target_incomplete');
+  }
+  const exactVerification = Boolean(exactTaskId && exactExecutionId);
+  const candidate = candidateConfig(env, exactVerification);
+  if (exactVerification && !candidate) {
+    throw new Error('runner_exact_target_requires_candidate_source');
+  }
   if (candidate) {
     const credentials = [
       bootstrapToken,
@@ -146,5 +157,8 @@ export function loadEngineeringRunnerConfig(
       20_000,
     ),
     ...(candidate ? { candidate } : {}),
+    ...(exactTaskId && exactExecutionId ? {
+      exactTarget: { taskId: exactTaskId, executionId: exactExecutionId },
+    } : {}),
   };
 }

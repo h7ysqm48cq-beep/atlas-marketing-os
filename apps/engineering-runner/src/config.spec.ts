@@ -18,6 +18,26 @@ test("candidate publication config is optional when all candidate keys are absen
   assert.equal(config.candidate, undefined);
 });
 
+test("exact verifier target requires both task and execution ids", () => {
+  const env = baseEnv();
+  env.ATLAS_ENGINEERING_RUNNER_EXACT_TASK_ID = "task-1";
+  env.ATLAS_ENGINEERING_RUNNER_EXACT_EXECUTION_ID = "exec-1";
+  assert.throws(() => loadEngineeringRunnerConfig(env),
+    /runner_exact_target_requires_candidate_source/);
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = '/repo';
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = '/workspaces';
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
+    'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+  env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH = '/not/used/in/verifier';
+  const verifierConfig = loadEngineeringRunnerConfig(env);
+  assert.deepEqual(verifierConfig.exactTarget, {
+    taskId: 'task-1', executionId: 'exec-1',
+  });
+  assert.equal(verifierConfig.candidate?.publisherSshPrivateKeyPath, undefined);
+  delete env.ATLAS_ENGINEERING_RUNNER_EXACT_EXECUTION_ID;
+  assert.throws(() => loadEngineeringRunnerConfig(env), /runner_exact_target_incomplete/);
+});
+
 test("candidate publication config loads with anonymous canonical source access", () => {
   const env = baseEnv();
   env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = "/repo";
@@ -145,4 +165,21 @@ test("candidate publication config rejects any non-canonical network remote", ()
     () => loadEngineeringRunnerConfig(env),
     /runner_candidate_remote_not_canonical/,
   );
+});
+
+test('Exact verifier bootstrap never constructs a CandidatePublisher or polling runner', async () => {
+  const env = baseEnv();
+  env.ATLAS_ENGINEERING_RUNNER_EXACT_TASK_ID = 'ATLAS-PR141';
+  env.ATLAS_ENGINEERING_RUNNER_EXACT_EXECUTION_ID = 'ATLAS-EXEC-PR141';
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = '/isolated/repo.git';
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = '/isolated/workspaces';
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
+    'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git';
+  env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_SSH_PRIVATE_KEY_PATH =
+    '/railway/does-not-exist/on-local-machine';
+  const { createEngineeringRunnerOptions } = await import('./bootstrap.ts');
+  const options = createEngineeringRunnerOptions(loadEngineeringRunnerConfig(env), env);
+  assert.equal(options.singleShot, true);
+  assert.equal(options.candidatePublisher, undefined);
+  assert.ok(options.candidateWorkspaceManager);
 });

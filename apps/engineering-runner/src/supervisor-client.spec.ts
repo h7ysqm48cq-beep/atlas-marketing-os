@@ -84,6 +84,29 @@ test('SupervisorClient claims IMPLEMENTATION by default', async () => {
   });
 });
 
+test('SupervisorClient exact target never falls back to claim-next', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as any;
+  let url = '';
+  let body: any;
+  const client = new Client({
+    baseUrl: 'https://api.example.test', bootstrapToken: 'bootstrap-secret',
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    exactTarget: { taskId: 'task-1', executionId: 'exec-1' },
+    fetch: async (input: string | URL | Request, init?: RequestInit) => {
+      url = String(input); body = JSON.parse(String(init?.body));
+      return new Response(null, { status: 204 });
+    },
+  });
+  assert.equal(await client.claimNext(), null);
+  assert.match(url, /claim-exact$/);
+  assert.deepEqual(body, {
+    taskId: 'task-1', executionId: 'exec-1',
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    requireCandidateHeadSha: true,
+  });
+});
+
 test('SupervisorClient candidate-only mode requires and requests a frozen base', async () => {
   const mod = await loadModule();
   const Client = mod.SupervisorClient as

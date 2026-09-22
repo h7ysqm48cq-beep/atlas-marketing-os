@@ -454,8 +454,65 @@ export class AgentGatewayService {
     if (!this.sameCandidate(taskCandidate, executionCandidate)) {
       throw new BadRequestException({ code: 'review_candidate_mismatch' });
     }
+    this.assertExistingCandidateVerifierProvenance(
+      task, execution, taskCandidate,
+    );
 
     return { task, execution, persistedCandidate: taskCandidate };
+  }
+
+  private assertExistingCandidateVerifierProvenance(
+    task: SupervisorTask,
+    execution: SupervisorExecution,
+    candidate: SupervisorReviewCandidate,
+  ): void {
+    const taskProof = task.evidence?.existingCandidateVerification;
+    const executionProof = execution.result?.evidence.existingCandidateVerification;
+    const assigned = execution.assignment;
+    const isExisting = Boolean(taskProof || executionProof ||
+      assigned.verificationMode === 'EXISTING_CANDIDATE');
+    if (!isExisting) return;
+    const fail = () => {
+      throw new BadRequestException({
+        code: 'existing_candidate_verifier_provenance_invalid',
+      });
+    };
+    const same = (left: string[], right: string[]) =>
+      JSON.stringify([...new Set(left)].sort()) ===
+      JSON.stringify([...new Set(right)].sort());
+    if (!taskProof || !executionProof ||
+        execution.status !== 'COMPLETED' ||
+        assigned.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
+        assigned.verificationMode !== 'EXISTING_CANDIDATE' ||
+        taskProof.mode !== 'EXISTING_CANDIDATE' ||
+        executionProof.mode !== 'EXISTING_CANDIDATE' ||
+        taskProof.sourceVerified !== true ||
+        executionProof.sourceVerified !== true ||
+        taskProof.taskId !== task.id ||
+        executionProof.taskId !== task.id ||
+        taskProof.executionId !== execution.id ||
+        executionProof.executionId !== execution.id ||
+        taskProof.baseSha !== assigned.candidateBaseSha ||
+        taskProof.headSha !== assigned.candidateHeadSha ||
+        taskProof.productionBaselineSha !== assigned.productionBaselineSha ||
+        JSON.stringify(taskProof) !== JSON.stringify(executionProof) ||
+        !/^[0-9a-f]{64}$/i.test(taskProof.gitFingerprint) ||
+        !/^[0-9a-f]{64}$/i.test(assigned.manifestHash ?? '') ||
+        !Number.isInteger(assigned.claimEpoch) || assigned.claimEpoch! < 1 ||
+        !assigned.runnerId || !assigned.leaseId ||
+        !same(taskProof.changedFiles, task.allowedPaths) ||
+        !same(taskProof.changedFiles, assigned.allowedPaths) ||
+        !same(taskProof.changedFiles, candidate.changedFiles) ||
+        !same(taskProof.changedFiles,
+          execution.result!.evidence.changedFiles) ||
+        !same(taskProof.changedFiles,
+          task.evidence!.changedFiles) ||
+        candidate.action !== 'merge' ||
+        candidate.targetBranch !== 'production/atlas' ||
+        candidate.baseSha !== taskProof.baseSha ||
+        candidate.headSha !== taskProof.headSha ||
+        task.evidence!.candidatePublication ||
+        execution.result!.evidence.candidatePublication) fail();
   }
 
   private async requireExecution(

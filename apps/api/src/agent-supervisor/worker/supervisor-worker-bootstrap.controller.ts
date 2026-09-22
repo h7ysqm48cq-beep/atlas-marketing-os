@@ -151,4 +151,57 @@ export class SupervisorWorkerBootstrapController {
 
     throw new Error('supervisor_execution_purpose_invalid');
   }
+
+  @Post('claim-exact')
+  @HttpCode(HttpStatus.OK)
+  async claimExact(
+    @Req() request: BootstrapRequest,
+    @Body() body: {
+      taskId?: unknown;
+      executionId?: unknown;
+      executionPurpose?: unknown;
+      requireCandidateHeadSha?: unknown;
+    } = {},
+    @Res({ passthrough: true }) response?: Response,
+  ) {
+    if (
+      typeof body.taskId !== 'string' || !body.taskId ||
+      typeof body.executionId !== 'string' || !body.executionId ||
+      body.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
+      body.requireCandidateHeadSha !== true
+    ) {
+      throw new BadRequestException('worker_exact_claim_invalid');
+    }
+    const now = new Date();
+    const runnerId = randomUUID();
+    const leaseId = randomUUID();
+    const claimed = await this.claimStore.claimExact({
+      taskId: body.taskId,
+      executionId: body.executionId,
+      workerRole: request.supervisorWorkerBootstrapRole!,
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      requireCandidateHeadSha: true,
+      runnerId,
+      leaseId,
+      now,
+      leaseExpiresAt: new Date(now.getTime() + INITIAL_CLAIM_LEASE_MS),
+    });
+    if (!claimed) {
+      response?.status(HttpStatus.NO_CONTENT);
+      return undefined;
+    }
+    const capability = this.verifierCapabilities.issue({
+      taskId: claimed.taskId,
+      executionId: claimed.id,
+      manifestHash: claimed.assignment.manifestHash!,
+      claimEpoch: claimed.assignment.claimEpoch!,
+      allowedPaths: claimed.assignment.allowedPaths,
+      purpose: 'INDEPENDENT_VERIFICATION',
+      leaseId: claimed.assignment.leaseId!,
+      runnerId: claimed.assignment.runnerId!,
+      candidateHeadSha: claimed.assignment.candidateHeadSha!,
+    }, now);
+    const persisted = await this.executionStore.saveIfStatus(claimed, 'RUNNING');
+    return { execution: persisted, assignment: persisted.assignment, capability };
+  }
 }

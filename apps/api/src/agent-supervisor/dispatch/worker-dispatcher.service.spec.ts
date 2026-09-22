@@ -822,3 +822,184 @@ describe('R1 bootstrap server-side admission manifest', () => {
   });
 });
 // R1_BOOTSTRAP_ADMISSION_RED_END
+
+describe('existing-candidate verification dispatch', () => {
+  it('preserves a failed implementation execution and creates a manifest-bound verifier execution', async () => {
+    const taskStore = new MemorySupervisorTaskStore();
+    const fileStore = new MemoryFileOwnershipStore();
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(taskStore, fileStore);
+    const dispatcher = new WorkerDispatcherService(
+      supervisor,
+      executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const task = await supervisor.createTask({
+      objective: 'Verify existing candidate', owner: 'engineering',
+      allowedPaths: ['apps/api/src/example.ts'], forbiddenActions: ['merge'],
+      dependsOn: [], acceptance: ['verify immutable head'],
+    });
+    await supervisor.startTask(task.id);
+    await executions.create({
+      id: 'ATLAS-EXEC-FAILED', taskId: task.id, workerRole: 'engineering',
+      status: 'FAILED', assignment: {
+        executionId: 'ATLAS-EXEC-FAILED', taskId: task.id,
+        workerRole: 'engineering', executionPurpose: 'IMPLEMENTATION',
+        objective: task.objective, allowedPaths: [...task.allowedPaths],
+        forbiddenActions: [...task.forbiddenActions], dependencies: [],
+        acceptance: [...task.acceptance], requiredEvidence: [],
+      }, result: null, error: 'supervisor_execution_queued_timeout',
+      createdAt: new Date(), startedAt: null, completedAt: new Date(),
+      runnerId: null, claimEpoch: 1, lastHeartbeatAt: null, leaseExpiresAt: null,
+    });
+    await supervisor.blockTask(task.id, 'supervisor_execution_queued_timeout');
+
+    const result = await dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: 'a'.repeat(40),
+      candidateHeadSha: 'b'.repeat(40),
+      productionBaselineSha: 'c'.repeat(40),
+      changedPaths: ['apps/api/src/example.ts'],
+    });
+
+    expect(result.execution.status).toBe('QUEUED');
+    expect(result.assignment).toEqual(expect.objectContaining({
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: 'a'.repeat(40), candidateHeadSha: 'b'.repeat(40),
+      productionBaselineSha: 'c'.repeat(40),
+    }));
+    expect((await executions.get('ATLAS-EXEC-FAILED'))?.error)
+      .toBe('supervisor_execution_queued_timeout');
+  });
+});
+
+describe('existing candidate PR141 DRAFT-only admission', () => {
+  it('creates a real verifier execution without fabricating implementation for an exact frozen DRAFT', async () => {
+    const store = new MemorySupervisorTaskStore();
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(store, new MemoryFileOwnershipStore());
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const base = '078658563cde6b9b21d9be38e883e54d62efd970';
+    const head = '24dd7bee3b608f8d42a3bffc3daa58df05158444';
+    const paths = ['apps/engineering-runner/package.json', 'package-lock.json'];
+    const task = await supervisor.createTask({
+      objective: 'PR141 exact frozen base ' + base + '; head ' + head,
+      owner: 'engineering', allowedPaths: paths,
+      forbiddenActions: ['merge', 'deploy_production', 'run_migration'],
+      dependsOn: [], acceptance: ['read-only independent verification'],
+    });
+    const result = await dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, changedPaths: paths,
+    });
+    expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
+    expect((await supervisor.getTask(task.id)).evidence).toBeNull();
+    const history = await executions.listByTask(task.id);
+    expect(history).toHaveLength(1);
+    expect(result.execution.status).toBe('QUEUED');
+    expect(result.assignment).toEqual(expect.objectContaining({
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: base, candidateHeadSha: head,
+      allowedPaths: paths,
+    }));
+  });
+  it('keeps original PR143 frozen base/head while binding a later production baseline', async () => {
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const base = '078658563cde6b9b21d9be38e883e54d62efd970';
+    const head = '4a696fbfde060ae3d2f9d6531a63bc099697fe5c';
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const paths = ['apps/api/src/agent-supervisor/agent-supervisor.service.ts'];
+    const task = await supervisor.createTask({
+      objective: 'PR143 exact frozen base ' + base + '; head ' + head,
+      owner: 'engineering', allowedPaths: paths,
+      forbiddenActions: ['merge'], dependsOn: [],
+      acceptance: ['immutable candidate and new production validated by Git'],
+    });
+    const result = await dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, changedPaths: paths,
+    });
+    expect(result.assignment).toEqual(expect.objectContaining({
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: production, verificationMode: 'EXISTING_CANDIDATE',
+    }));
+    expect(await executions.listByTask(task.id)).toHaveLength(1);
+  });
+  it('rejects altered DRAFT SHA without acquiring locks or dispatching', async () => {
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const task = await supervisor.createTask({
+      objective: 'PR141 base '+ 'a'.repeat(40) +' head '+ 'b'.repeat(40),
+      owner: 'engineering', allowedPaths: ['package-lock.json'],
+      forbiddenActions: ['merge'], dependsOn: [], acceptance: ['verify'],
+    });
+    await expect(dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: 'a'.repeat(40), candidateHeadSha: 'c'.repeat(40),
+      productionBaselineSha: 'a'.repeat(40), changedPaths: ['package-lock.json'],
+    })).rejects.toThrow();
+    await expect(dispatcher.dispatchExistingCandidateVerification(task.id, {
+      candidateBaseSha: 'a'.repeat(40), candidateHeadSha: 'b'.repeat(40),
+      productionBaselineSha: 'invalid',
+      changedPaths: ['package-lock.json'],
+    })).rejects.toThrow(/existing_candidate_sha_invalid/);
+    expect((await supervisor.getTask(task.id)).status).toBe('DRAFT');
+    expect(await executions.listByTask(task.id)).toHaveLength(0);
+  });
+});
+
+describe('production exact-candidate admission uses atomic persistence seam', () => {
+  it('queues the real verifier through exactly one atomic admission, never via legacy split writes', async () => {
+    const taskStore = new MemorySupervisorTaskStore();
+    const fileStore = new MemoryFileOwnershipStore();
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(taskStore, fileStore);
+    const base = '078658563cde6b9b21d9be38e883e54d62efd970';
+    const head = '24dd7bee3b608f8d42a3bffc3daa58df05158444';
+    const paths = ['apps/engineering-runner/package.json', 'package-lock.json'];
+    const current = await supervisor.createTask({
+      objective: 'PR141 ' + base + ' ' + head,
+      owner: 'engineering', allowedPaths: paths,
+      forbiddenActions: ['merge'], dependsOn: [], acceptance: ['verify'],
+    });
+    const atomic = { admitExistingCandidateAndQueue: jest.fn(
+      async (task: any, execution: any) => ({
+        task: { ...task, status: 'VERIFYING' }, execution,
+      })) };
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(), atomic,
+    );
+    const result = await dispatcher.dispatchExistingCandidateVerification(current.id, {
+      candidateBaseSha: base, candidateHeadSha: head,
+      productionBaselineSha: base, changedPaths: paths,
+    });
+    expect(atomic.admitExistingCandidateAndQueue).toHaveBeenCalledTimes(1);
+    expect(result.execution.status).toBe('QUEUED');
+    expect(result.assignment.verificationMode).toBe('EXISTING_CANDIDATE');
+    expect(result.assignment.forbiddenActions).toContain('merge');
+    expect((await supervisor.getTask(current.id)).status).toBe('DRAFT');
+    expect(await executions.listByTask(current.id)).toHaveLength(0);
+    expect(await fileStore.findOwner(paths[0])).toBeNull();
+  });
+});

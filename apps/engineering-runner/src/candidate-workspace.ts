@@ -70,13 +70,19 @@ async function requireAllowedPathInsideWorkspace(
 export interface CandidateWorkspaceInput {
   taskId: string;
   executionId: string;
-  frozenBaseSha: string;
+  frozenBaseSha?: string;
+  candidateBaseSha?: string;
+  candidateHeadSha?: string;
+  productionBaselineSha?: string;
   allowedPaths: string[];
 }
 
 export interface CandidateWorkspaceLease {
   path: string;
   baseSha: string;
+  verifiedHeadSha?: string;
+  verifiedChangedPaths?: string[];
+  verifyProductionBaseline?: () => Promise<void>;
   workspace: WorkspaceInspector;
   cleanup(): Promise<void>;
 }
@@ -85,17 +91,36 @@ export interface CandidateWorkspaceManagerOptions {
   repositoryRoot: string;
   workspaceRoot: string;
   ensureBase?: (frozenBaseSha: string) => Promise<void>;
+  ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
+  ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  ensureProductionAdvance?: (
+    candidateBaseSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+    candidateHeadSha: string,
+  ) => Promise<void>;
 }
 
 export class CandidateWorkspaceManager {
   private readonly repositoryRoot: string;
   private readonly workspaceRoot: string;
   private readonly ensureBase?: (frozenBaseSha: string) => Promise<void>;
+  private readonly ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
+  private readonly ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  private readonly ensureProductionAdvance?: (
+    candidateBaseSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+    candidateHeadSha: string,
+  ) => Promise<void>;
 
   constructor(options: CandidateWorkspaceManagerOptions) {
     this.repositoryRoot = options.repositoryRoot;
     this.workspaceRoot = options.workspaceRoot;
     this.ensureBase = options.ensureBase;
+    this.ensureCandidate = options.ensureCandidate;
+    this.ensureProductionHead = options.ensureProductionHead;
+    this.ensureProductionAdvance = options.ensureProductionAdvance;
   }
 
   async prepare(input: CandidateWorkspaceInput): Promise<CandidateWorkspaceLease> {
@@ -103,11 +128,43 @@ export class CandidateWorkspaceManager {
       throw new Error('candidate_workspace_identity_invalid');
     }
     input.allowedPaths.map(requireAllowedPath);
-    const frozenBaseSha = input.frozenBaseSha.trim().toLowerCase();
-    if (!FULL_GIT_SHA.test(frozenBaseSha)) {
+    const existingCandidate = input.candidateHeadSha !== undefined ||
+      input.candidateBaseSha !== undefined || input.productionBaselineSha !== undefined;
+    const frozenBaseSha = (existingCandidate
+      ? input.candidateBaseSha : input.frozenBaseSha)?.trim().toLowerCase() ?? '';
+    const headSha = (existingCandidate
+      ? input.candidateHeadSha : input.frozenBaseSha)?.trim().toLowerCase() ?? '';
+    if (!FULL_GIT_SHA.test(frozenBaseSha) || !FULL_GIT_SHA.test(headSha)) {
       throw new Error('candidate_workspace_base_invalid');
     }
-    if (this.ensureBase) {
+    if (existingCandidate) {
+      if (!FULL_GIT_SHA.test(input.productionBaselineSha ?? '') ||
+          frozenBaseSha === headSha || !this.ensureCandidate ||
+          !this.ensureProductionHead) {
+        throw new Error('existing_candidate_identity_invalid');
+      }
+      await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
+      if (this.ensureBase) {
+        await this.ensureBase(input.productionBaselineSha!.toLowerCase());
+      }
+      // Exact head must be in the verified source cache before we can compare
+      // BOTH sides of a candidate rename against production's post-base diff.
+      await this.ensureCandidate(frozenBaseSha, headSha);
+      if (input.productionBaselineSha!.toLowerCase() !== frozenBaseSha) {
+        if (!this.ensureProductionAdvance) {
+          throw new Error('existing_candidate_production_advance_unverified');
+        }
+        await this.ensureProductionAdvance(
+          frozenBaseSha,
+          input.productionBaselineSha!.toLowerCase(),
+          input.allowedPaths,
+          headSha,
+        );
+      }
+      // Exact head fetch/ancestry may refresh the source mirror. Reject a
+      // production move before creating any verifier worktree.
+      await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
+    } else if (this.ensureBase) {
       await this.ensureBase(frozenBaseSha);
     }
     try {
@@ -148,12 +205,13 @@ export class CandidateWorkspaceManager {
         'add',
         '--detach',
         workspacePath,
-        frozenBaseSha,
+        headSha,
       ],
       { cwd: this.repositoryRoot },
     );
 
     const workspace = new GitWorkspace(workspacePath);
+    let verifiedChangedPaths: string[] | undefined;
     try {
       for (const allowedPath of input.allowedPaths) {
         await requireAllowedPathInsideWorkspace(workspacePath, allowedPath);
@@ -164,7 +222,7 @@ export class CandidateWorkspaceManager {
         ['rev-parse', 'HEAD'],
         { cwd: workspacePath, encoding: 'utf8' },
       );
-      if (headOutput.trim().toLowerCase() !== frozenBaseSha) {
+      if (headOutput.trim().toLowerCase() !== headSha) {
         throw new Error('candidate_workspace_head_mismatch');
       }
 
@@ -180,6 +238,27 @@ export class CandidateWorkspaceManager {
       if ((await workspace.listChangedFiles()).length > 0) {
         throw new Error('candidate_workspace_not_clean');
       }
+      if (existingCandidate) {
+        try {
+          await execFileAsync('git', [
+            'merge-base', '--is-ancestor', frozenBaseSha, headSha,
+          ], { cwd: workspacePath });
+          const { stdout } = await execFileAsync('git', [
+            'diff', '--no-ext-diff', '--no-textconv',
+            '--name-only', '-z', frozenBaseSha, headSha,
+          ], { cwd: workspacePath, encoding: 'utf8' });
+          verifiedChangedPaths = stdout.split('\0').filter(Boolean).sort();
+          const allowed = [...new Set(input.allowedPaths)].sort();
+          if (verifiedChangedPaths.length !== allowed.length ||
+              verifiedChangedPaths.some((p, i) => p !== allowed[i])) {
+            throw new Error('existing_candidate_scope_mismatch');
+          }
+        } catch (error) {
+          if (error instanceof Error && error.message === 'existing_candidate_scope_mismatch')
+            throw error;
+          throw new Error('existing_candidate_git_identity_invalid');
+        }
+      }
     } catch (error) {
       await execFileAsync(
         'git',
@@ -191,6 +270,11 @@ export class CandidateWorkspaceManager {
     return {
       path: workspacePath,
       baseSha: frozenBaseSha,
+      ...(existingCandidate ? {
+        verifiedHeadSha: headSha, verifiedChangedPaths,
+        verifyProductionBaseline: async () =>
+          this.ensureProductionHead!(input.productionBaselineSha!.toLowerCase()),
+      } : {}),
       workspace,
       cleanup: async () => {
         await execFileAsync(

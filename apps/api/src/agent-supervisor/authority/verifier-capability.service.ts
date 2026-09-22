@@ -22,6 +22,7 @@ export interface VerifierCapabilityInput {
   purpose?: 'INDEPENDENT_VERIFICATION';
   leaseId: string;
   runnerId: string;
+  candidateHeadSha?: string;
 }
 
 export interface VerifierCapability extends AuthorityClaims {
@@ -36,6 +37,7 @@ export interface VerifierCapability extends AuthorityClaims {
   allowedActions: VerifierCapabilityOperation[];
   leaseId: string;
   runnerId: string;
+  candidateHeadSha?: string;
 }
 
 @Injectable()
@@ -71,6 +73,7 @@ export class VerifierCapabilityService {
       allowedActions: [...this.operations],
       leaseId: input.leaseId,
       runnerId: input.runnerId,
+      ...(input.candidateHeadSha ? { candidateHeadSha: input.candidateHeadSha } : {}),
     });
   }
 
@@ -106,6 +109,9 @@ export class VerifierCapabilityService {
     ) {
       throw new ForbiddenException('verifier_capability_scope_mismatch');
     }
+    if (claims.candidateHeadSha !== input.candidateHeadSha) {
+      throw new ForbiddenException('verifier_capability_candidate_mismatch');
+    }
     return claims;
   }
 
@@ -120,6 +126,12 @@ export class VerifierCapabilityService {
       !input.runnerId
     ) {
       throw new ForbiddenException('verifier_capability_binding_required');
+    }
+    if (
+      input.candidateHeadSha !== undefined &&
+      !/^[0-9a-f]{40}$/i.test(input.candidateHeadSha)
+    ) {
+      throw new ForbiddenException('verifier_capability_candidate_invalid');
     }
   }
 }

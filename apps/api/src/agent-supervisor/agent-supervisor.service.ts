@@ -325,6 +325,23 @@ export class AgentSupervisorService {
     );
   }
 
+  async admitExistingCandidateVerification(id: string): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['BLOCKED', 'DRAFT']);
+    if (task.evidence) {
+      throw new BadRequestException('existing_candidate_evidence_must_be_empty');
+    }
+    await this.assertDependenciesReady(task);
+    await this.assertFilesAvailable(task);
+
+    task.status = 'VERIFYING';
+    task.blockingReason = null;
+    task.failureReason = null;
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.persistTaskWithLocks(task, 'acquire', expectedUpdatedAt);
+  }
+
   async returnToWorking(id: string, reason: string): Promise<SupervisorTask> {
     const task = await this.requireTask(id);
     const expectedUpdatedAt = new Date(task.updatedAt);
@@ -366,6 +383,28 @@ export class AgentSupervisorService {
       'acquire',
       expectedUpdatedAt,
     );
+  }
+
+  async adoptExistingCandidateVerification(
+    id: string,
+    verifiedEvidence: SupervisorEvidence,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['VERIFYING']);
+    if (task.evidence) {
+      throw new BadRequestException('existing_candidate_evidence_already_present');
+    }
+    if (!verifiedEvidence.existingCandidateVerification ||
+        !verifiedEvidence.reviewCandidate ||
+        verifiedEvidence.candidatePublication) {
+      throw new BadRequestException('existing_candidate_verifier_proof_required');
+    }
+    this.validateEvidence(task, verifiedEvidence);
+    // This evidence is explicitly verifier provenance, NEVER implementation.
+    task.evidence = structuredClone(verifiedEvidence);
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(task, expectedUpdatedAt);
   }
 
   async markReadyForReview(id: string): Promise<SupervisorTask> {
