@@ -42,3 +42,27 @@ test('legacy config leaves candidate flow dependencies absent', async () => {
   assert.equal(options.candidatePublisher, undefined);
   assert.equal(options.executorFactory, undefined);
 });
+
+test('exact existing-candidate verification does not require frozenBaseSha or publisher credentials', async () => {
+  const { createEngineeringRunnerOptions } = await import('./bootstrap.ts');
+  const config: EngineeringRunnerConfig = {
+    supervisorApiUrl: 'https://example.invalid', bootstrapToken: 'bootstrap',
+    command: 'python3', args: [], workspace: '/legacy',
+    pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
+    exactTarget: { taskId: 'ATLAS-TASK', executionId: 'ATLAS-EXEC' },
+    candidate: {
+      repositoryRoot: '/repo',
+      workspaceRoot: '/workspaces',
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+    },
+  };
+  const options = createEngineeringRunnerOptions(config, { PATH: '/usr/bin' });
+  const client = options.client as any;
+  assert.equal(client.requireFrozenBaseSha, false);
+  assert.equal(client.executionPurpose, 'INDEPENDENT_VERIFICATION');
+  assert.deepEqual(client.exactTarget, config.exactTarget);
+  assert.equal(options.singleShot, true);
+  assert.ok(options.candidateWorkspaceManager);
+  assert.equal(options.candidatePublisher, undefined);
+  assert.equal(typeof options.executorFactory, 'function');
+});

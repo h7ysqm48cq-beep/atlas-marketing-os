@@ -15,7 +15,7 @@ export function createEngineeringRunnerOptions(
     client: new SupervisorClient({
       baseUrl: config.supervisorApiUrl,
       bootstrapToken: config.bootstrapToken,
-      requireFrozenBaseSha: Boolean(config.candidate),
+      requireFrozenBaseSha: Boolean(config.candidate && !config.exactTarget),
       ...(config.exactTarget ? {
         executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
         exactTarget: config.exactTarget,
