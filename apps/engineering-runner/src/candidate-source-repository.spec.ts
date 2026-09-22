@@ -274,3 +274,52 @@ test('advancing production permits only disjoint frozen candidate scope and reje
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('production rename of an allowed source path is overlapping and must fail closed', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-production-rename-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['mv', 'app.txt', 'renamed.txt']);
+    await git(author, ['commit', '-qm', 'rename allowed source']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    await assert.rejects(
+      source.ensureProductionAdvance(base, production, ['app.txt']),
+      /existing_candidate_production_scope_overlap/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('production moving between source checks fails closed without accepting stale baseline', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-advance-race-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await writeFile(path.join(author, 'unrelated.txt'), 'advance one\\n');
+    await git(author, ['add', '--', 'unrelated.txt']);
+    await git(author, ['commit', '-qm', 'first production advance']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    await writeFile(path.join(author, 'second.txt'), 'advance two\\n');
+    await git(author, ['add', '--', 'second.txt']);
+    await git(author, ['commit', '-qm', 'second production advance']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    const originalEnsureBase = source.ensureBase.bind(source);
+    (source as any).ensureBase = async (sha: string) => {
+      await originalEnsureBase(sha);
+      await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    };
+    await assert.rejects(
+      source.ensureProductionAdvance(base, production, ['app.txt']),
+      /existing_candidate_production_baseline_drift/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

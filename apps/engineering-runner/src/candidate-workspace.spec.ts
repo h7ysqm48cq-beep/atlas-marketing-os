@@ -309,3 +309,41 @@ test('Advanced baseline fails closed unless the source supplies an independent c
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('existing-candidate workspace rejects a production move during candidate fetch', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-source-moves-mid-fetch-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    let baselineChecks = 0;
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async () => {
+        if (++baselineChecks > 1)
+          throw new Error('existing_candidate_production_baseline_drift');
+      },
+    });
+    await assert.rejects(
+      manager.prepare({
+        taskId: 'ATLAS-moving-source',
+        executionId: 'ATLAS-EXEC-moving-source',
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: base,
+        allowedPaths: ['allowed.txt'],
+      }),
+      /existing_candidate_production_baseline_drift/,
+    );
+    assert.equal(baselineChecks, 2);
+    const worktrees = await git(repo, ['worktree', 'list', '--porcelain']);
+    assert.doesNotMatch(worktrees, /ATLAS-moving-source--ATLAS-EXEC-moving-source/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -11,6 +11,7 @@ interface CandidateWorkspaceLeaseLike {
   baseSha: string;
   verifiedHeadSha?: string;
   verifiedChangedPaths?: string[];
+  verifyProductionBaseline?: () => Promise<void>;
   workspace: WorkspaceInspector;
   cleanup(): Promise<void>;
 }
@@ -181,6 +182,7 @@ export class EngineeringRunner {
           (!candidateLease?.verifiedHeadSha ||
            candidateLease.verifiedHeadSha !== session.assignment.candidateHeadSha ||
            !candidateLease.verifiedChangedPaths ||
+           !candidateLease.verifyProductionBaseline ||
            !activeWorkspace.fingerprint)) {
         throw new Error('existing_candidate_source_identity_unverified');
       }
@@ -289,6 +291,11 @@ export class EngineeringRunner {
 
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       heartbeatTimer = undefined;
+      // Verification may outlive the Git source snapshot. A second canonical
+      // remote read immediately before submission rejects production drift.
+      if (useExistingCandidateFlow) {
+        await candidateLease!.verifyProductionBaseline!();
+      }
       await session.complete(completionResult);
       terminalRecorded = true;
       return 'completed';

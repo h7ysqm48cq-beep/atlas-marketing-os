@@ -82,6 +82,7 @@ export interface CandidateWorkspaceLease {
   baseSha: string;
   verifiedHeadSha?: string;
   verifiedChangedPaths?: string[];
+  verifyProductionBaseline?: () => Promise<void>;
   workspace: WorkspaceInspector;
   cleanup(): Promise<void>;
 }
@@ -155,6 +156,9 @@ export class CandidateWorkspaceManager {
         );
       }
       await this.ensureCandidate(frozenBaseSha, headSha);
+      // Exact head fetch/ancestry may refresh the source mirror. Reject a
+      // production move before creating any verifier worktree.
+      await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
     } else if (this.ensureBase) {
       await this.ensureBase(frozenBaseSha);
     }
@@ -263,6 +267,8 @@ export class CandidateWorkspaceManager {
       baseSha: frozenBaseSha,
       ...(existingCandidate ? {
         verifiedHeadSha: headSha, verifiedChangedPaths,
+        verifyProductionBaseline: async () =>
+          this.ensureProductionHead!(input.productionBaselineSha!.toLowerCase()),
       } : {}),
       workspace,
       cleanup: async () => {

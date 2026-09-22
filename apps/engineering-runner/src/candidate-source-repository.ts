@@ -201,13 +201,18 @@ export class CandidateSourceRepository {
     // Conservative: any same-path change since the candidate base rejects
     // this old-head verifier, even if Git could auto-merge its contents.
     const raw = await this.gitRaw(this.repositoryRoot, [
-      'diff', '--no-ext-diff', '--no-textconv', '--name-only', '-z',
-      candidateBaseSha, expectedProductionSha,
+      // --no-renames exposes BOTH original and destination paths. Otherwise
+      // an allowed source path renamed away could disappear from --name-only.
+      'diff', '--no-renames', '--no-ext-diff', '--no-textconv',
+      '--name-only', '-z', candidateBaseSha, expectedProductionSha,
     ]);
     const advancedPaths = new Set(raw.split('\0').filter(Boolean));
     if (candidatePaths.some(p => advancedPaths.has(p))) {
       throw new Error('existing_candidate_production_scope_overlap');
     }
+    // A second canonical fetch rejects an advance during ensureBase/diff;
+    // never rely solely on the previously pinned mirror ref.
+    await this.ensureProductionHead(expectedProductionSha);
   }
 
   async ensureExistingCandidate(baseSha: string, headSha: string): Promise<void> {

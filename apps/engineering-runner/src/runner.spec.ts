@@ -569,6 +569,7 @@ test('EngineeringRunner verifies an existing candidate in its detached workspace
           path: '/tmp/exact-head', baseSha: input.candidateBaseSha,
           verifiedHeadSha: input.candidateHeadSha,
           verifiedChangedPaths: ['apps/example.ts'],
+          verifyProductionBaseline: async () => undefined,
           workspace: {
             listChangedFiles: async () => [],
             fingerprint: async () => 'unchanged-git-state',
@@ -615,6 +616,7 @@ test('Existing-candidate verifier fails closed when immutable Git fingerprint ch
         path: '/tmp/head', baseSha: 'a'.repeat(40),
         verifiedHeadSha: 'b'.repeat(40),
         verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => undefined,
         workspace: {
           listChangedFiles: async () => [],
           fingerprint: async () => ++snapshots === 1 ? 'before' : 'after',
@@ -647,4 +649,49 @@ test('Exact-target runner executes once and does not enter ordinary polling', as
   await runner.run(new AbortController().signal);
   assert.equal(claims, 1);
   assert.equal(preflights, 1);
+});
+
+test('Exact existing-candidate verifier refuses completion when production moves during execution', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let completed = 0;
+  let failed = '';
+  active.complete = async () => { completed++; };
+  active.fail = async (reason: string) => { failed = reason; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => {
+          throw new Error('existing_candidate_production_baseline_drift');
+        },
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'unchanged-git-state',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+  });
+  assert.equal(await runner.runOnce(), 'failed');
+  assert.equal(completed, 0);
+  assert.match(failed, /existing_candidate_production_baseline_drift/);
 });
