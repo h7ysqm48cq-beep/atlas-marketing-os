@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { AgentSupervisorController } from './agent-supervisor.controller';
 import { AgentSupervisorModule } from './agent-supervisor.module';
 import { AgentSupervisorService } from './agent-supervisor.service';
+import { AgentGatewayService } from './gateway/agent-gateway.service';
 import { SupervisorAdmissionManifestService } from './authority/supervisor-admission-manifest.service';
 import {
   HumanOwnerApprovalService,
@@ -95,6 +96,7 @@ function createControllerOwnerSigner(
 describe('AgentSupervisorController', () => {
   let supervisor: AgentSupervisorService;
   let dispatcher: WorkerDispatcherService;
+  let executionStore: MemorySupervisorExecutionStore;
   let controller: AgentSupervisorController;
 
   beforeEach(() => {
@@ -102,9 +104,10 @@ describe('AgentSupervisorController', () => {
       new MemorySupervisorTaskStore(),
       new MemoryFileOwnershipStore(),
     );
+    executionStore = new MemorySupervisorExecutionStore();
     dispatcher = new WorkerDispatcherService(
       supervisor,
-      new MemorySupervisorExecutionStore(),
+      executionStore,
       new SupervisorWorkerCapabilityService(createTestSupervisorAuthority()),
       new SupervisorAdmissionManifestService(),
     );
@@ -122,6 +125,192 @@ describe('AgentSupervisorController', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, AgentSupervisorModule),
     ).toContain(SupervisorOwnerActionGuard);
+  });
+
+
+  it('exposes the persisted-Execution adoption route only under the existing Owner guards', () => {
+    const method = AgentSupervisorController.prototype.adoptImplementationExecution;
+    expect(Reflect.getMetadata(PATH_METADATA, method)).toBe(
+      'tasks/:id/adopt-implementation-execution',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, method)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(GUARDS_METADATA, AgentSupervisorController)).toEqual([
+      SupervisorOwnerActionGuard,
+      SupervisorOwnerGuard,
+    ]);
+  });
+
+  it('accepts only executionId and never caller-provided implementation evidence or authority', async () => {
+    const adopt = jest.fn().mockResolvedValue({ status: 'IMPLEMENTED' });
+    const ownerController = new AgentSupervisorController(
+      supervisor,
+      dispatcher,
+      createControllerOwnerSigner(supervisor),
+      { submitImplementationFromExecution: adopt } as unknown as AgentGatewayService,
+    );
+    const executionId = 'ATLAS-EXEC-20260923-1234-abcd';
+    const taskId = 'ATLAS-TASK-1234';
+
+    await expect(
+      ownerController.adoptImplementationExecution(taskId, { executionId }),
+    ).resolves.toEqual({ status: 'IMPLEMENTED' });
+    expect(adopt).toHaveBeenCalledTimes(1);
+    expect(adopt).toHaveBeenCalledWith(taskId, executionId);
+
+    for (const input of [
+      null,
+      {},
+      { executionId: 1234 },
+      { executionId: 'other-execution' },
+      { executionId, evidence: { rootCause: 'caller-forged' } },
+      { executionId, explicitUserAuthorization: true },
+      { executionId, taskId: 'ATLAS-OTHER' },
+    ]) {
+      let rejection: unknown;
+      try {
+        ownerController.adoptImplementationExecution(
+          taskId,
+          input as { executionId: string },
+        );
+      } catch (error) {
+        rejection = error;
+      }
+      expect(rejection).toMatchObject({
+        response: { code: 'implementation_execution_id_only_required' },
+      });
+    }
+    expect(adopt).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when the registered persisted-Execution gateway is unavailable', () => {
+    expect(() => controller.adoptImplementationExecution(
+      'ATLAS-TASK-1',
+      { executionId: 'ATLAS-EXEC-20260923-1234-abcd' },
+    )).toThrow('implementation_execution_gateway_unavailable');
+  });
+
+  it('adopts only a genuinely completed, Task-bound Execution and preserves its evidence', async () => {
+    const task = await supervisor.createTask({
+      objective: 'Same-SHA review: adopt real completed implementation',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['completed implementation'],
+    });
+    await supervisor.startTask(task.id);
+    const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    const evidence = {
+      rootCause: 'Real checked persisted result',
+      changedFiles: [CHANGED_FILE],
+      tests: ['runner PASS'],
+      build: 'PASS',
+      regression: ['source verified'],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CANONICAL_BASE',
+      remainingRisk: ['await verifier'],
+    };
+    const ownerController = new AgentSupervisorController(
+      supervisor,
+      dispatcher,
+      createControllerOwnerSigner(supervisor),
+      new AgentGatewayService(supervisor, executionStore),
+    );
+    await expect(
+      ownerController.adoptImplementationExecution(task.id, {
+        executionId: queued.execution.id,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'execution_not_completed' },
+    });
+    expect((await supervisor.getTask(task.id)).status).toBe('WORKING');
+
+    await executionStore.save({
+      ...queued.execution,
+      status: 'COMPLETED',
+      claimEpoch: 1,
+      runnerId: 'infra-test-runner',
+      startedAt: new Date(),
+      completedAt: new Date(),
+      result: { summary: 'Genuine implementation', evidence },
+    });
+    const adopted = await ownerController.adoptImplementationExecution(
+      task.id,
+      { executionId: queued.execution.id },
+    );
+    expect(adopted.status).toBe('IMPLEMENTED');
+    expect(adopted.evidence?.rootCause).toBe(evidence.rootCause);
+    expect(adopted.evidence?.changedFiles).toEqual([CHANGED_FILE]);
+    expect((await executionStore.listByTask(task.id))).toHaveLength(1);
+    await expect(
+      ownerController.adoptImplementationExecution(task.id, {
+        executionId: queued.execution.id,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'task_not_implementation_ready' },
+    });
+  });
+
+  it('rejects a completed Execution bound to another Task or files outside its scope', async () => {
+    const task = await supervisor.createTask({
+      objective: 'Review bounded implementation evidence',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['bounded work'],
+    });
+    await supervisor.startTask(task.id);
+    const queued = await dispatcher.dispatch(task.id, 'IMPLEMENTATION');
+    const other = await supervisor.createTask({
+      objective: 'Other Task identity',
+      owner: 'backend',
+      allowedPaths: ['apps/api/src/other.ts'],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['different Task'],
+    });
+    await supervisor.startTask(other.id);
+    const evidence = {
+      rootCause: 'Persisted test evidence',
+      changedFiles: ['apps/api/src/outside.ts'],
+      tests: ['PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: [],
+    };
+    await executionStore.save({
+      ...queued.execution,
+      status: 'COMPLETED',
+      claimEpoch: 1,
+      runnerId: 'infra-test-runner',
+      startedAt: new Date(),
+      completedAt: new Date(),
+      result: { summary: 'Recorded source', evidence },
+    });
+    const ownerController = new AgentSupervisorController(
+      supervisor,
+      dispatcher,
+      createControllerOwnerSigner(supervisor),
+      new AgentGatewayService(supervisor, executionStore),
+    );
+    await expect(ownerController.adoptImplementationExecution(
+      other.id, { executionId: queued.execution.id },
+    )).rejects.toMatchObject({
+      response: { code: 'execution_task_mismatch' },
+    });
+    await expect(ownerController.adoptImplementationExecution(
+      task.id, { executionId: queued.execution.id },
+    )).rejects.toMatchObject({
+      response: {
+        code: 'changed_file_out_of_scope',
+        path: 'apps/api/src/outside.ts',
+      },
+    });
+    expect((await supervisor.getTask(task.id)).status).toBe('WORKING');
+    expect((await supervisor.getTask(other.id)).status).toBe('WORKING');
   });
 
   it('creates merge authorization from authenticated request identity without accepting an approval boolean', async () => {
