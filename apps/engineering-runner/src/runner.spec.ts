@@ -695,3 +695,49 @@ test('Exact existing-candidate verifier refuses completion when production moves
   assert.equal(completed, 0);
   assert.match(failed, /existing_candidate_production_baseline_drift/);
 });
+
+test('existing-candidate heartbeat survives slow final canonical production check', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let heartbeats = 0;
+  let heartbeatsAtCompletion = 0;
+  active.heartbeat = async () => { heartbeats++; };
+  active.complete = async () => { heartbeatsAtCompletion = heartbeats; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => {
+          await new Promise(resolve => setTimeout(resolve, 65));
+        },
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'unchanged-git-state',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 5,
+  });
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.ok(heartbeatsAtCompletion > 2,
+    'heartbeat must continue throughout the final remote source check');
+});

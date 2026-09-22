@@ -289,8 +289,8 @@ export class EngineeringRunner {
         };
       }
 
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      heartbeatTimer = undefined;
+      // Keep heartbeats active until completion. The final remote source
+      // check can otherwise exceed the remaining Supervisor execution lease.
       // Verification may outlive the Git source snapshot. A second canonical
       // remote read immediately before submission rejects production drift.
       if (useExistingCandidateFlow) {
@@ -298,6 +298,8 @@ export class EngineeringRunner {
       }
       await session.complete(completionResult);
       terminalRecorded = true;
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = undefined;
       return 'completed';
     } catch (error) {
       if (heartbeatTimer) clearInterval(heartbeatTimer);

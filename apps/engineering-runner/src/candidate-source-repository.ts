@@ -179,13 +179,24 @@ export class CandidateSourceRepository {
     candidateBaseSha: string,
     expectedProductionSha: string,
     candidatePaths: string[],
+    candidateHeadSha: string,
   ): Promise<void> {
     if (!FULL_GIT_SHA.test(candidateBaseSha) ||
+        !FULL_GIT_SHA.test(candidateHeadSha) ||
+        candidateBaseSha.toLowerCase() === candidateHeadSha.toLowerCase() ||
         !FULL_GIT_SHA.test(expectedProductionSha) ||
         !Array.isArray(candidatePaths) || candidatePaths.length === 0 ||
-        candidatePaths.some(p => !p || p.startsWith('/') ||
-          p.startsWith('../') || p.includes('\\'))) {
+        candidatePaths.some(p => !p || p === '.' || p === '..' ||
+          p.startsWith('/') || p.startsWith('../') || p.includes('\\') ||
+          path.posix.normalize(p) !== p)) {
       throw new Error('existing_candidate_production_advance_invalid');
+    }
+    // The exact candidate must have been fetched from the canonical source.
+    const candidate = await this.gitRaw(this.repositoryRoot, [
+      'rev-parse', '--verify', candidateHeadSha.toLowerCase() + '^{commit}',
+    ]).catch(() => '');
+    if (candidate.trim().toLowerCase() !== candidateHeadSha.toLowerCase()) {
+      throw new Error('existing_candidate_source_identity_unverified');
     }
     // Re-fetch the canonical branch instead of trusting the caller's baseline.
     await this.ensureProductionHead(expectedProductionSha);
@@ -206,8 +217,21 @@ export class CandidateSourceRepository {
       'diff', '--no-renames', '--no-ext-diff', '--no-textconv',
       '--name-only', '-z', candidateBaseSha, expectedProductionSha,
     ]);
-    const advancedPaths = new Set(raw.split('\0').filter(Boolean));
-    if (candidatePaths.some(p => advancedPaths.has(p))) {
+    const advancedPaths = raw.split('\0').filter(Boolean);
+    // GitHub's candidate --name-only may omit the original path on rename.
+    // Fetch both sides using --no-renames; do not alter the Task's frozen
+    // approved path list, only expand conflict detection.
+    const candidateRaw = await this.gitRaw(this.repositoryRoot, [
+      'diff', '--no-renames', '--no-ext-diff', '--no-textconv',
+      '--name-only', '-z', candidateBaseSha, candidateHeadSha,
+    ]);
+    const allCandidatePaths = new Set([
+      ...candidatePaths, ...candidateRaw.split('\0').filter(Boolean),
+    ]);
+    const collides = (a: string, b: string): boolean =>
+      a === b || a.startsWith(b + '/') || b.startsWith(a + '/');
+    if ([...allCandidatePaths].some(a =>
+      advancedPaths.some(b => collides(a, b)))) {
       throw new Error('existing_candidate_production_scope_overlap');
     }
     // A second canonical fetch rejects an advance during ensureBase/diff;

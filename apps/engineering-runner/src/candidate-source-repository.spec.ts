@@ -261,13 +261,13 @@ test('advancing production permits only disjoint frozen candidate scope and reje
       repositoryRoot: path.join(root, 'mirror.git'), remote,
     });
     await source.ensureExistingCandidate(base, head);
-    await source.ensureProductionAdvance(base, production, ['candidate.txt']);
+    await source.ensureProductionAdvance(base, production, ['candidate.txt'], head);
     await assert.rejects(
-      source.ensureProductionAdvance(base, production, ['unrelated.txt']),
+      source.ensureProductionAdvance(base, production, ['unrelated.txt'], head),
       /existing_candidate_production_scope_overlap/,
     );
     await assert.rejects(
-      source.ensureProductionAdvance(base, base, ['candidate.txt']),
+      source.ensureProductionAdvance(base, base, ['candidate.txt'], head),
       /existing_candidate_production_baseline_drift/,
     );
   } finally {
@@ -279,6 +279,13 @@ test('production rename of an allowed source path is overlapping and must fail c
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-production-rename-'));
   try {
     const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await writeFile(path.join(author, 'candidate.txt'), 'candidate\\n');
+    await git(author, ['add', '--', 'candidate.txt']);
+    await git(author, ['commit', '-qm', 'candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    await git(author, ['checkout', 'production/atlas']);
     await git(author, ['mv', 'app.txt', 'renamed.txt']);
     await git(author, ['commit', '-qm', 'rename allowed source']);
     const production = await git(author, ['rev-parse', 'HEAD']);
@@ -286,8 +293,9 @@ test('production rename of an allowed source path is overlapping and must fail c
     const source = new CandidateSourceRepository({
       repositoryRoot: path.join(root, 'mirror.git'), remote,
     });
+    await source.ensureExistingCandidate(base, head);
     await assert.rejects(
-      source.ensureProductionAdvance(base, production, ['app.txt']),
+      source.ensureProductionAdvance(base, production, ['app.txt'], head),
       /existing_candidate_production_scope_overlap/,
     );
   } finally {
@@ -299,6 +307,13 @@ test('production moving between source checks fails closed without accepting sta
   const root = await mkdtemp(path.join(tmpdir(), 'atlas-advance-race-'));
   try {
     const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await writeFile(path.join(author, 'candidate.txt'), 'candidate\\n');
+    await git(author, ['add', '--', 'candidate.txt']);
+    await git(author, ['commit', '-qm', 'candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    await git(author, ['checkout', 'production/atlas']);
     await writeFile(path.join(author, 'unrelated.txt'), 'advance one\\n');
     await git(author, ['add', '--', 'unrelated.txt']);
     await git(author, ['commit', '-qm', 'first production advance']);
@@ -310,14 +325,73 @@ test('production moving between source checks fails closed without accepting sta
     const source = new CandidateSourceRepository({
       repositoryRoot: path.join(root, 'mirror.git'), remote,
     });
+    await source.ensureExistingCandidate(base, head);
     const originalEnsureBase = source.ensureBase.bind(source);
     (source as any).ensureBase = async (sha: string) => {
       await originalEnsureBase(sha);
       await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
     };
     await assert.rejects(
-      source.ensureProductionAdvance(base, production, ['app.txt']),
+      source.ensureProductionAdvance(base, production, ['app.txt'], head),
       /existing_candidate_production_baseline_drift/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('candidate rename source path conflicts with a post-base production edit', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-candidate-rename-old-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await git(author, ['mv', 'app.txt', 'renamed.txt']);
+    await git(author, ['commit', '-qm', 'rename candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    await git(author, ['checkout', 'production/atlas']);
+    await writeFile(path.join(author, 'app.txt'), 'new production\\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'edit old name']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    await source.ensureExistingCandidate(base, head);
+    await assert.rejects(
+      source.ensureProductionAdvance(base, production, ['renamed.txt'], head),
+      /existing_candidate_production_scope_overlap/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('file-versus-directory conflicts across production and candidate paths fail closed', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-file-directory-conflict-'));
+  try {
+    const { author, remote, productionHead: base } = await fixture(root);
+    await git(author, ['checkout', '-qb', 'candidate']);
+    await writeFile(path.join(author, 'foo'), 'candidate file\\n');
+    await git(author, ['add', '--', 'foo']);
+    await git(author, ['commit', '-qm', 'candidate file']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/candidate']);
+    await git(author, ['checkout', 'production/atlas']);
+    await mkdir(path.join(author, 'foo'), { recursive: true });
+    await writeFile(path.join(author, 'foo', 'bar'), 'production nested file\\n');
+    await git(author, ['add', '--', 'foo/bar']);
+    await git(author, ['commit', '-qm', 'production nested file']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'), remote,
+    });
+    await source.ensureExistingCandidate(base, head);
+    await assert.rejects(
+      source.ensureProductionAdvance(base, production, ['foo'], head),
+      /existing_candidate_production_scope_overlap/,
     );
   } finally {
     await rm(root, { recursive: true, force: true });

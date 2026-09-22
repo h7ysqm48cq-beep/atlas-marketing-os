@@ -97,6 +97,7 @@ export interface CandidateWorkspaceManagerOptions {
     candidateBaseSha: string,
     expectedProductionSha: string,
     candidatePaths: string[],
+    candidateHeadSha: string,
   ) => Promise<void>;
 }
 
@@ -110,6 +111,7 @@ export class CandidateWorkspaceManager {
     candidateBaseSha: string,
     expectedProductionSha: string,
     candidatePaths: string[],
+    candidateHeadSha: string,
   ) => Promise<void>;
 
   constructor(options: CandidateWorkspaceManagerOptions) {
@@ -145,6 +147,9 @@ export class CandidateWorkspaceManager {
       if (this.ensureBase) {
         await this.ensureBase(input.productionBaselineSha!.toLowerCase());
       }
+      // Exact head must be in the verified source cache before we can compare
+      // BOTH sides of a candidate rename against production's post-base diff.
+      await this.ensureCandidate(frozenBaseSha, headSha);
       if (input.productionBaselineSha!.toLowerCase() !== frozenBaseSha) {
         if (!this.ensureProductionAdvance) {
           throw new Error('existing_candidate_production_advance_unverified');
@@ -153,9 +158,9 @@ export class CandidateWorkspaceManager {
           frozenBaseSha,
           input.productionBaselineSha!.toLowerCase(),
           input.allowedPaths,
+          headSha,
         );
       }
-      await this.ensureCandidate(frozenBaseSha, headSha);
       // Exact head fetch/ancestry may refresh the source mirror. Reject a
       // production move before creating any verifier worktree.
       await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());

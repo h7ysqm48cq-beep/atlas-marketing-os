@@ -294,11 +294,12 @@ test('Advanced baseline fails closed unless the source supplies an independent c
     let called = 0;
     const manager = new CandidateWorkspaceManager({
       ...options,
-      ensureProductionAdvance: async (b, p, paths) => {
+      ensureProductionAdvance: async (b, p, paths, candidateHead) => {
         called++;
         assert.equal(b, base);
         assert.equal(p, production);
         assert.deepEqual(paths, ['allowed.txt']);
+        assert.equal(candidateHead, head);
       },
     });
     const lease = await manager.prepare(input);

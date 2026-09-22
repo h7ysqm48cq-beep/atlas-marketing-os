@@ -58,8 +58,10 @@ export function createEngineeringRunnerOptions(
         candidateSource.ensureExistingCandidate(baseSha, headSha),
       ensureProductionHead: (headSha) =>
         candidateSource.ensureProductionHead(headSha),
-      ensureProductionAdvance: (baseSha, productionSha, paths) =>
-        candidateSource.ensureProductionAdvance(baseSha, productionSha, paths),
+      ensureProductionAdvance: (baseSha, productionSha, paths, headSha) =>
+        candidateSource.ensureProductionAdvance(
+          baseSha, productionSha, paths, headSha,
+        ),
     }),
     ...(candidatePublisher ? { candidatePublisher } : {}),
     singleShot: Boolean(config.exactTarget),
