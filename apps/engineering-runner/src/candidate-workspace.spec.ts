@@ -347,3 +347,40 @@ test('existing-candidate workspace rejects a production move during candidate fe
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('advanced-baseline source rejection does not create a detached verifier worktree', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-source-overlap-fails-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'candidate\\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    const production = 'b2f480e0b2b83d0e2e7ccf0bc3286df7241bf016';
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async () => undefined,
+      ensureProductionHead: async () => undefined,
+      ensureProductionAdvance: async () => {
+        throw new Error('existing_candidate_production_scope_overlap');
+      },
+    });
+    await assert.rejects(
+      manager.prepare({
+        taskId: 'ATLAS-adv-overlap',
+        executionId: 'ATLAS-EXEC-adv-overlap',
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: production,
+        allowedPaths: ['allowed.txt'],
+      }),
+      /existing_candidate_production_scope_overlap/,
+    );
+    const worktrees = await git(repo, ['worktree', 'list', '--porcelain']);
+    assert.doesNotMatch(worktrees, /ATLAS-adv-overlap--ATLAS-EXEC-adv-overlap/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
