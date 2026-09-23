@@ -37,7 +37,7 @@ export interface CandidatePublicationReceipt {
 }
 
 export interface WorkerReviewCandidate {
-  action: 'merge';
+  action: 'merge' | 'deploy_production';
   targetBranch: 'production/atlas';
   baseSha: string;
   headSha: string;
