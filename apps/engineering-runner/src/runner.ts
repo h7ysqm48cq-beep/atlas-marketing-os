@@ -4,6 +4,7 @@ import type {
   SupervisorClientLike,
   WorkspaceInspector,
 } from './types.ts';
+import { CandidateSourceRepository } from './candidate-source-repository.ts';
 
 
 interface CandidateWorkspaceLeaseLike {
@@ -55,6 +56,7 @@ export interface EngineeringRunnerOptions {
   candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   candidatePublisher?: CandidatePublisherLike;
   executorFactory?: (cwd: string) => AssignmentExecutor;
+  verifyProductionHead?: (sha: string) => Promise<void>;
   preflight?: () => Promise<void>;
   singleShot?: boolean;
 }
@@ -110,6 +112,7 @@ export class EngineeringRunner {
   private readonly candidateWorkspaceManager?: CandidateWorkspaceManagerLike;
   private readonly candidatePublisher?: CandidatePublisherLike;
   private readonly executorFactory?: (cwd: string) => AssignmentExecutor;
+  private readonly verifyProductionHead: (sha: string) => Promise<void>;
   private readonly preflight?: () => Promise<void>;
   private readonly singleShot: boolean;
 
@@ -123,6 +126,15 @@ export class EngineeringRunner {
     this.candidateWorkspaceManager = options.candidateWorkspaceManager;
     this.candidatePublisher = options.candidatePublisher;
     this.executorFactory = options.executorFactory;
+    this.verifyProductionHead = options.verifyProductionHead ?? (async (sha) => {
+      const repositoryRoot = process.env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY;
+      const remote = process.env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE;
+      if (!repositoryRoot || !remote) throw new Error('runtime_refresh_source_unconfigured');
+      await new CandidateSourceRepository({
+        repositoryRoot, remote,
+        sourceToken: process.env.ATLAS_ENGINEERING_RUNNER_SOURCE_TOKEN,
+      }).ensureProductionHead(sha);
+    });
     this.preflight = options.preflight;
     this.singleShot = options.singleShot === true;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
@@ -150,13 +162,20 @@ export class EngineeringRunner {
         session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
         Boolean(session.assignment.candidateBaseSha) &&
         Boolean(session.assignment.candidateHeadSha) &&
-        Boolean(session.assignment.productionBaselineSha);
+        Boolean(session.assignment.productionBaselineSha) &&
+        session.assignment.candidateBaseSha !== session.assignment.candidateHeadSha;
+      const useRuntimeRefreshFlow =
+        session.purpose === 'INDEPENDENT_VERIFICATION' &&
+        session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
+        Boolean(session.assignment.candidateBaseSha) &&
+        session.assignment.candidateBaseSha === session.assignment.candidateHeadSha &&
+        session.assignment.candidateHeadSha === session.assignment.productionBaselineSha;
 
-      if (session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
-          !useExistingCandidateFlow) {
+      if (session.assignment.verificationMode &&
+          !useExistingCandidateFlow && !useRuntimeRefreshFlow) {
         throw new Error('existing_candidate_identity_incomplete');
       }
-      if (useCandidateFlow || useExistingCandidateFlow) {
+      if (useCandidateFlow || useExistingCandidateFlow || useRuntimeRefreshFlow) {
         if (
           !this.candidateWorkspaceManager ||
           (useCandidateFlow && !this.candidatePublisher) ||
@@ -167,7 +186,10 @@ export class EngineeringRunner {
         candidateLease = await this.candidateWorkspaceManager.prepare({
           taskId: session.assignment.taskId,
           executionId: session.assignment.executionId,
-          ...(useCandidateFlow ? { frozenBaseSha: frozenBaseSha! } : {
+          ...(useCandidateFlow || useRuntimeRefreshFlow ? {
+            frozenBaseSha: (useRuntimeRefreshFlow
+              ? session.assignment.candidateHeadSha : frozenBaseSha)!,
+          } : {
             candidateBaseSha: session.assignment.candidateBaseSha!,
             candidateHeadSha: session.assignment.candidateHeadSha!,
             productionBaselineSha: session.assignment.productionBaselineSha!,
@@ -186,8 +208,15 @@ export class EngineeringRunner {
            !activeWorkspace.fingerprint)) {
         throw new Error('existing_candidate_source_identity_unverified');
       }
+      if (useRuntimeRefreshFlow) {
+        if (!activeWorkspace.fingerprint ||
+            candidateLease?.baseSha !== session.assignment.candidateHeadSha) {
+          throw new Error('runtime_refresh_workspace_identity_unverified');
+        }
+        await this.verifyProductionHead(session.assignment.candidateHeadSha!);
+      }
       const before = await activeWorkspace.listChangedFiles();
-      const beforeFingerprint = useExistingCandidateFlow
+      const beforeFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow
         ? await activeWorkspace.fingerprint!() : undefined;
       await session.heartbeat();
       heartbeatTimer = setInterval(() => {
@@ -201,12 +230,20 @@ export class EngineeringRunner {
         signal,
       );
       const after = await activeWorkspace.listChangedFiles();
-      const afterFingerprint = useExistingCandidateFlow
+      const afterFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow
         ? await activeWorkspace.fingerprint!() : undefined;
 
       if (heartbeatError) throw heartbeatError;
       if (useExistingCandidateFlow && beforeFingerprint !== afterFingerprint) {
         throw new Error('existing_candidate_git_fingerprint_drift');
+      }
+      if (useRuntimeRefreshFlow && (before.length !== 0 || after.length !== 0 ||
+          beforeFingerprint !== afterFingerprint ||
+          executionResult.evidence.changedFiles.length !== 0 ||
+          executionResult.evidence.candidatePublication ||
+          executionResult.evidence.existingCandidateVerification ||
+          executionResult.evidence.reviewCandidate)) {
+        throw new Error('runtime_refresh_evidence_or_workspace_drift');
       }
       if (session.purpose === 'INDEPENDENT_VERIFICATION') {
         this.scopeGuard.assertVerificationNoDrift(before, after);
@@ -263,6 +300,27 @@ export class EngineeringRunner {
           },
         };
       }
+      if (useRuntimeRefreshFlow) {
+        const sha = session.assignment.candidateHeadSha!;
+        completionResult = {
+          summary: executionResult.summary,
+          evidence: {
+            ...executionResult.evidence,
+            existingCandidateVerification: {
+              mode: 'EXISTING_CANDIDATE',
+              taskId: session.assignment.taskId,
+              executionId: session.assignment.executionId,
+              baseSha: sha, headSha: sha, productionBaselineSha: sha,
+              changedFiles: [], gitFingerprint: beforeFingerprint!,
+              sourceVerified: true,
+            },
+            reviewCandidate: {
+              action: 'deploy_production', targetBranch: 'production/atlas',
+              baseSha: sha, headSha: sha, changedFiles: [],
+            },
+          },
+        };
+      }
       if (useCandidateFlow) {
         const receipt = await this.candidatePublisher!.publish({
           taskId: session.assignment.taskId,
@@ -295,6 +353,9 @@ export class EngineeringRunner {
       // remote read immediately before submission rejects production drift.
       if (useExistingCandidateFlow) {
         await candidateLease!.verifyProductionBaseline!();
+      }
+      if (useRuntimeRefreshFlow) {
+        await this.verifyProductionHead(session.assignment.candidateHeadSha!);
       }
       await session.complete(completionResult);
       terminalRecorded = true;

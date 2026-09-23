@@ -480,12 +480,14 @@ export class AgentGatewayService {
     const same = (left: string[], right: string[]) =>
       JSON.stringify([...new Set(left)].sort()) ===
       JSON.stringify([...new Set(right)].sort());
+    const runtimeRefresh = assigned.candidateBaseSha === assigned.candidateHeadSha;
+    const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!taskProof || !executionProof ||
         execution.status !== 'COMPLETED' ||
         assigned.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
         assigned.verificationMode !== 'EXISTING_CANDIDATE' ||
-        taskProof.mode !== 'EXISTING_CANDIDATE' ||
-        executionProof.mode !== 'EXISTING_CANDIDATE' ||
+        taskProof.mode !== assigned.verificationMode ||
+        executionProof.mode !== assigned.verificationMode ||
         taskProof.sourceVerified !== true ||
         executionProof.sourceVerified !== true ||
         taskProof.taskId !== task.id ||
@@ -500,17 +502,19 @@ export class AgentGatewayService {
         !/^[0-9a-f]{64}$/i.test(assigned.manifestHash ?? '') ||
         !Number.isInteger(assigned.claimEpoch) || assigned.claimEpoch! < 1 ||
         !assigned.runnerId || !assigned.leaseId ||
-        !same(taskProof.changedFiles, task.allowedPaths) ||
-        !same(taskProof.changedFiles, assigned.allowedPaths) ||
+        !same(taskProof.changedFiles, expectedPaths) ||
+        !same(assigned.allowedPaths, task.allowedPaths) ||
         !same(taskProof.changedFiles, candidate.changedFiles) ||
         !same(taskProof.changedFiles,
           execution.result!.evidence.changedFiles) ||
         !same(taskProof.changedFiles,
           task.evidence!.changedFiles) ||
-        candidate.action !== 'merge' ||
+        candidate.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
         candidate.targetBranch !== 'production/atlas' ||
         candidate.baseSha !== taskProof.baseSha ||
         candidate.headSha !== taskProof.headSha ||
+        (runtimeRefresh && (taskProof.baseSha !== taskProof.headSha ||
+          taskProof.headSha !== taskProof.productionBaselineSha)) ||
         task.evidence!.candidatePublication ||
         execution.result!.evidence.candidatePublication) fail();
   }

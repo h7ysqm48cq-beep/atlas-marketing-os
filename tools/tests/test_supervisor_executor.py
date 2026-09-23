@@ -33,6 +33,29 @@ def test_refuses_independent_verification_assignment(tmp_path):
     assert result.error == "supervisor_execution_purpose_not_supported"
 
 
+def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path,
+        text=True, capture_output=True, check=True,
+    ).stdout.strip()
+    request = assignment(purpose="INDEPENDENT_VERIFICATION")
+    request.update(verificationMode="EXISTING_CANDIDATE", candidateBaseSha=sha,
+                   candidateHeadSha=sha, productionBaselineSha=sha)
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    result = executor.execute(request, allow_apply=True)
+    assert result.success
+    assert result.evidence["changedFiles"] == []
+    assert result.evidence["deploymentState"] == "NOT_DEPLOYED"
+    target.write_text("changed", encoding="utf-8")
+    assert executor.execute(request, allow_apply=True).error == (
+        "runtime_refresh_head_or_workspace_mismatch"
+    )
+
+
 def write_users_service(tmp_path):
     target = tmp_path / "src/users/users.service.ts"
     target.parent.mkdir(parents=True, exist_ok=True)

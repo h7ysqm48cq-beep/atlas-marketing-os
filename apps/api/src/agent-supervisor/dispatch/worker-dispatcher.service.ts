@@ -273,11 +273,24 @@ export class WorkerDispatcherService {
         input.changedPaths.some(path => typeof path !== 'string' || !path.trim())) {
       throw new BadRequestException('existing_candidate_paths_invalid');
     }
+    const runtimeRefresh = input.changedPaths.length === 0;
+    const exactSha = input.candidateBaseSha.toLowerCase();
+    if (runtimeRefresh ? (
+      task.owner !== 'infra' ||
+      !task.forbiddenActions.includes('edit_assigned_files') ||
+      !task.forbiddenActions.includes('commit_assigned_branch') ||
+      !/zero-git-diff.*api.*runtime refresh/i.test(task.objective) ||
+      exactSha !== input.candidateHeadSha.toLowerCase() ||
+      exactSha !== input.productionBaselineSha.toLowerCase() ||
+      !task.acceptance.some(value => value.includes(`baseSha=headSha=${exactSha}`))
+    ) : exactSha === input.candidateHeadSha.toLowerCase()) {
+      throw new BadRequestException('runtime_refresh_identity_invalid');
+    }
     // A DRAFT records the immutable candidate base/head, not an eternal
     // production tip. The runner MUST verify any later production baseline is
     // the actual canonical branch tip and has no overlapping changed paths.
     const canonical = (values: string[]) => [...new Set(values)].sort();
-    if (
+    if (!runtimeRefresh &&
       JSON.stringify(canonical(input.changedPaths)) !==
       JSON.stringify(canonical(task.allowedPaths))
     ) {
@@ -361,7 +374,9 @@ export class WorkerDispatcherService {
     const paths = (xs: string[]) => [...new Set(xs)].sort();
     const identical = (left: string[], right: string[]) =>
       JSON.stringify(paths(left)) === JSON.stringify(paths(right));
-    if (!proof || proof.mode !== 'EXISTING_CANDIDATE' ||
+    const runtimeRefresh = a.candidateBaseSha === a.candidateHeadSha;
+    const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
+    if (!proof || proof.mode !== a.verificationMode ||
         proof.sourceVerified !== true ||
         proof.taskId !== taskId || proof.executionId !== executionId ||
         proof.baseSha !== a.candidateBaseSha ||
@@ -373,14 +388,16 @@ export class WorkerDispatcherService {
         !a.runnerId || !a.leaseId ||
         !task.objective.toLowerCase().includes(proof.baseSha.toLowerCase()) ||
         !task.objective.toLowerCase().includes(proof.headSha.toLowerCase()) ||
-        !identical(proof.changedFiles, task.allowedPaths) ||
-        !identical(evidence.changedFiles, task.allowedPaths) ||
+        !identical(proof.changedFiles, expectedPaths) ||
+        !identical(evidence.changedFiles, expectedPaths) ||
         !identical(a.allowedPaths, task.allowedPaths) ||
-        !review || review.action !== 'merge' ||
+        !review || review.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
         review.targetBranch !== 'production/atlas' ||
         review.baseSha !== proof.baseSha ||
         review.headSha !== proof.headSha ||
-        !identical(review.changedFiles, task.allowedPaths) ||
+        (runtimeRefresh && (proof.baseSha !== proof.headSha ||
+          proof.headSha !== proof.productionBaselineSha)) ||
+        !identical(review.changedFiles, expectedPaths) ||
         evidence.candidatePublication) {
       throw new BadRequestException('existing_candidate_verifier_identity_mismatch');
     }

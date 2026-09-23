@@ -439,6 +439,55 @@ test('EngineeringRunner derives the implementation review candidate only from a 
   });
 });
 
+test('EngineeringRunner independently verifies a clean same-SHA runtime refresh without publication', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as new (options: Record<string, unknown>) => {
+    runOnce(): Promise<unknown>;
+  };
+  const sha = 'a'.repeat(40);
+  const assignment = {
+    ...implementationAssignment, executionPurpose: 'INDEPENDENT_VERIFICATION',
+    verificationMode: 'EXISTING_CANDIDATE', candidateBaseSha: sha,
+    candidateHeadSha: sha, productionBaselineSha: sha,
+  };
+  const active = session(assignment);
+  let completed: any;
+  let published = 0;
+  let verified = 0;
+  active.complete = async (value: unknown) => { completed = value; };
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('wrong_workspace'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('wrong_workspace'); } },
+    scopeGuard: {
+      assertImplementationScope: () => { throw new Error('implementation_scope_used'); },
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: { prepare: async (input: any) => {
+      assert.equal(input.frozenBaseSha, sha);
+      return { path: '/isolated/runtime', baseSha: sha,
+        workspace: { listChangedFiles: async () => [], fingerprint: async () => 'f'.repeat(64) },
+        cleanup: async () => undefined };
+    } },
+    executorFactory: () => ({ execute: async () => ({ ...result,
+      evidence: { ...result.evidence, changedFiles: [], candidatePublication: undefined,
+        reviewCandidate: undefined } }) }),
+    verifyProductionHead: async (value: string) => { assert.equal(value, sha); verified += 1; },
+    candidatePublisher: { publish: async () => { published += 1; throw new Error('published'); } },
+    heartbeatIntervalMs: 10_000,
+  });
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(verified, 2);
+  assert.equal(published, 0);
+  assert.deepEqual(completed.evidence.changedFiles, []);
+  assert.equal(completed.evidence.candidatePublication, undefined);
+  assert.deepEqual(completed.evidence.reviewCandidate, {
+    action: 'deploy_production', targetBranch: 'production/atlas',
+    baseSha: sha, headSha: sha, changedFiles: [],
+  });
+  assert.equal(completed.evidence.existingCandidateVerification.sourceVerified, true);
+});
+
 test('EngineeringRunner fails once and never completes when candidate publication fails', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as

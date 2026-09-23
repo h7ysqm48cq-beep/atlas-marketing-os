@@ -875,6 +875,37 @@ describe('existing-candidate verification dispatch', () => {
 });
 
 describe('existing candidate PR141 DRAFT-only admission', () => {
+  it('admits only an exact, read-only infra zero-diff API runtime refresh', async () => {
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const sha = 'a'.repeat(40);
+    const task = await supervisor.createTask({
+      objective: `Validate exact zero-Git-diff API production runtime refresh at ${sha}`,
+      owner: 'infra', allowedPaths: ['railway.json'],
+      forbiddenActions: ['edit_assigned_files', 'commit_assigned_branch'],
+      dependsOn: [], acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`],
+    });
+    const input = {
+      candidateBaseSha: sha, candidateHeadSha: sha,
+      productionBaselineSha: sha, changedPaths: [],
+    };
+    await expect(dispatcher.dispatchExistingCandidateVerification(task.id, {
+      ...input, productionBaselineSha: 'b'.repeat(40),
+    })).rejects.toThrow(/runtime_refresh_identity_invalid/);
+    expect(await executions.listByTask(task.id)).toHaveLength(0);
+    const dispatched = await dispatcher.dispatchExistingCandidateVerification(task.id, input);
+    expect(dispatched.assignment.verificationMode).toBe('EXISTING_CANDIDATE');
+    expect(dispatched.assignment.allowedPaths).toEqual(['railway.json']);
+    expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
+    expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
+  });
   it('creates a real verifier execution without fabricating implementation for an exact frozen DRAFT', async () => {
     const store = new MemorySupervisorTaskStore();
     const executions = new MemorySupervisorExecutionStore();
