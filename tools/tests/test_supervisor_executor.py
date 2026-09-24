@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from importlib import import_module
+import json
+from pathlib import Path
 import subprocess
+import sys
 
 
 def assignment(
@@ -54,6 +57,117 @@ def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
     assert executor.execute(request, allow_apply=True).error == (
         "runtime_refresh_head_or_workspace_mismatch"
     )
+
+
+def test_distinct_sha_existing_candidate_verifies_exact_git_paths_read_only(tmp_path):
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    target.write_text("export class UsersService { value = 1 }\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "--", "src/users/users.service.ts"],
+        cwd=tmp_path, check=True,
+    )
+    subprocess.run(["git", "commit", "-qm", "candidate"], cwd=tmp_path, check=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=base,
+        candidateHeadSha=head,
+        productionBaselineSha=base,
+    )
+
+    result = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    ).SupervisorAssignmentExecutor(project_root=tmp_path).execute(
+        request, allow_apply=True,
+    )
+
+    assert result.success
+    assert result.evidence["changedFiles"] == ["src/users/users.service.ts"]
+    assert result.evidence["deploymentState"] == "NOT_DEPLOYED"
+    assert git_changed_files(tmp_path) == []
+
+
+def test_distinct_sha_candidate_rejects_identity_scope_and_dirty_state(tmp_path):
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    target.write_text("export class UsersService { value = 1 }\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "--", "src/users/users.service.ts"],
+        cwd=tmp_path, check=True,
+    )
+    subprocess.run(["git", "commit", "-qm", "candidate"], cwd=tmp_path, check=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=base,
+        candidateHeadSha=head,
+        productionBaselineSha=base,
+    )
+    executor = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    ).SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    wrong_identity = {**request, "productionBaselineSha": "f" * 40}
+    assert executor.execute(wrong_identity, allow_apply=True).error == (
+        "existing_candidate_identity_invalid"
+    )
+    wrong_scope = {**request, "allowedPaths": ["src/other.ts"]}
+    assert executor.execute(wrong_scope, allow_apply=True).error == (
+        "existing_candidate_scope_mismatch"
+    )
+    (tmp_path / "untracked.txt").write_text("dirty\n", encoding="utf-8")
+    assert executor.execute(request, allow_apply=True).error == (
+        "existing_candidate_workspace_dirty"
+    )
+
+
+def test_script_entrypoint_runs_from_outside_repository(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    request = assignment(purpose="INDEPENDENT_VERIFICATION")
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=sha,
+        candidateHeadSha=sha,
+        productionBaselineSha=sha,
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(Path(module.__file__).resolve())],
+        cwd=tmp_path, input=json.dumps(request), text=True,
+        capture_output=True, check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["evidence"]["changedFiles"] == []
 
 
 def write_users_service(tmp_path):

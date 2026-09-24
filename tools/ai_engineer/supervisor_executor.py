@@ -3,10 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 import subprocess
+import sys
 from typing import Any, Mapping
 
-from .natural_language import build_natural_language_engineer
-from .request import AIEngineerMode
+if __package__:
+    from .natural_language import build_natural_language_engineer
+    from .request import AIEngineerMode
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from tools.ai_engineer.natural_language import build_natural_language_engineer
+    from tools.ai_engineer.request import AIEngineerMode
 
 
 @dataclass(slots=True, frozen=True)
@@ -44,9 +50,10 @@ class SupervisorAssignmentExecutor:
         *,
         allow_apply: bool = False,
     ) -> SupervisorExecutorResult:
-        if (assignment.get("verificationMode") == "EXISTING_CANDIDATE" and
-                assignment.get("candidateBaseSha") == assignment.get("candidateHeadSha")):
-            return self._verify_runtime_refresh(assignment)
+        if assignment.get("verificationMode") == "EXISTING_CANDIDATE":
+            if assignment.get("candidateBaseSha") == assignment.get("candidateHeadSha"):
+                return self._verify_runtime_refresh(assignment)
+            return self._verify_existing_candidate(assignment)
         if assignment.get("executionPurpose", "IMPLEMENTATION") != "IMPLEMENTATION":
             return self._failure("supervisor_execution_purpose_not_supported")
 
@@ -175,6 +182,96 @@ class SupervisorAssignmentExecutor:
                 "gitState": "CLEAN",
                 "remainingRisk": ["api_build_not_run"],
             },
+        )
+
+    def _verify_existing_candidate(
+        self, assignment: Mapping[str, Any]
+    ) -> SupervisorExecutorResult:
+        base = assignment.get("candidateBaseSha")
+        head = assignment.get("candidateHeadSha")
+        baseline = assignment.get("productionBaselineSha")
+        if (
+            assignment.get("executionPurpose") != "INDEPENDENT_VERIFICATION"
+            or not all(self._is_sha(value) for value in (base, head, baseline))
+            or base.lower() == head.lower()
+            or base.lower() != baseline.lower()
+        ):
+            return self._failure("existing_candidate_identity_invalid")
+
+        try:
+            allowed = self._allowed_paths(assignment)
+            self._assert_safe_allowed_targets(allowed)
+            if self._git_changed_files():
+                return self._failure("existing_candidate_workspace_dirty")
+
+            resolved: dict[str, str] = {}
+            for label, sha in (("base", base), ("head", head)):
+                resolved[label] = subprocess.run(
+                    ["git", "rev-parse", "--verify", f"{sha.lower()}^{{commit}}"],
+                    cwd=self.project_root, text=True, capture_output=True, check=True,
+                ).stdout.strip().lower()
+                if resolved[label] != sha.lower():
+                    return self._failure(f"existing_candidate_{label}_mismatch")
+
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", base.lower(), head.lower()],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            )
+            raw = subprocess.run(
+                [
+                    "git", "diff", "--no-renames", "--no-ext-diff",
+                    "--no-textconv", "--name-only", "-z",
+                    base.lower(), head.lower(),
+                ],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            ).stdout
+            changed = sorted(
+                {
+                    _normalize_relative_path(path)
+                    for path in raw.split("\0")
+                    if path
+                }
+            )
+            if changed != sorted(allowed):
+                return self._failure("existing_candidate_scope_mismatch")
+
+            current_head = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            ).stdout.strip().lower()
+            if current_head != head.lower() or self._git_changed_files():
+                return self._failure("existing_candidate_workspace_drift")
+        except (ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+            return self._failure(f"existing_candidate_git_verification_failed:{error}")
+
+        return SupervisorExecutorResult(
+            success=True,
+            summary="Verified exact existing candidate without repository writes.",
+            evidence={
+                "rootCause": (
+                    "existing_candidate_requires_exact_read_only_git_verification"
+                ),
+                "changedFiles": changed,
+                "tests": [
+                    "git_base_exact", "git_head_exact", "base_is_head_ancestor",
+                    "production_baseline_exact",
+                    "changed_paths_exact",
+                    "workspace_clean",
+                ],
+                "build": "NOT_RUN",
+                "regression": [],
+                "deploymentState": "NOT_DEPLOYED",
+                "gitState": "CLEAN",
+                "remainingRisk": ["verification_does_not_merge_or_deploy"],
+            },
+        )
+
+    @staticmethod
+    def _is_sha(value: Any) -> bool:
+        return (
+            isinstance(value, str)
+            and len(value) == 40
+            and all(character in "0123456789abcdefABCDEF" for character in value)
         )
 
     def _git_changed_files(self) -> list[str]:
