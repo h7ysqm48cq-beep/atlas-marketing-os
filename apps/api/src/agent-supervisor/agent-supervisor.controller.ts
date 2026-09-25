@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -14,6 +15,7 @@ import {
   HumanOwnerApprovalService,
 } from './authority/human-owner-approval.service';
 import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { AgentGatewayService } from './gateway/agent-gateway.service';
 import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
 import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
 import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
@@ -46,6 +48,8 @@ export class AgentSupervisorController {
     private readonly dispatcher: WorkerDispatcherService,
     @Optional()
     private readonly humanOwnerApproval?: HumanOwnerApprovalService,
+    @Optional()
+    private readonly implementationGateway?: AgentGatewayService,
   ) {}
 
   @Get('status')
@@ -94,6 +98,34 @@ export class AgentSupervisorController {
     @Body() evidence: SupervisorEvidence,
   ) {
     return this.supervisor.submitImplementation(id, evidence);
+  }
+
+  // The Owner supplies only an Execution ID. Evidence is loaded exclusively from
+  // the authenticated Supervisor store, then checked by the existing gateway.
+  @Post('tasks/:id/adopt-implementation-execution')
+  adoptImplementationExecution(
+    @Param('id') id: string,
+    @Body() body: { executionId: string },
+  ) {
+    if (
+      !body ||
+      Object.keys(body).length !== 1 ||
+      typeof body.executionId !== 'string' ||
+      !/^ATLAS-EXEC-[a-zA-Z0-9-]+$/.test(body.executionId)
+    ) {
+      throw new BadRequestException({
+        code: 'implementation_execution_id_only_required',
+      });
+    }
+    if (!this.implementationGateway) {
+      throw new ServiceUnavailableException(
+        'implementation_execution_gateway_unavailable',
+      );
+    }
+    return this.implementationGateway.submitImplementationFromExecution(
+      id,
+      body.executionId,
+    );
   }
 
   @Post('tasks/:id/verify')
