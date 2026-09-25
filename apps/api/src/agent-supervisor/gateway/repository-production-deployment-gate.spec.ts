@@ -251,17 +251,17 @@ describe('repository-owned production deployment gate', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('restores the normal repository Railway API production deployment gate without migrations', () => {
+  it('temporarily selects the exact-parent API bootstrap recovery without migrations', () => {
     const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
       deploy?: { preDeployCommand?: string[] };
     };
     const commands = config.deploy?.preDeployCommand ?? [];
     expect(commands).toEqual([
-      'node apps/api/scripts/check-production-deployment-gate.cjs',
+      'node apps/api/scripts/check-api-bootstrap-deployment.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
     expect(commands).toHaveLength(1);
-    expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
+    expect(commands.join('\n')).not.toMatch(/check-production-deployment-gate/i);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
@@ -314,7 +314,7 @@ describe('repository-owned production deployment gate', () => {
 });
 
 describe('temporary exact-parent API bootstrap recovery', () => {
-  const parent = 'a7b95dacc4aefdafc2b51c366cb9db0fb0d4105d';
+  const parent = 'aa46291585a73ba5bed86b18b29cd47fb8c2cfd2';
   const sha = 'b'.repeat(40);
   const files = [
     'railway.json',
@@ -329,7 +329,7 @@ describe('temporary exact-parent API bootstrap recovery', () => {
     RAILWAY_SERVICE_ID: 'c23120f6-5d60-44d6-8021-9d6c52387718',
     RAILWAY_ENVIRONMENT_ID: '62379618-8890-40fb-bff8-2db75c57027c',
   };
-  const now = Date.parse('2026-09-25T00:00:00Z');
+  const now = Date.parse('2026-09-25T22:30:00Z');
   const bootstrap = require(BOOTSTRAP_SCRIPT_PATH) as {
     main: (env: NodeJS.ProcessEnv, fetchImpl: typeof fetch, now: number) => Promise<void>;
   };
@@ -384,7 +384,7 @@ describe('temporary exact-parent API bootstrap recovery', () => {
 
   it('rejects expired recovery before GitHub access', async () => {
     const fetchImpl = jest.fn() as unknown as typeof fetch;
-    await expect(bootstrap.main(env, fetchImpl, Date.parse('2026-09-27T00:00:00Z')))
+    await expect(bootstrap.main(env, fetchImpl, Date.parse('2026-09-26T12:00:00Z')))
       .rejects.toThrow(/expired/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
