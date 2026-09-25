@@ -349,7 +349,7 @@ export class BrowserRuntimeBridgeService {
         }),
       },
       true,
-      30_000,
+      120_000,
     );
   }
 
