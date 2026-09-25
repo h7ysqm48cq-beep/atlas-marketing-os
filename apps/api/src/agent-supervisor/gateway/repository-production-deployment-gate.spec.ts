@@ -251,16 +251,17 @@ describe('repository-owned production deployment gate', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('scopes the temporary repository Railway API bootstrap without migrations', () => {
+  it('restores the normal repository Railway API production deployment gate without migrations', () => {
     const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
       deploy?: { preDeployCommand?: string[] };
     };
     const commands = config.deploy?.preDeployCommand ?? [];
     expect(commands).toEqual([
-      'node apps/api/scripts/check-api-bootstrap-deployment.cjs',
+      'node apps/api/scripts/check-production-deployment-gate.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
     expect(commands).toHaveLength(1);
+    expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
