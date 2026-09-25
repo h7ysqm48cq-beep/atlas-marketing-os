@@ -82,6 +82,57 @@ describe('BrowserRuntimeBridgeService Facebook media input', () => {
   });
 });
 
+describe('BrowserRuntimeBridgeService Facebook published-post lookup', () => {
+  it('allows the worker enough time to scan and reload Facebook pages', async () => {
+    const runtimeProfiles = {
+      getBrowserLaunchProfile: jest.fn().mockResolvedValue({
+        browserAccountId: 'browser-account-1',
+        browserProfileKey: 'profile-1',
+      }),
+    };
+    const service = new BrowserRuntimeBridgeService(
+      {} as ConfigService,
+      runtimeProfiles as unknown as RuntimeProfileService,
+      {
+        markLoginRequired: jest.fn(),
+        markLoginVerified: jest.fn(),
+      } as unknown as BrowserAccountService,
+    );
+
+    jest.spyOn(service, 'ensureProfile').mockResolvedValue({
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+    } as never);
+    const request = jest.spyOn(service, 'request').mockResolvedValue({
+      found: true,
+      reference: {
+        externalPostId: 'page_post',
+        postUrl: 'https://www.facebook.com/page/posts/post',
+        matchedBy: 'caption-post-path',
+      },
+    });
+
+    await expect(
+      service.findFacebookPublishedPost('channel-1', 'Test caption'),
+    ).resolves.toMatchObject({ found: true });
+
+    expect(request).toHaveBeenCalledWith(
+      '/profiles/profile-1/facebook/find-published-post',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          caption: 'Test caption',
+        }),
+      },
+      true,
+      120_000,
+    );
+  });
+});
+
 describe('BrowserRuntimeBridgeService Facebook login state', () => {
   const profile = {
     browserAccountId:
