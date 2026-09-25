@@ -93,7 +93,7 @@ export class WorkerDispatcherService {
     executionPurpose: SupervisorExecutionPurpose = 'IMPLEMENTATION',
     options: {
       frozenBaseSha?: string;
-      verificationMode?: 'EXISTING_CANDIDATE';
+      verificationMode?: 'EXISTING_CANDIDATE' | 'IMPLEMENTATION_RESULT';
       candidateBaseSha?: string;
       candidateHeadSha?: string;
       productionBaselineSha?: string;
@@ -116,6 +116,15 @@ export class WorkerDispatcherService {
       });
     }
 
+    if (
+      options.frozenBaseSha !== undefined &&
+      executionPurpose === 'INDEPENDENT_VERIFICATION'
+    ) {
+      throw new BadRequestException(
+        'frozen_base_sha_not_allowed_for_verification',
+      );
+    }
+
     const existingExecutions = await this.executionStore.listByTask(taskId);
     if (
       existingExecutions.some((execution) =>
@@ -126,6 +135,63 @@ export class WorkerDispatcherService {
         code: 'active_execution_exists',
         taskId,
       });
+    }
+
+    let verificationOptions = options;
+    if (
+      executionPurpose === 'INDEPENDENT_VERIFICATION' &&
+      !options.verificationMode
+    ) {
+      const evidence = task.evidence;
+      if (!evidence) {
+        throw new BadRequestException('verification_implementation_evidence_required');
+      }
+      const candidate = evidence.reviewCandidate;
+      if (candidate) {
+        if (
+          candidate.action !== 'merge' ||
+          candidate.targetBranch !== 'production/atlas' ||
+          !FULL_GIT_SHA.test(candidate.baseSha) ||
+          !FULL_GIT_SHA.test(candidate.headSha) ||
+          candidate.baseSha.toLowerCase() === candidate.headSha.toLowerCase()
+        ) {
+          throw new BadRequestException('verification_review_candidate_invalid');
+        }
+        verificationOptions = {
+          verificationMode: 'EXISTING_CANDIDATE',
+          candidateBaseSha: candidate.baseSha.toLowerCase(),
+          candidateHeadSha: candidate.headSha.toLowerCase(),
+          productionBaselineSha: candidate.baseSha.toLowerCase(),
+        };
+      } else {
+        if (
+          evidence.changedFiles.length !== 0 ||
+          evidence.candidatePublication ||
+          evidence.existingCandidateVerification
+        ) {
+          throw new BadRequestException('verification_candidate_identity_required');
+        }
+        const implementations = existingExecutions.filter((execution) =>
+          execution.status === 'COMPLETED' &&
+          (execution.assignment.executionPurpose ?? 'IMPLEMENTATION') ===
+            'IMPLEMENTATION' &&
+          Boolean(execution.result) &&
+          execution.result!.evidence.changedFiles.length === 0 &&
+          FULL_GIT_SHA.test(execution.assignment.frozenBaseSha ?? ''),
+        );
+        if (implementations.length !== 1) {
+          throw new BadRequestException(
+            'verification_zero_diff_implementation_identity_required',
+          );
+        }
+        const sha = implementations[0].assignment.frozenBaseSha!.toLowerCase();
+        verificationOptions = {
+          verificationMode: 'IMPLEMENTATION_RESULT',
+          candidateBaseSha: sha,
+          candidateHeadSha: sha,
+          productionBaselineSha: sha,
+        };
+      }
     }
 
     if (!(await this.supervisor.dependenciesReady(taskId))) {
@@ -158,11 +224,6 @@ export class WorkerDispatcherService {
 
     let frozenBaseSha: string | undefined;
     if (options.frozenBaseSha !== undefined) {
-      if (executionPurpose === 'INDEPENDENT_VERIFICATION') {
-        throw new BadRequestException(
-          'frozen_base_sha_not_allowed_for_verification',
-        );
-      }
       const normalized = options.frozenBaseSha.trim().toLowerCase();
       if (!FULL_GIT_SHA.test(normalized)) {
         throw new BadRequestException('frozen_base_sha_invalid');
@@ -193,11 +254,11 @@ export class WorkerDispatcherService {
       acceptance: [...task.acceptance],
       requiredEvidence: [...REQUIRED_EVIDENCE],
       ...(frozenBaseSha ? { frozenBaseSha } : {}),
-      ...(options.verificationMode ? {
-        verificationMode: options.verificationMode,
-        candidateBaseSha: options.candidateBaseSha,
-        candidateHeadSha: options.candidateHeadSha,
-        productionBaselineSha: options.productionBaselineSha,
+      ...(verificationOptions.verificationMode ? {
+        verificationMode: verificationOptions.verificationMode,
+        candidateBaseSha: verificationOptions.candidateBaseSha,
+        candidateHeadSha: verificationOptions.candidateHeadSha,
+        productionBaselineSha: verificationOptions.productionBaselineSha,
       } : {}),
     };
 

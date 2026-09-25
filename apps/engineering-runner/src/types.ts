@@ -12,7 +12,7 @@ export interface WorkerAssignment {
   acceptance: string[];
   requiredEvidence: string[];
   frozenBaseSha?: string;
-  verificationMode?: 'EXISTING_CANDIDATE';
+  verificationMode?: 'EXISTING_CANDIDATE' | 'IMPLEMENTATION_RESULT';
   candidateBaseSha?: string;
   candidateHeadSha?: string;
   productionBaselineSha?: string;

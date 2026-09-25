@@ -92,7 +92,16 @@ describe('WorkerDispatcherService', () => {
     const task = await createWorkingTask();
     await supervisor.submitImplementation(
       task.id,
-      workerResult().evidence,
+      {
+        ...workerResult().evidence,
+        reviewCandidate: {
+          action: 'merge',
+          targetBranch: 'production/atlas',
+          baseSha: 'a'.repeat(40),
+          headSha: 'b'.repeat(40),
+          changedFiles: ['apps/api/src/example.ts'],
+        },
+      },
     );
     return supervisor.beginVerification(task.id);
   }
@@ -199,6 +208,44 @@ describe('WorkerDispatcherService', () => {
       },
     });
     expect(result.capability).toBeUndefined();
+  });
+
+  it('derives a same-SHA IMPLEMENTATION_RESULT verifier from one completed frozen zero-diff implementation', async () => {
+    const sha = 'd'.repeat(40);
+    const task = await createWorkingTask();
+    const dispatched = await dispatcher.dispatch(
+      task.id,
+      'IMPLEMENTATION',
+      { frozenBaseSha: sha },
+    );
+    await moveQueuedToLegacyDispatched(dispatched.execution.id);
+    await dispatcher.markRunning(dispatched.execution.id);
+    const zeroDiff = {
+      ...workerResult(),
+      evidence: {
+        ...workerResult().evidence,
+        changedFiles: [],
+        tests: ['zero-diff implementation PASS'],
+      },
+    };
+    await dispatcher.complete(dispatched.execution.id, zeroDiff);
+    await supervisor.submitImplementation(task.id, zeroDiff.evidence);
+    await supervisor.beginVerification(task.id);
+
+    const verifier = await dispatcher.dispatch(
+      task.id,
+      'INDEPENDENT_VERIFICATION',
+    );
+
+    expect(verifier.execution.workerRole).toBe('verifier');
+    expect(verifier.assignment).toEqual(expect.objectContaining({
+      workerRole: 'verifier',
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      verificationMode: 'IMPLEMENTATION_RESULT',
+      candidateBaseSha: sha,
+      candidateHeadSha: sha,
+      productionBaselineSha: sha,
+    }));
   });
 
   it('dispatch performs only one persistence creation step', async () => {

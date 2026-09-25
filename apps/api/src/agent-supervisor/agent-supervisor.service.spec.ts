@@ -17,6 +17,8 @@ import type {
 } from './agent-supervisor.types';
 import { MemoryFileOwnershipStore } from './stores/memory-file-ownership.store';
 import { MemorySupervisorTaskStore } from './stores/memory-supervisor-task.store';
+import { MemorySupervisorExecutionStore } from './stores/memory-supervisor-execution.store';
+import type { SupervisorExecution } from './execution/supervisor-execution.types';
 
 const BASE_SHA = 'a'.repeat(40);
 const HEAD_SHA = 'b'.repeat(40);
@@ -500,6 +502,79 @@ async function makeReadyTask(
   return service.getTask(task.id);
 }
 
+
+function provenanceService() {
+  const executions = new MemorySupervisorExecutionStore();
+  const service = new AgentSupervisorService(
+    new MemorySupervisorTaskStore(),
+    new MemoryFileOwnershipStore(),
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    executions,
+  );
+  return { service, executions };
+}
+
+function completedExecution(input: {
+  id: string;
+  taskId: string;
+  workerRole: 'backend' | 'verifier';
+  purpose: 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+  evidence: any;
+  startedAt: Date;
+  completedAt: Date;
+  frozenBaseSha?: string;
+  verificationMode?: 'EXISTING_CANDIDATE' | 'IMPLEMENTATION_RESULT';
+  candidateBaseSha?: string;
+  candidateHeadSha?: string;
+  productionBaselineSha?: string;
+  runnerId: string;
+}): SupervisorExecution {
+  return {
+    id: input.id,
+    taskId: input.taskId,
+    workerRole: input.workerRole,
+    status: 'COMPLETED',
+    assignment: {
+      executionId: input.id,
+      taskId: input.taskId,
+      workerRole: input.workerRole,
+      executionPurpose: input.purpose,
+      objective: 'verification provenance fixture',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependencies: [],
+      acceptance: ['passes'],
+      requiredEvidence: [
+        'rootCause', 'changedFiles', 'tests', 'build',
+        'regression', 'deploymentState', 'gitState', 'remainingRisk',
+      ],
+      ...(input.frozenBaseSha ? { frozenBaseSha: input.frozenBaseSha } : {}),
+      ...(input.verificationMode ? {
+        verificationMode: input.verificationMode,
+        candidateBaseSha: input.candidateBaseSha,
+        candidateHeadSha: input.candidateHeadSha,
+        productionBaselineSha: input.productionBaselineSha,
+      } : {}),
+      manifestHash: 'f'.repeat(64),
+      claimEpoch: 1,
+      leaseId: 'lease-' + input.id,
+      runnerId: input.runnerId,
+    },
+    result: input.evidence,
+    error: null,
+    createdAt: new Date(input.startedAt.getTime() - 1_000),
+    startedAt: new Date(input.startedAt),
+    completedAt: new Date(input.completedAt),
+    runnerId: input.runnerId,
+    claimEpoch: 1,
+    lastHeartbeatAt: new Date(input.completedAt.getTime() - 500),
+    leaseExpiresAt: new Date(input.completedAt.getTime() + 60_000),
+  };
+}
+
 describe('AgentSupervisorService', () => {
   let service: AgentSupervisorService;
 
@@ -683,6 +758,271 @@ describe('AgentSupervisorService', () => {
     const ready = await service.markReadyForReview(task.id);
 
     expect(ready.status).toBe('READY_FOR_REVIEW');
+  });
+
+  it('requires a completed independent verifier before READY_FOR_REVIEW in production-backed mode', async () => {
+    const { service: verifiedService, executions } = provenanceService();
+    const task = await verifiedService.createTask({
+      objective: 'Require independent verifier',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['passes'],
+    });
+    const working = await verifiedService.startTask(task.id);
+    const implementationEvidence = {
+      rootCause: 'candidate implementation',
+      changedFiles: [CHANGED_FILE],
+      tests: ['implementation PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'BRANCH_ONLY',
+      remainingRisk: [],
+      reviewCandidate: candidate(),
+    };
+    await executions.create(completedExecution({
+      id: 'ATLAS-EXEC-READY-IMPL-1',
+      taskId: task.id,
+      workerRole: 'backend',
+      purpose: 'IMPLEMENTATION',
+      evidence: { summary: 'implementation', evidence: implementationEvidence },
+      startedAt: new Date(working.updatedAt.getTime() + 1),
+      completedAt: new Date(working.updatedAt.getTime() + 2),
+      frozenBaseSha: BASE_SHA,
+      runnerId: 'implementation-runner-1',
+    }));
+    await verifiedService.submitImplementation(task.id, implementationEvidence);
+    await verifiedService.beginVerification(task.id);
+
+    await expect(
+      verifiedService.markReadyForReview(task.id),
+    ).rejects.toMatchObject({
+      response: { code: 'completed_independent_verifier_required' },
+    });
+  });
+
+  it('accepts READY_FOR_REVIEW only after a distinct candidate-bound verifier completes', async () => {
+    const { service: verifiedService, executions } = provenanceService();
+    const task = await verifiedService.createTask({
+      objective: 'Candidate verifier provenance',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['passes'],
+    });
+    const working = await verifiedService.startTask(task.id);
+    const implementationEvidence = {
+      rootCause: 'candidate implementation',
+      changedFiles: [CHANGED_FILE],
+      tests: ['implementation PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'BRANCH_ONLY',
+      remainingRisk: [],
+      reviewCandidate: candidate(),
+    };
+    await executions.create(completedExecution({
+      id: 'ATLAS-EXEC-READY-IMPL-2',
+      taskId: task.id,
+      workerRole: 'backend',
+      purpose: 'IMPLEMENTATION',
+      evidence: { summary: 'implementation', evidence: implementationEvidence },
+      startedAt: new Date(working.updatedAt.getTime() + 1),
+      completedAt: new Date(working.updatedAt.getTime() + 2),
+      frozenBaseSha: BASE_SHA,
+      runnerId: 'implementation-runner-2',
+    }));
+    await verifiedService.submitImplementation(task.id, implementationEvidence);
+    const verifying = await verifiedService.beginVerification(task.id);
+    const verifierId = 'ATLAS-EXEC-READY-VERIFIER-2';
+    const verifierEvidence = {
+      rootCause: 'independent candidate verification',
+      changedFiles: [CHANGED_FILE],
+      tests: ['verifier PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: [],
+      existingCandidateVerification: {
+        mode: 'EXISTING_CANDIDATE' as const,
+        taskId: task.id,
+        executionId: verifierId,
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        productionBaselineSha: BASE_SHA,
+        changedFiles: [CHANGED_FILE],
+        gitFingerprint: 'e'.repeat(64),
+        sourceVerified: true as const,
+      },
+      reviewCandidate: candidate(),
+    };
+    await executions.create(completedExecution({
+      id: verifierId,
+      taskId: task.id,
+      workerRole: 'verifier',
+      purpose: 'INDEPENDENT_VERIFICATION',
+      evidence: { summary: 'verification', evidence: verifierEvidence },
+      startedAt: new Date(verifying.updatedAt.getTime() + 1),
+      completedAt: new Date(verifying.updatedAt.getTime() + 2),
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: BASE_SHA,
+      candidateHeadSha: HEAD_SHA,
+      productionBaselineSha: BASE_SHA,
+      runnerId: 'verifier-runner-2',
+    }));
+
+    const ready = await verifiedService.markReadyForReview(task.id);
+    expect(ready.status).toBe('READY_FOR_REVIEW');
+  });
+
+  it('rejects READY_FOR_REVIEW when verifier reuses the implementation runner identity', async () => {
+    const { service: verifiedService, executions } = provenanceService();
+    const task = await verifiedService.createTask({
+      objective: 'Reject same runner verifier',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['passes'],
+    });
+    const working = await verifiedService.startTask(task.id);
+    const implementationEvidence = {
+      rootCause: 'candidate implementation',
+      changedFiles: [CHANGED_FILE],
+      tests: ['implementation PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'BRANCH_ONLY',
+      remainingRisk: [],
+      reviewCandidate: candidate(),
+    };
+    await executions.create(completedExecution({
+      id: 'ATLAS-EXEC-READY-IMPL-3',
+      taskId: task.id,
+      workerRole: 'backend',
+      purpose: 'IMPLEMENTATION',
+      evidence: { summary: 'implementation', evidence: implementationEvidence },
+      startedAt: new Date(working.updatedAt.getTime() + 1),
+      completedAt: new Date(working.updatedAt.getTime() + 2),
+      frozenBaseSha: BASE_SHA,
+      runnerId: 'shared-runner-3',
+    }));
+    await verifiedService.submitImplementation(task.id, implementationEvidence);
+    const verifying = await verifiedService.beginVerification(task.id);
+    const verifierId = 'ATLAS-EXEC-READY-VERIFIER-3';
+    const verifierEvidence = {
+      rootCause: 'candidate verification',
+      changedFiles: [CHANGED_FILE],
+      tests: ['verifier PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: [],
+      existingCandidateVerification: {
+        mode: 'EXISTING_CANDIDATE' as const,
+        taskId: task.id,
+        executionId: verifierId,
+        baseSha: BASE_SHA,
+        headSha: HEAD_SHA,
+        productionBaselineSha: BASE_SHA,
+        changedFiles: [CHANGED_FILE],
+        gitFingerprint: 'e'.repeat(64),
+        sourceVerified: true as const,
+      },
+      reviewCandidate: candidate(),
+    };
+    await executions.create(completedExecution({
+      id: verifierId,
+      taskId: task.id,
+      workerRole: 'verifier',
+      purpose: 'INDEPENDENT_VERIFICATION',
+      evidence: { summary: 'verification', evidence: verifierEvidence },
+      startedAt: new Date(verifying.updatedAt.getTime() + 1),
+      completedAt: new Date(verifying.updatedAt.getTime() + 2),
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: BASE_SHA,
+      candidateHeadSha: HEAD_SHA,
+      productionBaselineSha: BASE_SHA,
+      runnerId: 'shared-runner-3',
+    }));
+
+    await expect(
+      verifiedService.markReadyForReview(task.id),
+    ).rejects.toMatchObject({
+      response: { code: 'independent_verifier_separation_invalid' },
+    });
+  });
+
+  it('accepts zero-diff IMPLEMENTATION_RESULT verification without fabricating a review candidate', async () => {
+    const { service: verifiedService, executions } = provenanceService();
+    const task = await verifiedService.createTask({
+      objective: 'Zero diff provenance',
+      owner: 'backend',
+      allowedPaths: [CHANGED_FILE],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependsOn: [],
+      acceptance: ['passes'],
+    });
+    const working = await verifiedService.startTask(task.id);
+    const zeroDiffEvidence = {
+      rootCause: 'bounded zero diff implementation',
+      changedFiles: [],
+      tests: ['implementation PASS'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: [],
+    };
+    await executions.create(completedExecution({
+      id: 'ATLAS-EXEC-READY-ZERO-IMPL',
+      taskId: task.id,
+      workerRole: 'backend',
+      purpose: 'IMPLEMENTATION',
+      evidence: { summary: 'zero diff implementation', evidence: zeroDiffEvidence },
+      startedAt: new Date(working.updatedAt.getTime() + 1),
+      completedAt: new Date(working.updatedAt.getTime() + 2),
+      frozenBaseSha: BASE_SHA,
+      runnerId: 'implementation-zero-runner',
+    }));
+    await verifiedService.submitImplementation(task.id, zeroDiffEvidence);
+    const verifying = await verifiedService.beginVerification(task.id);
+    const verifierEvidence = {
+      rootCause: 'zero diff independent source verification',
+      changedFiles: [],
+      tests: ['git_head_exact', 'git_worktree_clean'],
+      build: 'NOT_RUN',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'CLEAN',
+      remainingRisk: [],
+    };
+    await executions.create(completedExecution({
+      id: 'ATLAS-EXEC-READY-ZERO-VERIFY',
+      taskId: task.id,
+      workerRole: 'verifier',
+      purpose: 'INDEPENDENT_VERIFICATION',
+      evidence: { summary: 'zero diff verification', evidence: verifierEvidence },
+      startedAt: new Date(verifying.updatedAt.getTime() + 1),
+      completedAt: new Date(verifying.updatedAt.getTime() + 2),
+      verificationMode: 'IMPLEMENTATION_RESULT',
+      candidateBaseSha: BASE_SHA,
+      candidateHeadSha: BASE_SHA,
+      productionBaselineSha: BASE_SHA,
+      runnerId: 'verifier-zero-runner',
+    }));
+
+    const ready = await verifiedService.markReadyForReview(task.id);
+    expect(ready.status).toBe('READY_FOR_REVIEW');
+    expect(ready.evidence?.reviewCandidate).toBeUndefined();
+    expect(ready.evidence?.existingCandidateVerification).toBeUndefined();
   });
 
   it('persists a signed owner merge authorization only for the exact reviewed candidate', async () => {

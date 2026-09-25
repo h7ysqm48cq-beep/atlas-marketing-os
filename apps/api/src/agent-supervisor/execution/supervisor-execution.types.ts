@@ -42,7 +42,7 @@ export interface WorkerAssignmentEnvelope {
   acceptance: string[];
   requiredEvidence: RequiredEvidenceField[];
   frozenBaseSha?: string;
-  verificationMode?: 'EXISTING_CANDIDATE';
+  verificationMode?: 'EXISTING_CANDIDATE' | 'IMPLEMENTATION_RESULT';
   candidateBaseSha?: string;
   candidateHeadSha?: string;
   productionBaselineSha?: string;

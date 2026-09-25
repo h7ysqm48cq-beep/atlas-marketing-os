@@ -70,6 +70,43 @@ def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
     )
 
 
+def test_implementation_result_verifies_exact_clean_sha_without_integration_evidence(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path,
+        text=True, capture_output=True, check=True,
+    ).stdout.strip()
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="IMPLEMENTATION_RESULT",
+        candidateBaseSha=sha,
+        candidateHeadSha=sha,
+        productionBaselineSha=sha,
+    )
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    result = executor.execute(request, allow_apply=True)
+    assert result.success
+    assert result.evidence["changedFiles"] == []
+    assert result.evidence["deploymentState"] == "NOT_DEPLOYED"
+    assert result.evidence["gitState"] == "CLEAN"
+
+    target.write_text("changed", encoding="utf-8")
+    dirty = executor.execute(request, allow_apply=True)
+    assert not dirty.success
+    assert dirty.error == "implementation_result_head_or_workspace_mismatch"
+
+    invalid = {**request, "candidateHeadSha": "b" * 40}
+    invalid_result = executor.execute(invalid, allow_apply=True)
+    assert not invalid_result.success
+    assert invalid_result.error == "implementation_result_identity_invalid"
+
+
 def test_distinct_sha_existing_candidate_verifies_exact_git_paths_read_only(tmp_path):
     target = write_users_service(tmp_path)
     init_git_repo(tmp_path)
