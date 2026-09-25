@@ -608,6 +608,53 @@ describe('PrismaSupervisorLifecycleStore', () => {
     expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
   });
 
+  it.each(['APPROVED', 'FAILED'] as const)(
+    'terminalizes a stale execution without mutating an already %s parent task',
+    async (status) => {
+      const { prisma, transaction } = recoveryTransaction();
+      const currentExecution = execution();
+      const currentTask = task({ status });
+      const candidate = recoveryCandidate();
+      const now = new Date('2026-09-13T00:02:00.000Z');
+      transaction.supervisorExecution.findUnique.mockResolvedValue(
+        currentExecution,
+      );
+      transaction.supervisorTask.findUnique.mockResolvedValue(currentTask);
+      transaction.supervisorExecution.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      const store = new PrismaSupervisorLifecycleStore(prisma as never);
+      const recovered =
+        await recoveryStore(store).recoverExecutionAndBlockTask({
+          candidate,
+          now,
+        });
+
+      expect(recovered).toMatchObject({
+        execution: {
+          id: candidate.executionId,
+          status: 'FAILED',
+          error: 'supervisor_execution_lease_expired',
+          runnerId: null,
+          claimEpoch: currentExecution.claimEpoch + 1,
+        },
+        task: {
+          id: currentTask.id,
+          status,
+          updatedAt: currentTask.updatedAt,
+        },
+      });
+      expect(transaction.supervisorExecution.updateMany).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+      expect(
+        transaction.supervisorFileLock.deleteMany,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('invalidates the old claim while preserving the execution audit envelope', async () => {
     const { prisma, transaction } = recoveryTransaction();
     const current = execution();
