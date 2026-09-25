@@ -372,6 +372,11 @@ export class AgentGatewayService {
     }
 
     if (!receipt) {
+      const changedFiles =
+        execution.result?.evidence.changedFiles ?? [];
+      if (changedFiles.length === 0) {
+        return;
+      }
       throw new BadRequestException({
         code: 'candidate_publication_required_for_frozen_base',
       });

@@ -671,6 +671,32 @@ describe('AgentGatewayService', () => {
     });
   });
 
+  it('accepts a frozen zero-diff implementation without candidate publication', async () => {
+    const { task, execution } = await createRunningCandidateExecution();
+    const completed = await dispatcher.complete(execution.id, {
+      summary: 'Frozen zero-diff implementation',
+      evidence: {
+        rootCause: 'No source change was required',
+        changedFiles: [],
+        tests: ['zero-diff PASS'],
+        build: 'PASS',
+        regression: ['no candidate publication required'],
+        deploymentState: 'NOT_DEPLOYED',
+        gitState: 'CLEAN',
+        remainingRisk: [],
+      },
+    });
+
+    await expect(
+      gateway.submitImplementationFromExecution(task.id, completed.id),
+    ).resolves.toMatchObject({
+      status: 'IMPLEMENTED',
+      evidence: {
+        changedFiles: [],
+      },
+    });
+  });
+
   it('rejects a frozen candidate execution that completes without publication evidence', async () => {
     const { task, execution } = await createRunningCandidateExecution();
     const completed = await dispatcher.complete(execution.id, {
