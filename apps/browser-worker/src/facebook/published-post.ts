@@ -262,6 +262,28 @@ export async function findFacebookPublishedPostReference(
   }
 
   const normalizedFingerprint = normalizeText(fingerprint).toLocaleLowerCase();
+
+  // Exact post pages are a strong reconciliation signal when the rendered
+  // page body also contains the expected caption fingerprint. This remains
+  // fail-closed: neither a permalink alone nor matching text alone is enough.
+  const currentPageReference = buildFacebookPublishedPostReference(
+    page.url(),
+    [page.url()],
+  );
+
+  if (currentPageReference) {
+    const pageText = normalizeText(
+      await page.locator("body").innerText().catch(() => ""),
+    ).toLocaleLowerCase();
+
+    if (pageText.includes(normalizedFingerprint)) {
+      return {
+        ...currentPageReference,
+        matchedBy: "caption-page-" + currentPageReference.matchedBy,
+      };
+    }
+  }
+
   const startedAt = Date.now();
   let scrollCount = 0;
   let lastScrollElapsedMs = 0;
