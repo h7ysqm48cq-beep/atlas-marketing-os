@@ -190,8 +190,10 @@ describe('WorkerDispatcherService', () => {
     expect(result).toMatchObject({
       execution: {
         status: 'QUEUED',
+        workerRole: 'verifier',
         assignment: {
           executionPurpose: 'INDEPENDENT_VERIFICATION',
+          workerRole: 'verifier',
           workerCapability: undefined,
         },
       },
@@ -440,7 +442,7 @@ describe('WorkerDispatcherService', () => {
     );
 
     expect(permissionSpy).toHaveBeenCalledWith(
-      task.owner,
+      'verifier',
       'read_repo',
       { taskScopeIncludesAction: true },
     );
@@ -902,6 +904,8 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     expect(await executions.listByTask(task.id)).toHaveLength(0);
     const dispatched = await dispatcher.dispatchExistingCandidateVerification(task.id, input);
     expect(dispatched.assignment.verificationMode).toBe('EXISTING_CANDIDATE');
+    expect(dispatched.execution.workerRole).toBe('verifier');
+    expect(dispatched.assignment.workerRole).toBe('verifier');
     expect(dispatched.assignment.allowedPaths).toEqual(['railway.json']);
     expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
     expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
@@ -933,7 +937,9 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     const history = await executions.listByTask(task.id);
     expect(history).toHaveLength(1);
     expect(result.execution.status).toBe('QUEUED');
+    expect(result.execution.workerRole).toBe('verifier');
     expect(result.assignment).toEqual(expect.objectContaining({
+      workerRole: 'verifier',
       verificationMode: 'EXISTING_CANDIDATE',
       candidateBaseSha: base, candidateHeadSha: head,
       allowedPaths: paths,

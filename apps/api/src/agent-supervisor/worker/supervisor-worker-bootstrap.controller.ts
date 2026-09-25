@@ -135,6 +135,9 @@ export class SupervisorWorkerBootstrapController {
           purpose: 'INDEPENDENT_VERIFICATION',
           leaseId: claimed.assignment.leaseId!,
           runnerId: claimed.assignment.runnerId!,
+          ...(claimed.assignment.candidateHeadSha
+            ? { candidateHeadSha: claimed.assignment.candidateHeadSha }
+            : {}),
         },
         now,
       );

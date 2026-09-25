@@ -1014,7 +1014,7 @@ describe('Existing-candidate admission atomic DB boundary', () => {
     const old = execution();
     const queued = execution({
       id: 'ATLAS-EXEC-EXACT-1', status: 'QUEUED',
-      taskId: original.id, workerRole: original.owner,
+      taskId: original.id, workerRole: 'verifier',
       startedAt: null, completedAt: null, runnerId: null,
       claimEpoch: 0, lastHeartbeatAt: null, leaseExpiresAt: null,
       result: null, error: null,
@@ -1027,7 +1027,7 @@ describe('Existing-candidate admission atomic DB boundary', () => {
         candidateHeadSha: 'b'.repeat(40),
         productionBaselineSha: 'a'.repeat(40),
         allowedPaths: [...original.allowedPaths],
-        workerRole: original.owner,
+        workerRole: 'verifier',
       },
     });
     return { original, queued };

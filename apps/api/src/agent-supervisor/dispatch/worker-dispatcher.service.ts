@@ -140,8 +140,12 @@ export class WorkerDispatcherService {
       executionPurpose === 'INDEPENDENT_VERIFICATION'
         ? 'read_repo'
         : 'edit_assigned_files';
+    const executionWorkerRole =
+      executionPurpose === 'INDEPENDENT_VERIFICATION'
+        ? 'verifier'
+        : task.owner;
     const permission = this.supervisor.checkPermission(
-      task.owner,
+      executionWorkerRole,
       requestedAction,
       { taskScopeIncludesAction: true },
     );
@@ -175,7 +179,7 @@ export class WorkerDispatcherService {
     const assignmentCore = {
       executionId,
       taskId: task.id,
-      workerRole: task.owner,
+      workerRole: executionWorkerRole,
       executionPurpose,
       objective: task.objective,
       allowedPaths: [...task.allowedPaths],
@@ -209,7 +213,7 @@ export class WorkerDispatcherService {
     const queued: SupervisorExecution = {
       id: executionId,
       taskId: task.id,
-      workerRole: task.owner,
+      workerRole: executionWorkerRole,
       status: 'QUEUED',
       assignment,
       result: null,
@@ -300,7 +304,7 @@ export class WorkerDispatcherService {
       if (!(await this.supervisor.dependenciesReady(taskId))) {
         throw new BadRequestException('dependencies_not_ready');
       }
-      const permission = this.supervisor.checkPermission(task.owner, 'read_repo', {
+      const permission = this.supervisor.checkPermission('verifier', 'read_repo', {
         taskScopeIncludesAction: true,
       });
       if (!permission.allowed) {
@@ -309,7 +313,7 @@ export class WorkerDispatcherService {
       const now = new Date();
       const executionId = this.nextExecutionId(now);
       const assignmentCore = {
-        executionId, taskId: task.id, workerRole: task.owner,
+        executionId, taskId: task.id, workerRole: 'verifier' as const,
         executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
         objective: task.objective, allowedPaths: [...task.allowedPaths],
         forbiddenActions: Array.from(new Set([
@@ -328,7 +332,7 @@ export class WorkerDispatcherService {
       };
       this.requireAdmissionAuthorityBinding(assignment);
       const queued: SupervisorExecution = {
-        id: executionId, taskId: task.id, workerRole: task.owner,
+        id: executionId, taskId: task.id, workerRole: 'verifier',
         status: 'QUEUED', assignment, result: null, error: null,
         createdAt: now, startedAt: null, completedAt: null,
         runnerId: null, claimEpoch: 0,

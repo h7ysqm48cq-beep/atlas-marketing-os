@@ -305,7 +305,8 @@ export class PrismaSupervisorLifecycleStore
         execution.status !== 'QUEUED' ||
         execution.assignment.verificationMode !== 'EXISTING_CANDIDATE' ||
         execution.assignment.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
-        execution.workerRole !== currentTask.owner ||
+        execution.workerRole !== 'verifier' ||
+        execution.assignment.workerRole !== 'verifier' ||
         JSON.stringify([...execution.assignment.allowedPaths].sort()) !==
         JSON.stringify([...currentTask.allowedPaths].sort())) {
       throw new ConflictException({ code: 'existing_candidate_atomic_input_invalid' });
