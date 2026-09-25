@@ -158,12 +158,12 @@ class SupervisorAssignmentExecutor:
             or sha != assignment.get("productionBaselineSha")
         ):
             return self._failure("runtime_refresh_identity_invalid")
-        # A same-SHA API runtime refresh has no Git changes and therefore
-        # MUST have an explicit empty scope. Nonempty, missing, or malformed
-        # scopes fail closed; other executor modes still require paths.
-        if assignment.get("allowedPaths") != []:
-            return self._failure("runtime_refresh_allowed_paths_invalid")
+        # The runtime refresh has zero changedPaths, but the Supervisor
+        # requires nonempty allowedPaths for Task ownership and carries them
+        # unchanged in the Runner assignment. Validate that scope without
+        # treating it as Git changes or permitting workspace drift.
         try:
+            self._assert_safe_allowed_targets(self._allowed_paths(assignment))
             head = subprocess.run(
                 ["git", "rev-parse", "--verify", "HEAD"],
                 cwd=self.project_root, text=True, capture_output=True, check=True,
