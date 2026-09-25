@@ -75,6 +75,7 @@ import {
   hasFacebookPublishNetworkError,
   startFacebookPublishNetworkCapture,
 } from "./facebook/publish-network.js";
+import { resolveFacebookDiscardAfterClose } from "./facebook/discard.js";
 import { releasePreparedPage } from "./facebook/prepared-page.js";
 import {
   startSecureViewerServer,
@@ -3702,11 +3703,19 @@ app.post(
         }
       }
 
-      if (!discardConfirmed) {
-        throw new Error(
-          "Facebook Delete draft confirmation button was not found.",
-        );
-      }
+      const verifyDiscardedStartedAt =
+        Date.now();
+
+      const composerStillVisible =
+        await composer
+          .isVisible()
+          .catch(() => false);
+
+      const discardOutcome =
+        resolveFacebookDiscardAfterClose({
+          discardConfirmed,
+          composerStillVisible,
+        });
 
       completeTraceStep({
         stepKey:
@@ -3717,18 +3726,27 @@ app.post(
           3,
         startedAtMs:
           confirmDiscardStartedAt,
+        status:
+          discardConfirmed
+            ? "SUCCESS"
+            : composerStillVisible
+              ? "FAILED"
+              : "SKIPPED",
         metadata: {
           discardConfirmed,
+          confirmationRequired:
+            !discardConfirmed &&
+            composerStillVisible,
+          composerStillVisible,
         },
+        errorMessage:
+          !discardConfirmed &&
+          composerStillVisible
+            ? discardOutcome.ok
+              ? null
+              : discardOutcome.message
+            : null,
       });
-
-      const verifyDiscardedStartedAt =
-        Date.now();
-
-      const composerStillVisible =
-        await composer
-          .isVisible()
-          .catch(() => false);
 
       completeTraceStep({
         stepKey:
@@ -3749,13 +3767,15 @@ app.post(
         },
         errorMessage:
           composerStillVisible
-            ? "Facebook composer remained visible after discard."
+            ? discardOutcome.ok
+              ? null
+              : discardOutcome.message
             : null,
       });
 
-      if (composerStillVisible) {
+      if (!discardOutcome.ok) {
         throw new Error(
-          "Facebook composer remained visible after discard.",
+          discardOutcome.message,
         );
       }
 
