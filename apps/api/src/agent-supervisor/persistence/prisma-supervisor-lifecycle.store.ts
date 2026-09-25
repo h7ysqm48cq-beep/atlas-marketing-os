@@ -513,6 +513,9 @@ export class PrismaSupervisorLifecycleStore
           (currentTask.status === 'VERIFYING' &&
             currentExecution.assignment.executionPurpose ===
               'INDEPENDENT_VERIFICATION');
+        const terminalParentAllowsExecutionCleanup =
+          currentTask.status === 'APPROVED' ||
+          currentTask.status === 'FAILED';
         if (
           currentExecution.id !== input.candidate.executionId ||
           currentExecution.taskId !== input.candidate.taskId ||
@@ -522,7 +525,8 @@ export class PrismaSupervisorLifecycleStore
           currentExecution.createdAt.getTime() !==
             input.candidate.createdAt.getTime() ||
           !sameDate(currentExecution.leaseExpiresAt, input.candidate.leaseExpiresAt) ||
-          !taskStatusSupportsRecovery ||
+          (!taskStatusSupportsRecovery &&
+            !terminalParentAllowsExecutionCleanup) ||
           !isRecoveryKindForStatus(input.candidate) ||
           (input.candidate.status === 'RUNNING' &&
             (!currentExecution.leaseExpiresAt ||
@@ -562,6 +566,13 @@ export class PrismaSupervisorLifecycleStore
           data: executionUpdateData(recoveredExecution),
         });
         if (executionUpdate.count !== 1) throw persistenceError();
+
+        if (terminalParentAllowsExecutionCleanup) {
+          return {
+            execution: recoveredExecution,
+            task: currentTask,
+          };
+        }
 
         const blockedTask: SupervisorTask = {
           ...currentTask,
