@@ -670,9 +670,8 @@ export class PublisherService {
               this.logger.log(
                 [
                   'Browser Runtime scheduled publishing',
-                  'will attach the first remote image.',
+                  `will attach ${post.mediaUrls.length} remote image(s).`,
                   `Post: ${post.id}.`,
-                  `Remote media count: ${post.mediaUrls.length}.`,
                 ].join(" "),
               );
             }
@@ -684,6 +683,7 @@ export class PublisherService {
                   caption: post.content,
                   imagePath: null,
                   imageUrl: post.mediaUrls[0] ?? null,
+                  imageUrls: post.mediaUrls,
                 },
               );
 
@@ -700,13 +700,13 @@ export class PublisherService {
               prepared.readyForReview === false ||
               (post.mediaUrls.length > 0 &&
                 (prepared.imageAttached !== true ||
-                  prepared.attachedMediaCount !== 1))
+                  prepared.attachedMediaCount !== post.mediaUrls.length))
             ) {
               throw new Error(
                 post.mediaUrls.length > 0
                   ? [
                       'Facebook draft preparation failed:',
-                      'expected 1 image (Facebook Browser Runtime),',
+                      `expected ${post.mediaUrls.length} image(s) (Facebook Browser Runtime),`,
                       `attached ${prepared.attachedMediaCount ?? 0}.`,
                     ].join(' ')
                   : 'Facebook draft preparation failed.',
