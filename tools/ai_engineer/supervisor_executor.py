@@ -241,7 +241,6 @@ class SupervisorAssignmentExecutor:
             assignment.get("executionPurpose") != "INDEPENDENT_VERIFICATION"
             or not all(self._is_sha(value) for value in (base, head, baseline))
             or base.lower() == head.lower()
-            or base.lower() != baseline.lower()
         ):
             return self._failure("existing_candidate_identity_invalid")
 
@@ -252,7 +251,7 @@ class SupervisorAssignmentExecutor:
                 return self._failure("existing_candidate_workspace_dirty")
 
             resolved: dict[str, str] = {}
-            for label, sha in (("base", base), ("head", head)):
+            for label, sha in (("base", base), ("head", head), ("baseline", baseline)):
                 resolved[label] = subprocess.run(
                     ["git", "rev-parse", "--verify", f"{sha.lower()}^{{commit}}"],
                     cwd=self.project_root, text=True, capture_output=True, check=True,
@@ -262,6 +261,10 @@ class SupervisorAssignmentExecutor:
 
             subprocess.run(
                 ["git", "merge-base", "--is-ancestor", base.lower(), head.lower()],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            )
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", base.lower(), baseline.lower()],
                 cwd=self.project_root, text=True, capture_output=True, check=True,
             )
             raw = subprocess.run(
@@ -282,6 +285,22 @@ class SupervisorAssignmentExecutor:
             if changed != sorted(allowed):
                 return self._failure("existing_candidate_scope_mismatch")
 
+            production_raw = subprocess.run(
+                [
+                    "git", "diff", "--no-renames", "--no-ext-diff",
+                    "--no-textconv", "--name-only", "-z",
+                    base.lower(), baseline.lower(),
+                ],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            ).stdout
+            production_changed = {
+                _normalize_relative_path(path)
+                for path in production_raw.split("\0")
+                if path
+            }
+            if production_changed.intersection(changed):
+                return self._failure("existing_candidate_production_scope_overlap")
+
             current_head = subprocess.run(
                 ["git", "rev-parse", "--verify", "HEAD"],
                 cwd=self.project_root, text=True, capture_output=True, check=True,
@@ -301,7 +320,8 @@ class SupervisorAssignmentExecutor:
                 "changedFiles": changed,
                 "tests": [
                     "git_base_exact", "git_head_exact", "base_is_head_ancestor",
-                    "production_baseline_exact",
+                    "production_baseline_verified",
+                    "production_scope_no_overlap",
                     "changed_paths_exact",
                     "workspace_clean",
                 ],
