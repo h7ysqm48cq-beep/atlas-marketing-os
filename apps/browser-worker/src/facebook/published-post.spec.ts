@@ -256,6 +256,105 @@ test("scans a bounded leading and trailing article window when Facebook appends 
   assert.equal(new Set(indexes).size, indexes.length);
 });
 
+test("confirms an exact post permalink only when the page body matches the caption fingerprint", async () => {
+  let articleLookupCount = 0;
+
+  const page = {
+    locator(selector: string) {
+      if (selector === "body") {
+        return {
+          async innerText() {
+            return "M  BUSINESS｜M STORY 037 99 Speedmart｜为什么它不需要把购物变成体验";
+          },
+        };
+      }
+
+      if (selector === '[role="article"]') {
+        articleLookupCount += 1;
+      }
+
+      throw new Error("timeline lookup should not run for an exact matching permalink");
+    },
+    url() {
+      return "https://www.facebook.com/61592884960509/posts/122117280459429498";
+    },
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M  BUSINESS｜M STORY 037\n99 Speedmart｜为什么它不需要把购物变成体验",
+    1000,
+  );
+
+  assert.deepEqual(reference, {
+    pageId: "61592884960509",
+    facebookPostId: "122117280459429498",
+    externalPostId: "61592884960509_122117280459429498",
+    postUrl:
+      "https://www.facebook.com/permalink.php?story_fbid=122117280459429498&id=61592884960509",
+    matchedBy: "caption-page-post-path",
+  });
+  assert.equal(articleLookupCount, 0);
+});
+
+test("does not trust an exact post permalink when the page body lacks the caption fingerprint", async () => {
+  const articles = {
+    filter() {
+      return {
+        async count() {
+          return 0;
+        },
+      };
+    },
+    async count() {
+      return 0;
+    },
+  };
+
+  const page = {
+    locator(selector: string) {
+      if (selector === "body") {
+        return {
+          async innerText() {
+            return "A different Facebook post";
+          },
+        };
+      }
+
+      if (selector === '[role="article"]') {
+        return articles;
+      }
+
+      if (selector === "a[href]") {
+        return {
+          filter() {
+            return {
+              async count() {
+                return 0;
+              },
+            };
+          },
+        };
+      }
+
+      throw new Error("unexpected selector: " + selector);
+    },
+    url() {
+      return "https://www.facebook.com/61592884960509/posts/122117280459429498";
+    },
+    async waitForTimeout() {},
+    async evaluate() {},
+  };
+
+  const reference = await findFacebookPublishedPostReference(
+    page as never,
+    "M BUSINESS｜M STORY 037",
+    1,
+  );
+
+  assert.equal(reference, null);
+});
+
 test("finds a caption-matching article even when it sits outside the bounded article window", async () => {
   const href =
     "https://www.facebook.com/photo/?fbid=122117280399429498&set=a.122103684285429498";
