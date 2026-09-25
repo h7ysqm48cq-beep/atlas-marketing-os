@@ -439,6 +439,71 @@ test('EngineeringRunner derives the implementation review candidate only from a 
   });
 });
 
+test('EngineeringRunner completes a frozen zero-diff implementation without publishing an empty candidate', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as new (options: Record<string, unknown>) => {
+    runOnce(): Promise<unknown>;
+  };
+  const frozenBaseSha = 'a'.repeat(40);
+  const assignment = { ...implementationAssignment, frozenBaseSha };
+  const active = session(assignment);
+  let completed: any;
+  let published = 0;
+  let cleaned = 0;
+  active.complete = async (value: unknown) => { completed = value; };
+  const zeroDiffResult: any = {
+    ...result,
+    evidence: {
+      ...result.evidence,
+      changedFiles: [],
+      candidatePublication: { forged: true },
+      existingCandidateVerification: { forged: true },
+      reviewCandidate: {
+        action: 'merge',
+        targetBranch: 'production/atlas',
+        baseSha: 'c'.repeat(40),
+        headSha: 'd'.repeat(40),
+        changedFiles: ['fake.ts'],
+      },
+    },
+  };
+  const snapshots: string[][] = [[], []];
+
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('legacy_executor_used'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('legacy_workspace_used'); } },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/isolated/zero-diff',
+        baseSha: frozenBaseSha,
+        workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+        cleanup: async () => { cleaned += 1; },
+      }),
+    },
+    executorFactory: () => ({ execute: async () => zeroDiffResult }),
+    candidatePublisher: {
+      publish: async () => {
+        published += 1;
+        throw new Error('zero_diff_publication_forbidden');
+      },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(published, 0);
+  assert.equal(cleaned, 1);
+  assert.deepEqual(completed.evidence.changedFiles, []);
+  assert.equal(completed.evidence.candidatePublication, undefined);
+  assert.equal(completed.evidence.existingCandidateVerification, undefined);
+  assert.equal(completed.evidence.reviewCandidate, undefined);
+});
+
 test('EngineeringRunner independently verifies a clean same-SHA runtime refresh without publication', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as new (options: Record<string, unknown>) => {

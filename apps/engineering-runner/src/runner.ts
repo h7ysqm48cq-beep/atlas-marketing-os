@@ -321,7 +321,7 @@ export class EngineeringRunner {
           },
         };
       }
-      if (useCandidateFlow) {
+      if (useCandidateFlow && after.length > 0) {
         const receipt = await this.candidatePublisher!.publish({
           taskId: session.assignment.taskId,
           executionId: session.assignment.executionId,
@@ -343,6 +343,20 @@ export class EngineeringRunner {
               headSha: receipt.headSha,
               changedFiles: [...receipt.changedFiles],
             },
+          },
+        };
+      } else if (useCandidateFlow) {
+        const {
+          candidatePublication: _candidatePublication,
+          existingCandidateVerification: _existingCandidateVerification,
+          reviewCandidate: _reviewCandidate,
+          ...boundedEvidence
+        } = executionResult.evidence;
+        completionResult = {
+          summary: executionResult.summary,
+          evidence: {
+            ...boundedEvidence,
+            changedFiles: [],
           },
         };
       }
