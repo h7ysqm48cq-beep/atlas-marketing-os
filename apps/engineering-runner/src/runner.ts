@@ -170,12 +170,20 @@ export class EngineeringRunner {
         Boolean(session.assignment.candidateBaseSha) &&
         session.assignment.candidateBaseSha === session.assignment.candidateHeadSha &&
         session.assignment.candidateHeadSha === session.assignment.productionBaselineSha;
+      const useImplementationResultFlow =
+        session.purpose === 'INDEPENDENT_VERIFICATION' &&
+        session.assignment.verificationMode === 'IMPLEMENTATION_RESULT' &&
+        Boolean(session.assignment.candidateBaseSha) &&
+        session.assignment.candidateBaseSha === session.assignment.candidateHeadSha &&
+        session.assignment.candidateHeadSha === session.assignment.productionBaselineSha;
 
       if (session.assignment.verificationMode &&
-          !useExistingCandidateFlow && !useRuntimeRefreshFlow) {
-        throw new Error('existing_candidate_identity_incomplete');
+          !useExistingCandidateFlow && !useRuntimeRefreshFlow &&
+          !useImplementationResultFlow) {
+        throw new Error('verification_candidate_identity_incomplete');
       }
-      if (useCandidateFlow || useExistingCandidateFlow || useRuntimeRefreshFlow) {
+      if (useCandidateFlow || useExistingCandidateFlow || useRuntimeRefreshFlow ||
+          useImplementationResultFlow) {
         if (
           !this.candidateWorkspaceManager ||
           (useCandidateFlow && !this.candidatePublisher) ||
@@ -186,8 +194,9 @@ export class EngineeringRunner {
         candidateLease = await this.candidateWorkspaceManager.prepare({
           taskId: session.assignment.taskId,
           executionId: session.assignment.executionId,
-          ...(useCandidateFlow || useRuntimeRefreshFlow ? {
-            frozenBaseSha: (useRuntimeRefreshFlow
+          ...(useCandidateFlow || useRuntimeRefreshFlow ||
+              useImplementationResultFlow ? {
+            frozenBaseSha: (useRuntimeRefreshFlow || useImplementationResultFlow
               ? session.assignment.candidateHeadSha : frozenBaseSha)!,
           } : {
             candidateBaseSha: session.assignment.candidateBaseSha!,
@@ -208,15 +217,16 @@ export class EngineeringRunner {
            !activeWorkspace.fingerprint)) {
         throw new Error('existing_candidate_source_identity_unverified');
       }
-      if (useRuntimeRefreshFlow) {
+      if (useRuntimeRefreshFlow || useImplementationResultFlow) {
         if (!activeWorkspace.fingerprint ||
             candidateLease?.baseSha !== session.assignment.candidateHeadSha) {
-          throw new Error('runtime_refresh_workspace_identity_unverified');
+          throw new Error('same_sha_verification_workspace_identity_unverified');
         }
         await this.verifyProductionHead(session.assignment.candidateHeadSha!);
       }
       const before = await activeWorkspace.listChangedFiles();
-      const beforeFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow
+      const beforeFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow ||
+        useImplementationResultFlow
         ? await activeWorkspace.fingerprint!() : undefined;
       await session.heartbeat();
       heartbeatTimer = setInterval(() => {
@@ -230,20 +240,22 @@ export class EngineeringRunner {
         signal,
       );
       const after = await activeWorkspace.listChangedFiles();
-      const afterFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow
+      const afterFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow ||
+        useImplementationResultFlow
         ? await activeWorkspace.fingerprint!() : undefined;
 
       if (heartbeatError) throw heartbeatError;
       if (useExistingCandidateFlow && beforeFingerprint !== afterFingerprint) {
         throw new Error('existing_candidate_git_fingerprint_drift');
       }
-      if (useRuntimeRefreshFlow && (before.length !== 0 || after.length !== 0 ||
-          beforeFingerprint !== afterFingerprint ||
-          executionResult.evidence.changedFiles.length !== 0 ||
-          executionResult.evidence.candidatePublication ||
-          executionResult.evidence.existingCandidateVerification ||
-          executionResult.evidence.reviewCandidate)) {
-        throw new Error('runtime_refresh_evidence_or_workspace_drift');
+      if ((useRuntimeRefreshFlow || useImplementationResultFlow) &&
+          (before.length !== 0 || after.length !== 0 ||
+           beforeFingerprint !== afterFingerprint ||
+           executionResult.evidence.changedFiles.length !== 0 ||
+           executionResult.evidence.candidatePublication ||
+           executionResult.evidence.existingCandidateVerification ||
+           executionResult.evidence.reviewCandidate)) {
+        throw new Error('same_sha_verification_evidence_or_workspace_drift');
       }
       if (session.purpose === 'INDEPENDENT_VERIFICATION') {
         this.scopeGuard.assertVerificationNoDrift(before, after);
@@ -368,7 +380,7 @@ export class EngineeringRunner {
       if (useExistingCandidateFlow) {
         await candidateLease!.verifyProductionBaseline!();
       }
-      if (useRuntimeRefreshFlow) {
+      if (useRuntimeRefreshFlow || useImplementationResultFlow) {
         await this.verifyProductionHead(session.assignment.candidateHeadSha!);
       }
       await session.complete(completionResult);

@@ -469,7 +469,8 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const baseline = object.productionBaselineSha;
   if (verificationMode !== undefined || base !== undefined ||
       head !== undefined || baseline !== undefined) {
-    if (verificationMode !== 'EXISTING_CANDIDATE' ||
+    if ((verificationMode !== 'EXISTING_CANDIDATE' &&
+         verificationMode !== 'IMPLEMENTATION_RESULT') ||
         typeof base !== 'string' || !FULL_GIT_SHA.test(base) ||
         typeof head !== 'string' || !FULL_GIT_SHA.test(head) ||
         typeof baseline !== 'string' || !FULL_GIT_SHA.test(baseline)) {
@@ -518,7 +519,8 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
     ) as RequiredEvidenceField[],
     ...(executionPurpose !== undefined ? { executionPurpose } : {}),
     ...(frozenBaseSha !== undefined ? { frozenBaseSha } : {}),
-    ...(verificationMode === 'EXISTING_CANDIDATE' ? {
+    ...(verificationMode === 'EXISTING_CANDIDATE' ||
+        verificationMode === 'IMPLEMENTATION_RESULT' ? {
       verificationMode, candidateBaseSha: base as string,
       candidateHeadSha: head as string,
       productionBaselineSha: baseline as string,

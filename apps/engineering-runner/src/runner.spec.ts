@@ -855,3 +855,74 @@ test('existing-candidate heartbeat survives slow final canonical production chec
   assert.ok(heartbeatsAtCompletion > 2,
     'heartbeat must continue throughout the final remote source check');
 });
+
+test('EngineeringRunner verifies an IMPLEMENTATION_RESULT at exact same SHA without producing integration evidence', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const sha = 'd'.repeat(40);
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'IMPLEMENTATION_RESULT' as const,
+    candidateBaseSha: sha,
+    candidateHeadSha: sha,
+    productionBaselineSha: sha,
+  };
+  const active = session(assignment) as any;
+  let completed: any;
+  let failed = '';
+  let verified = 0;
+  let prepared: any;
+  active.complete = async (value: unknown) => { completed = value; };
+  active.fail = async (reason: string) => { failed = reason; };
+  const verificationResult = {
+    ...result,
+    evidence: {
+      ...result.evidence,
+      changedFiles: [],
+      candidatePublication: undefined,
+      existingCandidateVerification: undefined,
+      reviewCandidate: undefined,
+    },
+  };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('wrong_workspace'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('wrong_workspace'); } },
+    scopeGuard: {
+      assertImplementationScope: () => { throw new Error('implementation_scope_used'); },
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async (input: any) => {
+        prepared = input;
+        return {
+          path: '/isolated/implementation-result',
+          baseSha: sha,
+          workspace: {
+            listChangedFiles: async () => [],
+            fingerprint: async () => 'e'.repeat(64),
+          },
+          cleanup: async () => undefined,
+        };
+      },
+    },
+    executorFactory: () => ({ execute: async () => verificationResult }),
+    verifyProductionHead: async (value: string) => {
+      assert.equal(value, sha);
+      verified += 1;
+    },
+    candidatePublisher: {
+      publish: async () => { throw new Error('implementation_result_publication_forbidden'); },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(failed, '');
+  assert.equal(prepared.frozenBaseSha, sha);
+  assert.equal(verified, 2);
+  assert.deepEqual(completed.evidence.changedFiles, []);
+  assert.equal(completed.evidence.candidatePublication, undefined);
+  assert.equal(completed.evidence.existingCandidateVerification, undefined);
+  assert.equal(completed.evidence.reviewCandidate, undefined);
+});

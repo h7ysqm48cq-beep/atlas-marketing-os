@@ -46,6 +46,10 @@ import {
   SUPERVISOR_TASK_STORE,
   type SupervisorTaskStore,
 } from './stores/supervisor-task.store';
+import {
+  SUPERVISOR_EXECUTION_STORE,
+  type SupervisorExecutionStore,
+} from './stores/supervisor-execution.store';
 
 const PROTECTED_INTEGRATION_ACTIONS = new Set<SupervisorAction>([
   'merge',
@@ -103,6 +107,9 @@ export class AgentSupervisorService {
     @Optional()
     @Inject(SUPERVISOR_EXECUTION_RECOVERY_STORE)
     private readonly recoveryStore?: SupervisorExecutionRecoveryStore,
+    @Optional()
+    @Inject(SUPERVISOR_EXECUTION_STORE)
+    private readonly executionStore?: SupervisorExecutionStore,
   ) {}
 
   async status() {
@@ -415,6 +422,7 @@ export class AgentSupervisorService {
     if (!task.evidence) {
       throw new BadRequestException('verification_evidence_required');
     }
+    await this.requireIndependentVerificationReady(task);
 
     task.status = 'READY_FOR_REVIEW';
     task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
@@ -1274,6 +1282,185 @@ export class AgentSupervisorService {
       ...receipt,
       changedFiles: [...receipt.changedFiles],
     };
+  }
+
+  private async requireIndependentVerificationReady(
+    task: SupervisorTask,
+  ): Promise<void> {
+    // Memory-only/unit harnesses may construct the service without the execution
+    // store. Production injects it through AgentSupervisorModule.
+    if (!this.executionStore) return;
+
+    const executions = await this.executionStore.listByTask(task.id);
+    const verifiers = executions.filter(
+      (execution) =>
+        execution.assignment.executionPurpose === 'INDEPENDENT_VERIFICATION',
+    );
+    if (verifiers.some((execution) =>
+      ['QUEUED', 'DISPATCHED', 'RUNNING'].includes(execution.status))) {
+      throw new BadRequestException({
+        code: 'independent_verification_still_active',
+      });
+    }
+    const completedVerifiers = verifiers.filter(
+      (execution) =>
+        execution.status === 'COMPLETED' &&
+        Boolean(execution.result),
+    );
+    if (completedVerifiers.length !== 1) {
+      throw new BadRequestException({
+        code: 'completed_independent_verifier_required',
+      });
+    }
+
+    const verifier = completedVerifiers[0];
+    const assigned = verifier.assignment;
+    const verifierEvidence = verifier.result!.evidence;
+    const bindingInvalid =
+      verifier.workerRole !== 'verifier' ||
+      assigned.workerRole !== 'verifier' ||
+      !verifier.runnerId ||
+      !assigned.runnerId ||
+      verifier.runnerId !== assigned.runnerId ||
+      !Number.isInteger(verifier.claimEpoch) ||
+      verifier.claimEpoch < 1 ||
+      assigned.claimEpoch !== verifier.claimEpoch ||
+      !assigned.leaseId ||
+      !/^[0-9a-f]{64}$/i.test(assigned.manifestHash ?? '') ||
+      Boolean(verifier.error) ||
+      !(verifier.startedAt instanceof Date) ||
+      !(verifier.completedAt instanceof Date);
+    if (bindingInvalid) {
+      throw new BadRequestException({
+        code: 'independent_verifier_binding_invalid',
+      });
+    }
+
+    const samePaths = (left: string[], right: string[]) =>
+      JSON.stringify([...new Set(left)].sort()) ===
+      JSON.stringify([...new Set(right)].sort());
+
+    const taskProof = task.evidence!.existingCandidateVerification;
+    if (taskProof) {
+      const executionProof = verifierEvidence.existingCandidateVerification;
+      const taskCandidate = task.evidence!.reviewCandidate;
+      const executionCandidate = verifierEvidence.reviewCandidate;
+      if (
+        assigned.verificationMode !== 'EXISTING_CANDIDATE' ||
+        !executionProof ||
+        executionProof.sourceVerified !== true ||
+        taskProof.sourceVerified !== true ||
+        taskProof.taskId !== task.id ||
+        executionProof.taskId !== task.id ||
+        taskProof.executionId !== verifier.id ||
+        executionProof.executionId !== verifier.id ||
+        JSON.stringify(taskProof) !== JSON.stringify(executionProof) ||
+        !taskCandidate ||
+        !executionCandidate ||
+        !this.sameCandidate(
+          this.normalizeCandidate(taskCandidate),
+          this.normalizeCandidate(executionCandidate),
+        ) ||
+        !samePaths(verifierEvidence.changedFiles, task.evidence!.changedFiles)
+      ) {
+        throw new BadRequestException({
+          code: 'independent_existing_candidate_provenance_invalid',
+        });
+      }
+      return;
+    }
+
+    const completedImplementations = executions.filter(
+      (execution) =>
+        (execution.assignment.executionPurpose ?? 'IMPLEMENTATION') ===
+          'IMPLEMENTATION' &&
+        execution.status === 'COMPLETED' &&
+        Boolean(execution.result) &&
+        samePaths(
+          execution.result!.evidence.changedFiles,
+          task.evidence!.changedFiles,
+        ) &&
+        (
+          task.evidence!.reviewCandidate
+            ? Boolean(execution.result!.evidence.reviewCandidate) &&
+              this.sameCandidate(
+                this.normalizeCandidate(task.evidence!.reviewCandidate),
+                this.normalizeCandidate(
+                  execution.result!.evidence.reviewCandidate!,
+                ),
+              )
+            : !execution.result!.evidence.reviewCandidate
+        ),
+    );
+    if (completedImplementations.length !== 1) {
+      throw new BadRequestException({
+        code: 'verified_implementation_execution_required',
+      });
+    }
+
+    const implementation = completedImplementations[0];
+    if (
+      !implementation.runnerId ||
+      verifier.runnerId === implementation.runnerId ||
+      !(implementation.completedAt instanceof Date) ||
+      verifier.startedAt!.getTime() < implementation.completedAt.getTime() ||
+      verifier.startedAt!.getTime() < task.updatedAt.getTime() ||
+      !samePaths(verifierEvidence.changedFiles, task.evidence!.changedFiles)
+    ) {
+      throw new BadRequestException({
+        code: 'independent_verifier_separation_invalid',
+      });
+    }
+
+    const candidate = task.evidence!.reviewCandidate;
+    if (candidate) {
+      const proof = verifierEvidence.existingCandidateVerification;
+      const verifiedCandidate = verifierEvidence.reviewCandidate;
+      if (
+        assigned.verificationMode !== 'EXISTING_CANDIDATE' ||
+        assigned.candidateBaseSha !== candidate.baseSha ||
+        assigned.candidateHeadSha !== candidate.headSha ||
+        assigned.productionBaselineSha !== candidate.baseSha ||
+        !proof ||
+        proof.sourceVerified !== true ||
+        proof.taskId !== task.id ||
+        proof.executionId !== verifier.id ||
+        proof.baseSha !== assigned.candidateBaseSha ||
+        proof.headSha !== assigned.candidateHeadSha ||
+        proof.productionBaselineSha !== assigned.productionBaselineSha ||
+        !verifiedCandidate ||
+        !this.sameCandidate(
+          this.normalizeCandidate(candidate),
+          this.normalizeCandidate(verifiedCandidate),
+        ) ||
+        verifierEvidence.candidatePublication
+      ) {
+        throw new BadRequestException({
+          code: 'implementation_candidate_verifier_provenance_invalid',
+        });
+      }
+      return;
+    }
+
+    const frozenBaseSha =
+      implementation.assignment.frozenBaseSha?.toLowerCase();
+    if (
+      task.evidence!.changedFiles.length !== 0 ||
+      !frozenBaseSha ||
+      !FULL_GIT_SHA.test(frozenBaseSha) ||
+      assigned.verificationMode !== 'IMPLEMENTATION_RESULT' ||
+      assigned.candidateBaseSha !== frozenBaseSha ||
+      assigned.candidateHeadSha !== frozenBaseSha ||
+      assigned.productionBaselineSha !== frozenBaseSha ||
+      verifierEvidence.changedFiles.length !== 0 ||
+      verifierEvidence.candidatePublication ||
+      verifierEvidence.existingCandidateVerification ||
+      verifierEvidence.reviewCandidate
+    ) {
+      throw new BadRequestException({
+        code: 'zero_diff_verifier_provenance_invalid',
+      });
+    }
   }
 
   private normalizeCandidate(

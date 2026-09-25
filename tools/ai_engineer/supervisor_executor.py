@@ -54,6 +54,8 @@ class SupervisorAssignmentExecutor:
             if assignment.get("candidateBaseSha") == assignment.get("candidateHeadSha"):
                 return self._verify_runtime_refresh(assignment)
             return self._verify_existing_candidate(assignment)
+        if assignment.get("verificationMode") == "IMPLEMENTATION_RESULT":
+            return self._verify_implementation_result(assignment)
         if assignment.get("executionPurpose", "IMPLEMENTATION") != "IMPLEMENTATION":
             return self._failure("supervisor_execution_purpose_not_supported")
 
@@ -143,6 +145,47 @@ class SupervisorAssignmentExecutor:
             summary=f"Applied {operation} within Supervisor scope.",
             evidence=self._evidence(changed),
             planning=planning,
+        )
+
+    def _verify_implementation_result(
+        self, assignment: Mapping[str, Any]
+    ) -> SupervisorExecutorResult:
+        sha = assignment.get("candidateHeadSha")
+        if (
+            assignment.get("executionPurpose") != "INDEPENDENT_VERIFICATION"
+            or not isinstance(sha, str)
+            or len(sha) != 40
+            or any(c not in "0123456789abcdef" for c in sha)
+            or sha != assignment.get("candidateBaseSha")
+            or sha != assignment.get("productionBaselineSha")
+        ):
+            return self._failure("implementation_result_identity_invalid")
+        try:
+            self._assert_safe_allowed_targets(self._allowed_paths(assignment))
+            head = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"],
+                cwd=self.project_root, text=True, capture_output=True, check=True,
+            ).stdout.strip().lower()
+            changed = self._git_changed_files()
+        except (ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+            return self._failure(
+                f"implementation_result_git_verification_failed:{error}"
+            )
+        if head != sha or changed:
+            return self._failure("implementation_result_head_or_workspace_mismatch")
+        return SupervisorExecutorResult(
+            success=True,
+            summary="Verified clean zero-diff implementation result at exact production SHA.",
+            evidence={
+                "rootCause": "zero_diff_implementation_requires_independent_source_verification",
+                "changedFiles": [],
+                "tests": ["git_head_exact", "git_worktree_clean"],
+                "build": "NOT_RUN",
+                "regression": [],
+                "deploymentState": "NOT_DEPLOYED",
+                "gitState": "CLEAN",
+                "remainingRisk": ["implementation_tests_are_preserved_on_task_evidence"],
+            },
         )
 
     def _verify_runtime_refresh(
