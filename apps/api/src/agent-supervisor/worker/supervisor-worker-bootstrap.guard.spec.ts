@@ -104,6 +104,19 @@ describe('SupervisorWorkerBootstrapGuard RED contract', () => {
     expect(value.supervisorWorkerBootstrapRole).toBe('engineering');
   });
 
+  it('supports a dedicated verifier bootstrap principal', async () => {
+    const value = request('Bearer verifier-bootstrap-secret');
+    const target = guard({
+      ...validConfig,
+      ATLAS_SUPERVISOR_WORKER_BOOTSTRAP_VERIFIER_TOKEN:
+        'verifier-bootstrap-secret',
+    });
+    if (!target) return;
+
+    await expect(target.canActivate(context(value))).resolves.toBe(true);
+    expect(value.supervisorWorkerBootstrapRole).toBe('verifier');
+  });
+
   it('keeps the legacy bootstrap role working beside role-specific tokens', async () => {
     const value = request('Bearer bootstrap-test-secret');
     const target = guard({

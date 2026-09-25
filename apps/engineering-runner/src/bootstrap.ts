@@ -11,13 +11,17 @@ export function createEngineeringRunnerOptions(
   config: EngineeringRunnerConfig,
   environment: NodeJS.ProcessEnv = process.env,
 ): EngineeringRunnerOptions {
+  const executionPurpose = config.executionPurpose ??
+    (config.exactTarget ? 'INDEPENDENT_VERIFICATION' : 'IMPLEMENTATION');
   const base: EngineeringRunnerOptions = {
     client: new SupervisorClient({
       baseUrl: config.supervisorApiUrl,
       bootstrapToken: config.bootstrapToken,
-      requireFrozenBaseSha: Boolean(config.candidate && !config.exactTarget),
+      requireFrozenBaseSha:
+        executionPurpose === 'IMPLEMENTATION' &&
+        Boolean(config.candidate && !config.exactTarget),
+      executionPurpose,
       ...(config.exactTarget ? {
-        executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
         exactTarget: config.exactTarget,
       } : {}),
     }),
@@ -37,13 +41,16 @@ export function createEngineeringRunnerOptions(
     sourceToken: config.candidate.sourceToken,
     environment,
   });
-  const candidatePublisher = config.exactTarget ? undefined : new CandidatePublisher({
-    remote: config.candidate.remote,
-    publisherToken: config.candidate.publisherToken,
-    publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
-    publisherSshPrivateKeyPath: config.candidate.publisherSshPrivateKeyPath,
-    environment,
-  });
+  const candidatePublisher =
+    executionPurpose === 'INDEPENDENT_VERIFICATION'
+      ? undefined
+      : new CandidatePublisher({
+          remote: config.candidate.remote,
+          publisherToken: config.candidate.publisherToken,
+          publisherSshPrivateKey: config.candidate.publisherSshPrivateKey,
+          publisherSshPrivateKeyPath: config.candidate.publisherSshPrivateKeyPath,
+          environment,
+        });
   return {
     ...base,
     preflight: async () => {

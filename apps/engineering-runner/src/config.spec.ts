@@ -183,3 +183,34 @@ test('Exact verifier bootstrap never constructs a CandidatePublisher or polling 
   assert.equal(options.candidatePublisher, undefined);
   assert.ok(options.candidateWorkspaceManager);
 });
+
+
+test("standing verifier mode requires candidate source and never loads publisher auth", () => {
+  const missing = baseEnv();
+  missing.ATLAS_ENGINEERING_RUNNER_EXECUTION_PURPOSE = "INDEPENDENT_VERIFICATION";
+  assert.throws(
+    () => loadEngineeringRunnerConfig(missing),
+    /runner_verifier_requires_candidate_source/,
+  );
+
+  const env = baseEnv();
+  env.ATLAS_ENGINEERING_RUNNER_EXECUTION_PURPOSE = "INDEPENDENT_VERIFICATION";
+  env.ATLAS_ENGINEERING_RUNNER_SOURCE_REPOSITORY = "/repo";
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_WORKSPACE_ROOT = "/workspaces";
+  env.ATLAS_ENGINEERING_RUNNER_CANDIDATE_REMOTE =
+    "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
+  env.ATLAS_ENGINEERING_RUNNER_PUBLISHER_TOKEN = "must-not-be-used";
+  const config = loadEngineeringRunnerConfig(env);
+  assert.equal(config.executionPurpose, "INDEPENDENT_VERIFICATION");
+  assert.equal(config.exactTarget, undefined);
+  assert.equal(config.candidate?.publisherToken, undefined);
+});
+
+test("runner execution purpose fails closed for unknown values", () => {
+  const env = baseEnv();
+  env.ATLAS_ENGINEERING_RUNNER_EXECUTION_PURPOSE = "BOTH";
+  assert.throws(
+    () => loadEngineeringRunnerConfig(env),
+    /runner_execution_purpose_invalid/,
+  );
+});

@@ -73,6 +73,7 @@ const WORKER_ROLES = new Set<Exclude<SupervisorAgentRole, 'supervisor'>>([
   'database',
   'qa',
   'infra',
+  'verifier',
 ]);
 
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
@@ -1016,6 +1017,13 @@ export class AgentSupervisorService {
       return context.supervisorAuthorization
         ? { allowed: true, reason: null }
         : { allowed: false, reason: 'supervisor_authorization_required' };
+    }
+
+    if (role === 'verifier') {
+      if (['read_repo', 'search_repo', 'run_tests', 'run_build'].includes(action)) {
+        return { allowed: true, reason: null };
+      }
+      return { allowed: false, reason: 'verifier_read_only' };
     }
 
     if (BASE_ALLOWED_ACTIONS.has(action)) {

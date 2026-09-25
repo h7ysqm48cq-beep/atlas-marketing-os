@@ -1,3 +1,5 @@
+import type { ExecutionPurpose } from './types.ts';
+
 export interface EngineeringRunnerCandidateConfig {
   repositoryRoot: string;
   workspaceRoot: string;
@@ -18,6 +20,7 @@ export interface EngineeringRunnerConfig {
   heartbeatIntervalMs: number;
   candidate?: EngineeringRunnerCandidateConfig;
   exactTarget?: { taskId: string; executionId: string };
+  executionPurpose?: ExecutionPurpose;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -38,6 +41,15 @@ function positiveInteger(
     throw new Error(`runner_config_invalid:${key}`);
   }
   return value;
+}
+
+function executionPurpose(env: NodeJS.ProcessEnv): ExecutionPurpose {
+  const raw = env.ATLAS_ENGINEERING_RUNNER_EXECUTION_PURPOSE?.trim();
+  if (!raw) return 'IMPLEMENTATION';
+  if (raw === 'IMPLEMENTATION' || raw === 'INDEPENDENT_VERIFICATION') {
+    return raw;
+  }
+  throw new Error('runner_execution_purpose_invalid');
 }
 
 function stringArray(raw: string | undefined): string[] {
@@ -123,9 +135,17 @@ export function loadEngineeringRunnerConfig(
     throw new Error('runner_exact_target_incomplete');
   }
   const exactVerification = Boolean(exactTaskId && exactExecutionId);
-  const candidate = candidateConfig(env, exactVerification);
+  const configuredPurpose = executionPurpose(env);
+  const resolvedPurpose: ExecutionPurpose = exactVerification
+    ? 'INDEPENDENT_VERIFICATION'
+    : configuredPurpose;
+  const verifierOnly = resolvedPurpose === 'INDEPENDENT_VERIFICATION';
+  const candidate = candidateConfig(env, verifierOnly);
   if (exactVerification && !candidate) {
     throw new Error('runner_exact_target_requires_candidate_source');
+  }
+  if (!exactVerification && verifierOnly && !candidate) {
+    throw new Error('runner_verifier_requires_candidate_source');
   }
   if (candidate) {
     const credentials = [
@@ -160,5 +180,6 @@ export function loadEngineeringRunnerConfig(
     ...(exactTaskId && exactExecutionId ? {
       exactTarget: { taskId: exactTaskId, executionId: exactExecutionId },
     } : {}),
+    executionPurpose: resolvedPurpose,
   };
 }

@@ -16,6 +16,7 @@ const WORKER_ROLES: SupervisorWorkerRole[] = [
   'database',
   'qa',
   'infra',
+  'verifier',
 ];
 
 const WORKER_ROLE_SET = new Set<SupervisorWorkerRole>(WORKER_ROLES);
