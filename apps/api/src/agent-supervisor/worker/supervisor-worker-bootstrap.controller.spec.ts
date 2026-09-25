@@ -297,12 +297,14 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
     const setupValue = setup(claimed);
     if (!setupValue) return;
 
-    await invoke(setupValue.controller, request(), {
+    await invoke(setupValue.controller, request({
+      supervisorWorkerBootstrapRole: 'verifier',
+    }), {
       executionPurpose: 'INDEPENDENT_VERIFICATION',
     });
     expect(setupValue.calls.claimNext).toHaveBeenCalledWith(
       expect.objectContaining({
-        workerRole: 'backend',
+        workerRole: 'verifier',
         executionPurpose: 'INDEPENDENT_VERIFICATION',
         requireFrozenBaseSha: false,
       }),
