@@ -516,7 +516,9 @@ export class PrismaSupervisorLifecycleStore
               'INDEPENDENT_VERIFICATION');
         const terminalParentAllowsExecutionCleanup =
           currentTask.status === 'APPROVED' ||
-          currentTask.status === 'FAILED';
+          currentTask.status === 'FAILED' ||
+          (currentTask.status === 'BLOCKED' &&
+            currentExecution.status === 'QUEUED');
         if (
           currentExecution.id !== input.candidate.executionId ||
           currentExecution.taskId !== input.candidate.taskId ||
