@@ -17,6 +17,10 @@ const SCRIPT_PATH = resolve(
   process.cwd(),
   'scripts/check-production-deployment-gate.cjs',
 );
+const BOOTSTRAP_SCRIPT_PATH = resolve(
+  process.cwd(),
+  'scripts/check-api-bootstrap-deployment.cjs',
+);
 const RAILWAY_CONFIG_PATH = resolve(process.cwd(), '../../railway.json');
 const BROWSER_WORKER_RAILWAY_CONFIG_PATH = resolve(
   process.cwd(),
@@ -247,16 +251,16 @@ describe('repository-owned production deployment gate', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('keeps the repository Railway API preDeploy gate migration-free after bootstrap', () => {
+  it('scopes the temporary repository Railway API bootstrap without migrations', () => {
     const config = JSON.parse(readFileSync(RAILWAY_CONFIG_PATH, 'utf8')) as {
       deploy?: { preDeployCommand?: string[] };
     };
     const commands = config.deploy?.preDeployCommand ?? [];
     expect(commands).toEqual([
-      'node apps/api/scripts/check-production-deployment-gate.cjs',
+      'node apps/api/scripts/check-api-bootstrap-deployment.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
-    expect(commands.join('\n')).not.toMatch(/check-api-bootstrap-deployment/i);
+    expect(commands).toHaveLength(1);
   });
 
   it('keeps Browser Worker Railway preDeploy service-bound and migration-free', () => {
@@ -275,7 +279,7 @@ describe('repository-owned production deployment gate', () => {
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
-  it('keeps Engineering Runner Railway preDeploy service-bound and migration-free', () => {
+  it('leaves Engineering Runner Railway preDeploy unchanged and migration-free', () => {
     const config = JSON.parse(
       readFileSync(ENGINEERING_RUNNER_RAILWAY_CONFIG_PATH, 'utf8'),
     ) as {
@@ -285,7 +289,7 @@ describe('repository-owned production deployment gate', () => {
     const commands = config.deploy?.preDeployCommand ?? [];
 
     expect(commands).toEqual([
-      'ATLAS_DEPLOYMENT_SERVICE=engineering-runner node apps/api/scripts/check-production-deployment-gate.cjs',
+      'node apps/engineering-runner/check-runner-bootstrap-deployment.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
@@ -305,5 +309,93 @@ describe('repository-owned production deployment gate', () => {
     expect(dockerfile).not.toMatch(
       /ATLAS_SUPERVISOR_|ATLAS_ENGINEERING_RUNNER_(SOURCE|PUBLISHER)_TOKEN|db:migrate|prisma migrate/i,
     );
+  });
+});
+
+describe('temporary exact-parent API bootstrap recovery', () => {
+  const parent = 'a7b95dacc4aefdafc2b51c366cb9db0fb0d4105d';
+  const sha = 'b'.repeat(40);
+  const files = [
+    'railway.json',
+    'apps/api/scripts/check-api-bootstrap-deployment.cjs',
+    'apps/api/src/agent-supervisor/gateway/repository-production-deployment-gate.spec.ts',
+  ];
+  const env = {
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: sha,
+    RAILWAY_SERVICE_ID: 'c23120f6-5d60-44d6-8021-9d6c52387718',
+    RAILWAY_ENVIRONMENT_ID: '62379618-8890-40fb-bff8-2db75c57027c',
+  };
+  const now = Date.parse('2026-09-25T00:00:00Z');
+  const bootstrap = require(BOOTSTRAP_SCRIPT_PATH) as {
+    main: (env: NodeJS.ProcessEnv, fetchImpl: typeof fetch, now: number) => Promise<void>;
+  };
+
+  function githubFetch(options: {
+    tip?: string;
+    firstParent?: string;
+    parents?: number;
+    files?: string[];
+  } = {}) {
+    return jest.fn()
+      .mockResolvedValueOnce(response(200, {
+        name: 'production/atlas', commit: { sha: options.tip ?? sha },
+      }))
+      .mockResolvedValueOnce(response(200, {
+        sha,
+        parents: [
+          { sha: options.firstParent ?? parent },
+          ...(options.parents === 1 ? [] : [{ sha: 'c'.repeat(40) }]),
+        ],
+        files: (options.files ?? files).map(filename => ({ filename })),
+      })) as unknown as typeof fetch;
+  }
+
+  it('logs a scoped exception, never a Supervisor authorization', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation();
+    try {
+      const fetchImpl = githubFetch();
+      await bootstrap.main(env, fetchImpl, now);
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(log).toHaveBeenCalledWith(
+        'ATLAS_API_BOOTSTRAP_EXCEPTION_NOT_SUPERVISOR_APPROVAL',
+        expect.objectContaining({ commitSha: sha, parent, service: 'api' }),
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it.each([
+    ['wrong service', { RAILWAY_SERVICE_ID: 'other' }],
+    ['wrong environment', { RAILWAY_ENVIRONMENT_ID: 'other' }],
+    ['wrong repo', { RAILWAY_GIT_REPO_NAME: 'other' }],
+    ['wrong branch', { RAILWAY_GIT_BRANCH: 'main' }],
+    ['wrong workload', { ATLAS_DEPLOYMENT_SERVICE: 'engineering-runner' }],
+  ])('rejects %s before fetching GitHub', async (_name, override) => {
+    const fetchImpl = jest.fn() as unknown as typeof fetch;
+    await expect(bootstrap.main({ ...env, ...override }, fetchImpl, now))
+      .rejects.toThrow(/ATLAS_API_BOOTSTRAP_DENY/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('rejects expired recovery before GitHub access', async () => {
+    const fetchImpl = jest.fn() as unknown as typeof fetch;
+    await expect(bootstrap.main(env, fetchImpl, Date.parse('2026-09-27T00:00:00Z')))
+      .rejects.toThrow(/expired/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['changed production tip', { tip: 'd'.repeat(40) }, /production_tip/],
+    ['changed parent', { firstParent: 'd'.repeat(40) }, /parent/],
+    ['non-merge commit', { parents: 1 }, /parent/],
+    ['extra file', { files: [...files, 'apps/api/src/main.ts'] }, /scope/],
+    ['missing file', { files: files.slice(1) }, /scope/],
+  ])('rejects %s', async (_name, options, error) => {
+    await expect(bootstrap.main(env, githubFetch(options), now))
+      .rejects.toThrow(error);
   });
 });
