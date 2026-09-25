@@ -655,6 +655,65 @@ describe('PrismaSupervisorLifecycleStore', () => {
     },
   );
 
+  it('terminalizes a queued timeout under an already BLOCKED parent without mutating the parent', async () => {
+    const { prisma, transaction } = recoveryTransaction();
+    const currentExecution = execution({
+      status: 'QUEUED',
+      runnerId: null,
+      claimEpoch: 0,
+      startedAt: null,
+      lastHeartbeatAt: null,
+      leaseExpiresAt: null,
+      assignment: {
+        ...execution().assignment,
+        claimEpoch: 0,
+        workerCapability: undefined,
+      },
+    });
+    const currentTask = task({
+      status: 'BLOCKED',
+      blockingReason: 'superseded_verifier_queue',
+    });
+    const candidate = recoveryCandidate({
+      status: 'QUEUED',
+      kind: 'QUEUED_TIMEOUT',
+      claimEpoch: 0,
+      runnerId: null,
+      leaseExpiresAt: null,
+    });
+    const now = new Date('2026-09-13T00:02:00.000Z');
+
+    transaction.supervisorExecution.findUnique.mockResolvedValue(currentExecution);
+    transaction.supervisorTask.findUnique.mockResolvedValue(currentTask);
+    transaction.supervisorExecution.updateMany.mockResolvedValue({ count: 1 });
+
+    const store = new PrismaSupervisorLifecycleStore(prisma as never);
+    const recovered =
+      await recoveryStore(store).recoverExecutionAndBlockTask({
+        candidate,
+        now,
+      });
+
+    expect(recovered).toMatchObject({
+      execution: {
+        id: candidate.executionId,
+        status: 'FAILED',
+        error: 'supervisor_execution_queued_timeout',
+        runnerId: null,
+        claimEpoch: 1,
+      },
+      task: {
+        id: currentTask.id,
+        status: 'BLOCKED',
+        blockingReason: 'superseded_verifier_queue',
+        updatedAt: currentTask.updatedAt,
+      },
+    });
+    expect(transaction.supervisorExecution.updateMany).toHaveBeenCalledTimes(1);
+    expect(transaction.supervisorTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.supervisorFileLock.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('invalidates the old claim while preserving the execution audit envelope', async () => {
     const { prisma, transaction } = recoveryTransaction();
     const current = execution();
