@@ -404,6 +404,124 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
     ).toHaveBeenCalledTimes(1);
   });
 
+  it('forwards all Facebook Browser Runtime images and requires the full attachment count', async () => {
+    const {
+      browserRuntime,
+      prisma,
+      runtimeProfiles,
+      service,
+    } = createService();
+
+    const mediaUrls = [
+      'https://cdn.example.com/one.jpg',
+      'https://cdn.example.com/two.jpg',
+      'https://cdn.example.com/three.jpg',
+      'https://cdn.example.com/four.jpg',
+    ];
+
+    prisma.scheduledPost.findMany.mockResolvedValue([
+      {
+        ...createPost('BROWSER_RUNTIME'),
+        mediaUrls,
+      },
+    ]);
+    browserRuntime.preflightFacebookLoginForChannel.mockResolvedValue({
+      ready: true,
+      loginRequired: false,
+      message: 'Ready',
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+    });
+    runtimeProfiles.getPublishNetwork.mockResolvedValue({
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+      locale: 'en-MY',
+      timezone: 'Asia/Kuala_Lumpur',
+      proxyType: 'DIRECT',
+      proxyUrl: null,
+    });
+    browserRuntime.prepareFacebookPostForChannel.mockResolvedValue({
+      success: true,
+      readyForReview: true,
+      captionFilled: true,
+      imageAttached: true,
+      attachedMediaCount: 4,
+    });
+
+    await expect(service.run()).resolves.toMatchObject({
+      found: 1,
+      published: 1,
+    });
+
+    expect(browserRuntime.prepareFacebookPostForChannel).toHaveBeenCalledWith(
+      'channel-1',
+      {
+        caption: 'Test post',
+        imagePath: null,
+        imageUrl: mediaUrls[0],
+        imageUrls: mediaUrls,
+      },
+    );
+  });
+
+  it('fails closed when Facebook Browser Runtime attaches only part of a multi-image post', async () => {
+    const {
+      browserRuntime,
+      prisma,
+      runtimeProfiles,
+      service,
+    } = createService();
+
+    const mediaUrls = [
+      'https://cdn.example.com/one.jpg',
+      'https://cdn.example.com/two.jpg',
+      'https://cdn.example.com/three.jpg',
+      'https://cdn.example.com/four.jpg',
+    ];
+
+    prisma.scheduledPost.findMany.mockResolvedValue([
+      {
+        ...createPost('BROWSER_RUNTIME'),
+        mediaUrls,
+      },
+    ]);
+    browserRuntime.preflightFacebookLoginForChannel.mockResolvedValue({
+      ready: true,
+      loginRequired: false,
+      message: 'Ready',
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+    });
+    runtimeProfiles.getPublishNetwork.mockResolvedValue({
+      browserAccountId: 'browser-account-1',
+      browserProfileKey: 'profile-1',
+      locale: 'en-MY',
+      timezone: 'Asia/Kuala_Lumpur',
+      proxyType: 'DIRECT',
+      proxyUrl: null,
+    });
+    browserRuntime.prepareFacebookPostForChannel.mockResolvedValue({
+      success: true,
+      readyForReview: true,
+      captionFilled: true,
+      imageAttached: true,
+      attachedMediaCount: 3,
+    });
+
+    await expect(service.run()).resolves.toMatchObject({
+      found: 1,
+      published: 0,
+    });
+
+    expect(prisma.scheduledPost.update).toHaveBeenCalledWith({
+      where: { id: 'post-1' },
+      data: expect.objectContaining({
+        status: ScheduledPostStatus.FAILED,
+        lastError: 'Facebook draft preparation failed: expected 4 image(s) (Facebook Browser Runtime), attached 3.',
+      }),
+    });
+  });
+
   it('keeps an actual Browser Runtime publishing failure FAILED without rescheduling it', async () => {
     const {
       browserRuntime,
