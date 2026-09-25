@@ -5,7 +5,8 @@ export type SupervisorAgentRole =
   | 'backend'
   | 'database'
   | 'qa'
-  | 'infra';
+  | 'infra'
+  | 'verifier';
 
 export type SupervisorTaskStatus =
   | 'DRAFT'

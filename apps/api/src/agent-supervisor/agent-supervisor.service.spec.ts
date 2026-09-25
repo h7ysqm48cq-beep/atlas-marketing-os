@@ -1240,6 +1240,28 @@ describe('AgentSupervisorService', () => {
     ).toBe(false);
   });
 
+
+  it('keeps the verifier principal read-only', () => {
+    for (const action of ['read_repo', 'search_repo', 'run_tests', 'run_build'] as const) {
+      expect(service.checkPermission('verifier', action)).toEqual({
+        allowed: true,
+        reason: null,
+      });
+    }
+    for (const action of ['edit_assigned_files', 'commit_assigned_branch'] as const) {
+      expect(service.checkPermission('verifier', action)).toEqual({
+        allowed: false,
+        reason: 'verifier_read_only',
+      });
+    }
+    expect(
+      service.checkPermission('verifier', 'merge', {
+        explicitUserAuthorization: true,
+      }).allowed,
+    ).toBe(false);
+    expect(service.checkPermission('verifier', 'deploy_production').allowed).toBe(false);
+  });
+
   // ASTRA_V2_MERGE_CONSUMPTION_SERVICE_RED
   it('consumes an exact owner merge authorization once and records post-merge attestation', async () => {
     const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
