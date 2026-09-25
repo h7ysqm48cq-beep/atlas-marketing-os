@@ -46,13 +46,24 @@ def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
     ).stdout.strip()
     request = assignment(purpose="INDEPENDENT_VERIFICATION")
     request.update(verificationMode="EXISTING_CANDIDATE", candidateBaseSha=sha,
-                   candidateHeadSha=sha, productionBaselineSha=sha)
+                   candidateHeadSha=sha, productionBaselineSha=sha,
+                   allowedPaths=[])
     executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
 
     result = executor.execute(request, allow_apply=True)
     assert result.success
     assert result.evidence["changedFiles"] == []
     assert result.evidence["deploymentState"] == "NOT_DEPLOYED"
+    assert result.evidence["gitState"] == "CLEAN"
+    for invalid_scope in (["src/users/users.service.ts"], None, "[]", [None]):
+        invalid_request = {**request}
+        if invalid_scope is None:
+            invalid_request.pop("allowedPaths")
+        else:
+            invalid_request["allowedPaths"] = invalid_scope
+        assert executor.execute(invalid_request, allow_apply=True).error == (
+            "runtime_refresh_allowed_paths_invalid"
+        )
     target.write_text("changed", encoding="utf-8")
     assert executor.execute(request, allow_apply=True).error == (
         "runtime_refresh_head_or_workspace_mismatch"
@@ -158,6 +169,7 @@ def test_script_entrypoint_runs_from_outside_repository(tmp_path):
         candidateBaseSha=sha,
         candidateHeadSha=sha,
         productionBaselineSha=sha,
+        allowedPaths=[],
     )
 
     result = subprocess.run(
