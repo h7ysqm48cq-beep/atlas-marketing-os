@@ -2,6 +2,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import type {
   ProductionDeploymentService,
   SupervisorAction,
+  SupervisorCandidatePublicationReceipt,
   SupervisorEvidence,
   SupervisorExistingCandidateVerification,
   SupervisorIntegrationAction,
@@ -173,6 +174,49 @@ function requireIntegrationAction(value: unknown): SupervisorIntegrationAction {
     throw persistenceError();
   }
   return value as SupervisorIntegrationAction;
+}
+
+function mapCandidatePublication(
+  value: unknown,
+): SupervisorCandidatePublicationReceipt {
+  const object = requireObject(value);
+  const taskId = requireString(object.taskId);
+  const executionId = requireString(object.executionId);
+  const candidateBranch = requireString(object.candidateBranch);
+  const baseSha = requireString(object.baseSha);
+  const headSha = requireString(object.headSha);
+  const changedFiles = requireStringArray(object.changedFiles);
+  const targetBranch = requireString(object.targetBranch);
+  const remoteHeadSha = requireString(object.remoteHeadSha);
+
+  if (
+    !taskId.trim() ||
+    taskId !== taskId.trim() ||
+    !executionId.trim() ||
+    executionId !== executionId.trim() ||
+    candidateBranch !== `atlas/candidate/${taskId}/${executionId}` ||
+    !FULL_GIT_SHA.test(baseSha) ||
+    !FULL_GIT_SHA.test(headSha) ||
+    !FULL_GIT_SHA.test(remoteHeadSha) ||
+    remoteHeadSha.toLowerCase() !== headSha.toLowerCase() ||
+    changedFiles.some((path) => !path.trim() || path !== path.trim()) ||
+    targetBranch !== 'production/atlas' ||
+    object.remoteVerified !== true
+  ) {
+    throw persistenceError();
+  }
+
+  return {
+    taskId,
+    executionId,
+    candidateBranch,
+    baseSha,
+    headSha,
+    changedFiles,
+    targetBranch: 'production/atlas',
+    remoteHeadSha,
+    remoteVerified: true,
+  };
 }
 
 function mapReviewCandidate(value: unknown): SupervisorReviewCandidate {
@@ -397,6 +441,10 @@ function mapExistingCandidateVerification(value: unknown): SupervisorExistingCan
 
 function mapEvidence(value: unknown): SupervisorEvidence {
   const object = requireObject(value);
+  const candidatePublication =
+    object.candidatePublication === undefined
+      ? undefined
+      : mapCandidatePublication(object.candidatePublication);
   const existingCandidateVerification =
     object.existingCandidateVerification === undefined
       ? undefined
@@ -441,6 +489,7 @@ function mapEvidence(value: unknown): SupervisorEvidence {
     deploymentState: requireString(object.deploymentState),
     gitState: requireString(object.gitState),
     remainingRisk: requireStringArray(object.remainingRisk),
+    ...(candidatePublication ? { candidatePublication } : {}),
     ...(reviewCandidate ? { reviewCandidate } : {}),
     ...(existingCandidateVerification ? { existingCandidateVerification } : {}),
     ...(ownerMergeAuthorization ? { ownerMergeAuthorization } : {}),
