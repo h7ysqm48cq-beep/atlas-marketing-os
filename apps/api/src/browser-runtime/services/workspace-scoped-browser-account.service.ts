@@ -104,6 +104,18 @@ export class WorkspaceScopedBrowserAccountService extends BrowserAccountService 
     return super.getById(id);
   }
 
+  override async adoptLegacyInstagramChannel(
+    channelId: string,
+    input?: any,
+  ) {
+    await this.requireChannel(channelId);
+
+    return super.adoptLegacyInstagramChannel(
+      channelId,
+      input,
+    );
+  }
+
   override async create(input: any) {
     const workspaceId = await this.currentWorkspaceId();
     const brandId = input.brandId?.trim() || null;

@@ -88,6 +88,22 @@ export class BrowserAccountController {
     return this.browserAccounts.list();
   }
 
+  @Post('adopt-legacy-instagram-channel/:channelId')
+  adoptLegacyInstagramChannel(
+    @Param('channelId')
+    channelId: string,
+    @Body()
+    body: {
+      displayName?: string;
+    },
+  ) {
+    return this.browserAccounts
+      .adoptLegacyInstagramChannel(
+        channelId,
+        body,
+      );
+  }
+
   @Post(':id/channels/:channelId/link')
   linkChannel(
     @Param('id')
