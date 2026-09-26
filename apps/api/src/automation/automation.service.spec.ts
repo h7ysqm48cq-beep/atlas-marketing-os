@@ -598,3 +598,76 @@ describe('AutomationService Facebook publish reconciliation', () => {
     ).not.toHaveBeenCalled();
   });
 });
+
+describe('AutomationService channel BrowserAccount read model', () => {
+  it('includes linked BrowserAccounts when reading one channel', async () => {
+    const now = new Date();
+    const prisma = {
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'instagram-channel',
+          platform: SocialPlatform.INSTAGRAM,
+          name: 'Instagram',
+          accessTokenEncrypted: null,
+          browserAccountLinks: [
+            {
+              isPrimary: true,
+              browserAccount: {
+                id: 'browser-account-1',
+                displayName: 'Instagram Browser',
+                browserProfileKey: 'profile-1',
+                browserProfileName: 'Instagram Browser',
+                loginStatus: 'LOGGED_IN',
+                cookieStatus: 'ACTIVE',
+                proxyType: 'DIRECT',
+                proxyCountry: null,
+                lastKnownIp: null,
+                lastLoginAt: now,
+                lastVerifiedAt: now,
+                lastHeartbeatAt: now,
+                lastLoginError: null,
+              },
+            },
+          ],
+          _count: {
+            scheduledPosts: 9,
+          },
+        }),
+      },
+    };
+
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.getChannel('instagram-channel');
+
+    expect(prisma.socialChannel.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          browserAccountLinks: expect.any(Object),
+        }),
+      }),
+    );
+    expect(result.browserAccounts).toHaveLength(1);
+    expect(result.primaryBrowserAccount).toEqual(
+      expect.objectContaining({
+        id: 'browser-account-1',
+        loginStatus: 'LOGGED_IN',
+        cookieStatus: 'ACTIVE',
+        isPrimary: true,
+      }),
+    );
+    expect(result.publishingMode).toBe('BROWSER_RUNTIME');
+    expect(result.managedBy).toEqual({
+      id: 'browser-account-1',
+      displayName: 'Instagram Browser',
+      browserProfileName: 'Instagram Browser',
+    });
+  });
+});

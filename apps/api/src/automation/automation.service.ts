@@ -424,6 +424,35 @@ export class AutomationService {
             name: true,
           },
         },
+        browserAccountLinks: {
+          orderBy: [
+            {
+              isPrimary: 'desc',
+            },
+            {
+              createdAt: 'asc',
+            },
+          ],
+          include: {
+            browserAccount: {
+              select: {
+                id: true,
+                displayName: true,
+                browserProfileKey: true,
+                browserProfileName: true,
+                loginStatus: true,
+                cookieStatus: true,
+                proxyType: true,
+                proxyCountry: true,
+                lastKnownIp: true,
+                lastLoginAt: true,
+                lastVerifiedAt: true,
+                lastHeartbeatAt: true,
+                lastLoginError: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             scheduledPosts: true,
