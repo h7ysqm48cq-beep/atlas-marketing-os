@@ -10,12 +10,14 @@ import type {
   ScheduleContentInput,
 } from './workflow.types';
 import { Public } from '../auth/public.decorator';
+import { QueuePlannerService } from './queue-planner.service';
 
 @Controller('workflow')
 export class WorkflowController {
   constructor(
     private readonly workflowService:
       WorkflowService,
+    private readonly queuePlanner: QueuePlannerService,
   ) {}
 
   @Get('health')
