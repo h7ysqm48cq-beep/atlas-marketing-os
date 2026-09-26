@@ -338,3 +338,97 @@ def test_connect_dependency_adapter_requires_existing_constructor(tmp_path):
     assert not result.executable
     assert result.requires_review
     assert "constructor" in (result.message or "").lower()
+
+def test_parse_register_module_import_is_actionable():
+    intent = RuleBasedIntentParser().parse(
+        "Register AuditModule in UsersModule"
+    )
+
+    assert intent.intent_type == IntentType.REGISTER_MODULE_IMPORT
+    assert intent.actionable
+    assert intent.arguments == {
+        "module_class": "AuditModule",
+        "target_class": "UsersModule",
+    }
+
+
+def test_parse_chinese_register_module_import_is_actionable():
+    intent = RuleBasedIntentParser().parse(
+        "把 AuditModule 注册到 UsersModule"
+    )
+
+    assert intent.intent_type == IntentType.REGISTER_MODULE_IMPORT
+    assert intent.actionable
+    assert intent.arguments["module_class"] == "AuditModule"
+    assert intent.arguments["target_class"] == "UsersModule"
+
+
+def test_register_module_adapter_resolves_exact_internal_modules(tmp_path):
+    write_source(
+        tmp_path,
+        "src/users/users.module.ts",
+        "import { Module } from '@nestjs/common';\n"
+        "@Module({ imports: [] })\n"
+        "export class UsersModule {}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/audit/audit.module.ts",
+        "import { Module } from '@nestjs/common';\n"
+        "@Module({})\n"
+        "export class AuditModule {}\n",
+    )
+    default_repository_cache.clear()
+
+    intent = RuleBasedIntentParser().parse(
+        "Register AuditModule in UsersModule"
+    )
+    result = IntentToRequestAdapter().adapt(
+        intent,
+        target_project=str(tmp_path),
+    )
+
+    assert result.executable
+    assert not result.requires_review
+    assert result.request is not None
+    assert result.request.operation == AIEngineerOperation.REGISTER_MODULE_IMPORT
+    assert result.request.arguments == {
+        "target_file": "src/users/users.module.ts",
+        "target_class": "UsersModule",
+        "module_class": "AuditModule",
+        "module_import": "../audit/audit.module",
+    }
+
+
+def test_register_module_adapter_fails_closed_when_module_is_ambiguous(tmp_path):
+    write_source(
+        tmp_path,
+        "src/users/users.module.ts",
+        "import { Module } from '@nestjs/common';\n"
+        "@Module({ imports: [] })\n"
+        "export class UsersModule {}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/a/audit.module.ts",
+        "export class AuditModule {}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/b/audit.module.ts",
+        "export class AuditModule {}\n",
+    )
+    default_repository_cache.clear()
+
+    intent = RuleBasedIntentParser().parse(
+        "Register AuditModule in UsersModule"
+    )
+    result = IntentToRequestAdapter().adapt(
+        intent,
+        target_project=str(tmp_path),
+    )
+
+    assert not result.executable
+    assert result.requires_review
+    assert result.request is None
+    assert "ambiguous" in (result.message or "").lower()

@@ -43,6 +43,7 @@ class EngineeringIntent:
             IntentType.RENAME_SYMBOL,
             IntentType.CREATE_CRUD,
             IntentType.CONNECT_DEPENDENCY,
+            IntentType.REGISTER_MODULE_IMPORT,
         }
 
     def to_dict(self) -> dict[str, Any]:
