@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import sys
 from typing import Any, Mapping
@@ -192,6 +193,7 @@ class SupervisorAssignmentExecutor:
         self, assignment: Mapping[str, Any]
     ) -> SupervisorExecutorResult:
         sha = assignment.get("candidateHeadSha")
+        objective = assignment.get("objective")
         if (
             assignment.get("executionPurpose") != "INDEPENDENT_VERIFICATION"
             or not isinstance(sha, str)
@@ -201,6 +203,20 @@ class SupervisorAssignmentExecutor:
             or sha != assignment.get("productionBaselineSha")
         ):
             return self._failure("runtime_refresh_identity_invalid")
+        if not isinstance(objective, str):
+            return self._failure("runtime_refresh_service_invalid")
+        lowered_objective = objective.lower()
+        if re.search(r"zero-git-diff.*api.*runtime refresh", lowered_objective):
+            service = "api"
+        else:
+            match = re.search(
+                r"zero-git-diff.*(engineering-runner|engineering-verifier).*"
+                r"production qualification",
+                lowered_objective,
+            )
+            if not match:
+                return self._failure("runtime_refresh_service_invalid")
+            service = match.group(1)
         # The runtime refresh has zero changedPaths, but the Supervisor
         # requires nonempty allowedPaths for Task ownership and carries them
         # unchanged in the Runner assignment. Validate that scope without
@@ -216,18 +232,32 @@ class SupervisorAssignmentExecutor:
             return self._failure(f"runtime_refresh_git_verification_failed:{error}")
         if head != sha or changed:
             return self._failure("runtime_refresh_head_or_workspace_mismatch")
+        summary = (
+            "Verified clean same-SHA API runtime refresh workspace."
+            if service == "api"
+            else f"Verified clean same-SHA {service} production qualification workspace."
+        )
+        remaining_risk = (
+            ["api_build_not_run"]
+            if service == "api"
+            else ["service_deployment_not_authorized"]
+        )
         return SupervisorExecutorResult(
             success=True,
-            summary="Verified clean same-SHA API runtime refresh workspace.",
+            summary=summary,
             evidence={
                 "rootCause": "runtime_refresh_requires_no_git_change",
                 "changedFiles": [],
-                "tests": ["git_head_exact", "git_worktree_clean"],
+                "tests": [
+                    "git_head_exact",
+                    "git_worktree_clean",
+                    "qualification_service_" + service.replace("-", "_"),
+                ],
                 "build": "NOT_RUN",
                 "regression": [],
                 "deploymentState": "NOT_DEPLOYED",
                 "gitState": "CLEAN",
-                "remainingRisk": ["api_build_not_run"],
+                "remainingRisk": remaining_risk,
             },
         )
 

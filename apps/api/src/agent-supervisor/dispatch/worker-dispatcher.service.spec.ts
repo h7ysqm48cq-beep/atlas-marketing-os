@@ -957,6 +957,91 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
     expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
   });
+  it.each(['engineering-runner', 'engineering-verifier'] as const)(
+    'admits an exact read-only zero-diff %s production qualification',
+    async (service) => {
+      const executions = new MemorySupervisorExecutionStore();
+      const supervisor = new AgentSupervisorService(
+        new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+      );
+      const dispatcher = new WorkerDispatcherService(
+        supervisor, executions,
+        new SupervisorWorkerCapabilityService(capabilityAuthority()),
+        new SupervisorAdmissionManifestService(),
+      );
+      const sha = 'b'.repeat(40);
+      const task = await supervisor.createTask({
+        objective: `Validate exact zero-Git-diff ${service} production qualification at ${sha}`,
+        owner: 'engineering',
+        allowedPaths: ['apps/engineering-runner/src/runner.ts'],
+        forbiddenActions: [
+          'edit_assigned_files', 'commit_assigned_branch',
+          'deploy_production', 'change_runtime_config',
+        ],
+        dependsOn: [],
+        acceptance: [
+          `Candidate baseSha=headSha=${sha}, changedFiles=[]`,
+          `service=${service}`,
+        ],
+      });
+      const input = {
+        candidateBaseSha: sha, candidateHeadSha: sha,
+        productionBaselineSha: sha, changedPaths: [],
+      };
+
+      const dispatched = await dispatcher.dispatchExistingCandidateVerification(
+        task.id, input,
+      );
+
+      expect(dispatched.execution.status).toBe('QUEUED');
+      expect(dispatched.assignment).toEqual(expect.objectContaining({
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        verificationMode: 'EXISTING_CANDIDATE',
+        candidateBaseSha: sha, candidateHeadSha: sha,
+        productionBaselineSha: sha,
+      }));
+      expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
+      expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
+    },
+  );
+
+  it('rejects worker zero-diff qualification without explicit service/read-only binding', async () => {
+    const sha = 'c'.repeat(40);
+    for (const variant of [
+      { service: 'engineering-runner', owner: 'infra' as const,
+        forbidden: ['edit_assigned_files', 'commit_assigned_branch', 'deploy_production', 'change_runtime_config'] as const,
+        acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`, 'service=engineering-runner'] },
+      { service: 'engineering-runner', owner: 'engineering' as const,
+        forbidden: ['edit_assigned_files', 'commit_assigned_branch', 'change_runtime_config'] as const,
+        acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`, 'service=engineering-runner'] },
+      { service: 'engineering-verifier', owner: 'engineering' as const,
+        forbidden: ['edit_assigned_files', 'commit_assigned_branch', 'deploy_production', 'change_runtime_config'] as const,
+        acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`, 'service=engineering-runner'] },
+    ]) {
+      const executions = new MemorySupervisorExecutionStore();
+      const supervisor = new AgentSupervisorService(
+        new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+      );
+      const dispatcher = new WorkerDispatcherService(
+        supervisor, executions,
+        new SupervisorWorkerCapabilityService(capabilityAuthority()),
+        new SupervisorAdmissionManifestService(),
+      );
+      const task = await supervisor.createTask({
+        objective: `Validate exact zero-Git-diff ${variant.service} production qualification at ${sha}`,
+        owner: variant.owner,
+        allowedPaths: ['apps/engineering-runner/src/runner.ts'],
+        forbiddenActions: [...variant.forbidden],
+        dependsOn: [], acceptance: variant.acceptance,
+      });
+      await expect(dispatcher.dispatchExistingCandidateVerification(task.id, {
+        candidateBaseSha: sha, candidateHeadSha: sha,
+        productionBaselineSha: sha, changedPaths: [],
+      })).rejects.toThrow(/runtime_refresh_identity_invalid/);
+      expect(await executions.listByTask(task.id)).toHaveLength(0);
+    }
+  });
+
   it('creates a real verifier execution without fabricating implementation for an exact frozen DRAFT', async () => {
     const store = new MemorySupervisorTaskStore();
     const executions = new MemorySupervisorExecutionStore();
