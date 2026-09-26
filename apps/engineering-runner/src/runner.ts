@@ -188,6 +188,9 @@ export class EngineeringRunner {
       const frozenBaseSha = session.assignment.frozenBaseSha;
       const useCandidateFlow =
         session.purpose === 'IMPLEMENTATION' && Boolean(frozenBaseSha);
+      const candidatePublicationAllowed =
+        useCandidateFlow &&
+        !session.assignment.forbiddenActions.includes('commit_assigned_branch');
       const useExistingCandidateFlow =
         session.purpose === 'INDEPENDENT_VERIFICATION' &&
         session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
@@ -217,7 +220,7 @@ export class EngineeringRunner {
           useImplementationResultFlow) {
         if (
           !this.candidateWorkspaceManager ||
-          (useCandidateFlow && !this.candidatePublisher) ||
+          (candidatePublicationAllowed && !this.candidatePublisher) ||
           !this.executorFactory
         ) {
           throw new Error('candidate_flow_configuration_missing');
@@ -364,7 +367,7 @@ export class EngineeringRunner {
           },
         };
       }
-      if (useCandidateFlow && after.length > 0) {
+      if (useCandidateFlow && after.length > 0 && candidatePublicationAllowed) {
         const receipt = await this.candidatePublisher!.publish({
           taskId: session.assignment.taskId,
           executionId: session.assignment.executionId,
@@ -399,7 +402,7 @@ export class EngineeringRunner {
           summary: executionResult.summary,
           evidence: {
             ...boundedEvidence,
-            changedFiles: [],
+            changedFiles: [...after],
           },
         };
       }
