@@ -4,19 +4,20 @@ const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
 
+function writeJsonAndSetExit(payload, exitCode) {
+  process.stdout.write(JSON.stringify(payload, null, 2));
+  process.exitCode = exitCode;
+}
+
 function fail(message, details = null) {
-  process.stdout.write(
-    JSON.stringify(
-      {
-        ok: false,
-        error: message,
-        details,
-      },
-      null,
-      2,
-    ),
+  writeJsonAndSetExit(
+    {
+      ok: false,
+      error: message,
+      details,
+    },
+    1,
   );
-  process.exit(1);
 }
 
 function position(sourceFile, node) {
@@ -1292,7 +1293,7 @@ function parseFile(filePath) {
   const absolutePath = path.resolve(filePath);
 
   if (!fs.existsSync(absolutePath)) {
-    fail(`File does not exist: ${absolutePath}`);
+    throw new Error('File does not exist: ' + absolutePath);
   }
 
   const sourceText = fs.readFileSync(absolutePath, 'utf8');
@@ -1461,19 +1462,18 @@ const filePath = process.argv[2];
 
 if (!filePath) {
   fail('Usage: node parser.js <typescript-file>');
-}
-
-try {
-  const result = parseFile(filePath);
-  process.stdout.write(JSON.stringify(result, null, 2));
-  process.exit(result.ok ? 0 : 2);
-} catch (error) {
-  fail(
-    error instanceof Error
-      ? error.message
-      : String(error),
-    error instanceof Error
-      ? error.stack
-      : null,
-  );
+} else {
+  try {
+    const result = parseFile(filePath);
+    writeJsonAndSetExit(result, result.ok ? 0 : 2);
+  } catch (error) {
+    fail(
+      error instanceof Error
+        ? error.message
+        : String(error),
+      error instanceof Error
+        ? error.stack
+        : null,
+    );
+  }
 }
