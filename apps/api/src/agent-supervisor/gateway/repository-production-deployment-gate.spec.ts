@@ -280,7 +280,7 @@ describe('repository-owned production deployment gate', () => {
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
 
-  it('leaves Engineering Runner Railway preDeploy unchanged and migration-free', () => {
+  it('keeps Engineering Runner bootstrap and production deployment gates ordered and migration-free', () => {
     const config = JSON.parse(
       readFileSync(ENGINEERING_RUNNER_RAILWAY_CONFIG_PATH, 'utf8'),
     ) as {
@@ -291,6 +291,7 @@ describe('repository-owned production deployment gate', () => {
 
     expect(commands).toEqual([
       'node apps/engineering-runner/check-runner-bootstrap-deployment.cjs',
+      'env ATLAS_DEPLOYMENT_SERVICE=engineering-runner node apps/api/scripts/check-production-deployment-gate.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
