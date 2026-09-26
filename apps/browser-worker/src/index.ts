@@ -68,6 +68,7 @@ import {
   openInstagramComposer,
 } from "./instagram/composer.js";
 import {
+  findInstagramPublishedPostReference,
   resolveInstagramPublishedPostReference,
 } from "./instagram/published-post.js";
 import {
@@ -6033,7 +6034,7 @@ app.post(
       const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
       const confirmed = shareConfirmed || /post shared|your post has been shared|shared|posted/.test(bodyText);
       if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
-      const publishedReference = await resolveInstagramPublishedPostReference(page);
+      const publishedReference = await resolveInstagramPublishedPostReference(page, 12000);
       response.json({
         success: true,
         published: true,
@@ -6054,6 +6055,62 @@ app.post(
       await releasePreparedPage(session);
     } catch (error) {
       response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to publish Instagram post." });
+    }
+  },
+);
+
+app.post(
+  "/profiles/:profileKey/instagram/find-published-post",
+  async (request, response) => {
+    const profileKey = request.params.profileKey;
+    const session = sessions.get(profileKey);
+    if (!session) {
+      response.status(404).json({ success: false, message: "Browser profile is not running." });
+      return;
+    }
+
+    const input = request.body as {
+      caption?: string;
+      profileUsername?: string;
+    };
+    const caption = input.caption?.trim() || "";
+    const profileUsername = input.profileUsername?.trim() || "";
+
+    if (!caption || !profileUsername) {
+      response.status(400).json({
+        success: false,
+        message: "Instagram caption and profileUsername are required.",
+      });
+      return;
+    }
+
+    try {
+      const page = session.context.pages().at(-1);
+      if (!page) throw new Error("No active browser page was found.");
+      const reference = await findInstagramPublishedPostReference(
+        page,
+        caption,
+        profileUsername,
+        20000,
+      );
+      session.currentUrl = page.url();
+      response.json({
+        success: true,
+        found: Boolean(reference),
+        reference,
+        page: {
+          title: await page.title(),
+          url: page.url(),
+        },
+      });
+    } catch (error) {
+      response.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to reconcile Instagram published post.",
+      });
     }
   },
 );

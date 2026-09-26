@@ -446,6 +446,33 @@ export class BrowserRuntimeBridgeService {
     );
   }
 
+  async findInstagramPublishedPost(
+    channelId: string,
+    caption: string,
+    profileUsername: string,
+  ) {
+    const profile = await this.ensureProfile(channelId, {
+      headless: false,
+      startUrl: 'https://www.instagram.com/',
+    });
+
+    return this.request(
+      `/profiles/${encodeURIComponent(profile.browserProfileKey)}/instagram/find-published-post`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          caption,
+          profileUsername,
+        }),
+      },
+      true,
+      120_000,
+    );
+  }
+
   async discardInstagramPost(channelId: string) {
     const profile = await this.ensureProfile(channelId, {
       headless: false,

@@ -671,3 +671,190 @@ describe('AutomationService channel BrowserAccount read model', () => {
     });
   });
 });
+
+describe('AutomationService Instagram publication-proof reconciliation', () => {
+  const makeService = () => {
+    const publishAttemptUpdate = jest.fn().mockResolvedValue({});
+    const scheduledPostUpdate = jest.fn().mockResolvedValue({});
+    const prisma = {
+      publishAttempt: {
+        update: publishAttemptUpdate,
+      },
+      scheduledPost: {
+        update: scheduledPostUpdate,
+      },
+      $transaction: jest.fn(
+        async (callback: (input: unknown) => Promise<unknown>) =>
+          callback(prisma),
+      ),
+    };
+    const runtimeProfiles = {
+      getBrowserPublishingSafety: jest.fn().mockResolvedValue({
+        allowed: true,
+        selected: {
+          id: 'browser-account-1',
+          displayName: 'empowermindsmuse',
+        },
+      }),
+    };
+    const browserRuntime = {
+      findInstagramPublishedPost: jest.fn().mockResolvedValue({
+        found: true,
+        reference: {
+          externalPostId: 'IgProof123',
+          postUrl: 'https://www.instagram.com/p/IgProof123/',
+          matchedBy: 'caption-profile-post',
+        },
+      }),
+    };
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      runtimeProfiles as never,
+      undefined,
+      browserRuntime as never,
+    );
+
+    return {
+      prisma,
+      runtimeProfiles,
+      browserRuntime,
+      publishAttemptUpdate,
+      scheduledPostUpdate,
+      service,
+    };
+  };
+
+  it('reconciles a confirmed unresolved Instagram publication without republishing', async () => {
+    const {
+      runtimeProfiles,
+      browserRuntime,
+      publishAttemptUpdate,
+      scheduledPostUpdate,
+      service,
+    } = makeService();
+
+    jest.spyOn(service, 'getPost')
+      .mockResolvedValueOnce({
+        id: 'post-ig-1',
+        channelId: 'instagram-channel',
+        platform: SocialPlatform.INSTAGRAM,
+        content:
+          'Consistency is rarely dramatic. It is the quiet repetition of small actions that slowly becomes direction.',
+        status: ScheduledPostStatus.PUBLISHED,
+        publishedAt: new Date('2026-09-26T09:04:28.700Z'),
+        externalPostId: null,
+        externalPostUrl: null,
+        lastError: null,
+        attempts: [
+          {
+            id: 'attempt-ig-1',
+            status: PublishAttemptStatus.SUCCESS,
+            responsePayload: {
+              published: true,
+              publishedAt: '2026-09-26T09:04:28.604Z',
+              verification: {
+                status: 'CONFIRMED',
+                externalProof: 'UNRESOLVED',
+              },
+            },
+          },
+        ],
+      } as never)
+      .mockResolvedValueOnce({
+        id: 'post-ig-1',
+        externalPostId: 'IgProof123',
+        externalPostUrl: 'https://www.instagram.com/p/IgProof123/',
+      } as never);
+
+    const result = await service.reconcileInstagramPublish('post-ig-1');
+
+    expect(runtimeProfiles.getBrowserPublishingSafety).toHaveBeenCalledWith(
+      'instagram-channel',
+    );
+    expect(browserRuntime.findInstagramPublishedPost).toHaveBeenCalledWith(
+      'instagram-channel',
+      'Consistency is rarely dramatic. It is the quiet repetition of small actions that slowly becomes direction.',
+      'empowermindsmuse',
+    );
+    expect(publishAttemptUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'attempt-ig-1' },
+        data: {
+          responsePayload: expect.objectContaining({
+            reconciled: true,
+            published: true,
+            externalPostId: 'IgProof123',
+            postUrl: 'https://www.instagram.com/p/IgProof123/',
+            matchedBy: 'caption-profile-post',
+            verification: {
+              status: 'CONFIRMED',
+              externalProof: 'RESOLVED',
+            },
+          }),
+        },
+      }),
+    );
+    expect(scheduledPostUpdate).toHaveBeenCalledWith({
+      where: { id: 'post-ig-1' },
+      data: {
+        externalPostId: 'IgProof123',
+        externalPostUrl: 'https://www.instagram.com/p/IgProof123/',
+        lastError: null,
+      },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        externalPostId: 'IgProof123',
+        externalPostUrl: 'https://www.instagram.com/p/IgProof123/',
+      }),
+    );
+  });
+
+  it('fails closed unless the successful attempt is confirmed with unresolved external proof', async () => {
+    const {
+      runtimeProfiles,
+      browserRuntime,
+      service,
+    } = makeService();
+
+    jest.spyOn(service, 'getPost').mockResolvedValue({
+      id: 'post-ig-2',
+      channelId: 'instagram-channel',
+      platform: SocialPlatform.INSTAGRAM,
+      content: 'caption',
+      status: ScheduledPostStatus.PUBLISHED,
+      externalPostId: null,
+      externalPostUrl: null,
+      attempts: [
+        {
+          id: 'attempt-ig-2',
+          status: PublishAttemptStatus.SUCCESS,
+          responsePayload: {
+            published: true,
+            verification: {
+              status: 'CONFIRMED',
+              externalProof: 'RESOLVED',
+            },
+          },
+        },
+      ],
+    } as never);
+
+    await expect(
+      service.reconcileInstagramPublish('post-ig-2'),
+    ).rejects.toThrow(
+      'Instagram publish attempt is not eligible for external-proof reconciliation.',
+    );
+
+    expect(
+      runtimeProfiles.getBrowserPublishingSafety,
+    ).not.toHaveBeenCalled();
+    expect(
+      browserRuntime.findInstagramPublishedPost,
+    ).not.toHaveBeenCalled();
+  });
+});
