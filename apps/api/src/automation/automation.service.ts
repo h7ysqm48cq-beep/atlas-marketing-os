@@ -1811,6 +1811,140 @@ export class AutomationService {
     );
   }
 
+  async reconcileInstagramPublish(id: string) {
+    const current = await this.getPost(id);
+
+    if (current.platform !== SocialPlatform.INSTAGRAM) {
+      throw new BadRequestException(
+        'Only Instagram posts can be reconciled.',
+      );
+    }
+
+    if (
+      current.status !== ScheduledPostStatus.PUBLISHED ||
+      current.externalPostId ||
+      current.externalPostUrl
+    ) {
+      throw new BadRequestException(
+        'Only a published Instagram post with unresolved external proof can be reconciled.',
+      );
+    }
+
+    const latestAttempt = current.attempts?.[0] ?? null;
+    const responsePayload =
+      latestAttempt?.responsePayload &&
+      typeof latestAttempt.responsePayload === 'object' &&
+      !Array.isArray(latestAttempt.responsePayload)
+        ? (latestAttempt.responsePayload as Record<string, unknown>)
+        : {};
+    const verification =
+      responsePayload.verification &&
+      typeof responsePayload.verification === 'object' &&
+      !Array.isArray(responsePayload.verification)
+        ? (responsePayload.verification as Record<string, unknown>)
+        : {};
+
+    if (
+      !latestAttempt ||
+      latestAttempt.status !== PublishAttemptStatus.SUCCESS ||
+      responsePayload.published !== true ||
+      verification.status !== 'CONFIRMED' ||
+      verification.externalProof !== 'UNRESOLVED'
+    ) {
+      throw new BadRequestException(
+        'Instagram publish attempt is not eligible for external-proof reconciliation.',
+      );
+    }
+
+    if (!this.browserRuntime) {
+      throw new BadRequestException(
+        'Browser Runtime is unavailable.',
+      );
+    }
+
+    const safety =
+      await this.runtimeProfiles.getBrowserPublishingSafety(
+        current.channelId,
+      );
+    const selected = safety.selected;
+
+    if (!safety.allowed || !selected) {
+      throw new BadRequestException(
+        'Instagram Browser Account is not ready for reconciliation.',
+      );
+    }
+
+    const lookup =
+      await this.browserRuntime.findInstagramPublishedPost(
+        current.channelId,
+        current.content,
+        selected.displayName,
+      ) as {
+        found?: boolean;
+        reference?: {
+          externalPostId?: string;
+          postUrl?: string;
+          matchedBy?: string;
+        };
+      };
+
+    const externalPostId =
+      lookup.reference?.externalPostId?.trim();
+    const externalPostUrl =
+      lookup.reference?.postUrl?.trim();
+
+    if (
+      lookup.found !== true ||
+      !externalPostId ||
+      !externalPostUrl
+    ) {
+      throw new BadRequestException(
+        'Published Instagram post could not be confirmed for reconciliation.',
+      );
+    }
+
+    await this.prisma.$transaction(
+      async (transaction) => {
+        await transaction.publishAttempt.update({
+          where: {
+            id: latestAttempt.id,
+          },
+          data: {
+            responsePayload: {
+              reconciled: true,
+              published: true,
+              publishedAt:
+                typeof responsePayload.publishedAt === 'string'
+                  ? responsePayload.publishedAt
+                  : null,
+              externalPostId,
+              postUrl: externalPostUrl,
+              matchedBy:
+                lookup.reference?.matchedBy ?? null,
+              verification: {
+                status: 'CONFIRMED',
+                externalProof: 'RESOLVED',
+              },
+            },
+          },
+        });
+
+        await transaction.scheduledPost.update({
+          where: {
+            id,
+          },
+          data: {
+            externalPostId,
+            externalPostUrl,
+            lastError: null,
+          },
+        });
+      },
+    );
+
+    return this.getPost(id);
+  }
+
   async updatePost(id: string, input: UpdatePostInput) {
     const current = await this.getPost(id);
 

@@ -1345,6 +1345,14 @@ export class AutomationController {
       .reconcileFacebookPublish(id);
   }
 
+  @Post('posts/:id/reconcile-instagram-publish')
+  reconcileInstagramPublish(
+    @Param('id') id: string,
+  ) {
+    return this.automationService
+      .reconcileInstagramPublish(id);
+  }
+
   @Post('posts/:id/publish-now')
   async publishPostNow(@Param('id') id: string) {
     const post = await this.automationService.getPost(id);
