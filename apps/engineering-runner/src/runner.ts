@@ -66,6 +66,29 @@ function errorReason(error: unknown): string {
   return String(error);
 }
 
+class RetryableSupervisorClaimError extends Error {
+  constructor(error: unknown) {
+    super(error instanceof Error ? error.message : String(error));
+    this.name = 'RetryableSupervisorClaimError';
+  }
+}
+
+function isRetryableSupervisorClaimFailure(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!(error instanceof Error)) return false;
+
+  const match = /^supervisor_claim_failed:(\d{3})$/.exec(error.message);
+  if (!match) return false;
+
+  const status = Number(match[1]);
+  return (
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    (status >= 500 && status <= 599)
+  );
+}
+
 function isAmbiguousMutation(error: unknown): boolean {
   return Boolean(
     error &&
@@ -143,7 +166,15 @@ export class EngineeringRunner {
   }
 
   async runOnce(signal?: AbortSignal): Promise<'idle' | 'completed' | 'failed' | 'cancelled'> {
-    const session = await this.client.claimNext();
+    let session;
+    try {
+      session = await this.client.claimNext();
+    } catch (error) {
+      if (isRetryableSupervisorClaimFailure(error)) {
+        throw new RetryableSupervisorClaimError(error);
+      }
+      throw error;
+    }
     if (!session) return 'idle';
 
     let heartbeatError: unknown;
@@ -435,7 +466,13 @@ export class EngineeringRunner {
       return;
     }
     while (!signal.aborted) {
-      await this.runOnce(signal);
+      try {
+        await this.runOnce(signal);
+      } catch (error) {
+        if (!(error instanceof RetryableSupervisorClaimError)) {
+          throw error;
+        }
+      }
       if (signal.aborted) break;
       await delay(this.pollIntervalMs, signal);
     }
