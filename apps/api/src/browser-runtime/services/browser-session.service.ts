@@ -7,6 +7,9 @@ import {
   PrismaService,
 } from '../../database/prisma.service';
 import {
+  SocialPlatform,
+} from '../../generated/prisma/client';
+import {
   BrowserRuntimeBridgeService,
 } from '../../automation/browser-runtime-bridge.service';
 import {
@@ -232,6 +235,7 @@ export class BrowserSessionService {
           id: accountId,
         },
         select: {
+          platform: true,
           loginStatus: true,
           facebookUserId: true,
           facebookUserName: true,
@@ -262,9 +266,16 @@ export class BrowserSessionService {
         !storedFacebookUserName,
       );
 
+    const isInstagram =
+      previousAccount?.platform ===
+      SocialPlatform.INSTAGRAM;
+
     const captureFacebookIdentity =
-      !storedFacebookUserId ||
-      !storedFacebookUserName;
+      !isInstagram &&
+      (
+        !storedFacebookUserId ||
+        !storedFacebookUserName
+      );
 
     const inspectRequest =
       captureFacebookIdentity
@@ -315,7 +326,9 @@ export class BrowserSessionService {
             ...profile,
             headless: false,
             startUrl:
-              'https://www.facebook.com/',
+              isInstagram
+                ? 'https://www.instagram.com/'
+                : 'https://www.facebook.com/',
           }),
         },
       );
@@ -414,7 +427,7 @@ export class BrowserSessionService {
           'password',
       );
 
-    const hasLoginText =
+    const hasFacebookLoginText =
       [
         'log in to facebook',
         'forgotten password',
@@ -427,10 +440,29 @@ export class BrowserSessionService {
           ),
       );
 
-    const loginPageByUrl =
-      this.isFacebookLoginPage(
-        currentUrl,
+    const hasInstagramLoginText =
+      [
+        'phone number, username, or email',
+        'forgot password?',
+        'log in with facebook',
+      ].some(
+        (value) =>
+          textPreview.includes(
+            value,
+          ),
       );
+
+    const normalizedUrl =
+      currentUrl.toLowerCase();
+
+    const loginPageByUrl =
+      isInstagram
+        ? normalizedUrl.includes(
+            'instagram.com/accounts/login',
+          )
+        : this.isFacebookLoginPage(
+            currentUrl,
+          );
 
     const twoFactorRequired =
       currentUrl
@@ -449,11 +481,15 @@ export class BrowserSessionService {
       );
 
     const checkpointRequired =
-      currentUrl
-        .toLowerCase()
-        .includes(
-          '/checkpoint',
-        ) ||
+      (
+        isInstagram
+          ? normalizedUrl.includes(
+              'instagram.com/challenge',
+            )
+          : normalizedUrl.includes(
+              '/checkpoint',
+            )
+      ) ||
       textPreview.includes(
         'security check',
       ) ||
@@ -469,7 +505,11 @@ export class BrowserSessionService {
         hasPasswordInput ||
         (
           hasEmailInput &&
-          hasLoginText
+          (
+            isInstagram
+              ? hasInstagramLoginText
+              : hasFacebookLoginText
+          )
         )
       );
 
@@ -477,11 +517,28 @@ export class BrowserSessionService {
       !loginRequired &&
       !twoFactorRequired &&
       !checkpointRequired &&
-      currentUrl
-        .toLowerCase()
-        .includes(
-          'facebook.com',
-        );
+      (
+        isInstagram
+          ? (
+              normalizedUrl.includes(
+                'instagram.com',
+              ) &&
+              (
+                textPreview.includes(
+                  'view insights',
+                ) ||
+                textPreview.includes(
+                  'boost post',
+                ) ||
+                textPreview.includes(
+                  'messages',
+                )
+              )
+            )
+          : normalizedUrl.includes(
+              'facebook.com',
+            )
+      );
 
     const loginStatus =
       twoFactorRequired
@@ -520,6 +577,7 @@ export class BrowserSessionService {
 
     const facebookIdentityMismatch =
       Boolean(
+        !isInstagram &&
         workerFacebookUserId &&
         previousAccount
           ?.identityLocked &&
@@ -601,11 +659,23 @@ export class BrowserSessionService {
           new Date(),
         lastLoginError:
           loginRequired
-            ? 'Facebook login is required.'
+            ? (
+                isInstagram
+                  ? 'Instagram login is required.'
+                  : 'Facebook login is required.'
+              )
             : twoFactorRequired
-              ? 'Facebook two-factor verification is required.'
+              ? (
+                  isInstagram
+                    ? 'Instagram two-factor verification is required.'
+                    : 'Facebook two-factor verification is required.'
+                )
               : checkpointRequired
-                ? 'Facebook security checkpoint requires attention.'
+                ? (
+                    isInstagram
+                      ? 'Instagram security checkpoint requires attention.'
+                      : 'Facebook security checkpoint requires attention.'
+                  )
                 : null,
       },
     });
@@ -645,7 +715,10 @@ export class BrowserSessionService {
         loginPageByUrl,
         hasEmailInput,
         hasPasswordInput,
-        hasLoginText,
+        hasLoginText:
+          isInstagram
+            ? hasInstagramLoginText
+            : hasFacebookLoginText,
       },
       page,
       result,

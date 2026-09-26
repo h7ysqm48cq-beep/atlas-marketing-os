@@ -37,11 +37,21 @@ const {
 );
 
 function createHarness(input?: {
+  platform?: 'FACEBOOK' | 'INSTAGRAM';
+  storedLoginStatus?: string;
   storedFacebookUserId?: string | null;
   storedFacebookUserName?: string | null;
   identityLocked?: boolean;
   workerFacebookUserId?: string | null;
   workerFacebookUserName?: string | null;
+  pageUrl?: string;
+  pageTitle?: string;
+  pageTextPreview?: string;
+  pageInputs?: Array<{
+    type?: string | null;
+    name?: string | null;
+    autocomplete?: string | null;
+  }>;
 }) {
   const browserAccountUpdate =
     jest.fn().mockResolvedValue({});
@@ -50,7 +60,11 @@ function createHarness(input?: {
     browserAccount: {
       findUnique:
         jest.fn().mockResolvedValue({
+          platform:
+            input?.platform ??
+            'FACEBOOK',
           loginStatus:
+            input?.storedLoginStatus ??
             'LOGGED_IN',
           facebookUserId:
             input
@@ -96,14 +110,19 @@ function createHarness(input?: {
 
         page: {
           title:
+            input?.pageTitle ??
             'Facebook',
           url:
+            input?.pageUrl ??
             'https://www.facebook.com/',
           loginLikely:
             true,
           textPreview:
+            input?.pageTextPreview ??
             'Facebook home',
-          inputs: [],
+          inputs:
+            input?.pageInputs ??
+            [],
         },
 
         frameInspections: [],
@@ -520,6 +539,225 @@ describe(
           call.data,
         ).not.toHaveProperty(
           'facebookUserName',
+        );
+      },
+    );
+  },
+);
+
+describe(
+  'BrowserSessionService Instagram login reconciliation',
+  () => {
+    it(
+      'marks an authenticated Instagram profile as LOGGED_IN with active cookies',
+      async () => {
+        const harness =
+          createHarness({
+            platform:
+              'INSTAGRAM',
+            storedLoginStatus:
+              'PENDING',
+            pageTitle:
+              'Instagram',
+            pageUrl:
+              'https://www.instagram.com/',
+            pageTextPreview:
+              'empowermindsmuse View insights Boost post Messages',
+            pageInputs: [],
+          });
+
+        const result =
+          await harness.service.inspect(
+            'account-1',
+          );
+
+        expect(result).toMatchObject({
+          loginStatus:
+            'LOGGED_IN',
+          loginLikely:
+            true,
+          loginRequired:
+            false,
+        });
+
+        const call =
+          harness
+            .browserAccountUpdate
+            .mock.calls.at(-1)?.[0];
+
+        expect(call).toBeDefined();
+        expect(call.data).toEqual(
+          expect.objectContaining({
+            loginStatus:
+              'LOGGED_IN',
+            cookieStatus:
+              'ACTIVE',
+            lastLoginError:
+              null,
+          }),
+        );
+
+        const inspectCall =
+          harness.browserRuntime.request
+            .mock.calls.find(
+              ([path]) =>
+                String(path).endsWith(
+                  '/inspect',
+                ),
+            );
+
+        expect(
+          inspectCall?.[1],
+        ).not.toHaveProperty(
+          'body',
+        );
+      },
+    );
+
+    it(
+      'marks the Instagram login page as LOGIN_REQUIRED',
+      async () => {
+        const harness =
+          createHarness({
+            platform:
+              'INSTAGRAM',
+            storedLoginStatus:
+              'PENDING',
+            pageTitle:
+              'Login • Instagram',
+            pageUrl:
+              'https://www.instagram.com/accounts/login/',
+            pageTextPreview:
+              'Phone number, username, or email Password Log in Forgot password?',
+            pageInputs: [
+              {
+                type: 'text',
+                name: 'username',
+                autocomplete:
+                  'username',
+              },
+              {
+                type: 'password',
+                name: 'password',
+              },
+            ],
+          });
+
+        const result =
+          await harness.service.inspect(
+            'account-1',
+          );
+
+        expect(result).toMatchObject({
+          loginStatus:
+            'LOGIN_REQUIRED',
+          loginLikely:
+            false,
+          loginRequired:
+            true,
+        });
+
+        const call =
+          harness
+            .browserAccountUpdate
+            .mock.calls.at(-1)?.[0];
+
+        expect(call.data).toEqual(
+          expect.objectContaining({
+            loginStatus:
+              'LOGIN_REQUIRED',
+            cookieStatus:
+              'PROFILE_READY',
+            lastLoginError:
+              'Instagram login is required.',
+          }),
+        );
+      },
+    );
+
+    it(
+      'reopens a stopped Instagram profile on Instagram instead of Facebook',
+      async () => {
+        const harness =
+          createHarness({
+            platform:
+              'INSTAGRAM',
+            storedLoginStatus:
+              'PENDING',
+            pageTitle:
+              'Instagram',
+            pageUrl:
+              'https://www.instagram.com/',
+            pageTextPreview:
+              'empowermindsmuse View insights Boost post Messages',
+          });
+
+        let firstInspect = true;
+        harness.browserRuntime.request
+          .mockImplementation(
+            async (path: string, options: any) => {
+              if (
+                path.endsWith(
+                  '/inspect',
+                ) &&
+                firstInspect
+              ) {
+                firstInspect =
+                  false;
+                const error: any =
+                  new Error(
+                    'Browser profile is not running.',
+                  );
+                error.getResponse =
+                  () => ({
+                    message:
+                      'Browser profile is not running.',
+                    workerStatus:
+                      404,
+                  });
+                throw error;
+              }
+
+              if (
+                path ===
+                '/profiles/open'
+              ) {
+                return {
+                  opened: true,
+                };
+              }
+
+              return {
+                success: true,
+                page: {
+                  title:
+                    'Instagram',
+                  url:
+                    'https://www.instagram.com/',
+                  textPreview:
+                    'empowermindsmuse View insights Boost post Messages',
+                  inputs: [],
+                },
+                frameInspections:
+                  [],
+              };
+            },
+          );
+
+        await harness.service.inspect(
+          'account-1',
+        );
+
+        expect(
+          harness.browserRuntime.request,
+        ).toHaveBeenCalledWith(
+          '/profiles/open',
+          expect.objectContaining({
+            body:
+              expect.stringContaining(
+                'https://www.instagram.com/',
+              ),
+          }),
         );
       },
     );
