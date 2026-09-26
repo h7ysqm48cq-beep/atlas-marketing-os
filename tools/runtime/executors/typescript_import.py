@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tools.ir.action import Action, AddImport
+from tools.modifier.bridge import TypeScriptBridge
 from tools.modifier.typescript import TypeScriptFile
 
 from .base import BaseTypeScriptExecutor
@@ -67,7 +68,19 @@ class AddImportExecutor(BaseTypeScriptExecutor):
             encoding="utf-8",
         )
 
-        source = TypeScriptFile.load(target)
+        parser_path = (
+            Path(__file__).resolve().parents[2]
+            / "modifier"
+            / "parser.js"
+        )
+        bridge = TypeScriptBridge(
+            project_root=self.project_root,
+            parser_path=parser_path,
+        )
+        source = TypeScriptFile.load(
+            target,
+            bridge=bridge,
+        )
 
         changed = source.add_import(
             action.symbol,

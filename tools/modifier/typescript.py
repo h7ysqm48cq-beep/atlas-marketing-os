@@ -220,6 +220,8 @@ class TypeScriptFile:
         text: str,
         imports: list[ImportStatement],
         body: str,
+        *,
+        bridge: TypeScriptBridge | None = None,
     ) -> None:
         self.path = path
         self._original_text = text
@@ -227,12 +229,17 @@ class TypeScriptFile:
         self._imports = imports
         self._body = body
         self._ast_import_edits_active = False
-        self._bridge = TypeScriptBridge()
+        self._bridge = bridge or TypeScriptBridge()
         self.operations: list[dict[str, object]] = []
         self.dirty = False
 
     @classmethod
-    def load(cls, path: str | Path) -> "TypeScriptFile":
+    def load(
+        cls,
+        path: str | Path,
+        *,
+        bridge: TypeScriptBridge | None = None,
+    ) -> "TypeScriptFile":
         resolved = Path(path)
 
         if resolved.suffix not in {".ts", ".tsx"}:
@@ -251,6 +258,7 @@ class TypeScriptFile:
             text=text,
             imports=imports,
             body=body,
+            bridge=bridge,
         )
 
     @staticmethod

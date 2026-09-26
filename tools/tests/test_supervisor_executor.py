@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib import import_module
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -709,15 +710,14 @@ def write_connect_services_with_runtime_bridge(tmp_path):
         import_module("tools.ai_engineer.supervisor_executor").__file__
     ).resolve().parents[2]
     (tmp_path / "tools").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "tools/modifier").symlink_to(
+    shutil.copytree(
         repo_root / "tools/modifier",
-        target_is_directory=True,
+        tmp_path / "tools/modifier",
     )
-    if (repo_root / "node_modules").exists():
-        (tmp_path / "node_modules").symlink_to(
-            repo_root / "node_modules",
-            target_is_directory=True,
-        )
+    # Deliberately do not expose node_modules inside the candidate
+    # workspace. Runtime executors must resolve the TypeScript parser
+    # from the trusted image, not from the detached candidate checkout.
+    assert not (tmp_path / "node_modules").exists()
     return target
 
 
