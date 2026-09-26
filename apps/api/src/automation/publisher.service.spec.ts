@@ -599,6 +599,255 @@ describe('PublisherService Facebook Cloud Browser preflight', () => {
 });
 
 describe('PublisherService Instagram Browser Runtime', () => {
+  it('automatically recovers unresolved Instagram external proof in the same publish cycle', async () => {
+    const prisma = {
+      scheduledPost: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'instagram-post-recovery',
+            platform: SocialPlatform.INSTAGRAM,
+            status: ScheduledPostStatus.QUEUED,
+            channelId: 'instagram-channel-recovery',
+            content: 'Consistency is rarely dramatic.',
+            mediaUrls: ['https://cdn.example.com/ig.jpg'],
+            scheduledAt: new Date('2026-09-26T00:00:00.000Z'),
+            timezone: 'Asia/Kuala_Lumpur',
+            retryCount: 0,
+            historyId: null,
+            brandRenderingSettings: null,
+            channel: {
+              id: 'instagram-channel-recovery',
+              name: 'Instagram Browser',
+              publishingPreference: 'BROWSER_RUNTIME',
+              accessTokenEncrypted: null,
+              externalId: null,
+              tokenExpiresAt: null,
+              socialChannelRuntimeProfile: {
+                id: 'runtime-profile-recovery',
+                browserProfileKey: 'channel-instagram-channel-recovery',
+                browserProfileName: 'Instagram Browser',
+                locale: 'en-MY',
+                timezone: 'Asia/Kuala_Lumpur',
+                proxyType: 'DIRECT',
+                proxyHost: null,
+                proxyPort: null,
+                proxyUsernameEncrypted: null,
+                proxyPasswordEncrypted: null,
+                proxyCountry: null,
+                lastKnownIp: null,
+              },
+            },
+          },
+        ]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      publishAttempt: {
+        create: jest.fn().mockResolvedValue({ id: 'attempt-instagram-recovery' }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const runtimeProfiles = {
+      getBrowserPublishingSafety: jest.fn().mockResolvedValue({
+        allowed: true,
+        selected: { displayName: 'empowermindsmuse' },
+      }),
+    };
+    const browserRuntime = {
+      preflightInstagramLoginForChannel: jest.fn().mockResolvedValue({
+        ready: true,
+        loginRequired: false,
+        message: 'Instagram Browser login is ready.',
+        browserProfileKey: 'channel-instagram-channel-recovery',
+      }),
+      prepareInstagramPostForChannel: jest.fn().mockResolvedValue({
+        success: true,
+        readyForReview: true,
+        imageAttached: true,
+        attachedMediaCount: 1,
+      }),
+      publishInstagramPost: jest.fn().mockResolvedValue({
+        success: true,
+        published: true,
+        publishedAt: '2026-09-26T09:04:28.604Z',
+        verification: {
+          status: 'CONFIRMED',
+          externalProof: 'UNRESOLVED',
+        },
+      }),
+      findInstagramPublishedPost: jest.fn().mockResolvedValue({
+        found: true,
+        reference: {
+          externalPostId: 'Ddvq5_XE2iD',
+          postUrl: 'https://www.instagram.com/p/Ddvq5_XE2iD/',
+          matchedBy: 'caption-profile-post',
+        },
+      }),
+    };
+    const service = new PublisherService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      { decrypt: jest.fn() } as never,
+      runtimeProfiles as never,
+      browserRuntime as never,
+    );
+
+    await expect(service.run()).resolves.toMatchObject({
+      found: 1,
+      published: 1,
+      blocked: 0,
+    });
+
+    expect(browserRuntime.findInstagramPublishedPost).toHaveBeenCalledWith(
+      'instagram-channel-recovery',
+      'Consistency is rarely dramatic.',
+      'empowermindsmuse',
+    );
+    expect(prisma.publishAttempt.update).toHaveBeenCalledWith({
+      where: { id: 'attempt-instagram-recovery' },
+      data: expect.objectContaining({
+        status: PublishAttemptStatus.SUCCESS,
+        responsePayload: expect.objectContaining({
+          reconciled: true,
+          id: 'Ddvq5_XE2iD',
+          externalPostId: 'Ddvq5_XE2iD',
+          postUrl: 'https://www.instagram.com/p/Ddvq5_XE2iD/',
+          verification: {
+            status: 'CONFIRMED',
+            externalProof: 'RESOLVED',
+          },
+        }),
+      }),
+    });
+    expect(prisma.scheduledPost.update).toHaveBeenCalledWith({
+      where: { id: 'instagram-post-recovery' },
+      data: expect.objectContaining({
+        status: ScheduledPostStatus.PUBLISHED,
+        externalPostId: 'Ddvq5_XE2iD',
+        externalPostUrl: 'https://www.instagram.com/p/Ddvq5_XE2iD/',
+      }),
+    });
+  });
+
+  it('keeps a confirmed Instagram publish successful when automatic proof recovery cannot resolve it', async () => {
+    const prisma = {
+      scheduledPost: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'instagram-post-unresolved',
+            platform: SocialPlatform.INSTAGRAM,
+            status: ScheduledPostStatus.QUEUED,
+            channelId: 'instagram-channel-unresolved',
+            content: 'Unresolved proof post',
+            mediaUrls: ['https://cdn.example.com/ig.jpg'],
+            scheduledAt: new Date('2026-09-26T00:00:00.000Z'),
+            timezone: 'Asia/Kuala_Lumpur',
+            retryCount: 0,
+            historyId: null,
+            brandRenderingSettings: null,
+            channel: {
+              id: 'instagram-channel-unresolved',
+              name: 'Instagram Browser',
+              publishingPreference: 'BROWSER_RUNTIME',
+              accessTokenEncrypted: null,
+              externalId: null,
+              tokenExpiresAt: null,
+              socialChannelRuntimeProfile: {
+                id: 'runtime-profile-unresolved',
+                browserProfileKey: 'channel-instagram-channel-unresolved',
+                browserProfileName: 'Instagram Browser',
+                locale: 'en-MY',
+                timezone: 'Asia/Kuala_Lumpur',
+                proxyType: 'DIRECT',
+                proxyHost: null,
+                proxyPort: null,
+                proxyUsernameEncrypted: null,
+                proxyPasswordEncrypted: null,
+                proxyCountry: null,
+                lastKnownIp: null,
+              },
+            },
+          },
+        ]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      publishAttempt: {
+        create: jest.fn().mockResolvedValue({ id: 'attempt-instagram-unresolved' }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const runtimeProfiles = {
+      getBrowserPublishingSafety: jest.fn().mockResolvedValue({
+        allowed: true,
+        selected: { displayName: 'empowermindsmuse' },
+      }),
+    };
+    const browserRuntime = {
+      preflightInstagramLoginForChannel: jest.fn().mockResolvedValue({
+        ready: true,
+        loginRequired: false,
+        message: 'Instagram Browser login is ready.',
+        browserProfileKey: 'channel-instagram-channel-unresolved',
+      }),
+      prepareInstagramPostForChannel: jest.fn().mockResolvedValue({
+        success: true,
+        readyForReview: true,
+        imageAttached: true,
+        attachedMediaCount: 1,
+      }),
+      publishInstagramPost: jest.fn().mockResolvedValue({
+        success: true,
+        published: true,
+        verification: {
+          status: 'CONFIRMED',
+          externalProof: 'UNRESOLVED',
+        },
+      }),
+      findInstagramPublishedPost: jest.fn().mockResolvedValue({
+        found: false,
+        reference: null,
+      }),
+    };
+    const service = new PublisherService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      { decrypt: jest.fn() } as never,
+      runtimeProfiles as never,
+      browserRuntime as never,
+    );
+
+    await expect(service.run()).resolves.toMatchObject({
+      found: 1,
+      published: 1,
+      blocked: 0,
+    });
+
+    expect(prisma.scheduledPost.update).toHaveBeenCalledWith({
+      where: { id: 'instagram-post-unresolved' },
+      data: expect.objectContaining({
+        status: ScheduledPostStatus.PUBLISHED,
+        externalPostId: null,
+        externalPostUrl: null,
+      }),
+    });
+    expect(prisma.publishAttempt.update).toHaveBeenCalledWith({
+      where: { id: 'attempt-instagram-unresolved' },
+      data: expect.objectContaining({
+        status: PublishAttemptStatus.SUCCESS,
+        responsePayload: expect.objectContaining({
+          published: true,
+          verification: {
+            status: 'CONFIRMED',
+            externalProof: 'UNRESOLVED',
+          },
+        }),
+      }),
+    });
+  });
+
   it('prepares and publishes a queued Instagram post through the browser worker', async () => {
     const prisma = {
       scheduledPost: {
