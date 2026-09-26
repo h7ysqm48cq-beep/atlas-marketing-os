@@ -8,15 +8,17 @@ import sys
 from typing import Any, Mapping
 
 if __package__:
+    from .crud import CRUDGenerationError, CRUDGenerator
     from .engine import build_default_ai_engineer
     from .natural_language import build_natural_language_engineer
-    from .request import AIEngineerMode
+    from .request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from tools.ai_engineer.crud import CRUDGenerationError, CRUDGenerator
     from tools.ai_engineer.engine import build_default_ai_engineer
     from tools.ai_engineer.natural_language import build_natural_language_engineer
-    from tools.ai_engineer.request import AIEngineerMode
+    from tools.ai_engineer.request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
 
 
@@ -116,13 +118,47 @@ class SupervisorAssignmentExecutor:
 
         operation = request.operation.value
         target_file = request.arguments.get("target_file")
-        if not isinstance(target_file, str):
+
+        if isinstance(target_file, str):
+            planned_paths = [
+                _normalize_relative_path(target_file)
+            ]
+        elif request.operation == AIEngineerOperation.CREATE_CRUD:
+            resource_name = request.arguments.get("resource_name")
+            if not isinstance(resource_name, str):
+                return self._failure(
+                    "supervisor_operation_not_supported",
+                    planning={
+                        "requiresReview": True,
+                        "operation": operation,
+                    },
+                )
+            try:
+                crud_plan = CRUDGenerator(
+                    self.project_root
+                ).plan(resource_name)
+                planned_paths = [
+                    _normalize_relative_path(
+                        item.path
+                    )
+                    for item in crud_plan.files
+                ]
+            except CRUDGenerationError:
+                return self._failure(
+                    "supervisor_operation_not_supported",
+                    planning={
+                        "requiresReview": True,
+                        "operation": operation,
+                    },
+                )
+        else:
             return self._failure(
                 "supervisor_operation_not_supported",
-                planning={"requiresReview": True, "operation": operation},
+                planning={
+                    "requiresReview": True,
+                    "operation": operation,
+                },
             )
-
-        planned_paths = [_normalize_relative_path(target_file)]
         planning = {
             "requiresReview": False,
             "operation": operation,

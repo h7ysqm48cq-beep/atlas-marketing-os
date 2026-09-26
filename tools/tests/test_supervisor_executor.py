@@ -816,3 +816,63 @@ def test_internal_dependency_connect_refuses_scope_mismatch(tmp_path):
         "src/users/users.service.ts"
     ]
     assert target.read_text(encoding="utf-8") == before
+
+def test_bounded_crud_applies_exact_generated_scope(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    (tmp_path / "baseline.txt").write_text("baseline\n", encoding="utf-8")
+    init_git_repo(tmp_path)
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+    allowed = [
+        "src/widgets/widgets.service.ts",
+        "src/widgets/widgets.controller.ts",
+        "src/widgets/widgets.module.ts",
+    ]
+
+    result = executor.execute(
+        assignment(
+            objective="Create widgets CRUD",
+            allowed_paths=allowed,
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.planning == {
+        "requiresReview": False,
+        "operation": "create_crud",
+        "plannedPaths": allowed,
+    }
+    assert result.evidence["changedFiles"] == sorted(allowed)
+    for path in allowed:
+        assert (tmp_path / path).exists()
+
+
+def test_bounded_crud_fails_closed_when_allowed_scope_is_incomplete(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    (tmp_path / "baseline.txt").write_text("baseline\n", encoding="utf-8")
+    init_git_repo(tmp_path)
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    result = executor.execute(
+        assignment(
+            objective="Create widgets CRUD",
+            allowed_paths=[
+                "src/widgets/widgets.service.ts",
+                "src/widgets/widgets.controller.ts",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error == "supervisor_scope_violation"
+    assert result.planning == {
+        "requiresReview": False,
+        "operation": "create_crud",
+        "plannedPaths": [
+            "src/widgets/widgets.service.ts",
+            "src/widgets/widgets.controller.ts",
+            "src/widgets/widgets.module.ts",
+        ],
+    }
+    assert not (tmp_path / "src/widgets").exists()
