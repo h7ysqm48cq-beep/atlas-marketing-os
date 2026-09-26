@@ -104,21 +104,25 @@ export async function findInstagramPublishedPostReference(
   const startedAt = Date.now();
   const inspected = new Set<string>();
 
-  while (Date.now() - startedAt < timeoutMs) {
+  const openProfile = async () => {
     await page.goto(profileUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     }).catch(() => undefined);
+    await page.waitForTimeout(750).catch(() => undefined);
 
     const profileText = normalizeText(
       await page.locator('body').innerText().catch(() => ''),
     );
-    const ownProfile =
+    return (
       profileText.includes(username.toLowerCase()) &&
-      /\b(edit profile|view archive)\b/i.test(profileText);
+      /\b(edit profile|view archive)\b/i.test(profileText)
+    );
+  };
 
-    if (!ownProfile) return null;
+  if (!(await openProfile())) return null;
 
+  while (Date.now() - startedAt < timeoutMs) {
     const hrefs = await page
       .locator('a[href*="/p/"], a[href*="/reel/"]')
       .evaluateAll((anchors) =>
@@ -150,13 +154,10 @@ export async function findInstagramPublishedPostReference(
       }
     }
 
-    await page.goto(profileUrl, {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    }).catch(() => undefined);
+    if (!(await openProfile())) return null;
     await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2))
       .catch(() => undefined);
-    await page.waitForTimeout(500).catch(() => undefined);
+    await page.waitForTimeout(750).catch(() => undefined);
   }
 
   return null;
