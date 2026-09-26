@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   BrowserAccountEventStatus,
+  SocialPlatform,
 } from '../../generated/prisma/client';
 import {
   PrismaService,
@@ -108,6 +109,22 @@ export class BrowserOnboardingService {
       throw new BadRequestException(
         'Browser account was not found.',
       );
+    }
+
+    if (
+      account.platform !==
+      SocialPlatform.FACEBOOK
+    ) {
+      return {
+        success: true,
+        completed: true,
+        skipped: true,
+        accountId,
+        platform:
+          account.platform,
+        reason:
+          'ONBOARDING_NOT_APPLICABLE_FOR_PLATFORM',
+      };
     }
 
     const policy =
