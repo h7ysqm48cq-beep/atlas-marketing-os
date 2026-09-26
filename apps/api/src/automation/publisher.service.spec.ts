@@ -663,8 +663,10 @@ describe('PublisherService Instagram Browser Runtime', () => {
       publishInstagramPost: jest.fn().mockResolvedValue({
         success: true,
         published: true,
-        verification: { status: 'CONFIRMED' },
-        id: 'instagram-media-1',
+        verification: { status: 'CONFIRMED', externalProof: 'RESOLVED' },
+        id: 'IgShortCode123',
+        externalPostId: 'IgShortCode123',
+        postUrl: 'https://www.instagram.com/p/IgShortCode123/',
       }),
     };
     const service = new PublisherService(
@@ -700,7 +702,8 @@ describe('PublisherService Instagram Browser Runtime', () => {
       where: { id: 'instagram-post-1' },
       data: expect.objectContaining({
         status: ScheduledPostStatus.PUBLISHED,
-        externalPostId: 'instagram-media-1',
+        externalPostId: 'IgShortCode123',
+        externalPostUrl: 'https://www.instagram.com/p/IgShortCode123/',
       }),
     });
   });
