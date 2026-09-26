@@ -148,7 +148,11 @@ class SupervisorAssignmentExecutor:
         if not applied.success:
             changed = self._git_changed_files()
             self._restore_clean_workspace(changed)
-            return self._failure("supervisor_apply_failed", planning=planning)
+            detail = self._apply_failure_detail(applied)
+            error = "supervisor_apply_failed"
+            if detail:
+                error = f"{error}:{detail}"
+            return self._failure(error, planning=planning)
 
         changed = self._git_changed_files()
         if not set(changed).issubset(allowed):
@@ -376,6 +380,20 @@ class SupervisorAssignmentExecutor:
                 "remainingRisk": ["verification_does_not_merge_or_deploy"],
             },
         )
+
+    @staticmethod
+    def _apply_failure_detail(applied: Any) -> str | None:
+        try:
+            errors = applied.engineer_result.planner_result.runtime_result.errors
+        except AttributeError:
+            return None
+        if not isinstance(errors, list):
+            return None
+        for value in errors:
+            if isinstance(value, str) and value.strip():
+                normalized = re.sub(r"\s+", " ", value.strip())
+                return normalized[:500]
+        return None
 
     @staticmethod
     def _is_sha(value: Any) -> bool:
