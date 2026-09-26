@@ -571,6 +571,30 @@ describe(
             'account-1',
           );
 
+        expect(
+          harness.browserRuntime.request,
+        ).toHaveBeenNthCalledWith(
+          1,
+          '/profiles/open',
+          expect.objectContaining({
+            method: 'POST',
+            body:
+              expect.stringContaining(
+                'https://www.instagram.com/',
+              ),
+          }),
+        );
+
+        expect(
+          harness.browserRuntime.request,
+        ).toHaveBeenNthCalledWith(
+          2,
+          '/profiles/browser-profile-1/inspect',
+          expect.objectContaining({
+            method: 'POST',
+          }),
+        );
+
         expect(result).toMatchObject({
           loginStatus:
             'LOGGED_IN',
