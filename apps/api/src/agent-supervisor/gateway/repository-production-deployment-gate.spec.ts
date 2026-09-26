@@ -290,8 +290,7 @@ describe('repository-owned production deployment gate', () => {
     const commands = config.deploy?.preDeployCommand ?? [];
 
     expect(commands).toEqual([
-      'node apps/engineering-runner/check-runner-bootstrap-deployment.cjs',
-      'env ATLAS_DEPLOYMENT_SERVICE=engineering-runner node apps/api/scripts/check-production-deployment-gate.cjs',
+      'node apps/engineering-runner/check-runner-bootstrap-deployment.cjs && env ATLAS_DEPLOYMENT_SERVICE=engineering-runner node apps/api/scripts/check-production-deployment-gate.cjs',
     ]);
     expect(commands.join('\n')).not.toMatch(/db:migrate|prisma migrate/i);
   });
