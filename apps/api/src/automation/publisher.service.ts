@@ -974,7 +974,13 @@ export class PublisherService {
                     result,
                     externalPostId,
                   )
-                : null,
+                : post.platform === SocialPlatform.INSTAGRAM
+                  ? typeof result?.postUrl === 'string' && result.postUrl.trim()
+                    ? result.postUrl.trim()
+                    : typeof result?.permalink === 'string' && result.permalink.trim()
+                      ? result.permalink.trim()
+                      : null
+                  : null,
           },
         });
 

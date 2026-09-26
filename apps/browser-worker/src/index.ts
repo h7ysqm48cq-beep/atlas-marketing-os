@@ -68,6 +68,9 @@ import {
   openInstagramComposer,
 } from "./instagram/composer.js";
 import {
+  resolveInstagramPublishedPostReference,
+} from "./instagram/published-post.js";
+import {
   readBrowserScreenshot,
   saveBrowserScreenshot,
 } from "./browser-screenshot-store.js";
@@ -6030,7 +6033,24 @@ app.post(
       const bodyText = (await page.locator("body").innerText().catch(() => "")).toLowerCase();
       const confirmed = shareConfirmed || /post shared|your post has been shared|shared|posted/.test(bodyText);
       if (!confirmed) throw new Error("Instagram publishing was not confirmed.");
-      response.json({ success: true, published: true, verification: { status: "CONFIRMED" }, page: { title: await page.title(), url: page.url() }, publishedAt: new Date().toISOString() });
+      const publishedReference = await resolveInstagramPublishedPostReference(page);
+      response.json({
+        success: true,
+        published: true,
+        verification: {
+          status: "CONFIRMED",
+          externalProof: publishedReference ? "RESOLVED" : "UNRESOLVED",
+        },
+        ...(publishedReference
+          ? {
+              id: publishedReference.externalPostId,
+              externalPostId: publishedReference.externalPostId,
+              postUrl: publishedReference.postUrl,
+            }
+          : {}),
+        page: { title: await page.title(), url: page.url() },
+        publishedAt: new Date().toISOString(),
+      });
       await releasePreparedPage(session);
     } catch (error) {
       response.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to publish Instagram post." });
