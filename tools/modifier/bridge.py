@@ -579,10 +579,18 @@ class TypeScriptBridge:
         try:
             payload = json.loads(output)
         except json.JSONDecodeError as error:
+            stdout_tail = output[-500:]
+            stderr_tail = process.stderr.strip()[-500:]
             raise TypeScriptBridgeError(
-                "TypeScript parser returned invalid JSON.\n"
-                f"stdout: {output[:1000]}\n"
-                f"stderr: {process.stderr.strip()}"
+                "TypeScript parser returned invalid JSON. "
+                f"json_error={error.msg}; "
+                f"position={error.pos}; "
+                f"line={error.lineno}; "
+                f"column={error.colno}; "
+                f"returncode={process.returncode}; "
+                f"stdout_length={len(output)}; "
+                f"stdout_tail={stdout_tail!r}; "
+                f"stderr_tail={stderr_tail!r}"
             ) from error
 
         if process.returncode not in {0, 2}:
