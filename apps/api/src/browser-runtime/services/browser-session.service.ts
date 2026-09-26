@@ -294,6 +294,25 @@ export class BrowserSessionService {
             method: 'POST',
           };
 
+    if (isInstagram) {
+      await this.browserRuntime.request(
+        '/profiles/open',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            ...profile,
+            headless: false,
+            startUrl:
+              'https://www.instagram.com/',
+          }),
+        },
+      );
+    }
+
     let result:
       WorkerInspection;
 
