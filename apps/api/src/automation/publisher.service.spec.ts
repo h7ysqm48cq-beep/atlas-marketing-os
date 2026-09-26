@@ -2,7 +2,7 @@ import {
   resolvePublisherRetryDecision,
   resolveSportsNewsRetryDecision,
 } from './publisher-retry-policy';
-import { ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
+import { PublishAttemptStatus, ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
 import { PublisherService } from './publisher.service';
 
 jest.mock('./runtime-profile.service', () => ({
