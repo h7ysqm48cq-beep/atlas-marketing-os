@@ -84,7 +84,7 @@ def test_same_sha_worker_qualification_is_service_aware_and_read_only(tmp_path):
     ).stdout.strip()
     executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
 
-    for service in ("engineering-runner", "engineering-verifier"):
+    for service in ("engineering-runner", "engineering-verifier", "browser-worker"):
         request = assignment(
             purpose="INDEPENDENT_VERIFICATION",
             objective=(
