@@ -957,7 +957,7 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
     expect(dispatched.assignment.forbiddenActions).toContain('deploy_production');
     expect((await supervisor.getTask(task.id)).status).toBe('VERIFYING');
   });
-  it.each(['engineering-runner', 'engineering-verifier'] as const)(
+  it.each(['engineering-runner', 'engineering-verifier', 'browser-worker'] as const)(
     'admits an exact read-only zero-diff %s production qualification',
     async (service) => {
       const executions = new MemorySupervisorExecutionStore();
@@ -1017,6 +1017,9 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
       { service: 'engineering-verifier', owner: 'engineering' as const,
         forbidden: ['edit_assigned_files', 'commit_assigned_branch', 'deploy_production', 'change_runtime_config'] as const,
         acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`, 'service=engineering-runner'] },
+      { service: 'browser-worker', owner: 'infra' as const,
+        forbidden: ['edit_assigned_files', 'commit_assigned_branch', 'deploy_production', 'change_runtime_config'] as const,
+        acceptance: [`Candidate baseSha=headSha=${sha}, changedFiles=[]`, 'service=browser-worker'] },
     ]) {
       const executions = new MemorySupervisorExecutionStore();
       const supervisor = new AgentSupervisorService(
