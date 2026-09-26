@@ -609,6 +609,49 @@ def test_runtime_failure_rolls_back_partial_mutation(tmp_path):
     assert git_changed_files(tmp_path) == []
 
 
+def test_runtime_failure_preserves_nested_runtime_error(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    ai_module = import_module("tools.ai_engineer")
+    request_module = import_module("tools.ai_engineer.request")
+    from types import SimpleNamespace
+
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    delegate = ai_module.build_natural_language_engineer()
+
+    class DetailedFailureEngineer:
+        def handle(self, *args, **kwargs):
+            if kwargs.get("mode") == request_module.AIEngineerMode.APPLY:
+                target.write_text("BROKEN\n", encoding="utf-8")
+                return SimpleNamespace(
+                    success=False,
+                    engineer_result=SimpleNamespace(
+                        planner_result=SimpleNamespace(
+                            runtime_result=SimpleNamespace(
+                                errors=[
+                                    "AddImport: Cannot find module 'typescript'"
+                                ]
+                            )
+                        )
+                    ),
+                )
+            return delegate.handle(*args, **kwargs)
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path,
+        engineer=DetailedFailureEngineer(),
+    )
+    result = executor.execute(assignment(), allow_apply=True)
+
+    assert not result.success
+    assert result.error == (
+        "supervisor_apply_failed:"
+        "AddImport: Cannot find module 'typescript'"
+    )
+    assert target.read_text(encoding="utf-8") == "export class UsersService {}\n"
+    assert git_changed_files(tmp_path) == []
+
+
 def test_module_cli_consumes_runner_assignment_and_emits_worker_result(tmp_path):
     import json
     import os
