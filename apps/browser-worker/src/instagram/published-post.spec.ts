@@ -184,3 +184,58 @@ test('reconciliation fails closed outside the authenticated own profile', async 
     null,
   );
 });
+
+
+test('reconciliation preserves lazy-grid state after scrolling instead of reloading the profile', async () => {
+  let currentUrl = 'https://www.instagram.com/';
+  let profileScrollLoaded = false;
+  const profileUrl = 'https://www.instagram.com/empowermindsmuse/';
+  const postUrl = 'https://www.instagram.com/p/LazyProof123/';
+
+  const page = {
+    goto: async (url: string) => {
+      currentUrl = url;
+      if (url === profileUrl) {
+        profileScrollLoaded = false;
+      }
+    },
+    locator: (selector: string) => {
+      if (selector === 'body') {
+        return {
+          innerText: async () =>
+            currentUrl === profileUrl
+              ? 'empowermindsmuse Edit profile View archive'
+              : currentUrl === postUrl
+                ? 'Consistency is rarely dramatic. It is the quiet repetition of small actions that slowly becomes direction.'
+                : '',
+        };
+      }
+      return {
+        evaluateAll: async () =>
+          currentUrl === profileUrl && profileScrollLoaded
+            ? ['/p/LazyProof123/']
+            : [],
+      };
+    },
+    evaluate: async () => {
+      if (currentUrl === profileUrl) {
+        profileScrollLoaded = true;
+      }
+    },
+    waitForTimeout: async () => undefined,
+  } as never;
+
+  assert.deepEqual(
+    await findInstagramPublishedPostReference(
+      page,
+      'Consistency is rarely dramatic. It is the quiet repetition of small actions that slowly becomes direction.',
+      'empowermindsmuse',
+      1000,
+    ),
+    {
+      externalPostId: 'LazyProof123',
+      postUrl,
+      matchedBy: 'caption-profile-post',
+    },
+  );
+});
