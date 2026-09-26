@@ -895,13 +895,117 @@ export class PublisherService {
 
             const browserPublishResult = result as {
               published?: boolean;
-              verification?: { status?: string };
+              verification?: {
+                status?: string;
+                externalProof?: string;
+              };
+              postUrl?: string;
+              permalink?: string;
             };
             if (
               browserPublishResult.published !== true ||
               browserPublishResult.verification?.status !== 'CONFIRMED'
             ) {
               throw new Error('Browser Runtime Instagram publishing was not confirmed.');
+            }
+
+            const immediateExternalId =
+              resolvePublishExternalId(result);
+            const immediateExternalUrl =
+              typeof browserPublishResult.postUrl === 'string' &&
+              browserPublishResult.postUrl.trim()
+                ? browserPublishResult.postUrl.trim()
+                : typeof browserPublishResult.permalink === 'string' &&
+                    browserPublishResult.permalink.trim()
+                  ? browserPublishResult.permalink.trim()
+                  : null;
+
+            if (
+              browserPublishResult.verification?.externalProof === 'UNRESOLVED' &&
+              (!immediateExternalId || !immediateExternalUrl)
+            ) {
+              try {
+                const safety =
+                  await this.runtimeProfiles.getBrowserPublishingSafety(
+                    post.channel.id,
+                  );
+                const selected = safety.selected;
+
+                if (safety.allowed && selected?.displayName) {
+                  const lookup =
+                    await this.browserRuntime.findInstagramPublishedPost(
+                      post.channel.id,
+                      post.content,
+                      selected.displayName,
+                    ) as {
+                      found?: boolean;
+                      reference?: {
+                        externalPostId?: string;
+                        postUrl?: string;
+                        matchedBy?: string;
+                      };
+                    };
+
+                  const recoveredExternalId =
+                    lookup.reference?.externalPostId?.trim();
+                  const recoveredExternalUrl =
+                    lookup.reference?.postUrl?.trim();
+
+                  if (
+                    lookup.found === true &&
+                    recoveredExternalId &&
+                    recoveredExternalUrl
+                  ) {
+                    result = {
+                      ...result,
+                      id: recoveredExternalId,
+                      externalPostId: recoveredExternalId,
+                      postUrl: recoveredExternalUrl,
+                      matchedBy:
+                        lookup.reference?.matchedBy ?? null,
+                      reconciled: true,
+                      verification: {
+                        status: 'CONFIRMED',
+                        externalProof: 'RESOLVED',
+                      },
+                    };
+
+                    this.logger.log(
+                      [
+                        'Instagram publication proof recovered automatically.',
+                        `Post: ${post.id}.`,
+                        `External ID: ${recoveredExternalId}.`,
+                      ].join(' '),
+                    );
+                  } else {
+                    this.logger.warn(
+                      [
+                        'Instagram publication proof remains unresolved after automatic lookup.',
+                        `Post: ${post.id}.`,
+                      ].join(' '),
+                    );
+                  }
+                } else {
+                  this.logger.warn(
+                    [
+                      'Instagram publication proof recovery skipped because Browser Account is not ready.',
+                      `Post: ${post.id}.`,
+                    ].join(' '),
+                  );
+                }
+              } catch (error) {
+                this.logger.warn(
+                  [
+                    'Instagram publication proof recovery failed closed.',
+                    `Post: ${post.id}.`,
+                    `Reason: ${
+                      error instanceof Error
+                        ? error.message
+                        : 'unknown error'
+                    }.`,
+                  ].join(' '),
+                );
+              }
             }
           }
 
