@@ -8,12 +8,16 @@ import sys
 from typing import Any, Mapping
 
 if __package__:
+    from .engine import build_default_ai_engineer
     from .natural_language import build_natural_language_engineer
     from .request import AIEngineerMode
+    from tools.runtime import build_default_runtime
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from tools.ai_engineer.engine import build_default_ai_engineer
     from tools.ai_engineer.natural_language import build_natural_language_engineer
     from tools.ai_engineer.request import AIEngineerMode
+    from tools.runtime import build_default_runtime
 
 
 @dataclass(slots=True, frozen=True)
@@ -43,7 +47,17 @@ class SupervisorAssignmentExecutor:
         engineer: Any | None = None,
     ) -> None:
         self.project_root = Path(project_root).expanduser().resolve()
-        self.engineer = engineer or build_natural_language_engineer()
+        if engineer is not None:
+            self.engineer = engineer
+        else:
+            default_engineer = build_natural_language_engineer()
+            default_engineer.engineer = build_default_ai_engineer(
+                runtime=build_default_runtime(
+                    project_root=self.project_root,
+                    show_preview=True,
+                )
+            )
+            self.engineer = default_engineer
 
     def execute(
         self,

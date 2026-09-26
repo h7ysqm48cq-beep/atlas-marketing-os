@@ -243,3 +243,98 @@ def test_ui_intent_does_not_create_request(
     assert not result.executable
     assert result.request is None
     assert result.requires_review
+
+def test_connect_dependency_adapter_resolves_internal_classes(tmp_path):
+    write_source(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {\n  constructor() {}\n}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/users/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    default_repository_cache.clear()
+
+    intent = RuleBasedIntentParser().parse(
+        "Inject AuditService into UsersService"
+    )
+    result = IntentToRequestAdapter().adapt(
+        intent,
+        target_project=str(tmp_path),
+    )
+
+    assert intent.intent_type == IntentType.CONNECT_DEPENDENCY
+    assert intent.actionable
+    assert result.executable
+    assert not result.requires_review
+    assert result.request is not None
+    assert result.request.operation == AIEngineerOperation.CONNECT_SERVICE
+    assert result.request.arguments == {
+        "target_file": "src/users/users.service.ts",
+        "target_class": "UsersService",
+        "dependency_name": "audit",
+        "dependency_type": "AuditService",
+        "dependency_import": "./audit.service",
+    }
+
+
+def test_connect_dependency_adapter_fails_closed_when_dependency_is_ambiguous(
+    tmp_path,
+):
+    write_source(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {\n  constructor() {}\n}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/a/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/b/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    default_repository_cache.clear()
+
+    intent = RuleBasedIntentParser().parse(
+        "Inject AuditService into UsersService"
+    )
+    result = IntentToRequestAdapter().adapt(
+        intent,
+        target_project=str(tmp_path),
+    )
+
+    assert not result.executable
+    assert result.requires_review
+    assert result.request is None
+    assert "ambiguous" in (result.message or "").lower()
+
+
+def test_connect_dependency_adapter_requires_existing_constructor(tmp_path):
+    write_source(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {}\n",
+    )
+    write_source(
+        tmp_path,
+        "src/users/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    default_repository_cache.clear()
+
+    intent = RuleBasedIntentParser().parse(
+        "Inject AuditService into UsersService"
+    )
+    result = IntentToRequestAdapter().adapt(
+        intent,
+        target_project=str(tmp_path),
+    )
+
+    assert not result.executable
+    assert result.requires_review
+    assert "constructor" in (result.message or "").lower()

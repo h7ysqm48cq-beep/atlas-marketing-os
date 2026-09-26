@@ -213,3 +213,33 @@ def test_authorized_apply_can_execute(
         tmp_path
         / "src/orders/orders.service.ts"
     ).exists()
+
+def test_natural_language_connect_dependency_builds_bounded_plan(tmp_path):
+    write_file(
+        tmp_path,
+        "src/users/users.service.ts",
+        "export class UsersService {\n  constructor() {}\n}\n",
+    )
+    write_file(
+        tmp_path,
+        "src/users/audit.service.ts",
+        "export class AuditService {}\n",
+    )
+    default_repository_cache.clear()
+
+    result = build_natural_language_engineer().handle(
+        "Inject AuditService into UsersService",
+        target_project=str(tmp_path),
+    )
+
+    assert result.success
+    assert result.intent.intent_type == IntentType.CONNECT_DEPENDENCY
+    assert result.adaptation is not None
+    assert result.adaptation.request is not None
+    assert result.engineering_plan is None
+    assert result.engineer_result is not None
+    assert not result.executed
+    assert (
+        result.adaptation.request.arguments["target_file"]
+        == "src/users/users.service.ts"
+    )

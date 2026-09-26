@@ -42,6 +42,7 @@ class EngineeringIntent:
         return self.intent_type in {
             IntentType.RENAME_SYMBOL,
             IntentType.CREATE_CRUD,
+            IntentType.CONNECT_DEPENDENCY,
         }
 
     def to_dict(self) -> dict[str, Any]:

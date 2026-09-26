@@ -691,3 +691,85 @@ def test_scope_drift_symlink_is_removed_during_rollback(tmp_path):
     assert outside.read_text(encoding="utf-8") == "external\n"
     assert git_changed_files(tmp_path) == []
     outside.unlink()
+
+def write_connect_services_with_runtime_bridge(tmp_path):
+    target = tmp_path / "src/users/users.service.ts"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "export class UsersService {\n  constructor() {}\n}\n",
+        encoding="utf-8",
+    )
+    dependency = tmp_path / "src/users/audit.service.ts"
+    dependency.write_text(
+        "export class AuditService {}\n",
+        encoding="utf-8",
+    )
+
+    repo_root = Path(
+        import_module("tools.ai_engineer.supervisor_executor").__file__
+    ).resolve().parents[2]
+    (tmp_path / "tools").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "tools/modifier").symlink_to(
+        repo_root / "tools/modifier",
+        target_is_directory=True,
+    )
+    if (repo_root / "node_modules").exists():
+        (tmp_path / "node_modules").symlink_to(
+            repo_root / "node_modules",
+            target_is_directory=True,
+        )
+    return target
+
+
+def test_allowed_internal_dependency_connect_applies_within_scope(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    target = write_connect_services_with_runtime_bridge(tmp_path)
+    init_git_repo(tmp_path)
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    result = executor.execute(
+        assignment(
+            objective="Inject AuditService into UsersService",
+            allowed_paths=["src/users/users.service.ts"],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.error is None
+    assert result.planning is not None
+    assert result.planning["operation"] == "connect_service"
+    assert result.planning["plannedPaths"] == [
+        "src/users/users.service.ts"
+    ]
+    assert result.evidence["changedFiles"] == [
+        "src/users/users.service.ts"
+    ]
+    source = target.read_text(encoding="utf-8")
+    assert "AuditService" in source
+    assert "audit" in source
+
+
+def test_internal_dependency_connect_refuses_scope_mismatch(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    target = write_connect_services_with_runtime_bridge(tmp_path)
+    before = target.read_text(encoding="utf-8")
+    init_git_repo(tmp_path)
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    result = executor.execute(
+        assignment(
+            objective="Inject AuditService into UsersService",
+            allowed_paths=["src/other.ts"],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error == "supervisor_scope_violation"
+    assert result.planning is not None
+    assert result.planning["operation"] == "connect_service"
+    assert result.planning["plannedPaths"] == [
+        "src/users/users.service.ts"
+    ]
+    assert target.read_text(encoding="utf-8") == before
