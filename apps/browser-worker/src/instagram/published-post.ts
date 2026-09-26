@@ -38,8 +38,24 @@ export function parseInstagramPublishedPostReference(
 
   const segments = url.pathname.split('/').filter(Boolean);
   if (segments.length < 2) return null;
-  const [kind, shortcode] = segments;
-  if ((kind !== 'p' && kind !== 'reel') || !SHORTCODE_PATTERN.test(shortcode)) {
+
+  const directKind = segments[0];
+  const directShortcode = segments[1];
+  const prefixedKind = segments[1];
+  const prefixedShortcode = segments[2];
+
+  const kind =
+    directKind === 'p' || directKind === 'reel'
+      ? directKind
+      : prefixedKind === 'p' || prefixedKind === 'reel'
+        ? prefixedKind
+        : null;
+  const shortcode =
+    kind === directKind
+      ? directShortcode
+      : prefixedShortcode;
+
+  if (!kind || !shortcode || !SHORTCODE_PATTERN.test(shortcode)) {
     return null;
   }
 

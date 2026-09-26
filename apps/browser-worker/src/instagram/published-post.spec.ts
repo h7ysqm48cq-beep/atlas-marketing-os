@@ -24,6 +24,27 @@ test('parses canonical Instagram post and reel permalinks', () => {
   );
 });
 
+test('parses username-prefixed Instagram profile-grid permalinks', () => {
+  assert.deepEqual(
+    parseInstagramPublishedPostReference(
+      'https://www.instagram.com/empowermindsmuse/p/Ddvq5_XE2iD/',
+    ),
+    {
+      externalPostId: 'Ddvq5_XE2iD',
+      postUrl: 'https://www.instagram.com/p/Ddvq5_XE2iD/',
+    },
+  );
+  assert.deepEqual(
+    parseInstagramPublishedPostReference(
+      '/empowermindsmuse/reel/Reel_123-x/',
+    ),
+    {
+      externalPostId: 'Reel_123-x',
+      postUrl: 'https://www.instagram.com/reel/Reel_123-x/',
+    },
+  );
+});
+
 test('rejects unrelated or untrusted Instagram URLs', () => {
   for (const value of [
     'https://www.instagram.com/',
