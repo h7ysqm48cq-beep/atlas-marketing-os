@@ -370,3 +370,163 @@ describe('BrowserAccountService.linkChannel platform binding', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
+
+describe('BrowserAccountService.adoptLegacyInstagramChannel', () => {
+  const legacyProfile = {
+    id: 'legacy-profile-1',
+    channelId: 'channel-1',
+    browserProfileKey: 'channel-channel-1',
+    browserProfileName: 'Empower Minds Muse Browser',
+    locale: 'en-MY',
+    timezone: 'Asia/Kuala_Lumpur',
+    proxyType: 'DIRECT',
+    proxyHost: null,
+    proxyPort: null,
+    proxyUsernameEncrypted: null,
+    proxyPasswordEncrypted: null,
+    proxyCountry: null,
+    lastKnownIp: null,
+    lastConnectionStatus: null,
+    lastConnectionError: null,
+    lastConnectionTestAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    browserEngine: 'CHROMIUM',
+    deviceScaleFactor: 1,
+    identityLocked: true,
+    operatingSystem: 'MACOS',
+    screenHeight: 768,
+    screenWidth: 1365,
+    userAgent: null,
+  };
+
+  const instagramChannel = {
+    id: 'channel-1',
+    workspaceId: 'workspace-1',
+    brandId: 'brand-1',
+    platform: 'INSTAGRAM',
+    name: 'empowermindmuse',
+    username: null,
+    socialChannelRuntimeProfile: legacyProfile,
+    browserAccountLinks: [],
+  };
+
+  it('adopts the exact persisted Instagram legacy profile and links it as primary', async () => {
+    const createdAccount = {
+      id: 'account-1',
+      workspaceId: 'workspace-1',
+      brandId: 'brand-1',
+      platform: 'INSTAGRAM',
+      displayName: 'empowermindsmuse',
+      browserProfileKey: 'channel-channel-1',
+      browserProfileName: 'Empower Minds Muse Browser',
+      facebookEmailEncrypted: null,
+      facebookPasswordEncrypted: null,
+      facebookEmailHash: null,
+      proxyUsernameEncrypted: null,
+      proxyPasswordEncrypted: null,
+    };
+    const tx = {
+      browserAccount: {
+        create: jest.fn().mockResolvedValue(createdAccount),
+      },
+      browserAccountChannel: {
+        create: jest.fn().mockResolvedValue({
+          browserAccountId: 'account-1',
+          channelId: 'channel-1',
+          isPrimary: true,
+        }),
+      },
+    };
+    const prisma = {
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue(instagramChannel),
+      },
+      browserAccount: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      $transaction: jest.fn(async (action: any) => action(tx)),
+    };
+    const service = new BrowserAccountService(
+      prisma as never,
+      {} as never,
+    );
+
+    const result =
+      await service.adoptLegacyInstagramChannel(
+        'channel-1',
+        { displayName: 'empowermindsmuse' },
+      );
+
+    expect(result).toMatchObject({
+      adopted: true,
+      channelId: 'channel-1',
+      browserProfileKey: 'channel-channel-1',
+    });
+    expect(tx.browserAccount.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        platform: 'INSTAGRAM',
+        displayName: 'empowermindsmuse',
+        browserProfileKey: 'channel-channel-1',
+        browserEngine: 'chromium',
+        operatingSystem: 'macOS',
+        screenWidth: 1365,
+        screenHeight: 768,
+        deviceScaleFactor: 1,
+        workspaceId: 'workspace-1',
+        brandId: 'brand-1',
+      }),
+    });
+    expect(tx.browserAccountChannel.create).toHaveBeenCalledWith({
+      data: {
+        browserAccountId: 'account-1',
+        channelId: 'channel-1',
+        isPrimary: true,
+      },
+    });
+  });
+
+  it('rejects adoption when the legacy profile key is already owned', async () => {
+    const prisma = {
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue(instagramChannel),
+      },
+      browserAccount: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'other-account',
+        }),
+      },
+    };
+    const service = new BrowserAccountService(
+      prisma as never,
+      {} as never,
+    );
+
+    await expect(
+      service.adoptLegacyInstagramChannel('channel-1'),
+    ).rejects.toThrow(
+      'Legacy runtime profile is already owned by another Browser Account.',
+    );
+  });
+
+  it('rejects non-Instagram channels', async () => {
+    const prisma = {
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue({
+          ...instagramChannel,
+          platform: 'FACEBOOK',
+        }),
+      },
+    };
+    const service = new BrowserAccountService(
+      prisma as never,
+      {} as never,
+    );
+
+    await expect(
+      service.adoptLegacyInstagramChannel('channel-1'),
+    ).rejects.toThrow(
+      'Legacy profile adoption is only supported for Instagram channels.',
+    );
+  });
+});

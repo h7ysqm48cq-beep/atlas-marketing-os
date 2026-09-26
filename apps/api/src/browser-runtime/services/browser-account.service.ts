@@ -106,6 +106,197 @@ export class BrowserAccountService {
     return this.sanitize(account);
   }
 
+  async adoptLegacyInstagramChannel(
+    channelId: string,
+    input?: {
+      displayName?: string;
+    },
+  ) {
+    const normalizedChannelId =
+      channelId.trim();
+
+    if (!normalizedChannelId) {
+      throw new BadRequestException(
+        'Channel ID is required.',
+      );
+    }
+
+    const channel =
+      await this.prisma.socialChannel.findUnique({
+        where: {
+          id: normalizedChannelId,
+        },
+        include: {
+          socialChannelRuntimeProfile: true,
+          browserAccountLinks: {
+            include: {
+              browserAccount: true,
+            },
+          },
+        },
+      });
+
+    if (!channel) {
+      throw new NotFoundException(
+        'Social channel was not found.',
+      );
+    }
+
+    if (
+      channel.platform !==
+      SocialPlatform.INSTAGRAM
+    ) {
+      throw new BadRequestException(
+        'Legacy profile adoption is only supported for Instagram channels.',
+      );
+    }
+
+    const legacyProfile =
+      channel.socialChannelRuntimeProfile;
+
+    if (!legacyProfile) {
+      throw new BadRequestException(
+        'Instagram channel does not have a persisted legacy runtime profile to adopt.',
+      );
+    }
+
+    const existingLink =
+      channel.browserAccountLinks[0];
+
+    if (existingLink) {
+      if (
+        existingLink.browserAccount.platform ===
+          SocialPlatform.INSTAGRAM &&
+        existingLink.browserAccount.browserProfileKey ===
+          legacyProfile.browserProfileKey
+      ) {
+        return {
+          adopted: false,
+          alreadyLinked: true,
+          account:
+            this.sanitize(
+              existingLink.browserAccount,
+            ),
+        };
+      }
+
+      throw new BadRequestException(
+        'Instagram channel is already linked to a different Browser Account.',
+      );
+    }
+
+    const profileOwner =
+      await this.prisma.browserAccount.findUnique({
+        where: {
+          browserProfileKey:
+            legacyProfile.browserProfileKey,
+        },
+      });
+
+    if (profileOwner) {
+      throw new BadRequestException(
+        'Legacy runtime profile is already owned by another Browser Account.',
+      );
+    }
+
+    const displayName =
+      input?.displayName?.trim() ||
+      channel.username?.trim() ||
+      channel.name.trim();
+
+    const browserEngine =
+      legacyProfile.browserEngine
+        .trim()
+        .toLowerCase();
+
+    const operatingSystem =
+      legacyProfile.operatingSystem
+        .trim()
+        .toUpperCase() === 'MACOS'
+        ? 'macOS'
+        : legacyProfile.operatingSystem
+            .trim();
+
+    const account =
+      await this.prisma.$transaction(
+        async (transaction) => {
+          const created =
+            await transaction.browserAccount.create({
+              data: {
+                workspaceId:
+                  channel.workspaceId,
+                brandId:
+                  channel.brandId,
+                platform:
+                  SocialPlatform.INSTAGRAM,
+                displayName,
+                browserProfileKey:
+                  legacyProfile.browserProfileKey,
+                browserProfileName:
+                  legacyProfile.browserProfileName,
+                locale:
+                  legacyProfile.locale,
+                timezone:
+                  legacyProfile.timezone,
+                proxyType:
+                  legacyProfile.proxyType,
+                proxyHost:
+                  legacyProfile.proxyHost,
+                proxyPort:
+                  legacyProfile.proxyPort,
+                proxyUsernameEncrypted:
+                  legacyProfile.proxyUsernameEncrypted,
+                proxyPasswordEncrypted:
+                  legacyProfile.proxyPasswordEncrypted,
+                proxyCountry:
+                  legacyProfile.proxyCountry,
+                browserEngine,
+                operatingSystem,
+                userAgent:
+                  legacyProfile.userAgent,
+                screenWidth:
+                  legacyProfile.screenWidth,
+                screenHeight:
+                  legacyProfile.screenHeight,
+                deviceScaleFactor:
+                  legacyProfile.deviceScaleFactor,
+                identityLocked:
+                  legacyProfile.identityLocked,
+                fingerprintStatus:
+                  'LOCKED',
+                loginStatus:
+                  'PENDING',
+                cookieStatus:
+                  'NOT_CREATED',
+              },
+            });
+
+          await transaction.browserAccountChannel.create({
+            data: {
+              browserAccountId:
+                created.id,
+              channelId:
+                channel.id,
+              isPrimary: true,
+            },
+          });
+
+          return created;
+        },
+      );
+
+    return {
+      adopted: true,
+      alreadyLinked: false,
+      account:
+        this.sanitize(account),
+      channelId:
+        channel.id,
+      browserProfileKey:
+        legacyProfile.browserProfileKey,
+    };
+  }
+
   async create(
     input: CreateBrowserAccountInput,
   ) {
