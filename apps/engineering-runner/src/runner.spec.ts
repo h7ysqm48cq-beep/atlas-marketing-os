@@ -279,6 +279,137 @@ test('EngineeringRunner stops its polling loop after AbortSignal cancellation', 
   assert.equal(claims, 1);
 });
 
+test('EngineeringRunner retries transient pre-claim HTTP failures without exiting', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  for (const status of [408, 425, 429, 500, 502, 503, 599]) {
+    let claims = 0;
+    const controller = new AbortController();
+    const runner = new Runner({
+      client: {
+        claimNext: async () => {
+          claims += 1;
+          if (claims === 1) throw new Error(`supervisor_claim_failed:${status}`);
+          controller.abort();
+          return null;
+        },
+      },
+      executor: { execute: async () => result },
+      workspace: { listChangedFiles: async () => [] },
+      scopeGuard: {
+        assertImplementationScope: () => undefined,
+        assertVerificationNoDrift: () => undefined,
+      },
+      pollIntervalMs: 1,
+      heartbeatIntervalMs: 10_000,
+    });
+
+    await runner.run(controller.signal);
+    assert.equal(claims, 2, `status ${status} should retry once`);
+  }
+});
+
+test('EngineeringRunner retries a pre-claim fetch transport TypeError without exiting', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let claims = 0;
+  const controller = new AbortController();
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        if (claims === 1) throw new TypeError('fetch failed');
+        controller.abort();
+        return null;
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await runner.run(controller.signal);
+  assert.equal(claims, 2);
+});
+
+test('EngineeringRunner fails closed on non-transient pre-claim HTTP failures', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let claims = 0;
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        throw new Error('supervisor_claim_failed:401');
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await assert.rejects(
+    () => runner.run(new AbortController().signal),
+    /supervisor_claim_failed:401/,
+  );
+  assert.equal(claims, 1);
+});
+
+test('Exact-target single-shot runner keeps transient claim failures fail-closed', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  let claims = 0;
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        throw new Error('supervisor_claim_failed:502');
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    singleShot: true,
+    pollIntervalMs: 1,
+    heartbeatIntervalMs: 10_000,
+  });
+
+  await assert.rejects(
+    () => runner.run(new AbortController().signal),
+    /supervisor_claim_failed:502/,
+  );
+  assert.equal(claims, 1);
+});
+
 test('EngineeringRunner runs persistent-source preflight exactly once before polling', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as
