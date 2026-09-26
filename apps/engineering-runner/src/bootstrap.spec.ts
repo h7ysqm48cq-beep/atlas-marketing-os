@@ -28,6 +28,37 @@ test('candidate config wires isolated workspace, publisher, and cwd-bound execut
   assert.ok(options.executorFactory('/isolated'));
 });
 
+test('candidate executor pins Supervisor Python to the trusted image script', async () => {
+  const { createEngineeringRunnerOptions } = await import('./bootstrap.ts');
+  const config: EngineeringRunnerConfig = {
+    supervisorApiUrl: 'https://example.invalid', bootstrapToken: 'bootstrap',
+    command: 'python3',
+    args: ['-m', 'tools.ai_engineer.supervisor_executor'],
+    workspace: '/legacy',
+    pollIntervalMs: 1000, heartbeatIntervalMs: 2000,
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    candidate: {
+      repositoryRoot: '/repo',
+      workspaceRoot: '/workspaces',
+      remote: 'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git',
+    },
+  };
+  const options = createEngineeringRunnerOptions(config, { PATH: '/usr/bin' });
+  const executor = options.executorFactory?.('/candidate-shadow') as any;
+  assert.ok(executor);
+  assert.equal(executor.cwd, '/candidate-shadow');
+  assert.equal(executor.command, 'python3');
+  assert.equal(executor.args.length, 1);
+  assert.match(
+    executor.args[0],
+    /[\\/]tools[\\/]ai_engineer[\\/]supervisor_executor\.py$/,
+  );
+  assert.notDeepEqual(
+    executor.args,
+    ['-m', 'tools.ai_engineer.supervisor_executor'],
+  );
+});
+
 test('legacy config leaves candidate flow dependencies absent', async () => {
   const { createEngineeringRunnerOptions } = await import('./bootstrap.ts');
   const config: EngineeringRunnerConfig = {

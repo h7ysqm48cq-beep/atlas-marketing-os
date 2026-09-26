@@ -147,6 +147,103 @@ def test_distinct_sha_existing_candidate_verifies_exact_git_paths_read_only(tmp_
     assert git_changed_files(tmp_path) == []
 
 
+def test_distinct_sha_existing_candidate_accepts_later_non_overlapping_production_baseline(tmp_path):
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "switch", "-qc", "candidate"], cwd=tmp_path, check=True)
+    target.write_text("export class UsersService { value = 1 }\n", encoding="utf-8")
+    subprocess.run(["git", "add", "--", "src/users/users.service.ts"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "candidate"], cwd=tmp_path, check=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "switch", "-q", "--detach", base], cwd=tmp_path, check=True)
+    (tmp_path / "production.txt").write_text("production advance\n", encoding="utf-8")
+    subprocess.run(["git", "add", "--", "production.txt"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "production advance"], cwd=tmp_path, check=True)
+    baseline = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    subprocess.run(["git", "switch", "-q", "--detach", head], cwd=tmp_path, check=True)
+
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=base,
+        candidateHeadSha=head,
+        productionBaselineSha=baseline,
+    )
+    result = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    ).SupervisorAssignmentExecutor(project_root=tmp_path).execute(
+        request, allow_apply=True,
+    )
+
+    assert result.success
+    assert result.evidence["changedFiles"] == ["src/users/users.service.ts"]
+    assert "production_baseline_verified" in result.evidence["tests"]
+    assert "production_scope_no_overlap" in result.evidence["tests"]
+    assert git_changed_files(tmp_path) == []
+
+
+def test_distinct_sha_existing_candidate_rejects_later_overlapping_production_baseline(tmp_path):
+    target = write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "switch", "-qc", "candidate"], cwd=tmp_path, check=True)
+    target.write_text("export class UsersService { candidate = 1 }\n", encoding="utf-8")
+    subprocess.run(["git", "add", "--", "src/users/users.service.ts"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "candidate"], cwd=tmp_path, check=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "switch", "-q", "--detach", base], cwd=tmp_path, check=True)
+    target.write_text("export class UsersService { production = 1 }\n", encoding="utf-8")
+    subprocess.run(["git", "add", "--", "src/users/users.service.ts"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "production overlap"], cwd=tmp_path, check=True)
+    baseline = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
+        capture_output=True, check=True,
+    ).stdout.strip()
+    subprocess.run(["git", "switch", "-q", "--detach", head], cwd=tmp_path, check=True)
+
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        allowed_paths=["src/users/users.service.ts"],
+    )
+    request.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=base,
+        candidateHeadSha=head,
+        productionBaselineSha=baseline,
+    )
+    result = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    ).SupervisorAssignmentExecutor(project_root=tmp_path).execute(
+        request, allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error == "existing_candidate_production_scope_overlap"
+
+
 def test_distinct_sha_candidate_rejects_identity_scope_and_dirty_state(tmp_path):
     target = write_users_service(tmp_path)
     init_git_repo(tmp_path)
@@ -178,7 +275,7 @@ def test_distinct_sha_candidate_rejects_identity_scope_and_dirty_state(tmp_path)
         "tools.ai_engineer.supervisor_executor"
     ).SupervisorAssignmentExecutor(project_root=tmp_path)
 
-    wrong_identity = {**request, "productionBaselineSha": "f" * 40}
+    wrong_identity = {**request, "productionBaselineSha": "not-a-sha"}
     assert executor.execute(wrong_identity, allow_apply=True).error == (
         "existing_candidate_identity_invalid"
     )

@@ -6,10 +6,10 @@ const BRANCH = 'production/atlas';
 // Temporary API-only recovery. Restore the normal repository deployment gate
 // in a separate reviewed PR after the new API can issue real deployment receipts.
 // This is NOT Supervisor approval and must never be logged as one.
-const EXPECTED_PARENT = 'a7b95dacc4aefdafc2b51c366cb9db0fb0d4105d';
+const EXPECTED_PARENT = 'aa46291585a73ba5bed86b18b29cd47fb8c2cfd2';
 const EXPECTED_SERVICE_ID = 'c23120f6-5d60-44d6-8021-9d6c52387718';
 const EXPECTED_ENVIRONMENT_ID = '62379618-8890-40fb-bff8-2db75c57027c';
-const EXPIRES_AT = Date.parse('2026-09-27T00:00:00Z');
+const EXPIRES_AT = Date.parse('2026-09-26T12:00:00Z');
 const ALLOWED_FILES = new Set([
   'railway.json',
   'apps/api/scripts/check-api-bootstrap-deployment.cjs',

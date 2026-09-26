@@ -1,4 +1,7 @@
 import { CandidatePublisher } from './candidate-publisher.ts';
+import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { CandidateSourceRepository } from './candidate-source-repository.ts';
 import { CandidateWorkspaceManager } from './candidate-workspace.ts';
 import type { EngineeringRunnerConfig } from './config.ts';
@@ -6,6 +9,21 @@ import { CommandExecutor } from './executor.ts';
 import type { EngineeringRunnerOptions } from './runner.ts';
 import { ExactScopeGuard, GitWorkspace } from './scope-guard.ts';
 import { SupervisorClient } from './supervisor-client.ts';
+
+const TRUSTED_SUPERVISOR_EXECUTOR_PATH = fileURLToPath(
+  new URL('../../../tools/ai_engineer/supervisor_executor.py', import.meta.url),
+);
+
+function candidateExecutorArgs(config: EngineeringRunnerConfig): string[] {
+  const isConfiguredSupervisorModule =
+    basename(config.command) === 'python3' &&
+    config.args.length === 2 &&
+    config.args[0] === '-m' &&
+    config.args[1] === 'tools.ai_engineer.supervisor_executor';
+  return isConfiguredSupervisorModule
+    ? [TRUSTED_SUPERVISOR_EXECUTOR_PATH]
+    : [...config.args];
+}
 
 export function createEngineeringRunnerOptions(
   config: EngineeringRunnerConfig,
@@ -74,7 +92,7 @@ export function createEngineeringRunnerOptions(
     singleShot: Boolean(config.exactTarget),
     executorFactory: (cwd: string) => new CommandExecutor({
       command: config.command,
-      args: config.args,
+      args: candidateExecutorArgs(config),
       cwd,
       environment,
     }),
