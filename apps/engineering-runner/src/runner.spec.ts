@@ -570,6 +570,61 @@ test('EngineeringRunner derives the implementation review candidate only from a 
   });
 });
 
+test('EngineeringRunner respects commit_assigned_branch forbidden action without publishing candidate', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as new (options: Record<string, unknown>) => {
+    runOnce(): Promise<unknown>;
+  };
+  const frozenBaseSha = 'a'.repeat(40);
+  const assignment = {
+    ...implementationAssignment,
+    frozenBaseSha,
+    forbiddenActions: [
+      ...implementationAssignment.forbiddenActions,
+      'commit_assigned_branch',
+    ],
+  };
+  const active = session(assignment as any);
+  let completed: any;
+  let published = 0;
+  let cleaned = 0;
+  active.complete = async (value: unknown) => { completed = value; };
+
+  const snapshots = [[], ['apps/example.ts']];
+  const runner = new Runner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('legacy_executor_used'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('legacy_workspace_used'); } },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/isolated/no-publish',
+        baseSha: frozenBaseSha,
+        workspace: { listChangedFiles: async () => snapshots.shift() ?? [] },
+        cleanup: async () => { cleaned += 1; },
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    candidatePublisher: {
+      publish: async () => {
+        published += 1;
+        throw new Error('publication_forbidden');
+      },
+    },
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(published, 0);
+  assert.equal(cleaned, 1);
+  assert.deepEqual(completed.evidence.changedFiles, ['apps/example.ts']);
+  assert.equal(completed.evidence.candidatePublication, undefined);
+  assert.equal(completed.evidence.reviewCandidate, undefined);
+});
+
 test('EngineeringRunner completes a frozen zero-diff implementation without publishing an empty candidate', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as new (options: Record<string, unknown>) => {
