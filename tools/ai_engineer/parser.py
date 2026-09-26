@@ -88,6 +88,22 @@ class RuleBasedIntentParser:
         re.IGNORECASE,
     )
 
+    _english_register_module = re.compile(
+        rf"\b(?:register|import|add)\s+"
+        rf"(?P<module>{IDENTIFIER})\s+"
+        rf"(?:into|to|in)\s+"
+        rf"(?P<target>{IDENTIFIER})\b",
+        re.IGNORECASE,
+    )
+
+    _chinese_register_module = re.compile(
+        rf"(?:把|将)?\s*"
+        rf"(?P<module>{IDENTIFIER})\s*"
+        rf"(?:注册到|加入|导入到)\s*"
+        rf"(?P<target>{IDENTIFIER})",
+        re.IGNORECASE,
+    )
+
     _ui_words = (
         "ui",
         "dashboard",
@@ -205,6 +221,42 @@ class RuleBasedIntentParser:
                     },
                     confidence=0.98,
                 )
+
+        register_module = (
+            self._english_register_module.search(
+                normalized
+            )
+            or self._chinese_register_module.search(
+                normalized
+            )
+        )
+
+        if register_module is not None:
+            module_class = register_module.group(
+                "module"
+            )
+            target_class = register_module.group(
+                "target"
+            )
+
+            return EngineeringIntent(
+                intent_type=(
+                    IntentType
+                    .REGISTER_MODULE_IMPORT
+                ),
+                raw_text=normalized,
+                target=target_class,
+                arguments={
+                    "module_class": module_class,
+                    "target_class": target_class,
+                },
+                confidence=0.96,
+                requires_review=True,
+                reason=(
+                    "Module import path and exact target "
+                    "module must be resolved."
+                ),
+            )
 
         connect = (
             self._english_connect.search(

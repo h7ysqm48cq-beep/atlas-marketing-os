@@ -68,14 +68,19 @@ class AddImportExecutor(BaseTypeScriptExecutor):
             encoding="utf-8",
         )
 
-        parser_path = (
+        modifier_root = (
             Path(__file__).resolve().parents[2]
             / "modifier"
-            / "parser.js"
         )
         bridge = TypeScriptBridge(
             project_root=self.project_root,
-            parser_path=parser_path,
+            parser_path=(
+                modifier_root / "parser.js"
+            ),
+            workspace_rename_path=(
+                modifier_root
+                / "workspace_rename.js"
+            ),
         )
         source = TypeScriptFile.load(
             target,

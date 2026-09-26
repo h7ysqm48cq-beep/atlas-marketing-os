@@ -122,6 +122,15 @@ class IntentToRequestAdapter:
             )
 
         if intent.intent_type == (
+            IntentType.REGISTER_MODULE_IMPORT
+        ):
+            return self._adapt_register_module_import(
+                intent,
+                target_project=target_project,
+                mode=mode,
+            )
+
+        if intent.intent_type == (
             IntentType.CREATE_CRUD
         ):
             request = AIEngineerRequest(
@@ -166,6 +175,115 @@ class IntentToRequestAdapter:
         )
 
 
+
+    @staticmethod
+    def _adapt_register_module_import(
+        intent: EngineeringIntent,
+        *,
+        target_project: str,
+        mode: AIEngineerMode,
+    ) -> IntentAdaptationResult:
+        target_class = str(
+            intent.arguments.get("target_class", "")
+        ).strip()
+        module_class = str(
+            intent.arguments.get("module_class", "")
+        ).strip()
+
+        if (
+            not target_class
+            or not module_class
+            or not target_class.endswith("Module")
+            or not module_class.endswith("Module")
+            or target_class == module_class
+        ):
+            return IntentAdaptationResult(
+                intent=intent,
+                request=None,
+                requires_review=True,
+                message=(
+                    "Module registration requires distinct exact "
+                    "target and dependency class names ending in Module."
+                ),
+            )
+
+        project = default_repository_cache.get(
+            target_project
+        )
+        resolver = RepositoryResolver(project)
+
+        try:
+            target = resolver.resolve_class(target_class)
+            dependency = resolver.resolve_class(module_class)
+        except RepositoryResolutionError as error:
+            return IntentAdaptationResult(
+                intent=intent,
+                request=None,
+                requires_review=True,
+                message=str(error),
+            )
+
+        if (
+            target.file_path == dependency.file_path
+            or not dependency.symbol.exported
+        ):
+            return IntentAdaptationResult(
+                intent=intent,
+                request=None,
+                requires_review=True,
+                message=(
+                    "Module registration requires a distinct, "
+                    "exported repository module class."
+                ),
+            )
+
+        target_source = target.absolute_path.read_text(
+            encoding="utf-8"
+        )
+        if "@Module" not in target_source:
+            return IntentAdaptationResult(
+                intent=intent,
+                request=None,
+                requires_review=True,
+                message=(
+                    "Target class must be a Nest module with "
+                    "an @Module decorator."
+                ),
+            )
+
+        module_import = (
+            IntentToRequestAdapter
+            ._relative_typescript_import(
+                target.file_path,
+                dependency.file_path,
+            )
+        )
+
+        request = AIEngineerRequest(
+            operation=(
+                AIEngineerOperation
+                .REGISTER_MODULE_IMPORT
+            ),
+            arguments={
+                "target_file": target.file_path,
+                "target_class": target_class,
+                "module_class": module_class,
+                "module_import": module_import,
+            },
+            mode=mode,
+            target_project=target_project,
+        )
+        request.validate_arguments()
+
+        return IntentAdaptationResult(
+            intent=intent,
+            request=request,
+            requires_review=False,
+            message=(
+                f"{module_class} resolved to "
+                f"{dependency.file_path} for {target.file_path}."
+            ),
+        )
 
     @staticmethod
     def _adapt_connect_dependency(
