@@ -1232,14 +1232,21 @@ export class BrowserAccountService {
       );
     }
 
+    const supportedBrowserPlatforms =
+      new Set<SocialPlatform>([
+        SocialPlatform.FACEBOOK,
+        SocialPlatform.INSTAGRAM,
+      ]);
+
     if (
       account.platform !==
-        SocialPlatform.FACEBOOK ||
-      channel.platform !==
-        SocialPlatform.FACEBOOK
+        channel.platform ||
+      !supportedBrowserPlatforms.has(
+        account.platform,
+      )
     ) {
       throw new BadRequestException(
-        'Only Facebook Browser Accounts can be linked to Facebook channels.',
+        'Browser Account and channel must use the same supported browser platform (Facebook or Instagram).',
       );
     }
 

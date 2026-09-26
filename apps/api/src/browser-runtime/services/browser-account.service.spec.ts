@@ -290,3 +290,83 @@ describe('BrowserAccountService workspace scope', () => {
     });
   });
 });
+
+describe('BrowserAccountService.linkChannel platform binding', () => {
+  const createService = (
+    accountPlatform: 'FACEBOOK' | 'INSTAGRAM',
+    channelPlatform: 'FACEBOOK' | 'INSTAGRAM',
+  ) => {
+    const tx = {
+      browserAccountChannel: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        upsert: jest.fn().mockResolvedValue({
+          browserAccountId: 'account-1',
+          channelId: 'channel-1',
+          isPrimary: true,
+        }),
+      },
+    };
+    const prisma = {
+      browserAccount: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'account-1',
+          platform: accountPlatform,
+        }),
+      },
+      socialChannel: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'channel-1',
+          name: 'Channel',
+          platform: channelPlatform,
+        }),
+      },
+      $transaction: jest.fn(async (action: any) => action(tx)),
+    };
+    return {
+      service: new BrowserAccountService(prisma as never, {} as never),
+      prisma,
+      tx,
+    };
+  };
+
+  it('links an Instagram Browser Account to an Instagram channel', async () => {
+    const { service, prisma, tx } =
+      createService('INSTAGRAM', 'INSTAGRAM');
+
+    await expect(
+      service.linkChannel('account-1', 'channel-1', { isPrimary: true }),
+    ).resolves.toMatchObject({
+      success: true,
+      link: {
+        browserAccountId: 'account-1',
+        channelId: 'channel-1',
+        isPrimary: true,
+      },
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.browserAccountChannel.upsert).toHaveBeenCalled();
+  });
+
+  it('continues to link Facebook Browser Accounts to Facebook channels', async () => {
+    const { service, tx } =
+      createService('FACEBOOK', 'FACEBOOK');
+
+    await service.linkChannel('account-1', 'channel-1');
+
+    expect(tx.browserAccountChannel.upsert).toHaveBeenCalled();
+  });
+
+  it('rejects cross-platform Browser Account links', async () => {
+    const { service, prisma } =
+      createService('FACEBOOK', 'INSTAGRAM');
+
+    await expect(
+      service.linkChannel('account-1', 'channel-1'),
+    ).rejects.toThrow(
+      'Browser Account and channel must use the same supported browser platform',
+    );
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
