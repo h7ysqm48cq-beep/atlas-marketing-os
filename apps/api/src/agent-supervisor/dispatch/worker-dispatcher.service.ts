@@ -340,14 +340,35 @@ export class WorkerDispatcherService {
     }
     const runtimeRefresh = input.changedPaths.length === 0;
     const exactSha = input.candidateBaseSha.toLowerCase();
+    const exactSameSha =
+      exactSha === input.candidateHeadSha.toLowerCase() &&
+      exactSha === input.productionBaselineSha.toLowerCase();
+    const exactShaAcceptance = task.acceptance.some(
+      value => value.includes(`baseSha=headSha=${exactSha}`),
+    );
+    const apiRuntimeRefresh =
+      task.owner === 'infra' &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      /zero-git-diff.*api.*runtime refresh/i.test(task.objective);
+    const workerQualificationMatch =
+      /zero-git-diff.*(engineering-runner|engineering-verifier).*production qualification/i
+        .exec(task.objective);
+    const workerQualificationService = workerQualificationMatch?.[1]?.toLowerCase();
+    const workerQualification =
+      task.owner === 'engineering' &&
+      !!workerQualificationService &&
+      task.forbiddenActions.includes('edit_assigned_files') &&
+      task.forbiddenActions.includes('commit_assigned_branch') &&
+      task.forbiddenActions.includes('deploy_production') &&
+      task.forbiddenActions.includes('change_runtime_config') &&
+      task.acceptance.some(
+        value => value.trim().toLowerCase() === `service=${workerQualificationService}`,
+      );
     if (runtimeRefresh ? (
-      task.owner !== 'infra' ||
-      !task.forbiddenActions.includes('edit_assigned_files') ||
-      !task.forbiddenActions.includes('commit_assigned_branch') ||
-      !/zero-git-diff.*api.*runtime refresh/i.test(task.objective) ||
-      exactSha !== input.candidateHeadSha.toLowerCase() ||
-      exactSha !== input.productionBaselineSha.toLowerCase() ||
-      !task.acceptance.some(value => value.includes(`baseSha=headSha=${exactSha}`))
+      !exactSameSha ||
+      !exactShaAcceptance ||
+      (!apiRuntimeRefresh && !workerQualification)
     ) : exactSha === input.candidateHeadSha.toLowerCase()) {
       throw new BadRequestException('runtime_refresh_identity_invalid');
     }

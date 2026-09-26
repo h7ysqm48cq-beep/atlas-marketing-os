@@ -44,7 +44,10 @@ def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
         ["git", "rev-parse", "HEAD"], cwd=tmp_path,
         text=True, capture_output=True, check=True,
     ).stdout.strip()
-    request = assignment(purpose="INDEPENDENT_VERIFICATION")
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        objective=f"Validate exact zero-Git-diff API production runtime refresh at {sha}",
+    )
     request.update(verificationMode="EXISTING_CANDIDATE", candidateBaseSha=sha,
                    candidateHeadSha=sha, productionBaselineSha=sha,
                    allowedPaths=["src/users/users.service.ts"])
@@ -67,6 +70,58 @@ def test_same_sha_runtime_refresh_checks_real_git_without_writing(tmp_path):
     target.write_text("changed", encoding="utf-8")
     assert executor.execute(request, allow_apply=True).error == (
         "runtime_refresh_head_or_workspace_mismatch"
+    )
+
+
+
+def test_same_sha_worker_qualification_is_service_aware_and_read_only(tmp_path):
+    module = import_module("tools.ai_engineer.supervisor_executor")
+    write_users_service(tmp_path)
+    init_git_repo(tmp_path)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path,
+        text=True, capture_output=True, check=True,
+    ).stdout.strip()
+    executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
+
+    for service in ("engineering-runner", "engineering-verifier"):
+        request = assignment(
+            purpose="INDEPENDENT_VERIFICATION",
+            objective=(
+                f"Validate exact zero-Git-diff {service} production qualification "
+                f"at {sha}"
+            ),
+        )
+        request.update(
+            verificationMode="EXISTING_CANDIDATE",
+            candidateBaseSha=sha,
+            candidateHeadSha=sha,
+            productionBaselineSha=sha,
+            allowedPaths=["src/users/users.service.ts"],
+        )
+        result = executor.execute(request, allow_apply=True)
+        assert result.success
+        assert service in result.summary
+        assert result.evidence["changedFiles"] == []
+        assert result.evidence["deploymentState"] == "NOT_DEPLOYED"
+        assert result.evidence["gitState"] == "CLEAN"
+        marker = "qualification_service_" + service.replace("-", "_")
+        assert marker in result.evidence["tests"]
+        assert result.evidence["remainingRisk"] == ["service_deployment_not_authorized"]
+
+    invalid = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        objective=f"Validate exact zero-Git-diff generic-worker production qualification at {sha}",
+    )
+    invalid.update(
+        verificationMode="EXISTING_CANDIDATE",
+        candidateBaseSha=sha,
+        candidateHeadSha=sha,
+        productionBaselineSha=sha,
+        allowedPaths=["src/users/users.service.ts"],
+    )
+    assert executor.execute(invalid, allow_apply=True).error == (
+        "runtime_refresh_service_invalid"
     )
 
 
@@ -297,7 +352,10 @@ def test_script_entrypoint_runs_from_outside_repository(tmp_path):
         ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True,
         capture_output=True, check=True,
     ).stdout.strip()
-    request = assignment(purpose="INDEPENDENT_VERIFICATION")
+    request = assignment(
+        purpose="INDEPENDENT_VERIFICATION",
+        objective=f"Validate exact zero-Git-diff API production runtime refresh at {sha}",
+    )
     request.update(
         verificationMode="EXISTING_CANDIDATE",
         candidateBaseSha=sha,
