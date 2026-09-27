@@ -171,6 +171,13 @@ type MarketingPlan = {
   }>;
 };
 
+type ScheduleReceipt = {
+  postCount: number;
+  postId: string;
+  date: string;
+  scheduledAt: string;
+};
+
 type CopilotMode = "chat" | "marketing-plan";
 
 type WorkspaceDraftTarget = "facebook" | "telegram" | "instagram" | "reels" | "imagePrompt";
@@ -414,6 +421,9 @@ export function BrandCopilot() {
   >({});
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("20:00");
+  const [scheduleReceipt, setScheduleReceipt] = useState<ScheduleReceipt | null>(
+    null,
+  );
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const conversationIdRef = useRef<string | null>(null);
@@ -736,7 +746,14 @@ export function BrandCopilot() {
       }),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      message?: string;
+      postCount?: number;
+      scheduledItems?: Array<{
+        scheduledAt?: string;
+        posts?: Array<{ id?: string }>;
+      }>;
+    };
 
     if (!response.ok) {
       throw new Error(data?.message || "Unable to schedule content.");
@@ -2555,10 +2572,11 @@ export function BrandCopilot() {
 
     setScheduleSubmitting(true);
     setScheduleDialogError("");
+    setScheduleReceipt(null);
     setStatus("Scheduling content...");
 
     try {
-      await scheduleWorkspaceAction(
+      const result = await scheduleWorkspaceAction(
         {
           type: "schedule",
           platforms: schedulePlatforms,
@@ -2571,8 +2589,29 @@ export function BrandCopilot() {
         scheduleChannelIds,
       );
 
+      const firstItem = result.scheduledItems?.[0];
+      const firstPost = firstItem?.posts?.[0];
+
+      if (
+        !firstItem?.scheduledAt ||
+        !firstPost?.id ||
+        typeof result.postCount !== "number"
+      ) {
+        throw new Error(
+          "Scheduling completed without a traceable post receipt.",
+        );
+      }
+
+      setScheduleReceipt({
+        postCount: result.postCount,
+        postId: firstPost.id,
+        date: scheduleDate,
+        scheduledAt: firstItem.scheduledAt,
+      });
       setScheduleDialogOpen(false);
-      setStatus("Scheduled successfully.");
+      setStatus(
+        `Scheduled ${result.postCount} post${result.postCount === 1 ? "" : "s"} successfully.`,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to schedule content.";
@@ -2709,7 +2748,23 @@ export function BrandCopilot() {
           </label>
         </div>
 
-        {status && <small className={styles.chatTopbarStatus}>{status}</small>}
+        {status && (
+          <small className={styles.chatTopbarStatus}>
+            {status}
+            {scheduleReceipt ? (
+              <>
+                {" · "}
+                <a
+                  href={`/calendar?date=${encodeURIComponent(
+                    scheduleReceipt.date,
+                  )}&postId=${encodeURIComponent(scheduleReceipt.postId)}`}
+                >
+                  View in Calendar
+                </a>
+              </>
+            ) : null}
+          </small>
+        )}
       </header>
 
       <section
