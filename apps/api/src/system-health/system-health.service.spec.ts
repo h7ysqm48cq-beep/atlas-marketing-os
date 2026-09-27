@@ -16,11 +16,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(3)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
-          .mockResolvedValueOnce(2)
-          .mockResolvedValueOnce(3),
+          .mockResolvedValueOnce(2),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
@@ -86,11 +86,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(10)
           .mockResolvedValueOnce(2)
           .mockResolvedValueOnce(1)
           .mockResolvedValueOnce(0)
-          .mockResolvedValueOnce(4)
-          .mockResolvedValueOnce(10),
+          .mockResolvedValueOnce(4),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
@@ -140,11 +140,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(10)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(3)
-          .mockResolvedValueOnce(1)
-          .mockResolvedValueOnce(10),
+          .mockResolvedValueOnce(1),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
