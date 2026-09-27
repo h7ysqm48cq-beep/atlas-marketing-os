@@ -274,14 +274,6 @@ export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
         }]
       : []),
 
-    ...(snapshot.queues.backgroundJobs?.failed &&
-    snapshot.queues.backgroundJobs.failed > 0
-      ? [{
-          code: 'background_job_failures',
-          severity: 'warning',
-          count: snapshot.queues.backgroundJobs.failed,
-        }]
-      : []),
   ];
 }
 
