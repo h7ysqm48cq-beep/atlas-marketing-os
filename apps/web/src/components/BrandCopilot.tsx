@@ -179,6 +179,14 @@ type WorkspaceSettingTarget = "topic" | "style" | "language";
 
 type SchedulePlatform = "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
 
+type ScheduleChannelOption = {
+  id: string;
+  name: string;
+  brandId: string;
+  platform: SchedulePlatform;
+  status: string;
+};
+
 type WorkspaceAtomicAction =
   | {
       type: "replace";
@@ -387,6 +395,26 @@ export function BrandCopilot() {
     number | null
   >(null);
 
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleDialogError, setScheduleDialogError] = useState("");
+  const [scheduleDialogDraft, setScheduleDialogDraft] =
+    useState<CopilotStudioResult | null>(null);
+  const [scheduleDialogAssetId, setScheduleDialogAssetId] = useState<
+    string | undefined
+  >(undefined);
+  const [schedulePlatforms, setSchedulePlatforms] = useState<
+    SchedulePlatform[]
+  >([]);
+  const [scheduleChannels, setScheduleChannels] = useState<
+    ScheduleChannelOption[]
+  >([]);
+  const [scheduleChannelIds, setScheduleChannelIds] = useState<
+    Partial<Record<SchedulePlatform, string>>
+  >({});
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("20:00");
+
   const [conversationId, setConversationId] = useState<string | null>(null);
   const conversationIdRef = useRef<string | null>(null);
 
@@ -587,6 +615,7 @@ export function BrandCopilot() {
     action: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
     draftOverride?: CopilotStudioResult,
     assetId?: string,
+    channelIdOverride?: Partial<Record<SchedulePlatform, string>>,
   ) {
     let draftForSchedule: CopilotStudioResult = {
       ...(draftOverride ?? studioDraft),
@@ -705,7 +734,9 @@ export function BrandCopilot() {
     const channelIds: Partial<Record<SchedulePlatform, string>> = {};
 
     for (const platform of action.platforms) {
-      channelIds[platform] = await resolveScheduleChannelId(brandId, platform);
+      channelIds[platform] =
+        channelIdOverride?.[platform] ??
+        (await resolveScheduleChannelId(brandId, platform));
     }
 
     const mediaUrls = await resolveScheduleMediaUrls(
@@ -2459,69 +2490,184 @@ export function BrandCopilot() {
     source: CopilotStudioResult = studioDraft,
     assetId?: string,
   ) {
-    const platforms: SchedulePlatform[] = [];
+    const availablePlatforms: SchedulePlatform[] = [];
 
     if (source.facebook.trim()) {
-      platforms.push("FACEBOOK");
+      availablePlatforms.push("FACEBOOK");
     }
 
     if (source.telegram.trim()) {
-      platforms.push("TELEGRAM");
+      availablePlatforms.push("TELEGRAM");
     }
 
     if (source.instagram.trim()) {
-      platforms.push("INSTAGRAM");
+      availablePlatforms.push("INSTAGRAM");
     }
 
-    if (!platforms.length) {
-      setStatus("Facebook, Telegram or Instagram content is required before scheduling.");
+    if (!availablePlatforms.length) {
+      setStatus(
+        "Facebook, Telegram or Instagram content is required before scheduling.",
+      );
       return;
     }
 
-    const defaultDate = new Date().toISOString().slice(0, 10);
+    setScheduleDialogError("");
+    setScheduleDialogDraft(source);
+    setScheduleDialogAssetId(assetId);
 
-    const date = window.prompt("Schedule date (YYYY-MM-DD)", defaultDate);
+    try {
+      const brandId = await getActiveBrandId();
+      const response = await fetch(`${API_URL}/automation/channels`, {
+        cache: "no-store",
+      });
 
-    if (!date) {
+      if (!response.ok) {
+        throw new Error("Unable to load connected channels.");
+      }
+
+      const raw = await response.json();
+      const channelList = (
+        Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.channels)
+            ? raw.channels
+            : Array.isArray(raw?.items)
+              ? raw.items
+              : []
+      ).filter(
+        (channel: ScheduleChannelOption) =>
+          channel?.id &&
+          channel.brandId === brandId &&
+          availablePlatforms.includes(channel.platform) &&
+          channel.status === "CONNECTED",
+      ) as ScheduleChannelOption[];
+
+      const selectablePlatforms = availablePlatforms.filter((platform) =>
+        channelList.some((channel) => channel.platform === platform),
+      );
+
+      if (!selectablePlatforms.length) {
+        throw new Error(
+          "No connected Facebook, Telegram or Instagram channel is available.",
+        );
+      }
+
+      const initialChannelIds: Partial<Record<SchedulePlatform, string>> = {};
+
+      for (const platform of selectablePlatforms) {
+        const firstChannel = channelList.find(
+          (channel) => channel.platform === platform,
+        );
+
+        if (firstChannel) {
+          initialChannelIds[platform] = firstChannel.id;
+        }
+      }
+
+      const localDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kuala_Lumpur",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+
+      setScheduleChannels(channelList);
+      setSchedulePlatforms(selectablePlatforms);
+      setScheduleChannelIds(initialChannelIds);
+      setScheduleDate(localDate);
+      setScheduleTime("20:00");
+      setScheduleDialogOpen(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to open schedule.";
+      setScheduleDialogError(message);
+      setStatus(message);
+    }
+  }
+
+  function toggleSchedulePlatform(
+    platform: SchedulePlatform,
+    checked: boolean,
+  ) {
+    setSchedulePlatforms((current) =>
+      checked
+        ? current.includes(platform)
+          ? current
+          : [...current, platform]
+        : current.filter((item) => item !== platform),
+    );
+
+    if (checked && !scheduleChannelIds[platform]) {
+      const firstChannel = scheduleChannels.find(
+        (channel) => channel.platform === platform,
+      );
+
+      if (firstChannel) {
+        setScheduleChannelIds((current) => ({
+          ...current,
+          [platform]: firstChannel.id,
+        }));
+      }
+    }
+  }
+
+  async function submitScheduleDialog() {
+    if (!scheduleDialogDraft) {
+      setScheduleDialogError("No generated content is available to schedule.");
       return;
     }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      setStatus("Invalid date. Use YYYY-MM-DD.");
+    if (!schedulePlatforms.length) {
+      setScheduleDialogError("Select at least one platform.");
       return;
     }
 
-    const time = window.prompt("Schedule time (HH:MM, MYT)", "20:00");
-
-    if (!time) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduleDate)) {
+      setScheduleDialogError("Choose a valid schedule date.");
       return;
     }
 
-    if (!/^\d{2}:\d{2}$/.test(time)) {
-      setStatus("Invalid time. Use HH:MM.");
+    if (!/^\d{2}:\d{2}$/.test(scheduleTime)) {
+      setScheduleDialogError("Choose a valid schedule time.");
       return;
     }
 
+    const missingChannel = schedulePlatforms.find(
+      (platform) => !scheduleChannelIds[platform],
+    );
+
+    if (missingChannel) {
+      setScheduleDialogError(`Choose a channel for ${missingChannel}.`);
+      return;
+    }
+
+    setScheduleSubmitting(true);
+    setScheduleDialogError("");
     setStatus("Scheduling content...");
 
     try {
       await scheduleWorkspaceAction(
         {
           type: "schedule",
-          platforms,
-          date,
-          time,
+          platforms: schedulePlatforms,
+          date: scheduleDate,
+          time: scheduleTime,
           timezone: "Asia/Kuala_Lumpur",
         },
-        source,
-        assetId,
+        scheduleDialogDraft,
+        scheduleDialogAssetId,
+        scheduleChannelIds,
       );
+
+      setScheduleDialogOpen(false);
+      setStatus("Scheduled successfully.");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to schedule content.";
-
+      setScheduleDialogError(message);
       setStatus(message);
-      throw error;
+    } finally {
+      setScheduleSubmitting(false);
     }
   }
 
@@ -3615,6 +3761,178 @@ export function BrandCopilot() {
               </button>
             </div>
           </form>
+
+          {scheduleDialogOpen && scheduleDialogDraft ? (
+            <div
+              className={styles.scheduleDialogOverlay}
+              onMouseDown={(event) => {
+                if (event.currentTarget === event.target && !scheduleSubmitting) {
+                  setScheduleDialogOpen(false);
+                }
+              }}
+            >
+              <section
+                className={styles.scheduleDialog}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Schedule content"
+              >
+                <header className={styles.scheduleDialogHeader}>
+                  <div>
+                    <span>Publishing schedule</span>
+                    <h3>Review before scheduling</h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Close schedule"
+                    disabled={scheduleSubmitting}
+                    onClick={() => setScheduleDialogOpen(false)}
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div className={styles.scheduleDialogBody}>
+                  <div className={styles.schedulePlatformList}>
+                    {(
+                      [
+                        "FACEBOOK",
+                        "TELEGRAM",
+                        "INSTAGRAM",
+                      ] as SchedulePlatform[]
+                    ).map((platform) => {
+                      const content =
+                        platform === "FACEBOOK"
+                          ? scheduleDialogDraft.facebook
+                          : platform === "TELEGRAM"
+                            ? scheduleDialogDraft.telegram
+                            : scheduleDialogDraft.instagram;
+
+                      if (!content.trim()) {
+                        return null;
+                      }
+
+                      const channels = scheduleChannels.filter(
+                        (channel) => channel.platform === platform,
+                      );
+                      const checked = schedulePlatforms.includes(platform);
+
+                      return (
+                        <article
+                          className={styles.schedulePlatformRow}
+                          key={platform}
+                        >
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!channels.length || scheduleSubmitting}
+                              onChange={(event) =>
+                                toggleSchedulePlatform(
+                                  platform,
+                                  event.target.checked,
+                                )
+                              }
+                            />
+                            <span>{platform}</span>
+                            {!channels.length ? (
+                              <small>No connected channel</small>
+                            ) : null}
+                          </label>
+
+                          {checked && channels.length ? (
+                            <select
+                              aria-label={`Channel for ${platform}`}
+                              value={scheduleChannelIds[platform] ?? ""}
+                              disabled={scheduleSubmitting}
+                              onChange={(event) =>
+                                setScheduleChannelIds((current) => ({
+                                  ...current,
+                                  [platform]: event.target.value,
+                                }))
+                              }
+                            >
+                              {channels.map((channel) => (
+                                <option key={channel.id} value={channel.id}>
+                                  {channel.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <div className={styles.scheduleDateTimeGrid}>
+                    <label>
+                      <span>Date</span>
+                      <input
+                        type="date"
+                        value={scheduleDate}
+                        disabled={scheduleSubmitting}
+                        onChange={(event) => setScheduleDate(event.target.value)}
+                      />
+                    </label>
+
+                    <label>
+                      <span>Time · MYT</span>
+                      <input
+                        type="time"
+                        value={scheduleTime}
+                        disabled={scheduleSubmitting}
+                        onChange={(event) => setScheduleTime(event.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.schedulePreview}>
+                    <span>Preview</span>
+                    <strong>
+                      {schedulePlatforms.length} platform
+                      {schedulePlatforms.length === 1 ? "" : "s"} ·{" "}
+                      {scheduleDate || "No date"} · {scheduleTime || "No time"}
+                    </strong>
+                    {scheduleDialogAssetId ? (
+                      <small>Image Asset will be attached automatically.</small>
+                    ) : (
+                      <small>Text-only schedule.</small>
+                    )}
+                  </div>
+
+                  {scheduleDialogError ? (
+                    <p className={styles.scheduleDialogError}>
+                      {scheduleDialogError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <footer className={styles.scheduleDialogActions}>
+                  <button
+                    type="button"
+                    disabled={scheduleSubmitting}
+                    onClick={() => setScheduleDialogOpen(false)}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      scheduleSubmitting ||
+                      !schedulePlatforms.length ||
+                      !scheduleDate ||
+                      !scheduleTime
+                    }
+                    onClick={() => void submitScheduleDialog()}
+                  >
+                    {scheduleSubmitting ? "Scheduling…" : "Schedule content"}
+                  </button>
+                </footer>
+              </section>
+            </div>
+          ) : null}
         </section>
       </section>
     </div>
