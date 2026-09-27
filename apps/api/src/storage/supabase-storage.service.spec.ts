@@ -43,3 +43,86 @@ describe('SupabaseStorageService.removeMany', () => {
     ]);
   });
 });
+
+
+describe('SupabaseStorageService.health', () => {
+  function serviceWithClient(
+    client: unknown,
+    bucket = 'atlas-assets',
+  ) {
+    const service = new SupabaseStorageService({
+      get: jest.fn(),
+    } as any);
+
+    (service as any).client = client;
+    (service as any).bucket = bucket;
+
+    return service;
+  }
+
+  it('reports critical when Supabase Storage is not configured', async () => {
+    const service = serviceWithClient(null);
+
+    await expect(service.health()).resolves.toEqual({
+      status: 'critical',
+      provider: 'supabase',
+      bucket: 'atlas-assets',
+      configured: false,
+      message: 'Supabase Storage is not configured.',
+    });
+  });
+
+  it('reports healthy when the bucket can be listed read-only', async () => {
+    const list = jest.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const from = jest.fn(() => ({
+      list,
+    }));
+
+    const service = serviceWithClient({
+      storage: {
+        from,
+      },
+    });
+
+    await expect(service.health()).resolves.toEqual({
+      status: 'healthy',
+      provider: 'supabase',
+      bucket: 'atlas-assets',
+      configured: true,
+      message: null,
+    });
+
+    expect(from).toHaveBeenCalledWith('atlas-assets');
+    expect(list).toHaveBeenCalledWith('', {
+      limit: 1,
+      offset: 0,
+    });
+  });
+
+  it('reports critical when the bucket read probe fails', async () => {
+    const service = serviceWithClient({
+      storage: {
+        from: jest.fn(() => ({
+          list: jest.fn().mockResolvedValue({
+            data: null,
+            error: {
+              message: 'bucket unavailable',
+            },
+          }),
+        })),
+      },
+    });
+
+    await expect(service.health()).resolves.toEqual({
+      status: 'critical',
+      provider: 'supabase',
+      bucket: 'atlas-assets',
+      configured: true,
+      message: 'bucket unavailable',
+    });
+  });
+});
