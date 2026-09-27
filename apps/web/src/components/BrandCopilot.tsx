@@ -856,6 +856,7 @@ export function BrandCopilot() {
   async function applyWorkspaceAction(
     action: WorkspaceAction,
     baseDraft?: CopilotStudioResult,
+    assetId?: string,
   ) {
     const actions = action.type === "batch" ? action.actions : [action];
 
@@ -915,7 +916,7 @@ export function BrandCopilot() {
       if (item.type === "schedule") {
         await openScheduleDialog(
           draftSnapshot,
-          undefined,
+          assetId,
           item,
         );
         setStatus("Review the schedule before confirming.");
@@ -1832,6 +1833,17 @@ export function BrandCopilot() {
             "",
         };
 
+        const workspaceAssetId =
+          currentAttachments.find(
+            (attachment) => attachment.kind === "image" && attachment.assetId,
+          )?.assetId ??
+          [...messages]
+            .reverse()
+            .find(
+              (message) =>
+                message.role === "assistant" && Boolean(message.assetId),
+            )?.assetId;
+
         const response = await fetch(`${API_URL}/copilot/chat/jobs`, {
           method: "POST",
           headers: {
@@ -1870,7 +1882,7 @@ export function BrandCopilot() {
               style: studioStyle || undefined,
               language: studioLanguage || undefined,
 
-              assetIds: undefined,
+              assetIds: workspaceAssetId ? [workspaceAssetId] : undefined,
 
               draft: {
                 facebook: effectiveStudioDraft.facebook || undefined,
@@ -1968,7 +1980,11 @@ export function BrandCopilot() {
           : null;
 
         if (parsedReply.action) {
-          await applyWorkspaceAction(parsedReply.action, executionDraft);
+          await applyWorkspaceAction(
+            parsedReply.action,
+            executionDraft,
+            workspaceAssetId,
+          );
 
           setStatus("Elena updated AI Workspace.");
         }
