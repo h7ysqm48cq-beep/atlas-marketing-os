@@ -109,18 +109,34 @@ export class SupabaseStorageService {
     return Buffer.from(await data.arrayBuffer());
   }
 
-  async remove(path: string) {
+  async removeMany(paths: string[]) {
     if (!this.client) {
       throw new ServiceUnavailableException(
         'Supabase Storage is not configured.',
       );
     }
 
-    const normalizedPath = path.replace(/^\/+/, '');
+    const normalizedPaths = [
+      ...new Set(
+        paths
+          .map((path) =>
+            path.replace(/^\/+/, '').trim(),
+          )
+          .filter(Boolean),
+      ),
+    ];
+
+    if (normalizedPaths.length === 0) {
+      return {
+        deleted: true,
+        bucket: this.bucket,
+        paths: normalizedPaths,
+      };
+    }
 
     const { error } = await this.client.storage
       .from(this.bucket)
-      .remove([normalizedPath]);
+      .remove(normalizedPaths);
 
     if (error) {
       throw new InternalServerErrorException(
@@ -131,7 +147,17 @@ export class SupabaseStorageService {
     return {
       deleted: true,
       bucket: this.bucket,
-      path: normalizedPath,
+      paths: normalizedPaths,
+    };
+  }
+
+  async remove(path: string) {
+    const result = await this.removeMany([path]);
+
+    return {
+      deleted: true,
+      bucket: result.bucket,
+      path: result.paths[0],
     };
   }
 }
