@@ -61,6 +61,20 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
             failureWindowHours: 24,
           },
         },
+        sportsScheduler: {
+          status: "healthy",
+          enabled: true,
+          timezone: "Asia/Kuala_Lumpur",
+          morningTime: "09:00",
+          eveningTime: "20:00",
+          lastMorningRunAt: "2026-08-30T01:02:00.000Z",
+          lastEveningRunAt: "2026-08-29T12:02:00.000Z",
+          lastRunStatus: "SUCCESS",
+          lastError: null,
+          nextRunLocal: "2026-08-30 20:00 Asia/Kuala_Lumpur EVENING",
+          missedRuns: [],
+          graceMinutes: 15,
+        },
       }),
     });
   });
@@ -102,6 +116,24 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
   await expect(
     page.getByTestId("publishing-pipeline-card"),
   ).toHaveClass(/criticalCard/);
+
+  await expect(
+    page.getByTestId("sports-scheduler-card"),
+  ).toContainText("Sports Scheduler");
+
+  await expect(
+    page.getByTestId("sports-scheduler-card"),
+  ).toContainText("No missed runs");
+
+  await expect(
+    page.getByTestId("sports-scheduler-card"),
+  ).toContainText(
+    "Next: 2026-08-30 20:00 Asia/Kuala_Lumpur EVENING",
+  );
+
+  await expect(
+    page.getByTestId("sports-scheduler-card"),
+  ).toHaveClass(/healthyCard/);
 });
 
 test("Atlas API root proxy forwards the root request", async ({ page }) => {
