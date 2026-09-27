@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AutomationService } from '../automation/automation.service';
+import { ScheduledPostStatus } from '../generated/prisma/enums';
 import type {
   AutoQueueInput,
   AutoQueueResult,
@@ -20,19 +21,28 @@ export class WorkflowService {
   ): Promise<ScheduleContentResult> {
     this.validateScheduleInput(input);
 
-    const result = await this.automationService.createMultiPlatformPosts({
-      brandId: input.brandId,
-      campaignId: input.campaignId,
-      historyId: input.historyId,
-      title: input.title,
-      contents: input.contents,
-      mediaUrls: input.mediaUrls,
-      channelIds: input.channelIds,
-      platforms: input.platforms,
-      scheduledAt: input.scheduledAt,
-      timezone: input.timezone || 'Asia/Kuala_Lumpur',
-      queueImmediately: input.queueImmediately ?? false,
-    });
+    const queueImmediately = input.queueImmediately ?? false;
+
+    const result = await this.automationService.createMultiPlatformPosts(
+      {
+        brandId: input.brandId,
+        campaignId: input.campaignId,
+        historyId: input.historyId,
+        title: input.title,
+        contents: input.contents,
+        mediaUrls: input.mediaUrls,
+        channelIds: input.channelIds,
+        platforms: input.platforms,
+        scheduledAt: input.scheduledAt,
+        timezone: input.timezone || 'Asia/Kuala_Lumpur',
+        queueImmediately,
+      },
+      {
+        initialStatus: queueImmediately
+          ? ScheduledPostStatus.QUEUED
+          : ScheduledPostStatus.SCHEDULED,
+      },
+    );
 
     return {
       success: result.success,
@@ -78,24 +88,32 @@ export class WorkflowService {
     }
 
     const scheduledItems: AutoQueueResult['scheduledItems'] = [];
+    const queueImmediately = input.queueImmediately ?? false;
 
     for (let index = 0; index < input.items.length; index += 1) {
       const item = input.items[index];
       const schedule = schedules[index];
 
-      const result = await this.automationService.createMultiPlatformPosts({
-        brandId: input.brandId,
-        campaignId: item.campaignId,
-        historyId: item.historyId,
-        title: item.title,
-        contents: item.contents,
-        mediaUrls: item.mediaUrls,
-        channelIds: input.channelIds,
-        platforms: input.platforms,
-        scheduledAt: schedule.scheduledAtUtc.toISOString(),
-        timezone: input.timezone || 'Asia/Kuala_Lumpur',
-        queueImmediately: input.queueImmediately ?? false,
-      });
+      const result = await this.automationService.createMultiPlatformPosts(
+        {
+          brandId: input.brandId,
+          campaignId: item.campaignId,
+          historyId: item.historyId,
+          title: item.title,
+          contents: item.contents,
+          mediaUrls: item.mediaUrls,
+          channelIds: input.channelIds,
+          platforms: input.platforms,
+          scheduledAt: schedule.scheduledAtUtc.toISOString(),
+          timezone: input.timezone || 'Asia/Kuala_Lumpur',
+          queueImmediately,
+        },
+        {
+          initialStatus: queueImmediately
+            ? ScheduledPostStatus.QUEUED
+            : ScheduledPostStatus.SCHEDULED,
+        },
+      );
 
       scheduledItems.push({
         index,
