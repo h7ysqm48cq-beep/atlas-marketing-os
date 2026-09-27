@@ -103,6 +103,16 @@ type HealthSnapshot = {
   browserWorker?: unknown;
   assets?: unknown;
   calendar?: unknown;
+  publishing?: {
+    status?: string;
+    overdueEligiblePosts?: number | null;
+    stuckPublishingPosts?: number | null;
+    recentFailedPosts?: number | null;
+    thresholds?: {
+      stuckMinutes?: number;
+      failureWindowHours?: number;
+    };
+  };
   queues?: {
     status?: string;
     backgroundJobs?: {
@@ -766,6 +776,10 @@ const healthCards = useMemo(
           {
             title: "Calendar",
             value: healthSnapshot.calendar,
+          },
+          {
+            title: "Publishing Pipeline",
+            value: healthSnapshot.publishing,
           },
         ]
       : [],

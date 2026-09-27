@@ -3,6 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { AssetsService } from '../assets/assets.service';
 import { BrowserRuntimeBridgeService } from '../automation/browser-runtime-bridge.service';
+import { ScheduledPostStatus } from '../generated/prisma/enums';
+
+const PUBLISHING_STUCK_MINUTES = 15;
+const PUBLISHING_FAILURE_WINDOW_HOURS = 24;
 
 @Injectable()
 export class SystemHealthService {
@@ -161,6 +165,82 @@ export class SystemHealthService {
   }
 
 
+  private async checkPublishingPipeline() {
+    try {
+      const now = new Date();
+      const stuckCutoff = new Date(
+        now.getTime() - PUBLISHING_STUCK_MINUTES * 60_000,
+      );
+      const failureCutoff = new Date(
+        now.getTime() - PUBLISHING_FAILURE_WINDOW_HOURS * 60 * 60_000,
+      );
+
+      const [overdueEligiblePosts, stuckPublishingPosts, recentFailedPosts] =
+        await Promise.all([
+          this.prisma.scheduledPost.count({
+            where: {
+              status: {
+                in: [
+                  ScheduledPostStatus.SCHEDULED,
+                  ScheduledPostStatus.QUEUED,
+                ],
+              },
+              scheduledAt: {
+                lte: stuckCutoff,
+              },
+            },
+          }),
+          this.prisma.scheduledPost.count({
+            where: {
+              status: ScheduledPostStatus.PUBLISHING,
+              updatedAt: {
+                lte: stuckCutoff,
+              },
+            },
+          }),
+          this.prisma.scheduledPost.count({
+            where: {
+              status: ScheduledPostStatus.FAILED,
+              updatedAt: {
+                gte: failureCutoff,
+              },
+            },
+          }),
+        ]);
+
+      const critical =
+        overdueEligiblePosts > 0 ||
+        stuckPublishingPosts > 0;
+
+      return {
+        status: critical
+          ? 'critical'
+          : recentFailedPosts > 0
+            ? 'degraded'
+            : 'healthy',
+        overdueEligiblePosts,
+        stuckPublishingPosts,
+        recentFailedPosts,
+        thresholds: {
+          stuckMinutes: PUBLISHING_STUCK_MINUTES,
+          failureWindowHours: PUBLISHING_FAILURE_WINDOW_HOURS,
+        },
+      };
+    } catch {
+      return {
+        status: 'unknown',
+        overdueEligiblePosts: null,
+        stuckPublishingPosts: null,
+        recentFailedPosts: null,
+        thresholds: {
+          stuckMinutes: PUBLISHING_STUCK_MINUTES,
+          failureWindowHours: PUBLISHING_FAILURE_WINDOW_HOURS,
+        },
+      };
+    }
+  }
+
+
   private buildStatus(
     ok: boolean,
     latencyMs?: number,
@@ -185,6 +265,36 @@ export class SystemHealthService {
       "API responding",
     );
 
+    const publishing =
+      await this.checkPublishingPipeline();
+
+    const issues = [
+      ...(publishing.overdueEligiblePosts &&
+      publishing.overdueEligiblePosts > 0
+        ? [{
+            code: 'publishing_overdue',
+            severity: 'critical',
+            count: publishing.overdueEligiblePosts,
+          }]
+        : []),
+      ...(publishing.stuckPublishingPosts &&
+      publishing.stuckPublishingPosts > 0
+        ? [{
+            code: 'publishing_stuck',
+            severity: 'critical',
+            count: publishing.stuckPublishingPosts,
+          }]
+        : []),
+      ...(publishing.recentFailedPosts &&
+      publishing.recentFailedPosts > 0
+        ? [{
+            code: 'publishing_recent_failures',
+            severity: 'warning',
+            count: publishing.recentFailedPosts,
+          }]
+        : []),
+    ];
+
 
     return {
       checkedAt: new Date().toISOString(),
@@ -207,9 +317,11 @@ export class SystemHealthService {
 
       calendar: await this.checkCalendar(),
 
+      publishing,
+
       queues: await this.checkQueues(),
 
-      issues: [],
+      issues,
     };
   }
 
