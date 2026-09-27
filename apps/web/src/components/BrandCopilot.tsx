@@ -548,9 +548,45 @@ export function BrandCopilot() {
     return channels[selectedIndex].id;
   }
 
+  async function resolveScheduleMediaUrls(
+    assetId: string | undefined,
+    platforms: SchedulePlatform[],
+  ): Promise<Partial<Record<SchedulePlatform, string[]>> | undefined> {
+    if (!assetId?.trim()) {
+      return undefined;
+    }
+
+    const response = await fetch(
+      `${API_URL}/assets/${encodeURIComponent(assetId)}`,
+      { cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      throw new Error("Unable to load the selected image Asset for scheduling.");
+    }
+
+    const asset = (await response.json()) as {
+      type?: string;
+      url?: string | null;
+    };
+
+    if (asset.type !== "IMAGE" || !asset.url?.trim()) {
+      throw new Error(
+        "The selected Asset is not a persisted image and cannot be scheduled.",
+      );
+    }
+
+    const mediaUrl = asset.url.trim();
+
+    return Object.fromEntries(
+      platforms.map((platform) => [platform, [mediaUrl]]),
+    ) as Partial<Record<SchedulePlatform, string[]>>;
+  }
+
   async function scheduleWorkspaceAction(
     action: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
     draftOverride?: CopilotStudioResult,
+    assetId?: string,
   ) {
     let draftForSchedule: CopilotStudioResult = {
       ...(draftOverride ?? studioDraft),
@@ -672,6 +708,11 @@ export function BrandCopilot() {
       channelIds[platform] = await resolveScheduleChannelId(brandId, platform);
     }
 
+    const mediaUrls = await resolveScheduleMediaUrls(
+      assetId,
+      action.platforms,
+    );
+
     if (action.platforms.includes("FACEBOOK")) {
       if (!draftForSchedule.facebook?.trim()) {
         throw new Error(
@@ -725,6 +766,8 @@ export function BrandCopilot() {
             historyId: historyId || undefined,
 
             contents,
+
+            mediaUrls,
           },
         ],
 
@@ -2414,6 +2457,7 @@ export function BrandCopilot() {
 
   async function scheduleCurrentStudioResult(
     source: CopilotStudioResult = studioDraft,
+    assetId?: string,
   ) {
     const platforms: SchedulePlatform[] = [];
 
@@ -2470,6 +2514,7 @@ export function BrandCopilot() {
           timezone: "Asia/Kuala_Lumpur",
         },
         source,
+        assetId,
       );
     } catch (error) {
       const message =
@@ -3055,7 +3100,10 @@ export function BrandCopilot() {
                       )
                     }
                     onSchedule={() =>
-                      void scheduleCurrentStudioResult(message.studioResult!)
+                      void scheduleCurrentStudioResult(
+                        message.studioResult!,
+                        message.assetId,
+                      )
                     }
                   />
                 )}
