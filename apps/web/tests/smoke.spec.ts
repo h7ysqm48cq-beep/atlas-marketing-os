@@ -53,6 +53,9 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
           overdueEligiblePosts: 2,
           stuckPublishingPosts: 1,
           recentFailedPosts: 4,
+          publishedLast24h: 2,
+          latestPublishedAt: "2026-08-29T12:00:00.000Z",
+          nextScheduledAt: "2026-08-30T12:00:00.000Z",
           thresholds: {
             stuckMinutes: 15,
             failureWindowHours: 24,
@@ -83,6 +86,18 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
   await expect(
     page.getByTestId("publishing-pipeline-card"),
   ).toContainText("4 recent failures");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("2 published / 24h");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("Last:");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("Next:");
 
   await expect(
     page.getByTestId("publishing-pipeline-card"),
