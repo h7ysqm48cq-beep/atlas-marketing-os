@@ -485,6 +485,41 @@ describe('AgentGatewayService', () => {
     expect(wait).toHaveBeenCalledTimes(15);
   });
 
+  it('does not retry a deployment authorization bound to a different service', async () => {
+    const {
+      task,
+      reviewCandidate,
+    } =
+      await createReadyDeploymentExecution();
+
+    await authorizeProductionDeployment(
+      task.id,
+      reviewCandidate,
+    );
+    await supervisor.approveTask(
+      task.id,
+      true,
+    );
+
+    const wait =
+      mockDeploymentResolutionWait();
+
+    await expect(
+      productionResolver()
+        .resolveProductionDeployment({
+          service: 'web',
+          github: CANONICAL_GITHUB,
+        }),
+    ).rejects.toMatchObject({
+      response: {
+        code:
+          'owner_deployment_authorization_service_mismatch',
+      },
+    });
+
+    expect(wait).not.toHaveBeenCalled();
+  });
+
   it('does not retry invalid production provenance', async () => {
     const wait =
       mockDeploymentResolutionWait();
