@@ -15,7 +15,16 @@ describe('SystemHealthService', () => {
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(2)
           .mockResolvedValueOnce(3),
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({
+            publishedAt: new Date('2026-09-27T20:00:00.000Z'),
+          })
+          .mockResolvedValueOnce({
+            scheduledAt: new Date('2026-09-28T01:00:00.000Z'),
+          }),
       },
       backgroundJob: {
         groupBy: jest.fn().mockResolvedValue([
@@ -36,6 +45,9 @@ describe('SystemHealthService', () => {
       overdueEligiblePosts: 0,
       stuckPublishingPosts: 0,
       recentFailedPosts: 0,
+      publishedLast24h: 2,
+      latestPublishedAt: '2026-09-27T20:00:00.000Z',
+      nextScheduledAt: '2026-09-28T01:00:00.000Z',
       thresholds: {
         stuckMinutes: 15,
         failureWindowHours: 24,
@@ -64,7 +76,16 @@ describe('SystemHealthService', () => {
           .mockResolvedValueOnce(2)
           .mockResolvedValueOnce(1)
           .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(4)
           .mockResolvedValueOnce(10),
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({
+            publishedAt: new Date('2026-09-27T19:00:00.000Z'),
+          })
+          .mockResolvedValueOnce({
+            scheduledAt: new Date('2026-09-28T01:00:00.000Z'),
+          }),
       },
       backgroundJob: {
         groupBy: jest.fn().mockResolvedValue([]),
@@ -100,7 +121,14 @@ describe('SystemHealthService', () => {
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(3)
+          .mockResolvedValueOnce(1)
           .mockResolvedValueOnce(10),
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({
+            publishedAt: new Date('2026-09-27T18:00:00.000Z'),
+          })
+          .mockResolvedValueOnce(null),
       },
       backgroundJob: {
         groupBy: jest.fn().mockResolvedValue([]),
@@ -112,6 +140,11 @@ describe('SystemHealthService', () => {
 
     expect(health.publishing.status).toBe('degraded');
     expect(health.publishing.recentFailedPosts).toBe(3);
+    expect(health.publishing.publishedLast24h).toBe(1);
+    expect(health.publishing.latestPublishedAt).toBe(
+      '2026-09-27T18:00:00.000Z',
+    );
+    expect(health.publishing.nextScheduledAt).toBeNull();
     expect(health.issues).toEqual([
       {
         code: 'publishing_recent_failures',
