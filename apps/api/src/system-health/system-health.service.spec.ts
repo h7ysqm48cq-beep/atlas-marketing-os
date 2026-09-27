@@ -5,6 +5,7 @@ jest.mock('../assets/assets.service', () => ({ AssetsService: class {} }));
 
 import {
   buildSportsSchedulerHealth,
+  buildSystemHealthIssues,
   SystemHealthService,
 } from './system-health.service';
 
@@ -15,11 +16,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(3)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
-          .mockResolvedValueOnce(2)
-          .mockResolvedValueOnce(3),
+          .mockResolvedValueOnce(2),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
@@ -38,7 +39,16 @@ describe('SystemHealthService', () => {
         ]),
       },
     };
-    const service = new SystemHealthService(prisma as never, {} as never, {} as never);
+    const service = new SystemHealthService(
+      prisma as never,
+      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          healthy: true,
+          service: 'test-browser-worker',
+        }),
+      } as never,
+    );
 
     const health = await service.getSystemHealth();
 
@@ -76,11 +86,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(10)
           .mockResolvedValueOnce(2)
           .mockResolvedValueOnce(1)
           .mockResolvedValueOnce(0)
-          .mockResolvedValueOnce(4)
-          .mockResolvedValueOnce(10),
+          .mockResolvedValueOnce(4),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
@@ -94,7 +104,16 @@ describe('SystemHealthService', () => {
         groupBy: jest.fn().mockResolvedValue([]),
       },
     };
-    const service = new SystemHealthService(prisma as never, {} as never, {} as never);
+    const service = new SystemHealthService(
+      prisma as never,
+      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          healthy: true,
+          service: 'test-browser-worker',
+        }),
+      } as never,
+    );
 
     const health = await service.getSystemHealth();
 
@@ -121,11 +140,11 @@ describe('SystemHealthService', () => {
       scheduledPost: {
         count: jest
           .fn()
+          .mockResolvedValueOnce(10)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(0)
           .mockResolvedValueOnce(3)
-          .mockResolvedValueOnce(1)
-          .mockResolvedValueOnce(10),
+          .mockResolvedValueOnce(1),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({
@@ -137,7 +156,16 @@ describe('SystemHealthService', () => {
         groupBy: jest.fn().mockResolvedValue([]),
       },
     };
-    const service = new SystemHealthService(prisma as never, {} as never, {} as never);
+    const service = new SystemHealthService(
+      prisma as never,
+      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          healthy: true,
+          service: 'test-browser-worker',
+        }),
+      } as never,
+    );
 
     const health = await service.getSystemHealth();
 
@@ -217,5 +245,124 @@ describe('buildSportsSchedulerHealth', () => {
     expect(health.status).toBe('disabled');
     expect(health.missedRuns).toEqual([]);
     expect(health.nextRunLocal).toBeNull();
+  });
+});
+
+
+describe('buildSystemHealthIssues', () => {
+  const healthy = {
+    database: { status: 'healthy' },
+    browserWorker: { healthy: true },
+    assets: { status: 'healthy' },
+    calendar: { status: 'healthy' },
+    publishing: {
+      status: 'healthy',
+      overdueEligiblePosts: 0,
+      stuckPublishingPosts: 0,
+      recentFailedPosts: 0,
+    },
+    sportsScheduler: {
+      status: 'healthy',
+      missedRuns: [],
+      lastError: null,
+    },
+    queues: {
+      status: 'healthy',
+      backgroundJobs: {
+        failed: 4,
+      },
+    },
+  };
+
+  it('returns no issues for healthy core subsystems', () => {
+    expect(buildSystemHealthIssues(healthy)).toEqual([]);
+  });
+
+  it('promotes database, browser, calendar, and queue availability failures to critical issues', () => {
+    expect(
+      buildSystemHealthIssues({
+        ...healthy,
+        database: {
+          status: 'critical',
+          message: 'db unavailable',
+        },
+        browserWorker: {
+          status: 'unknown',
+          message: 'browser worker unavailable',
+        },
+        calendar: {
+          status: 'critical',
+        },
+        queues: {
+          status: 'unknown',
+          backgroundJobs: null,
+        },
+      }),
+    ).toEqual([
+      {
+        code: 'database_unhealthy',
+        severity: 'critical',
+        message: 'db unavailable',
+      },
+      {
+        code: 'browser_worker_unhealthy',
+        severity: 'critical',
+        message: 'browser worker unavailable',
+      },
+      {
+        code: 'calendar_unhealthy',
+        severity: 'critical',
+      },
+      {
+        code: 'background_queue_health_unknown',
+        severity: 'critical',
+      },
+    ]);
+  });
+
+  it('preserves publishing and sports scheduler issue semantics', () => {
+    expect(
+      buildSystemHealthIssues({
+        ...healthy,
+        publishing: {
+          status: 'critical',
+          overdueEligiblePosts: 2,
+          stuckPublishingPosts: 1,
+          recentFailedPosts: 3,
+        },
+        sportsScheduler: {
+          status: 'degraded',
+          missedRuns: ['MORNING'],
+          lastError: 'generation failed',
+        },
+      }),
+    ).toEqual([
+      {
+        code: 'publishing_overdue',
+        severity: 'critical',
+        count: 2,
+      },
+      {
+        code: 'publishing_stuck',
+        severity: 'critical',
+        count: 1,
+      },
+      {
+        code: 'publishing_recent_failures',
+        severity: 'warning',
+        count: 3,
+      },
+      {
+        code: 'sports_scheduler_missed_run',
+        severity: 'critical',
+        count: 1,
+        editions: ['MORNING'],
+      },
+      {
+        code: 'sports_scheduler_last_run_failed',
+        severity: 'warning',
+        message: 'generation failed',
+      },
+    ]);
   });
 });

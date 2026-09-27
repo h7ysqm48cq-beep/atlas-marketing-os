@@ -156,6 +156,127 @@ export function buildSportsSchedulerHealth(
   };
 }
 
+type CoreHealthSnapshot = {
+  database: { status?: string; message?: string | null };
+  browserWorker: { status?: string; healthy?: boolean; message?: string | null };
+  assets: { status?: string };
+  calendar: { status?: string };
+  publishing: {
+    status?: string;
+    overdueEligiblePosts?: number | null;
+    stuckPublishingPosts?: number | null;
+    recentFailedPosts?: number | null;
+  };
+  sportsScheduler: {
+    status?: string;
+    missedRuns: string[];
+    lastError?: string | null;
+  };
+  queues: {
+    status?: string;
+    backgroundJobs?: {
+      failed?: number | null;
+    } | null;
+  };
+};
+
+export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
+  return [
+    ...(snapshot.database.status === 'critical'
+      ? [{
+          code: 'database_unhealthy',
+          severity: 'critical',
+          message: snapshot.database.message ?? null,
+        }]
+      : []),
+
+    ...(
+      snapshot.browserWorker.healthy === false ||
+      snapshot.browserWorker.status === 'critical' ||
+      snapshot.browserWorker.status === 'unknown'
+        ? [{
+            code: 'browser_worker_unhealthy',
+            severity: 'critical',
+            message: snapshot.browserWorker.message ?? null,
+          }]
+        : []
+    ),
+
+    ...(snapshot.assets.status === 'critical'
+      ? [{
+          code: 'assets_unhealthy',
+          severity: 'critical',
+        }]
+      : []),
+
+    ...(snapshot.calendar.status === 'critical'
+      ? [{
+          code: 'calendar_unhealthy',
+          severity: 'critical',
+        }]
+      : []),
+
+    ...(snapshot.publishing.status === 'unknown'
+      ? [{
+          code: 'publishing_health_unknown',
+          severity: 'critical',
+        }]
+      : []),
+
+    ...(snapshot.publishing.overdueEligiblePosts &&
+    snapshot.publishing.overdueEligiblePosts > 0
+      ? [{
+          code: 'publishing_overdue',
+          severity: 'critical',
+          count: snapshot.publishing.overdueEligiblePosts,
+        }]
+      : []),
+
+    ...(snapshot.publishing.stuckPublishingPosts &&
+    snapshot.publishing.stuckPublishingPosts > 0
+      ? [{
+          code: 'publishing_stuck',
+          severity: 'critical',
+          count: snapshot.publishing.stuckPublishingPosts,
+        }]
+      : []),
+
+    ...(snapshot.publishing.recentFailedPosts &&
+    snapshot.publishing.recentFailedPosts > 0
+      ? [{
+          code: 'publishing_recent_failures',
+          severity: 'warning',
+          count: snapshot.publishing.recentFailedPosts,
+        }]
+      : []),
+
+    ...(snapshot.sportsScheduler.missedRuns.length > 0
+      ? [{
+          code: 'sports_scheduler_missed_run',
+          severity: 'critical',
+          count: snapshot.sportsScheduler.missedRuns.length,
+          editions: snapshot.sportsScheduler.missedRuns,
+        }]
+      : []),
+
+    ...(snapshot.sportsScheduler.status === 'degraded'
+      ? [{
+          code: 'sports_scheduler_last_run_failed',
+          severity: 'warning',
+          message: snapshot.sportsScheduler.lastError ?? null,
+        }]
+      : []),
+
+    ...(snapshot.queues.status === 'unknown'
+      ? [{
+          code: 'background_queue_health_unknown',
+          severity: 'critical',
+        }]
+      : []),
+
+  ];
+}
+
 @Injectable()
 export class SystemHealthService {
 
@@ -495,61 +616,40 @@ export class SystemHealthService {
       "API responding",
     );
 
-    const publishing =
-      await this.checkPublishingPipeline();
+    const [
+      database,
+      browserWorker,
+      assets,
+      calendar,
+      publishing,
+      sportsScheduler,
+      queues,
+    ] = await Promise.all([
+      this.checkDatabase(),
+      this.checkBrowserWorker(),
+      this.checkAssets(),
+      this.checkCalendar(),
+      this.checkPublishingPipeline(),
+      this.checkSportsScheduler(),
+      this.checkQueues(),
+    ]);
 
-    const sportsScheduler =
-      await this.checkSportsScheduler();
-
-    const issues = [
-      ...(publishing.overdueEligiblePosts &&
-      publishing.overdueEligiblePosts > 0
-        ? [{
-            code: 'publishing_overdue',
-            severity: 'critical',
-            count: publishing.overdueEligiblePosts,
-          }]
-        : []),
-      ...(publishing.stuckPublishingPosts &&
-      publishing.stuckPublishingPosts > 0
-        ? [{
-            code: 'publishing_stuck',
-            severity: 'critical',
-            count: publishing.stuckPublishingPosts,
-          }]
-        : []),
-      ...(publishing.recentFailedPosts &&
-      publishing.recentFailedPosts > 0
-        ? [{
-            code: 'publishing_recent_failures',
-            severity: 'warning',
-            count: publishing.recentFailedPosts,
-          }]
-        : []),
-      ...(sportsScheduler.missedRuns.length > 0
-        ? [{
-            code: 'sports_scheduler_missed_run',
-            severity: 'critical',
-            count: sportsScheduler.missedRuns.length,
-            editions: sportsScheduler.missedRuns,
-          }]
-        : []),
-      ...(sportsScheduler.status === 'degraded'
-        ? [{
-            code: 'sports_scheduler_last_run_failed',
-            severity: 'warning',
-            message: sportsScheduler.lastError,
-          }]
-        : []),
-    ];
-
+    const issues = buildSystemHealthIssues({
+      database,
+      browserWorker,
+      assets,
+      calendar,
+      publishing,
+      sportsScheduler,
+      queues,
+    });
 
     return {
       checkedAt: new Date().toISOString(),
 
       api,
 
-      database: await this.checkDatabase(),
+      database,
 
       railway: {
         status: "external",
@@ -557,19 +657,17 @@ export class SystemHealthService {
           "Railway status checked through deployment monitor",
       },
 
-      browserWorker:
-        await this.checkBrowserWorker(),
+      browserWorker,
 
-      assets:
-        await this.checkAssets(),
+      assets,
 
-      calendar: await this.checkCalendar(),
+      calendar,
 
       publishing,
 
       sportsScheduler,
 
-      queues: await this.checkQueues(),
+      queues,
 
       issues,
     };
