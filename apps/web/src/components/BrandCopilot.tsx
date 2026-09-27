@@ -494,88 +494,6 @@ export function BrandCopilot() {
     return days[value.getUTCDay()];
   }
 
-  async function resolveScheduleChannelId(
-    brandId: string,
-    platform: SchedulePlatform,
-  ): Promise<string> {
-    const response = await fetch(`${API_URL}/automation/channels`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Unable to load ${platform} channels.`);
-    }
-
-    const raw = await response.json();
-
-    const channels = (
-      Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw?.channels)
-          ? raw.channels
-          : Array.isArray(raw?.items)
-            ? raw.items
-            : []
-    ).filter(
-      (channel: {
-        id?: string;
-        brandId?: string;
-        platform?: string;
-        name?: string;
-        status?: string;
-      }) =>
-        channel?.id &&
-        channel.brandId === brandId &&
-        channel.platform === platform &&
-        channel.status === "CONNECTED",
-    );
-
-    if (!channels.length) {
-      throw new Error(`No connected ${platform} channel found.`);
-    }
-
-    if (channels.length === 1) {
-      return channels[0].id;
-    }
-
-    const options = channels
-      .map(
-        (
-          channel: {
-            name?: string;
-          },
-          index: number,
-        ) => `${index + 1}. ${channel.name || `${platform} Channel`}`,
-      )
-      .join("\n");
-
-    const selection = window.prompt(
-      `请选择要发布到哪个 ${
-        platform === "FACEBOOK"
-          ? "Facebook Page"
-          : platform === "TELEGRAM"
-            ? "Telegram Channel"
-            : "Instagram account"
-      }：\n\n${options}\n\n请输入编号：`,
-    );
-
-    if (selection === null) {
-      throw new Error("Scheduling cancelled.");
-    }
-
-    const selectedIndex = Number(selection.trim()) - 1;
-
-    if (
-      !Number.isInteger(selectedIndex) ||
-      selectedIndex < 0 ||
-      selectedIndex >= channels.length
-    ) {
-      throw new Error("Invalid channel selection.");
-    }
-
-    return channels[selectedIndex].id;
-  }
-
   async function resolveScheduleMediaUrls(
     assetId: string | undefined,
     platforms: SchedulePlatform[],
@@ -734,9 +652,13 @@ export function BrandCopilot() {
     const channelIds: Partial<Record<SchedulePlatform, string>> = {};
 
     for (const platform of action.platforms) {
-      channelIds[platform] =
-        channelIdOverride?.[platform] ??
-        (await resolveScheduleChannelId(brandId, platform));
+      const channelId = channelIdOverride?.[platform];
+
+      if (!channelId) {
+        throw new Error(`Choose a channel for ${platform} before scheduling.`);
+      }
+
+      channelIds[platform] = channelId;
     }
 
     const mediaUrls = await resolveScheduleMediaUrls(
@@ -823,6 +745,114 @@ export function BrandCopilot() {
     return data;
   }
 
+  async function openScheduleDialog(
+    source: CopilotStudioResult = studioDraft,
+    assetId?: string,
+    presetAction?: Extract<WorkspaceAtomicAction, { type: "schedule" }>,
+  ) {
+    const availablePlatforms: SchedulePlatform[] = [];
+
+    if (source.facebook.trim()) {
+      availablePlatforms.push("FACEBOOK");
+    }
+
+    if (source.telegram.trim()) {
+      availablePlatforms.push("TELEGRAM");
+    }
+
+    if (source.instagram.trim()) {
+      availablePlatforms.push("INSTAGRAM");
+    }
+
+    if (!availablePlatforms.length) {
+      setStatus(
+        "Facebook, Telegram or Instagram content is required before scheduling.",
+      );
+      return;
+    }
+
+    setScheduleDialogError("");
+    setScheduleDialogDraft(source);
+    setScheduleDialogAssetId(assetId);
+
+    try {
+      const brandId = await getActiveBrandId();
+      const response = await fetch(`${API_URL}/automation/channels`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to load connected channels.");
+      }
+
+      const raw = await response.json();
+      const channelList = (
+        Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.channels)
+            ? raw.channels
+            : Array.isArray(raw?.items)
+              ? raw.items
+              : []
+      ).filter(
+        (channel: ScheduleChannelOption) =>
+          channel?.id &&
+          channel.brandId === brandId &&
+          availablePlatforms.includes(channel.platform) &&
+          channel.status === "CONNECTED",
+      ) as ScheduleChannelOption[];
+
+      const selectablePlatforms = availablePlatforms.filter((platform) =>
+        channelList.some((channel) => channel.platform === platform),
+      );
+
+      if (!selectablePlatforms.length) {
+        throw new Error(
+          "No connected Facebook, Telegram or Instagram channel is available.",
+        );
+      }
+
+      const requestedPlatforms = presetAction?.platforms?.filter((platform) =>
+        selectablePlatforms.includes(platform),
+      );
+
+      const initialPlatforms = requestedPlatforms?.length
+        ? requestedPlatforms
+        : selectablePlatforms;
+
+      const initialChannelIds: Partial<Record<SchedulePlatform, string>> = {};
+
+      for (const platform of initialPlatforms) {
+        const firstChannel = channelList.find(
+          (channel) => channel.platform === platform,
+        );
+
+        if (firstChannel) {
+          initialChannelIds[platform] = firstChannel.id;
+        }
+      }
+
+      const localDate = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kuala_Lumpur",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+
+      setScheduleChannels(channelList);
+      setSchedulePlatforms(initialPlatforms);
+      setScheduleChannelIds(initialChannelIds);
+      setScheduleDate(presetAction?.date || localDate);
+      setScheduleTime(presetAction?.time || "20:00");
+      setScheduleDialogOpen(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to open schedule.";
+      setScheduleDialogError(message);
+      setStatus(message);
+    }
+  }
+
   async function applyWorkspaceAction(
     action: WorkspaceAction,
     baseDraft?: CopilotStudioResult,
@@ -883,66 +913,12 @@ export function BrandCopilot() {
       }
 
       if (item.type === "schedule") {
-        try {
-          const scheduleResult = await scheduleWorkspaceAction(
-            item,
-            draftSnapshot,
-          );
-
-          const scheduledItems = Array.isArray(scheduleResult?.scheduledItems)
-            ? scheduleResult.scheduledItems
-            : [];
-
-          type ScheduledPostResult = {
-            id?: string;
-            platform?: string;
-            scheduledAt?: string;
-            channel?: {
-              name?: string;
-            };
-          };
-
-          const posts: ScheduledPostResult[] = scheduledItems.flatMap(
-            (entry: { posts?: ScheduledPostResult[] }) =>
-              Array.isArray(entry.posts) ? entry.posts : [],
-          );
-
-          const postCount =
-            typeof scheduleResult?.postCount === "number"
-              ? scheduleResult.postCount
-              : posts.length;
-
-          const details = posts.length
-            ? posts
-                .map((post) => {
-                  const platform = post.platform || "UNKNOWN";
-                  const when = post.scheduledAt || `${item.date} ${item.time}`;
-                  const channel = post.channel?.name
-                    ? ` · ${post.channel.name}`
-                    : "";
-
-                  return `${platform} · ${when}${channel}`;
-                })
-                .join("\n")
-            : `${item.platforms.join(" + ")} · ${item.date} · ${item.time} · ${
-                item.timezone || "Asia/Kuala_Lumpur"
-              }`;
-
-          setStatus(
-            postCount === 1
-              ? `Scheduled successfully: ${details}`
-              : `${postCount} ScheduledPosts created: ${details}`,
-          );
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Unable to schedule content.";
-
-          setStatus(message);
-          throw error;
-        }
-
+        await openScheduleDialog(
+          draftSnapshot,
+          undefined,
+          item,
+        );
+        setStatus("Review the schedule before confirming.");
         continue;
       }
     }
@@ -2490,99 +2466,7 @@ export function BrandCopilot() {
     source: CopilotStudioResult = studioDraft,
     assetId?: string,
   ) {
-    const availablePlatforms: SchedulePlatform[] = [];
-
-    if (source.facebook.trim()) {
-      availablePlatforms.push("FACEBOOK");
-    }
-
-    if (source.telegram.trim()) {
-      availablePlatforms.push("TELEGRAM");
-    }
-
-    if (source.instagram.trim()) {
-      availablePlatforms.push("INSTAGRAM");
-    }
-
-    if (!availablePlatforms.length) {
-      setStatus(
-        "Facebook, Telegram or Instagram content is required before scheduling.",
-      );
-      return;
-    }
-
-    setScheduleDialogError("");
-    setScheduleDialogDraft(source);
-    setScheduleDialogAssetId(assetId);
-
-    try {
-      const brandId = await getActiveBrandId();
-      const response = await fetch(`${API_URL}/automation/channels`, {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to load connected channels.");
-      }
-
-      const raw = await response.json();
-      const channelList = (
-        Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.channels)
-            ? raw.channels
-            : Array.isArray(raw?.items)
-              ? raw.items
-              : []
-      ).filter(
-        (channel: ScheduleChannelOption) =>
-          channel?.id &&
-          channel.brandId === brandId &&
-          availablePlatforms.includes(channel.platform) &&
-          channel.status === "CONNECTED",
-      ) as ScheduleChannelOption[];
-
-      const selectablePlatforms = availablePlatforms.filter((platform) =>
-        channelList.some((channel) => channel.platform === platform),
-      );
-
-      if (!selectablePlatforms.length) {
-        throw new Error(
-          "No connected Facebook, Telegram or Instagram channel is available.",
-        );
-      }
-
-      const initialChannelIds: Partial<Record<SchedulePlatform, string>> = {};
-
-      for (const platform of selectablePlatforms) {
-        const firstChannel = channelList.find(
-          (channel) => channel.platform === platform,
-        );
-
-        if (firstChannel) {
-          initialChannelIds[platform] = firstChannel.id;
-        }
-      }
-
-      const localDate = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kuala_Lumpur",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date());
-
-      setScheduleChannels(channelList);
-      setSchedulePlatforms(selectablePlatforms);
-      setScheduleChannelIds(initialChannelIds);
-      setScheduleDate(localDate);
-      setScheduleTime("20:00");
-      setScheduleDialogOpen(true);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to open schedule.";
-      setScheduleDialogError(message);
-      setStatus(message);
-    }
+    await openScheduleDialog(source, assetId);
   }
 
   function toggleSchedulePlatform(
