@@ -1148,6 +1148,27 @@ useEffect(() => {
           ? "watch"
           : "healthy";
 
+  const publishingStats =
+    healthSnapshot?.publishing ??
+    null;
+
+  const publishingBlockers =
+    publishingStats
+      ? (publishingStats.overdueEligiblePosts ?? 0) +
+        (publishingStats.stuckPublishingPosts ?? 0)
+      : null;
+
+  const publishingHealth: Health =
+    !healthSnapshot || !publishingStats
+      ? "idle"
+      : publishingStats.status === "critical"
+        ? "critical"
+        : publishingStats.status === "degraded"
+          ? "watch"
+          : publishingStats.status === "healthy"
+            ? "healthy"
+            : "idle";
+
   const progress =
     targetSteps >
 
@@ -1829,6 +1850,39 @@ useEffect(() => {
 
           <span className={styles.overviewLabel}>
             {ui("Failed jobs", "失败任务")}
+          </span>
+        </article>
+
+        <article
+          data-testid="publishing-pipeline-card"
+          className={`${styles.overviewCard} ${
+            publishingHealth === "critical"
+              ? styles.criticalCard
+              : publishingHealth === "watch"
+                ? styles.watchCard
+                : publishingHealth === "healthy"
+                  ? styles.healthyCard
+                  : ""
+          }`}
+        >
+          <span className={styles.overviewLabel}>
+            {ui(
+              "Publishing Pipeline",
+              "发布流水线",
+            )}
+          </span>
+
+          <strong className={styles.overviewValue}>
+            {publishingBlockers ?? "—"}
+          </strong>
+
+          <span className={styles.overviewLabel}>
+            {publishingStats
+              ? `${publishingStats.recentFailedPosts ?? 0} ${ui(
+                  "recent failures",
+                  "近期失败",
+                )}`
+              : "—"}
           </span>
         </article>
       </section>
