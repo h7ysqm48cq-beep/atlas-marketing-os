@@ -13,6 +13,7 @@ const SUPPORTED_DEPLOYMENT_SERVICES = new Set([
   'web',
   'browser-worker',
   'engineering-runner',
+  'engineering-verifier',
 ]);
 
 function requireEnv(env, key) {
