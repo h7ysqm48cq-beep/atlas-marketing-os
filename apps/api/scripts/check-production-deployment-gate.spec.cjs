@@ -93,6 +93,92 @@ test('shared deployment gate retries only unresolved production authorization', 
   assert.deepEqual(waits, [2_000]);
 });
 
+test('shared deployment gate retries pending owner deployment authorization', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: 'e'.repeat(40),
+  };
+  let calls = 0;
+  const waits = [];
+
+  const receipt = await checkProductionDeploymentGate({
+    env,
+    sleepImpl: async (ms) => {
+      waits.push(ms);
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({
+            code: 'owner_deployment_authorization_required',
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          allowed: true,
+          taskId: 'task-api',
+          executionId: 'exec-api',
+        }),
+      };
+    },
+  });
+
+  assert.deepEqual(receipt, {
+    taskId: 'task-api',
+    executionId: 'exec-api',
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [2_000]);
+});
+
+test('shared deployment gate bounds pending owner authorization retries', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: 'f'.repeat(40),
+  };
+  let calls = 0;
+  let waits = 0;
+
+  await assert.rejects(
+    checkProductionDeploymentGate({
+      env,
+      sleepImpl: async () => {
+        waits += 1;
+      },
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({
+            code: 'owner_deployment_authorization_required',
+          }),
+        };
+      },
+    }),
+    /ATLAS_DEPLOY_GATE_DENY owner_deployment_authorization_required/,
+  );
+
+  assert.equal(calls, 16);
+  assert.equal(waits, 15);
+});
+
 test('shared deployment gate bounds unresolved authorization retries', async () => {
   const env = {
     ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
