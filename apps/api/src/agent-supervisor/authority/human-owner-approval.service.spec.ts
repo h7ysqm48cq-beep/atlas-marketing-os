@@ -359,6 +359,137 @@ describe('HumanOwnerApprovalService', () => {
     );
   });
 
+  it('canonicalizes semantically equivalent merge candidates before proof and signature binding', () => {
+    const {
+      approval,
+      verifier,
+    } = harness();
+
+    const reviewed = candidate({
+      targetBranch: ' production/atlas ',
+      baseSha: BASE_SHA.toUpperCase(),
+      headSha: HEAD_SHA.toUpperCase(),
+      changedFiles: [
+        'apps/api/src/z.ts',
+        ' apps\\api\\src\\a.ts ',
+        'apps/api/src/z.ts',
+      ],
+    });
+
+    const canonical = candidate({
+      changedFiles: [
+        'apps/api/src/a.ts',
+        'apps/api/src/z.ts',
+      ],
+    });
+
+    const proof =
+      approval.verifyAuthentication(
+        evidence(),
+        {
+          action: 'MERGE',
+          candidate: reviewed,
+        },
+      );
+
+    const artifact =
+      approval.issueMergeApproval(
+        proof,
+        canonical,
+        NOW,
+      );
+
+    expect(artifact.candidate).toEqual(
+      canonical,
+    );
+
+    const claims = verifier.verify(
+      artifact.signature,
+      {
+        domain: 'MERGE_APPROVAL',
+        audience: 'atlas:merge-gate',
+        actorType: 'HUMAN_OWNER',
+        tokenType: 'MERGE_APPROVAL',
+        purpose: 'APPROVE_MERGE',
+        now: NOW,
+        candidateHash:
+          hashCandidate(canonical),
+      },
+    );
+
+    expect(claims.candidateHash)
+      .toBe(hashCandidate(canonical));
+  });
+
+  it('canonicalizes deploy candidates before service-bound approval signing', () => {
+    const {
+      approval,
+      verifier,
+    } = harness();
+
+    const reviewed =
+      deploymentCandidate({
+        targetBranch: ' production/atlas ',
+        baseSha:
+          BASE_SHA.toUpperCase(),
+        headSha:
+          HEAD_SHA.toUpperCase(),
+        changedFiles: [
+          'apps/api/src/z.ts',
+          'apps/api/src/a.ts',
+        ],
+      });
+
+    const canonical =
+      deploymentCandidate({
+        changedFiles: [
+          'apps/api/src/a.ts',
+          'apps/api/src/z.ts',
+        ],
+      });
+
+    const proof =
+      approval.verifyAuthentication(
+        evidence(),
+        {
+          action: 'DEPLOY',
+          candidate: reviewed,
+          service: 'api',
+        },
+      );
+
+    const artifact =
+      approval.issueDeployApproval(
+        proof,
+        canonical,
+        'api',
+        NOW,
+      );
+
+    expect(artifact.candidate)
+      .toEqual(canonical);
+
+    const claims = verifier.verify(
+      artifact.signature,
+      {
+        domain: 'DEPLOY_APPROVAL',
+        audience: 'atlas:deploy-gate',
+        actorType: 'HUMAN_OWNER',
+        tokenType: 'DEPLOY_APPROVAL',
+        purpose: 'APPROVE_DEPLOY',
+        now: NOW,
+        candidateHash:
+          hashCandidate(canonical),
+      },
+    );
+
+    expect(claims).toMatchObject({
+      service: 'api',
+      candidateHash:
+        hashCandidate(canonical),
+    });
+  });
+
   it('binds the proof to the exact merge candidate', () => {
     const { approval } = harness();
 

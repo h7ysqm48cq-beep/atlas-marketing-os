@@ -14,6 +14,7 @@ import {
   canonicalizeAuthorityValue,
 } from './authority/supervisor-authority.service';
 import type { AuthorityClaims } from './authority/authority.types';
+import { normalizeSupervisorReviewCandidate } from './review-candidate';
 import type {
   CreateSupervisorTaskInput,
   PermissionContext,
@@ -474,10 +475,10 @@ export class AgentSupervisorService {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
     }
 
-    const reviewedCandidate = this.normalizeCandidate(
+    const reviewedCandidate = normalizeSupervisorReviewCandidate(
       task.evidence.reviewCandidate,
     );
-    const requestedCandidate = this.normalizeCandidate(candidate);
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
 
     this.requireCanonicalMerge(requestedCandidate);
 
@@ -565,7 +566,7 @@ export class AgentSupervisorService {
       verifiedAt,
     );
 
-    const authorizedCandidate = this.normalizeCandidate(
+    const authorizedCandidate = normalizeSupervisorReviewCandidate(
       authorization.candidate,
     );
     const normalizedAttestation =
@@ -630,10 +631,10 @@ export class AgentSupervisorService {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
     }
 
-    const reviewedCandidate = this.normalizeCandidate(
+    const reviewedCandidate = normalizeSupervisorReviewCandidate(
       task.evidence.reviewCandidate,
     );
-    const requestedCandidate = this.normalizeCandidate(candidate);
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
     this.requireCanonicalProductionDeployment(requestedCandidate);
     if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
       throw new BadRequestException({
@@ -793,7 +794,7 @@ export class AgentSupervisorService {
     candidate: SupervisorReviewCandidate,
     verifiedAt?: Date,
   ): void {
-    const requestedCandidate = this.normalizeCandidate(candidate);
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
     this.requireCanonicalMerge(requestedCandidate);
 
     const authorization = task.evidence?.ownerMergeAuthorization;
@@ -829,7 +830,7 @@ export class AgentSupervisorService {
     verifiedAt?: Date,
   ): void {
     const authorizedCandidate =
-      this.normalizeCandidate(
+      normalizeSupervisorReviewCandidate(
         authorization.candidate,
       );
 
@@ -914,7 +915,7 @@ export class AgentSupervisorService {
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
   ): void {
-    const requestedCandidate = this.normalizeCandidate(candidate);
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
     this.requireCanonicalProductionDeployment(requestedCandidate);
     const requestedService = this.requireProductionDeploymentService(service);
 
@@ -937,8 +938,8 @@ export class AgentSupervisorService {
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
   ): AuthorityClaims {
-    const requestedCandidate = this.normalizeCandidate(candidate);
-    const authorizedCandidate = this.normalizeCandidate(authorization.candidate);
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
+    const authorizedCandidate = normalizeSupervisorReviewCandidate(authorization.candidate);
     this.requireCanonicalProductionDeployment(authorizedCandidate);
     if (!this.sameCandidate(authorizedCandidate, requestedCandidate)) {
       throw new BadRequestException({
@@ -1359,8 +1360,8 @@ export class AgentSupervisorService {
         !taskCandidate ||
         !executionCandidate ||
         !this.sameCandidate(
-          this.normalizeCandidate(taskCandidate),
-          this.normalizeCandidate(executionCandidate),
+          normalizeSupervisorReviewCandidate(taskCandidate),
+          normalizeSupervisorReviewCandidate(executionCandidate),
         ) ||
         !samePaths(verifierEvidence.changedFiles, task.evidence!.changedFiles)
       ) {
@@ -1385,8 +1386,8 @@ export class AgentSupervisorService {
           task.evidence!.reviewCandidate
             ? Boolean(execution.result!.evidence.reviewCandidate) &&
               this.sameCandidate(
-                this.normalizeCandidate(task.evidence!.reviewCandidate),
-                this.normalizeCandidate(
+                normalizeSupervisorReviewCandidate(task.evidence!.reviewCandidate),
+                normalizeSupervisorReviewCandidate(
                   execution.result!.evidence.reviewCandidate!,
                 ),
               )
@@ -1431,8 +1432,8 @@ export class AgentSupervisorService {
         proof.productionBaselineSha !== assigned.productionBaselineSha ||
         !verifiedCandidate ||
         !this.sameCandidate(
-          this.normalizeCandidate(candidate),
-          this.normalizeCandidate(verifiedCandidate),
+          normalizeSupervisorReviewCandidate(candidate),
+          normalizeSupervisorReviewCandidate(verifiedCandidate),
         ) ||
         verifierEvidence.candidatePublication
       ) {
@@ -1462,39 +1463,6 @@ export class AgentSupervisorService {
         code: 'zero_diff_verifier_provenance_invalid',
       });
     }
-  }
-
-  private normalizeCandidate(
-    candidate: SupervisorReviewCandidate,
-  ): SupervisorReviewCandidate {
-    const targetBranch = candidate.targetBranch?.trim();
-    if (!targetBranch || !Array.isArray(candidate.changedFiles)) {
-      throw new BadRequestException({ code: 'review_candidate_incomplete' });
-    }
-
-    const baseSha = this.requireSha(candidate.baseSha, 'invalid_base_sha');
-    const headSha = this.requireSha(candidate.headSha, 'invalid_head_sha');
-    const changedFiles = Array.from(
-      new Set(
-        candidate.changedFiles.map((path) => this.normalizeRepoPath(path)),
-      ),
-    ).sort();
-    const isRuntimeRefresh =
-      candidate.action === 'deploy_production' &&
-      targetBranch === 'production/atlas' &&
-      baseSha === headSha &&
-      changedFiles.length === 0;
-    if (changedFiles.length === 0 && !isRuntimeRefresh) {
-      throw new BadRequestException({ code: 'review_candidate_empty_changes' });
-    }
-
-    return {
-      action: candidate.action,
-      targetBranch,
-      baseSha,
-      headSha,
-      changedFiles,
-    };
   }
 
   private cloneCandidate(
@@ -1551,27 +1519,6 @@ export class AgentSupervisorService {
       throw new BadRequestException({ code });
     }
     return value.toLowerCase();
-  }
-
-  private normalizeRepoPath(path: string) {
-    const normalized = path?.trim().replace(/\\/g, '/');
-    if (
-      !normalized ||
-      normalized.startsWith('/') ||
-      /^[A-Za-z]:\//.test(normalized)
-    ) {
-      throw new BadRequestException({ code: 'invalid_repo_path' });
-    }
-
-    const segments = normalized.split('/');
-    if (
-      segments.some(
-        (segment) => !segment || segment === '.' || segment === '..',
-      )
-    ) {
-      throw new BadRequestException({ code: 'invalid_repo_path' });
-    }
-    return normalized;
   }
 
   private requireAuthority(): SupervisorAuthorityService {
