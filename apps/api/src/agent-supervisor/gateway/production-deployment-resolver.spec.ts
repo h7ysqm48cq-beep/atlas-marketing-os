@@ -153,7 +153,7 @@ describe('Production deployment resolver', () => {
   });
 
   async function createApprovedDeployment(
-    service: 'api' | 'web' | 'browser-worker' | 'engineering-runner' = 'api',
+    service: 'api' | 'web' | 'browser-worker' | 'engineering-runner' | 'engineering-verifier' = 'api',
     options: { runtimeRefresh?: boolean } = {},
   ) {
     const task = await supervisor.createTask({
@@ -246,6 +246,33 @@ describe('Production deployment resolver', () => {
       reason: null,
       taskId: task.id,
       executionId: execution.id,
+    });
+  });
+
+  it('resolves and consumes an engineering-verifier production receipt', async () => {
+    const { task, execution } =
+      await createApprovedDeployment('engineering-verifier');
+
+    await expect(
+      resolve({
+        service: 'engineering-verifier',
+        github: CANONICAL_GITHUB,
+      }),
+    ).resolves.toEqual({
+      allowed: true,
+      reason: null,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+
+    expect(
+      (await supervisor.getTask(task.id)).evidence
+        ?.ownerDeploymentAuthorizationConsumption,
+    ).toMatchObject({
+      consumedBy: 'deploy-gate',
+      authorization: {
+        service: 'engineering-verifier',
+      },
     });
   });
 
