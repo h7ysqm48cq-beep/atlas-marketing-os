@@ -48,6 +48,16 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
             total: 10,
           },
         },
+        publishing: {
+          status: "critical",
+          overdueEligiblePosts: 2,
+          stuckPublishingPosts: 1,
+          recentFailedPosts: 4,
+          thresholds: {
+            stuckMinutes: 15,
+            failureWindowHours: 24,
+          },
+        },
       }),
     });
   });
@@ -60,6 +70,22 @@ test("Atlas system health shows background queue counts", async ({ page }) => {
 
   await expect(
     page.getByTestId("background-queue-card"),
+  ).toHaveClass(/criticalCard/);
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("Publishing Pipeline");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("3");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
+  ).toContainText("4 recent failures");
+
+  await expect(
+    page.getByTestId("publishing-pipeline-card"),
   ).toHaveClass(/criticalCard/);
 });
 
