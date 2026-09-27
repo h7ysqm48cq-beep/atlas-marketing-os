@@ -66,7 +66,9 @@ export class SystemHealthAlertService {
       const fingerprint = criticalIssueFingerprint(issues);
 
       if (!fingerprint) {
-        if (this.lastCriticalFingerprint) {
+        const recovered = Boolean(this.lastCriticalFingerprint);
+
+        if (recovered) {
           await this.notifications.notify({
             category: 'system',
             title: 'ATLAS system recovered',
@@ -80,7 +82,7 @@ export class SystemHealthAlertService {
         this.lastCriticalFingerprint = null;
         return {
           alerted: false,
-          recovered: true,
+          recovered,
           criticalCount: 0,
         };
       }
