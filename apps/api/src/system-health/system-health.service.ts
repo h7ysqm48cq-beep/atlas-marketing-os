@@ -250,6 +250,13 @@ export function buildSystemHealthIssues(snapshot: CoreHealthSnapshot) {
         }]
       : []),
 
+    ...(snapshot.sportsScheduler.status === 'unknown'
+      ? [{
+          code: 'sports_scheduler_health_unknown',
+          severity: 'critical',
+        }]
+      : []),
+
     ...(snapshot.sportsScheduler.missedRuns.length > 0
       ? [{
           code: 'sports_scheduler_missed_run',
