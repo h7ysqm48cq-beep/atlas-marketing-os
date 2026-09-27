@@ -97,7 +97,9 @@ function r2aMergeApprovalFixture() {
   );
 }
 
-function r2aDeployApprovalFixture() {
+function r2aDeployApprovalFixture(
+  service: 'api' | 'engineering-verifier' = 'api',
+) {
   const candidate = {
     action: 'deploy_production' as const,
     targetBranch: 'production/atlas',
@@ -123,14 +125,14 @@ function r2aDeployApprovalFixture() {
       {
         action: 'DEPLOY',
         candidate,
-        service: 'api',
+        service,
       },
     );
 
   return approvals.issueDeployApproval(
     proof,
     candidate,
-    'api',
+    service as never,
     new Date(
       '2026-09-02T00:00:00.000Z',
     ),
@@ -178,15 +180,19 @@ function deploymentCandidateFixture() {
   };
 }
 
-function ownerDeploymentAuthorizationFixture() {
+function ownerDeploymentAuthorizationFixture(
+  service: 'api' | 'engineering-verifier' = 'api',
+) {
+  const approval =
+    service === 'api'
+      ? deployApproval
+      : r2aDeployApprovalFixture(service);
   return {
     candidate: deploymentCandidateFixture(),
-    service: 'api',
-    authorizedBy:
-      deployApproval.authorizedBy,
-    authorizedAt:
-      deployApproval.authorizedAt,
-    signature: deployApprovalSignature,
+    service,
+    authorizedBy: approval.authorizedBy,
+    authorizedAt: approval.authorizedAt,
+    signature: approval.signature,
   };
 }
 
@@ -445,6 +451,25 @@ describe('supervisor persistence mapper', () => {
     expect(
       task.evidence?.ownerMergeAuthorization?.candidate.changedFiles,
     ).not.toBe(evidence.ownerMergeAuthorization.candidate.changedFiles);
+  });
+
+  it('round-trips a signed engineering-verifier deployment authorization', () => {
+    const authorization =
+      ownerDeploymentAuthorizationFixture('engineering-verifier');
+    const evidence = {
+      ...evidenceFixture(),
+      reviewCandidate: deploymentCandidateFixture(),
+      ownerDeploymentAuthorization: authorization,
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(task.evidence?.ownerDeploymentAuthorization).toEqual(
+      authorization,
+    );
+    expect(
+      task.evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe('engineering-verifier');
   });
 
   it('maps and clones persisted signed owner deployment authorization', () => {
