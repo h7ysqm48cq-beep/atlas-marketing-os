@@ -186,7 +186,39 @@ type ScheduleReceipt = {
   date: string;
   scheduledAt: string;
   status: ScheduleLifecycleStatus;
+  lastError: string | null;
+  externalPostUrl: string | null;
 };
+
+function safeExternalPostUrl(value: string | null) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function scheduleFailureMessage(value: string | null) {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return "Open Calendar for details.";
+  }
+
+  return normalized.length > 160
+    ? normalized.slice(0, 157) + "..."
+    : normalized;
+}
 
 function scheduleLifecycleLabel(status: ScheduleLifecycleStatus) {
   const labels: Record<ScheduleLifecycleStatus, string> = {
@@ -500,6 +532,8 @@ export function BrandCopilot() {
 
         const post = (await response.json()) as {
           status?: ScheduleLifecycleStatus;
+          lastError?: string | null;
+          externalPostUrl?: string | null;
         };
         const nextStatus = post.status;
 
@@ -512,6 +546,8 @@ export function BrandCopilot() {
             ? {
                 ...current,
                 status: nextStatus,
+                lastError: post.lastError ?? null,
+                externalPostUrl: post.externalPostUrl ?? null,
               }
             : current,
         );
@@ -2716,6 +2752,8 @@ export function BrandCopilot() {
         date: scheduleDate,
         scheduledAt: firstItem.scheduledAt,
         status: "SCHEDULED",
+        lastError: null,
+        externalPostUrl: null,
       });
       setScheduleDialogOpen(false);
       setStatus(
@@ -2866,6 +2904,31 @@ export function BrandCopilot() {
                 <span>
                   Post status: {scheduleLifecycleLabel(scheduleReceipt.status)}
                 </span>
+                {scheduleReceipt.status === "PUBLISHED" &&
+                safeExternalPostUrl(scheduleReceipt.externalPostUrl) ? (
+                  <>
+                    {" · "}
+                    <a
+                      href={
+                        safeExternalPostUrl(scheduleReceipt.externalPostUrl) ??
+                        undefined
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open published post
+                    </a>
+                  </>
+                ) : null}
+                {scheduleReceipt.status === "FAILED" ? (
+                  <>
+                    {" · "}
+                    <span>
+                      Publish failed:{" "}
+                      {scheduleFailureMessage(scheduleReceipt.lastError)}
+                    </span>
+                  </>
+                ) : null}
                 {" · "}
                 <a
                   href={`/calendar?date=${encodeURIComponent(
