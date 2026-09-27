@@ -3,7 +3,10 @@ jest.mock('../automation/browser-runtime-bridge.service', () => ({
 }));
 jest.mock('../assets/assets.service', () => ({ AssetsService: class {} }));
 
-import { SystemHealthService } from './system-health.service';
+import {
+  buildSportsSchedulerHealth,
+  SystemHealthService,
+} from './system-health.service';
 
 describe('SystemHealthService', () => {
   it('reports calendar health from the scheduled-post table', async () => {
@@ -152,5 +155,67 @@ describe('SystemHealthService', () => {
         count: 3,
       },
     ]);
+  });
+});
+
+
+describe('buildSportsSchedulerHealth', () => {
+  const settings = {
+    enabled: true,
+    timezone: 'Asia/Kuala_Lumpur',
+    morningEnabled: true,
+    morningTime: '09:00',
+    eveningEnabled: true,
+    eveningTime: '20:00',
+    lastMorningRunAt: new Date('2026-09-28T01:02:00.000Z'),
+    lastEveningRunAt: new Date('2026-09-27T12:02:00.000Z'),
+    lastRunStatus: 'SUCCESS',
+    lastError: null,
+  };
+
+  it('reports healthy and the next local run before the morning slot', () => {
+    const health = buildSportsSchedulerHealth(
+      {
+        ...settings,
+        lastMorningRunAt: new Date('2026-09-27T01:02:00.000Z'),
+      },
+      new Date('2026-09-27T21:53:00.000Z'),
+    );
+
+    expect(health.status).toBe('healthy');
+    expect(health.missedRuns).toEqual([]);
+    expect(health.nextRunLocal).toBe(
+      '2026-09-28 09:00 Asia/Kuala_Lumpur MORNING',
+    );
+  });
+
+  it('fails closed when an enabled morning run is still missing after grace', () => {
+    const health = buildSportsSchedulerHealth(
+      {
+        ...settings,
+        lastMorningRunAt: new Date('2026-09-27T01:02:00.000Z'),
+      },
+      new Date('2026-09-28T01:20:00.000Z'),
+    );
+
+    expect(health.status).toBe('critical');
+    expect(health.missedRuns).toEqual(['MORNING']);
+    expect(health.nextRunLocal).toBe(
+      '2026-09-28 20:00 Asia/Kuala_Lumpur EVENING',
+    );
+  });
+
+  it('does not treat disabled sports automation as a failure', () => {
+    const health = buildSportsSchedulerHealth(
+      {
+        ...settings,
+        enabled: false,
+      },
+      new Date('2026-09-28T04:00:00.000Z'),
+    );
+
+    expect(health.status).toBe('disabled');
+    expect(health.missedRuns).toEqual([]);
+    expect(health.nextRunLocal).toBeNull();
   });
 });

@@ -138,6 +138,20 @@ type HealthSnapshot = {
       failureWindowHours?: number;
     };
   };
+  sportsScheduler?: {
+    status?: string;
+    enabled?: boolean | null;
+    timezone?: string | null;
+    morningTime?: string | null;
+    eveningTime?: string | null;
+    lastMorningRunAt?: string | null;
+    lastEveningRunAt?: string | null;
+    lastRunStatus?: string | null;
+    lastError?: string | null;
+    nextRunLocal?: string | null;
+    missedRuns?: string[];
+    graceMinutes?: number;
+  };
   queues?: {
     status?: string;
     backgroundJobs?: {
@@ -1194,6 +1208,21 @@ useEffect(() => {
             ? "healthy"
             : "idle";
 
+  const sportsScheduler =
+    healthSnapshot?.sportsScheduler ??
+    null;
+
+  const sportsSchedulerHealth: Health =
+    !healthSnapshot || !sportsScheduler
+      ? "idle"
+      : sportsScheduler.status === "critical"
+        ? "critical"
+        : sportsScheduler.status === "degraded"
+          ? "watch"
+          : sportsScheduler.status === "healthy"
+            ? "healthy"
+            : "idle";
+
   const progress =
     targetSteps >
 
@@ -1928,6 +1957,53 @@ useEffect(() => {
                 )}`
               : "—"}
           </span>
+        </article>
+
+        <article
+          data-testid="sports-scheduler-card"
+          className={`${styles.overviewCard} ${
+            sportsSchedulerHealth === "critical"
+              ? styles.criticalCard
+              : sportsSchedulerHealth === "watch"
+                ? styles.watchCard
+                : sportsSchedulerHealth === "healthy"
+                  ? styles.healthyCard
+                  : ""
+          }`}
+        >
+          <span className={styles.overviewLabel}>
+            {ui(
+              "Sports Scheduler",
+              "体育自动排程",
+            )}
+          </span>
+
+          <strong className={styles.overviewValue}>
+            {sportsScheduler?.missedRuns?.length ?? "—"}
+          </strong>
+
+          <span className={styles.overviewLabel}>
+            {sportsScheduler?.missedRuns?.length
+              ? `${sportsScheduler.missedRuns.join(", ")} ${ui(
+                  "missed",
+                  "漏跑",
+                )}`
+              : ui("No missed runs", "没有漏跑")}
+          </span>
+
+          <span className={styles.overviewLabel}>
+            {sportsScheduler?.nextRunLocal
+              ? `${ui("Next", "下次")}: ${sportsScheduler.nextRunLocal}`
+              : sportsScheduler?.enabled === false
+                ? ui("Disabled", "已停用")
+                : "—"}
+          </span>
+
+          {sportsScheduler?.lastError ? (
+            <span className={styles.overviewLabel}>
+              {sportsScheduler.lastError}
+            </span>
+          ) : null}
         </article>
       </section>
 

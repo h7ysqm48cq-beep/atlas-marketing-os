@@ -7,6 +7,154 @@ import { ScheduledPostStatus } from '../generated/prisma/enums';
 
 const PUBLISHING_STUCK_MINUTES = 15;
 const PUBLISHING_FAILURE_WINDOW_HOURS = 24;
+const SPORTS_SCHEDULER_GRACE_MINUTES = 15;
+
+type SportsSchedulerSettingsSnapshot = {
+  enabled: boolean;
+  timezone: string;
+  morningEnabled: boolean;
+  morningTime: string;
+  eveningEnabled: boolean;
+  eveningTime: string;
+  lastMorningRunAt: Date | null;
+  lastEveningRunAt: Date | null;
+  lastRunStatus: string | null;
+  lastError: string | null;
+};
+
+function localDate(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(value);
+}
+
+function localTime(value: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(value);
+
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '00';
+  const minute = parts.find((part) => part.type === 'minute')?.value ?? '00';
+
+  return `${hour}:${minute}`;
+}
+
+function addMinutes(time: string, minutes: number) {
+  const [hour, minute] = time.split(':').map(Number);
+  const total = hour * 60 + minute + minutes;
+  const normalized = Math.min(total, 23 * 60 + 59);
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(
+    normalized % 60,
+  ).padStart(2, '0')}`;
+}
+
+export function buildSportsSchedulerHealth(
+  settings: SportsSchedulerSettingsSnapshot | null,
+  now = new Date(),
+) {
+  if (!settings) {
+    return {
+      status: 'unknown',
+      enabled: null,
+      timezone: null,
+      morningTime: null,
+      eveningTime: null,
+      lastMorningRunAt: null,
+      lastEveningRunAt: null,
+      lastRunStatus: null,
+      lastError: null,
+      nextRunLocal: null,
+      missedRuns: [] as string[],
+      graceMinutes: SPORTS_SCHEDULER_GRACE_MINUTES,
+    };
+  }
+
+  if (!settings.enabled) {
+    return {
+      status: 'disabled',
+      enabled: false,
+      timezone: settings.timezone,
+      morningTime: settings.morningTime,
+      eveningTime: settings.eveningTime,
+      lastMorningRunAt: settings.lastMorningRunAt?.toISOString() ?? null,
+      lastEveningRunAt: settings.lastEveningRunAt?.toISOString() ?? null,
+      lastRunStatus: settings.lastRunStatus,
+      lastError: settings.lastError,
+      nextRunLocal: null,
+      missedRuns: [] as string[],
+      graceMinutes: SPORTS_SCHEDULER_GRACE_MINUTES,
+    };
+  }
+
+  const today = localDate(now, settings.timezone);
+  const currentTime = localTime(now, settings.timezone);
+  const ranToday = (value: Date | null) =>
+    value ? localDate(value, settings.timezone) === today : false;
+
+  const missedRuns: string[] = [];
+
+  if (
+    settings.morningEnabled &&
+    currentTime >= addMinutes(settings.morningTime, SPORTS_SCHEDULER_GRACE_MINUTES) &&
+    !ranToday(settings.lastMorningRunAt)
+  ) {
+    missedRuns.push('MORNING');
+  }
+
+  if (
+    settings.eveningEnabled &&
+    currentTime >= addMinutes(settings.eveningTime, SPORTS_SCHEDULER_GRACE_MINUTES) &&
+    !ranToday(settings.lastEveningRunAt)
+  ) {
+    missedRuns.push('EVENING');
+  }
+
+  const slots = [
+    ...(settings.morningEnabled
+      ? [{ edition: 'MORNING', time: settings.morningTime }]
+      : []),
+    ...(settings.eveningEnabled
+      ? [{ edition: 'EVENING', time: settings.eveningTime }]
+      : []),
+  ].sort((left, right) => left.time.localeCompare(right.time));
+
+  const nextToday = slots.find((slot) => slot.time > currentTime);
+  const tomorrow = localDate(
+    new Date(now.getTime() + 24 * 60 * 60_000),
+    settings.timezone,
+  );
+  const nextRunLocal = nextToday
+    ? `${today} ${nextToday.time} ${settings.timezone} ${nextToday.edition}`
+    : slots[0]
+      ? `${tomorrow} ${slots[0].time} ${settings.timezone} ${slots[0].edition}`
+      : null;
+
+  return {
+    status:
+      missedRuns.length > 0
+        ? 'critical'
+        : settings.lastRunStatus === 'FAILED' || Boolean(settings.lastError)
+          ? 'degraded'
+          : 'healthy',
+    enabled: true,
+    timezone: settings.timezone,
+    morningTime: settings.morningTime,
+    eveningTime: settings.eveningTime,
+    lastMorningRunAt: settings.lastMorningRunAt?.toISOString() ?? null,
+    lastEveningRunAt: settings.lastEveningRunAt?.toISOString() ?? null,
+    lastRunStatus: settings.lastRunStatus,
+    lastError: settings.lastError,
+    nextRunLocal,
+    missedRuns,
+    graceMinutes: SPORTS_SCHEDULER_GRACE_MINUTES,
+  };
+}
 
 @Injectable()
 export class SystemHealthService {
@@ -296,6 +444,33 @@ export class SystemHealthService {
   }
 
 
+  private async checkSportsScheduler() {
+    try {
+      const settings = await this.prisma.sportsNewsSetting.findFirst({
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        select: {
+          enabled: true,
+          timezone: true,
+          morningEnabled: true,
+          morningTime: true,
+          eveningEnabled: true,
+          eveningTime: true,
+          lastMorningRunAt: true,
+          lastEveningRunAt: true,
+          lastRunStatus: true,
+          lastError: true,
+        },
+      });
+
+      return buildSportsSchedulerHealth(settings);
+    } catch {
+      return buildSportsSchedulerHealth(null);
+    }
+  }
+
+
   private buildStatus(
     ok: boolean,
     latencyMs?: number,
@@ -323,6 +498,9 @@ export class SystemHealthService {
     const publishing =
       await this.checkPublishingPipeline();
 
+    const sportsScheduler =
+      await this.checkSportsScheduler();
+
     const issues = [
       ...(publishing.overdueEligiblePosts &&
       publishing.overdueEligiblePosts > 0
@@ -346,6 +524,21 @@ export class SystemHealthService {
             code: 'publishing_recent_failures',
             severity: 'warning',
             count: publishing.recentFailedPosts,
+          }]
+        : []),
+      ...(sportsScheduler.missedRuns.length > 0
+        ? [{
+            code: 'sports_scheduler_missed_run',
+            severity: 'critical',
+            count: sportsScheduler.missedRuns.length,
+            editions: sportsScheduler.missedRuns,
+          }]
+        : []),
+      ...(sportsScheduler.status === 'degraded'
+        ? [{
+            code: 'sports_scheduler_last_run_failed',
+            severity: 'warning',
+            message: sportsScheduler.lastError,
           }]
         : []),
     ];
@@ -373,6 +566,8 @@ export class SystemHealthService {
       calendar: await this.checkCalendar(),
 
       publishing,
+
+      sportsScheduler,
 
       queues: await this.checkQueues(),
 
