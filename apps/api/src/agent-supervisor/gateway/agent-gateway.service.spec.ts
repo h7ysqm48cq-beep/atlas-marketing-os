@@ -449,19 +449,19 @@ describe('AgentGatewayService', () => {
         },
       );
 
-    await expect(
-      productionResolver()
+    const result =
+      await productionResolver()
         .resolveProductionDeployment({
           service: 'api',
           github: CANONICAL_GITHUB,
-        }),
-    ).resolves.toEqual({
+        });
+
+    expect(result).toEqual({
       allowed: true,
       reason: null,
       taskId: expectedTaskId,
       executionId: expectedExecutionId,
     });
-
     expect(wait).toHaveBeenCalledTimes(1);
   });
 
