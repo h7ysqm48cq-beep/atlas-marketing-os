@@ -41,7 +41,15 @@ describe('SystemHealthService', () => {
     };
     const service = new SystemHealthService(
       prisma as never,
-      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          status: 'healthy',
+          provider: 'supabase',
+          bucket: 'atlas-assets',
+          configured: true,
+          message: null,
+        }),
+      } as never,
       {
         health: jest.fn().mockResolvedValue({
           healthy: true,
@@ -80,6 +88,62 @@ describe('SystemHealthService', () => {
     });
   });
 
+  it('marks asset storage critical when the read-only storage probe fails', async () => {
+    const prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([{ count: 1n }]),
+      scheduledPost: {
+        count: jest
+          .fn()
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      backgroundJob: {
+        groupBy: jest.fn().mockResolvedValue([]),
+      },
+      sportsNewsSetting: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+
+    const service = new SystemHealthService(
+      prisma as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          status: 'critical',
+          provider: 'supabase',
+          bucket: 'atlas-assets',
+          configured: true,
+          message: 'storage unavailable',
+        }),
+      } as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          healthy: true,
+          service: 'test-browser-worker',
+        }),
+      } as never,
+    );
+
+    const health = await service.getSystemHealth();
+
+    expect(health.assets).toEqual({
+      status: 'critical',
+      provider: 'supabase',
+      bucket: 'atlas-assets',
+      configured: true,
+      message: 'storage unavailable',
+    });
+
+    expect(health.issues).toContainEqual({
+      code: 'assets_unhealthy',
+      severity: 'critical',
+    });
+  });
+
   it('marks publishing health critical for overdue or stuck posts', async () => {
     const prisma = {
       $queryRaw: jest.fn().mockResolvedValue([{ count: 1n }]),
@@ -106,7 +170,15 @@ describe('SystemHealthService', () => {
     };
     const service = new SystemHealthService(
       prisma as never,
-      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          status: 'healthy',
+          provider: 'supabase',
+          bucket: 'atlas-assets',
+          configured: true,
+          message: null,
+        }),
+      } as never,
       {
         health: jest.fn().mockResolvedValue({
           healthy: true,
@@ -158,7 +230,15 @@ describe('SystemHealthService', () => {
     };
     const service = new SystemHealthService(
       prisma as never,
-      {} as never,
+      {
+        health: jest.fn().mockResolvedValue({
+          status: 'healthy',
+          provider: 'supabase',
+          bucket: 'atlas-assets',
+          configured: true,
+          message: null,
+        }),
+      } as never,
       {
         health: jest.fn().mockResolvedValue({
           healthy: true,

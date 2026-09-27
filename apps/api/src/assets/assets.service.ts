@@ -23,6 +23,10 @@ export class AssetsService {
     private readonly storageService: SupabaseStorageService,
   ) {}
 
+  async health() {
+    return this.storageService.health();
+  }
+
   async upload(input: {
     file?: Express.Multer.File;
     name?: string;

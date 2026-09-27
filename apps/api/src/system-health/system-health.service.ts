@@ -373,13 +373,17 @@ export class SystemHealthService {
 
   private async checkAssets() {
     try {
+      return await this.assetsService.health();
+    } catch (error) {
       return {
-        status: "healthy",
-        checked: true,
-      };
-    } catch {
-      return {
-        status: "critical",
+        status: 'critical',
+        provider: 'supabase',
+        bucket: null,
+        configured: null,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'asset storage health check failed',
       };
     }
   }
