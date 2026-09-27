@@ -1,5 +1,5 @@
 type ProductionService =
-  'api' | 'web' | 'browser-worker' | 'engineering-runner';
+  'api' | 'web' | 'browser-worker' | 'engineering-runner' | 'engineering-verifier';
 type DriftStatus =
   'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';
 
@@ -149,7 +149,13 @@ describe('ProductionDeploymentGateService', () => {
     ).toMatchObject({ response: { code: 'github_provenance_required' } });
   });
 
-  it.each<ProductionService>(['api', 'web', 'browser-worker', 'engineering-runner'])(
+  it.each<ProductionService>([
+    'api',
+    'web',
+    'browser-worker',
+    'engineering-runner',
+    'engineering-verifier',
+  ])(
     'allows a canonical %s deployment only at the exact approved SHA',
     (service) => {
       expect(gate().assertProductionDeployment(input({ service }))).toEqual({
