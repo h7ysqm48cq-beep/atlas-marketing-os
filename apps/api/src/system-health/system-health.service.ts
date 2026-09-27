@@ -175,8 +175,14 @@ export class SystemHealthService {
         now.getTime() - PUBLISHING_FAILURE_WINDOW_HOURS * 60 * 60_000,
       );
 
-      const [overdueEligiblePosts, stuckPublishingPosts, recentFailedPosts] =
-        await Promise.all([
+      const [
+        overdueEligiblePosts,
+        stuckPublishingPosts,
+        recentFailedPosts,
+        publishedLast24h,
+        latestPublishedPost,
+        nextScheduledPost,
+      ] = await Promise.all([
           this.prisma.scheduledPost.count({
             where: {
               status: {
@@ -206,6 +212,47 @@ export class SystemHealthService {
               },
             },
           }),
+          this.prisma.scheduledPost.count({
+            where: {
+              status: ScheduledPostStatus.PUBLISHED,
+              publishedAt: {
+                gte: failureCutoff,
+              },
+            },
+          }),
+          this.prisma.scheduledPost.findFirst({
+            where: {
+              status: ScheduledPostStatus.PUBLISHED,
+              publishedAt: {
+                not: null,
+              },
+            },
+            orderBy: {
+              publishedAt: 'desc',
+            },
+            select: {
+              publishedAt: true,
+            },
+          }),
+          this.prisma.scheduledPost.findFirst({
+            where: {
+              status: {
+                in: [
+                  ScheduledPostStatus.SCHEDULED,
+                  ScheduledPostStatus.QUEUED,
+                ],
+              },
+              scheduledAt: {
+                gt: now,
+              },
+            },
+            orderBy: {
+              scheduledAt: 'asc',
+            },
+            select: {
+              scheduledAt: true,
+            },
+          }),
         ]);
 
       const critical =
@@ -221,6 +268,11 @@ export class SystemHealthService {
         overdueEligiblePosts,
         stuckPublishingPosts,
         recentFailedPosts,
+        publishedLast24h,
+        latestPublishedAt:
+          latestPublishedPost?.publishedAt?.toISOString() ?? null,
+        nextScheduledAt:
+          nextScheduledPost?.scheduledAt?.toISOString() ?? null,
         thresholds: {
           stuckMinutes: PUBLISHING_STUCK_MINUTES,
           failureWindowHours: PUBLISHING_FAILURE_WINDOW_HOURS,
@@ -232,6 +284,9 @@ export class SystemHealthService {
         overdueEligiblePosts: null,
         stuckPublishingPosts: null,
         recentFailedPosts: null,
+        publishedLast24h: null,
+        latestPublishedAt: null,
+        nextScheduledAt: null,
         thresholds: {
           stuckMinutes: PUBLISHING_STUCK_MINUTES,
           failureWindowHours: PUBLISHING_FAILURE_WINDOW_HOURS,
