@@ -385,11 +385,127 @@ describe('AgentGatewayService', () => {
     };
   }
 
+  function productionResolver() {
+    return gateway as unknown as {
+      resolveProductionDeployment(
+        input: unknown,
+      ): Promise<{
+        allowed: boolean;
+        reason: string | null;
+        taskId: string;
+        executionId: string;
+      }>;
+    };
+  }
+
+  function mockDeploymentResolutionWait(
+    implementation: () => Promise<void> =
+      async () => undefined,
+  ) {
+    return jest
+      .spyOn(
+        gateway as unknown as {
+          waitForProductionDeploymentResolution:
+            () => Promise<void>;
+        },
+        'waitForProductionDeploymentResolution',
+      )
+      .mockImplementation(implementation);
+  }
+
   it('exposes the production deployment gate contract', () => {
     expect(
       typeof (gateway as unknown as { checkProductionDeployment?: unknown })
         .checkProductionDeployment,
     ).toBe('function');
+  });
+
+  it('waits briefly for a just-merged production deployment authorization to become resolvable', async () => {
+    let expectedTaskId = '';
+    let expectedExecutionId = '';
+
+    const wait =
+      mockDeploymentResolutionWait(
+        async () => {
+          const {
+            task,
+            execution,
+            reviewCandidate,
+          } =
+            await createReadyDeploymentExecution();
+
+          await authorizeProductionDeployment(
+            task.id,
+            reviewCandidate,
+          );
+          await supervisor.approveTask(
+            task.id,
+            true,
+          );
+
+          expectedTaskId = task.id;
+          expectedExecutionId =
+            execution.id;
+        },
+      );
+
+    const result =
+      await productionResolver()
+        .resolveProductionDeployment({
+          service: 'api',
+          github: CANONICAL_GITHUB,
+        });
+
+    expect(result).toEqual({
+      allowed: true,
+      reason: null,
+      taskId: expectedTaskId,
+      executionId: expectedExecutionId,
+    });
+    expect(wait).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds deployment-resolution waiting and still fails closed when authorization never appears', async () => {
+    const wait =
+      mockDeploymentResolutionWait();
+
+    await expect(
+      productionResolver()
+        .resolveProductionDeployment({
+          service: 'api',
+          github: CANONICAL_GITHUB,
+        }),
+    ).rejects.toMatchObject({
+      response: {
+        code:
+          'production_deployment_resolution_not_found',
+      },
+    });
+
+    expect(wait).toHaveBeenCalledTimes(15);
+  });
+
+  it('does not retry invalid production provenance', async () => {
+    const wait =
+      mockDeploymentResolutionWait();
+
+    await expect(
+      productionResolver()
+        .resolveProductionDeployment({
+          service: 'api',
+          github: {
+            ...CANONICAL_GITHUB,
+            branch: 'main',
+          },
+        }),
+    ).rejects.toMatchObject({
+      response: {
+        code:
+          'canonical_production_branch_required',
+      },
+    });
+
+    expect(wait).not.toHaveBeenCalled();
   });
 
   it('allows production provenance only against the persisted deployment candidate SHA', async () => {
