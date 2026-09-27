@@ -1529,19 +1529,24 @@ export class AutomationService {
     });
   }
 
-  async createMultiPlatformPosts(input: {
-    brandId: string;
-    campaignId?: string;
-    historyId?: string;
-    title?: string;
-    contents: Partial<Record<SocialPlatform, string>>;
-    mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
-    channelIds?: Partial<Record<SocialPlatform, string>>;
-    platforms: SocialPlatform[];
-    scheduledAt: string;
-    timezone?: string;
-    queueImmediately?: boolean;
-  }) {
+  async createMultiPlatformPosts(
+    input: {
+      brandId: string;
+      campaignId?: string;
+      historyId?: string;
+      title?: string;
+      contents: Partial<Record<SocialPlatform, string>>;
+      mediaUrls?: Partial<Record<SocialPlatform, string[]>>;
+      channelIds?: Partial<Record<SocialPlatform, string>>;
+      platforms: SocialPlatform[];
+      scheduledAt: string;
+      timezone?: string;
+      queueImmediately?: boolean;
+    },
+    options?: {
+      initialStatus?: ScheduledPostStatus;
+    },
+  ) {
     if (!input.platforms?.length) {
       throw new BadRequestException('At least one platform is required.');
     }
@@ -1636,9 +1641,11 @@ export class AutomationService {
         mediaUrls: input.mediaUrls?.[platform] ?? [],
         scheduledAt: input.scheduledAt,
         timezone: input.timezone,
-        status: input.queueImmediately
-          ? ScheduledPostStatus.QUEUED
-          : ScheduledPostStatus.DRAFT,
+        status:
+          options?.initialStatus ??
+          (input.queueImmediately
+            ? ScheduledPostStatus.QUEUED
+            : ScheduledPostStatus.DRAFT),
       });
 
       createdPosts.push({

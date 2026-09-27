@@ -361,10 +361,11 @@ export class WorkspaceScopedAutomationService extends AutomationService {
 
   override async createMultiPlatformPosts(
     input: Parameters<AutomationService['createMultiPlatformPosts']>[0],
+    options?: Parameters<AutomationService['createMultiPlatformPosts']>[1],
   ) {
     const workspaceId = await this.requestWorkspaceId();
     await this.assertBrand(workspaceId, input.brandId);
-    return super.createMultiPlatformPosts(input);
+    return super.createMultiPlatformPosts(input, options);
   }
 
   override async updatePost(
