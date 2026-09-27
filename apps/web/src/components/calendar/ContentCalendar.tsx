@@ -389,7 +389,6 @@ export function ContentCalendar() {
     }
 
     deepLinkPostIdRef.current = null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Open the ScheduledPost explicitly requested by a Calendar deep-link.
     setSelectedPost(matchedPost);
   }, [posts]);
 
