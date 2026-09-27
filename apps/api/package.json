@@ -21,7 +21,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "check:prisma-generated": "node scripts/check-prisma-generated-client.cjs",
-    "security:audit:diagnostic": "cd ../.. && echo ATLAS_AUDIT_ROOT && (npm audit --json || true) && echo ATLAS_AUDIT_WEB && (npm audit --json --workspace apps/web || true) && echo ATLAS_AUDIT_BROWSER && (npm audit --json --workspace apps/browser-worker || true) && echo ATLAS_AUDIT_API && (npm audit --json --workspace apps/api || true)"
+    "security:audit:diagnostic": "cd ../.. && echo ATLAS_WEB_FIX_GENERATE && npm install --package-lock-only --ignore-scripts --save-exact --workspace apps/web next@16.3.6 eslint-config-next@16.3.6 && echo ATLAS_WEB_FIX_AUDIT && (npm audit --json --workspace apps/web || true) && echo ATLAS_WEB_PACKAGE_B64 && base64 -w0 apps/web/package.json && echo && echo ATLAS_LOCK_B64 && base64 -w0 package-lock.json && echo"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
