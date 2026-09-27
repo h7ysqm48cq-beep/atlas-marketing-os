@@ -18,6 +18,7 @@ import type {
   ProductionDeploymentService,
   SupervisorReviewCandidate,
 } from '../agent-supervisor.types';
+import { normalizeSupervisorReviewCandidate } from '../review-candidate';
 import type {
   AuthorityClaims,
   AuthorityKeyRecord,
@@ -142,10 +143,15 @@ export class HumanOwnerApprovalService {
     candidate: SupervisorReviewCandidate,
     now = new Date(),
   ) {
+    const normalizedCandidate =
+      normalizeSupervisorReviewCandidate(
+        candidate,
+      );
+
     const intentHash =
       this.approvalIntentHash({
         action: 'MERGE',
-        candidate,
+        candidate: normalizedCandidate,
       });
 
     const ownerId =
@@ -159,7 +165,7 @@ export class HumanOwnerApprovalService {
       now.toISOString();
 
     const candidateHash =
-      authorityHash(candidate);
+      authorityHash(normalizedCandidate);
 
     const claims: AuthorityClaims = {
       iss: 'atlas.supervisor.control-plane',
@@ -189,7 +195,9 @@ export class HumanOwnerApprovalService {
 
     return {
       candidate:
-        structuredClone(candidate),
+        structuredClone(
+          normalizedCandidate,
+        ),
       authorizedBy: ownerId,
       authorizedAt,
       signature,
@@ -202,10 +210,15 @@ export class HumanOwnerApprovalService {
     service: ProductionDeploymentService,
     now = new Date(),
   ) {
+    const normalizedCandidate =
+      normalizeSupervisorReviewCandidate(
+        candidate,
+      );
+
     const intentHash =
       this.approvalIntentHash({
         action: 'DEPLOY',
-        candidate,
+        candidate: normalizedCandidate,
         service,
       });
 
@@ -220,7 +233,7 @@ export class HumanOwnerApprovalService {
       now.toISOString();
 
     const candidateHash =
-      authorityHash(candidate);
+      authorityHash(normalizedCandidate);
 
     const claims: AuthorityClaims = {
       iss: 'atlas.supervisor.control-plane',
@@ -251,7 +264,9 @@ export class HumanOwnerApprovalService {
 
     return {
       candidate:
-        structuredClone(candidate),
+        structuredClone(
+          normalizedCandidate,
+        ),
       service,
       authorizedBy: ownerId,
       authorizedAt,
@@ -297,16 +312,21 @@ export class HumanOwnerApprovalService {
   private approvalIntentHash(
     intent: HumanOwnerApprovalIntent,
   ): string {
+    const candidate =
+      normalizeSupervisorReviewCandidate(
+        intent.candidate,
+      );
+
     if (intent.action === 'MERGE') {
       return authorityHash({
         action: 'MERGE',
-        candidate: intent.candidate,
+        candidate,
       });
     }
 
     return authorityHash({
       action: 'DEPLOY',
-      candidate: intent.candidate,
+      candidate,
       service: intent.service,
     });
   }
