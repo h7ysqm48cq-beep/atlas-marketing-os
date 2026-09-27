@@ -400,6 +400,37 @@ describe('buildSystemHealthIssues', () => {
     ]);
   });
 
+  it('promotes unknown sports scheduler health to a critical issue', () => {
+    const healthy = {
+      database: { status: 'healthy' },
+      browserWorker: { healthy: true },
+      assets: { status: 'healthy' },
+      calendar: { status: 'healthy' },
+      publishing: {
+        status: 'healthy',
+        overdueEligiblePosts: 0,
+        stuckPublishingPosts: 0,
+        recentFailedPosts: 0,
+      },
+      sportsScheduler: {
+        status: 'unknown',
+        missedRuns: [],
+        lastError: null,
+      },
+      queues: {
+        status: 'healthy',
+        backgroundJobs: {
+          failed: 0,
+        },
+      },
+    };
+
+    expect(buildSystemHealthIssues(healthy)).toContainEqual({
+      code: 'sports_scheduler_health_unknown',
+      severity: 'critical',
+    });
+  });
+
   it('preserves publishing and sports scheduler issue semantics', () => {
     expect(
       buildSystemHealthIssues({
