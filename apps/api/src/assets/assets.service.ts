@@ -512,7 +512,30 @@ export class AssetsService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    const asset = await this.findOne(id);
+
+    if (
+      asset.storageProvider === 'supabase' &&
+      asset.storagePath
+    ) {
+      const storagePaths = [asset.storagePath];
+      const thumbnailPath =
+        asset.thumbnailUrl &&
+        asset.storagePath.includes('/uploads/')
+          ? asset.storagePath
+              .replace('/uploads/', '/thumbnails/')
+              .replace(/\.[^/.]+$/, '.webp')
+          : null;
+
+      if (thumbnailPath) {
+        storagePaths.push(thumbnailPath);
+      }
+
+      await this.storageService.removeMany(
+        storagePaths,
+      );
+    }
+
     await this.prisma.asset.delete({ where: { id } });
 
     return {
