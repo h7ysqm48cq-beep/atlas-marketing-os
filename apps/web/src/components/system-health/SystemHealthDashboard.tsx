@@ -95,6 +95,28 @@ function HealthStatusBadge({
 
 
 
+function formatPublishingTimestamp(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("en-MY", {
+    timeZone: "Asia/Kuala_Lumpur",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+
 type HealthSnapshot = {
   checkedAt: string;
   api?: unknown;
@@ -108,6 +130,9 @@ type HealthSnapshot = {
     overdueEligiblePosts?: number | null;
     stuckPublishingPosts?: number | null;
     recentFailedPosts?: number | null;
+    publishedLast24h?: number | null;
+    latestPublishedAt?: string | null;
+    nextScheduledAt?: string | null;
     thresholds?: {
       stuckMinutes?: number;
       failureWindowHours?: number;
@@ -1881,6 +1906,25 @@ useEffect(() => {
               ? `${publishingStats.recentFailedPosts ?? 0} ${ui(
                   "recent failures",
                   "近期失败",
+                )}`
+              : "—"}
+          </span>
+
+          <span className={styles.overviewLabel}>
+            {publishingStats
+              ? `${publishingStats.publishedLast24h ?? 0} ${ui(
+                  "published / 24h",
+                  "24小时已发布",
+                )}`
+              : "—"}
+          </span>
+
+          <span className={styles.overviewLabel}>
+            {publishingStats
+              ? `${ui("Last", "最近")}: ${formatPublishingTimestamp(
+                  publishingStats.latestPublishedAt,
+                )} · ${ui("Next", "下次")}: ${formatPublishingTimestamp(
+                  publishingStats.nextScheduledAt,
                 )}`
               : "—"}
           </span>
