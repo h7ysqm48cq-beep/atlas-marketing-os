@@ -171,12 +171,36 @@ type MarketingPlan = {
   }>;
 };
 
+type ScheduleLifecycleStatus =
+  | "DRAFT"
+  | "SCHEDULED"
+  | "QUEUED"
+  | "PUBLISHING"
+  | "PUBLISHED"
+  | "FAILED"
+  | "CANCELLED";
+
 type ScheduleReceipt = {
   postCount: number;
   postId: string;
   date: string;
   scheduledAt: string;
+  status: ScheduleLifecycleStatus;
 };
+
+function scheduleLifecycleLabel(status: ScheduleLifecycleStatus) {
+  const labels: Record<ScheduleLifecycleStatus, string> = {
+    DRAFT: "Draft",
+    SCHEDULED: "Scheduled",
+    QUEUED: "Queued",
+    PUBLISHING: "Publishing",
+    PUBLISHED: "Published",
+    FAILED: "Failed",
+    CANCELLED: "Cancelled",
+  };
+
+  return labels[status];
+}
 
 type CopilotMode = "chat" | "marketing-plan";
 
@@ -424,6 +448,90 @@ export function BrandCopilot() {
   const [scheduleReceipt, setScheduleReceipt] = useState<ScheduleReceipt | null>(
     null,
   );
+
+  useEffect(() => {
+    const postId = scheduleReceipt?.postId;
+    const scheduledAt = scheduleReceipt?.scheduledAt;
+
+    if (!postId || !scheduledAt) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const terminalStatuses = new Set<ScheduleLifecycleStatus>([
+      "PUBLISHED",
+      "FAILED",
+      "CANCELLED",
+    ]);
+
+    const scheduleNextRefresh = (
+      nextStatus: ScheduleLifecycleStatus,
+      fallbackDelay = 30_000,
+    ) => {
+      if (cancelled || terminalStatuses.has(nextStatus)) {
+        return;
+      }
+
+      const dueAt = new Date(scheduledAt).getTime();
+      const timeUntilDue = Number.isNaN(dueAt) ? 0 : dueAt - Date.now();
+      const delay =
+        nextStatus === "SCHEDULED" && timeUntilDue > 120_000
+          ? Math.min(Math.max(timeUntilDue - 120_000, 30_000), 5 * 60_000)
+          : fallbackDelay;
+
+      timeoutId = setTimeout(() => {
+        void refreshScheduleStatus();
+      }, delay);
+    };
+
+    const refreshScheduleStatus = async () => {
+      try {
+        const response = await fetch(
+          API_URL + "/automation/posts/" + encodeURIComponent(postId),
+          { cache: "no-store" },
+        );
+
+        if (!response.ok) {
+          scheduleNextRefresh("SCHEDULED");
+          return;
+        }
+
+        const post = (await response.json()) as {
+          status?: ScheduleLifecycleStatus;
+        };
+        const nextStatus = post.status;
+
+        if (cancelled || !nextStatus) {
+          return;
+        }
+
+        setScheduleReceipt((current) =>
+          current?.postId === postId
+            ? {
+                ...current,
+                status: nextStatus,
+              }
+            : current,
+        );
+
+        scheduleNextRefresh(nextStatus, 10_000);
+      } catch {
+        scheduleNextRefresh("SCHEDULED");
+      }
+    };
+
+    void refreshScheduleStatus();
+
+    return () => {
+      cancelled = true;
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [scheduleReceipt?.postId, scheduleReceipt?.scheduledAt]);
 
   const [conversationId, setConversationId] = useState<string | null>(null);
   const conversationIdRef = useRef<string | null>(null);
@@ -2607,6 +2715,7 @@ export function BrandCopilot() {
         postId: firstPost.id,
         date: scheduleDate,
         scheduledAt: firstItem.scheduledAt,
+        status: "SCHEDULED",
       });
       setScheduleDialogOpen(false);
       setStatus(
@@ -2753,6 +2862,10 @@ export function BrandCopilot() {
             {status}
             {scheduleReceipt ? (
               <>
+                {" · "}
+                <span>
+                  Post status: {scheduleLifecycleLabel(scheduleReceipt.status)}
+                </span>
                 {" · "}
                 <a
                   href={`/calendar?date=${encodeURIComponent(
