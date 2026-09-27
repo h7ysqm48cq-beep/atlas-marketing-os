@@ -2469,3 +2469,202 @@
     flex-basis: 30px;
   }
 }
+
+/* Copilot schedule dialog */
+
+.scheduleDialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 5, 8, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.scheduleDialog {
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(10, 12, 17, 0.98);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.scheduleDialogHeader,
+.scheduleDialogActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.scheduleDialogHeader {
+  border-bottom: 1px solid var(--border);
+}
+
+.scheduleDialogHeader > div {
+  display: grid;
+  gap: 3px;
+}
+
+.scheduleDialogHeader span,
+.schedulePreview > span,
+.scheduleDateTimeGrid label > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scheduleDialogHeader h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.scheduleDialogHeader > button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.scheduleDialogBody {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.schedulePlatformList {
+  display: grid;
+  gap: 8px;
+}
+
+.schedulePlatformRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.schedulePlatformRow > label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.schedulePlatformRow label > span {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.schedulePlatformRow small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.schedulePlatformRow select,
+.scheduleDateTimeGrid input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(6, 8, 12, 0.86);
+  color: var(--text);
+  padding: 0 10px;
+}
+
+.scheduleDateTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scheduleDateTimeGrid label {
+  display: grid;
+  gap: 6px;
+}
+
+.schedulePreview {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 11px;
+  background: rgba(209, 163, 63, 0.07);
+}
+
+.schedulePreview strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.schedulePreview small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.scheduleDialogError {
+  margin: 0;
+  color: #ff9a9a;
+  font-size: 11px;
+}
+
+.scheduleDialogActions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+.scheduleDialogActions button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.scheduleDialogActions button:last-child {
+  border-color: rgba(209, 163, 63, 0.4);
+  background: linear-gradient(140deg, var(--gold-light), var(--gold));
+  color: #171106;
+}
+
+.scheduleDialogActions button:disabled {
+  opacity: 0.45;
+}
+
+@media (max-width: 720px) {
+  .scheduleDialogOverlay {
+    align-items: end;
+    padding: 0;
+  }
+
+  .scheduleDialog {
+    width: 100%;
+    max-height: 86vh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .schedulePlatformRow,
+  .scheduleDateTimeGrid {
+    grid-template-columns: 1fr;
+  }
+}
