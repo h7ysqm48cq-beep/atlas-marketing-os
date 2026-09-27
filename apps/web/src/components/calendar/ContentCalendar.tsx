@@ -209,6 +209,7 @@ export function ContentCalendar() {
   const [currentMonth, setCurrentMonth] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
+  const deepLinkPostIdRef = useRef<string | null>(null);
 
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -348,9 +349,49 @@ export function ContentCalendar() {
   }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps -- Month is the calendar reload trigger; locale helper identity is not.
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const targetDate = searchParams.get("date");
+    const targetPostId = searchParams.get("postId");
+
+    deepLinkPostIdRef.current = targetPostId;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(targetDate ?? "")) {
+      const [year, month] = targetDate!.split("-").map(Number);
+
+      if (
+        Number.isInteger(year) &&
+        Number.isInteger(month) &&
+        month >= 1 &&
+        month <= 12
+      ) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- A Calendar deep-link may intentionally target another month.
+        setCurrentMonth(new Date(year, month - 1, 1));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch calendar data when the visible month changes.
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const targetPostId = deepLinkPostIdRef.current;
+
+    if (!targetPostId) {
+      return;
+    }
+
+    const matchedPost = posts.find((post) => post.id === targetPostId);
+
+    if (!matchedPost) {
+      return;
+    }
+
+    deepLinkPostIdRef.current = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Open the ScheduledPost explicitly requested by a Calendar deep-link.
+    setSelectedPost(matchedPost);
+  }, [posts]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
