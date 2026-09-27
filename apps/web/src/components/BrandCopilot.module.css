@@ -1400,6 +1400,38 @@
   color: var(--text);
 }
 
+.attachmentEdit {
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid rgba(209, 163, 63, 0.25);
+  border-radius: 6px;
+  background: rgba(209, 163, 63, 0.06);
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.attachmentEdit:hover {
+  border-color: rgba(209, 163, 63, 0.45);
+  background: rgba(209, 163, 63, 0.1);
+}
+
+.mediaAttachButton {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mediaAttachButton:hover {
+  border-color: rgba(209, 163, 63, 0.4);
+  color: var(--gold-light);
+}
+
 /* Neutralize legacy large attachment cards if still present elsewhere */
 @media (max-width: 720px) {
   .attachmentChip {

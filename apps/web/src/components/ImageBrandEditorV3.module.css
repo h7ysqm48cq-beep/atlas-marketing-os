@@ -1984,3 +1984,13 @@
     transform: rotate(360deg);
   }
 }
+
+.uploadSourceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.uploadSourceActions > button {
+  flex: 1 1 96px;
+}
