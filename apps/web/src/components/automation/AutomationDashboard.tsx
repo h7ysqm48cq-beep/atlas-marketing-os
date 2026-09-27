@@ -207,6 +207,13 @@ type BrowserDraftResponse = {
   };
 };
 
+type BrowserDraftAsset = {
+  id: string;
+  name: string;
+  url: string;
+  type: "IMAGE";
+};
+
 type Settings = {
   timezone: string;
   approvalRequired: boolean;
@@ -707,6 +714,12 @@ export function AutomationDashboard() {
 
   const [browserImagePath, setBrowserImagePath] = useState("");
 
+  const [browserDraftAssets, setBrowserDraftAssets] = useState<
+    BrowserDraftAsset[]
+  >([]);
+
+  const [selectedBrowserAssetId, setSelectedBrowserAssetId] = useState("");
+
   const [browserRunning, setBrowserRunning] = useState(false);
 
   const [browserViewerKey, setBrowserViewerKey] = useState(0);
@@ -736,6 +749,10 @@ export function AutomationDashboard() {
 
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
 
+  const selectedBrowserAsset = browserDraftAssets.find(
+    (asset) => asset.id === selectedBrowserAssetId,
+  );
+
   const selectedBrowserChannel = dashboard?.channels.find(
     (channel) => channel.id === selectedBrowserChannelId,
   );
@@ -764,6 +781,34 @@ export function AutomationDashboard() {
 
   const [selectedBrowserHistoryItem, setSelectedBrowserHistoryItem] =
     useState<BrowserActionHistoryItem | null>(null);
+
+  async function loadBrowserDraftAssets() {
+    try {
+      const response = await fetch(`${API_URL}/assets?view=library`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setBrowserDraftAssets([]);
+        return;
+      }
+
+      const data = (await response.json()) as Array<
+        BrowserDraftAsset & { type: string }
+      >;
+
+      if (!Array.isArray(data)) {
+        setBrowserDraftAssets([]);
+        return;
+      }
+
+      setBrowserDraftAssets(
+        data.filter((asset) => asset.type === "IMAGE") as BrowserDraftAsset[],
+      );
+    } catch {
+      setBrowserDraftAssets([]);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -886,6 +931,7 @@ export function AutomationDashboard() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch remote automation state when the dashboard mounts.
     void load();
     void loadBrowserActions();
+    void loadBrowserDraftAssets();
   }, [load]); // eslint-disable-line react-hooks/exhaustive-deps -- Browser actions are already loaded by the dashboard loader.
 
   useEffect(() => {
@@ -1146,6 +1192,7 @@ export function AutomationDashboard() {
       setBrowserCaption(item.caption || "");
 
       setBrowserImagePath(item.imagePath || "");
+      setSelectedBrowserAssetId("");
 
       setBrowserRunning(true);
       setDraftReady(true);
@@ -1184,9 +1231,11 @@ export function AutomationDashboard() {
           },
           body: JSON.stringify({
             caption: browserCaption.trim(),
-            ...(isInstagramBrowser && /^https?:\/\//i.test(browserImagePath.trim())
-              ? { imageUrl: browserImagePath.trim() }
-              : { imagePath: browserImagePath.trim() || null }),
+            ...(selectedBrowserAsset?.url
+              ? { imageUrl: selectedBrowserAsset.url }
+              : isInstagramBrowser && /^https?:\/\//i.test(browserImagePath.trim())
+                ? { imageUrl: browserImagePath.trim() }
+                : { imagePath: browserImagePath.trim() || null }),
           }),
         },
       );
@@ -1683,12 +1732,42 @@ export function AutomationDashboard() {
             </label>
 
             <label>
+              <span>Asset Library image</span>
+
+              <select
+                value={selectedBrowserAssetId}
+                onChange={(event) => {
+                  setSelectedBrowserAssetId(event.target.value);
+
+                  if (event.target.value) {
+                    setBrowserImagePath("");
+                  }
+                }}
+              >
+                <option value="">Use local path / URL instead</option>
+                {browserDraftAssets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.name}
+                  </option>
+                ))}
+              </select>
+
+              <small>
+                Select a saved image to send its remote Asset URL directly to
+                Browser Agent.
+              </small>
+            </label>
+
+            <label>
               <span>{isInstagramBrowser ? "Image path or URL" : copy.imagePathLabel}</span>
 
               <input
                 type="text"
                 value={browserImagePath}
-                onChange={(event) => setBrowserImagePath(event.target.value)}
+                onChange={(event) => {
+                  setBrowserImagePath(event.target.value);
+                  setSelectedBrowserAssetId("");
+                }}
                 placeholder={isInstagramBrowser ? "https://... or /path/to/image.jpg" : copy.imagePathPlaceholder}
               />
 
