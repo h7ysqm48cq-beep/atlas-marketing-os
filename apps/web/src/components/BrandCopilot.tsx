@@ -102,6 +102,7 @@ type CopilotAttachment = {
   storageProvider?: string;
   storagePath?: string;
   documentId?: string;
+  assetId?: string;
 };
 
 type ConversationSummary = {
@@ -882,6 +883,8 @@ export function BrandCopilot() {
   const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentGalleryInputRef = useRef<HTMLInputElement | null>(null);
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
   const imagePollingTimersRef = useRef<Array<ReturnType<typeof setInterval>>>(
@@ -1472,7 +1475,8 @@ export function BrandCopilot() {
   async function handleAttachmentSelection(
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const files = Array.from(event.target.files || []);
+    const input = event.currentTarget;
+    const files = Array.from(input.files || []);
 
     if (!files.length) {
       return;
@@ -1589,9 +1593,7 @@ export function BrandCopilot() {
     } finally {
       setUploadingAttachment(false);
 
-      if (attachmentInputRef.current) {
-        attachmentInputRef.current.value = "";
-      }
+      input.value = "";
     }
   }
 
@@ -3396,6 +3398,22 @@ export function BrandCopilot() {
               accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.markdown,.xlsx,.xls"
               onChange={handleAttachmentSelection}
             />
+            <input
+              ref={attachmentCameraInputRef}
+              className={styles.attachmentInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              onChange={handleAttachmentSelection}
+            />
+            <input
+              ref={attachmentGalleryInputRef}
+              className={styles.attachmentInput}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleAttachmentSelection}
+            />
 
             {attachments.length > 0 ? (
               <div className={styles.attachmentTray}>
@@ -3422,6 +3440,30 @@ export function BrandCopilot() {
                       <strong>{attachment.name}</strong>
                       <span>{formatFileSize(attachment.size)}</span>
                     </div>
+
+                    {attachment.kind === "image" && attachment.assetId ? (
+                      <button
+                        type="button"
+                        className={styles.attachmentEdit}
+                        aria-label={`Edit ${attachment.name}`}
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            assetId: attachment.assetId!,
+                            source: "copilot",
+                          });
+
+                          if (conversationId) {
+                            params.set("conversationId", conversationId);
+                          }
+
+                          window.location.assign(
+                            `/image-editor?${params.toString()}`,
+                          );
+                        }}
+                      >
+                        Edit
+                      </button>
+                    ) : null}
 
                     <button
                       type="button"
@@ -3480,6 +3522,26 @@ export function BrandCopilot() {
                     <path d="M12 5v14" />
                     <path d="M5 12h14" />
                   </svg>
+                </button>
+                <button
+                  className={styles.mediaAttachButton}
+                  type="button"
+                  disabled={busy || uploadingAttachment}
+                  onClick={() => attachmentCameraInputRef.current?.click()}
+                  aria-label="Camera"
+                  title="Camera"
+                >
+                  Camera
+                </button>
+                <button
+                  className={styles.mediaAttachButton}
+                  type="button"
+                  disabled={busy || uploadingAttachment}
+                  onClick={() => attachmentGalleryInputRef.current?.click()}
+                  aria-label="Gallery"
+                  title="Gallery"
+                >
+                  Gallery
                 </button>
               </div>
 

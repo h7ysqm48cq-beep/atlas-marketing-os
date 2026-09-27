@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { extname } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { AssetsService } from '../assets/assets.service';
 import { BrandsService } from '../brands/brands.service';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 
@@ -11,11 +12,18 @@ const IMAGE_MIME_TYPES = new Set([
   'image/gif',
 ]);
 
+const EDITOR_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+
 @Injectable()
 export class CopilotAttachmentService {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly storageService: SupabaseStorageService,
+    private readonly assetsService: AssetsService,
   ) {}
 
   async uploadImage(file: Express.Multer.File | undefined) {
@@ -31,6 +39,26 @@ export class CopilotAttachmentService {
 
     if (file.size > 10 * 1024 * 1024) {
       throw new BadRequestException('Image size must not exceed 10 MB.');
+    }
+
+    if (EDITOR_IMAGE_MIME_TYPES.has(file.mimetype)) {
+      const asset = await this.assetsService.upload({
+        file,
+        collection: 'Copilot Uploads',
+        aiEnabled: false,
+      });
+
+      return {
+        id: asset.id,
+        assetId: asset.id,
+        kind: 'image' as const,
+        name: asset.name,
+        mimeType: asset.mimeType || file.mimetype,
+        size: asset.fileSize || file.size,
+        url: asset.url,
+        storageProvider: asset.storageProvider || undefined,
+        storagePath: asset.storagePath || undefined,
+      };
     }
 
     const brand = await this.brandsService.getActiveBrand();

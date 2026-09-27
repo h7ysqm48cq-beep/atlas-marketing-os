@@ -834,6 +834,7 @@ Description: ${campaign.description || 'Not set'}`
         storageProvider: attachment.storageProvider,
         storagePath: attachment.storagePath,
         documentId: attachment.documentId,
+        assetId: attachment.assetId,
       }));
   }
 

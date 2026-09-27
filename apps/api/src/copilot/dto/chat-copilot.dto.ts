@@ -53,6 +53,10 @@ class CopilotAttachmentDto {
   @IsString()
   @IsOptional()
   documentId?: string;
+
+  @IsString()
+  @IsOptional()
+  assetId?: string;
 }
 
 export class ChatCopilotDto {

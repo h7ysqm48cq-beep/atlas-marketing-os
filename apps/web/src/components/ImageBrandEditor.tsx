@@ -268,6 +268,7 @@ export function ImageBrandEditor() {
 
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const lastMaskPointRef = useRef<NormalizedPosition | null>(null);
 
   const viewportPointersRef = useRef<
@@ -3481,6 +3482,18 @@ export function ImageBrandEditor() {
           if (file) void uploadOwnImage(file);
         }}
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) void uploadOwnImage(file);
+        }}
+      />
       <header className={styles.header}>
         <div>
           <h1>Image Editor</h1>
@@ -3519,9 +3532,14 @@ export function ImageBrandEditor() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search images..."
             />
-            <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={uploadingOwnImage}>
-              {uploadingOwnImage ? "Uploading..." : "＋ Attach own image"}
-            </button>
+            <div className={styles.uploadSourceActions}>
+              <button type="button" onClick={() => cameraInputRef.current?.click()} disabled={uploadingOwnImage}>
+                {uploadingOwnImage ? "Uploading..." : "Camera"}
+              </button>
+              <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={uploadingOwnImage}>
+                {uploadingOwnImage ? "Uploading..." : "Gallery"}
+              </button>
+            </div>
           </div>
           <div className={styles.assetGrid}>
             {filteredAssets.map((asset) => (
@@ -3629,9 +3647,14 @@ export function ImageBrandEditor() {
 
               {activeTool === "images" ? (
                 <div className={styles.mobileAssetPanel}>
-                  <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={uploadingOwnImage}>
-                    {uploadingOwnImage ? "Uploading..." : "＋ Attach own image"}
-                  </button>
+                  <div className={styles.uploadSourceActions}>
+                    <button type="button" onClick={() => cameraInputRef.current?.click()} disabled={uploadingOwnImage}>
+                      {uploadingOwnImage ? "Uploading..." : "Camera"}
+                    </button>
+                    <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={uploadingOwnImage}>
+                      {uploadingOwnImage ? "Uploading..." : "Gallery"}
+                    </button>
+                  </div>
                   <div className={styles.mobileAssetGrid}>
                     {filteredAssets.slice(0, 12).map((asset) => (
                       <button
