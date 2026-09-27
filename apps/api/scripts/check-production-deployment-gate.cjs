@@ -122,8 +122,10 @@ async function checkProductionDeploymentGate({
 
     if (!response.ok) {
       const reason = failureReason(data, response.status);
-      const retryable =
-        reason === 'production_deployment_resolution_not_found';
+      const retryable = new Set([
+        'production_deployment_resolution_not_found',
+        'owner_deployment_authorization_required',
+      ]).has(reason);
 
       if (
         retryable &&
