@@ -88,6 +88,7 @@ const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'web',
   'browser-worker',
   'engineering-runner',
+  'engineering-verifier',
 ]);
 
 @Injectable()
