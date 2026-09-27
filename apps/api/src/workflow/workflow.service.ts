@@ -71,6 +71,12 @@ export class WorkflowService {
       timezone: input.timezone || 'Asia/Kuala_Lumpur',
     });
 
+    const firstSchedule = schedules[0];
+
+    if (firstSchedule && firstSchedule.scheduledAtUtc.getTime() <= Date.now()) {
+      throw new BadRequestException('Scheduled time must be in the future.');
+    }
+
     const scheduledItems: AutoQueueResult['scheduledItems'] = [];
 
     for (let index = 0; index < input.items.length; index += 1) {
