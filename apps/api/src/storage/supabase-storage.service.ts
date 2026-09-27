@@ -38,6 +38,43 @@ export class SupabaseStorageService {
         : null;
   }
 
+  async health() {
+    if (!this.client) {
+      return {
+        status: 'critical',
+        provider: 'supabase',
+        bucket: this.bucket,
+        configured: false,
+        message: 'Supabase Storage is not configured.',
+      };
+    }
+
+    const { error } = await this.client.storage
+      .from(this.bucket)
+      .list('', {
+        limit: 1,
+        offset: 0,
+      });
+
+    if (error) {
+      return {
+        status: 'critical',
+        provider: 'supabase',
+        bucket: this.bucket,
+        configured: true,
+        message: error.message,
+      };
+    }
+
+    return {
+      status: 'healthy',
+      provider: 'supabase',
+      bucket: this.bucket,
+      configured: true,
+      message: null,
+    };
+  }
+
   async uploadImage(input: UploadImageInput): Promise<UploadedFile> {
     return this.uploadFile(input);
   }
