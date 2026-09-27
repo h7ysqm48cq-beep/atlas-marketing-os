@@ -43,3 +43,127 @@ test('shared deployment gate accepts engineering-verifier and forwards exact pro
     'engineering-verifier',
   );
 });
+
+test('shared deployment gate retries only unresolved production authorization', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: 'b'.repeat(40),
+  };
+  let calls = 0;
+  const waits = [];
+
+  const receipt = await checkProductionDeploymentGate({
+    env,
+    sleepImpl: async (ms) => {
+      waits.push(ms);
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({
+            code: 'production_deployment_resolution_not_found',
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          allowed: true,
+          taskId: 'task-api',
+          executionId: 'exec-api',
+        }),
+      };
+    },
+  });
+
+  assert.deepEqual(receipt, {
+    taskId: 'task-api',
+    executionId: 'exec-api',
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [2_000]);
+});
+
+test('shared deployment gate bounds unresolved authorization retries', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'api',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: 'c'.repeat(40),
+  };
+  let calls = 0;
+  let waits = 0;
+
+  await assert.rejects(
+    checkProductionDeploymentGate({
+      env,
+      sleepImpl: async () => {
+        waits += 1;
+      },
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({
+            code: 'production_deployment_resolution_not_found',
+          }),
+        };
+      },
+    }),
+    /ATLAS_DEPLOY_GATE_DENY production_deployment_resolution_not_found/,
+  );
+
+  assert.equal(calls, 16);
+  assert.equal(waits, 15);
+});
+
+test('shared deployment gate does not retry service binding failures', async () => {
+  const env = {
+    ATLAS_SUPERVISOR_API_URL: 'https://api.example.test',
+    ATLAS_SUPERVISOR_CI_TOKEN: 'token',
+    ATLAS_DEPLOYMENT_SERVICE: 'web',
+    RAILWAY_GIT_REPO_OWNER: 'h7ysqm48cq-beep',
+    RAILWAY_GIT_REPO_NAME: 'atlas-marketing-os',
+    RAILWAY_GIT_BRANCH: 'production/atlas',
+    RAILWAY_GIT_COMMIT_SHA: 'd'.repeat(40),
+  };
+  let calls = 0;
+  let waits = 0;
+
+  await assert.rejects(
+    checkProductionDeploymentGate({
+      env,
+      sleepImpl: async () => {
+        waits += 1;
+      },
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({
+            code: 'owner_deployment_authorization_service_mismatch',
+          }),
+        };
+      },
+    }),
+    /owner_deployment_authorization_service_mismatch/,
+  );
+
+  assert.equal(calls, 1);
+  assert.equal(waits, 0);
+});
+

@@ -53,13 +53,24 @@ function failureReason(responseBody, status) {
   return `http_${status}`;
 }
 
+const DEPLOYMENT_RESOLUTION_ATTEMPTS = 16;
+const DEPLOYMENT_RESOLUTION_POLL_MS = 2_000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function checkProductionDeploymentGate({
   env = process.env,
   fetchImpl = globalThis.fetch,
+  sleepImpl = sleep,
 } = {}) {
   for (const key of REQUIRED_ENV) requireEnv(env, key);
   if (typeof fetchImpl !== 'function') {
     throw new Error('ATLAS_DEPLOY_GATE_DENY fetch_unavailable');
+  }
+  if (typeof sleepImpl !== 'function') {
+    throw new Error('ATLAS_DEPLOY_GATE_DENY sleep_unavailable');
   }
 
   const apiUrl = requireEnv(env, 'ATLAS_SUPERVISOR_API_URL').replace(/\/+$/g, '');
@@ -74,12 +85,17 @@ async function checkProductionDeploymentGate({
       commitSha: requireEnv(env, 'RAILWAY_GIT_COMMIT_SHA'),
     },
   };
+  const url =
+    `${apiUrl}/engineering/supervisor/gateway/production-deployment/resolve`;
 
-  let response;
-  try {
-    response = await fetchImpl(
-      `${apiUrl}/engineering/supervisor/gateway/production-deployment/resolve`,
-      {
+  for (
+    let attempt = 0;
+    attempt < DEPLOYMENT_RESOLUTION_ATTEMPTS;
+    attempt += 1
+  ) {
+    let response;
+    try {
+      response = await fetchImpl(url, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -87,45 +103,65 @@ async function checkProductionDeploymentGate({
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10_000),
-      },
-    );
-  } catch (error) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY resolver_unreachable: ${error instanceof Error ? error.message : String(error)}`,
-    );
+      });
+    } catch (error) {
+      throw new Error(
+        `ATLAS_DEPLOY_GATE_DENY resolver_unreachable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
+    }
+
+    if (!response.ok) {
+      const reason = failureReason(data, response.status);
+      const retryable =
+        reason === 'production_deployment_resolution_not_found';
+
+      if (
+        retryable &&
+        attempt < DEPLOYMENT_RESOLUTION_ATTEMPTS - 1
+      ) {
+        await sleepImpl(DEPLOYMENT_RESOLUTION_POLL_MS);
+        continue;
+      }
+
+      throw new Error(
+        `ATLAS_DEPLOY_GATE_DENY ${reason}`,
+      );
+    }
+
+    if (!data || data.allowed !== true) {
+      throw new Error(
+        `ATLAS_DEPLOY_GATE_DENY ${failureReason(data, response.status)}`,
+      );
+    }
+
+    if (
+      typeof data.taskId !== 'string' ||
+      !data.taskId.trim() ||
+      typeof data.executionId !== 'string' ||
+      !data.executionId.trim()
+    ) {
+      throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
+    }
+
+    return {
+      taskId: data.taskId,
+      executionId: data.executionId,
+    };
   }
 
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY ${failureReason(data, response.status)}`,
-    );
-  }
-  if (!data || data.allowed !== true) {
-    throw new Error(
-      `ATLAS_DEPLOY_GATE_DENY ${failureReason(data, response.status)}`,
-    );
-  }
-  if (
-    typeof data.taskId !== 'string' ||
-    !data.taskId.trim() ||
-    typeof data.executionId !== 'string' ||
-    !data.executionId.trim()
-  ) {
-    throw new Error('ATLAS_DEPLOY_GATE_DENY invalid_response');
-  }
-
-  return {
-    taskId: data.taskId,
-    executionId: data.executionId,
-  };
+  throw new Error(
+    'ATLAS_DEPLOY_GATE_DENY production_deployment_resolution_not_found',
+  );
 }
 
 module.exports = { checkProductionDeploymentGate };
