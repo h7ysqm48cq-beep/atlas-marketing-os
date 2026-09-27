@@ -2516,6 +2516,18 @@ export function BrandCopilot() {
       return;
     }
 
+    const scheduledAt = new Date(
+      `${scheduleDate}T${scheduleTime}:00+08:00`,
+    );
+
+    if (
+      Number.isNaN(scheduledAt.getTime()) ||
+      scheduledAt.getTime() <= Date.now()
+    ) {
+      setScheduleDialogError("Schedule time must be in the future.");
+      return;
+    }
+
     const missingChannel = schedulePlatforms.find(
       (platform) => !scheduleChannelIds[platform],
     );
