@@ -264,6 +264,38 @@ export type SportsNewsChannelOverride = {
   eveningImagePrompt?: string | null;
 };
 
+type SportsNewsTokenizedChannel = {
+  accessTokenEncrypted: string | null;
+};
+
+function sanitizeSportsNewsChannel<
+  T extends SportsNewsTokenizedChannel,
+>(channel: T | null) {
+  if (!channel) {
+    return null;
+  }
+
+  const { accessTokenEncrypted, ...safeChannel } = channel;
+
+  return {
+    ...safeChannel,
+    hasAccessToken: Boolean(accessTokenEncrypted),
+  };
+}
+
+export function sanitizeSportsNewsSettingsResponse<
+  T extends {
+    telegramChannel: SportsNewsTokenizedChannel | null;
+    facebookChannel: SportsNewsTokenizedChannel | null;
+  },
+>(settings: T) {
+  return {
+    ...settings,
+    telegramChannel: sanitizeSportsNewsChannel(settings.telegramChannel),
+    facebookChannel: sanitizeSportsNewsChannel(settings.facebookChannel),
+  };
+}
+
 @Injectable()
 export class SportsNewsSettingsService {
   constructor(
@@ -278,7 +310,7 @@ export class SportsNewsSettingsService {
   async get() {
     const workspace = await this.workspace();
 
-    return this.prisma.sportsNewsSetting.upsert({
+    const settings = await this.prisma.sportsNewsSetting.upsert({
       where: {
         workspaceId: workspace.id,
       },
@@ -291,6 +323,8 @@ export class SportsNewsSettingsService {
         facebookChannel: true,
       },
     });
+
+    return sanitizeSportsNewsSettingsResponse(settings);
   }
 
   async update(input: UpdateSportsNewsSettingsInput) {
@@ -545,7 +579,7 @@ export class SportsNewsSettingsService {
       }
     }
 
-    return this.prisma.sportsNewsSetting.update({
+    const updated = await this.prisma.sportsNewsSetting.update({
       where: {
         id: settings.id,
       },
@@ -555,6 +589,8 @@ export class SportsNewsSettingsService {
         facebookChannel: true,
       },
     });
+
+    return sanitizeSportsNewsSettingsResponse(updated);
   }
 
   async channels() {
