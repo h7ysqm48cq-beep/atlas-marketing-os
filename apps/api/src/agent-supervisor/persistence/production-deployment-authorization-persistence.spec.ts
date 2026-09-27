@@ -167,6 +167,16 @@ describe('production deployment authorization persistence', () => {
     ).toBe('api');
   });
 
+  it('round-trips engineering-verifier as an authorized production service', () => {
+    const task = mapTaskRecord(
+      record(authorization('engineering-verifier')),
+    );
+
+    expect(
+      task.evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe('engineering-verifier');
+  });
+
   it.each([undefined, 'unknown-service']) (
     'fails closed for invalid persisted deployment service %p',
     (service) => {
