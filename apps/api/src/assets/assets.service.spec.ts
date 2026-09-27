@@ -6,6 +6,7 @@ describe('AssetsService.remove', () => {
     brandId: 'brand-1',
     campaignId: null,
     historyId: null,
+    storageProvider: 'supabase',
     storagePath:
       'brands/brand-1/uploads/2026/09/asset-key.png',
     thumbnailUrl:
