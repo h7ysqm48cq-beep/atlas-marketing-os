@@ -52,6 +52,22 @@ export interface ProductionDeploymentQualificationResult {
   executionStatus: string;
 }
 
+export interface ProductionDeploymentDispatchClaimInput {
+  service: ProductionDeploymentQualificationService;
+  github?: GithubDeploymentProvenance;
+  dispatcherId: string;
+}
+
+export interface ProductionDeploymentDispatchClaimResult {
+  claimed: boolean;
+  reason: null | 'not_found' | 'already_reserved';
+  service: ProductionDeploymentQualificationService;
+  commitSha: string;
+  taskId?: string;
+  executionId?: string;
+  reservationId?: string;
+}
+
 const PRODUCTION_QUALIFICATION_ALLOWED_PATH: Record<
   ProductionDeploymentQualificationService,
   string
@@ -73,6 +89,17 @@ function productionQualificationTaskId(
     `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
     `${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
   return `ATLAS-SYS-${uuid}`;
+}
+
+function productionDeploymentDispatchReservationId(
+  taskId: string,
+  service: ProductionDeploymentQualificationService,
+  sha: string,
+): string {
+  const hex = createHash('sha256')
+    .update(`production-deployment-dispatch:${taskId}:${service}:${sha}`, 'utf8')
+    .digest('hex');
+  return `ATLAS-DISPATCH-${hex}`;
 }
 
 function productionQualificationTask(
@@ -405,6 +432,159 @@ export class AgentGatewayService {
       taskStatus: task.status,
       executionId: execution.id,
       executionStatus: execution.status,
+    };
+  }
+
+  async claimProductionDeploymentDispatch(
+    input: ProductionDeploymentDispatchClaimInput,
+  ): Promise<ProductionDeploymentDispatchClaimResult> {
+    if (
+      !PRODUCTION_QUALIFICATION_SERVICES.includes(
+        input.service as ProductionDeploymentQualificationService,
+      )
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_dispatch_service_unsupported',
+      });
+    }
+
+    const service = input.service;
+    const sha = input.github?.commitSha?.trim().toLowerCase() ?? '';
+    if (!FULL_GIT_SHA.test(sha)) {
+      throw new BadRequestException({
+        code: 'production_deployment_dispatch_sha_invalid',
+      });
+    }
+
+    const dispatcherId = input.dispatcherId?.trim() ?? '';
+    if (!dispatcherId || dispatcherId.length > 160) {
+      throw new BadRequestException({
+        code: 'production_deployment_dispatch_identity_invalid',
+      });
+    }
+
+    this.productionDeploymentGate.assertProductionDeployment({
+      service,
+      supervisorApprovedSha: sha,
+      github: input.github,
+    });
+
+    const matches: Array<{
+      task: SupervisorTask;
+      candidate: SupervisorReviewCandidate;
+      execution: SupervisorExecution;
+    }> = [];
+
+    for (const task of await this.supervisor.listTasks()) {
+      if (task.status !== 'APPROVED') continue;
+      const rawCandidate = task.evidence?.reviewCandidate;
+      if (
+        !rawCandidate ||
+        rawCandidate.action !== 'deploy_production' ||
+        rawCandidate.targetBranch !== 'production/atlas'
+      ) {
+        continue;
+      }
+
+      const candidate = this.normalizeCandidate(rawCandidate);
+      if (
+        candidate.headSha !== sha ||
+        candidate.baseSha !== sha ||
+        candidate.changedFiles.length !== 0
+      ) {
+        continue;
+      }
+      if (
+        task.evidence?.ownerDeploymentAuthorization?.service !== service ||
+        task.evidence?.ownerDeploymentAuthorizationConsumption
+      ) {
+        continue;
+      }
+
+      this.supervisor.assertOwnerDeploymentAuthorization(
+        task,
+        candidate,
+        service,
+      );
+
+      const executions = await this.executionStore.listByTask(task.id);
+      const matchingExecutions = executions.filter((execution) => {
+        if (execution.status !== 'COMPLETED' || !execution.result) return false;
+        const rawExecutionCandidate =
+          execution.result.evidence.reviewCandidate;
+        if (!rawExecutionCandidate) return false;
+        return this.sameCandidate(
+          candidate,
+          this.normalizeCandidate(rawExecutionCandidate),
+        );
+      });
+
+      if (matchingExecutions.length > 1) {
+        throw new BadRequestException({
+          code: 'production_deployment_dispatch_execution_ambiguous',
+          taskId: task.id,
+        });
+      }
+      if (matchingExecutions.length === 0) continue;
+
+      const validated = await this.validatePersistedCandidate(
+        task.id,
+        matchingExecutions[0].id,
+      );
+      matches.push({
+        task: validated.task,
+        candidate: validated.persistedCandidate,
+        execution: validated.execution,
+      });
+    }
+
+    if (matches.length === 0) {
+      return {
+        claimed: false,
+        reason: 'not_found',
+        service,
+        commitSha: sha,
+      };
+    }
+    if (matches.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_dispatch_ambiguous',
+      });
+    }
+
+    const { task, candidate, execution } = matches[0];
+    if (task.evidence?.ownerDeploymentDispatchReservation) {
+      return {
+        claimed: false,
+        reason: 'already_reserved',
+        service,
+        commitSha: sha,
+        taskId: task.id,
+        executionId: execution.id,
+      };
+    }
+
+    const reservationId = productionDeploymentDispatchReservationId(
+      task.id,
+      service,
+      sha,
+    );
+    await this.supervisor.reserveProductionDeploymentDispatch(
+      task.id,
+      candidate,
+      service,
+      reservationId,
+      dispatcherId,
+    );
+
+    return {
+      claimed: true,
+      reason: null,
+      service,
+      commitSha: sha,
+      taskId: task.id,
+      executionId: execution.id,
+      reservationId,
     };
   }
 
