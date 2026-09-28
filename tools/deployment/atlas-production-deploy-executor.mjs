@@ -1,3 +1,6 @@
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 const EXPECTED_REPOSITORY = 'h7ysqm48cq-beep/atlas-marketing-os';
 const PRODUCTION_BRANCH = 'production/atlas';
 const RAILWAY_API = 'https://backboard.railway.com/graphql/v2';
@@ -374,7 +377,7 @@ export async function execute(
 
 const isEntrypoint =
   process.argv[1] &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (isEntrypoint) {
   execute().catch((error) => {
