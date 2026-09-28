@@ -25,6 +25,19 @@ def assignment(
     }
 
 
+def exact_workspace_objective(files):
+    return (
+        "EXACT_WORKSPACE_EDIT "
+        + json.dumps(
+            {
+                "version": 1,
+                "files": files,
+            },
+            separators=(",", ":"),
+        )
+    )
+
+
 def test_refuses_independent_verification_assignment(tmp_path):
     module = import_module("tools.ai_engineer.supervisor_executor")
     executor = module.SupervisorAssignmentExecutor(project_root=tmp_path)
@@ -383,6 +396,312 @@ def write_users_service(tmp_path):
         encoding="utf-8",
     )
     return target
+
+
+def test_exact_workspace_edit_applies_exact_allowed_files(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    first = tmp_path / "src/first.ts"
+    second = tmp_path / "src/second.tsx"
+
+    first.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    first.write_text(
+        "export const value = 'old';\\n",
+        encoding="utf-8",
+    )
+    second.write_text(
+        "export const label = 'before';\\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/first.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+        {
+            "file_path": "src/second.tsx",
+            "replacements": [
+                {
+                    "old": "'before'",
+                    "new": "'after'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=[
+                "src/first.ts",
+                "src/second.tsx",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.error is None
+    assert result.planning == {
+        "requiresReview": False,
+        "operation": "exact_workspace_edit",
+        "plannedPaths": [
+            "src/first.ts",
+            "src/second.tsx",
+        ],
+    }
+    assert result.evidence["changedFiles"] == [
+        "src/first.ts",
+        "src/second.tsx",
+    ]
+    assert (
+        result.evidence["rootCause"]
+        == "exact_bounded_workspace_edit"
+    )
+
+    assert "'new'" in first.read_text(
+        encoding="utf-8"
+    )
+    assert "'after'" in second.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_exact_workspace_edit_requires_exact_scope(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "src/example.ts"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "export const value = 'old';\\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/example.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=[
+                "src/example.ts",
+                "src/other.ts",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error == "supervisor_scope_violation"
+    assert "'old'" in target.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_exact_workspace_edit_rejects_nonunique_match(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "src/example.ts"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "const a = 'old'; const b = 'old';\\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/example.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["src/example.ts"],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert (
+        result.error
+        == "supervisor_workspace_edit_exact_match_invalid"
+    )
+    assert git_changed_files(tmp_path) == []
+
+
+def test_exact_workspace_edit_requires_apply_authority(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "src/example.ts"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "export const value = 'old';\\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/example.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["src/example.ts"],
+        ),
+        allow_apply=False,
+    )
+
+    assert not result.success
+    assert (
+        result.error
+        == "supervisor_apply_not_authorized"
+    )
+    assert "'old'" in target.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_exact_workspace_edit_refuses_dirty_workspace(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "src/example.ts"
+    target.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    target.write_text(
+        "export const value = 'old';\\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    (
+        tmp_path / "unrelated.txt"
+    ).write_text(
+        "dirty\\n",
+        encoding="utf-8",
+    )
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/example.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["src/example.ts"],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert (
+        result.error
+        == "supervisor_workspace_not_clean"
+    )
+    assert "'old'" in target.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_ambiguous_objective_stays_planning_only(tmp_path):

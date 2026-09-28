@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+import json
 import re
 import subprocess
 import sys
@@ -13,6 +14,12 @@ if __package__:
     from .natural_language import build_natural_language_engineer
     from .request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
+    from tools.ir.action import (
+        WorkspaceEdit,
+        WorkspaceFileEdit,
+        WorkspaceTextEdit,
+    )
+    from tools.ir.plan import ExecutionPlan
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from tools.ai_engineer.crud import CRUDGenerationError, CRUDGenerator
@@ -20,6 +27,12 @@ else:
     from tools.ai_engineer.natural_language import build_natural_language_engineer
     from tools.ai_engineer.request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
+    from tools.ir.action import (
+        WorkspaceEdit,
+        WorkspaceFileEdit,
+        WorkspaceTextEdit,
+    )
+    from tools.ir.plan import ExecutionPlan
 
 
 @dataclass(slots=True, frozen=True)
@@ -39,6 +52,9 @@ def _normalize_relative_path(value: str) -> str:
     if path.as_posix() in {".", ""}:
         raise ValueError("supervisor_allowed_path_invalid")
     return path.as_posix()
+
+
+EXACT_WORKSPACE_EDIT_PREFIX = "EXACT_WORKSPACE_EDIT "
 
 
 class SupervisorAssignmentExecutor:
@@ -85,6 +101,16 @@ class SupervisorAssignmentExecutor:
             self._assert_safe_allowed_targets(allowed)
         except ValueError as error:
             return self._failure(str(error))
+
+        if objective.startswith(
+            EXACT_WORKSPACE_EDIT_PREFIX
+        ):
+            return self._execute_exact_workspace_edit(
+                assignment,
+                objective,
+                allowed,
+                allow_apply=allow_apply,
+            )
 
         planned = self.engineer.handle(
             objective,
@@ -199,6 +225,264 @@ class SupervisorAssignmentExecutor:
             success=True,
             summary=f"Applied {operation} within Supervisor scope.",
             evidence=self._evidence(changed),
+            planning=planning,
+        )
+
+    def _execute_exact_workspace_edit(
+        self,
+        assignment: Mapping[str, Any],
+        objective: str,
+        allowed: set[str],
+        *,
+        allow_apply: bool,
+    ) -> SupervisorExecutorResult:
+        planning = {
+            "requiresReview": False,
+            "operation": "exact_workspace_edit",
+            "plannedPaths": sorted(allowed),
+        }
+
+        if self._operation_forbidden(
+            "edit_assigned_files",
+            assignment,
+        ):
+            return self._failure(
+                "supervisor_forbidden_action",
+                planning=planning,
+            )
+
+        if not allow_apply:
+            return self._failure(
+                "supervisor_apply_not_authorized",
+                planning=planning,
+            )
+
+        raw = objective[
+            len(EXACT_WORKSPACE_EDIT_PREFIX):
+        ].strip()
+
+        try:
+            payload = json.loads(raw)
+        except (TypeError, ValueError):
+            return self._failure(
+                "supervisor_workspace_edit_payload_invalid",
+                planning=planning,
+            )
+
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"version", "files"}
+            or payload.get("version") != 1
+            or not isinstance(payload.get("files"), list)
+            or not payload["files"]
+        ):
+            return self._failure(
+                "supervisor_workspace_edit_payload_invalid",
+                planning=planning,
+            )
+
+        file_edits: list[WorkspaceFileEdit] = []
+        payload_paths: set[str] = set()
+
+        for file_item in payload["files"]:
+            if (
+                not isinstance(file_item, dict)
+                or set(file_item)
+                != {"file_path", "replacements"}
+            ):
+                return self._failure(
+                    "supervisor_workspace_edit_payload_invalid",
+                    planning=planning,
+                )
+
+            raw_path = file_item.get("file_path")
+
+            if not isinstance(raw_path, str):
+                return self._failure(
+                    "supervisor_workspace_edit_payload_invalid",
+                    planning=planning,
+                )
+
+            try:
+                relative = _normalize_relative_path(
+                    raw_path
+                )
+            except ValueError:
+                return self._failure(
+                    "supervisor_workspace_edit_payload_invalid",
+                    planning=planning,
+                )
+
+            if relative in payload_paths:
+                return self._failure(
+                    "supervisor_workspace_edit_duplicate_path",
+                    planning=planning,
+                )
+
+            payload_paths.add(relative)
+
+            replacements = file_item.get(
+                "replacements"
+            )
+
+            if (
+                not isinstance(replacements, list)
+                or not replacements
+            ):
+                return self._failure(
+                    "supervisor_workspace_edit_payload_invalid",
+                    planning=planning,
+                )
+
+            target = self.project_root / relative
+
+            try:
+                original = target.read_text(
+                    encoding="utf-8"
+                )
+            except (OSError, UnicodeError):
+                return self._failure(
+                    "supervisor_workspace_edit_target_invalid",
+                    planning=planning,
+                )
+
+            edits: list[WorkspaceTextEdit] = []
+
+            for replacement in replacements:
+                if (
+                    not isinstance(replacement, dict)
+                    or set(replacement)
+                    != {"old", "new"}
+                ):
+                    return self._failure(
+                        "supervisor_workspace_edit_payload_invalid",
+                        planning=planning,
+                    )
+
+                old_text = replacement.get("old")
+                new_text = replacement.get("new")
+
+                if (
+                    not isinstance(old_text, str)
+                    or not old_text
+                    or not isinstance(new_text, str)
+                    or old_text == new_text
+                ):
+                    return self._failure(
+                        "supervisor_workspace_edit_payload_invalid",
+                        planning=planning,
+                    )
+
+                if original.count(old_text) != 1:
+                    return self._failure(
+                        "supervisor_workspace_edit_exact_match_invalid",
+                        planning=planning,
+                    )
+
+                start = original.index(old_text)
+
+                edits.append(
+                    WorkspaceTextEdit(
+                        start=start,
+                        end=start + len(old_text),
+                        text=new_text,
+                    )
+                )
+
+            file_edits.append(
+                WorkspaceFileEdit(
+                    file_path=relative,
+                    edits=tuple(edits),
+                )
+            )
+
+        if payload_paths != allowed:
+            return self._failure(
+                "supervisor_scope_violation",
+                planning=planning,
+            )
+
+        if self._git_changed_files():
+            return self._failure(
+                "supervisor_workspace_not_clean",
+                planning=planning,
+            )
+
+        action = WorkspaceEdit(
+            files=tuple(file_edits)
+        )
+
+        plan = ExecutionPlan(
+            title="Supervisor exact workspace edit",
+            target_project=str(self.project_root),
+            actions=[action],
+            metadata={
+                "operation": "exact_workspace_edit",
+            },
+        )
+
+        runtime = build_default_runtime(
+            project_root=self.project_root,
+            show_preview=True,
+        )
+
+        result = runtime.run(
+            plan,
+            dry_run=False,
+            rollback_on_failure=True,
+        )
+
+        if not result.success:
+            changed = self._git_changed_files()
+
+            if changed:
+                self._restore_clean_workspace(
+                    changed
+                )
+
+            detail = (
+                result.errors[0]
+                if result.errors
+                else "unknown"
+            )
+
+            normalized = re.sub(
+                r"\\s+",
+                " ",
+                str(detail).strip(),
+            )[:500]
+
+            return self._failure(
+                "supervisor_workspace_edit_failed:"
+                + normalized,
+                planning=planning,
+            )
+
+        changed = self._git_changed_files()
+
+        if set(changed) != allowed:
+            if changed:
+                self._restore_clean_workspace(
+                    changed
+                )
+
+            return self._failure(
+                "supervisor_workspace_edit_changed_paths_mismatch",
+                planning=planning,
+            )
+
+        evidence = self._evidence(changed)
+        evidence["rootCause"] = (
+            "exact_bounded_workspace_edit"
+        )
+
+        return SupervisorExecutorResult(
+            success=True,
+            summary=(
+                "Applied exact WorkspaceEdit "
+                "within Supervisor scope."
+            ),
+            evidence=evidence,
             planning=planning,
         )
 
