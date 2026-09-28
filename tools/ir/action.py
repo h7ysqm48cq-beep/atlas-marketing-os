@@ -86,6 +86,10 @@ class WorkspaceEdit(Action):
         WorkspaceFileEdit,
         ...,
     ]
+    allowed_suffixes: tuple[str, ...] = (
+        ".ts",
+        ".tsx",
+    )
 
     def to_dict(self) -> dict[str, Any]:
         data = super().to_dict()
@@ -93,6 +97,9 @@ class WorkspaceEdit(Action):
             file.to_dict()
             for file in self.files
         ]
+        data["allowed_suffixes"] = list(
+            self.allowed_suffixes
+        )
         return data
 
 

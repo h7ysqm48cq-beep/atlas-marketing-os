@@ -21,6 +21,14 @@ from .result import (
 )
 
 
+SAFE_WORKSPACE_EDIT_SUFFIXES = frozenset({
+    ".ts",
+    ".tsx",
+    ".yml",
+    ".yaml",
+})
+
+
 class CreateFileValidator:
     """
     Validate CreateFile actions before execution.
@@ -173,6 +181,32 @@ class WorkspaceEditValidator:
                 "one file edit.",
             )
 
+        allowed_suffixes = action.allowed_suffixes
+
+        if (
+            not isinstance(allowed_suffixes, tuple)
+            or not allowed_suffixes
+            or len(set(allowed_suffixes))
+            != len(allowed_suffixes)
+            or any(
+                not isinstance(suffix, str)
+                or suffix
+                not in SAFE_WORKSPACE_EDIT_SUFFIXES
+                for suffix in allowed_suffixes
+            )
+        ):
+            return self._failure(
+                action,
+                (
+                    "WorkspaceEdit allowed_suffixes "
+                    "must be a unique non-empty subset "
+                    "of .ts, .tsx, .yml and .yaml."
+                ),
+            )
+
+        allowed_suffix_set = set(
+            allowed_suffixes
+        )
         seen_paths: set[str] = set()
 
         for file_edit in action.files:
@@ -243,14 +277,17 @@ class WorkspaceEditValidator:
                     f"a file: {target}",
                 )
 
-            if target.suffix not in {
-                ".ts",
-                ".tsx",
-            }:
+            if (
+                target.suffix.lower()
+                not in allowed_suffix_set
+            ):
                 return self._failure(
                     action,
-                    "WorkspaceEdit target must be "
-                    f"TypeScript: {file_path}",
+                    (
+                        "WorkspaceEdit target suffix "
+                        "is not allowed: "
+                        f"{file_path}"
+                    ),
                 )
 
             if not file_edit.edits:
