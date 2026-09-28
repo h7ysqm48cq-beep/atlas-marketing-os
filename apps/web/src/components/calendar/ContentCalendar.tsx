@@ -864,7 +864,9 @@ export function ContentCalendar() {
     );
   });
 
-  async function postAction(action: "queue" | "cancel" | "retry") {
+  async function postAction(
+    action: "queue" | "cancel" | "retry" | "publish-now",
+  ) {
     if (!selectedPost) {
       return;
     }
@@ -2150,6 +2152,19 @@ export function ContentCalendar() {
                         disabled={saving}
                       >
                         {ui("Retry", "重试")}
+                      </button>
+                    ) : null}
+
+                    {["DRAFT", "SCHEDULED", "QUEUED"].includes(
+                      selectedPost.status,
+                    ) ? (
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => void postAction("publish-now")}
+                        disabled={saving}
+                      >
+                        {ui("Publish now", "立即发布")}
                       </button>
                     ) : null}
 

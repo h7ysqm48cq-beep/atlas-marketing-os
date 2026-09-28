@@ -394,6 +394,127 @@ describe('AutomationService Instagram scheduling validation', () => {
   });
 });
 
+describe('AutomationService publish now', () => {
+  const makeService = () => {
+    const update = jest.fn().mockResolvedValue({
+      id: 'post-1',
+      status: ScheduledPostStatus.QUEUED,
+    });
+
+    const prisma = {
+      scheduledPost: {
+        update,
+      },
+    };
+
+    const service = new AutomationService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    return {
+      service,
+      update,
+    };
+  };
+
+  it.each([
+    ScheduledPostStatus.DRAFT,
+    ScheduledPostStatus.SCHEDULED,
+    ScheduledPostStatus.QUEUED,
+    ScheduledPostStatus.FAILED,
+  ])(
+    'moves %s posts to an immediately due queued state',
+    async (status) => {
+      const {
+        service,
+        update,
+      } = makeService();
+
+      jest
+        .spyOn(service, 'getPost')
+        .mockResolvedValue({
+          id: 'post-1',
+          platform: SocialPlatform.FACEBOOK,
+          status,
+          mediaUrls: [],
+        } as never);
+
+      await service.publishPostNow('post-1');
+
+      expect(update).toHaveBeenCalledWith({
+        where: {
+          id: 'post-1',
+        },
+        data: {
+          status: ScheduledPostStatus.QUEUED,
+          lastError: null,
+          scheduledAt: expect.any(Date),
+        },
+      });
+    },
+  );
+
+  it.each([
+    ScheduledPostStatus.PUBLISHING,
+    ScheduledPostStatus.PUBLISHED,
+    ScheduledPostStatus.CANCELLED,
+  ])(
+    'rejects publish-now for terminal/in-flight status %s',
+    async (status) => {
+      const {
+        service,
+        update,
+      } = makeService();
+
+      jest
+        .spyOn(service, 'getPost')
+        .mockResolvedValue({
+          id: 'post-1',
+          platform: SocialPlatform.FACEBOOK,
+          status,
+          mediaUrls: [],
+        } as never);
+
+      await expect(
+        service.publishPostNow('post-1'),
+      ).rejects.toThrow(
+        'Only draft, scheduled, queued or failed posts can be published now.',
+      );
+
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('requires Instagram media before publish-now queues the post', async () => {
+    const {
+      service,
+      update,
+    } = makeService();
+
+    jest
+      .spyOn(service, 'getPost')
+      .mockResolvedValue({
+        id: 'post-1',
+        platform: SocialPlatform.INSTAGRAM,
+        status: ScheduledPostStatus.DRAFT,
+        mediaUrls: [],
+      } as never);
+
+    await expect(
+      service.publishPostNow('post-1'),
+    ).rejects.toThrow(
+      'Instagram posts require at least one image asset before queueing.',
+    );
+
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
 
 describe(
   'AutomationService dashboard Browser Account identity',
