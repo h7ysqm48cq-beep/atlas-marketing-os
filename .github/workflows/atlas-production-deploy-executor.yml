@@ -1,0 +1,48 @@
+name: atlas-production-deploy-executor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-production-deploy-executor
+  cancel-in-progress: false
+
+jobs:
+  execute-authorized-worker-deploys:
+    if: github.repository == 'h7ysqm48cq-beep/atlas-marketing-os'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Require production executor credentials
+        env:
+          SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
+          SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
+          RAILWAY_PROJECT_TOKEN: ${{ secrets.ATLAS_RAILWAY_PRODUCTION_PROJECT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPERVISOR_API_URL"
+          test -n "$SUPERVISOR_CI_TOKEN"
+          test -n "$RAILWAY_PROJECT_TOKEN"
+
+      - name: Execute authorized exact-SHA worker deployments
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ATLAS_SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
+          ATLAS_SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
+          ATLAS_RAILWAY_PRODUCTION_PROJECT_TOKEN: ${{ secrets.ATLAS_RAILWAY_PRODUCTION_PROJECT_TOKEN }}
+        run: node tools/deployment/atlas-production-deploy-executor.mjs
