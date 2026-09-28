@@ -337,6 +337,183 @@ jobs:
           console.log('ATLAS Supervisor trusted GitHub merge attestation consumed.');
           NODE
 
+      - name: Prepare affected worker production deployment qualifications
+        if: steps.changes.outputs.needs_gate == 'true' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'production/atlas'
+        env:
+          SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
+          SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          CHANGED_FILES_B64: ${{ steps.changes.outputs.changed_files_b64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const {
+            SUPERVISOR_API_URL,
+            SUPERVISOR_CI_TOKEN,
+            REPOSITORY,
+            MERGE_SHA,
+            CHANGED_FILES_B64,
+          } = process.env;
+
+          for (const [key, value] of Object.entries({
+            SUPERVISOR_API_URL,
+            SUPERVISOR_CI_TOKEN,
+            REPOSITORY,
+            MERGE_SHA,
+            CHANGED_FILES_B64,
+          })) {
+            if (!value) throw new Error(`${key} is missing`);
+          }
+
+          if (!/^[0-9a-f]{40}$/i.test(MERGE_SHA)) {
+            throw new Error('invalid merge SHA for production qualification');
+          }
+
+          const [repositoryOwner, repositoryName] = REPOSITORY.split('/');
+          if (!repositoryOwner || !repositoryName) {
+            throw new Error('invalid GitHub repository identity');
+          }
+
+          const changedFiles = JSON.parse(
+            Buffer.from(CHANGED_FILES_B64, 'base64').toString('utf8'),
+          );
+          if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+            throw new Error('invalid changed file list');
+          }
+
+          const exact = (path, value) => path === value;
+          const under = (path, prefix) => path.startsWith(prefix);
+
+          const runnerAffected = changedFiles.some((path) =>
+            under(path, 'apps/engineering-runner/') ||
+            exact(path, 'apps/api/scripts/check-production-deployment-gate.cjs') ||
+            exact(path, 'package.json') ||
+            exact(path, 'package-lock.json') ||
+            under(path, 'tools/ai_engineer/') ||
+            under(path, 'tools/runtime/') ||
+            under(path, 'tools/modifier/'),
+          );
+
+          const verifierAffected = changedFiles.some((path) =>
+            under(path, 'apps/engineering-runner/') ||
+            exact(path, 'apps/api/scripts/check-production-deployment-gate.cjs') ||
+            exact(path, 'package.json') ||
+            exact(path, 'package-lock.json') ||
+            under(path, 'tools/ai_engineer/'),
+          );
+
+          const services = [];
+          if (runnerAffected) services.push('engineering-runner');
+          if (verifierAffected) services.push('engineering-verifier');
+
+          if (services.length === 0) {
+            console.log(
+              'ATLAS production qualification not required for engineering-runner/verifier.',
+            );
+            process.exit(0);
+          }
+
+          const url =
+            `${SUPERVISOR_API_URL.replace(/\/+$/g, '')}/engineering/supervisor/gateway/production-deployment/qualification`;
+
+          const sleep = (ms) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+
+          async function qualify(service) {
+            const payload = {
+              service,
+              github: {
+                repositoryOwner,
+                repositoryName,
+                branch: 'production/atlas',
+                commitSha: MERGE_SHA,
+              },
+            };
+
+            for (let attempt = 1; attempt <= 60; attempt += 1) {
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'content-type': 'application/json',
+                  'x-atlas-supervisor-ci-token': SUPERVISOR_CI_TOKEN,
+                },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(10_000),
+              });
+
+              const text = await response.text();
+              let body = null;
+              try {
+                body = text ? JSON.parse(text) : null;
+              } catch {
+                throw new Error(
+                  `${service} qualification returned invalid JSON`,
+                );
+              }
+
+              if (!response.ok) {
+                const code =
+                  body?.code || body?.message || `http_${response.status}`;
+                throw new Error(
+                  `${service} qualification failed: ${code}`,
+                );
+              }
+
+              console.log('ATLAS_DEPLOY_QUALIFICATION_STATUS', {
+                service,
+                attempt,
+                taskId: body?.taskId,
+                taskStatus: body?.taskStatus,
+                executionId: body?.executionId,
+                executionStatus: body?.executionStatus,
+                commitSha: body?.commitSha,
+              });
+
+              if (
+                body?.commitSha !== MERGE_SHA ||
+                body?.service !== service ||
+                typeof body?.taskId !== 'string' ||
+                typeof body?.executionId !== 'string'
+              ) {
+                throw new Error(
+                  `${service} qualification returned mismatched identity`,
+                );
+              }
+
+              if (
+                body.taskStatus === 'READY_FOR_REVIEW' ||
+                body.taskStatus === 'APPROVED'
+              ) {
+                console.log('ATLAS_DEPLOY_QUALIFICATION_READY', {
+                  service,
+                  taskId: body.taskId,
+                  executionId: body.executionId,
+                  commitSha: body.commitSha,
+                });
+                return;
+              }
+
+              if (body.executionStatus === 'FAILED') {
+                throw new Error(
+                  `${service} independent verifier failed`,
+                );
+              }
+
+              await sleep(2_000);
+            }
+
+            throw new Error(
+              `${service} qualification did not reach READY_FOR_REVIEW in time`,
+            );
+          }
+
+          for (const service of services) {
+            await qualify(service);
+          }
+          NODE
+
       - name: Report closed pull request without merge
         if: steps.changes.outputs.needs_gate == 'true' && github.event.action == 'closed' && github.event.pull_request.merged != true
         run: echo 'Pull request closed without merge; no merge authorization consumption performed.'
