@@ -55,10 +55,10 @@ jobs:
           console.log('ATLAS_WEB_AUDIT_KEYS', JSON.stringify(Object.keys(audit.vulnerabilities ?? {}).sort()));
           NODE
 
-      - name: Emit generated lockfile
-        shell: bash
-        run: |
-          echo ATLAS_LOCKFILE_GZIP_B64_BEGIN
-          gzip -9 -c package-lock.json | base64 -w 0
-          echo
-          echo ATLAS_LOCKFILE_GZIP_B64_END
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
