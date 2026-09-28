@@ -487,6 +487,142 @@ def test_exact_workspace_edit_applies_exact_allowed_files(
     )
 
 
+def test_exact_workspace_edit_supports_yaml(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    first = (
+        tmp_path
+        / ".github/workflows/first.yml"
+    )
+    second = (
+        tmp_path
+        / ".github/workflows/second.yaml"
+    )
+
+    first.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    first.write_text(
+        "name: old-first\n",
+        encoding="utf-8",
+    )
+    second.write_text(
+        "name: old-second\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": (
+                ".github/workflows/first.yml"
+            ),
+            "replacements": [
+                {
+                    "old": "old-first",
+                    "new": "new-first",
+                },
+            ],
+        },
+        {
+            "file_path": (
+                ".github/workflows/second.yaml"
+            ),
+            "replacements": [
+                {
+                    "old": "old-second",
+                    "new": "new-second",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=[
+                ".github/workflows/first.yml",
+                ".github/workflows/second.yaml",
+            ],
+        ),
+        allow_apply=True,
+    )
+
+    assert result.success
+    assert result.evidence["changedFiles"] == [
+        ".github/workflows/first.yml",
+        ".github/workflows/second.yaml",
+    ]
+    assert first.read_text(
+        encoding="utf-8"
+    ) == "name: new-first\n"
+    assert second.read_text(
+        encoding="utf-8"
+    ) == "name: new-second\n"
+
+
+def test_exact_workspace_edit_rejects_json(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    target = tmp_path / "config.json"
+    target.write_text(
+        '{"value":"old"}\n',
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "config.json",
+            "replacements": [
+                {
+                    "old": '"old"',
+                    "new": '"new"',
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["config.json"],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error is not None
+    assert (
+        "target suffix is not allowed"
+        in result.error
+    )
+    assert target.read_text(
+        encoding="utf-8"
+    ) == '{"value":"old"}\n'
+    assert git_changed_files(tmp_path) == []
+
+
 def test_exact_workspace_edit_rejects_out_of_scope_path_before_read(
     tmp_path,
 ):

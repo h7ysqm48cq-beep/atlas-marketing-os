@@ -98,6 +98,13 @@ def test_workspace_edit_to_dict(
         "text": "NewName",
     }
 
+    assert payload[
+        "allowed_suffixes"
+    ] == [
+        ".ts",
+        ".tsx",
+    ]
+
 
 def test_workspace_edit_validation_passes(
     tmp_path,
@@ -132,6 +139,129 @@ def test_workspace_edit_validation_passes(
     assert (
         report.results[0].decision
         == ValidationDecision.PASS
+    )
+
+
+def test_workspace_edit_rejects_yaml_by_default(
+    tmp_path,
+):
+    write_source(
+        tmp_path,
+        ".github/workflows/test.yml",
+        "name: old\n",
+    )
+
+    action = WorkspaceEdit(
+        files=(
+            WorkspaceFileEdit(
+                file_path=(
+                    ".github/workflows/test.yml"
+                ),
+                edits=(
+                    WorkspaceTextEdit(
+                        start=6,
+                        end=9,
+                        text="new",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    report = validate(
+        tmp_path,
+        action,
+    )
+
+    assert report.has_failures
+    assert (
+        "target suffix is not allowed"
+        in report.results[0].message
+    )
+
+
+def test_workspace_edit_allows_explicit_yaml_suffix(
+    tmp_path,
+):
+    write_source(
+        tmp_path,
+        ".github/workflows/test.yaml",
+        "name: old\n",
+    )
+
+    action = WorkspaceEdit(
+        files=(
+            WorkspaceFileEdit(
+                file_path=(
+                    ".github/workflows/test.yaml"
+                ),
+                edits=(
+                    WorkspaceTextEdit(
+                        start=6,
+                        end=9,
+                        text="new",
+                    ),
+                ),
+            ),
+        ),
+        allowed_suffixes=(
+            ".ts",
+            ".tsx",
+            ".yml",
+            ".yaml",
+        ),
+    )
+
+    report = validate(
+        tmp_path,
+        action,
+    )
+
+    assert not report.has_failures
+    assert (
+        report.results[0].decision
+        == ValidationDecision.PASS
+    )
+
+
+def test_workspace_edit_rejects_unsupported_suffix_capability(
+    tmp_path,
+):
+    write_source(
+        tmp_path,
+        "config.json",
+        '{"value":"old"}\n',
+    )
+
+    action = WorkspaceEdit(
+        files=(
+            WorkspaceFileEdit(
+                file_path="config.json",
+                edits=(
+                    WorkspaceTextEdit(
+                        start=10,
+                        end=13,
+                        text="new",
+                    ),
+                ),
+            ),
+        ),
+        allowed_suffixes=(
+            ".ts",
+            ".tsx",
+            ".json",
+        ),
+    )
+
+    report = validate(
+        tmp_path,
+        action,
+    )
+
+    assert report.has_failures
+    assert (
+        "allowed_suffixes"
+        in report.results[0].message
     )
 
 

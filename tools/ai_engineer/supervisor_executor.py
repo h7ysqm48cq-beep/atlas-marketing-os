@@ -415,7 +415,13 @@ class SupervisorAssignmentExecutor:
             )
 
         action = WorkspaceEdit(
-            files=tuple(file_edits)
+            files=tuple(file_edits),
+            allowed_suffixes=(
+                ".ts",
+                ".tsx",
+                ".yml",
+                ".yaml",
+            ),
         )
 
         plan = ExecutionPlan(
