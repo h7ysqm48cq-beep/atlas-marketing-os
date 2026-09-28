@@ -1,11 +1,14 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
+  GithubDeploymentProvenance,
   IntegrationGateInput,
   ProductionDeploymentGateInput,
   ProductionDeploymentResolveInput,
@@ -17,6 +20,7 @@ import type {
   ValidateWorkerContextInput,
 } from '../agent-supervisor.types';
 import { ProductionDeploymentGateService } from '../deployment/production-deployment-gate.service';
+import { WorkerDispatcherService } from '../dispatch/worker-dispatcher.service';
 import type { SupervisorExecution } from '../execution/supervisor-execution.types';
 import {
   SUPERVISOR_EXECUTION_STORE,
@@ -25,6 +29,89 @@ import {
 
 const ACTIVE_IMPLEMENTATION_STATUSES = new Set(['DISPATCHED', 'RUNNING']);
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+const PRODUCTION_QUALIFICATION_SERVICES = [
+  'engineering-runner',
+  'engineering-verifier',
+] as const;
+
+export type ProductionDeploymentQualificationService =
+  (typeof PRODUCTION_QUALIFICATION_SERVICES)[number];
+
+export interface ProductionDeploymentQualificationInput {
+  service: ProductionDeploymentQualificationService;
+  github?: GithubDeploymentProvenance;
+}
+
+export interface ProductionDeploymentQualificationResult {
+  service: ProductionDeploymentQualificationService;
+  commitSha: string;
+  taskId: string;
+  taskStatus: string;
+  executionId: string;
+  executionStatus: string;
+}
+
+const PRODUCTION_QUALIFICATION_ALLOWED_PATH: Record<
+  ProductionDeploymentQualificationService,
+  string
+> = {
+  'engineering-runner':
+    'apps/engineering-runner/check-runner-production-deployment.cjs',
+  'engineering-verifier':
+    'apps/engineering-runner/check-verifier-production-deployment.cjs',
+};
+
+function productionQualificationTaskId(
+  service: ProductionDeploymentQualificationService,
+  sha: string,
+): string {
+  const hex = createHash('sha256')
+    .update(`production-deployment-qualification:${service}:${sha}`, 'utf8')
+    .digest('hex');
+  const uuid =
+    `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
+    `${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  return `ATLAS-SYS-${uuid}`;
+}
+
+function productionQualificationTask(
+  service: ProductionDeploymentQualificationService,
+  sha: string,
+) {
+  return {
+    objective:
+      `zero-git-diff ${service} production qualification for exact canonical production SHA ${sha}. ` +
+      'Read-only same-SHA verification only; no source edits, no commit, no deployment, ' +
+      'no runtime configuration changes.',
+    owner: 'engineering' as const,
+    allowedPaths: [PRODUCTION_QUALIFICATION_ALLOWED_PATH[service]],
+    forbiddenActions: [
+      'edit_assigned_files',
+      'commit_assigned_branch',
+      'change_database_schema',
+      'run_migration',
+      'change_auth_or_identity',
+      'change_runtime_config',
+      'deploy_non_production',
+      'deploy_production',
+      'merge',
+      'rebase',
+      'squash',
+      'cherry_pick',
+      'auto_merge',
+      'force_push',
+      'delete_branch_for_integration',
+    ] as const,
+    dependsOn: [],
+    acceptance: [
+      `baseSha=headSha=${sha}`,
+      `service=${service}`,
+      'zero git diff',
+      'sourceVerified=true',
+      'candidatePublication absent',
+    ],
+  };
+}
 
 export type TrustedMergeAuthorizationConsumptionInput = Omit<
   IntegrationGateInput,
@@ -40,6 +127,8 @@ export class AgentGatewayService {
     @Inject(SUPERVISOR_EXECUTION_STORE)
     private readonly executionStore: SupervisorExecutionStore,
     private readonly productionDeploymentGate: ProductionDeploymentGateService = new ProductionDeploymentGateService(),
+    @Optional()
+    private readonly dispatcher?: WorkerDispatcherService,
   ) {}
 
   async validateWorkerContext(
@@ -197,6 +286,125 @@ export class AgentGatewayService {
     }
 
     return this.allowed(task.id, execution.id);
+  }
+
+
+  async qualifyProductionDeployment(
+    input: ProductionDeploymentQualificationInput,
+  ): Promise<ProductionDeploymentQualificationResult> {
+    const dispatcher = this.dispatcher;
+    if (!dispatcher) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_unavailable',
+      });
+    }
+
+    if (
+      !PRODUCTION_QUALIFICATION_SERVICES.includes(
+        input.service as ProductionDeploymentQualificationService,
+      )
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_service_unsupported',
+      });
+    }
+
+    const service = input.service;
+    const sha = input.github?.commitSha?.trim().toLowerCase() ?? '';
+    if (!FULL_GIT_SHA.test(sha)) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_sha_invalid',
+      });
+    }
+
+    this.productionDeploymentGate.assertProductionDeployment({
+      service,
+      supervisorApprovedSha: sha,
+      github: input.github,
+    });
+
+    const taskId = productionQualificationTaskId(service, sha);
+    let task = await this.supervisor.createSystemTask(
+      taskId,
+      productionQualificationTask(service, sha),
+    );
+
+    let executions = await dispatcher.listByTask(taskId);
+    if (executions.length > 1) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_execution_cardinality',
+        taskId,
+      });
+    }
+
+    let execution = executions[0];
+    if (!execution) {
+      if (task.status !== 'DRAFT') {
+        throw new BadRequestException({
+          code: 'production_deployment_qualification_task_not_admissible',
+          taskId,
+          status: task.status,
+        });
+      }
+      execution = (
+        await dispatcher.dispatchExistingCandidateVerification(taskId, {
+          candidateBaseSha: sha,
+          candidateHeadSha: sha,
+          productionBaselineSha: sha,
+          changedPaths: [],
+        })
+      ).execution;
+      task = await this.supervisor.getTask(taskId);
+    }
+
+    if (
+      execution.assignment.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
+      execution.assignment.verificationMode !== 'EXISTING_CANDIDATE' ||
+      execution.assignment.candidateBaseSha !== sha ||
+      execution.assignment.candidateHeadSha !== sha ||
+      execution.assignment.productionBaselineSha !== sha
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_execution_mismatch',
+        taskId,
+        executionId: execution.id,
+      });
+    }
+
+    if (execution.status === 'FAILED') {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_verifier_failed',
+        taskId,
+        executionId: execution.id,
+      });
+    }
+
+    if (task.status === 'VERIFYING' && execution.status === 'COMPLETED') {
+      await dispatcher.adoptExistingCandidateVerification(
+        taskId,
+        execution.id,
+      );
+      task = await this.supervisor.markReadyForReview(taskId);
+    }
+
+    if (
+      !['VERIFYING', 'READY_FOR_REVIEW', 'APPROVED'].includes(task.status)
+    ) {
+      throw new BadRequestException({
+        code: 'production_deployment_qualification_state_invalid',
+        taskId,
+        status: task.status,
+      });
+    }
+
+    return {
+      service,
+      commitSha: sha,
+      taskId,
+      taskStatus: task.status,
+      executionId: execution.id,
+      executionStatus: execution.status,
+    };
   }
 
   async checkProductionDeployment(
