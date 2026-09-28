@@ -25,6 +25,7 @@ test('runner production deployment checks bootstrap before service-bound deploym
   assert.equal(calls[0][0], 'bootstrap');
   assert.equal(calls[1][0], 'deploy-gate');
   assert.equal(calls[1][1].ATLAS_DEPLOYMENT_SERVICE, 'engineering-runner');
+  assert.equal(calls[1][1].RAILWAY_GIT_COMMIT_SHA, 'a'.repeat(40));
   assert.equal(env.ATLAS_DEPLOYMENT_SERVICE, undefined);
 });
 
