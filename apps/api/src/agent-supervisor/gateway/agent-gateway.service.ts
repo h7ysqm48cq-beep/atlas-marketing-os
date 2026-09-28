@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AgentSupervisorService } from '../agent-supervisor.service';
 import type {
+  CreateSupervisorTaskInput,
   GithubDeploymentProvenance,
   IntegrationGateInput,
   ProductionDeploymentGateInput,
@@ -77,13 +78,13 @@ function productionQualificationTaskId(
 function productionQualificationTask(
   service: ProductionDeploymentQualificationService,
   sha: string,
-) {
+): CreateSupervisorTaskInput {
   return {
     objective:
       `zero-git-diff ${service} production qualification for exact canonical production SHA ${sha}. ` +
       'Read-only same-SHA verification only; no source edits, no commit, no deployment, ' +
       'no runtime configuration changes.',
-    owner: 'engineering' as const,
+    owner: 'engineering',
     allowedPaths: [PRODUCTION_QUALIFICATION_ALLOWED_PATH[service]],
     forbiddenActions: [
       'edit_assigned_files',
@@ -101,7 +102,7 @@ function productionQualificationTask(
       'auto_merge',
       'force_push',
       'delete_branch_for_integration',
-    ] as const,
+    ],
     dependsOn: [],
     acceptance: [
       `baseSha=headSha=${sha}`,
