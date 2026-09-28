@@ -627,6 +627,11 @@ export class AgentSupervisorService {
         code: 'owner_deployment_authorization_already_consumed',
       });
     }
+    if (task.evidence?.ownerDeploymentDispatchReservation) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_already_reserved',
+      });
+    }
     if (!task.evidence?.reviewCandidate) {
       throw new BadRequestException({ code: 'review_candidate_not_recorded' });
     }
@@ -664,6 +669,89 @@ export class AgentSupervisorService {
     );
   }
 
+  async reserveProductionDeploymentDispatch(
+    id: string,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+    reservationId: string,
+    reservedBy: string,
+  ): Promise<SupervisorTask> {
+    const task = await this.requireTask(id);
+    const expectedUpdatedAt = new Date(task.updatedAt);
+    this.requireStatus(task, ['APPROVED']);
+
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
+    if (!task.evidence?.reviewCandidate) {
+      throw new BadRequestException({ code: 'review_candidate_not_recorded' });
+    }
+
+    const reviewedCandidate = normalizeSupervisorReviewCandidate(
+      task.evidence.reviewCandidate,
+    );
+    const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
+    this.requireCanonicalProductionDeployment(requestedCandidate);
+    if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_candidate_mismatch',
+      });
+    }
+
+    const requestedService = this.requireProductionDeploymentService(service);
+    this.assertOwnerDeploymentAuthorization(
+      task,
+      requestedCandidate,
+      requestedService,
+    );
+
+    const normalizedReservationId = reservationId.trim();
+    if (!/^ATLAS-DISPATCH-[0-9a-f]{64}$/i.test(normalizedReservationId)) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_reservation_invalid',
+      });
+    }
+    const normalizedReservedBy = reservedBy.trim();
+    if (!normalizedReservedBy || normalizedReservedBy.length > 160) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_identity_invalid',
+      });
+    }
+
+    const existing = task.evidence?.ownerDeploymentDispatchReservation;
+    if (existing) {
+      const existingCandidate = normalizeSupervisorReviewCandidate(
+        existing.candidate,
+      );
+      if (
+        existing.reservationId === normalizedReservationId &&
+        existing.reservedBy === normalizedReservedBy &&
+        existing.service === requestedService &&
+        this.sameCandidate(existingCandidate, requestedCandidate)
+      ) {
+        return task;
+      }
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_already_reserved',
+      });
+    }
+
+    task.evidence = {
+      ...task.evidence!,
+      ownerDeploymentDispatchReservation: {
+        candidate: this.cloneCandidate(requestedCandidate),
+        service: requestedService,
+        reservationId: normalizedReservationId,
+        reservedBy: normalizedReservedBy,
+        reservedAt: new Date().toISOString(),
+      },
+    };
+    task.updatedAt = this.nextMutationTime(expectedUpdatedAt);
+    return this.saveTaskMutationIfUnchanged(task, expectedUpdatedAt);
+  }
+
   async revokeProductionDeploymentAuthorization(
     id: string,
     reason: string,
@@ -678,6 +766,11 @@ export class AgentSupervisorService {
     if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
       throw new BadRequestException({
         code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
+    if (task.evidence?.ownerDeploymentDispatchReservation) {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_already_reserved',
       });
     }
 
