@@ -313,6 +313,12 @@ class SupervisorAssignmentExecutor:
                     planning=planning,
                 )
 
+            if relative not in allowed:
+                return self._failure(
+                    "supervisor_scope_violation",
+                    planning=planning,
+                )
+
             if relative in payload_paths:
                 return self._failure(
                     "supervisor_workspace_edit_duplicate_path",
@@ -447,7 +453,7 @@ class SupervisorAssignmentExecutor:
             )
 
             normalized = re.sub(
-                r"\\s+",
+                r"\s+",
                 " ",
                 str(detail).strip(),
             )[:500]

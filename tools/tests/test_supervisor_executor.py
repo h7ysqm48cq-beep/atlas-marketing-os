@@ -487,6 +487,64 @@ def test_exact_workspace_edit_applies_exact_allowed_files(
     )
 
 
+def test_exact_workspace_edit_rejects_out_of_scope_path_before_read(
+    tmp_path,
+):
+    module = import_module(
+        "tools.ai_engineer.supervisor_executor"
+    )
+
+    allowed = tmp_path / "src/allowed.ts"
+    outside = tmp_path / "src/outside.ts"
+
+    allowed.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    allowed.write_text(
+        "export const allowed = 'old';\n",
+        encoding="utf-8",
+    )
+    outside.write_text(
+        "export const secret = 'old';\n",
+        encoding="utf-8",
+    )
+
+    init_git_repo(tmp_path)
+
+    objective = exact_workspace_objective([
+        {
+            "file_path": "src/outside.ts",
+            "replacements": [
+                {
+                    "old": "'old'",
+                    "new": "'new'",
+                },
+            ],
+        },
+    ])
+
+    executor = module.SupervisorAssignmentExecutor(
+        project_root=tmp_path
+    )
+
+    result = executor.execute(
+        assignment(
+            objective=objective,
+            allowed_paths=["src/allowed.ts"],
+        ),
+        allow_apply=True,
+    )
+
+    assert not result.success
+    assert result.error == "supervisor_scope_violation"
+    assert "'old'" in outside.read_text(
+        encoding="utf-8"
+    )
+    assert git_changed_files(tmp_path) == []
+
+
 def test_exact_workspace_edit_requires_exact_scope(
     tmp_path,
 ):
