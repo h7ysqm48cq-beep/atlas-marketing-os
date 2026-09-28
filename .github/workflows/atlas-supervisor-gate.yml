@@ -560,7 +560,10 @@ jobs:
         run: npm run build --workspace apps/engineering-runner
 
       - name: Targeted Supervisor tests
-        run: npm test --workspace apps/api -- --runInBand verifier-capability.service.spec.ts supervisor-verifier.guard.spec.ts supervisor-verifier.controller.spec.ts agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts
+        run: npm test --workspace apps/api -- --runInBand verifier-capability.service.spec.ts supervisor-verifier.guard.spec.ts supervisor-verifier.controller.spec.ts agent-gateway.service.spec.ts supervisor-gateway.controller.spec.ts agent-supervisor.service.spec.ts production-deployment-dispatch.spec.ts
+
+      - name: Production deploy executor tests
+        run: node --test tools/deployment/atlas-production-deploy-executor.test.mjs
 
       - name: Supervisor Python exact-edit tests
         run: python -m pytest -q tools/tests/test_workspace_edit_ir.py tools/tests/test_supervisor_executor.py
