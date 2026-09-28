@@ -379,3 +379,83 @@ jobs:
 
       - name: API build and regression guards
         run: npm run build --workspace apps/api
+
+      - name: Automation service behavior tests
+        run: npm test --workspace apps/api -- --runInBand automation.service.spec.ts
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Calendar mocked CI smoke
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          calendar_page="apps/web/src/app/calendar/page.tsx"
+          ci_config="playwright.calendar-ci.config.ts"
+          backup="$(mktemp)"
+
+          cp "$calendar_page" "$backup"
+
+          cleanup() {
+            cp "$backup" "$calendar_page"
+            rm -f "$backup" "$ci_config"
+          }
+
+          trap cleanup EXIT
+
+          cat > "$calendar_page" <<'EOF'
+          import { CalendarImageLightbox } from "@/components/calendar/CalendarImageLightbox";
+          import { ContentCalendar } from "@/components/calendar/ContentCalendar";
+
+          export default function CalendarCiPage() {
+            return (
+              <CalendarImageLightbox>
+                <ContentCalendar />
+              </CalendarImageLightbox>
+            );
+          }
+          EOF
+
+          cat > "$ci_config" <<'EOF'
+          import { defineConfig } from "@playwright/test";
+
+          export default defineConfig({
+            testDir: "./apps/web/tests",
+
+            timeout: 30_000,
+
+            use: {
+              baseURL: "http://127.0.0.1:3000",
+              browserName: "chromium",
+            },
+
+            webServer: {
+              command:
+                "npm run dev --workspace apps/web -- --hostname 127.0.0.1 --port 3000",
+
+              url:
+                "http://127.0.0.1:3000/calendar",
+
+              reuseExistingServer:
+                false,
+
+              timeout:
+                120_000,
+            },
+          });
+          EOF
+
+          npx playwright test \
+            --config="$ci_config" \
+            smoke.spec.ts \
+            --grep "Calendar retries failed posts and hides retry for non-failed posts"
+
+          cleanup
+          trap - EXIT
+
+          git diff --exit-code -- "$calendar_page"
+          test ! -e "$ci_config"
