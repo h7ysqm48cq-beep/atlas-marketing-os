@@ -1,0 +1,64 @@
+name: Temporary Web Lockfile Security Refresh
+
+on:
+  push:
+    branches:
+      - fix/security-web-transitives-20260928
+    paths:
+      - .github/workflows/temp-web-lockfile-refresh.yml
+
+permissions:
+  contents: read
+
+jobs:
+  generate-lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Refresh only affected transitive packages
+        run: npm update brace-expansion nanoid --package-lock-only --ignore-scripts
+
+      - name: Report resolved versions
+        shell: bash
+        run: |
+          node <<'NODE'
+          const lock = require('./package-lock.json');
+          const p = lock.packages || {};
+          const rows = Object.entries(p)
+            .filter(([k]) =>
+              k === 'node_modules/brace-expansion' ||
+              k.endsWith('/node_modules/brace-expansion') ||
+              k === 'node_modules/nanoid' ||
+              k.endsWith('/node_modules/nanoid')
+            )
+            .map(([path, value]) => ({ path, version: value.version }));
+          console.log('ATLAS_SECURITY_TARGET_VERSIONS', JSON.stringify(rows));
+          NODE
+
+      - name: Audit Web workspace
+        shell: bash
+        run: |
+          npm audit --workspace apps/web --json > /tmp/web-audit.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          const audit = JSON.parse(fs.readFileSync('/tmp/web-audit.json', 'utf8'));
+          console.log('ATLAS_WEB_AUDIT_SUMMARY', JSON.stringify(audit.metadata?.vulnerabilities ?? null));
+          console.log('ATLAS_WEB_AUDIT_KEYS', JSON.stringify(Object.keys(audit.vulnerabilities ?? {}).sort()));
+          NODE
+
+      - name: Emit generated lockfile
+        shell: bash
+        run: |
+          echo ATLAS_LOCKFILE_GZIP_B64_BEGIN
+          gzip -9 -c package-lock.json | base64 -w 0
+          echo
+          echo ATLAS_LOCKFILE_GZIP_B64_END
