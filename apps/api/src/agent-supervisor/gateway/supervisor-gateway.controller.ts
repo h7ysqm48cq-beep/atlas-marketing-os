@@ -8,6 +8,7 @@ import type {
 } from '../agent-supervisor.types';
 import {
   AgentGatewayService,
+  type ProductionDeploymentDispatchClaimInput,
   type ProductionDeploymentQualificationInput,
   type TrustedMergeAuthorizationConsumptionInput,
 } from './agent-gateway.service';
@@ -46,6 +47,13 @@ export class SupervisorGatewayController {
     @Body() input: ProductionDeploymentQualificationInput,
   ) {
     return this.gateway.qualifyProductionDeployment(input);
+  }
+
+  @Post('production-deployment/dispatch/claim')
+  claimProductionDeploymentDispatch(
+    @Body() input: ProductionDeploymentDispatchClaimInput,
+  ) {
+    return this.gateway.claimProductionDeploymentDispatch(input);
   }
 
   @Post('production-deployment/resolve')

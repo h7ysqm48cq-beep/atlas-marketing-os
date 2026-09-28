@@ -119,6 +119,14 @@ export interface SupervisorOwnerDeploymentAuthorizationRevocation {
   reason: string;
 }
 
+export interface SupervisorOwnerDeploymentDispatchReservation {
+  candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
+  reservationId: string;
+  reservedBy: string;
+  reservedAt: string;
+}
+
 /** Read-only verifier provenance, not an implementation or publication receipt. */
 export interface SupervisorExistingCandidateVerification {
   mode: 'EXISTING_CANDIDATE';
@@ -149,6 +157,7 @@ export interface SupervisorEvidence {
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
   ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
+  ownerDeploymentDispatchReservation?: SupervisorOwnerDeploymentDispatchReservation;
 }
 
 export interface SupervisorTask {
