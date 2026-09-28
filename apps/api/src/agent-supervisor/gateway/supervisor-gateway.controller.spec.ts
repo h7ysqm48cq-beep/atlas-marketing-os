@@ -76,6 +76,41 @@ describe('SupervisorGatewayController', () => {
     expect(resolveProductionDeployment).toHaveBeenCalledWith(input);
   });
 
+  it('exposes bounded production deployment qualification behind the CI gateway', async () => {
+    const result = {
+      service: 'engineering-runner',
+      commitSha: 'a'.repeat(40),
+      taskId: 'ATLAS-SYS-11111111-1111-1111-1111-111111111111',
+      taskStatus: 'VERIFYING',
+      executionId: 'ATLAS-EXEC-1',
+      executionStatus: 'QUEUED',
+    };
+    const qualifyProductionDeployment = jest.fn().mockResolvedValue(result);
+    const controller = new SupervisorGatewayController({
+      qualifyProductionDeployment,
+    } as unknown as AgentGatewayService) as unknown as {
+      qualifyProductionDeployment?: (input: unknown) => Promise<unknown>;
+    };
+    const input = {
+      service: 'engineering-runner',
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: 'a'.repeat(40),
+      },
+    };
+
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, SupervisorGatewayController),
+    ).toContain(SupervisorCiGuard);
+    expect(typeof controller.qualifyProductionDeployment).toBe('function');
+    await expect(
+      controller.qualifyProductionDeployment!(input),
+    ).resolves.toBe(result);
+    expect(qualifyProductionDeployment).toHaveBeenCalledWith(input);
+  });
+
   it('exposes trusted post-merge consumption only behind the CI-protected gateway boundary', async () => {
     const decision = {
       allowed: true,
