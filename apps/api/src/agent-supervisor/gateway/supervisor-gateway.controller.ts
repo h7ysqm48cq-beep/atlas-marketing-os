@@ -8,6 +8,7 @@ import type {
 } from '../agent-supervisor.types';
 import {
   AgentGatewayService,
+  type ProductionDeploymentQualificationInput,
   type TrustedMergeAuthorizationConsumptionInput,
 } from './agent-gateway.service';
 import { SupervisorCiGuard } from './supervisor-ci.guard';
@@ -38,6 +39,13 @@ export class SupervisorGatewayController {
   @Post('production-deployment')
   checkProductionDeployment(@Body() input: ProductionDeploymentGateInput) {
     return this.gateway.checkProductionDeployment(input);
+  }
+
+  @Post('production-deployment/qualification')
+  qualifyProductionDeployment(
+    @Body() input: ProductionDeploymentQualificationInput,
+  ) {
+    return this.gateway.qualifyProductionDeployment(input);
   }
 
   @Post('production-deployment/resolve')
