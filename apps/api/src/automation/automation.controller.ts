@@ -1354,17 +1354,7 @@ export class AutomationController {
   }
 
   @Post('posts/:id/publish-now')
-  async publishPostNow(@Param('id') id: string) {
-    const post = await this.automationService.getPost(id);
-
-    if (!post) {
-      throw new NotFoundException('Scheduled post not found.');
-    }
-
-    if (post.status === 'PUBLISHED') {
-      throw new BadRequestException('Post is already published.');
-    }
-
-    return this.automationService.retryPost(id);
+  publishPostNow(@Param('id') id: string) {
+    return this.automationService.publishPostNow(id);
   }
 }

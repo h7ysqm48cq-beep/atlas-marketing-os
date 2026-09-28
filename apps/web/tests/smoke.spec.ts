@@ -190,11 +190,25 @@ test("Calendar retries failed posts and hides retry for non-failed posts", async
   ];
 
   let retryMethod: string | null = null;
+  let publishNowMethod: string | null = null;
 
   await page.route(
     "**/api/atlas/automation/posts/failed-retry-smoke/retry",
     async (route) => {
       retryMethod = route.request().method();
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
+    },
+  );
+
+  await page.route(
+    "**/api/atlas/automation/posts/scheduled-no-retry-smoke/publish-now",
+    async (route) => {
+      publishNowMethod = route.request().method();
 
       await route.fulfill({
         status: 200,
@@ -296,4 +310,19 @@ test("Calendar retries failed posts and hides retry for non-failed posts", async
       name: /^(Retry|重试)$/,
     }),
   ).toHaveCount(0);
+
+  const publishNowButton =
+    page.getByRole("button", {
+      name: /^(Publish now|立即发布)$/,
+    });
+
+  await expect(
+    publishNowButton,
+  ).toBeVisible();
+
+  await publishNowButton.click();
+
+  await expect
+    .poll(() => publishNowMethod)
+    .toBe("POST");
 });

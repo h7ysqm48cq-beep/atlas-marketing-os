@@ -2076,6 +2076,39 @@ export class AutomationService {
     });
   }
 
+  async publishPostNow(id: string) {
+    const current = await this.getPost(id);
+
+    if (
+      current.status !== ScheduledPostStatus.DRAFT &&
+      current.status !== ScheduledPostStatus.SCHEDULED &&
+      current.status !== ScheduledPostStatus.QUEUED &&
+      current.status !== ScheduledPostStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Only draft, scheduled, queued or failed posts can be published now.',
+      );
+    }
+
+    this.validateScheduledPostMedia(
+      current.platform,
+      current.mediaUrls,
+      ScheduledPostStatus.QUEUED,
+      'queueing',
+    );
+
+    return this.prisma.scheduledPost.update({
+      where: {
+        id,
+      },
+      data: {
+        status: ScheduledPostStatus.QUEUED,
+        lastError: null,
+        scheduledAt: new Date(),
+      },
+    });
+  }
+
   async cancelPost(id: string) {
     const current = await this.getPost(id);
 
