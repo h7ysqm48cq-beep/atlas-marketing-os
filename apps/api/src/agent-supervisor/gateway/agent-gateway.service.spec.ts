@@ -197,7 +197,7 @@ describe('AgentGatewayService', () => {
       new SupervisorWorkerCapabilityService(createTestSupervisorAuthority()),
       new SupervisorAdmissionManifestService(),
     );
-    gateway = new AgentGatewayService(supervisor, executionStore);
+    gateway = new AgentGatewayService(supervisor, executionStore, undefined, dispatcher);
   });
 
   async function createRunningExecution() {
@@ -1003,4 +1003,78 @@ describe('AgentGatewayService', () => {
       executionId: execution.id,
     });
   });
+  it('creates one deterministic same-SHA qualification per service and commit', async () => {
+    const sha = 'c'.repeat(40);
+    const input = {
+      service: 'engineering-runner' as const,
+      github: {
+        repositoryOwner: 'h7ysqm48cq-beep',
+        repositoryName: 'atlas-marketing-os',
+        branch: 'production/atlas',
+        commitSha: sha,
+      },
+    };
+
+    const first = await gateway.qualifyProductionDeployment(input);
+
+    expect(first).toMatchObject({
+      service: 'engineering-runner',
+      commitSha: sha,
+      taskStatus: 'VERIFYING',
+      executionStatus: 'QUEUED',
+    });
+    expect(first.taskId).toMatch(
+      /^ATLAS-SYS-[0-9a-f-]{36}$/i,
+    );
+
+    const second = await gateway.qualifyProductionDeployment(input);
+
+    expect(second.taskId).toBe(first.taskId);
+    expect(second.executionId).toBe(first.executionId);
+    expect(second.taskStatus).toBe('VERIFYING');
+
+    const executions = await dispatcher.listByTask(first.taskId);
+    expect(executions).toHaveLength(1);
+
+    const task = await supervisor.getTask(first.taskId);
+    expect(task.owner).toBe('engineering');
+    expect(task.allowedPaths).toEqual([
+      'apps/engineering-runner/check-runner-production-deployment.cjs',
+    ]);
+    expect(task.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'edit_assigned_files',
+        'commit_assigned_branch',
+        'deploy_production',
+        'change_runtime_config',
+      ]),
+    );
+    expect(task.acceptance).toEqual(
+      expect.arrayContaining([
+        `baseSha=headSha=${sha}`,
+        'service=engineering-runner',
+        'sourceVerified=true',
+      ]),
+    );
+  });
+
+  it('rejects CI qualification for services outside the bounded worker pair', async () => {
+    await expect(
+      gateway.qualifyProductionDeployment({
+        service: 'api' as never,
+        github: {
+          repositoryOwner: 'h7ysqm48cq-beep',
+          repositoryName: 'atlas-marketing-os',
+          branch: 'production/atlas',
+          commitSha: 'd'.repeat(40),
+        },
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'production_deployment_qualification_service_unsupported',
+      },
+    });
+  });
+
+
 });
