@@ -92,7 +92,7 @@ class WorkspaceEdit(Action):
     )
 
     def to_dict(self) -> dict[str, Any]:
-        data = super().to_dict()
+        data = Action.to_dict(self)
         data["files"] = [
             file.to_dict()
             for file in self.files
