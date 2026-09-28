@@ -864,7 +864,7 @@ export function ContentCalendar() {
     );
   });
 
-  async function postAction(action: "queue" | "cancel") {
+  async function postAction(action: "queue" | "cancel" | "retry") {
     if (!selectedPost) {
       return;
     }
@@ -2139,6 +2139,17 @@ export function ContentCalendar() {
                         disabled={saving || selectedPost.status === "DRAFT"}
                       >
                         Cancel post
+                      </button>
+                    ) : null}
+
+                    {selectedPost.status === "FAILED" ? (
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => void postAction("retry")}
+                        disabled={saving}
+                      >
+                        {ui("Retry", "重试")}
                       </button>
                     ) : null}
 

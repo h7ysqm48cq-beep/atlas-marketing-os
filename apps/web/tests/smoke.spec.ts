@@ -141,3 +141,159 @@ test("Atlas API root proxy forwards the root request", async ({ page }) => {
 
   expect(response.status()).toBe(200);
 });
+
+test("Calendar retries failed posts and hides retry for non-failed posts", async ({
+  page,
+}) => {
+  const failedAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const scheduledAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+  const posts = [
+    {
+      id: "failed-retry-smoke",
+      brandId: "brand-1",
+      channelId: "channel-1",
+      platform: "FACEBOOK",
+      title: "Failed retry smoke",
+      content: "Failed post content",
+      mediaUrls: [],
+      scheduledAt: failedAt,
+      timezone: "Asia/Kuala_Lumpur",
+      status: "FAILED",
+      channel: {
+        id: "channel-1",
+        name: "Smoke Channel",
+      },
+      campaign: null,
+      externalPostId: null,
+      externalPostUrl: null,
+    },
+    {
+      id: "scheduled-no-retry-smoke",
+      brandId: "brand-1",
+      channelId: "channel-1",
+      platform: "FACEBOOK",
+      title: "Scheduled no retry smoke",
+      content: "Scheduled post content",
+      mediaUrls: [],
+      scheduledAt,
+      timezone: "Asia/Kuala_Lumpur",
+      status: "SCHEDULED",
+      channel: {
+        id: "channel-1",
+        name: "Smoke Channel",
+      },
+      campaign: null,
+      externalPostId: null,
+      externalPostUrl: null,
+    },
+  ];
+
+  let retryMethod: string | null = null;
+
+  await page.route(
+    "**/api/atlas/automation/posts/failed-retry-smoke/retry",
+    async (route) => {
+      retryMethod = route.request().method();
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
+    },
+  );
+
+  await page.route(
+    "**/api/atlas/automation/posts/calendar**",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(posts),
+      });
+    },
+  );
+
+  await page.route(
+    "**/api/atlas/automation/channels",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            id: "channel-1",
+            brandId: "brand-1",
+            platform: "FACEBOOK",
+            name: "Smoke Channel",
+            status: "CONNECTED",
+          },
+        ]),
+      });
+    },
+  );
+
+  await page.route(
+    "**/api/atlas/brands",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            id: "brand-1",
+            name: "Smoke Brand",
+          },
+        ]),
+      });
+    },
+  );
+
+  await page.route(
+    "**/api/atlas/assets**",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "[]",
+      });
+    },
+  );
+
+  await page.goto("/calendar");
+
+  const upcoming =
+    page.locator("#calendar-upcoming");
+
+  await upcoming
+    .getByRole("button", {
+      name: /Failed retry smoke/,
+    })
+    .click();
+
+  const retryButton =
+    page.getByRole("button", {
+      name: /^(Retry|重试)$/,
+    });
+
+  await expect(retryButton).toBeVisible();
+
+  await retryButton.click();
+
+  await expect
+    .poll(() => retryMethod)
+    .toBe("POST");
+
+  await upcoming
+    .getByRole("button", {
+      name: /Scheduled no retry smoke/,
+    })
+    .click();
+
+  await expect(
+    page.getByRole("button", {
+      name: /^(Retry|重试)$/,
+    }),
+  ).toHaveCount(0);
+});
