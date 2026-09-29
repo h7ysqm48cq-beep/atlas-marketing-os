@@ -4,6 +4,7 @@ import type {
   SupervisorExecutionStatus,
   SupervisorWorkerRole,
 } from '../execution/supervisor-execution.types';
+import type { SupervisorWorkerCapabilityMetadata } from '../worker/supervisor-worker-capability.types';
 
 export const SUPERVISOR_EXECUTION_STORE = Symbol('SUPERVISOR_EXECUTION_STORE');
 export const SUPERVISOR_EXECUTION_CLAIM_STORE = Symbol(
@@ -51,6 +52,10 @@ export interface SupervisorExecutionHeartbeatInput {
   leaseId: string;
   now: Date;
   leaseExpiresAt: Date;
+  capabilityRotation?: {
+    expectedJti: string;
+    next: SupervisorWorkerCapabilityMetadata;
+  };
 }
 
 export interface SupervisorExecutionHeartbeatStore {

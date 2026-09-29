@@ -163,6 +163,7 @@ export class SupervisorWorkerBootstrapController {
       taskId?: unknown;
       executionId?: unknown;
       executionPurpose?: unknown;
+      requireFrozenBaseSha?: unknown;
       requireCandidateHeadSha?: unknown;
     } = {},
     @Res({ passthrough: true }) response?: Response,
@@ -170,20 +171,28 @@ export class SupervisorWorkerBootstrapController {
     if (
       typeof body.taskId !== 'string' || !body.taskId ||
       typeof body.executionId !== 'string' || !body.executionId ||
-      body.executionPurpose !== 'INDEPENDENT_VERIFICATION' ||
-      body.requireCandidateHeadSha !== true
+      (body.executionPurpose !== 'IMPLEMENTATION' &&
+        body.executionPurpose !== 'INDEPENDENT_VERIFICATION') ||
+      (body.executionPurpose === 'IMPLEMENTATION'
+        ? body.requireFrozenBaseSha !== true ||
+          body.requireCandidateHeadSha !== undefined
+        : body.requireCandidateHeadSha !== true ||
+          body.requireFrozenBaseSha !== undefined)
     ) {
       throw new BadRequestException('worker_exact_claim_invalid');
     }
     const now = new Date();
     const runnerId = randomUUID();
     const leaseId = randomUUID();
+    const executionPurpose = body.executionPurpose;
     const claimed = await this.claimStore.claimExact({
       taskId: body.taskId,
       executionId: body.executionId,
       workerRole: request.supervisorWorkerBootstrapRole!,
-      executionPurpose: 'INDEPENDENT_VERIFICATION',
-      requireCandidateHeadSha: true,
+      executionPurpose,
+      ...(executionPurpose === 'IMPLEMENTATION'
+        ? { requireFrozenBaseSha: true }
+        : { requireCandidateHeadSha: true }),
       runnerId,
       leaseId,
       now,
@@ -192,6 +201,25 @@ export class SupervisorWorkerBootstrapController {
     if (!claimed) {
       response?.status(HttpStatus.NO_CONTENT);
       return undefined;
+    }
+    if (executionPurpose === 'IMPLEMENTATION') {
+      const issued = this.workerCapabilities.issue(claimed, { now });
+      const executionWithCapability: SupervisorExecution = {
+        ...claimed,
+        assignment: {
+          ...claimed.assignment,
+          workerCapability: issued.metadata,
+        },
+      };
+      const persisted = await this.executionStore.saveIfStatus(
+        executionWithCapability,
+        'RUNNING',
+      );
+      return {
+        execution: persisted,
+        assignment: persisted.assignment,
+        capability: issued.token,
+      };
     }
     const capability = this.verifierCapabilities.issue({
       taskId: claimed.taskId,

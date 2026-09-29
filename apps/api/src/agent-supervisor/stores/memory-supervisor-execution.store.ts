@@ -137,6 +137,8 @@ export class MemorySupervisorExecutionStore
       !selected || selected.taskId !== input.taskId || selected.status !== 'QUEUED' ||
       selected.workerRole !== input.workerRole ||
       purpose !== (input.executionPurpose ?? 'IMPLEMENTATION') ||
+      (input.requireFrozenBaseSha === true &&
+        !/^[0-9a-f]{40}$/i.test(selected.assignment.frozenBaseSha ?? '')) ||
       (input.requireCandidateHeadSha === true &&
         !/^[0-9a-f]{40}$/i.test(selected.assignment.candidateHeadSha ?? ''))
     ) {
@@ -180,13 +182,26 @@ export class MemorySupervisorExecutionStore
       input.now.getTime() <= current.lastHeartbeatAt.getTime() ||
       input.now.getTime() >= current.leaseExpiresAt.getTime() ||
       input.leaseExpiresAt.getTime() <= current.leaseExpiresAt.getTime() ||
-      input.leaseExpiresAt.getTime() <= input.now.getTime()
+      input.leaseExpiresAt.getTime() <= input.now.getTime() ||
+      (input.capabilityRotation !== undefined &&
+        (current.assignment.workerCapability?.jti !==
+          input.capabilityRotation.expectedJti ||
+          input.capabilityRotation.next.assignmentDigest !==
+            current.assignment.workerCapability.assignmentDigest ||
+          input.capabilityRotation.next.claimEpoch !== input.claimEpoch ||
+          input.capabilityRotation.next.runnerId !== input.runnerId ||
+          input.capabilityRotation.next.leaseId !== input.leaseId ||
+          input.capabilityRotation.next.manifestHash !==
+            current.assignment.manifestHash))
     ) {
       return Promise.resolve(null);
     }
 
     current.lastHeartbeatAt = new Date(input.now);
     current.leaseExpiresAt = new Date(input.leaseExpiresAt);
+    if (input.capabilityRotation) {
+      current.assignment.workerCapability = input.capabilityRotation.next;
+    }
     return Promise.resolve(this.cloneExecution(current));
   };
 

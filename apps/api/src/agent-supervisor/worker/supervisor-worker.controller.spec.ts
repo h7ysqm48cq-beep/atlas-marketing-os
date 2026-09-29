@@ -44,6 +44,17 @@ describe('SupervisorWorkerController', () => {
     const fail = jest.fn().mockResolvedValue(execution);
     const cancel = jest.fn().mockResolvedValue(execution);
     const heartbeat = jest.fn().mockResolvedValue(execution);
+    const authorize = jest.fn().mockReturnValue({ jti: 'current-jti' });
+    const issue = jest.fn().mockReturnValue({
+      token: 'rotated-capability',
+      metadata: {
+        assignmentDigest: 'a'.repeat(64),
+        claimEpoch: 4,
+        runnerId: 'runner-4',
+        leaseId: 'lease-4',
+        manifestHash: 'b'.repeat(64),
+      },
+    });
     const dispatcher = {
       getExecution,
       markRunning,
@@ -59,9 +70,9 @@ describe('SupervisorWorkerController', () => {
       controller: new Controller(
         dispatcher,
         heartbeatStore,
-        resolveSupervisorExecutionLivenessConfig(),
+        { authorize, issue },
       ),
-      calls: { getExecution, markRunning, complete, fail, cancel, heartbeat },
+      calls: { getExecution, markRunning, complete, fail, cancel, heartbeat, authorize, issue },
     };
   }
 
@@ -157,7 +168,10 @@ describe('SupervisorWorkerController', () => {
       leaseId: 'lease-4',
     };
     await method(
-      { supervisorWorkerAuthorization: authorization },
+      {
+        headers: { authorization: 'Bearer current-capability' },
+        supervisorWorkerAuthorization: authorization,
+      },
       assignment.taskId,
       assignment.executionId,
       {
@@ -190,6 +204,7 @@ describe('SupervisorWorkerController', () => {
     try {
       await method(
         {
+          headers: { authorization: 'Bearer current-capability' },
           supervisorWorkerAuthorization: {
             taskId: assignment.taskId,
             executionId: assignment.executionId,
@@ -227,7 +242,10 @@ describe('SupervisorWorkerController', () => {
 
     await expect(
       method(
-        { supervisorWorkerAuthorization: assignment },
+        {
+          headers: { authorization: 'Bearer current-capability' },
+          supervisorWorkerAuthorization: assignment,
+        },
         assignment.taskId,
         assignment.executionId,
         {},
@@ -236,7 +254,7 @@ describe('SupervisorWorkerController', () => {
     expect(calls.heartbeat).toHaveBeenCalledTimes(1);
   });
 
-  it('returns the authoritative renewed execution without issuing a new capability', async () => {
+  it('returns the authoritative execution with a rotated capability', async () => {
     const { controller, calls } = setup();
     const method = heartbeatMethod(controller);
     expect(method).toEqual(expect.any(Function));
@@ -253,12 +271,18 @@ describe('SupervisorWorkerController', () => {
 
     await expect(
       method(
-        { supervisorWorkerAuthorization: assignment },
+        {
+          headers: { authorization: 'Bearer current-capability' },
+          supervisorWorkerAuthorization: assignment,
+        },
         assignment.taskId,
         assignment.executionId,
         {},
       ),
-    ).resolves.toBe(renewed);
+    ).resolves.toEqual({
+      execution: renewed,
+      capability: 'rotated-capability',
+    });
   });
 
   it('keeps heartbeat separate from Owner, merge, and deployment authority', () => {

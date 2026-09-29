@@ -393,6 +393,7 @@ export class PrismaSupervisorExecutionStore
     const requiredTaskStatus = executionPurpose === 'INDEPENDENT_VERIFICATION'
       ? 'VERIFYING' : 'WORKING';
     const requireCandidateHeadSha = input.requireCandidateHeadSha === true;
+    const requireFrozenBaseSha = input.requireFrozenBaseSha === true;
     return this.withPersistenceBoundary(null, async () =>
       this.prisma.$transaction(async (transaction) => {
         const rows = await transaction.$queryRaw<SupervisorExecutionRecord[]>`
@@ -404,6 +405,7 @@ export class PrismaSupervisorExecutionStore
             AND t."status" = ${requiredTaskStatus}
             AND e."workerRole" = ${input.workerRole}
             AND COALESCE(e."assignment"->>'executionPurpose', 'IMPLEMENTATION') = ${executionPurpose}
+            AND (${requireFrozenBaseSha} = false OR e."assignment"->>'frozenBaseSha' ~ '^[0-9a-fA-F]{40}$')
             AND (${requireCandidateHeadSha} = false OR e."assignment"->>'candidateHeadSha' ~ '^[0-9a-fA-F]{40}$')
           FOR UPDATE OF e, t SKIP LOCKED LIMIT 1
         `;
@@ -471,7 +473,17 @@ export class PrismaSupervisorExecutionStore
           input.now.getTime() <= current.lastHeartbeatAt.getTime() ||
           input.now.getTime() >= current.leaseExpiresAt.getTime() ||
           input.leaseExpiresAt.getTime() <= current.leaseExpiresAt.getTime() ||
-          input.leaseExpiresAt.getTime() <= input.now.getTime()
+          input.leaseExpiresAt.getTime() <= input.now.getTime() ||
+          (input.capabilityRotation !== undefined &&
+            (current.assignment.workerCapability?.jti !==
+              input.capabilityRotation.expectedJti ||
+              input.capabilityRotation.next.assignmentDigest !==
+                current.assignment.workerCapability.assignmentDigest ||
+              input.capabilityRotation.next.claimEpoch !== input.claimEpoch ||
+              input.capabilityRotation.next.runnerId !== input.runnerId ||
+              input.capabilityRotation.next.leaseId !== input.leaseId ||
+              input.capabilityRotation.next.manifestHash !==
+                current.assignment.manifestHash))
         ) {
           return null;
         }
@@ -491,6 +503,14 @@ export class PrismaSupervisorExecutionStore
             data: {
               lastHeartbeatAt: new Date(input.now),
               leaseExpiresAt: new Date(input.leaseExpiresAt),
+              ...(input.capabilityRotation
+                ? {
+                    assignment: {
+                      ...current.assignment,
+                      workerCapability: input.capabilityRotation.next,
+                    },
+                  }
+                : {}),
             },
           });
           return mapExecutionRecord(row);
