@@ -1,6 +1,7 @@
 import type {
   SupervisorAction,
   SupervisorEvidence,
+  SupervisorMergeTargetBranch,
   SupervisorTask,
 } from '../agent-supervisor.types';
 import type { SupervisorWorkerCapabilityMetadata } from '../worker/supervisor-worker-capability.types';
@@ -46,6 +47,7 @@ export interface WorkerAssignmentEnvelope {
   candidateBaseSha?: string;
   candidateHeadSha?: string;
   productionBaselineSha?: string;
+  targetBranch?: SupervisorMergeTargetBranch;
   /** Authority binding is populated only by an immutable admission manifest. */
   manifestHash?: string;
   claimEpoch?: number;
