@@ -60,7 +60,7 @@ export interface WorkerExecutionEvidence {
     mode: 'EXISTING_CANDIDATE';
     taskId: string; executionId: string;
     baseSha: string; headSha: string; productionBaselineSha: string;
-    targetBranch: MergeTargetBranch;
+    targetBranch?: MergeTargetBranch;
     changedFiles: string[]; gitFingerprint: string; sourceVerified: true;
   };
   reviewCandidate?: WorkerReviewCandidate;
