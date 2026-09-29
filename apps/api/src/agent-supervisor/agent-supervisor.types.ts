@@ -42,6 +42,8 @@ export type SupervisorAction =
 export type SupervisorIntegrationAction =
   'merge' | 'deploy_production' | 'run_migration' | 'change_runtime_config';
 
+export type SupervisorMergeTargetBranch = 'production/atlas' | 'main';
+
 export interface CreateSupervisorTaskInput {
   objective: string;
   owner: Exclude<SupervisorAgentRole, 'supervisor'>;
@@ -135,6 +137,7 @@ export interface SupervisorExistingCandidateVerification {
   baseSha: string;
   headSha: string;
   productionBaselineSha: string;
+  targetBranch: SupervisorMergeTargetBranch;
   changedFiles: string[];
   gitFingerprint: string;
   sourceVerified: true;
