@@ -1445,8 +1445,10 @@ export class AgentSupervisorService {
         !executionProof ||
         executionProof.sourceVerified !== true ||
         taskProof.sourceVerified !== true ||
-        taskProof.targetBranch !== (assigned.targetBranch ?? 'production/atlas') ||
-        executionProof.targetBranch !== (assigned.targetBranch ?? 'production/atlas') ||
+        (taskProof.targetBranch ?? 'production/atlas') !==
+          (assigned.targetBranch ?? 'production/atlas') ||
+        (executionProof.targetBranch ?? 'production/atlas') !==
+          (assigned.targetBranch ?? 'production/atlas') ||
         taskProof.taskId !== task.id ||
         executionProof.taskId !== task.id ||
         taskProof.executionId !== verifier.id ||
@@ -1454,8 +1456,10 @@ export class AgentSupervisorService {
         JSON.stringify(taskProof) !== JSON.stringify(executionProof) ||
         !taskCandidate ||
         !executionCandidate ||
-        taskCandidate.targetBranch !== taskProof.targetBranch ||
-        executionCandidate.targetBranch !== taskProof.targetBranch ||
+        taskCandidate.targetBranch !==
+          (taskProof.targetBranch ?? 'production/atlas') ||
+        executionCandidate.targetBranch !==
+          (taskProof.targetBranch ?? 'production/atlas') ||
         !this.sameCandidate(
           normalizeSupervisorReviewCandidate(taskCandidate),
           normalizeSupervisorReviewCandidate(executionCandidate),
