@@ -7,6 +7,7 @@ import type {
   SupervisorExistingCandidateVerification,
   SupervisorIntegrationAction,
   SupervisorMergeAttestation,
+  SupervisorMergeTargetBranch,
   SupervisorOwnerDeploymentAuthorization,
   SupervisorOwnerDeploymentAuthorizationConsumption,
   SupervisorOwnerDeploymentAuthorizationRevocation,
@@ -35,6 +36,10 @@ const INTEGRATION_ACTIONS = new Set<SupervisorIntegrationAction>([
   'change_runtime_config',
 ]);
 const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
+const GOVERNED_MERGE_TARGETS = new Set<SupervisorMergeTargetBranch>([
+  'production/atlas',
+  'main',
+]);
 const PRODUCTION_DEPLOYMENT_SERVICES = new Set<ProductionDeploymentService>([
   'api',
   'web',
@@ -289,7 +294,9 @@ function mapOwnerMergeAuthorizationConsumption(
 
   if (
     authorization.candidate.action !== 'merge' ||
-    authorization.candidate.targetBranch !== 'production/atlas' ||
+    !GOVERNED_MERGE_TARGETS.has(
+      authorization.candidate.targetBranch as SupervisorMergeTargetBranch,
+    ) ||
     !consumedBy.trim() ||
     consumedBy !== consumedBy.trim() ||
     !consumedAt.trim() ||
@@ -423,10 +430,14 @@ function mapExistingCandidateVerification(value: unknown): SupervisorExistingCan
   const baseSha = requireString(object.baseSha);
   const headSha = requireString(object.headSha);
   const productionBaselineSha = requireString(object.productionBaselineSha);
+  const targetBranch = object.targetBranch === undefined
+    ? 'production/atlas'
+    : requireString(object.targetBranch);
   const gitFingerprint = requireString(object.gitFingerprint);
   if (object.mode !== 'EXISTING_CANDIDATE' || object.sourceVerified !== true ||
       !FULL_GIT_SHA.test(baseSha) || !FULL_GIT_SHA.test(headSha) ||
       !FULL_GIT_SHA.test(productionBaselineSha) ||
+      !GOVERNED_MERGE_TARGETS.has(targetBranch as SupervisorMergeTargetBranch) ||
       !/^[0-9a-f]{64}$/i.test(gitFingerprint)) {
     throw persistenceError();
   }
@@ -435,6 +446,7 @@ function mapExistingCandidateVerification(value: unknown): SupervisorExistingCan
     taskId: requireString(object.taskId),
     executionId: requireString(object.executionId),
     baseSha, headSha, productionBaselineSha,
+    targetBranch: targetBranch as SupervisorMergeTargetBranch,
     changedFiles: requireStringArray(object.changedFiles),
     gitFingerprint, sourceVerified: true,
   };
@@ -517,13 +529,16 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
   const base = object.candidateBaseSha;
   const head = object.candidateHeadSha;
   const baseline = object.productionBaselineSha;
+  const targetBranch = object.targetBranch;
   if (verificationMode !== undefined || base !== undefined ||
       head !== undefined || baseline !== undefined) {
     if ((verificationMode !== 'EXISTING_CANDIDATE' &&
          verificationMode !== 'IMPLEMENTATION_RESULT') ||
         typeof base !== 'string' || !FULL_GIT_SHA.test(base) ||
         typeof head !== 'string' || !FULL_GIT_SHA.test(head) ||
-        typeof baseline !== 'string' || !FULL_GIT_SHA.test(baseline)) {
+        typeof baseline !== 'string' || !FULL_GIT_SHA.test(baseline) ||
+        (targetBranch !== undefined &&
+          !GOVERNED_MERGE_TARGETS.has(targetBranch as SupervisorMergeTargetBranch))) {
       throw persistenceError();
     }
   }
@@ -574,6 +589,9 @@ function mapAssignment(value: unknown): WorkerAssignmentEnvelope {
       verificationMode, candidateBaseSha: base as string,
       candidateHeadSha: head as string,
       productionBaselineSha: baseline as string,
+      ...(verificationMode === 'EXISTING_CANDIDATE' ? {
+        targetBranch: (targetBranch ?? 'production/atlas') as SupervisorMergeTargetBranch,
+      } : {}),
     } : {}),
     ...(object.manifestHash !== undefined
       ? { manifestHash: requireString(object.manifestHash) }
