@@ -2,6 +2,7 @@ import type {
   AssignmentExecutor,
   CandidatePublicationReceipt,
   SupervisorClientLike,
+  WorkerExecutionResult,
   WorkspaceInspector,
 } from './types.ts';
 import { CandidateSourceRepository } from './candidate-source-repository.ts';
@@ -278,7 +279,7 @@ export class EngineeringRunner {
         });
       }, this.heartbeatIntervalMs);
 
-      const executionResult = useMainSyncFlow
+      const executionResult: WorkerExecutionResult = useMainSyncFlow
         ? {
             summary:
               'Verified exact main sync candidate against canonical production.',
