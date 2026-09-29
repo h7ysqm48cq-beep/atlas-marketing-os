@@ -1,0 +1,386 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Optional,
+  Param,
+  Post,
+  Req,
+  ServiceUnavailableException,
+  UseGuards,
+} from '@nestjs/common';
+import { AgentSupervisorService } from './agent-supervisor.service';
+import {
+  HumanOwnerApprovalService,
+} from './authority/human-owner-approval.service';
+import { WorkerDispatcherService } from './dispatch/worker-dispatcher.service';
+import { AgentGatewayService } from './gateway/agent-gateway.service';
+import type { WorkerExecutionResult } from './execution/supervisor-execution.types';
+import { SupervisorOwnerActionGuard } from './gateway/supervisor-owner-action.guard';
+import { SupervisorOwnerGuard } from './gateway/supervisor-owner.guard';
+import type {
+  CreateSupervisorTaskInput,
+  PermissionContext,
+  ProductionDeploymentService,
+  SupervisorAction,
+  SupervisorAgentRole,
+  SupervisorEvidence,
+  SupervisorMergeAttestation,
+  SupervisorReviewCandidate,
+} from './agent-supervisor.types';
+
+type HumanOwnerRequest = {
+  user?: {
+    id?: string;
+  };
+  headers?: Record<
+    string,
+    string | string[] | undefined
+  >;
+};
+
+@UseGuards(SupervisorOwnerActionGuard, SupervisorOwnerGuard)
+@Controller('engineering/supervisor')
+export class AgentSupervisorController {
+  constructor(
+    private readonly supervisor: AgentSupervisorService,
+    private readonly dispatcher: WorkerDispatcherService,
+    @Optional()
+    private readonly humanOwnerApproval?: HumanOwnerApprovalService,
+    @Optional()
+    private readonly implementationGateway?: AgentGatewayService,
+  ) {}
+
+  @Get('status')
+  status() {
+    return this.supervisor.status();
+  }
+
+  @Get('tasks')
+  listTasks() {
+    return this.supervisor.listTasks();
+  }
+
+  @Get('tasks/:id')
+  getTask(@Param('id') id: string) {
+    return this.supervisor.getTask(id);
+  }
+
+  @Post('tasks')
+  createTask(@Body() input: CreateSupervisorTaskInput) {
+    return this.supervisor.createTask(input);
+  }
+
+  @Post('tasks/:id/start')
+  startTask(@Param('id') id: string) {
+    return this.supervisor.startTask(id);
+  }
+
+  @Post('tasks/:id/block')
+  blockTask(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.supervisor.blockTask(id, body.reason ?? '');
+  }
+
+  @Post('tasks/:id/abort')
+  abortTask(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.supervisor.abortTask(id, body.reason ?? '');
+  }
+
+  @Post('tasks/:id/fail')
+  failTask(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.supervisor.failTask(id, body.reason ?? '');
+  }
+
+  @Post('tasks/:id/implementation')
+  submitImplementation(
+    @Param('id') id: string,
+    @Body() evidence: SupervisorEvidence,
+  ) {
+    return this.supervisor.submitImplementation(id, evidence);
+  }
+
+  // The Owner supplies only an Execution ID. Evidence is loaded exclusively from
+  // the authenticated Supervisor store, then checked by the existing gateway.
+  @Post('tasks/:id/adopt-implementation-execution')
+  adoptImplementationExecution(
+    @Param('id') id: string,
+    @Body() body: { executionId: string },
+  ) {
+    if (
+      !body ||
+      Object.keys(body).length !== 1 ||
+      typeof body.executionId !== 'string' ||
+      !/^ATLAS-EXEC-[a-zA-Z0-9-]+$/.test(body.executionId)
+    ) {
+      throw new BadRequestException({
+        code: 'implementation_execution_id_only_required',
+      });
+    }
+    if (!this.implementationGateway) {
+      throw new ServiceUnavailableException(
+        'implementation_execution_gateway_unavailable',
+      );
+    }
+    return this.implementationGateway.submitImplementationFromExecution(
+      id,
+      body.executionId,
+    );
+  }
+
+  @Post('tasks/:id/verify')
+  beginVerification(@Param('id') id: string) {
+    return this.supervisor.beginVerification(id);
+  }
+
+  @Post('tasks/:id/return-to-working')
+  returnToWorking(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.supervisor.returnToWorking(id, body.reason ?? '');
+  }
+
+  @Post('tasks/:id/adopt-existing-candidate-verification')
+  adoptExistingCandidateVerification(
+    @Param('id') id: string,
+    @Body() body: { executionId: string },
+  ) {
+    return this.dispatcher.adoptExistingCandidateVerification(id, body.executionId);
+  }
+
+  @Post('tasks/:id/ready-for-review')
+  markReadyForReview(@Param('id') id: string) {
+    return this.supervisor.markReadyForReview(id);
+  }
+
+  @Post('tasks/:id/approve')
+  approveTask(@Param('id') id: string) {
+    return this.supervisor.approveTask(id, true);
+  }
+
+  @Post('tasks/:id/authorize-merge')
+  authorizeMerge(
+    @Param('id') id: string,
+    @Body() body: { candidate: SupervisorReviewCandidate },
+    @Req() request: HumanOwnerRequest,
+  ) {
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'MERGE',
+          candidate: body.candidate,
+        },
+      );
+
+    const authorization =
+      signer.issueMergeApproval(
+        proof,
+        body.candidate,
+      );
+
+    return this.supervisor.authorizeMerge(
+      id,
+      body.candidate,
+      authorization,
+    );
+  }
+
+  @Post('tasks/:id/consume-merge-authorization')
+  consumeMergeAuthorization(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      attestation: SupervisorMergeAttestation;
+    },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.consumeMergeAuthorization(
+      id,
+      body.attestation,
+      request.user?.id ?? '',
+    );
+  }
+
+  @Post('tasks/:id/authorize-production-deployment')
+  authorizeProductionDeployment(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      candidate: SupervisorReviewCandidate;
+      service: ProductionDeploymentService;
+    },
+    @Req() request: HumanOwnerRequest,
+  ) {
+    const signer =
+      this.requireHumanOwnerApproval();
+
+    const proof =
+      signer.verifyAuthentication(
+        this.ownerAuthenticationEvidence(
+          request,
+        ),
+        {
+          action: 'DEPLOY',
+          candidate: body.candidate,
+          service: body.service,
+        },
+      );
+
+    const authorization =
+      signer.issueDeployApproval(
+        proof,
+        body.candidate,
+        body.service,
+      );
+
+    return this.supervisor
+      .authorizeProductionDeployment(
+        id,
+        body.candidate,
+        body.service,
+        authorization,
+      );
+  }
+
+  private requireHumanOwnerApproval(): HumanOwnerApprovalService {
+    if (!this.humanOwnerApproval) {
+      throw new ServiceUnavailableException(
+        'human_owner_approval_signer_not_configured',
+      );
+    }
+
+    return this.humanOwnerApproval;
+  }
+
+  private ownerAuthenticationEvidence(
+    request: HumanOwnerRequest,
+  ) {
+    return {
+      userId:
+        request.user?.id ?? '',
+      ownerAction:
+        this.requestHeader(
+          request,
+          'x-atlas-supervisor-owner-action',
+        ),
+      ownerToken:
+        this.requestHeader(
+          request,
+          'x-atlas-supervisor-owner-token',
+        ),
+    };
+  }
+
+  private requestHeader(
+    request: HumanOwnerRequest,
+    name: string,
+  ): string {
+    const value =
+      request.headers?.[name];
+
+    if (Array.isArray(value)) {
+      return value[0] ?? '';
+    }
+
+    return value ?? '';
+  }
+
+  @Post('tasks/:id/revoke-production-deployment-authorization')
+  revokeProductionDeploymentAuthorization(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.revokeProductionDeploymentAuthorization(
+      id,
+      body.reason ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
+  @Post('tasks/:id/dispatch')
+  dispatchTask(
+    @Param('id') id: string,
+    @Body() body: { frozenBaseSha?: string } = {},
+  ) {
+    const frozenBaseSha = body.frozenBaseSha;
+    return frozenBaseSha
+      ? this.dispatcher.dispatch(id, 'IMPLEMENTATION', { frozenBaseSha })
+      : this.dispatcher.dispatch(id, 'IMPLEMENTATION');
+  }
+
+  @Post('tasks/:id/dispatch-verification')
+  dispatchVerificationTask(@Param('id') id: string) {
+    return this.dispatcher.dispatch(
+      id,
+      'INDEPENDENT_VERIFICATION',
+    );
+  }
+
+  @Post('tasks/:id/admit-existing-candidate-verification')
+  admitExistingCandidateVerification(
+    @Param('id') id: string,
+    @Body() body: {
+      candidateBaseSha: string;
+      candidateHeadSha: string;
+      productionBaselineSha: string;
+      targetBranch?: 'production/atlas' | 'main';
+      changedPaths: string[];
+    },
+  ) {
+    return this.dispatcher.dispatchExistingCandidateVerification(id, body);
+  }
+
+  @Get('tasks/:id/executions')
+  listExecutions(@Param('id') id: string) {
+    return this.dispatcher.listByTask(id);
+  }
+
+  @Get('executions/:id')
+  getExecution(@Param('id') id: string) {
+    return this.dispatcher.getExecution(id);
+  }
+
+  @Post('executions/:id/running')
+  markExecutionRunning(@Param('id') id: string) {
+    return this.dispatcher.markRunning(id);
+  }
+
+  @Post('executions/:id/complete')
+  completeExecution(
+    @Param('id') id: string,
+    @Body() result: WorkerExecutionResult,
+  ) {
+    return this.dispatcher.complete(id, result);
+  }
+
+  @Post('executions/:id/fail')
+  failExecution(@Param('id') id: string, @Body() body: { error: string }) {
+    return this.dispatcher.fail(id, body.error ?? '');
+  }
+
+  @Post('executions/:id/cancel')
+  cancelExecution(@Param('id') id: string, @Body() body: { reason: string }) {
+    return this.dispatcher.cancel(id, body.reason ?? '');
+  }
+
+  @Post('permissions/check')
+  checkPermission(
+    @Body()
+    body: {
+      role: SupervisorAgentRole;
+      action: SupervisorAction;
+      context?: PermissionContext;
+    },
+  ) {
+    return this.supervisor.checkPermission(
+      body.role,
+      body.action,
+      body.context ?? {},
+    );
+  }
+}
