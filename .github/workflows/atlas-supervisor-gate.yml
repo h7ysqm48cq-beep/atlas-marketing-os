@@ -62,7 +62,7 @@ jobs:
               path === '.github/workflows/atlas-supervisor-gate.yml' ||
               path.startsWith('.atlas/agent-control/') ||
               path.startsWith('apps/api/src/agent-supervisor/');
-            const needsGate = TARGET_BRANCH === 'production/atlas' || files.some(governancePath);
+            const needsGate = TARGET_BRANCH === 'production/atlas' || TARGET_BRANCH === 'main';
             const changedFilesB64 = Buffer.from(JSON.stringify(files), 'utf8').toString('base64');
 
             fs.appendFileSync(GITHUB_OUTPUT, `needs_gate=${needsGate ? 'true' : 'false'}\n`);
@@ -183,7 +183,7 @@ jobs:
           NODE
 
       - name: Consume trusted GitHub merge attestation
-        if: steps.changes.outputs.needs_gate == 'true' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'production/atlas'
+        if: steps.changes.outputs.needs_gate == 'true' && github.event.action == 'closed' && github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'production/atlas' || github.event.pull_request.base.ref == 'main')
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -242,8 +242,8 @@ jobs:
           }
 
           async function main() {
-            if (TARGET_BRANCH !== 'production/atlas') {
-              throw new Error('trusted merge attestation requires production/atlas');
+            if (!['production/atlas', 'main'].includes(TARGET_BRANCH)) {
+              throw new Error('trusted merge attestation requires a governed target branch');
             }
 
             const pr = await github(`/pulls/${PR_NUMBER}`);

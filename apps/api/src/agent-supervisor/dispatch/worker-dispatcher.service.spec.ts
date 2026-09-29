@@ -1080,6 +1080,73 @@ describe('existing candidate PR141 DRAFT-only admission', () => {
       allowedPaths: paths,
     }));
   });
+  it('admits main verification only when target and production baseline are frozen in the Task', async () => {
+    const executions = new MemorySupervisorExecutionStore();
+    const supervisor = new AgentSupervisorService(
+      new MemorySupervisorTaskStore(), new MemoryFileOwnershipStore(),
+    );
+    const dispatcher = new WorkerDispatcherService(
+      supervisor, executions,
+      new SupervisorWorkerCapabilityService(capabilityAuthority()),
+      new SupervisorAdmissionManifestService(),
+    );
+    const base = 'a'.repeat(40);
+    const head = 'b'.repeat(40);
+    const production = 'c'.repeat(40);
+    const paths = ['apps/engineering-runner/src/runner.ts'];
+    const task = await supervisor.createTask({
+      objective:
+        `Exact main sync base ${base}; head ${head}; canonical production ${production}`,
+      owner: 'engineering',
+      allowedPaths: paths,
+      forbiddenActions: ['merge', 'deploy_production', 'run_migration'],
+      dependsOn: [],
+      acceptance: [
+        'targetBranch=main',
+        `productionBaselineSha=${production}`,
+        'sourceVerified=true',
+      ],
+    });
+
+    const result = await dispatcher.dispatchExistingCandidateVerification(
+      task.id,
+      {
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: production,
+        targetBranch: 'main',
+        changedPaths: paths,
+      },
+    );
+
+    expect(result.assignment).toEqual(expect.objectContaining({
+      executionPurpose: 'INDEPENDENT_VERIFICATION',
+      verificationMode: 'EXISTING_CANDIDATE',
+      candidateBaseSha: base,
+      candidateHeadSha: head,
+      productionBaselineSha: production,
+      targetBranch: 'main',
+    }));
+
+    const unbound = await supervisor.createTask({
+      objective: `Unbound main sync base ${base}; head ${head}`,
+      owner: 'engineering',
+      allowedPaths: paths,
+      forbiddenActions: ['merge'],
+      dependsOn: [],
+      acceptance: ['sourceVerified=true'],
+    });
+    await expect(
+      dispatcher.dispatchExistingCandidateVerification(unbound.id, {
+        candidateBaseSha: base,
+        candidateHeadSha: head,
+        productionBaselineSha: production,
+        targetBranch: 'main',
+        changedPaths: paths,
+      }),
+    ).rejects.toThrow(/main_sync_identity_not_recorded/);
+  });
+
   it('keeps original PR143 frozen base/head while binding a later production baseline', async () => {
     const executions = new MemorySupervisorExecutionStore();
     const supervisor = new AgentSupervisorService(

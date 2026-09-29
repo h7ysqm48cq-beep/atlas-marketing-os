@@ -74,6 +74,7 @@ export interface CandidateWorkspaceInput {
   candidateBaseSha?: string;
   candidateHeadSha?: string;
   productionBaselineSha?: string;
+  targetBranch?: 'production/atlas' | 'main';
   allowedPaths: string[];
 }
 
@@ -91,8 +92,19 @@ export interface CandidateWorkspaceManagerOptions {
   repositoryRoot: string;
   workspaceRoot: string;
   ensureBase?: (frozenBaseSha: string) => Promise<void>;
-  ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
+  ensureCandidate?: (
+    baseSha: string,
+    headSha: string,
+    targetBranch: 'production/atlas' | 'main',
+  ) => Promise<void>;
   ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  ensureMainHead?: (expectedSha: string) => Promise<void>;
+  ensureMainSync?: (
+    candidateBaseSha: string,
+    candidateHeadSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ) => Promise<void>;
   ensureProductionAdvance?: (
     candidateBaseSha: string,
     expectedProductionSha: string,
@@ -105,8 +117,19 @@ export class CandidateWorkspaceManager {
   private readonly repositoryRoot: string;
   private readonly workspaceRoot: string;
   private readonly ensureBase?: (frozenBaseSha: string) => Promise<void>;
-  private readonly ensureCandidate?: (baseSha: string, headSha: string) => Promise<void>;
+  private readonly ensureCandidate?: (
+    baseSha: string,
+    headSha: string,
+    targetBranch: 'production/atlas' | 'main',
+  ) => Promise<void>;
   private readonly ensureProductionHead?: (expectedSha: string) => Promise<void>;
+  private readonly ensureMainHead?: (expectedSha: string) => Promise<void>;
+  private readonly ensureMainSync?: (
+    candidateBaseSha: string,
+    candidateHeadSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ) => Promise<void>;
   private readonly ensureProductionAdvance?: (
     candidateBaseSha: string,
     expectedProductionSha: string,
@@ -120,6 +143,8 @@ export class CandidateWorkspaceManager {
     this.ensureBase = options.ensureBase;
     this.ensureCandidate = options.ensureCandidate;
     this.ensureProductionHead = options.ensureProductionHead;
+    this.ensureMainHead = options.ensureMainHead;
+    this.ensureMainSync = options.ensureMainSync;
     this.ensureProductionAdvance = options.ensureProductionAdvance;
   }
 
@@ -137,33 +162,48 @@ export class CandidateWorkspaceManager {
     if (!FULL_GIT_SHA.test(frozenBaseSha) || !FULL_GIT_SHA.test(headSha)) {
       throw new Error('candidate_workspace_base_invalid');
     }
+    const targetBranch = input.targetBranch ?? 'production/atlas';
     if (existingCandidate) {
       if (!FULL_GIT_SHA.test(input.productionBaselineSha ?? '') ||
           frozenBaseSha === headSha || !this.ensureCandidate ||
-          !this.ensureProductionHead) {
+          !this.ensureProductionHead ||
+          !['production/atlas', 'main'].includes(targetBranch)) {
         throw new Error('existing_candidate_identity_invalid');
       }
-      await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
+      const productionBaselineSha = input.productionBaselineSha!.toLowerCase();
+      await this.ensureProductionHead(productionBaselineSha);
       if (this.ensureBase) {
-        await this.ensureBase(input.productionBaselineSha!.toLowerCase());
+        await this.ensureBase(productionBaselineSha);
       }
-      // Exact head must be in the verified source cache before we can compare
-      // BOTH sides of a candidate rename against production's post-base diff.
-      await this.ensureCandidate(frozenBaseSha, headSha);
-      if (input.productionBaselineSha!.toLowerCase() !== frozenBaseSha) {
+      if (targetBranch === 'main') {
+        if (!this.ensureMainHead || !this.ensureMainSync) {
+          throw new Error('existing_candidate_main_sync_unverified');
+        }
+        await this.ensureMainHead(frozenBaseSha);
+      }
+      await this.ensureCandidate(frozenBaseSha, headSha, targetBranch);
+      if (targetBranch === 'main') {
+        await this.ensureMainSync!(
+          frozenBaseSha,
+          headSha,
+          productionBaselineSha,
+          input.allowedPaths,
+        );
+      } else if (productionBaselineSha !== frozenBaseSha) {
         if (!this.ensureProductionAdvance) {
           throw new Error('existing_candidate_production_advance_unverified');
         }
         await this.ensureProductionAdvance(
           frozenBaseSha,
-          input.productionBaselineSha!.toLowerCase(),
+          productionBaselineSha,
           input.allowedPaths,
           headSha,
         );
       }
-      // Exact head fetch/ancestry may refresh the source mirror. Reject a
-      // production move before creating any verifier worktree.
-      await this.ensureProductionHead(input.productionBaselineSha!.toLowerCase());
+      await this.ensureProductionHead(productionBaselineSha);
+      if (targetBranch === 'main') {
+        await this.ensureMainHead!(frozenBaseSha);
+      }
     } else if (this.ensureBase) {
       await this.ensureBase(frozenBaseSha);
     }
@@ -272,8 +312,14 @@ export class CandidateWorkspaceManager {
       baseSha: frozenBaseSha,
       ...(existingCandidate ? {
         verifiedHeadSha: headSha, verifiedChangedPaths,
-        verifyProductionBaseline: async () =>
-          this.ensureProductionHead!(input.productionBaselineSha!.toLowerCase()),
+        verifyProductionBaseline: async () => {
+          await this.ensureProductionHead!(
+            input.productionBaselineSha!.toLowerCase(),
+          );
+          if (targetBranch === 'main') {
+            await this.ensureMainHead!(frozenBaseSha);
+          }
+        },
       } : {}),
       workspace,
       cleanup: async () => {

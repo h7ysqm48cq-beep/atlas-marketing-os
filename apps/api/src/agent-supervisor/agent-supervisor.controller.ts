@@ -328,6 +328,7 @@ export class AgentSupervisorController {
       candidateBaseSha: string;
       candidateHeadSha: string;
       productionBaselineSha: string;
+      targetBranch?: 'production/atlas' | 'main';
       changedPaths: string[];
     },
   ) {

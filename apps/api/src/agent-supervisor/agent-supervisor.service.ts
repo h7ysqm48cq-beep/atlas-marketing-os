@@ -480,7 +480,7 @@ export class AgentSupervisorService {
     );
     const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
 
-    this.requireCanonicalMerge(requestedCandidate);
+    this.requireGovernedMerge(task, requestedCandidate);
 
     if (!this.sameCandidate(reviewedCandidate, requestedCandidate)) {
       throw new BadRequestException({
@@ -888,7 +888,7 @@ export class AgentSupervisorService {
     verifiedAt?: Date,
   ): void {
     const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
-    this.requireCanonicalMerge(requestedCandidate);
+    this.requireGovernedMerge(task, requestedCandidate);
 
     const authorization = task.evidence?.ownerMergeAuthorization;
     if (!authorization) {
@@ -1445,6 +1445,10 @@ export class AgentSupervisorService {
         !executionProof ||
         executionProof.sourceVerified !== true ||
         taskProof.sourceVerified !== true ||
+        (taskProof.targetBranch ?? 'production/atlas') !==
+          (assigned.targetBranch ?? 'production/atlas') ||
+        (executionProof.targetBranch ?? 'production/atlas') !==
+          (assigned.targetBranch ?? 'production/atlas') ||
         taskProof.taskId !== task.id ||
         executionProof.taskId !== task.id ||
         taskProof.executionId !== verifier.id ||
@@ -1452,6 +1456,10 @@ export class AgentSupervisorService {
         JSON.stringify(taskProof) !== JSON.stringify(executionProof) ||
         !taskCandidate ||
         !executionCandidate ||
+        taskCandidate.targetBranch !==
+          (taskProof.targetBranch ?? 'production/atlas') ||
+        executionCandidate.targetBranch !==
+          (taskProof.targetBranch ?? 'production/atlas') ||
         !this.sameCandidate(
           normalizeSupervisorReviewCandidate(taskCandidate),
           normalizeSupervisorReviewCandidate(executionCandidate),
@@ -1567,13 +1575,44 @@ export class AgentSupervisorService {
     };
   }
 
-  private requireCanonicalMerge(candidate: SupervisorReviewCandidate) {
+  private requireGovernedMerge(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+  ) {
     if (
       candidate.action !== 'merge' ||
-      candidate.targetBranch !== 'production/atlas'
+      !['production/atlas', 'main'].includes(candidate.targetBranch)
     ) {
       throw new BadRequestException({
-        code: 'owner_merge_authorization_requires_canonical_merge',
+        code: 'owner_merge_authorization_requires_governed_merge',
+      });
+    }
+
+    if (candidate.targetBranch !== 'main') return;
+
+    const proof = task.evidence?.existingCandidateVerification;
+    const reviewed = task.evidence?.reviewCandidate;
+    const samePaths = (left: string[], right: string[]) =>
+      JSON.stringify([...new Set(left)].sort()) ===
+      JSON.stringify([...new Set(right)].sort());
+
+    if (
+      !proof ||
+      proof.mode !== 'EXISTING_CANDIDATE' ||
+      proof.sourceVerified !== true ||
+      proof.targetBranch !== 'main' ||
+      !FULL_GIT_SHA.test(proof.productionBaselineSha) ||
+      proof.baseSha !== candidate.baseSha ||
+      proof.headSha !== candidate.headSha ||
+      !samePaths(proof.changedFiles, candidate.changedFiles) ||
+      !reviewed ||
+      !this.sameCandidate(
+        normalizeSupervisorReviewCandidate(reviewed),
+        candidate,
+      )
+    ) {
+      throw new BadRequestException({
+        code: 'owner_merge_authorization_requires_verified_main_sync',
       });
     }
   }

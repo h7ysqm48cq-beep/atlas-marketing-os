@@ -2,6 +2,7 @@ import type {
   AssignmentExecutor,
   CandidatePublicationReceipt,
   SupervisorClientLike,
+  WorkerExecutionResult,
   WorkspaceInspector,
 } from './types.ts';
 import { CandidateSourceRepository } from './candidate-source-repository.ts';
@@ -25,6 +26,7 @@ interface CandidateWorkspaceManagerLike {
     candidateBaseSha?: string;
     candidateHeadSha?: string;
     productionBaselineSha?: string;
+    targetBranch?: 'production/atlas' | 'main';
     allowedPaths: string[];
   }): Promise<CandidateWorkspaceLeaseLike>;
 }
@@ -186,6 +188,8 @@ export class EngineeringRunner {
       let activeWorkspace = this.workspace;
       let activeExecutor = this.executor;
       const frozenBaseSha = session.assignment.frozenBaseSha;
+      const verificationTarget =
+        session.assignment.targetBranch ?? 'production/atlas';
       const useCandidateFlow =
         session.purpose === 'IMPLEMENTATION' && Boolean(frozenBaseSha);
       const candidatePublicationAllowed =
@@ -198,6 +202,8 @@ export class EngineeringRunner {
         Boolean(session.assignment.candidateHeadSha) &&
         Boolean(session.assignment.productionBaselineSha) &&
         session.assignment.candidateBaseSha !== session.assignment.candidateHeadSha;
+      const useMainSyncFlow =
+        useExistingCandidateFlow && verificationTarget === 'main';
       const useRuntimeRefreshFlow =
         session.purpose === 'INDEPENDENT_VERIFICATION' &&
         session.assignment.verificationMode === 'EXISTING_CANDIDATE' &&
@@ -211,6 +217,9 @@ export class EngineeringRunner {
         session.assignment.candidateBaseSha === session.assignment.candidateHeadSha &&
         session.assignment.candidateHeadSha === session.assignment.productionBaselineSha;
 
+      if (useRuntimeRefreshFlow && verificationTarget !== 'production/atlas') {
+        throw new Error('runtime_refresh_target_invalid');
+      }
       if (session.assignment.verificationMode &&
           !useExistingCandidateFlow && !useRuntimeRefreshFlow &&
           !useImplementationResultFlow) {
@@ -236,6 +245,7 @@ export class EngineeringRunner {
             candidateBaseSha: session.assignment.candidateBaseSha!,
             candidateHeadSha: session.assignment.candidateHeadSha!,
             productionBaselineSha: session.assignment.productionBaselineSha!,
+            targetBranch: verificationTarget,
           }),
           allowedPaths: session.assignment.allowedPaths,
         });
@@ -269,10 +279,33 @@ export class EngineeringRunner {
         });
       }, this.heartbeatIntervalMs);
 
-      const executionResult = await activeExecutor.execute(
-        session.assignment,
-        signal,
-      );
+      const executionResult: WorkerExecutionResult = useMainSyncFlow
+        ? {
+            summary:
+              'Verified exact main sync candidate against canonical production.',
+            evidence: {
+              rootCause:
+                'main_sync_requires_exact_production_tree_verification',
+              changedFiles: [...candidateLease!.verifiedChangedPaths!],
+              tests: [
+                'main_base_exact',
+                'candidate_head_exact',
+                'production_baseline_exact',
+                'production_tree_entries_exact',
+                'changed_paths_exact',
+                'workspace_clean',
+              ],
+              build: 'NOT_RUN',
+              regression: [],
+              deploymentState: 'NOT_DEPLOYED',
+              gitState: 'CLEAN',
+              remainingRisk: ['verification_does_not_merge_or_deploy'],
+            },
+          }
+        : await activeExecutor.execute(
+            session.assignment,
+            signal,
+          );
       const after = await activeWorkspace.listChangedFiles();
       const afterFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow ||
         useImplementationResultFlow
@@ -332,13 +365,14 @@ export class EngineeringRunner {
               baseSha: session.assignment.candidateBaseSha!,
               headSha: session.assignment.candidateHeadSha!,
               productionBaselineSha: session.assignment.productionBaselineSha!,
+              targetBranch: verificationTarget,
               changedFiles,
               gitFingerprint: beforeFingerprint!,
               sourceVerified: true,
             },
             reviewCandidate: {
               action: 'merge',
-              targetBranch: 'production/atlas',
+              targetBranch: verificationTarget,
               baseSha: session.assignment.candidateBaseSha!,
               headSha: session.assignment.candidateHeadSha!,
               changedFiles,
@@ -357,6 +391,7 @@ export class EngineeringRunner {
               taskId: session.assignment.taskId,
               executionId: session.assignment.executionId,
               baseSha: sha, headSha: sha, productionBaselineSha: sha,
+              targetBranch: 'production/atlas',
               changedFiles: [], gitFingerprint: beforeFingerprint!,
               sourceVerified: true,
             },

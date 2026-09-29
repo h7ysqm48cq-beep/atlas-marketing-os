@@ -385,3 +385,67 @@ test('advanced-baseline source rejection does not create a detached verifier wor
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test('main existing-candidate workspace requires exact source sync and rechecks both canonical refs', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-workspace-'));
+  try {
+    const { repo, head: base } = await sourceRepository(root);
+    await writeFile(path.join(repo, 'allowed.txt'), 'canonical production\n');
+    await git(repo, ['add', '--', 'allowed.txt']);
+    await git(repo, ['commit', '-qm', 'main sync candidate']);
+    const head = await git(repo, ['rev-parse', 'HEAD']);
+    const production = 'c'.repeat(40);
+    let productionChecks = 0;
+    let mainChecks = 0;
+    let syncChecks = 0;
+    let candidateTarget = '';
+
+    const { CandidateWorkspaceManager } = await import('./candidate-workspace.ts');
+    const manager = new CandidateWorkspaceManager({
+      repositoryRoot: repo,
+      workspaceRoot: path.join(root, 'workspaces'),
+      ensureCandidate: async (candidateBase, candidateHead, targetBranch) => {
+        assert.equal(candidateBase, base);
+        assert.equal(candidateHead, head);
+        candidateTarget = targetBranch;
+      },
+      ensureProductionHead: async (sha) => {
+        assert.equal(sha, production);
+        productionChecks += 1;
+      },
+      ensureMainHead: async (sha) => {
+        assert.equal(sha, base);
+        mainChecks += 1;
+      },
+      ensureMainSync: async (candidateBase, candidateHead, productionSha, paths) => {
+        assert.equal(candidateBase, base);
+        assert.equal(candidateHead, head);
+        assert.equal(productionSha, production);
+        assert.deepEqual(paths, ['allowed.txt']);
+        syncChecks += 1;
+      },
+    });
+
+    const lease = await manager.prepare({
+      taskId: 'ATLAS-main-sync',
+      executionId: 'ATLAS-EXEC-main-sync',
+      candidateBaseSha: base,
+      candidateHeadSha: head,
+      productionBaselineSha: production,
+      targetBranch: 'main',
+      allowedPaths: ['allowed.txt'],
+    });
+
+    assert.equal(candidateTarget, 'main');
+    assert.equal(syncChecks, 1);
+    assert.equal(productionChecks, 2);
+    assert.equal(mainChecks, 2);
+    await lease.verifyProductionBaseline?.();
+    assert.equal(productionChecks, 3);
+    assert.equal(mainChecks, 3);
+    await lease.cleanup();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

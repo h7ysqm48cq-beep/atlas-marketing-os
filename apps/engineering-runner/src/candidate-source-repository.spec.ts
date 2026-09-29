@@ -397,3 +397,115 @@ test('file-versus-directory conflicts across production and candidate paths fail
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test('main sync accepts only candidate tree entries identical to pinned production', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-source-'));
+  try {
+    const { author, remote, productionHead: mainBase } = await fixture(root);
+    await git(author, ['push', remote, mainBase + ':refs/heads/main']);
+
+    await git(author, ['checkout', 'production/atlas']);
+    await writeFile(path.join(author, 'app.txt'), 'canonical production\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'canonical production']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+
+    await git(author, ['checkout', '-B', 'main', mainBase]);
+    await git(author, ['checkout', '-qb', 'main-sync-candidate']);
+    await writeFile(path.join(author, 'app.txt'), 'canonical production\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'sync canonical production']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main-sync-candidate']);
+
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'),
+      remote,
+    });
+    await source.ensureExistingCandidate(mainBase, head, 'main');
+    await source.ensureMainSync(mainBase, head, production, ['app.txt']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('main sync rejects candidate content or Git tree metadata that differs from production', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-mismatch-'));
+  try {
+    const { author, remote, productionHead: mainBase } = await fixture(root);
+    await git(author, ['push', remote, mainBase + ':refs/heads/main']);
+
+    await git(author, ['checkout', 'production/atlas']);
+    await writeFile(path.join(author, 'app.txt'), 'canonical production\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'canonical production']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+
+    await git(author, ['checkout', '-B', 'main', mainBase]);
+    await git(author, ['checkout', '-qb', 'bad-main-sync']);
+    await writeFile(path.join(author, 'app.txt'), 'different candidate\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'different candidate']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/bad-main-sync']);
+
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'),
+      remote,
+    });
+    await source.ensureExistingCandidate(mainBase, head, 'main');
+    await assert.rejects(
+      source.ensureMainSync(mainBase, head, production, ['app.txt']),
+      /existing_candidate_main_sync_blob_mismatch/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('main sync rejects main ref drift from the pinned base', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'atlas-main-sync-drift-'));
+  try {
+    const { author, remote, productionHead: mainBase } = await fixture(root);
+    await git(author, ['push', remote, mainBase + ':refs/heads/main']);
+
+    await git(author, ['checkout', 'production/atlas']);
+    await writeFile(path.join(author, 'app.txt'), 'canonical production\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'canonical production']);
+    const production = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/production/atlas']);
+
+    await git(author, ['checkout', '-B', 'main', mainBase]);
+    await git(author, ['checkout', '-qb', 'main-sync-candidate']);
+    await writeFile(path.join(author, 'app.txt'), 'canonical production\n');
+    await git(author, ['add', '--', 'app.txt']);
+    await git(author, ['commit', '-qm', 'sync production']);
+    const head = await git(author, ['rev-parse', 'HEAD']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main-sync-candidate']);
+
+    await git(author, ['checkout', '-B', 'main', mainBase]);
+    await writeFile(path.join(author, 'main-only.txt'), 'drift\n');
+    await git(author, ['add', '--', 'main-only.txt']);
+    await git(author, ['commit', '-qm', 'advance main']);
+    await git(author, ['push', remote, 'HEAD:refs/heads/main']);
+
+    const source = new CandidateSourceRepository({
+      repositoryRoot: path.join(root, 'mirror.git'),
+      remote,
+    });
+    await assert.rejects(
+      source.ensureExistingCandidate(mainBase, head, 'main'),
+      /existing_candidate_main_baseline_drift/,
+    );
+    await assert.rejects(
+      source.ensureMainSync(mainBase, head, production, ['app.txt']),
+      /existing_candidate_main_baseline_drift/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

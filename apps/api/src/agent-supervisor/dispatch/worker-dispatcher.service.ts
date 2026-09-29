@@ -13,7 +13,7 @@ import {
   type ExistingCandidateAtomicAdmission,
 } from '../stores/supervisor-lifecycle.store';
 import { SupervisorAdmissionManifestService } from '../authority/supervisor-admission-manifest.service';
-import type { SupervisorAction } from '../agent-supervisor.types';
+import type { SupervisorAction, SupervisorMergeTargetBranch } from '../agent-supervisor.types';
 import type {
   RequiredEvidenceField,
   SupervisorExecution,
@@ -97,6 +97,7 @@ export class WorkerDispatcherService {
       candidateBaseSha?: string;
       candidateHeadSha?: string;
       productionBaselineSha?: string;
+      targetBranch?: SupervisorMergeTargetBranch;
     } = {},
   ): Promise<{
     execution: SupervisorExecution;
@@ -162,6 +163,7 @@ export class WorkerDispatcherService {
           candidateBaseSha: candidate.baseSha.toLowerCase(),
           candidateHeadSha: candidate.headSha.toLowerCase(),
           productionBaselineSha: candidate.baseSha.toLowerCase(),
+          targetBranch: 'production/atlas',
         };
       } else {
         if (
@@ -259,6 +261,9 @@ export class WorkerDispatcherService {
         candidateBaseSha: verificationOptions.candidateBaseSha,
         candidateHeadSha: verificationOptions.candidateHeadSha,
         productionBaselineSha: verificationOptions.productionBaselineSha,
+        ...(verificationOptions.verificationMode === 'EXISTING_CANDIDATE' ? {
+          targetBranch: verificationOptions.targetBranch ?? 'production/atlas',
+        } : {}),
       } : {}),
     };
 
@@ -301,6 +306,7 @@ export class WorkerDispatcherService {
       candidateBaseSha: string;
       candidateHeadSha: string;
       productionBaselineSha: string;
+      targetBranch?: SupervisorMergeTargetBranch;
       changedPaths: string[];
     },
   ) {
@@ -338,6 +344,10 @@ export class WorkerDispatcherService {
         input.changedPaths.some(path => typeof path !== 'string' || !path.trim())) {
       throw new BadRequestException('existing_candidate_paths_invalid');
     }
+    const targetBranch = input.targetBranch ?? 'production/atlas';
+    if (targetBranch !== 'production/atlas' && targetBranch !== 'main') {
+      throw new BadRequestException('existing_candidate_target_invalid');
+    }
     const runtimeRefresh = input.changedPaths.length === 0;
     const exactSha = input.candidateBaseSha.toLowerCase();
     const exactSameSha =
@@ -365,7 +375,17 @@ export class WorkerDispatcherService {
       task.acceptance.some(
         value => value.trim().toLowerCase() === `service=${workerQualificationService}`,
       );
+    const mainSync = !runtimeRefresh && targetBranch === 'main';
+    if (mainSync && (
+      !task.acceptance.some(value => value.trim() === 'targetBranch=main') ||
+      !task.acceptance.some(value => value.trim() ===
+        `productionBaselineSha=${input.productionBaselineSha.toLowerCase()}`) ||
+      !task.objective.toLowerCase().includes(input.productionBaselineSha.toLowerCase())
+    )) {
+      throw new BadRequestException('main_sync_identity_not_recorded');
+    }
     if (runtimeRefresh ? (
+      targetBranch !== 'production/atlas' ||
       !exactSameSha ||
       !exactShaAcceptance ||
       (!apiRuntimeRefresh && !workerQualification)
@@ -407,6 +427,7 @@ export class WorkerDispatcherService {
         candidateBaseSha: input.candidateBaseSha.toLowerCase(),
         candidateHeadSha: input.candidateHeadSha.toLowerCase(),
         productionBaselineSha: input.productionBaselineSha.toLowerCase(),
+        targetBranch,
       };
       const assignment: WorkerAssignmentEnvelope = {
         ...assignmentCore,
@@ -435,6 +456,7 @@ export class WorkerDispatcherService {
       candidateBaseSha: input.candidateBaseSha.toLowerCase(),
       candidateHeadSha: input.candidateHeadSha.toLowerCase(),
       productionBaselineSha: input.productionBaselineSha.toLowerCase(),
+      targetBranch,
     });
   }
 
@@ -461,6 +483,7 @@ export class WorkerDispatcherService {
     const identical = (left: string[], right: string[]) =>
       JSON.stringify(paths(left)) === JSON.stringify(paths(right));
     const runtimeRefresh = a.candidateBaseSha === a.candidateHeadSha;
+    const targetBranch = a.targetBranch ?? 'production/atlas';
     const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!proof || proof.mode !== a.verificationMode ||
         proof.sourceVerified !== true ||
@@ -468,6 +491,7 @@ export class WorkerDispatcherService {
         proof.baseSha !== a.candidateBaseSha ||
         proof.headSha !== a.candidateHeadSha ||
         proof.productionBaselineSha !== a.productionBaselineSha ||
+        (proof.targetBranch ?? 'production/atlas') !== targetBranch ||
         !/^[0-9a-f]{64}$/i.test(proof.gitFingerprint) ||
         !a.manifestHash || !/^[0-9a-f]{64}$/i.test(a.manifestHash) ||
         !a.claimEpoch || a.claimEpoch < 1 ||
@@ -478,7 +502,8 @@ export class WorkerDispatcherService {
         !identical(evidence.changedFiles, expectedPaths) ||
         !identical(a.allowedPaths, task.allowedPaths) ||
         !review || review.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
-        review.targetBranch !== 'production/atlas' ||
+        review.targetBranch !== targetBranch ||
+        (runtimeRefresh && targetBranch !== 'production/atlas') ||
         review.baseSha !== proof.baseSha ||
         review.headSha !== proof.headSha ||
         (runtimeRefresh && (proof.baseSha !== proof.headSha ||

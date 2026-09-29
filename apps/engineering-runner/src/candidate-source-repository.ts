@@ -9,6 +9,7 @@ const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const CANONICAL_CANDIDATE_REMOTE =
   "https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git";
 const PRODUCTION_SOURCE_REF = "refs/atlas/source/production";
+const MAIN_SOURCE_REF = "refs/atlas/source/main";
 
 function dangerousTransportConfig(key: string): boolean {
   const value = key.trim().toLowerCase();
@@ -146,7 +147,7 @@ export class CandidateSourceRepository {
       throw new Error("candidate_source_transport_config_unsafe");
     }
   }
-  async refresh(): Promise<void> {
+  private async refreshRef(branch: string, localRef: string): Promise<void> {
     await this.ensureRepository();
     await this.assertTransportConfigSafe();
     await this.gitRaw(
@@ -156,10 +157,14 @@ export class CandidateSourceRepository {
         "--no-tags",
         "--no-recurse-submodules",
         this.remote,
-        `refs/heads/production/atlas:${PRODUCTION_SOURCE_REF}`,
+        `refs/heads/${branch}:${localRef}`,
       ],
       true,
     );
+  }
+
+  async refresh(): Promise<void> {
+    await this.refreshRef("production/atlas", PRODUCTION_SOURCE_REF);
   }
 
   async ensureProductionHead(expectedSha: string): Promise<void> {
@@ -173,6 +178,25 @@ export class CandidateSourceRepository {
     if (remoteHead !== expectedSha.toLowerCase()) {
       throw new Error('existing_candidate_production_baseline_drift');
     }
+  }
+
+  async ensureMainHead(expectedSha: string): Promise<void> {
+    if (!FULL_GIT_SHA.test(expectedSha)) {
+      throw new Error('existing_candidate_main_baseline_invalid');
+    }
+    await this.refreshRef("main", MAIN_SOURCE_REF);
+    const remoteHead = (await this.gitRaw(this.repositoryRoot, [
+      'rev-parse', '--verify', MAIN_SOURCE_REF,
+    ])).trim().toLowerCase();
+    if (remoteHead !== expectedSha.toLowerCase()) {
+      throw new Error('existing_candidate_main_baseline_drift');
+    }
+  }
+
+  private async treeEntry(commitSha: string, repoPath: string): Promise<string> {
+    return this.gitRaw(this.repositoryRoot, [
+      'ls-tree', '-z', commitSha.toLowerCase(), '--', repoPath,
+    ]).catch(() => '');
   }
 
   async ensureProductionAdvance(
@@ -239,14 +263,78 @@ export class CandidateSourceRepository {
     await this.ensureProductionHead(expectedProductionSha);
   }
 
-  async ensureExistingCandidate(baseSha: string, headSha: string): Promise<void> {
+  async ensureMainSync(
+    candidateBaseSha: string,
+    candidateHeadSha: string,
+    expectedProductionSha: string,
+    candidatePaths: string[],
+  ): Promise<void> {
+    if (
+      !FULL_GIT_SHA.test(candidateBaseSha) ||
+      !FULL_GIT_SHA.test(candidateHeadSha) ||
+      candidateBaseSha.toLowerCase() === candidateHeadSha.toLowerCase() ||
+      !FULL_GIT_SHA.test(expectedProductionSha) ||
+      !Array.isArray(candidatePaths) ||
+      candidatePaths.length === 0 ||
+      candidatePaths.some(
+        (p) =>
+          !p ||
+          p === "." ||
+          p === ".." ||
+          p.startsWith("/") ||
+          p.startsWith("../") ||
+          p.includes("\\") ||
+          path.posix.normalize(p) !== p,
+      )
+    ) {
+      throw new Error("existing_candidate_main_sync_invalid");
+    }
+
+    await this.ensureMainHead(candidateBaseSha);
+    await this.ensureProductionHead(expectedProductionSha);
+
+    const fetchedHead = (
+      await this.gitRaw(this.repositoryRoot, [
+        "rev-parse",
+        "--verify",
+        candidateHeadSha.toLowerCase() + "^{commit}",
+      ]).catch(() => "")
+    )
+      .trim()
+      .toLowerCase();
+    if (fetchedHead !== candidateHeadSha.toLowerCase()) {
+      throw new Error("existing_candidate_source_identity_unverified");
+    }
+
+    for (const candidatePath of [...new Set(candidatePaths)].sort()) {
+      const [candidateEntry, productionEntry] = await Promise.all([
+        this.treeEntry(candidateHeadSha, candidatePath),
+        this.treeEntry(expectedProductionSha, candidatePath),
+      ]);
+      if (!candidateEntry || candidateEntry !== productionEntry) {
+        throw new Error("existing_candidate_main_sync_blob_mismatch");
+      }
+    }
+
+    await this.ensureMainHead(candidateBaseSha);
+    await this.ensureProductionHead(expectedProductionSha);
+  }
+
+  async ensureExistingCandidate(
+    baseSha: string,
+    headSha: string,
+    targetBranch: 'production/atlas' | 'main' = 'production/atlas',
+  ): Promise<void> {
     if (!FULL_GIT_SHA.test(baseSha) || !FULL_GIT_SHA.test(headSha) ||
-        baseSha.toLowerCase() === headSha.toLowerCase()) {
+        baseSha.toLowerCase() === headSha.toLowerCase() ||
+        !['production/atlas', 'main'].includes(targetBranch)) {
       throw new Error('existing_candidate_identity_invalid');
     }
-    // Source and base must be production-ancestry verified, while the
-    // unmerged exact head may not yet be reachable from production.
-    await this.ensureBase(baseSha);
+    if (targetBranch === 'main') {
+      await this.ensureMainHead(baseSha);
+    } else {
+      await this.ensureBase(baseSha);
+    }
     await this.assertTransportConfigSafe();
     try {
       await this.gitRaw(this.repositoryRoot, [

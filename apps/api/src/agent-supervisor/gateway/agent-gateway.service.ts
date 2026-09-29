@@ -799,9 +799,9 @@ export class AgentGatewayService {
 
     if (
       requestedCandidate.action === 'merge' &&
-      requestedCandidate.targetBranch !== 'production/atlas'
+      !['production/atlas', 'main'].includes(requestedCandidate.targetBranch)
     ) {
-      throw new BadRequestException({ code: 'canonical_target_required' });
+      throw new BadRequestException({ code: 'governed_target_required' });
     }
 
     return { task, execution, requestedCandidate };
@@ -875,6 +875,7 @@ export class AgentGatewayService {
       JSON.stringify([...new Set(left)].sort()) ===
       JSON.stringify([...new Set(right)].sort());
     const runtimeRefresh = assigned.candidateBaseSha === assigned.candidateHeadSha;
+    const assignedTarget = assigned.targetBranch ?? 'production/atlas';
     const expectedPaths = runtimeRefresh ? [] : task.allowedPaths;
     if (!taskProof || !executionProof ||
         execution.status !== 'COMPLETED' ||
@@ -884,6 +885,8 @@ export class AgentGatewayService {
         executionProof.mode !== assigned.verificationMode ||
         taskProof.sourceVerified !== true ||
         executionProof.sourceVerified !== true ||
+        (taskProof.targetBranch ?? 'production/atlas') !== assignedTarget ||
+        (executionProof.targetBranch ?? 'production/atlas') !== assignedTarget ||
         taskProof.taskId !== task.id ||
         executionProof.taskId !== task.id ||
         taskProof.executionId !== execution.id ||
@@ -904,7 +907,8 @@ export class AgentGatewayService {
         !same(taskProof.changedFiles,
           task.evidence!.changedFiles) ||
         candidate.action !== (runtimeRefresh ? 'deploy_production' : 'merge') ||
-        candidate.targetBranch !== 'production/atlas' ||
+        candidate.targetBranch !== assignedTarget ||
+        (runtimeRefresh && assignedTarget !== 'production/atlas') ||
         candidate.baseSha !== taskProof.baseSha ||
         candidate.headSha !== taskProof.headSha ||
         (runtimeRefresh && (taskProof.baseSha !== taskProof.headSha ||
