@@ -79,10 +79,14 @@ export function createEngineeringRunnerOptions(
       repositoryRoot: config.candidate.repositoryRoot,
       workspaceRoot: config.candidate.workspaceRoot,
       ensureBase: (frozenBaseSha) => candidateSource.ensureBase(frozenBaseSha),
-      ensureCandidate: (baseSha, headSha) =>
-        candidateSource.ensureExistingCandidate(baseSha, headSha),
+      ensureCandidate: (baseSha, headSha, targetBranch) =>
+        candidateSource.ensureExistingCandidate(baseSha, headSha, targetBranch),
       ensureProductionHead: (headSha) =>
         candidateSource.ensureProductionHead(headSha),
+      ensureMainHead: (headSha) =>
+        candidateSource.ensureMainHead(headSha),
+      ensureMainSync: (baseSha, headSha, productionSha, paths) =>
+        candidateSource.ensureMainSync(baseSha, headSha, productionSha, paths),
       ensureProductionAdvance: (baseSha, productionSha, paths, headSha) =>
         candidateSource.ensureProductionAdvance(
           baseSha, productionSha, paths, headSha,
