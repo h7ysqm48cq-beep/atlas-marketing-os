@@ -1,4 +1,5 @@
 export type ExecutionPurpose = 'IMPLEMENTATION' | 'INDEPENDENT_VERIFICATION';
+export type MergeTargetBranch = 'production/atlas' | 'main';
 
 export interface WorkerAssignment {
   executionId: string;
@@ -16,6 +17,7 @@ export interface WorkerAssignment {
   candidateBaseSha?: string;
   candidateHeadSha?: string;
   productionBaselineSha?: string;
+  targetBranch?: MergeTargetBranch;
   manifestHash?: string;
   claimEpoch?: number;
   leaseId?: string;
@@ -38,7 +40,7 @@ export interface CandidatePublicationReceipt {
 
 export interface WorkerReviewCandidate {
   action: 'merge' | 'deploy_production';
-  targetBranch: 'production/atlas';
+  targetBranch: MergeTargetBranch;
   baseSha: string;
   headSha: string;
   changedFiles: string[];
@@ -58,6 +60,7 @@ export interface WorkerExecutionEvidence {
     mode: 'EXISTING_CANDIDATE';
     taskId: string; executionId: string;
     baseSha: string; headSha: string; productionBaselineSha: string;
+    targetBranch: MergeTargetBranch;
     changedFiles: string[]; gitFingerprint: string; sourceVerified: true;
   };
   reviewCandidate?: WorkerReviewCandidate;
