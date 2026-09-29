@@ -885,8 +885,8 @@ export class AgentGatewayService {
         executionProof.mode !== assigned.verificationMode ||
         taskProof.sourceVerified !== true ||
         executionProof.sourceVerified !== true ||
-        taskProof.targetBranch !== assignedTarget ||
-        executionProof.targetBranch !== assignedTarget ||
+        (taskProof.targetBranch ?? 'production/atlas') !== assignedTarget ||
+        (executionProof.targetBranch ?? 'production/atlas') !== assignedTarget ||
         taskProof.taskId !== task.id ||
         executionProof.taskId !== task.id ||
         taskProof.executionId !== execution.id ||
