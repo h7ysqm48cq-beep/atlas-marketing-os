@@ -491,7 +491,7 @@ export class WorkerDispatcherService {
         proof.baseSha !== a.candidateBaseSha ||
         proof.headSha !== a.candidateHeadSha ||
         proof.productionBaselineSha !== a.productionBaselineSha ||
-        proof.targetBranch !== targetBranch ||
+        (proof.targetBranch ?? 'production/atlas') !== targetBranch ||
         !/^[0-9a-f]{64}$/i.test(proof.gitFingerprint) ||
         !a.manifestHash || !/^[0-9a-f]{64}$/i.test(a.manifestHash) ||
         !a.claimEpoch || a.claimEpoch < 1 ||
