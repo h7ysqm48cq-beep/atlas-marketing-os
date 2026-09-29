@@ -24,6 +24,7 @@ import {
   SupervisorWorkerGuard,
   SupervisorWorkerOperationRequired,
 } from './supervisor-worker.guard';
+import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
 
 @Public()
 @UseGuards(SupervisorWorkerGuard)
@@ -33,6 +34,7 @@ export class SupervisorWorkerController {
     private readonly dispatcher: WorkerDispatcherService,
     @Inject(SUPERVISOR_EXECUTION_HEARTBEAT_STORE)
     private readonly heartbeats: SupervisorExecutionHeartbeatStore,
+    private readonly workerCapabilities: SupervisorWorkerCapabilityService,
   ) {
     const heartbeat = this.heartbeat.bind(this);
     for (const key of Reflect.getMetadataKeys(this.heartbeat)) {
@@ -100,6 +102,7 @@ export class SupervisorWorkerController {
   async heartbeat(
     @Req()
     request: {
+      headers?: { authorization?: string | string[] };
       supervisorWorkerAuthorization?: SupervisorWorkerAuthorizationContext;
     },
     @Param('taskId') _taskId: string,
@@ -111,6 +114,27 @@ export class SupervisorWorkerController {
       throw new ForbiddenException('worker_heartbeat_authorization_required');
     }
     const now = new Date();
+    const bearer = request.headers?.authorization;
+    if (typeof bearer !== 'string' || !bearer.startsWith('Bearer ')) {
+      throw new ForbiddenException('worker_heartbeat_authorization_required');
+    }
+    const current = await this.dispatcher.getExecution(
+      authorization.executionId,
+    );
+    const claims = this.workerCapabilities.authorize(
+      bearer.slice('Bearer '.length),
+      {
+        taskId: authorization.taskId,
+        executionId: authorization.executionId,
+        workerRole: authorization.workerRole,
+        executionPurpose:
+          current.assignment.executionPurpose ?? 'IMPLEMENTATION',
+        assignment: current.assignment,
+        operation: 'heartbeat',
+        now,
+      },
+    );
+    const issued = this.workerCapabilities.issue(current, { now });
     const { runningLeaseMs } = resolveSupervisorExecutionLivenessConfig();
     const renewed = await this.heartbeats.heartbeat({
       executionId: authorization.executionId,
@@ -121,10 +145,14 @@ export class SupervisorWorkerController {
       leaseId: authorization.leaseId,
       now,
       leaseExpiresAt: new Date(now.getTime() + runningLeaseMs),
+      capabilityRotation: {
+        expectedJti: claims.jti,
+        next: issued.metadata,
+      },
     });
     if (!renewed) {
       throw new ForbiddenException('worker_heartbeat_rejected');
     }
-    return renewed;
+    return { execution: renewed, capability: issued.token };
   }
 }

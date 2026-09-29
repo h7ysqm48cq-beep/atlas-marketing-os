@@ -98,6 +98,10 @@ type HeartbeatInput = {
   leaseId: string;
   now: Date;
   leaseExpiresAt: Date;
+  capabilityRotation?: {
+    expectedJti: string;
+    next: NonNullable<SupervisorExecution['assignment']['workerCapability']>;
+  };
 };
 
 type HeartbeatStore = {
@@ -124,6 +128,20 @@ function heartbeatFixture(
     runnerId: 'runner-3',
     leaseId: 'lease-3',
     manifestHash: 'a'.repeat(64),
+    workerCapability: {
+      version: 2,
+      assignmentDigest: 'b'.repeat(64),
+      allowedActions: ['heartbeat'],
+      manifestHash: 'a'.repeat(64),
+      allowedPaths: [...fixture.assignment.allowedPaths],
+      forbiddenActions: [...fixture.assignment.forbiddenActions],
+      claimEpoch: 3,
+      leaseId: 'lease-3',
+      runnerId: 'runner-3',
+      jti: 'current-jti',
+      issuedAt: '2026-09-13T00:00:00.000Z',
+      expiresAt: '2026-09-13T00:05:00.000Z',
+    },
   };
   return fixture;
 }
@@ -536,6 +554,32 @@ describe('MemorySupervisorExecutionStore', () => {
       lastHeartbeatAt: new Date('2026-09-13T00:00:30.000Z'),
       leaseExpiresAt: new Date('2026-09-13T00:01:30.000Z'),
     });
+  });
+
+  it('atomically rotates only the current capability jti', async () => {
+    const store = new MemorySupervisorExecutionStore();
+    const fixture = heartbeatFixture();
+    await store.create(fixture);
+    const next = {
+      ...fixture.assignment.workerCapability!,
+      jti: 'next-jti',
+      issuedAt: '2026-09-13T00:00:30.000Z',
+      expiresAt: '2026-09-13T00:05:30.000Z',
+    };
+    const heartbeat = heartbeatStore(store).heartbeat;
+    const rotated = await heartbeat({
+      ...validHeartbeatInput(),
+      capabilityRotation: { expectedJti: 'current-jti', next },
+    });
+    expect(rotated?.assignment.workerCapability?.jti).toBe('next-jti');
+    await expect(
+      heartbeat({
+        ...validHeartbeatInput(),
+        now: new Date('2026-09-13T00:00:40.000Z'),
+        leaseExpiresAt: new Date('2026-09-13T00:01:40.000Z'),
+        capabilityRotation: { expectedJti: 'current-jti', next },
+      }),
+    ).resolves.toBeNull();
   });
 
   it('rejects every mismatched execution binding without mutation', async () => {

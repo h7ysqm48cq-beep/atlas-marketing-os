@@ -332,4 +332,30 @@ describe('SupervisorWorkerBootstrapController RED contract', () => {
       'RUNNING',
     );
   });
+
+  it('claims an exact implementation only with a frozen base requirement', async () => {
+    const claimed = execution('IMPLEMENTATION');
+    claimed.assignment.frozenBaseSha = 'c'.repeat(40);
+    const setupValue = setup(claimed);
+    if (!setupValue) return;
+
+    await setupValue.controller.claimExact(request(), {
+      taskId: claimed.taskId,
+      executionId: claimed.id,
+      executionPurpose: 'IMPLEMENTATION',
+      requireFrozenBaseSha: true,
+    });
+
+    expect(setupValue.calls.claimExact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: claimed.taskId,
+        executionId: claimed.id,
+        workerRole: 'backend',
+        executionPurpose: 'IMPLEMENTATION',
+        requireFrozenBaseSha: true,
+      }),
+    );
+    expect(setupValue.calls.issueWorker).toHaveBeenCalled();
+    expect(setupValue.calls.issueVerifier).not.toHaveBeenCalled();
+  });
 });

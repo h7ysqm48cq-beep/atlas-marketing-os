@@ -108,7 +108,9 @@ export class SupervisorClient {
           taskId: exact.taskId,
           executionId: exact.executionId,
           executionPurpose: this.executionPurpose,
-          requireCandidateHeadSha: true,
+          ...(this.executionPurpose === 'IMPLEMENTATION'
+            ? { requireFrozenBaseSha: true }
+            : { requireCandidateHeadSha: true }),
         } : {
           executionPurpose: this.executionPurpose,
           requireFrozenBaseSha: this.requireFrozenBaseSha,
@@ -149,7 +151,7 @@ export class SupervisorClient {
     const plane =
       purpose === 'INDEPENDENT_VERIFICATION' ? 'verifier' : 'worker';
     const route = `${this.baseUrl}/engineering/supervisor/${plane}/tasks/${encodeURIComponent(assignment.taskId)}/executions/${encodeURIComponent(assignment.executionId)}`;
-    const capability = decoded.capability;
+    let capability = decoded.capability;
 
     const readAssignment = async (): Promise<unknown> => {
       const read = await this.fetcher(`${route}/assignment`, {
@@ -195,7 +197,19 @@ export class SupervisorClient {
     const session: ClaimedExecutionSession = {
       assignment,
       purpose,
-      heartbeat: () => mutate('heartbeat', 'heartbeat', {}),
+      heartbeat: async () => {
+        const renewed = await mutate('heartbeat', 'heartbeat', {});
+        if (
+          purpose === 'IMPLEMENTATION' &&
+          renewed &&
+          typeof renewed === 'object' &&
+          typeof (renewed as { capability?: unknown }).capability === 'string' &&
+          (renewed as { capability: string }).capability
+        ) {
+          capability = (renewed as { capability: string }).capability;
+        }
+        return renewed;
+      },
       complete: (result: WorkerExecutionResult) =>
         mutate(
           'complete',

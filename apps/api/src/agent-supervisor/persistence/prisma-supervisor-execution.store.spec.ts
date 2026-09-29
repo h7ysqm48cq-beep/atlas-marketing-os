@@ -95,6 +95,10 @@ type HeartbeatInput = {
   leaseId: string;
   now: Date;
   leaseExpiresAt: Date;
+  capabilityRotation?: {
+    expectedJti: string;
+    next: NonNullable<SupervisorExecution['assignment']['workerCapability']>;
+  };
 };
 
 type HeartbeatStore = {
@@ -927,6 +931,53 @@ describe('PrismaSupervisorExecutionStore', () => {
       lastHeartbeatAt: input.now,
       leaseExpiresAt: input.leaseExpiresAt,
     });
+  });
+
+  it('persists capability rotation in the same heartbeat transaction', async () => {
+    const prisma = mockPrisma();
+    const candidate = heartbeatFixture();
+    const current = {
+      version: 2 as const,
+      assignmentDigest: 'b'.repeat(64),
+      allowedActions: ['heartbeat' as const],
+      manifestHash: 'a'.repeat(64),
+      allowedPaths: [...candidate.assignment.allowedPaths],
+      forbiddenActions: [...candidate.assignment.forbiddenActions],
+      claimEpoch: 3,
+      leaseId: 'lease-3',
+      runnerId: 'runner-3',
+      jti: 'current-jti',
+      issuedAt: '2026-09-13T00:00:00.000Z',
+      expiresAt: '2026-09-13T00:05:00.000Z',
+    };
+    candidate.assignment.workerCapability = current;
+    const next = { ...current, jti: 'next-jti' };
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([record(candidate)]),
+      supervisorExecution: {
+        update: jest.fn().mockResolvedValue(
+          record({
+            ...candidate,
+            assignment: { ...candidate.assignment, workerCapability: next },
+            lastHeartbeatAt: validHeartbeatInput().now,
+            leaseExpiresAt: validHeartbeatInput().leaseExpiresAt,
+          }),
+        ),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+        callback(transaction),
+    );
+    const store = new PrismaSupervisorExecutionStore(prisma as never);
+    await heartbeatStore(store).heartbeat({
+      ...validHeartbeatInput(),
+      capabilityRotation: { expectedJti: 'current-jti', next },
+    });
+    expect(
+      transaction.supervisorExecution.update.mock.calls[0][0].data.assignment
+        .workerCapability.jti,
+    ).toBe('next-jti');
   });
 
   it('discovers expired QUEUED executions at the inclusive cutoff', async () => {

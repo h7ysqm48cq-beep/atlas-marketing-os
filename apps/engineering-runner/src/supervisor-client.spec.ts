@@ -107,6 +107,28 @@ test('SupervisorClient exact target never falls back to claim-next', async () =>
   });
 });
 
+test('SupervisorClient exact IMPLEMENTATION requires a frozen base', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as any;
+  let body: any;
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    exactTarget: { taskId: 'task-1', executionId: 'exec-1' },
+    fetch: async (_input: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(null, { status: 204 });
+    },
+  });
+  assert.equal(await client.claimNext(), null);
+  assert.deepEqual(body, {
+    taskId: 'task-1',
+    executionId: 'exec-1',
+    executionPurpose: 'IMPLEMENTATION',
+    requireFrozenBaseSha: true,
+  });
+});
+
 test('SupervisorClient candidate-only mode requires and requests a frozen base', async () => {
   const mod = await loadModule();
   const Client = mod.SupervisorClient as
@@ -299,4 +321,35 @@ test('ambiguous completion performs one read-only reconciliation and never retri
   await assert.rejects(() => session.complete(result), Ambiguous);
   assert.equal(completePosts, 1);
   assert.equal(assignmentReads, 1);
+});
+
+test('SupervisorClient uses a capability rotated by heartbeat', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as any;
+  const authorizations: string[] = [];
+  let call = 0;
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    fetch: async (_input: string | URL | Request, init?: RequestInit) => {
+      const authorization = new Headers(init?.headers).get('authorization');
+      if (authorization) authorizations.push(authorization);
+      call += 1;
+      if (call === 1) {
+        return new Response(JSON.stringify({ execution, assignment, capability: 'first' }), { status: 200 });
+      }
+      if (call === 2) {
+        return new Response(JSON.stringify({ execution, capability: 'second' }), { status: 200 });
+      }
+      return new Response(JSON.stringify(execution), { status: 200 });
+    },
+  });
+  const session = await client.claimNext();
+  await session.heartbeat();
+  await session.complete(result);
+  assert.deepEqual(authorizations, [
+    'Bearer bootstrap-secret',
+    'Bearer first',
+    'Bearer second',
+  ]);
 });
