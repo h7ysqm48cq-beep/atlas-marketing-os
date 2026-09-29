@@ -1112,3 +1112,93 @@ test('EngineeringRunner verifies an IMPLEMENTATION_RESULT at exact same SHA with
   assert.equal(completed.evidence.existingCandidateVerification, undefined);
   assert.equal(completed.evidence.reviewCandidate, undefined);
 });
+
+
+test('EngineeringRunner derives main merge evidence only from exact source verification', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const base = 'a'.repeat(40);
+  const head = 'b'.repeat(40);
+  const production = 'c'.repeat(40);
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: base,
+    candidateHeadSha: head,
+    productionBaselineSha: production,
+    targetBranch: 'main' as const,
+  };
+  const active = session(assignment) as any;
+  let completed: any;
+  let failed = '';
+  let executorCalls = 0;
+  let finalSourceChecks = 0;
+  let prepared: any;
+  active.complete = async (value: unknown) => { completed = value; };
+  active.fail = async (reason: string) => { failed = reason; };
+
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => { throw new Error('legacy_executor_used'); } },
+    workspace: { listChangedFiles: async () => { throw new Error('legacy_workspace_used'); } },
+    scopeGuard: {
+      assertImplementationScope: () => { throw new Error('implementation_scope_used'); },
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async (input: any) => {
+        prepared = input;
+        return {
+          path: '/isolated/main-sync',
+          baseSha: base,
+          verifiedHeadSha: head,
+          verifiedChangedPaths: ['apps/example.ts'],
+          verifyProductionBaseline: async () => { finalSourceChecks += 1; },
+          workspace: {
+            listChangedFiles: async () => [],
+            fingerprint: async () => 'f'.repeat(64),
+          },
+          cleanup: async () => undefined,
+        };
+      },
+    },
+    executorFactory: () => ({
+      execute: async () => {
+        executorCalls += 1;
+        throw new Error('main_sync_executor_must_not_run');
+      },
+    }),
+    heartbeatIntervalMs: 10_000,
+  });
+
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.equal(failed, '');
+  assert.equal(executorCalls, 0);
+  assert.equal(finalSourceChecks, 1);
+  assert.equal(prepared.targetBranch, 'main');
+  assert.equal(prepared.productionBaselineSha, production);
+  assert.deepEqual(completed.evidence.changedFiles, ['apps/example.ts']);
+  assert.deepEqual(completed.evidence.existingCandidateVerification, {
+    mode: 'EXISTING_CANDIDATE',
+    taskId: assignment.taskId,
+    executionId: assignment.executionId,
+    baseSha: base,
+    headSha: head,
+    productionBaselineSha: production,
+    targetBranch: 'main',
+    changedFiles: ['apps/example.ts'],
+    gitFingerprint: 'f'.repeat(64),
+    sourceVerified: true,
+  });
+  assert.deepEqual(completed.evidence.reviewCandidate, {
+    action: 'merge',
+    targetBranch: 'main',
+    baseSha: base,
+    headSha: head,
+    changedFiles: ['apps/example.ts'],
+  });
+  assert.equal(
+    completed.evidence.rootCause,
+    'main_sync_requires_exact_production_tree_verification',
+  );
+});
