@@ -823,7 +823,7 @@ describe('AgentGatewayService', () => {
     });
   });
 
-  it('requires production/atlas for canonical merge decisions', async () => {
+  it('keeps main fail-closed until signed Owner merge authorization exists', async () => {
     const { task, execution } = await createReadyExecution('main', false);
 
     await expect(
@@ -838,7 +838,7 @@ describe('AgentGatewayService', () => {
         explicitUserAuthorization: true,
       }),
     ).rejects.toMatchObject({
-      response: { code: 'canonical_target_required' },
+      response: { code: 'owner_merge_authorization_required' },
     });
   });
 
