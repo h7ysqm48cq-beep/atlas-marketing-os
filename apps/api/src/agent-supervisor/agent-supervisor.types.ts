@@ -137,7 +137,7 @@ export interface SupervisorExistingCandidateVerification {
   baseSha: string;
   headSha: string;
   productionBaselineSha: string;
-  targetBranch: SupervisorMergeTargetBranch;
+  targetBranch?: SupervisorMergeTargetBranch;
   changedFiles: string[];
   gitFingerprint: string;
   sourceVerified: true;
