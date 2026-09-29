@@ -838,7 +838,7 @@ describe('AgentGatewayService', () => {
         explicitUserAuthorization: true,
       }),
     ).rejects.toMatchObject({
-      response: { code: 'owner_merge_authorization_required' },
+      response: { code: 'owner_merge_authorization_requires_verified_main_sync' },
     });
   });
 
