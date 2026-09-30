@@ -1,7 +1,7 @@
 # ATLAS Production Deploy Executor Liveness Design
 
 Date: 2026-09-30  
-Status: Proposed — awaiting human review  
+Status: Approved — 2026-09-30  
 Repository: h7ysqm48cq-beep/atlas-marketing-os  
 Main baseline: 2767b80f07dca638608c948cefcf0019ae6a9903  
 Canonical production baseline at design time: a9d22c1a4558f92d044dba01d8353d9aaff12d72
