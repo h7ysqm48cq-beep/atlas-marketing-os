@@ -1,21 +1,16 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import type {
-  DragEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DragEvent } from "react";
+import { RuntimeImage } from "@/components/RuntimeImage";
 import styles from "./ContentCalendar.module.css";
+import { usePreferences } from "@/components/preferences";
 
-import { API_URL } from '@/lib/api';
+import { API_URL } from "@/lib/api";
 type Channel = {
   id: string;
   brandId: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   name: string;
   status: string;
 };
@@ -24,7 +19,7 @@ type ScheduledPost = {
   id: string;
   brandId: string;
   channelId: string;
-  platform: "FACEBOOK" | "TELEGRAM";
+  platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM";
   title: string | null;
   content: string;
   mediaUrls: string[];
@@ -66,15 +61,7 @@ type Asset = {
   height: number | null;
 };
 
-const WEEKDAYS = [
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-  "Sun",
-];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const STATUS_OPTIONS = [
   "ALL",
@@ -92,10 +79,7 @@ function pad(value: number) {
 }
 
 function localDateKey(value: string | Date) {
-  const date =
-    typeof value === "string"
-      ? new Date(value)
-      : value;
+  const date = typeof value === "string" ? new Date(value) : value;
 
   return [
     date.getFullYear(),
@@ -139,20 +123,16 @@ function dateOnly(value: string) {
   }).format(new Date(value));
 }
 
-function platformIcon(
-  platform: "FACEBOOK" | "TELEGRAM",
-) {
-  return platform === "FACEBOOK"
-    ? "f"
-    : "✈";
+function platformIcon(platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM") {
+  return platform === "FACEBOOK" ? "f" : platform === "TELEGRAM" ? "✈" : "◎";
+}
+
+function platformLabel(platform: "FACEBOOK" | "TELEGRAM" | "INSTAGRAM") {
+  return platform === "FACEBOOK" ? "Facebook" : platform === "TELEGRAM" ? "Telegram" : "Instagram";
 }
 
 function statusLabel(status: string) {
-  return status
-    .toLowerCase()
-    .replace(/^./, (value) =>
-      value.toUpperCase(),
-    );
+  return status.toLowerCase().replace(/^./, (value) => value.toUpperCase());
 }
 
 function getMonthCells(currentMonth: Date) {
@@ -162,30 +142,20 @@ function getMonthCells(currentMonth: Date) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
-  const mondayIndex =
-    (first.getDay() + 6) % 7;
+  const mondayIndex = (first.getDay() + 6) % 7;
 
   const cells: Date[] = [];
 
   for (let i = mondayIndex; i > 0; i -= 1) {
-    cells.push(
-      new Date(year, month, 1 - i),
-    );
+    cells.push(new Date(year, month, 1 - i));
   }
 
-  for (
-    let day = 1;
-    day <= last.getDate();
-    day += 1
-  ) {
-    cells.push(
-      new Date(year, month, day),
-    );
+  for (let day = 1; day <= last.getDate(); day += 1) {
+    cells.push(new Date(year, month, day));
   }
 
   while (cells.length % 7 !== 0) {
-    const nextDay =
-      cells[cells.length - 1];
+    const nextDay = cells[cells.length - 1];
 
     cells.push(
       new Date(
@@ -197,8 +167,7 @@ function getMonthCells(currentMonth: Date) {
   }
 
   while (cells.length < 42) {
-    const nextDay =
-      cells[cells.length - 1];
+    const nextDay = cells[cells.length - 1];
 
     cells.push(
       new Date(
@@ -213,66 +182,71 @@ function getMonthCells(currentMonth: Date) {
 }
 
 export function ContentCalendar() {
-  const [currentMonth, setCurrentMonth] =
-    useState(
-      new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        1,
-      ),
-    );
+  const [mountedAt] = useState(() => Date.now());
+  const { language } = usePreferences();
+  const locale = language === "zh" ? "zh-CN" : "en-MY";
 
-  const [posts, setPosts] =
-    useState<ScheduledPost[]>([]);
-  const [channels, setChannels] =
-    useState<Channel[]>([]);
-  const [brands, setBrands] =
-    useState<Brand[]>([]);
+  function ui(en: string, zh: string) {
+    return language === "zh" ? zh : en;
+  }
 
-  const [assets, setAssets] =
-    useState<Asset[]>([]);
+  function calendarStatusLabel(status: string) {
+    const labels: Record<string, [string, string]> = {
+      DRAFT: ["Draft", "草稿"],
+      SCHEDULED: ["Scheduled", "已排程"],
+      QUEUED: ["Queued", "排队中"],
+      PUBLISHING: ["Publishing", "发布中"],
+      PUBLISHED: ["Published", "已发布"],
+      FAILED: ["Failed", "失败"],
+      CANCELLED: ["Cancelled", "已取消"],
+    };
 
-  const [showAssetPicker, setShowAssetPicker] =
-    useState(false);
+    const matched = labels[status];
 
-  const [assetSearch, setAssetSearch] =
-    useState("");
+    return matched ? ui(matched[0], matched[1]) : status;
+  }
 
-  const [platformFilter, setPlatformFilter] =
-    useState("ALL");
-  const [statusFilter, setStatusFilter] =
-    useState("ALL");
+  const [currentMonth, setCurrentMonth] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
+  const deepLinkPostIdRef = useRef<string | null>(null);
 
-  const [searchQuery, setSearchQuery] =
-    useState("");
+  const [posts, setPosts] = useState<ScheduledPost[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
-  const [syncing, setSyncing] =
-    useState(false);
+  const [assets, setAssets] = useState<Asset[]>([]);
 
-  const [selectedPost, setSelectedPost] =
-    useState<ScheduledPost | null>(null);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [dayPopover, setDayPopover] =
-    useState<{
-      key: string;
-      date: Date;
-      posts: ScheduledPost[];
-    } | null>(null);
+  const [assetSearch, setAssetSearch] = useState("");
 
-  const [hoveredPostId, setHoveredPostId] =
-    useState<string | null>(null);
+  const [platformFilter, setPlatformFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const [draggingPostId, setDraggingPostId] =
-    useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [dropDateKey, setDropDateKey] =
-    useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  const [showCreate, setShowCreate] =
-    useState(false);
+  const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
 
-  const [editingPostId, setEditingPostId] =
-    useState<string | null>(null);
+  const [dayPopover, setDayPopover] = useState<{
+    key: string;
+    date: Date;
+    posts: ScheduledPost[];
+  } | null>(null);
+
+  const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
+
+  const [draggingPostId, setDraggingPostId] = useState<string | null>(null);
+
+  const [dropDateKey, setDropDateKey] = useState<string | null>(null);
+
+  const [showCreate, setShowCreate] = useState(false);
+
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     brandId: "",
@@ -285,41 +259,42 @@ export function ContentCalendar() {
     mediaUrls: [] as string[],
   });
 
-  const [loading, setLoading] =
-    useState(true);
-  const [saving, setSaving] =
-    useState(false);
-  const [error, setError] =
-    useState("");
+  const [, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [
-        postsResponse,
-        channelsResponse,
-        brandsResponse,
-        assetsResponse,
-      ] = await Promise.all([
-        fetch(
-          `${API_URL}/automation/posts`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `${API_URL}/automation/channels`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `${API_URL}/brands`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `${API_URL}/assets?type=IMAGE`,
-          { cache: "no-store" },
-        ),
-      ]);
+      const rangeStart = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 1,
+        1,
+      );
+
+      const rangeEnd = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 2,
+        1,
+      );
+
+      const postsUrl = new URL(`${API_URL}/automation/posts/calendar`);
+
+      postsUrl.searchParams.set("from", rangeStart.toISOString());
+
+      postsUrl.searchParams.set("to", rangeEnd.toISOString());
+
+      postsUrl.searchParams.set("limit", "300");
+
+      const [postsResponse, channelsResponse, brandsResponse, assetsResponse] =
+        await Promise.all([
+          fetch(postsUrl.toString(), { cache: "no-store" }),
+          fetch(`${API_URL}/automation/channels`, { cache: "no-store" }),
+          fetch(`${API_URL}/brands`, { cache: "no-store" }),
+          fetch(`${API_URL}/assets?type=IMAGE`, { cache: "no-store" }),
+        ]);
 
       if (
         !postsResponse.ok ||
@@ -328,116 +303,154 @@ export function ContentCalendar() {
         !assetsResponse.ok
       ) {
         throw new Error(
-          "Unable to load calendar data.",
+          ui("Unable to load calendar data.", "无法加载日历数据。"),
         );
       }
 
-      const [
-        postsData,
-        channelsData,
-        brandsData,
-        assetsData,
-      ] = await Promise.all([
-        postsResponse.json() as Promise<ScheduledPost[]>,
-        channelsResponse.json() as Promise<Channel[]>,
-        brandsResponse.json() as Promise<Brand[]>,
-        assetsResponse.json() as Promise<Asset[]>,
-      ]);
+      const [postsData, channelsData, brandsData, assetsData] =
+        await Promise.all([
+          postsResponse.json() as Promise<ScheduledPost[]>,
+          channelsResponse.json() as Promise<Channel[]>,
+          brandsResponse.json() as Promise<Brand[]>,
+          assetsResponse.json() as Promise<Asset[]>,
+        ]);
 
       setPosts(postsData);
       setChannels(channelsData);
       setBrands(brandsData);
       setAssets(assetsData);
 
-      if (
-        !form.brandId &&
-        brandsData[0]?.id
-      ) {
+      if (brandsData[0]?.id) {
         const firstBrand = brandsData[0];
-        const firstChannel =
-          channelsData.find(
-            (item) =>
-              item.brandId === firstBrand.id,
-          );
+        const firstChannel = channelsData.find(
+          (item) => item.brandId === firstBrand.id,
+        );
 
-        setForm((current) => ({
-          ...current,
-          brandId: firstBrand.id,
-          channelId:
-            firstChannel?.id ?? "",
-          platform:
-            firstChannel?.platform ??
-            "FACEBOOK",
-        }));
+        setForm((current) =>
+          current.brandId
+            ? current
+            : {
+                ...current,
+                brandId: firstBrand.id,
+                channelId: firstChannel?.id ?? "",
+                platform: firstChannel?.platform ?? "FACEBOOK",
+              },
+        );
       }
     } catch (loadError) {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unable to load calendar data.",
+          : ui("Unable to load calendar data.", "无法加载日历数据。"),
       );
     } finally {
       setLoading(false);
     }
-  }, [form.brandId]);
+  }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps -- Month is the calendar reload trigger; locale helper identity is not.
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const targetDate = searchParams.get("date");
+    const targetPostId = searchParams.get("postId");
+
+    deepLinkPostIdRef.current = targetPostId;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(targetDate ?? "")) {
+      const [year, month] = targetDate!.split("-").map(Number);
+
+      if (
+        Number.isInteger(year) &&
+        Number.isInteger(month) &&
+        month >= 1 &&
+        month <= 12
+      ) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- A Calendar deep-link may intentionally target another month.
+        setCurrentMonth(new Date(year, month - 1, 1));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Fetch calendar data when the visible month changes.
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const targetPostId = deepLinkPostIdRef.current;
+
+    if (!targetPostId) {
+      return;
+    }
+
+    const matchedPost = posts.find((post) => post.id === targetPostId);
+
+    if (!matchedPost) {
+      return;
+    }
+
+    deepLinkPostIdRef.current = null;
+    setSelectedPost(matchedPost);
+  }, [posts]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void load();
+    }, 60000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [load]);
+
+  useEffect(() => {
+    if (!selectedPost) {
+      return;
+    }
+
+    const latestPost = posts.find((post) => post.id === selectedPost.id);
+
+    if (
+      latestPost &&
+      (latestPost.status !== selectedPost.status ||
+        latestPost.externalPostId !== selectedPost.externalPostId ||
+        latestPost.externalPostUrl !== selectedPost.externalPostUrl)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Refresh the open detail panel from the latest remote post state.
+      setSelectedPost(latestPost);
+    }
+  }, [posts, selectedPost]);
 
   const filteredPosts = useMemo(
     () =>
       posts.filter((post) => {
         const platformMatches =
-          platformFilter === "ALL" ||
-          post.platform === platformFilter;
+          platformFilter === "ALL" || post.platform === platformFilter;
 
         const statusMatches =
-          statusFilter === "ALL" ||
-          post.status === statusFilter;
+          statusFilter === "ALL" || post.status === statusFilter;
 
-        const normalizedSearch =
-          searchQuery.trim().toLowerCase();
+        const normalizedSearch = searchQuery.trim().toLowerCase();
 
         const searchMatches =
           !normalizedSearch ||
-          [
-            post.title,
-            post.content,
-            post.channel?.name,
-            post.campaign?.name,
-          ]
+          [post.title, post.content, post.channel?.name, post.campaign?.name]
             .filter(Boolean)
             .some((value) =>
-              String(value)
-                .toLowerCase()
-                .includes(normalizedSearch),
+              String(value).toLowerCase().includes(normalizedSearch),
             );
 
-        return (
-          platformMatches &&
-          statusMatches &&
-          searchMatches
-        );
+        return platformMatches && statusMatches && searchMatches;
       }),
-    [
-      posts,
-      platformFilter,
-      statusFilter,
-      searchQuery,
-    ],
+    [posts, platformFilter, statusFilter, searchQuery],
   );
 
   const postsByDate = useMemo(() => {
-    const map =
-      new Map<string, ScheduledPost[]>();
+    const map = new Map<string, ScheduledPost[]>();
 
     for (const post of filteredPosts) {
-      const key =
-        localDateKey(post.scheduledAt);
+      const key = localDateKey(post.scheduledAt);
 
-      const current =
-        map.get(key) ?? [];
+      const current = map.get(key) ?? [];
 
       current.push(post);
       map.set(key, current);
@@ -446,8 +459,7 @@ export function ContentCalendar() {
     for (const value of map.values()) {
       value.sort(
         (a, b) =>
-          new Date(a.scheduledAt).getTime() -
-          new Date(b.scheduledAt).getTime(),
+          new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
       );
     }
 
@@ -459,13 +471,8 @@ export function ContentCalendar() {
       filteredPosts
         .filter(
           (post) =>
-            new Date(
-              post.scheduledAt,
-            ).getTime() >= Date.now() &&
-            ![
-              "PUBLISHED",
-              "CANCELLED",
-            ].includes(post.status),
+            new Date(post.scheduledAt).getTime() >= mountedAt &&
+            !["PUBLISHED", "CANCELLED"].includes(post.status),
         )
         .sort(
           (a, b) =>
@@ -473,77 +480,66 @@ export function ContentCalendar() {
             new Date(b.scheduledAt).getTime(),
         )
         .slice(0, 8),
-    [filteredPosts],
+    [filteredPosts, mountedAt],
   );
 
   const quickStats = useMemo(() => {
-    const todayKey =
-      localDateKey(new Date());
+    const todayKey = localDateKey(new Date());
 
     const tomorrow = new Date();
-    tomorrow.setDate(
-      tomorrow.getDate() + 1,
-    );
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const tomorrowKey =
-      localDateKey(tomorrow);
+    const tomorrowKey = localDateKey(tomorrow);
 
     const weekEnd = new Date();
-    weekEnd.setDate(
-      weekEnd.getDate() + 7,
-    );
+    weekEnd.setDate(weekEnd.getDate() + 7);
 
     return {
       today: filteredPosts.filter(
-        (post) =>
-          localDateKey(post.scheduledAt) ===
-          todayKey,
+        (post) => localDateKey(post.scheduledAt) === todayKey,
       ).length,
 
       tomorrow: filteredPosts.filter(
-        (post) =>
-          localDateKey(post.scheduledAt) ===
-          tomorrowKey,
+        (post) => localDateKey(post.scheduledAt) === tomorrowKey,
       ).length,
 
-      thisWeek: filteredPosts.filter(
-        (post) => {
-          const date =
-            new Date(post.scheduledAt);
+      thisWeek: filteredPosts.filter((post) => {
+        const date = new Date(post.scheduledAt);
 
-          return (
-            date >= new Date() &&
-            date <= weekEnd
-          );
-        },
-      ).length,
+        return date >= new Date() && date <= weekEnd;
+      }).length,
 
-      published: filteredPosts.filter(
-        (post) =>
-          post.status === "PUBLISHED",
-      ).length,
+      published: filteredPosts.filter((post) => post.status === "PUBLISHED")
+        .length,
     };
   }, [filteredPosts]);
+
+  function openDay(date: Date) {
+    const key = localDateKey(date);
+    const dayPosts = postsByDate.get(key) ?? [];
+    setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+
+    if (dayPosts.length) {
+      setDayPopover({ key, date, posts: dayPosts });
+    } else {
+      openCreate(date);
+    }
+  }
 
   async function syncPublisher() {
     setSyncing(true);
     setError("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/automation/run`,
-        {
-          method: "POST",
-        },
-      );
+      const response = await fetch(`${API_URL}/automation/run`, {
+        method: "POST",
+      });
 
       if (!response.ok) {
-        const body =
-          await response.json();
+        const body = await response.json();
 
         throw new Error(
-          body.message ||
-            "Unable to sync publisher.",
+          body.message || ui("Unable to sync publisher.", "无法同步发布器。"),
         );
       }
 
@@ -552,25 +548,70 @@ export function ContentCalendar() {
       setError(
         syncError instanceof Error
           ? syncError.message
-          : "Unable to sync publisher.",
+          : ui("Unable to sync publisher.", "无法同步发布器。"),
       );
     } finally {
       setSyncing(false);
     }
   }
 
-  const cells = useMemo(
-    () => getMonthCells(currentMonth),
-    [currentMonth],
+  const cells = useMemo(() => getMonthCells(currentMonth), [currentMonth]);
+
+  const channelsForBrand = channels.filter(
+    (channel) => channel.brandId === form.brandId,
   );
 
-  const channelsForBrand =
-    channels.filter(
-      (channel) =>
-        channel.brandId === form.brandId,
+  const scheduledTimeIsPast =
+    form.status === "SCHEDULED" &&
+    Boolean(
+      form.scheduledAt &&
+        new Date(form.scheduledAt).getTime() <= Date.now(),
     );
 
+  const minimumScheduledAt =
+    form.status === "SCHEDULED"
+      ? toLocalDateTimeInput(new Date().toISOString())
+      : undefined;
+
   async function createPost() {
+    if (uploadingImage) {
+      setError(
+        ui(
+          "Wait for image upload to finish before saving.",
+          "请等待图片上传完成后再保存。",
+        ),
+      );
+      return;
+    }
+
+    if (!form.channelId) {
+      setError(
+        ui(
+          "No available channel for this brand.",
+          "此品牌没有可用渠道。",
+        ),
+      );
+      return;
+    }
+
+    if (form.status === "SCHEDULED") {
+      const scheduledTime = new Date(form.scheduledAt);
+
+      if (
+        !form.scheduledAt ||
+        Number.isNaN(scheduledTime.getTime()) ||
+        scheduledTime.getTime() <= Date.now()
+      ) {
+        setError(
+          ui(
+            "Scheduled time must be in the future.",
+            "排程时间必须是未来时间。",
+          ),
+        );
+        return;
+      }
+    }
+
     setSaving(true);
     setError("");
 
@@ -580,41 +621,31 @@ export function ContentCalendar() {
           ? `${API_URL}/automation/posts/${editingPostId}`
           : `${API_URL}/automation/posts`,
         {
-          method: editingPostId
-            ? "PATCH"
-            : "POST",
+          method: editingPostId ? "PATCH" : "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             brandId: form.brandId,
             channelId: form.channelId,
             platform: form.platform,
-            title:
-              form.title || undefined,
+            title: form.title || undefined,
             content: form.content,
             mediaUrls: form.mediaUrls,
-            scheduledAt:
-              new Date(
-                form.scheduledAt,
-              ).toISOString(),
-            timezone:
-              "Asia/Kuala_Lumpur",
+            scheduledAt: new Date(form.scheduledAt).toISOString(),
+            timezone: "Asia/Kuala_Lumpur",
             status: form.status,
           }),
         },
       );
 
       if (!response.ok) {
-        const body =
-          await response.json();
+        const body = await response.json();
 
         throw new Error(
-          body.message ||
-            editingPostId
-              ? "Unable to update scheduled post."
-              : "Unable to create scheduled post.",
+          body.message || editingPostId
+            ? ui("Unable to update scheduled post.", "无法更新已排程帖子。")
+            : ui("Unable to create scheduled post.", "无法创建排程帖子。"),
         );
       }
 
@@ -638,40 +669,26 @@ export function ContentCalendar() {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Unable to create scheduled post.",
+          : ui("Unable to create scheduled post.", "无法创建排程帖子。"),
       );
     } finally {
       setSaving(false);
     }
   }
 
-  function toLocalDateTimeInput(
-    value: string,
-  ) {
+  function toLocalDateTimeInput(value: string) {
     const date = new Date(value);
 
     return [
-      [
-        date.getFullYear(),
-        pad(date.getMonth() + 1),
-        pad(date.getDate()),
-      ].join("-"),
-      [
-        pad(date.getHours()),
-        pad(date.getMinutes()),
-      ].join(":"),
+      [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(
+        "-",
+      ),
+      [pad(date.getHours()), pad(date.getMinutes())].join(":"),
     ].join("T");
   }
 
-  function openEditPost(
-    post: ScheduledPost,
-  ) {
-    if (
-      [
-        "PUBLISHED",
-        "PUBLISHING",
-      ].includes(post.status)
-    ) {
+  function openEditPost(post: ScheduledPost) {
+    if (["PUBLISHED", "PUBLISHING"].includes(post.status)) {
       return;
     }
 
@@ -683,10 +700,7 @@ export function ContentCalendar() {
       platform: post.platform,
       title: post.title ?? "",
       content: post.content,
-      scheduledAt:
-        toLocalDateTimeInput(
-          post.scheduledAt,
-        ),
+      scheduledAt: toLocalDateTimeInput(post.scheduledAt),
       status: post.status,
       mediaUrls: post.mediaUrls ?? [],
     });
@@ -695,15 +709,10 @@ export function ContentCalendar() {
     setShowCreate(true);
   }
 
-  function duplicatePost(
-    post: ScheduledPost,
-  ) {
-    const copiedDate =
-      new Date(post.scheduledAt);
+  function duplicatePost(post: ScheduledPost) {
+    const copiedDate = new Date(post.scheduledAt);
 
-    copiedDate.setMinutes(
-      copiedDate.getMinutes() + 5,
-    );
+    copiedDate.setMinutes(copiedDate.getMinutes() + 5);
 
     setEditingPostId(null);
 
@@ -711,14 +720,9 @@ export function ContentCalendar() {
       brandId: post.brandId,
       channelId: post.channelId,
       platform: post.platform,
-      title: post.title
-        ? `Copy of ${post.title}`
-        : "",
+      title: post.title ? `Copy of ${post.title}` : "",
       content: post.content,
-      scheduledAt:
-        toLocalDateTimeInput(
-          copiedDate.toISOString(),
-        ),
+      scheduledAt: toLocalDateTimeInput(copiedDate.toISOString()),
       status: "DRAFT",
       mediaUrls: post.mediaUrls ?? [],
     });
@@ -727,18 +731,16 @@ export function ContentCalendar() {
     setShowCreate(true);
   }
 
-  async function deletePost(
-    post: ScheduledPost,
-  ) {
+  async function deletePost(post: ScheduledPost) {
     if (post.status === "PUBLISHED") {
       return;
     }
 
     const confirmed = window.confirm(
       [
-        "Delete this scheduled post?",
+        ui("Delete this scheduled post?", "确定删除这个已排程帖子吗？"),
         "",
-        "This action cannot be undone.",
+        ui("This action cannot be undone.", "此操作无法撤销。"),
       ].join("\n"),
     );
 
@@ -750,20 +752,15 @@ export function ContentCalendar() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/automation/posts/${post.id}`,
-        {
-          method: "DELETE",
-        },
-      );
+      const response = await fetch(`${API_URL}/automation/posts/${post.id}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
-        const body =
-          await response.json();
+        const body = await response.json();
 
         throw new Error(
-          body.message ||
-            "Unable to delete post.",
+          body.message || ui("Unable to delete post.", "无法删除帖子。"),
         );
       }
 
@@ -773,65 +770,102 @@ export function ContentCalendar() {
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "Unable to delete post.",
+          : ui("Unable to delete post.", "无法删除帖子。"),
       );
     } finally {
       setSaving(false);
     }
   }
 
-  function toggleMediaUrl(
-    url: string,
-  ) {
+  function toggleMediaUrl(url: string) {
     setForm((current) => {
-      const exists =
-        current.mediaUrls.includes(url);
+      const exists = current.mediaUrls.includes(url);
 
       return {
         ...current,
         mediaUrls: exists
-          ? current.mediaUrls.filter(
-              (item) => item !== url,
-            )
-          : [
-              ...current.mediaUrls,
-              url,
-            ],
+          ? current.mediaUrls.filter((item) => item !== url)
+          : [...current.mediaUrls, url],
       };
     });
   }
 
-  function removeMediaUrl(
-    url: string,
-  ) {
+  function removeMediaUrl(url: string) {
     setForm((current) => ({
       ...current,
-      mediaUrls:
-        current.mediaUrls.filter(
-          (item) => item !== url,
-        ),
+      mediaUrls: current.mediaUrls.filter((item) => item !== url),
     }));
   }
 
-  const filteredAssets = assets.filter(
-    (asset) => {
-      const query =
-        assetSearch.trim().toLowerCase();
+  async function uploadImages(files: File[]) {
+    if (!files.length) {
+      return;
+    }
 
-      return (
-        !query ||
-        asset.name
-          .toLowerCase()
-          .includes(query) ||
-        asset.url
-          .toLowerCase()
-          .includes(query)
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      for (const file of files) {
+        const body = new FormData();
+
+        body.append("file", file);
+
+        const response = await fetch(`${API_URL}/assets/upload`, {
+          method: "POST",
+          body,
+        });
+
+        const uploaded = (await response.json()) as Asset & {
+          message?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(
+            uploaded.message ||
+              ui("Unable to upload image.", "无法上传图片。"),
+          );
+        }
+
+        setAssets((current) => [
+          uploaded,
+          ...current.filter((asset) => asset.id !== uploaded.id),
+        ]);
+
+        setForm((current) => ({
+          ...current,
+          mediaUrls: current.mediaUrls.includes(uploaded.url)
+            ? current.mediaUrls
+            : [...current.mediaUrls, uploaded.url],
+        }));
+      }
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : ui("Unable to upload image.", "无法上传图片。"),
       );
-    },
-  );
+    } finally {
+      setUploadingImage(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  const filteredAssets = assets.filter((asset) => {
+    const query = assetSearch.trim().toLowerCase();
+
+    return (
+      !query ||
+      asset.name.toLowerCase().includes(query) ||
+      asset.url.toLowerCase().includes(query)
+    );
+  });
 
   async function postAction(
-    action: "queue" | "cancel",
+    action: "queue" | "cancel" | "retry" | "publish-now",
   ) {
     if (!selectedPost) {
       return;
@@ -847,13 +881,18 @@ export function ContentCalendar() {
         },
       );
 
+      const body = (await response.json().catch(() => null)) as {
+        message?: string | string[];
+      } | null;
+
       if (!response.ok) {
-        const body =
-          await response.json();
+        const message = Array.isArray(body?.message)
+          ? body.message.join(", ")
+          : body?.message;
 
         throw new Error(
-          body.message ||
-            `Unable to ${action} post.`,
+          message ||
+            `${ui("Request failed", "请求失败")} (HTTP ${response.status}).`,
         );
       }
 
@@ -870,20 +909,11 @@ export function ContentCalendar() {
     }
   }
 
-  function canDragPost(
-    post: ScheduledPost,
-  ) {
-    return ![
-      "PUBLISHED",
-      "PUBLISHING",
-      "CANCELLED",
-    ].includes(post.status);
+  function canDragPost(post: ScheduledPost) {
+    return !["PUBLISHED", "PUBLISHING", "CANCELLED"].includes(post.status);
   }
 
-  function beginPostDrag(
-    event: DragEvent<HTMLElement>,
-    post: ScheduledPost,
-  ) {
+  function beginPostDrag(event: DragEvent<HTMLElement>, post: ScheduledPost) {
     if (!canDragPost(post)) {
       event.preventDefault();
       return;
@@ -891,10 +921,7 @@ export function ContentCalendar() {
 
     event.stopPropagation();
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(
-      "text/plain",
-      post.id,
-    );
+    event.dataTransfer.setData("text/plain", post.id);
 
     setHoveredPostId(null);
     setDraggingPostId(post.id);
@@ -905,38 +932,42 @@ export function ContentCalendar() {
     setDropDateKey(null);
   }
 
-  async function movePostToDate(
-    postId: string,
-    targetDate: Date,
-  ) {
-    const post =
-      posts.find((item) => item.id === postId);
+  async function movePostToDate(postId: string, targetDate: Date) {
+    const post = posts.find((item) => item.id === postId);
 
     if (!post || !canDragPost(post)) {
       return;
     }
 
-    const originalDate =
-      new Date(post.scheduledAt);
+    const originalDate = new Date(post.scheduledAt);
 
-    const movedDate =
-      new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-        originalDate.getHours(),
-        originalDate.getMinutes(),
-        originalDate.getSeconds(),
-        originalDate.getMilliseconds(),
-      );
-
-    const movedIso =
-      movedDate.toISOString();
+    const movedDate = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      originalDate.getHours(),
+      originalDate.getMinutes(),
+      originalDate.getSeconds(),
+      originalDate.getMilliseconds(),
+    );
 
     if (
-      localDateKey(post.scheduledAt) ===
-      localDateKey(targetDate)
+      post.status === "SCHEDULED" &&
+      movedDate.getTime() <= Date.now()
     ) {
+      setError(
+        ui(
+          "Scheduled posts cannot be moved to a past time.",
+          "已排程帖子不能移动到过去的时间。",
+        ),
+      );
+      finishPostDrag();
+      return;
+    }
+
+    const movedIso = movedDate.toISOString();
+
+    if (localDateKey(post.scheduledAt) === localDateKey(targetDate)) {
       finishPostDrag();
       return;
     }
@@ -959,27 +990,22 @@ export function ContentCalendar() {
     finishPostDrag();
 
     try {
-      const response = await fetch(
-        `${API_URL}/automation/posts/${post.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            scheduledAt: movedIso,
-          }),
+      const response = await fetch(`${API_URL}/automation/posts/${post.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          scheduledAt: movedIso,
+        }),
+      });
 
       if (!response.ok) {
-        const body =
-          await response.json();
+        const body = await response.json();
 
         throw new Error(
           body.message ||
-            "Unable to reschedule post.",
+            ui("Unable to reschedule post.", "无法重新排程帖子。"),
         );
       }
 
@@ -990,17 +1016,14 @@ export function ContentCalendar() {
       setError(
         moveError instanceof Error
           ? moveError.message
-          : "Unable to reschedule post.",
+          : ui("Unable to reschedule post.", "无法重新排程帖子。"),
       );
     } finally {
       setSaving(false);
     }
   }
 
-  function handleDayDragOver(
-    event: DragEvent<HTMLButtonElement>,
-    date: Date,
-  ) {
+  function handleDayDragOver(event: DragEvent<HTMLButtonElement>, date: Date) {
     if (!draggingPostId) {
       return;
     }
@@ -1008,32 +1031,21 @@ export function ContentCalendar() {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
 
-    setDropDateKey(
-      localDateKey(date),
-    );
+    setDropDateKey(localDateKey(date));
   }
 
-  function handleDayDrop(
-    event: DragEvent<HTMLButtonElement>,
-    date: Date,
-  ) {
+  function handleDayDrop(event: DragEvent<HTMLButtonElement>, date: Date) {
     event.preventDefault();
     event.stopPropagation();
 
-    const postId =
-      event.dataTransfer.getData(
-        "text/plain",
-      ) || draggingPostId;
+    const postId = event.dataTransfer.getData("text/plain") || draggingPostId;
 
     if (!postId) {
       finishPostDrag();
       return;
     }
 
-    void movePostToDate(
-      postId,
-      date,
-    );
+    void movePostToDate(postId, date);
   }
 
   function openCreate(date?: Date) {
@@ -1046,17 +1058,26 @@ export function ContentCalendar() {
       mediaUrls: [],
     }));
 
-    const selectedDate =
-      date ?? new Date();
+    const now = new Date();
+    const selectedDate = date ?? now;
 
-    const local =
-      new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        selectedDate.getDate(),
-        20,
-        0,
+    let local = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      20,
+      0,
+    );
+
+    if (local.getTime() <= now.getTime()) {
+      local = new Date(now);
+      local.setSeconds(0, 0);
+
+      const remainder = local.getMinutes() % 15;
+      local.setMinutes(
+        local.getMinutes() + (remainder === 0 ? 15 : 15 - remainder),
       );
+    }
 
     setForm((current) => ({
       ...current,
@@ -1067,10 +1088,7 @@ export function ContentCalendar() {
           pad(local.getDate()),
         ].join("-") +
         "T" +
-        [
-          pad(local.getHours()),
-          pad(local.getMinutes()),
-        ].join(":"),
+        [pad(local.getHours()), pad(local.getMinutes())].join(":"),
     }));
 
     setShowCreate(true);
@@ -1081,73 +1099,91 @@ export function ContentCalendar() {
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>
-            Publishing Calendar
+            {ui("Publishing Calendar", "发布日历")}
           </p>
 
-          <h1>Content Calendar</h1>
+          <h1>{ui("Content Calendar", "内容日历")}</h1>
 
           <p>
-            Plan, schedule and manage Facebook
-            and Telegram content.
+            {ui(
+              "Plan, schedule and manage Facebook, Telegram and Instagram content.",
+              "规划、排程并管理 Facebook、Telegram 与 Instagram 内容。",
+            )}
           </p>
         </div>
 
         <div className={styles.heroActions}>
           <button
             className={styles.syncButton}
-            onClick={() =>
-              void syncPublisher()
-            }
+            onClick={() => void syncPublisher()}
             disabled={syncing}
           >
             {syncing
-              ? "Syncing..."
-              : "↻ Sync Publisher"}
+              ? ui("Syncing...", "同步中……")
+              : ui("↻ Sync Publisher", "↻ 同步发布器")}
           </button>
 
-          <button
-            className={styles.primaryButton}
-            onClick={() => openCreate()}
-          >
-            + {saving
-                  ? "Saving..."
-                  : editingPostId
-                    ? "Save changes"
-                    : "Schedule post"}
+          <button className={styles.primaryButton} onClick={() => openCreate()}>
+            +{" "}
+            {saving
+              ? ui("Saving...", "保存中……")
+              : editingPostId
+                ? ui("Save changes", "保存修改")
+                : ui("Schedule post", "排程帖子")}
           </button>
         </div>
       </section>
 
-      {error ? (
-        <div className={styles.error}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.quickStats}>
-        <article>
-          <span>Today</span>
+        <button
+          className={styles.statAction}
+          onClick={() => openDay(new Date())}
+        >
+          <span>{ui("Today", "今天")}</span>
           <strong>{quickStats.today}</strong>
-          <small>Posts scheduled today</small>
-        </article>
+          <small>{ui("Posts scheduled today", "今天已排程的帖子")}</small>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
-          <span>Tomorrow</span>
+        <button
+          className={styles.statAction}
+          onClick={() => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            openDay(tomorrow);
+          }}
+        >
+          <span>{ui("Tomorrow", "明天")}</span>
           <strong>{quickStats.tomorrow}</strong>
-          <small>Next-day content</small>
-        </article>
+          <small>{ui("Next-day content", "明日内容")}</small>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
-          <span>Next 7 days</span>
+        <button
+          className={styles.statAction}
+          onClick={() =>
+            document
+              .getElementById("calendar-upcoming")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
+          <span>{ui("Next 7 days", "未来 7 天")}</span>
           <strong>{quickStats.thisWeek}</strong>
-          <small>Upcoming schedule</small>
-        </article>
+          <small>{ui("Upcoming schedule", "即将发布的排程")}</small>
+          <i aria-hidden="true">→</i>
+        </button>
 
-        <article>
-          <span>Published</span>
+        <button
+          className={styles.statAction}
+          onClick={() => setStatusFilter("PUBLISHED")}
+        >
+          <span>{ui("Published", "已发布")}</span>
           <strong>{quickStats.published}</strong>
-          <small>Completed posts</small>
-        </article>
+          <small>{ui("Completed posts", "已完成发布的帖子")}</small>
+          <i aria-hidden="true">→</i>
+        </button>
       </section>
 
       <section className={styles.toolbar}>
@@ -1166,9 +1202,7 @@ export function ContentCalendar() {
             ←
           </button>
 
-          <h2>
-            {monthLabel(currentMonth)}
-          </h2>
+          <h2>{monthLabel(currentMonth)}</h2>
 
           <button
             onClick={() =>
@@ -1187,36 +1221,27 @@ export function ContentCalendar() {
           <button
             onClick={() =>
               setCurrentMonth(
-                new Date(
-                  new Date().getFullYear(),
-                  new Date().getMonth(),
-                  1,
-                ),
+                new Date(new Date().getFullYear(), new Date().getMonth(), 1),
               )
             }
           >
-            Today
+            {ui("Today", "今天")}
           </button>
         </div>
 
         <div className={styles.filters}>
           <div className={styles.platformToggle}>
             {[
-              ["ALL", "All"],
+              ["ALL", ui("All", "全部")],
               ["FACEBOOK", "f Facebook"],
               ["TELEGRAM", "✈ Telegram"],
+              ["INSTAGRAM", "◎ Instagram"],
             ].map(([value, label]) => (
               <button
-                className={
-                  platformFilter === value
-                    ? styles.activeToggle
-                    : ""
-                }
+                className={platformFilter === value ? styles.activeToggle : ""}
                 key={value}
                 type="button"
-                onClick={() =>
-                  setPlatformFilter(value)
-                }
+                onClick={() => setPlatformFilter(value)}
               >
                 {label}
               </button>
@@ -1226,34 +1251,21 @@ export function ContentCalendar() {
           <input
             className={styles.searchInput}
             value={searchQuery}
-            onChange={(event) =>
-              setSearchQuery(
-                event.target.value,
-              )
-            }
-            placeholder="Search content..."
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={ui("Search content...", "搜索内容……")}
           />
 
           <select
             value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(
-                event.target.value,
-              )
-            }
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
-            {STATUS_OPTIONS.map(
-              (status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status === "ALL"
-                    ? "All statuses"
-                    : status}
-                </option>
-              ),
-            )}
+            {STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status === "ALL"
+                  ? ui("All statuses", "所有状态")
+                  : calendarStatusLabel(status)}
+              </option>
+            ))}
           </select>
         </div>
       </section>
@@ -1269,43 +1281,21 @@ export function ContentCalendar() {
           <div className={styles.monthGrid}>
             {cells.map((date) => {
               const key = localDateKey(date);
-              const dayPosts =
-                postsByDate.get(key) ?? [];
+              const dayPosts = postsByDate.get(key) ?? [];
 
-              const outside =
-                date.getMonth() !==
-                currentMonth.getMonth();
+              const outside = date.getMonth() !== currentMonth.getMonth();
 
-              const today =
-                key ===
-                localDateKey(new Date());
+              const today = key === localDateKey(new Date());
 
               return (
                 <button
                   className={`${styles.dayCell} ${
-                    outside
-                      ? styles.outside
-                      : ""
-                  } ${
-                    today
-                      ? styles.today
-                      : ""
-                  } ${
-                    draggingPostId
-                      ? styles.dayCellDragging
-                      : ""
-                  } ${
-                    dropDateKey === key
-                      ? styles.dropTarget
-                      : ""
-                  }`}
+                    outside ? styles.outside : ""
+                  } ${today ? styles.today : ""} ${
+                    draggingPostId ? styles.dayCellDragging : ""
+                  } ${dropDateKey === key ? styles.dropTarget : ""}`}
                   key={key}
-                  onDragOver={(event) =>
-                    handleDayDragOver(
-                      event,
-                      date,
-                    )
-                  }
+                  onDragOver={(event) => handleDayDragOver(event, date)}
                   onDragEnter={(event) => {
                     if (draggingPostId) {
                       event.preventDefault();
@@ -1313,198 +1303,112 @@ export function ContentCalendar() {
                     }
                   }}
                   onDragLeave={(event) => {
-                    const nextTarget =
-                      event.relatedTarget;
+                    const nextTarget = event.relatedTarget;
 
                     if (
                       !nextTarget ||
-                      !event.currentTarget.contains(
-                        nextTarget as Node,
-                      )
+                      !event.currentTarget.contains(nextTarget as Node)
                     ) {
                       setDropDateKey(null);
                     }
                   }}
-                  onDrop={(event) =>
-                    handleDayDrop(
-                      event,
-                      date,
-                    )
-                  }
-                  onDoubleClick={() =>
-                    openCreate(date)
-                  }
+                  onDrop={(event) => handleDayDrop(event, date)}
+                  onClick={() => {
+                    if (!draggingPostId) openDay(date);
+                  }}
+                  onDoubleClick={() => openCreate(date)}
                 >
                   <div className={styles.dayHeader}>
-                    <span
-                      className={styles.dayNumber}
-                    >
-                      {date.getDate()}
-                    </span>
+                    <span className={styles.dayNumber}>{date.getDate()}</span>
 
                     {dayPosts.length ? (
-                      <span
-                        className={styles.dayCount}
-                      >
+                      <span className={styles.dayCount}>
                         {dayPosts.length}{" "}
                         {dayPosts.length === 1
-                          ? "post"
-                          : "posts"}
+                          ? ui("post", "个帖子")
+                          : ui("posts", "个帖子")}
                       </span>
                     ) : null}
                   </div>
 
-                  <div
-                    className={styles.dayPosts}
-                  >
-                    {dayPosts
-                      .slice(0, 3)
-                      .map((post) => (
-                        <span
-                          className={`${styles.event} ${
-                            post.platform ===
-                            "FACEBOOK"
-                              ? styles.facebook
-                              : styles.telegram
-                          } ${
-                            styles[
-                              `status${post.status}`
-                            ] ?? ""
-                          } ${
-                            draggingPostId ===
-                            post.id
-                              ? styles.draggingEvent
-                              : ""
-                          } ${
-                            !canDragPost(post)
-                              ? styles.lockedEvent
-                              : ""
-                          }`}
-                          draggable={
-                            canDragPost(post)
+                  <div className={styles.dayPosts}>
+                    {dayPosts.slice(0, 3).map((post) => (
+                      <span
+                        className={`${styles.event} ${
+                          post.platform === "FACEBOOK"
+                            ? styles.facebook
+                            : post.platform === "TELEGRAM"
+                              ? styles.telegram
+                              : styles.instagram
+                        } ${styles[`status${post.status}`] ?? ""} ${
+                          draggingPostId === post.id ? styles.draggingEvent : ""
+                        } ${!canDragPost(post) ? styles.lockedEvent : ""}`}
+                        draggable={canDragPost(post)}
+                        key={post.id}
+                        title={
+                          canDragPost(post)
+                            ? "Drag to reschedule"
+                            : `${calendarStatusLabel(post.status)} posts cannot be moved`
+                        }
+                        onDragStart={(event) => beginPostDrag(event, post)}
+                        onDragEnd={finishPostDrag}
+                        onMouseEnter={() => setHoveredPostId(post.id)}
+                        onMouseLeave={() => setHoveredPostId(null)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+
+                          if (draggingPostId !== post.id) {
+                            setSelectedPost(post);
                           }
-                          key={post.id}
-                          title={
-                            canDragPost(post)
-                              ? "Drag to reschedule"
-                              : `${post.status} posts cannot be moved`
-                          }
-                          onDragStart={(event) =>
-                            beginPostDrag(
-                              event,
-                              post,
-                            )
-                          }
-                          onDragEnd={
-                            finishPostDrag
-                          }
-                          onMouseEnter={() =>
-                            setHoveredPostId(post.id)
-                          }
-                          onMouseLeave={() =>
-                            setHoveredPostId(null)
-                          }
-                          onClick={(event) => {
-                            event.stopPropagation();
+                        }}
+                      >
+                        {post.mediaUrls[0] ? (
+                          <RuntimeImage
+                            className={styles.eventThumbnail}
+                            alt=""
+                            src={post.mediaUrls[0]}
+                          />
+                        ) : null}
 
-                            if (
-                              draggingPostId !==
-                              post.id
-                            ) {
-                              setSelectedPost(post);
-                            }
-                          }}
-                        >
-                          {post.mediaUrls[0] ? (
-                            <img
-                              className={
-                                styles.eventThumbnail
-                              }
-                              alt=""
-                              src={
-                                post.mediaUrls[0]
-                              }
-                            />
-                          ) : null}
-
-                          <span
-                            className={
-                              styles.eventPlatform
-                            }
-                          >
-                            {platformIcon(
-                              post.platform,
-                            )}
-                          </span>
-
-                          <b>
-                            {timeOnly(
-                              post.scheduledAt,
-                            )}
-                          </b>
-
-                          <span
-                            className={styles.eventTitle}
-                          >
-                            {post.title ||
-                              post.content.slice(
-                                0,
-                                28,
-                              )}
-                          </span>
-
-                          {hoveredPostId ===
-                          post.id ? (
-                            <span
-                              className={
-                                styles.hoverPreview
-                              }
-                            >
-                              <strong>
-                                {post.title ||
-                                  "Untitled post"}
-                              </strong>
-
-                              <small>
-                                {post.platform ===
-                                "FACEBOOK"
-                                  ? "Facebook"
-                                  : "Telegram"}
-                                {" · "}
-                                {statusLabel(
-                                  post.status,
-                                )}
-                              </small>
-
-                              <small>
-                                {dateTime(
-                                  post.scheduledAt,
-                                )}
-                              </small>
-
-                              <small>
-                                {post.campaign?.name ||
-                                  post.channel.name}
-                              </small>
-
-                              <p>
-                                {post.content.slice(
-                                  0,
-                                  120,
-                                )}
-                              </p>
-                            </span>
-                          ) : null}
+                        <span className={styles.eventPlatform}>
+                          {platformIcon(post.platform)}
                         </span>
-                      ))}
+
+                        <b>{timeOnly(post.scheduledAt)}</b>
+
+                        <span className={styles.eventTitle}>
+                          {post.title || post.content.slice(0, 28)}
+                        </span>
+
+                        {hoveredPostId === post.id ? (
+                          <span className={styles.hoverPreview}>
+                            <strong>
+                              {post.title || ui("Untitled post", "未命名帖子")}
+                            </strong>
+
+                            <small>
+                              {platformLabel(post.platform)}
+                              {" · "}
+                              {calendarStatusLabel(post.status)}
+                            </small>
+
+                            <small>{dateTime(post.scheduledAt)}</small>
+
+                            <small>
+                              {post.campaign?.name || post.channel.name}
+                            </small>
+
+                            <p>{post.content.slice(0, 120)}</p>
+                          </span>
+                        ) : null}
+                      </span>
+                    ))}
 
                     {dayPosts.length > 3 ? (
                       <span
                         role="button"
                         tabIndex={0}
-                        className={
-                          styles.morePostsButton
-                        }
+                        className={styles.morePostsButton}
                         onClick={(event) => {
                           event.stopPropagation();
 
@@ -1515,10 +1419,7 @@ export function ContentCalendar() {
                           });
                         }}
                         onKeyDown={(event) => {
-                          if (
-                            event.key !== "Enter" &&
-                            event.key !== " "
-                          ) {
+                          if (event.key !== "Enter" && event.key !== " ") {
                             return;
                           }
 
@@ -1532,7 +1433,7 @@ export function ContentCalendar() {
                           });
                         }}
                       >
-                        +{dayPosts.length - 3} more posts
+                        +{dayPosts.length - 3} {ui("more posts", "个更多帖子")}
                       </span>
                     ) : null}
                   </div>
@@ -1542,13 +1443,11 @@ export function ContentCalendar() {
           </div>
         </article>
 
-        <aside className={styles.sidebarPanel}>
+        <aside className={styles.sidebarPanel} id="calendar-upcoming">
           <header>
             <div>
-              <p className={styles.eyebrow}>
-                Upcoming
-              </p>
-              <h2>Next posts</h2>
+              <p className={styles.eyebrow}>{ui("Upcoming", "即将发布")}</p>
+              <h2>{ui("Next posts", "下一批帖子")}</h2>
             </div>
 
             <strong>{upcoming.length}</strong>
@@ -1557,40 +1456,27 @@ export function ContentCalendar() {
           <div className={styles.upcomingList}>
             {upcoming.map((post) => (
               <button
-                className={
-                  styles[
-                    `statusCard${post.status}`
-                  ] ?? ""
-                }
+                className={styles[`statusCard${post.status}`] ?? ""}
                 key={post.id}
-                onClick={() =>
-                  setSelectedPost(post)
-                }
+                onClick={() => setSelectedPost(post)}
               >
                 <span
                   className={`${styles.platformDot} ${
-                    post.platform ===
-                    "FACEBOOK"
+                    post.platform === "FACEBOOK"
                       ? styles.facebook
-                      : styles.telegram
+                      : post.platform === "TELEGRAM"
+                        ? styles.telegram
+                        : styles.instagram
                   }`}
                 />
 
                 <div>
-                  <strong>
-                    {post.title ||
-                      post.content.slice(
-                        0,
-                        54,
-                      )}
-                  </strong>
+                  <strong>{post.title || post.content.slice(0, 54)}</strong>
 
-                  <span>
-                    {dateTime(post.scheduledAt)}
-                  </span>
+                  <span>{dateTime(post.scheduledAt)}</span>
                 </div>
 
-                <b>{post.status}</b>
+                <b>{calendarStatusLabel(post.status)}</b>
               </button>
             ))}
 
@@ -1598,13 +1484,13 @@ export function ContentCalendar() {
               <div className={styles.healthPanel}>
                 <div>
                   <span className={styles.healthDot} />
-                  <strong>Publisher running</strong>
+                  <strong>{ui("Publisher running", "发布器运行中")}</strong>
                 </div>
 
                 <dl>
                   <div>
-                    <dt>Next sync</dt>
-                    <dd>Within 1 minute</dd>
+                    <dt>{ui("Next sync", "下次同步")}</dt>
+                    <dd>{ui("Within 1 minute", "1 分钟内")}</dd>
                   </div>
 
                   <div>
@@ -1612,13 +1498,11 @@ export function ContentCalendar() {
                     <dd>
                       {channels.some(
                         (channel) =>
-                          channel.platform ===
-                            "FACEBOOK" &&
-                          channel.status ===
-                            "CONNECTED",
+                          channel.platform === "FACEBOOK" &&
+                          channel.status === "CONNECTED",
                       )
-                        ? "Connected"
-                        : "Disconnected"}
+                        ? ui("Connected", "已连接")
+                        : ui("Disconnected", "未连接")}
                     </dd>
                   </div>
 
@@ -1627,19 +1511,30 @@ export function ContentCalendar() {
                     <dd>
                       {channels.some(
                         (channel) =>
-                          channel.platform ===
-                            "TELEGRAM" &&
-                          channel.status ===
-                            "CONNECTED",
+                          channel.platform === "TELEGRAM" &&
+                          channel.status === "CONNECTED",
                       )
-                        ? "Connected"
-                        : "Disconnected"}
+                        ? ui("Connected", "已连接")
+                        : ui("Disconnected", "未连接")}
                     </dd>
                   </div>
 
                   <div>
-                    <dt>Schedule</dt>
-                    <dd>Every minute</dd>
+                    <dt>Instagram</dt>
+                    <dd>
+                      {channels.some(
+                        (channel) =>
+                          channel.platform === "INSTAGRAM" &&
+                          channel.status === "CONNECTED",
+                      )
+                        ? ui("Connected", "已连接")
+                        : ui("Disconnected", "未连接")}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>{ui("Schedule", "排程")}</dt>
+                    <dd>{ui("Every minute", "每分钟")}</dd>
                   </div>
                 </dl>
               </div>
@@ -1655,36 +1550,26 @@ export function ContentCalendar() {
         >
           <section
             className={styles.dayPopover}
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={(event) => event.stopPropagation()}
           >
             <header>
               <div>
                 <p className={styles.eyebrow}>
-                  Daily schedule
+                  {ui("Daily schedule", "每日排程")}
                 </p>
 
                 <h2>
-                  {new Intl.DateTimeFormat(
-                    "en-MY",
-                    {
-                      dateStyle: "full",
-                    },
-                  ).format(dayPopover.date)}
+                  {new Intl.DateTimeFormat(locale, {
+                    dateStyle: "full",
+                  }).format(dayPopover.date)}
                 </h2>
 
                 <span>
-                  {dayPopover.posts.length} posts
+                  {dayPopover.posts.length} {ui("posts", "个帖子")}
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setDayPopover(null)
-                }
-              >
+              <button type="button" onClick={() => setDayPopover(null)}>
                 ×
               </button>
             </header>
@@ -1694,9 +1579,9 @@ export function ContentCalendar() {
                 <button
                   type="button"
                   key={post.id}
-                  className={
-                    styles.dayPopoverPost
-                  }
+                  className={`${styles.dayPopoverPost} ${
+                    post.status === "FAILED" ? styles.statusCardFAILED : ""
+                  }`}
                   onClick={() => {
                     setSelectedPost(post);
                     setDayPopover(null);
@@ -1704,40 +1589,34 @@ export function ContentCalendar() {
                 >
                   <span
                     className={`${styles.platformDot} ${
-                      post.platform ===
-                      "FACEBOOK"
+                      post.platform === "FACEBOOK"
                         ? styles.facebook
-                        : styles.telegram
+                        : post.platform === "TELEGRAM"
+                          ? styles.telegram
+                          : styles.instagram
                     }`}
                   />
 
                   <div>
-                    <strong>
-                      {post.title ||
-                        post.content.slice(
-                          0,
-                          70,
-                        )}
-                    </strong>
+                    <strong>{post.title || post.content.slice(0, 70)}</strong>
 
                     <small>
-                      {post.platform ===
-                      "FACEBOOK"
-                        ? "Facebook"
-                        : "Telegram"}
+                      {platformLabel(post.platform)}
                       {" · "}
-                      {timeOnly(
-                        post.scheduledAt,
-                      )}
+                      {timeOnly(post.scheduledAt)}
                     </small>
 
-                    <small>
-                      {post.channel.name}
-                    </small>
+                    <small>{post.channel.name}</small>
                   </div>
 
-                  <b>
-                    {statusLabel(post.status)}
+                  <b
+                    className={
+                      post.status === "FAILED"
+                        ? `${styles.detailStatus} ${styles.detailStatusFAILED}`
+                        : ""
+                    }
+                  >
+                    {calendarStatusLabel(post.status)}
                   </b>
                 </button>
               ))}
@@ -1747,22 +1626,15 @@ export function ContentCalendar() {
               <button
                 type="button"
                 onClick={() => {
-                  openCreate(
-                    dayPopover.date,
-                  );
+                  openCreate(dayPopover.date);
                   setDayPopover(null);
                 }}
               >
-                Create post
+                {ui("Create post", "创建帖子")}
               </button>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setDayPopover(null)
-                }
-              >
-                Close
+              <button type="button" onClick={() => setDayPopover(null)}>
+                {ui("Close", "关闭")}
               </button>
             </footer>
           </section>
@@ -1776,23 +1648,21 @@ export function ContentCalendar() {
               <div>
                 <p className={styles.eyebrow}>
                   {editingPostId
-                    ? "Edit schedule"
-                    : "New schedule"}
+                    ? ui("Edit schedule", "编辑排程")
+                    : ui("New schedule", "新增排程")}
                 </p>
                 <h2>
                   {editingPostId
-                    ? "Edit scheduled content"
-                    : "Schedule content"}
+                    ? ui("Edit scheduled content", "编辑已排程内容")
+                    : ui("Schedule content", "排程内容")}
                 </h2>
               </div>
 
               <button
-                onClick={() =>
-                  {
-                    setShowCreate(false);
-                    setEditingPostId(null);
-                  }
-                }
+                onClick={() => {
+                  setShowCreate(false);
+                  setEditingPostId(null);
+                }}
               >
                 ×
               </button>
@@ -1800,36 +1670,26 @@ export function ContentCalendar() {
 
             <div className={styles.formGrid}>
               <label>
-                <span>Brand</span>
+                <span>{ui("Brand", "品牌")}</span>
                 <select
                   value={form.brandId}
                   onChange={(event) => {
-                    const brandId =
-                      event.target.value;
+                    const brandId = event.target.value;
 
-                    const firstChannel =
-                      channels.find(
-                        (channel) =>
-                          channel.brandId ===
-                          brandId,
-                      );
+                    const firstChannel = channels.find(
+                      (channel) => channel.brandId === brandId,
+                    );
 
                     setForm((current) => ({
                       ...current,
                       brandId,
-                      channelId:
-                        firstChannel?.id ?? "",
-                      platform:
-                        firstChannel?.platform ??
-                        "FACEBOOK",
+                      channelId: firstChannel?.id ?? "",
+                      platform: firstChannel?.platform ?? "FACEBOOK",
                     }));
                   }}
                 >
                   {brands.map((brand) => (
-                    <option
-                      key={brand.id}
-                      value={brand.id}
-                    >
+                    <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>
                   ))}
@@ -1837,278 +1697,261 @@ export function ContentCalendar() {
               </label>
 
               <label>
-                <span>Channel</span>
+                <span>{ui("Channel", "渠道")}</span>
                 <select
                   value={form.channelId}
+                  disabled={!channelsForBrand.length}
                   onChange={(event) => {
-                    const channel =
-                      channels.find(
-                        (item) =>
-                          item.id ===
-                          event.target.value,
-                      );
+                    const channel = channels.find(
+                      (item) => item.id === event.target.value,
+                    );
 
                     setForm((current) => ({
                       ...current,
-                      channelId:
-                        event.target.value,
-                      platform:
-                        channel?.platform ??
-                        current.platform,
+                      channelId: event.target.value,
+                      platform: channel?.platform ?? current.platform,
                     }));
                   }}
                 >
-                  {channelsForBrand.map(
-                    (channel) => (
-                      <option
-                        key={channel.id}
-                        value={channel.id}
-                      >
-                        {channel.name}
-                      </option>
-                    ),
-                  )}
+                  {!channelsForBrand.length ? (
+                    <option value="">
+                      {ui("No available channel", "没有可用渠道")}
+                    </option>
+                  ) : null}
+
+                  {channelsForBrand.map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      {channel.name}
+                    </option>
+                  ))}
                 </select>
+
+                {!channelsForBrand.length ? (
+                  <small>
+                    {ui(
+                      "No available channel for this brand.",
+                      "此品牌没有可用渠道。",
+                    )}
+                  </small>
+                ) : null}
               </label>
 
               <label>
-                <span>Title</span>
+                <span>{ui("Title", "标题")}</span>
                 <input
                   value={form.title}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      title:
-                        event.target.value,
+                      title: event.target.value,
                     }))
                   }
-                  placeholder="Optional title"
+                  placeholder={ui("Optional title", "选填标题")}
                 />
               </label>
 
               <label>
-                <span>Status</span>
+                <span>{ui("Status", "状态")}</span>
                 <select
                   value={form.status}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      status:
-                        event.target.value,
+                      status: event.target.value,
                     }))
                   }
                 >
-                  <option value="DRAFT">
-                    Draft
-                  </option>
-                  <option value="SCHEDULED">
-                    Scheduled
-                  </option>
+                  <option value="DRAFT">{ui("Draft", "草稿")}</option>
+                  <option value="SCHEDULED">{ui("Scheduled", "已排程")}</option>
                 </select>
               </label>
 
               <label className={styles.full}>
-                <span>Scheduled time</span>
+                <span>{ui("Scheduled time", "排程时间")}</span>
                 <input
                   type="datetime-local"
                   value={form.scheduledAt}
+                  min={minimumScheduledAt}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      scheduledAt:
-                        event.target.value,
+                      scheduledAt: event.target.value,
                     }))
                   }
                 />
               </label>
 
               <label className={styles.full}>
-                <span>Content</span>
+                <span>{ui("Content", "内容")}</span>
                 <textarea
                   value={form.content}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      content:
-                        event.target.value,
+                      content: event.target.value,
                     }))
                   }
-                  placeholder="Write Facebook or Telegram content..."
+                  placeholder={ui(
+                    "Write Facebook, Telegram or Instagram content...",
+                    "撰写 Facebook、Telegram 或 Instagram 内容……",
+                  )}
                 />
               </label>
-            
-              <section
-                className={`${styles.mediaField} ${styles.full}`}
-              >
+
+              <section className={`${styles.mediaField} ${styles.full}`}>
                 <div className={styles.mediaFieldHeader}>
                   <div>
-                    <span>Media</span>
+                    <span>{ui("Media", "媒体")}</span>
                     <small>
-                      Select images from Asset Library
+                      {ui(
+                        "Upload from your device or select from Asset Library",
+                        "从设备上传或从素材库选择图片",
+                      )}
                     </small>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowAssetPicker(
-                        (current) => !current,
-                      )
-                    }
-                  >
-                    {showAssetPicker
-                      ? "Close library"
-                      : "+ Add image"}
-                  </button>
+                  <div className={styles.mediaActions}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      hidden
+                      onChange={(event) => {
+                        const files = Array.from(event.target.files ?? []);
+
+                        if (files.length) {
+                          void uploadImages(files);
+                        }
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      aria-label={ui(
+                        "Choose photos from phone or device",
+                        "从手机或设备选择照片",
+                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploadingImage
+                        ? ui("Uploading...", "上传中……")
+                        : ui(
+                            "📱 Choose photos",
+                            "📱 手机 / 设备照片",
+                          )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAssetPicker((current) => !current)}
+                    >
+                      {showAssetPicker
+                        ? ui("Close library", "关闭素材库")
+                        : ui("Asset Library", "素材库")}
+                    </button>
+                  </div>
                 </div>
 
                 {form.mediaUrls.length ? (
-                  <div
-                    className={styles.selectedMedia}
-                  >
-                    {form.mediaUrls.map(
-                      (url) => (
-                        <div
-                          className={
-                            styles.selectedMediaItem
-                          }
-                          key={url}
-                        >
-                          <img
-                            alt="Selected media"
-                            src={url}
-                          />
+                  <div className={styles.selectedMedia}>
+                    {form.mediaUrls.map((url) => (
+                      <div className={styles.selectedMediaItem} key={url}>
+                        <RuntimeImage
+                          alt={ui("Selected media", "已选择媒体")}
+                          src={url}
+                        />
 
-                          <button
-                            type="button"
-                            aria-label="Remove image"
-                            onClick={() =>
-                              removeMediaUrl(url)
-                            }
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ),
-                    )}
+                        <button
+                          type="button"
+                          aria-label={ui("Remove image", "移除图片")}
+                          onClick={() => removeMediaUrl(url)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <div
-                    className={styles.noMedia}
-                  >
-                    No images selected.
+                  <div className={styles.noMedia}>
+                    {ui("No images selected.", "尚未选择图片。")}
                   </div>
                 )}
 
                 {showAssetPicker ? (
-                  <div
-                    className={styles.assetPicker}
-                  >
-                    <div
-                      className={
-                        styles.assetPickerToolbar
-                      }
-                    >
-                      <strong>
-                        Asset Library
-                      </strong>
+                  <div className={styles.assetPicker}>
+                    <div className={styles.assetPickerToolbar}>
+                      <strong>{ui("Asset Library", "素材库")}</strong>
 
                       <input
                         value={assetSearch}
-                        onChange={(event) =>
-                          setAssetSearch(
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Search images..."
+                        onChange={(event) => setAssetSearch(event.target.value)}
+                        placeholder={ui("Search images...", "搜索图片……")}
                       />
                     </div>
 
-                    <div
-                      className={styles.assetGrid}
-                    >
-                      {filteredAssets.map(
-                        (asset) => {
-                          const selected =
-                            form.mediaUrls.includes(
-                              asset.url,
-                            );
+                    <div className={styles.assetGrid}>
+                      {filteredAssets.map((asset) => {
+                        const selected = form.mediaUrls.includes(asset.url);
 
-                          return (
-                            <button
-                              className={`${styles.assetCard} ${
-                                selected
-                                  ? styles.assetSelected
-                                  : ""
-                              }`}
-                              key={asset.id}
-                              type="button"
-                              onClick={() =>
-                                toggleMediaUrl(
-                                  asset.url,
-                                )
-                              }
-                            >
-                              <img
-                                alt={asset.name}
-                                src={
-                                  asset.thumbnailUrl ||
-                                  asset.url
-                                }
-                              />
+                        return (
+                          <button
+                            className={`${styles.assetCard} ${
+                              selected ? styles.assetSelected : ""
+                            }`}
+                            key={asset.id}
+                            type="button"
+                            onClick={() => toggleMediaUrl(asset.url)}
+                          >
+                            <RuntimeImage
+                              width={asset.width || undefined}
+                              height={asset.height || undefined}
+                              alt={asset.name}
+                              src={asset.thumbnailUrl || asset.url}
+                            />
 
-                              <span>
-                                {asset.name}
-                              </span>
+                            <span>{asset.name}</span>
 
-                              {selected ? (
-                                <b>✓</b>
-                              ) : null}
-                            </button>
-                          );
-                        },
-                      )}
+                            {selected ? <b>✓</b> : null}
+                          </button>
+                        );
+                      })}
 
                       {!filteredAssets.length ? (
-                        <div
-                          className={
-                            styles.noAssets
-                          }
-                        >
-                          No image assets found.
+                        <div className={styles.noAssets}>
+                          {ui("No image assets found.", "没有找到图片素材。")}
                         </div>
                       ) : null}
                     </div>
                   </div>
                 ) : null}
               </section>
-
-</div>
+            </div>
 
             <footer>
-              <button
-                onClick={() =>
-                  setShowCreate(false)
-                }
-              >
-                Cancel
+              <button onClick={() => setShowCreate(false)}>
+                {ui("Cancel", "取消")}
               </button>
 
               <button
                 className={styles.primaryButton}
-                onClick={() =>
-                  void createPost()
-                }
+                onClick={() => void createPost()}
                 disabled={
                   saving ||
+                  uploadingImage ||
                   !form.channelId ||
+                  !channelsForBrand.length ||
                   !form.content ||
-                  !form.scheduledAt
+                  !form.scheduledAt ||
+                  scheduledTimeIsPast
                 }
               >
                 {saving
-                  ? "Saving..."
-                  : "Create schedule"}
+                  ? ui("Saving...", "保存中……")
+                  : editingPostId
+                    ? ui("Save changes", "保存修改")
+                    : ui("Create schedule", "创建排程")}
               </button>
             </footer>
           </section>
@@ -2120,291 +1963,218 @@ export function ContentCalendar() {
           <section className={styles.modal}>
             <header>
               <div>
-                <div
-                  className={styles.modalContext}
-                >
+                <div className={styles.modalContext}>
                   <span
                     className={`${styles.modalPlatformIcon} ${
-                      selectedPost.platform ===
-                      "FACEBOOK"
+                      selectedPost.platform === "FACEBOOK"
                         ? styles.facebookIcon
-                        : styles.telegramIcon
+                        : selectedPost.platform === "TELEGRAM"
+                          ? styles.telegramIcon
+                          : styles.instagramIcon
                     }`}
                   >
-                    {platformIcon(
-                      selectedPost.platform,
-                    )}
+                    {platformIcon(selectedPost.platform)}
                   </span>
 
                   <div>
                     <p className={styles.eyebrow}>
-                      {selectedPost.platform ===
-                      "FACEBOOK"
-                        ? "Facebook post"
-                        : "Telegram post"}
+                      {selectedPost.platform === "FACEBOOK"
+                        ? ui("Facebook post", "Facebook 帖子")
+                        : selectedPost.platform === "TELEGRAM"
+                          ? ui("Telegram post", "Telegram 帖子")
+                          : ui("Instagram post", "Instagram 帖子")}
                     </p>
 
                     <h2>
-                      {selectedPost.title ||
-                        "Untitled post"}
+                      {selectedPost.title || ui("Untitled post", "未命名帖子")}
                     </h2>
                   </div>
                 </div>
               </div>
 
-              <button
-                onClick={() =>
-                  setSelectedPost(null)
-                }
-              >
-                ×
-              </button>
+              <button onClick={() => setSelectedPost(null)}>×</button>
             </header>
 
             <div className={styles.details}>
               <div>
-                <span>Platform</span>
+                <span>{ui("Platform", "平台")}</span>
 
-                <strong
-                  className={
-                    styles.platformValue
-                  }
-                >
+                <strong className={styles.platformValue}>
                   <span
                     className={`${styles.detailPlatformIcon} ${
-                      selectedPost.platform ===
-                      "FACEBOOK"
+                      selectedPost.platform === "FACEBOOK"
                         ? styles.facebookIcon
-                        : styles.telegramIcon
+                        : selectedPost.platform === "TELEGRAM"
+                          ? styles.telegramIcon
+                          : styles.instagramIcon
                     }`}
                   >
-                    {platformIcon(
-                      selectedPost.platform,
-                    )}
+                    {platformIcon(selectedPost.platform)}
                   </span>
 
-                  {selectedPost.platform ===
-                  "FACEBOOK"
-                    ? "Facebook"
-                    : "Telegram"}
+                  {platformLabel(selectedPost.platform)}
                 </strong>
               </div>
 
               <div>
-                <span>Status</span>
+                <span>{ui("Status", "状态")}</span>
                 <strong
                   className={`${styles.detailStatus} ${
-                    styles[
-                      `detailStatus${selectedPost.status}`
-                    ] ?? ""
+                    styles[`detailStatus${selectedPost.status}`] ?? ""
                   }`}
                 >
-                  {statusLabel(
-                    selectedPost.status,
-                  )}
+                  {statusLabel(selectedPost.status)}
                 </strong>
               </div>
 
               <div>
-                <span>Channel</span>
-                <strong>
-                  {selectedPost.channel.name}
-                </strong>
+                <span>{ui("Channel", "渠道")}</span>
+                <strong>{selectedPost.channel.name}</strong>
               </div>
 
-              <div
-                className={
-                  styles.scheduleDetail
-                }
-              >
-                <span>Scheduled</span>
+              <div className={styles.scheduleDetail}>
+                <span>{ui("Scheduled", "排程时间")}</span>
 
-                <strong>
-                  {weekdayOnly(
-                    selectedPost.scheduledAt,
-                  )}
-                </strong>
+                <strong>{weekdayOnly(selectedPost.scheduledAt)}</strong>
 
                 <small>
-                  {dateOnly(
-                    selectedPost.scheduledAt,
-                  )}
+                  {dateOnly(selectedPost.scheduledAt)}
                   {" · "}
-                  {timeOnly(
-                    selectedPost.scheduledAt,
-                  )}
+                  {timeOnly(selectedPost.scheduledAt)}
                 </small>
 
-                <small>
-                  {selectedPost.timezone}
-                </small>
+                <small>{selectedPost.timezone}</small>
               </div>
             </div>
 
             {selectedPost.mediaUrls.length ? (
-              <section
-                className={
-                  styles.postMediaPreview
-                }
-              >
-                {selectedPost.mediaUrls.map(
-                  (url) => (
-                    <img
-                      alt="Post media"
-                      key={url}
-                      src={url}
-                    />
-                  ),
-                )}
+              <section className={styles.postMediaPreview}>
+                {selectedPost.mediaUrls.map((url) => (
+                  <RuntimeImage alt="Post media" key={url} src={url} />
+                ))}
               </section>
             ) : null}
 
-            <section
-              className={styles.previewSection}
-            >
-              <header
-                className={
-                  styles.previewHeader
-                }
-              >
+            <section className={styles.previewSection}>
+              <header className={styles.previewHeader}>
                 <div>
                   <p className={styles.eyebrow}>
-                    Post preview
+                    {ui("Post preview", "帖子预览")}
                   </p>
 
-                  <strong>
-                    Content
-                  </strong>
+                  <strong>Content</strong>
                 </div>
 
                 <span>
-                  {selectedPost.content.length}
-                  {" "}characters
+                  {selectedPost.content.length} {ui("characters", "个字符")}
                 </span>
               </header>
 
-              <div
-                className={styles.contentPreview}
-              >
+              <div className={styles.contentPreview}>
                 {selectedPost.content}
               </div>
             </section>
 
-            <footer
-              className={styles.postActions}
-            >
-              <div
-                className={styles.secondaryActions}
-              >
+            <footer className={styles.postActions}>
+              <div className={styles.secondaryActions}>
                 <button
                   type="button"
                   className={styles.editButton}
-                  onClick={() =>
-                    openEditPost(selectedPost)
-                  }
+                  onClick={() => openEditPost(selectedPost)}
                   disabled={
                     saving ||
-                    [
-                      "PUBLISHED",
-                      "PUBLISHING",
-                    ].includes(
-                      selectedPost.status,
-                    )
+                    ["PUBLISHED", "PUBLISHING"].includes(selectedPost.status)
                   }
                 >
-                  Edit
+                  {ui("Edit", "编辑")}
                 </button>
 
                 <button
                   type="button"
-                  className={
-                    styles.duplicateButton
-                  }
-                  onClick={() =>
-                    duplicatePost(selectedPost)
-                  }
+                  className={styles.duplicateButton}
+                  onClick={() => duplicatePost(selectedPost)}
                   disabled={saving}
                 >
-                  Duplicate
+                  {ui("Duplicate", "复制")}
                 </button>
 
                 <button
                   type="button"
                   className={styles.deleteButton}
-                  onClick={() =>
-                    void deletePost(selectedPost)
-                  }
-                  disabled={
-                    saving ||
-                    selectedPost.status ===
-                      "PUBLISHED"
-                  }
+                  onClick={() => void deletePost(selectedPost)}
+                  disabled={saving || selectedPost.status === "PUBLISHED"}
                 >
-                  Delete
+                  {ui("Delete", "删除")}
                 </button>
               </div>
 
-              <div
-                className={styles.primaryActions}
-              >
-                {selectedPost.status ===
-                  "PUBLISHED" &&
-                selectedPost.externalPostId ? (
+              <div className={styles.primaryActions}>
+                {selectedPost.status === "PUBLISHED" &&
+                (selectedPost.platform === "INSTAGRAM" ||
+                  (selectedPost.platform === "FACEBOOK" &&
+                    selectedPost.externalPostId)) ? (
                   <a
                     className={styles.primaryButton}
                     href={
                       selectedPost.externalPostUrl ??
-                      `https://www.facebook.com/${selectedPost.externalPostId.replace(
-                        "_",
-                        "/posts/",
-                      )}`
+                      (selectedPost.platform === "INSTAGRAM"
+                        ? "https://www.instagram.com/"
+                        : `https://www.facebook.com/${selectedPost.externalPostId!.replace(
+                            "_",
+                            "/posts/",
+                          )}`)
                     }
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Open on Facebook
+                    {selectedPost.platform === "INSTAGRAM"
+                      ? ui("Open on Instagram", "在 Instagram 打开")
+                      : ui("Open on Facebook", "在 Facebook 打开")}
                   </a>
                 ) : (
                   <>
-                    {selectedPost.status !==
-                      "CANCELLED" ? (
+                    {selectedPost.status !== "CANCELLED" ? (
                       <button
                         type="button"
-                        className={
-                          styles.cancelPostButton
-                        }
-                        onClick={() =>
-                          void postAction(
-                            "cancel",
-                          )
-                        }
-                        disabled={
-                          saving ||
-                          selectedPost.status ===
-                            "DRAFT"
-                        }
+                        className={styles.cancelPostButton}
+                        onClick={() => void postAction("cancel")}
+                        disabled={saving || selectedPost.status === "DRAFT"}
                       >
                         Cancel post
                       </button>
                     ) : null}
 
-                    {[
-                      "DRAFT",
-                      "SCHEDULED",
-                      "FAILED",
-                    ].includes(
+                    {selectedPost.status === "FAILED" ? (
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => void postAction("retry")}
+                        disabled={saving}
+                      >
+                        {ui("Retry", "重试")}
+                      </button>
+                    ) : null}
+
+                    {["DRAFT", "SCHEDULED", "QUEUED"].includes(
                       selectedPost.status,
                     ) ? (
                       <button
                         type="button"
-                        className={
-                          styles.primaryButton
-                        }
-                        onClick={() =>
-                          void postAction(
-                            "queue",
-                          )
-                        }
+                        className={styles.primaryButton}
+                        onClick={() => void postAction("publish-now")}
+                        disabled={saving}
+                      >
+                        {ui("Publish now", "立即发布")}
+                      </button>
+                    ) : null}
+
+                    {["DRAFT", "SCHEDULED"].includes(
+                      selectedPost.status,
+                    ) ? (
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => void postAction("queue")}
                         disabled={saving}
                       >
                         Add to queue
