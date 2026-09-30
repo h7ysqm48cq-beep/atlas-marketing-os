@@ -1,0 +1,251 @@
+export type SupervisorAgentRole =
+  | 'supervisor'
+  | 'engineering'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'qa'
+  | 'infra'
+  | 'verifier';
+
+export type SupervisorTaskStatus =
+  | 'DRAFT'
+  | 'WORKING'
+  | 'BLOCKED'
+  | 'IMPLEMENTED'
+  | 'VERIFYING'
+  | 'READY_FOR_REVIEW'
+  | 'APPROVED'
+  | 'FAILED';
+
+export type SupervisorAction =
+  | 'read_repo'
+  | 'search_repo'
+  | 'edit_assigned_files'
+  | 'run_tests'
+  | 'run_build'
+  | 'commit_assigned_branch'
+  | 'change_database_schema'
+  | 'run_migration'
+  | 'change_auth_or_identity'
+  | 'change_runtime_config'
+  | 'deploy_non_production'
+  | 'deploy_production'
+  | 'merge'
+  | 'rebase'
+  | 'squash'
+  | 'cherry_pick'
+  | 'auto_merge'
+  | 'force_push'
+  | 'delete_branch_for_integration';
+
+export type SupervisorIntegrationAction =
+  'merge' | 'deploy_production' | 'run_migration' | 'change_runtime_config';
+
+export type SupervisorMergeTargetBranch = 'production/atlas' | 'main';
+
+export interface CreateSupervisorTaskInput {
+  objective: string;
+  owner: Exclude<SupervisorAgentRole, 'supervisor'>;
+  allowedPaths: string[];
+  forbiddenActions: SupervisorAction[];
+  dependsOn: string[];
+  acceptance: string[];
+}
+
+export interface SupervisorCandidatePublicationReceipt {
+  taskId: string;
+  executionId: string;
+  candidateBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+  targetBranch: 'production/atlas';
+  remoteHeadSha: string;
+  remoteVerified: true;
+}
+
+export interface SupervisorReviewCandidate {
+  action: SupervisorIntegrationAction;
+  targetBranch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: string[];
+}
+
+export interface SupervisorOwnerMergeAuthorization {
+  candidate: SupervisorReviewCandidate;
+  authorizedBy: string;
+  authorizedAt: string;
+  signature: string;
+}
+
+export interface SupervisorMergeAttestation {
+  pullRequestNumber: number;
+  mergeCommitSha: string;
+  mergeParents: [string, string];
+  mergedAt: string;
+}
+
+export interface SupervisorOwnerMergeAuthorizationConsumption {
+  authorization: SupervisorOwnerMergeAuthorization;
+  attestation: SupervisorMergeAttestation;
+  consumedBy: string;
+  consumedAt: string;
+}
+
+export interface SupervisorOwnerDeploymentAuthorization {
+  candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
+  authorizedBy: string;
+  authorizedAt: string;
+  signature: string;
+}
+
+export interface SupervisorOwnerDeploymentAuthorizationConsumption {
+  authorization: SupervisorOwnerDeploymentAuthorization;
+  approvalJti: string;
+  candidateHash: string;
+  environment: 'production';
+  consumedBy: string;
+  consumedAt: string;
+}
+
+export interface SupervisorOwnerDeploymentAuthorizationRevocation {
+  candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
+  authorizedBy: string;
+  authorizedAt: string;
+  revokedBy: string;
+  revokedAt: string;
+  reason: string;
+}
+
+export interface SupervisorOwnerDeploymentDispatchReservation {
+  candidate: SupervisorReviewCandidate;
+  service: ProductionDeploymentService;
+  reservationId: string;
+  reservedBy: string;
+  reservedAt: string;
+}
+
+/** Read-only verifier provenance, not an implementation or publication receipt. */
+export interface SupervisorExistingCandidateVerification {
+  mode: 'EXISTING_CANDIDATE';
+  taskId: string;
+  executionId: string;
+  baseSha: string;
+  headSha: string;
+  productionBaselineSha: string;
+  targetBranch?: SupervisorMergeTargetBranch;
+  changedFiles: string[];
+  gitFingerprint: string;
+  sourceVerified: true;
+}
+
+export interface SupervisorEvidence {
+  rootCause: string;
+  changedFiles: string[];
+  tests: string[];
+  build: string;
+  regression: string[];
+  deploymentState: string;
+  gitState: string;
+  remainingRisk: string[];
+  candidatePublication?: SupervisorCandidatePublicationReceipt;
+  existingCandidateVerification?: SupervisorExistingCandidateVerification;
+  reviewCandidate?: SupervisorReviewCandidate;
+  ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
+  ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
+  ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
+  ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
+  ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
+  ownerDeploymentDispatchReservation?: SupervisorOwnerDeploymentDispatchReservation;
+}
+
+export interface SupervisorTask {
+  id: string;
+  objective: string;
+  owner: Exclude<SupervisorAgentRole, 'supervisor'>;
+  status: SupervisorTaskStatus;
+  allowedPaths: string[];
+  forbiddenActions: SupervisorAction[];
+  dependsOn: string[];
+  acceptance: string[];
+  evidence: SupervisorEvidence | null;
+  blockingReason: string | null;
+  failureReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PermissionContext {
+  explicitUserAuthorization?: boolean;
+  supervisorAuthorization?: boolean;
+  taskScopeIncludesAction?: boolean;
+}
+
+export interface PermissionDecision {
+  allowed: boolean;
+  reason: string | null;
+}
+
+export type ExternalCodeWorkerKind =
+  'codex' | 'chatgpt-work' | 'chatgpt-coding' | 'external-agent';
+
+export interface ValidateWorkerContextInput {
+  taskId: string;
+  executionId: string;
+  externalWorker: ExternalCodeWorkerKind;
+  changedFiles?: string[];
+  requestedAction?: SupervisorAction;
+}
+
+export interface IntegrationGateInput {
+  taskId: string;
+  executionId: string;
+  action: SupervisorIntegrationAction;
+  targetBranch?: string;
+  baseSha?: string;
+  headSha?: string;
+  changedFiles: string[];
+  explicitUserAuthorization: boolean;
+}
+
+export interface SupervisorGateDecision {
+  allowed: boolean;
+  reason: string | null;
+  taskId: string;
+  executionId: string;
+}
+
+export type ProductionDeploymentService =
+  'api' | 'web' | 'browser-worker' | 'engineering-runner' | 'engineering-verifier';
+
+export type ProductionDeploymentDriftStatus =
+  'COMPLIANT' | 'BRANCH_DRIFT' | 'SHA_DRIFT' | 'MISSING_PROVENANCE';
+
+export interface GithubDeploymentProvenance {
+  repositoryOwner?: string;
+  repositoryName?: string;
+  branch?: string;
+  commitSha?: string;
+}
+
+export interface ProductionDeploymentValidationInput {
+  service: ProductionDeploymentService;
+  supervisorApprovedSha: string;
+  github?: GithubDeploymentProvenance;
+}
+
+export interface ProductionDeploymentGateInput {
+  taskId: string;
+  executionId: string;
+  service: ProductionDeploymentService;
+  github?: GithubDeploymentProvenance;
+}
+
+export interface ProductionDeploymentResolveInput {
+  service: ProductionDeploymentService;
+  github?: GithubDeploymentProvenance;
+}

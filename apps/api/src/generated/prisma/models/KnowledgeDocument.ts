@@ -27,13 +27,13 @@ export type AggregateKnowledgeDocument = {
 }
 
 export type KnowledgeDocumentAvgAggregateOutputType = {
-  sourceFileSize: number | null
   usageCount: number | null
+  sourceFileSize: number | null
 }
 
 export type KnowledgeDocumentSumAggregateOutputType = {
-  sourceFileSize: number | null
   usageCount: number | null
+  sourceFileSize: number | null
 }
 
 export type KnowledgeDocumentMinAggregateOutputType = {
@@ -42,16 +42,16 @@ export type KnowledgeDocumentMinAggregateOutputType = {
   title: string | null
   category: string | null
   content: string | null
-  sourceFileName: string | null
-  sourceMimeType: string | null
-  sourceFileSize: number | null
-  sourceUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  usageCount: number | null
-  lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  lastUsedAt: Date | null
+  usageCount: number | null
+  sourceFileName: string | null
+  sourceFileSize: number | null
+  sourceMimeType: string | null
+  sourceUrl: string | null
+  storagePath: string | null
+  storageProvider: string | null
 }
 
 export type KnowledgeDocumentMaxAggregateOutputType = {
@@ -60,16 +60,16 @@ export type KnowledgeDocumentMaxAggregateOutputType = {
   title: string | null
   category: string | null
   content: string | null
-  sourceFileName: string | null
-  sourceMimeType: string | null
-  sourceFileSize: number | null
-  sourceUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  usageCount: number | null
-  lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  lastUsedAt: Date | null
+  usageCount: number | null
+  sourceFileName: string | null
+  sourceFileSize: number | null
+  sourceMimeType: string | null
+  sourceUrl: string | null
+  storagePath: string | null
+  storageProvider: string | null
 }
 
 export type KnowledgeDocumentCountAggregateOutputType = {
@@ -79,28 +79,28 @@ export type KnowledgeDocumentCountAggregateOutputType = {
   category: number
   content: number
   tags: number
-  sourceFileName: number
-  sourceMimeType: number
-  sourceFileSize: number
-  sourceUrl: number
-  storageProvider: number
-  storagePath: number
-  usageCount: number
-  lastUsedAt: number
   createdAt: number
   updatedAt: number
+  lastUsedAt: number
+  usageCount: number
+  sourceFileName: number
+  sourceFileSize: number
+  sourceMimeType: number
+  sourceUrl: number
+  storagePath: number
+  storageProvider: number
   _all: number
 }
 
 
 export type KnowledgeDocumentAvgAggregateInputType = {
-  sourceFileSize?: true
   usageCount?: true
+  sourceFileSize?: true
 }
 
 export type KnowledgeDocumentSumAggregateInputType = {
-  sourceFileSize?: true
   usageCount?: true
+  sourceFileSize?: true
 }
 
 export type KnowledgeDocumentMinAggregateInputType = {
@@ -109,16 +109,16 @@ export type KnowledgeDocumentMinAggregateInputType = {
   title?: true
   category?: true
   content?: true
-  sourceFileName?: true
-  sourceMimeType?: true
-  sourceFileSize?: true
-  sourceUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  usageCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  lastUsedAt?: true
+  usageCount?: true
+  sourceFileName?: true
+  sourceFileSize?: true
+  sourceMimeType?: true
+  sourceUrl?: true
+  storagePath?: true
+  storageProvider?: true
 }
 
 export type KnowledgeDocumentMaxAggregateInputType = {
@@ -127,16 +127,16 @@ export type KnowledgeDocumentMaxAggregateInputType = {
   title?: true
   category?: true
   content?: true
-  sourceFileName?: true
-  sourceMimeType?: true
-  sourceFileSize?: true
-  sourceUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  usageCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  lastUsedAt?: true
+  usageCount?: true
+  sourceFileName?: true
+  sourceFileSize?: true
+  sourceMimeType?: true
+  sourceUrl?: true
+  storagePath?: true
+  storageProvider?: true
 }
 
 export type KnowledgeDocumentCountAggregateInputType = {
@@ -146,16 +146,16 @@ export type KnowledgeDocumentCountAggregateInputType = {
   category?: true
   content?: true
   tags?: true
-  sourceFileName?: true
-  sourceMimeType?: true
-  sourceFileSize?: true
-  sourceUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  usageCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  lastUsedAt?: true
+  usageCount?: true
+  sourceFileName?: true
+  sourceFileSize?: true
+  sourceMimeType?: true
+  sourceUrl?: true
+  storagePath?: true
+  storageProvider?: true
   _all?: true
 }
 
@@ -252,16 +252,16 @@ export type KnowledgeDocumentGroupByOutputType = {
   category: string
   content: string
   tags: string[]
-  sourceFileName: string | null
-  sourceMimeType: string | null
-  sourceFileSize: number | null
-  sourceUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  usageCount: number
-  lastUsedAt: Date | null
   createdAt: Date
   updatedAt: Date
+  lastUsedAt: Date | null
+  usageCount: number
+  sourceFileName: string | null
+  sourceFileSize: number | null
+  sourceMimeType: string | null
+  sourceUrl: string | null
+  storagePath: string | null
+  storageProvider: string | null
   _count: KnowledgeDocumentCountAggregateOutputType | null
   _avg: KnowledgeDocumentAvgAggregateOutputType | null
   _sum: KnowledgeDocumentSumAggregateOutputType | null
@@ -294,16 +294,16 @@ export type KnowledgeDocumentWhereInput = {
   category?: Prisma.StringFilter<"KnowledgeDocument"> | string
   content?: Prisma.StringFilter<"KnowledgeDocument"> | string
   tags?: Prisma.StringNullableListFilter<"KnowledgeDocument">
-  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
-  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
+  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
+  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   embeddings?: Prisma.KnowledgeEmbeddingListRelationFilter
 }
@@ -315,16 +315,16 @@ export type KnowledgeDocumentOrderByWithRelationInput = {
   category?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  sourceFileName?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceMimeType?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceFileSize?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
-  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
+  sourceFileName?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceMimeType?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
   brand?: Prisma.BrandOrderByWithRelationInput
   embeddings?: Prisma.KnowledgeEmbeddingOrderByRelationAggregateInput
 }
@@ -339,16 +339,16 @@ export type KnowledgeDocumentWhereUniqueInput = Prisma.AtLeast<{
   category?: Prisma.StringFilter<"KnowledgeDocument"> | string
   content?: Prisma.StringFilter<"KnowledgeDocument"> | string
   tags?: Prisma.StringNullableListFilter<"KnowledgeDocument">
-  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
-  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
+  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
+  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   embeddings?: Prisma.KnowledgeEmbeddingListRelationFilter
 }, "id">
@@ -360,16 +360,16 @@ export type KnowledgeDocumentOrderByWithAggregationInput = {
   category?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  sourceFileName?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceMimeType?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceFileSize?: Prisma.SortOrderInput | Prisma.SortOrder
-  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
-  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
+  sourceFileName?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceMimeType?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.KnowledgeDocumentCountOrderByAggregateInput
   _avg?: Prisma.KnowledgeDocumentAvgOrderByAggregateInput
   _max?: Prisma.KnowledgeDocumentMaxOrderByAggregateInput
@@ -387,16 +387,16 @@ export type KnowledgeDocumentScalarWhereWithAggregatesInput = {
   category?: Prisma.StringWithAggregatesFilter<"KnowledgeDocument"> | string
   content?: Prisma.StringWithAggregatesFilter<"KnowledgeDocument"> | string
   tags?: Prisma.StringNullableListFilter<"KnowledgeDocument">
-  sourceFileName?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
-  sourceMimeType?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
-  sourceFileSize?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeDocument"> | number | null
-  sourceUrl?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
-  storageProvider?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
-  storagePath?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
-  usageCount?: Prisma.IntWithAggregatesFilter<"KnowledgeDocument"> | number
-  lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"KnowledgeDocument"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"KnowledgeDocument"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"KnowledgeDocument"> | Date | string
+  lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"KnowledgeDocument"> | Date | string | null
+  usageCount?: Prisma.IntWithAggregatesFilter<"KnowledgeDocument"> | number
+  sourceFileName?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+  sourceFileSize?: Prisma.IntNullableWithAggregatesFilter<"KnowledgeDocument"> | number | null
+  sourceMimeType?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+  sourceUrl?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+  storagePath?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+  storageProvider?: Prisma.StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
 }
 
 export type KnowledgeDocumentCreateInput = {
@@ -405,16 +405,16 @@ export type KnowledgeDocumentCreateInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
   brand: Prisma.BrandCreateNestedOneWithoutKnowledgeDocumentsInput
   embeddings?: Prisma.KnowledgeEmbeddingCreateNestedManyWithoutDocumentInput
 }
@@ -426,16 +426,16 @@ export type KnowledgeDocumentUncheckedCreateInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
   embeddings?: Prisma.KnowledgeEmbeddingUncheckedCreateNestedManyWithoutDocumentInput
 }
 
@@ -445,16 +445,16 @@ export type KnowledgeDocumentUpdateInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand?: Prisma.BrandUpdateOneRequiredWithoutKnowledgeDocumentsNestedInput
   embeddings?: Prisma.KnowledgeEmbeddingUpdateManyWithoutDocumentNestedInput
 }
@@ -466,16 +466,16 @@ export type KnowledgeDocumentUncheckedUpdateInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   embeddings?: Prisma.KnowledgeEmbeddingUncheckedUpdateManyWithoutDocumentNestedInput
 }
 
@@ -486,16 +486,16 @@ export type KnowledgeDocumentCreateManyInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
 }
 
 export type KnowledgeDocumentUpdateManyMutationInput = {
@@ -504,16 +504,16 @@ export type KnowledgeDocumentUpdateManyMutationInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type KnowledgeDocumentUncheckedUpdateManyInput = {
@@ -523,16 +523,16 @@ export type KnowledgeDocumentUncheckedUpdateManyInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type KnowledgeDocumentListRelationFilter = {
@@ -552,21 +552,21 @@ export type KnowledgeDocumentCountOrderByAggregateInput = {
   category?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tags?: Prisma.SortOrder
-  sourceFileName?: Prisma.SortOrder
-  sourceMimeType?: Prisma.SortOrder
-  sourceFileSize?: Prisma.SortOrder
-  sourceUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
+  sourceFileName?: Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrder
+  sourceMimeType?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
 }
 
 export type KnowledgeDocumentAvgOrderByAggregateInput = {
-  sourceFileSize?: Prisma.SortOrder
   usageCount?: Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrder
 }
 
 export type KnowledgeDocumentMaxOrderByAggregateInput = {
@@ -575,16 +575,16 @@ export type KnowledgeDocumentMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   category?: Prisma.SortOrder
   content?: Prisma.SortOrder
-  sourceFileName?: Prisma.SortOrder
-  sourceMimeType?: Prisma.SortOrder
-  sourceFileSize?: Prisma.SortOrder
-  sourceUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
+  sourceFileName?: Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrder
+  sourceMimeType?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
 }
 
 export type KnowledgeDocumentMinOrderByAggregateInput = {
@@ -593,21 +593,21 @@ export type KnowledgeDocumentMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   category?: Prisma.SortOrder
   content?: Prisma.SortOrder
-  sourceFileName?: Prisma.SortOrder
-  sourceMimeType?: Prisma.SortOrder
-  sourceFileSize?: Prisma.SortOrder
-  sourceUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  usageCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
+  sourceFileName?: Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrder
+  sourceMimeType?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
 }
 
 export type KnowledgeDocumentSumOrderByAggregateInput = {
-  sourceFileSize?: Prisma.SortOrder
   usageCount?: Prisma.SortOrder
+  sourceFileSize?: Prisma.SortOrder
 }
 
 export type KnowledgeDocumentScalarRelationFilter = {
@@ -686,16 +686,16 @@ export type KnowledgeDocumentCreateWithoutBrandInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
   embeddings?: Prisma.KnowledgeEmbeddingCreateNestedManyWithoutDocumentInput
 }
 
@@ -705,16 +705,16 @@ export type KnowledgeDocumentUncheckedCreateWithoutBrandInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
   embeddings?: Prisma.KnowledgeEmbeddingUncheckedCreateNestedManyWithoutDocumentInput
 }
 
@@ -754,16 +754,16 @@ export type KnowledgeDocumentScalarWhereInput = {
   category?: Prisma.StringFilter<"KnowledgeDocument"> | string
   content?: Prisma.StringFilter<"KnowledgeDocument"> | string
   tags?: Prisma.StringNullableListFilter<"KnowledgeDocument">
-  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
-  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
-  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KnowledgeDocument"> | Date | string
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+  usageCount?: Prisma.IntFilter<"KnowledgeDocument"> | number
+  sourceFileName?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceFileSize?: Prisma.IntNullableFilter<"KnowledgeDocument"> | number | null
+  sourceMimeType?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  sourceUrl?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"KnowledgeDocument"> | string | null
 }
 
 export type KnowledgeDocumentCreateWithoutEmbeddingsInput = {
@@ -772,16 +772,16 @@ export type KnowledgeDocumentCreateWithoutEmbeddingsInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
   brand: Prisma.BrandCreateNestedOneWithoutKnowledgeDocumentsInput
 }
 
@@ -792,16 +792,16 @@ export type KnowledgeDocumentUncheckedCreateWithoutEmbeddingsInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
 }
 
 export type KnowledgeDocumentCreateOrConnectWithoutEmbeddingsInput = {
@@ -826,16 +826,16 @@ export type KnowledgeDocumentUpdateWithoutEmbeddingsInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   brand?: Prisma.BrandUpdateOneRequiredWithoutKnowledgeDocumentsNestedInput
 }
 
@@ -846,16 +846,16 @@ export type KnowledgeDocumentUncheckedUpdateWithoutEmbeddingsInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type KnowledgeDocumentCreateManyBrandInput = {
@@ -864,16 +864,16 @@ export type KnowledgeDocumentCreateManyBrandInput = {
   category: string
   content: string
   tags?: Prisma.KnowledgeDocumentCreatetagsInput | string[]
-  sourceFileName?: string | null
-  sourceMimeType?: string | null
-  sourceFileSize?: number | null
-  sourceUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  usageCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lastUsedAt?: Date | string | null
+  usageCount?: number
+  sourceFileName?: string | null
+  sourceFileSize?: number | null
+  sourceMimeType?: string | null
+  sourceUrl?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
 }
 
 export type KnowledgeDocumentUpdateWithoutBrandInput = {
@@ -882,16 +882,16 @@ export type KnowledgeDocumentUpdateWithoutBrandInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   embeddings?: Prisma.KnowledgeEmbeddingUpdateManyWithoutDocumentNestedInput
 }
 
@@ -901,16 +901,16 @@ export type KnowledgeDocumentUncheckedUpdateWithoutBrandInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   embeddings?: Prisma.KnowledgeEmbeddingUncheckedUpdateManyWithoutDocumentNestedInput
 }
 
@@ -920,16 +920,16 @@ export type KnowledgeDocumentUncheckedUpdateManyWithoutBrandInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.KnowledgeDocumentUpdatetagsInput | string[]
-  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sourceMimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -970,16 +970,16 @@ export type KnowledgeDocumentSelect<ExtArgs extends runtime.Types.Extensions.Int
   category?: boolean
   content?: boolean
   tags?: boolean
-  sourceFileName?: boolean
-  sourceMimeType?: boolean
-  sourceFileSize?: boolean
-  sourceUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  lastUsedAt?: boolean
+  usageCount?: boolean
+  sourceFileName?: boolean
+  sourceFileSize?: boolean
+  sourceMimeType?: boolean
+  sourceUrl?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   embeddings?: boolean | Prisma.KnowledgeDocument$embeddingsArgs<ExtArgs>
   _count?: boolean | Prisma.KnowledgeDocumentCountOutputTypeDefaultArgs<ExtArgs>
@@ -992,16 +992,16 @@ export type KnowledgeDocumentSelectCreateManyAndReturn<ExtArgs extends runtime.T
   category?: boolean
   content?: boolean
   tags?: boolean
-  sourceFileName?: boolean
-  sourceMimeType?: boolean
-  sourceFileSize?: boolean
-  sourceUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  lastUsedAt?: boolean
+  usageCount?: boolean
+  sourceFileName?: boolean
+  sourceFileSize?: boolean
+  sourceMimeType?: boolean
+  sourceUrl?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["knowledgeDocument"]>
 
@@ -1012,16 +1012,16 @@ export type KnowledgeDocumentSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   category?: boolean
   content?: boolean
   tags?: boolean
-  sourceFileName?: boolean
-  sourceMimeType?: boolean
-  sourceFileSize?: boolean
-  sourceUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  lastUsedAt?: boolean
+  usageCount?: boolean
+  sourceFileName?: boolean
+  sourceFileSize?: boolean
+  sourceMimeType?: boolean
+  sourceUrl?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["knowledgeDocument"]>
 
@@ -1032,19 +1032,19 @@ export type KnowledgeDocumentSelectScalar = {
   category?: boolean
   content?: boolean
   tags?: boolean
-  sourceFileName?: boolean
-  sourceMimeType?: boolean
-  sourceFileSize?: boolean
-  sourceUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  usageCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  lastUsedAt?: boolean
+  usageCount?: boolean
+  sourceFileName?: boolean
+  sourceFileSize?: boolean
+  sourceMimeType?: boolean
+  sourceUrl?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
 }
 
-export type KnowledgeDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "title" | "category" | "content" | "tags" | "sourceFileName" | "sourceMimeType" | "sourceFileSize" | "sourceUrl" | "storageProvider" | "storagePath" | "usageCount" | "lastUsedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["knowledgeDocument"]>
+export type KnowledgeDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "title" | "category" | "content" | "tags" | "createdAt" | "updatedAt" | "lastUsedAt" | "usageCount" | "sourceFileName" | "sourceFileSize" | "sourceMimeType" | "sourceUrl" | "storagePath" | "storageProvider", ExtArgs["result"]["knowledgeDocument"]>
 export type KnowledgeDocumentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   embeddings?: boolean | Prisma.KnowledgeDocument$embeddingsArgs<ExtArgs>
@@ -1070,16 +1070,16 @@ export type $KnowledgeDocumentPayload<ExtArgs extends runtime.Types.Extensions.I
     category: string
     content: string
     tags: string[]
-    sourceFileName: string | null
-    sourceMimeType: string | null
-    sourceFileSize: number | null
-    sourceUrl: string | null
-    storageProvider: string | null
-    storagePath: string | null
-    usageCount: number
-    lastUsedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    lastUsedAt: Date | null
+    usageCount: number
+    sourceFileName: string | null
+    sourceFileSize: number | null
+    sourceMimeType: string | null
+    sourceUrl: string | null
+    storagePath: string | null
+    storageProvider: string | null
   }, ExtArgs["result"]["knowledgeDocument"]>
   composites: {}
 }
@@ -1511,16 +1511,16 @@ export interface KnowledgeDocumentFieldRefs {
   readonly category: Prisma.FieldRef<"KnowledgeDocument", 'String'>
   readonly content: Prisma.FieldRef<"KnowledgeDocument", 'String'>
   readonly tags: Prisma.FieldRef<"KnowledgeDocument", 'String[]'>
-  readonly sourceFileName: Prisma.FieldRef<"KnowledgeDocument", 'String'>
-  readonly sourceMimeType: Prisma.FieldRef<"KnowledgeDocument", 'String'>
-  readonly sourceFileSize: Prisma.FieldRef<"KnowledgeDocument", 'Int'>
-  readonly sourceUrl: Prisma.FieldRef<"KnowledgeDocument", 'String'>
-  readonly storageProvider: Prisma.FieldRef<"KnowledgeDocument", 'String'>
-  readonly storagePath: Prisma.FieldRef<"KnowledgeDocument", 'String'>
-  readonly usageCount: Prisma.FieldRef<"KnowledgeDocument", 'Int'>
-  readonly lastUsedAt: Prisma.FieldRef<"KnowledgeDocument", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"KnowledgeDocument", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"KnowledgeDocument", 'DateTime'>
+  readonly lastUsedAt: Prisma.FieldRef<"KnowledgeDocument", 'DateTime'>
+  readonly usageCount: Prisma.FieldRef<"KnowledgeDocument", 'Int'>
+  readonly sourceFileName: Prisma.FieldRef<"KnowledgeDocument", 'String'>
+  readonly sourceFileSize: Prisma.FieldRef<"KnowledgeDocument", 'Int'>
+  readonly sourceMimeType: Prisma.FieldRef<"KnowledgeDocument", 'String'>
+  readonly sourceUrl: Prisma.FieldRef<"KnowledgeDocument", 'String'>
+  readonly storagePath: Prisma.FieldRef<"KnowledgeDocument", 'String'>
+  readonly storageProvider: Prisma.FieldRef<"KnowledgeDocument", 'String'>
 }
     
 
