@@ -134,7 +134,7 @@ test('executor claims one authorized worker and deploys the exact production SHA
       return json({
         claimed: false,
         reason: 'not_found',
-        service: 'engineering-verifier',
+        service: payload.service,
         commitSha: SHA,
       });
     }
@@ -194,7 +194,7 @@ test('executor claims one authorized worker and deploys the exact production SHA
   });
   assert.deepEqual(
     seen.claims.map((claim) => claim.service),
-    ['engineering-runner', 'engineering-verifier'],
+    ['engineering-runner', 'engineering-verifier', 'browser-worker'],
   );
   assert.equal(seen.claims[0].github.commitSha, SHA);
 });
@@ -277,7 +277,7 @@ test('already-reserved workers never trigger another Railway deploy', async () =
   });
 
   assert.equal(deployMutations, 0);
-  assert.equal(result.results.length, 2);
+  assert.equal(result.results.length, 3);
   assert.ok(result.results.every((entry) => entry.deployment === null));
 });
 
@@ -425,7 +425,7 @@ test('executor rejects successful deployment evidence for the wrong commit', asy
   );
 });
 
-test('dispatch claim rejects any service outside the frozen worker allowlist', async () => {
+test('dispatch claim rejects any service outside the frozen production executor allowlist', async () => {
   await assert.rejects(
     () =>
       claimDispatch(

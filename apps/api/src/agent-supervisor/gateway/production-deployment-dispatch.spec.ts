@@ -71,13 +71,17 @@ describe('production deployment dispatch reservation', () => {
   }
 
   async function createReadyWorkerDeployment(
-    service: 'engineering-runner' | 'engineering-verifier' =
-      'engineering-runner',
+    service:
+      | 'engineering-runner'
+      | 'engineering-verifier'
+      | 'browser-worker' = 'engineering-runner',
   ) {
     const allowedPath =
       service === 'engineering-runner'
         ? 'apps/engineering-runner/check-runner-production-deployment.cjs'
-        : 'apps/engineering-runner/check-verifier-production-deployment.cjs';
+        : service === 'engineering-verifier'
+          ? 'apps/engineering-runner/check-verifier-production-deployment.cjs'
+          : 'apps/browser-worker/railway.json';
     const task = await supervisor.createTask({
       objective:
         `zero-git-diff ${service} production qualification for exact canonical production SHA ${SHA}`,
@@ -345,7 +349,28 @@ describe('production deployment dispatch reservation', () => {
     });
   });
 
-  it('rejects deployment dispatch for services outside the bounded worker pair', async () => {
+  it('claims an approved browser-worker deployment through the bounded executor scope', async () => {
+    const { task, execution } =
+      await createReadyWorkerDeployment('browser-worker');
+    await approve(task.id);
+
+    await expect(
+      gateway.claimProductionDeploymentDispatch({
+        service: 'browser-worker',
+        github: CANONICAL_GITHUB,
+        dispatcherId: 'atlas-production-deploy-executor:browser-worker',
+      }),
+    ).resolves.toMatchObject({
+      claimed: true,
+      reason: null,
+      service: 'browser-worker',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+    });
+  });
+
+  it('rejects deployment dispatch for services outside the bounded worker trio', async () => {
     await expect(
       gateway.claimProductionDeploymentDispatch({
         service: 'api' as never,
