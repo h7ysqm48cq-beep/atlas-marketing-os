@@ -33,7 +33,6 @@ export interface VerifierCapability extends AuthorityClaims {
   executionId: string;
   manifestHash: string;
   claimEpoch: number;
-  allowedPaths: string[];
   allowedActions: VerifierCapabilityOperation[];
   leaseId: string;
   runnerId: string;
@@ -69,7 +68,6 @@ export class VerifierCapabilityService {
       taskId: input.taskId,
       executionId: input.executionId,
       manifestHash: input.manifestHash,
-      allowedPaths: [...input.allowedPaths],
       allowedActions: [...this.operations],
       leaseId: input.leaseId,
       runnerId: input.runnerId,
@@ -102,12 +100,6 @@ export class VerifierCapabilityService {
     }
     if (claims.leaseId !== input.leaseId || claims.runnerId !== input.runnerId) {
       throw new ForbiddenException('verifier_capability_claim_mismatch');
-    }
-    if (
-      claims.allowedPaths.length !== input.allowedPaths.length ||
-      claims.allowedPaths.some((path, index) => path !== input.allowedPaths[index])
-    ) {
-      throw new ForbiddenException('verifier_capability_scope_mismatch');
     }
     if (claims.candidateHeadSha !== input.candidateHeadSha) {
       throw new ForbiddenException('verifier_capability_candidate_mismatch');

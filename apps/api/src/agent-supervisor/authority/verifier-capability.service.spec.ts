@@ -5,6 +5,10 @@ import {
   SupervisorAuthorityService,
 } from './supervisor-authority.service';
 import {
+  SupervisorAdmissionManifestService,
+  type SupervisorAdmissionManifestInput,
+} from './supervisor-admission-manifest.service';
+import {
   VerifierCapabilityService,
   type VerifierCapabilityInput,
 } from './verifier-capability.service';
@@ -86,18 +90,63 @@ describe('VerifierCapabilityService', () => {
     );
   });
 
-  it('does not accept implementation mutation as a verifier operation', () => {
+  it('binds scope through the immutable admission manifest hash', () => {
+    const admission = new SupervisorAdmissionManifestService();
+    const base = {
+      executionId: 'execution-1',
+      taskId: 'task-1',
+      workerRole: 'engineering' as const,
+      executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+      objective: 'Verify exact candidate',
+      forbiddenActions: ['merge'],
+      dependencies: [],
+      acceptance: ['exact scope'],
+      requiredEvidence: [],
+    };
+
+    const firstInput: SupervisorAdmissionManifestInput = {
+      ...base,
+      allowedPaths: ['apps/api/src/example.ts'],
+    };
+    const secondInput: SupervisorAdmissionManifestInput = {
+      ...base,
+      allowedPaths: ['apps/api/src/other.ts'],
+    };
+    const first = admission.createBinding(firstInput);
+    const second = admission.createBinding(secondInput);
+
+    expect(second.manifestHash).not.toBe(first.manifestHash);
+  });
+
+  it('rejects heartbeat, fail, and submit verification when manifest authority drifts', () => {
     const service = new VerifierCapabilityService(authority());
     const token = service.issue(input(), NOW);
 
-    expect(() =>
-      service.authorize(token, {
-        ...input(),
-        operation: 'submit_verification',
-        now: new Date(NOW.getTime() + 1_000),
-        allowedPaths: ['apps/api/src/other.ts'],
-      }),
-    ).toThrow('verifier_capability_scope_mismatch');
+    for (const operation of ['heartbeat', 'fail', 'submit_verification'] as const) {
+      expect(() =>
+        service.authorize(token, {
+          ...input(),
+          manifestHash: 'f'.repeat(64),
+          operation,
+          now: new Date(NOW.getTime() + 1_000),
+        }),
+      ).toThrow();
+    }
+  });
+
+  it('keeps verifier capability size bounded for a 381-path assignment', () => {
+    const service = new VerifierCapabilityService(authority());
+    const small = service.issue(input(), NOW);
+    const large = service.issue({
+      ...input(),
+      allowedPaths: Array.from(
+        { length: 381 },
+        (_, index) => 'apps/api/src/generated/path-' + index + '.ts',
+      ),
+    }, NOW);
+
+    expect(Math.abs(large.length - small.length)).toBeLessThan(256);
+    expect(large.length).toBeLessThan(8_000);
   });
 
   it('rejects immutable candidate head drift', () => {
