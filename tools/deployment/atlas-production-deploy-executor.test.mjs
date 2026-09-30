@@ -29,22 +29,34 @@ function quietLogger() {
   return { log() {}, error() {} };
 }
 
-test('fetchProductionSha reads the public production ref without GITHUB_TOKEN', async () => {
+test('fetchProductionSha reads the public production ref through Git smart HTTP without GITHUB_TOKEN', async () => {
   let seenHeaders = null;
   const sha = await fetchProductionSha(
     { GITHUB_REPOSITORY: ENV.GITHUB_REPOSITORY },
     async (url, options = {}) => {
       assert.equal(
         String(url),
-        'https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/git/ref/heads/production/atlas',
+        'https://github.com/h7ysqm48cq-beep/atlas-marketing-os.git/info/refs?service=git-upload-pack',
       );
       seenHeaders = options.headers;
-      return json({ object: { sha: SHA } });
+      return new Response(
+        `001e# service=git-upload-pack\n00000049${SHA} refs/heads/production/atlas\n`,
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/x-git-upload-pack-advertisement',
+          },
+        },
+      );
     },
   );
 
   assert.equal(sha, SHA);
-  assert.equal(seenHeaders.authorization, undefined);
+  assert.equal(
+    seenHeaders.accept,
+    'application/x-git-upload-pack-advertisement',
+  );
+  assert.equal(seenHeaders['user-agent'], 'atlas-production-deploy-executor');
 });
 
 test('fetchProductionSha uses Bearer auth when GITHUB_TOKEN is present', async () => {

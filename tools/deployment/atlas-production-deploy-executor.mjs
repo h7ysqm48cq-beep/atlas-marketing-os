@@ -117,23 +117,46 @@ export async function fetchProductionSha(env, fetchImpl = fetch) {
   if (repository !== EXPECTED_REPOSITORY) {
     throw new Error('unexpected GitHub repository');
   }
+
   const token = env.GITHUB_TOKEN?.trim() ?? '';
-  const headers = {
-    accept: 'application/vnd.github+json',
-    'x-github-api-version': '2022-11-28',
-  };
   if (token) {
-    headers.authorization = 'Bearer ' + token;
+    const response = await fetchImpl(
+      `https://api.github.com/repos/${repository}/git/ref/heads/${PRODUCTION_BRANCH}`,
+      {
+        headers: {
+          accept: 'application/vnd.github+json',
+          'x-github-api-version': '2022-11-28',
+          authorization: 'Bearer ' + token,
+        },
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    const body = await readJson(response, 'GitHub production ref');
+    const sha = body?.object?.sha?.toLowerCase?.() ?? '';
+    if (!FULL_SHA.test(sha)) throw new Error('invalid production SHA');
+    return sha;
   }
+
   const response = await fetchImpl(
-    `https://api.github.com/repos/${repository}/git/ref/heads/${PRODUCTION_BRANCH}`,
+    `https://github.com/${repository}.git/info/refs?service=git-upload-pack`,
     {
-      headers,
+      headers: {
+        accept: 'application/x-git-upload-pack-advertisement',
+        'user-agent': 'atlas-production-deploy-executor',
+      },
       signal: AbortSignal.timeout(15_000),
     },
   );
-  const body = await readJson(response, 'GitHub production ref');
-  const sha = body?.object?.sha?.toLowerCase?.() ?? '';
+  if (!response.ok) {
+    throw new Error(
+      `GitHub git ref advertisement failed: http_${response.status}`,
+    );
+  }
+  const advertisement = await response.text();
+  const match = advertisement.match(
+    /([0-9a-f]{40}) refs\/heads\/production\/atlas(?:\0|\r?\n|$)/i,
+  );
+  const sha = match?.[1]?.toLowerCase() ?? '';
   if (!FULL_SHA.test(sha)) throw new Error('invalid production SHA');
   return sha;
 }
