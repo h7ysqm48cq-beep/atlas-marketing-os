@@ -4,6 +4,7 @@ import {
   SERVICES,
   claimDispatch,
   execute,
+  fetchProductionSha,
 } from './atlas-production-deploy-executor.mjs';
 
 const SHA = '9'.repeat(40);
@@ -27,6 +28,81 @@ function json(body, status = 200) {
 function quietLogger() {
   return { log() {}, error() {} };
 }
+
+test('fetchProductionSha reads the public production ref without GITHUB_TOKEN', async () => {
+  let seenHeaders = null;
+  const sha = await fetchProductionSha(
+    { GITHUB_REPOSITORY: ENV.GITHUB_REPOSITORY },
+    async (url, options = {}) => {
+      assert.equal(
+        String(url),
+        'https://api.github.com/repos/h7ysqm48cq-beep/atlas-marketing-os/git/ref/heads/production/atlas',
+      );
+      seenHeaders = options.headers;
+      return json({ object: { sha: SHA } });
+    },
+  );
+
+  assert.equal(sha, SHA);
+  assert.equal(seenHeaders.authorization, undefined);
+});
+
+test('fetchProductionSha uses Bearer auth when GITHUB_TOKEN is present', async () => {
+  let seenHeaders = null;
+  const sha = await fetchProductionSha(ENV, async (_url, options = {}) => {
+    seenHeaders = options.headers;
+    return json({ object: { sha: SHA } });
+  });
+
+  assert.equal(sha, SHA);
+  assert.equal(seenHeaders.authorization, 'Bearer github-token');
+});
+
+test('fetchProductionSha rejects any repository other than the frozen ATLAS repository', async () => {
+  let called = false;
+  await assert.rejects(
+    () =>
+      fetchProductionSha(
+        {
+          GITHUB_REPOSITORY: 'other-owner/other-repo',
+          GITHUB_TOKEN: 'github-token',
+        },
+        async () => {
+          called = true;
+          return json({ object: { sha: SHA } });
+        },
+      ),
+    /unexpected GitHub repository/,
+  );
+  assert.equal(called, false);
+});
+
+test('claimDispatch uses the stable ATLAS executor dispatcher identity without GitHub run ids', async () => {
+  const env = {
+    GITHUB_REPOSITORY: ENV.GITHUB_REPOSITORY,
+    ATLAS_SUPERVISOR_API_URL: ENV.ATLAS_SUPERVISOR_API_URL,
+    ATLAS_SUPERVISOR_CI_TOKEN: ENV.ATLAS_SUPERVISOR_CI_TOKEN,
+  };
+
+  for (const service of SERVICES) {
+    let payload = null;
+    const result = await claimDispatch(env, service, SHA, async (_url, options) => {
+      payload = JSON.parse(options.body);
+      return json({
+        claimed: false,
+        reason: 'not_found',
+        service: service.name,
+        commitSha: SHA,
+      });
+    });
+
+    assert.equal(result.claimed, false);
+    assert.equal(
+      payload.dispatcherId,
+      'atlas-production-deploy-executor:' + service.name,
+    );
+  }
+});
 
 test('executor claims one authorized worker and deploys the exact production SHA', async () => {
   const seen = {
