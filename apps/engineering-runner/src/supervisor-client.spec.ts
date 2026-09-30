@@ -353,3 +353,43 @@ test('SupervisorClient uses a capability rotated by heartbeat', async () => {
     'Bearer second',
   ]);
 });
+
+test('SupervisorClient rotates independent-verifier capability after heartbeat', async () => {
+  const mod = await loadModule();
+  const Client = mod.SupervisorClient as any;
+  const authorizations: string[] = [];
+  const verificationAssignment = {
+    ...assignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+  };
+  let call = 0;
+  const client = new Client({
+    baseUrl: 'https://api.example.test',
+    bootstrapToken: 'bootstrap-secret',
+    executionPurpose: 'INDEPENDENT_VERIFICATION',
+    fetch: async (_input: string | URL | Request, init?: RequestInit) => {
+      const authorization = new Headers(init?.headers).get('authorization');
+      if (authorization) authorizations.push(authorization);
+      call += 1;
+      if (call === 1) {
+        return new Response(JSON.stringify({
+          execution: { ...execution, assignment: verificationAssignment },
+          assignment: verificationAssignment,
+          capability: 'verifier-first',
+        }), { status: 200 });
+      }
+      if (call === 2) {
+        return new Response(JSON.stringify({ execution, capability: 'verifier-second' }), { status: 200 });
+      }
+      return new Response(JSON.stringify(execution), { status: 200 });
+    },
+  });
+  const session = await client.claimNext();
+  await session.heartbeat();
+  await session.complete(result);
+  assert.deepEqual(authorizations, [
+    'Bearer bootstrap-secret',
+    'Bearer verifier-first',
+    'Bearer verifier-second',
+  ]);
+});

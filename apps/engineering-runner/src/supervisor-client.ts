@@ -200,7 +200,6 @@ export class SupervisorClient {
       heartbeat: async () => {
         const renewed = await mutate('heartbeat', 'heartbeat', {});
         if (
-          purpose === 'IMPLEMENTATION' &&
           renewed &&
           typeof renewed === 'object' &&
           typeof (renewed as { capability?: unknown }).capability === 'string' &&
