@@ -1,0 +1,129 @@
+import { randomUUID } from 'node:crypto';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  SupervisorAuthorityService,
+  type AuthorityClaims,
+} from './supervisor-authority.service';
+
+export type VerifierCapabilityOperation =
+  | 'read_assignment'
+  | 'mark_running'
+  | 'heartbeat'
+  | 'submit_verification'
+  | 'fail'
+  | 'cancel';
+
+export interface VerifierCapabilityInput {
+  taskId: string;
+  executionId: string;
+  manifestHash: string;
+  claimEpoch: number;
+  allowedPaths: string[];
+  purpose?: 'INDEPENDENT_VERIFICATION';
+  leaseId: string;
+  runnerId: string;
+  candidateHeadSha?: string;
+}
+
+export interface VerifierCapability extends AuthorityClaims {
+  actorType: 'VERIFIER_EXECUTION';
+  tokenType: 'VERIFIER_CAPABILITY';
+  purpose: 'INDEPENDENT_VERIFICATION';
+  taskId: string;
+  executionId: string;
+  manifestHash: string;
+  claimEpoch: number;
+  allowedActions: VerifierCapabilityOperation[];
+  leaseId: string;
+  runnerId: string;
+  candidateHeadSha?: string;
+}
+
+@Injectable()
+export class VerifierCapabilityService {
+  private readonly operations: VerifierCapabilityOperation[] = [
+    'read_assignment',
+    'mark_running',
+    'heartbeat',
+    'submit_verification',
+    'fail',
+    'cancel',
+  ];
+
+  constructor(private readonly authority: SupervisorAuthorityService) {}
+
+  issue(input: VerifierCapabilityInput, now = new Date()): string {
+    this.validateBinding(input);
+    return this.authority.sign('VERIFIER_CAPABILITY', {
+      iss: 'atlas.supervisor.control-plane',
+      sub: 'atlas:verifier-execution',
+      aud: 'atlas:verifier.gateway',
+      actorType: 'VERIFIER_EXECUTION',
+      tokenType: 'VERIFIER_CAPABILITY',
+      purpose: 'INDEPENDENT_VERIFICATION',
+      iat: now.toISOString(),
+      exp: new Date(now.getTime() + 5 * 60 * 1_000).toISOString(),
+      jti: randomUUID(),
+      claimEpoch: input.claimEpoch,
+      taskId: input.taskId,
+      executionId: input.executionId,
+      manifestHash: input.manifestHash,
+      allowedActions: [...this.operations],
+      leaseId: input.leaseId,
+      runnerId: input.runnerId,
+      ...(input.candidateHeadSha ? { candidateHeadSha: input.candidateHeadSha } : {}),
+    });
+  }
+
+  authorize(
+    token: string,
+    input: VerifierCapabilityInput & {
+      operation: VerifierCapabilityOperation;
+      now?: Date;
+    },
+  ): VerifierCapability {
+    const claims = this.authority.verify(token, {
+      domain: 'VERIFIER_CAPABILITY',
+      audience: 'atlas:verifier.gateway',
+      actorType: 'VERIFIER_EXECUTION',
+      tokenType: 'VERIFIER_CAPABILITY',
+      purpose: 'INDEPENDENT_VERIFICATION',
+      now: input.now,
+      claimEpoch: input.claimEpoch,
+      taskId: input.taskId,
+      executionId: input.executionId,
+      manifestHash: input.manifestHash,
+    }) as VerifierCapability;
+
+    if (!claims.allowedActions.includes(input.operation)) {
+      throw new ForbiddenException('verifier_capability_operation_denied');
+    }
+    if (claims.leaseId !== input.leaseId || claims.runnerId !== input.runnerId) {
+      throw new ForbiddenException('verifier_capability_claim_mismatch');
+    }
+    if (claims.candidateHeadSha !== input.candidateHeadSha) {
+      throw new ForbiddenException('verifier_capability_candidate_mismatch');
+    }
+    return claims;
+  }
+
+  private validateBinding(input: VerifierCapabilityInput): void {
+    if (
+      !input.taskId ||
+      !input.executionId ||
+      !/^[0-9a-f]{64}$/i.test(input.manifestHash) ||
+      !Number.isInteger(input.claimEpoch) ||
+      input.claimEpoch < 0 ||
+      !input.leaseId ||
+      !input.runnerId
+    ) {
+      throw new ForbiddenException('verifier_capability_binding_required');
+    }
+    if (
+      input.candidateHeadSha !== undefined &&
+      !/^[0-9a-f]{40}$/i.test(input.candidateHeadSha)
+    ) {
+      throw new ForbiddenException('verifier_capability_candidate_invalid');
+    }
+  }
+}

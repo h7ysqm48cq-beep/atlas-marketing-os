@@ -1,9 +1,83 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./sidebar-enhancements.css";
+import "./workspace-compact.css";
+import "./asset-library-mobile-v3.css";
+import { PreferencesProvider } from "@/components/preferences";
+import { AtlasThemeBootstrap } from "@/components/AtlasThemeBootstrap";
+import { PwaRegister } from "@/components/PwaRegister";
+import { PwaStandalone } from "@/components/PwaStandalone";
+import { PwaNetworkStatus } from "@/components/PwaNetworkStatus";
+import { PwaAppearanceSync } from "@/components/PwaAppearanceSync";
+import { PwaStartupRedirect } from "@/components/PwaStartupRedirect";
+import { PwaRouteMemory } from "@/components/PwaRouteMemory";
+import { PwaSessionRestore } from "@/components/PwaSessionRestore";
+import { PwaNotifications } from "@/components/PwaNotifications";
 
 export const metadata: Metadata = {
-  title: "Atlas AI Marketing Suite",
+  title: {
+    default: "Atlas AI Marketing Suite",
+    template: "%s | Atlas",
+  },
+  applicationName: "Atlas AI Marketing Suite",
   description: "AI-powered marketing operating system",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Atlas",
+    startupImage: [
+      {
+        url: "/splash/iphone-15-pro-max.png",
+        media:
+          "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/splash/iphone-15-pro.png",
+        media:
+          "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/splash/iphone-14.png",
+        media:
+          "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/splash/iphone-13-pro-max.png",
+        media:
+          "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      {
+        url: "/splash/iphone-x.png",
+        media:
+          "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
+      },
+    ],
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      {
+        url: "/icons/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -12,8 +86,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta
+          name="atlas-build"
+          content={process.env.NEXT_PUBLIC_ATLAS_BUILD || "dev"}
+        />
+      </head>
+
+      <body>
+        <AtlasThemeBootstrap />
+        <PwaRegister />
+        <PwaStandalone />
+        <PwaAppearanceSync />
+        <PwaStartupRedirect />
+        <PwaRouteMemory />
+        <PwaSessionRestore />
+        <PwaNetworkStatus />
+        <PwaNotifications />
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </body>
     </html>
   );
 }
