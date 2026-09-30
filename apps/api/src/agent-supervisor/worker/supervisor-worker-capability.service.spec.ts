@@ -1,0 +1,339 @@
+import { ForbiddenException } from '@nestjs/common';
+import { generateKeyPairSync } from 'node:crypto';
+import type { SupervisorExecution } from '../execution/supervisor-execution.types';
+import {
+  InMemoryAuthorityKeyRegistry,
+  SupervisorAuthorityService,
+} from '../authority/supervisor-authority.service';
+import { SupervisorWorkerCapabilityService } from './supervisor-worker-capability.service';
+import type { SupervisorWorkerCapabilityOperation } from './supervisor-worker-capability.types';
+
+const NOW = new Date('2026-09-06T00:00:00.000Z');
+
+function authority(): SupervisorAuthorityService {
+  const fixture = () => {
+    const pair = generateKeyPairSync('ed25519');
+    return {
+      privateKeyPem: pair.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+      publicKeyPem: pair.publicKey.export({ format: 'pem', type: 'spki' }).toString(),
+    };
+  };
+  return new SupervisorAuthorityService({ get: jest.fn() } as never, new InMemoryAuthorityKeyRegistry({
+    SUPERVISOR_SYSTEM: fixture(),
+    WORKER_CAPABILITY: fixture(),
+    VERIFIER_CAPABILITY: fixture(),
+    MERGE_APPROVAL: fixture(),
+    DEPLOY_APPROVAL: fixture(),
+  }));
+}
+
+function execution(
+  overrides: Partial<SupervisorExecution> = {},
+): SupervisorExecution {
+  return {
+    id: 'ATLAS-EXEC-20260906-11111111-1111-4111-8111-111111111111',
+    taskId: 'ATLAS-20260906-11111111-1111-4111-8111-111111111111',
+    workerRole: 'engineering',
+    status: 'DISPATCHED',
+    assignment: {
+      executionId: 'ATLAS-EXEC-20260906-11111111-1111-4111-8111-111111111111',
+      taskId: 'ATLAS-20260906-11111111-1111-4111-8111-111111111111',
+      workerRole: 'engineering',
+      executionPurpose: 'IMPLEMENTATION',
+      objective: 'Implement worker capability plane',
+      allowedPaths: ['apps/api/src/agent-supervisor/worker/example.ts'],
+      forbiddenActions: ['merge', 'deploy_production'],
+      dependencies: [],
+      acceptance: ['capability is execution-bound'],
+      manifestHash: 'a'.repeat(64),
+      claimEpoch: 1,
+      leaseId: 'lease-1',
+      runnerId: 'runner-1',
+      requiredEvidence: [
+        'rootCause',
+        'changedFiles',
+        'tests',
+        'build',
+        'regression',
+        'deploymentState',
+        'gitState',
+        'remainingRisk',
+      ],
+    },
+    result: null,
+    error: null,
+    createdAt: NOW,
+    startedAt: null,
+    completedAt: null,
+    runnerId: null,
+    claimEpoch: 0,
+    lastHeartbeatAt: null,
+    leaseExpiresAt: null,
+    ...overrides,
+  };
+}
+
+function authorize(
+  service: SupervisorWorkerCapabilityService,
+  token: string,
+  value: SupervisorExecution,
+  operation: SupervisorWorkerCapabilityOperation = 'read_assignment',
+) {
+  return service.authorize(token, {
+    taskId: value.taskId,
+    executionId: value.id,
+    workerRole: value.workerRole,
+    executionPurpose: value.assignment.executionPurpose ?? 'IMPLEMENTATION',
+    assignment: value.assignment,
+    operation,
+    now: new Date(NOW.getTime() + 1_000),
+  });
+}
+
+function tamperPayload(
+  token: string,
+  mutate: (payload: Record<string, unknown>) => void,
+) {
+  const [encodedPayload, signature] = token.split('.');
+  const payload = JSON.parse(
+    Buffer.from(encodedPayload, 'base64url').toString('utf8'),
+  ) as Record<string, unknown>;
+  mutate(payload);
+  return `${Buffer.from(JSON.stringify(payload)).toString('base64url')}.${signature}`;
+}
+
+describe('SupervisorWorkerCapabilityService', () => {
+  it('accepts a valid execution-bound capability', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    const claims = authorize(service, issued.token, value);
+    expect(claims).toMatchObject({
+      taskId: value.taskId,
+      executionId: value.id,
+      workerRole: 'engineering',
+      executionPurpose: 'IMPLEMENTATION',
+    });
+    expect(claims.allowedActions).toContain('read_assignment');
+    expect(issued.token).not.toContain('ATLAS_SUPERVISOR_OWNER_TOKEN');
+  });
+
+  it('rejects a v2 token that uses legacy allowedOperations only', () => {
+    const signingAuthority = authority();
+    const service = new SupervisorWorkerCapabilityService(signingAuthority);
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    const [, encodedClaims] = issued.token.split('.');
+    const legacyClaims = JSON.parse(
+      Buffer.from(encodedClaims, 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    delete legacyClaims.allowedActions;
+    legacyClaims.allowedOperations = ['read_assignment'];
+    const legacyToken = signingAuthority.sign(
+      'WORKER_CAPABILITY',
+      legacyClaims as never,
+    );
+
+    expect(() => authorize(service, legacyToken, value)).toThrow(
+      'worker_capability_actions_required',
+    );
+  });
+
+  it('rejects a tampered payload', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    const token = tamperPayload(issued.token, (payload) => {
+      payload.workerRole = 'qa';
+    });
+
+    expect(() => authorize(service, token, value)).toThrow(
+      'authority_token_malformed',
+    );
+  });
+
+  it('rejects a tampered signature', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    const [payload] = issued.token.split('.');
+
+    expect(() => authorize(service, `${payload}.invalid`, value)).toThrow(
+      'authority_token_malformed',
+    );
+  });
+
+  it('rejects an expired capability', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW, ttlMs: 1_000 });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(() =>
+      service.authorize(issued.token, {
+        taskId: value.taskId,
+        executionId: value.id,
+        workerRole: value.workerRole,
+        executionPurpose: 'IMPLEMENTATION',
+        assignment: value.assignment,
+        operation: 'read_assignment',
+        now: new Date(NOW.getTime() + 1_001),
+      }),
+    ).toThrow('authority_token_expired');
+  });
+
+  it.each([
+    ['taskId', { taskId: 'ATLAS-other' }, 'authority_task_mismatch'],
+    [
+      'executionId',
+      { id: 'ATLAS-EXEC-other' },
+      'authority_execution_mismatch',
+    ],
+    ['workerRole', { workerRole: 'qa' }, 'worker_capability_role_mismatch'],
+  ] as const)('rejects a wrong %s binding', (_label, overrides, code) => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    const changed = execution(overrides);
+    changed.assignment.workerCapability = issued.metadata;
+
+    expect(() => authorize(service, issued.token, changed)).toThrow(code);
+  });
+
+  it('rejects a wrong execution purpose binding', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(() =>
+      service.authorize(issued.token, {
+        taskId: value.taskId,
+        executionId: value.id,
+        workerRole: value.workerRole,
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+        assignment: value.assignment,
+        operation: 'read_assignment',
+        now: new Date(NOW.getTime() + 1_000),
+      }),
+    ).toThrow('worker_capability_purpose_mismatch');
+  });
+
+  it('rejects an assignment digest mismatch', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+    value.assignment.objective = 'tampered objective';
+
+    expect(() => authorize(service, issued.token, value)).toThrow(
+      'worker_capability_assignment_mismatch',
+    );
+  });
+
+  it('rejects an unauthorized operation', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution();
+    const issued = service.issue(value, {
+      now: NOW,
+      allowedActions: ['read_assignment'],
+    });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(() => authorize(service, issued.token, value, 'complete')).toThrow(
+      'worker_capability_operation_denied',
+    );
+  });
+
+  it('keeps Engineering and independent verification capabilities isolated', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const engineering = execution();
+    const qa = execution({
+      id: 'ATLAS-EXEC-20260906-22222222-2222-4222-8222-222222222222',
+      workerRole: 'qa',
+      assignment: {
+        ...execution().assignment,
+        executionId: 'ATLAS-EXEC-20260906-22222222-2222-4222-8222-222222222222',
+        workerRole: 'qa',
+        executionPurpose: 'INDEPENDENT_VERIFICATION',
+      },
+    });
+    const engineeringIssued = service.issue(engineering, { now: NOW });
+    engineering.assignment.workerCapability = engineeringIssued.metadata;
+    qa.assignment.workerCapability = engineeringIssued.metadata;
+
+    expect(() => authorize(service, engineeringIssued.token, qa)).toThrow();
+
+    expect(() => service.issue(qa, { now: NOW })).toThrow(
+      'worker_capability_purpose_mismatch',
+    );
+  });
+
+  it('fails closed when server signing material is unavailable', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+
+    expect(() => service.issue(execution({ assignment: {
+      ...execution().assignment,
+      manifestHash: undefined,
+    }}), { now: NOW })).toThrow(ForbiddenException);
+  });
+
+  it('includes heartbeat in the default Worker capability actions', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution({
+      status: 'RUNNING',
+      runnerId: 'runner-1',
+      claimEpoch: 1,
+      lastHeartbeatAt: NOW,
+      leaseExpiresAt: new Date(NOW.getTime() + 60_000),
+      assignment: {
+        ...execution().assignment,
+        claimEpoch: 1,
+        leaseId: 'lease-1',
+        runnerId: 'runner-1',
+      },
+    });
+
+    const issued = service.issue(value, { now: NOW });
+
+    expect(issued.metadata.allowedActions as string[]).toContain('heartbeat');
+  });
+
+  it('authorizes heartbeat only when the capability explicitly permits it', () => {
+    const service = new SupervisorWorkerCapabilityService(authority());
+    const value = execution({
+      status: 'RUNNING',
+      runnerId: 'runner-1',
+      claimEpoch: 1,
+      lastHeartbeatAt: NOW,
+      leaseExpiresAt: new Date(NOW.getTime() + 60_000),
+      assignment: {
+        ...execution().assignment,
+        claimEpoch: 1,
+        leaseId: 'lease-1',
+        runnerId: 'runner-1',
+      },
+    });
+    const heartbeat = 'heartbeat' as SupervisorWorkerCapabilityOperation;
+    const issued = service.issue(value, { now: NOW });
+    value.assignment.workerCapability = issued.metadata;
+
+    expect(() => authorize(service, issued.token, value, heartbeat)).not.toThrow();
+
+    const restricted = service.issue(value, {
+      now: NOW,
+      allowedActions: ['read_assignment'],
+    });
+    value.assignment.workerCapability = restricted.metadata;
+
+    expect(() => authorize(service, restricted.token, value, heartbeat)).toThrow(
+      'worker_capability_operation_denied',
+    );
+  });
+});

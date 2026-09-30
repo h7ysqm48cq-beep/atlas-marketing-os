@@ -27,20 +27,20 @@ export type AggregateAsset = {
 }
 
 export type AssetAvgAggregateOutputType = {
-  generationDurationMs: number | null
-  fileSize: number | null
   width: number | null
   height: number | null
   downloadCount: number | null
+  fileSize: number | null
+  generationDurationMs: number | null
   usedCount: number | null
 }
 
 export type AssetSumAggregateOutputType = {
-  generationDurationMs: number | null
-  fileSize: number | null
   width: number | null
   height: number | null
   downloadCount: number | null
+  fileSize: number | null
+  generationDurationMs: number | null
   usedCount: number | null
 }
 
@@ -54,27 +54,29 @@ export type AssetMinAggregateOutputType = {
   provider: string | null
   platform: string | null
   prompt: string | null
-  revisedPrompt: string | null
-  negativePrompt: string | null
-  generationModel: string | null
-  generationSize: string | null
-  generationQuality: string | null
-  generationDurationMs: number | null
   url: string | null
   thumbnailUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  fileSize: number | null
   mimeType: string | null
   width: number | null
   height: number | null
-  collection: string | null
   isFavorite: boolean | null
-  downloadCount: number | null
-  usedCount: number | null
-  lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  collection: string | null
+  downloadCount: number | null
+  fileSize: number | null
+  generationDurationMs: number | null
+  generationModel: string | null
+  generationQuality: string | null
+  generationSize: string | null
+  lastUsedAt: Date | null
+  negativePrompt: string | null
+  revisedPrompt: string | null
+  storagePath: string | null
+  storageProvider: string | null
+  usedCount: number | null
+  remark: string | null
+  aiEnabled: boolean | null
 }
 
 export type AssetMaxAggregateOutputType = {
@@ -87,27 +89,29 @@ export type AssetMaxAggregateOutputType = {
   provider: string | null
   platform: string | null
   prompt: string | null
-  revisedPrompt: string | null
-  negativePrompt: string | null
-  generationModel: string | null
-  generationSize: string | null
-  generationQuality: string | null
-  generationDurationMs: number | null
   url: string | null
   thumbnailUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  fileSize: number | null
   mimeType: string | null
   width: number | null
   height: number | null
-  collection: string | null
   isFavorite: boolean | null
-  downloadCount: number | null
-  usedCount: number | null
-  lastUsedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  collection: string | null
+  downloadCount: number | null
+  fileSize: number | null
+  generationDurationMs: number | null
+  generationModel: string | null
+  generationQuality: string | null
+  generationSize: string | null
+  lastUsedAt: Date | null
+  negativePrompt: string | null
+  revisedPrompt: string | null
+  storagePath: string | null
+  storageProvider: string | null
+  usedCount: number | null
+  remark: string | null
+  aiEnabled: boolean | null
 }
 
 export type AssetCountAggregateOutputType = {
@@ -120,47 +124,49 @@ export type AssetCountAggregateOutputType = {
   provider: number
   platform: number
   prompt: number
-  revisedPrompt: number
-  negativePrompt: number
-  generationModel: number
-  generationSize: number
-  generationQuality: number
-  generationDurationMs: number
   url: number
   thumbnailUrl: number
-  storageProvider: number
-  storagePath: number
-  fileSize: number
   mimeType: number
   width: number
   height: number
-  tags: number
-  collection: number
   isFavorite: number
-  downloadCount: number
-  usedCount: number
-  lastUsedAt: number
   createdAt: number
   updatedAt: number
+  collection: number
+  downloadCount: number
+  fileSize: number
+  generationDurationMs: number
+  generationModel: number
+  generationQuality: number
+  generationSize: number
+  lastUsedAt: number
+  negativePrompt: number
+  revisedPrompt: number
+  storagePath: number
+  storageProvider: number
+  tags: number
+  usedCount: number
+  remark: number
+  aiEnabled: number
   _all: number
 }
 
 
 export type AssetAvgAggregateInputType = {
-  generationDurationMs?: true
-  fileSize?: true
   width?: true
   height?: true
   downloadCount?: true
+  fileSize?: true
+  generationDurationMs?: true
   usedCount?: true
 }
 
 export type AssetSumAggregateInputType = {
-  generationDurationMs?: true
-  fileSize?: true
   width?: true
   height?: true
   downloadCount?: true
+  fileSize?: true
+  generationDurationMs?: true
   usedCount?: true
 }
 
@@ -174,27 +180,29 @@ export type AssetMinAggregateInputType = {
   provider?: true
   platform?: true
   prompt?: true
-  revisedPrompt?: true
-  negativePrompt?: true
-  generationModel?: true
-  generationSize?: true
-  generationQuality?: true
-  generationDurationMs?: true
   url?: true
   thumbnailUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  fileSize?: true
   mimeType?: true
   width?: true
   height?: true
-  collection?: true
   isFavorite?: true
-  downloadCount?: true
-  usedCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  collection?: true
+  downloadCount?: true
+  fileSize?: true
+  generationDurationMs?: true
+  generationModel?: true
+  generationQuality?: true
+  generationSize?: true
+  lastUsedAt?: true
+  negativePrompt?: true
+  revisedPrompt?: true
+  storagePath?: true
+  storageProvider?: true
+  usedCount?: true
+  remark?: true
+  aiEnabled?: true
 }
 
 export type AssetMaxAggregateInputType = {
@@ -207,27 +215,29 @@ export type AssetMaxAggregateInputType = {
   provider?: true
   platform?: true
   prompt?: true
-  revisedPrompt?: true
-  negativePrompt?: true
-  generationModel?: true
-  generationSize?: true
-  generationQuality?: true
-  generationDurationMs?: true
   url?: true
   thumbnailUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  fileSize?: true
   mimeType?: true
   width?: true
   height?: true
-  collection?: true
   isFavorite?: true
-  downloadCount?: true
-  usedCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  collection?: true
+  downloadCount?: true
+  fileSize?: true
+  generationDurationMs?: true
+  generationModel?: true
+  generationQuality?: true
+  generationSize?: true
+  lastUsedAt?: true
+  negativePrompt?: true
+  revisedPrompt?: true
+  storagePath?: true
+  storageProvider?: true
+  usedCount?: true
+  remark?: true
+  aiEnabled?: true
 }
 
 export type AssetCountAggregateInputType = {
@@ -240,28 +250,30 @@ export type AssetCountAggregateInputType = {
   provider?: true
   platform?: true
   prompt?: true
-  revisedPrompt?: true
-  negativePrompt?: true
-  generationModel?: true
-  generationSize?: true
-  generationQuality?: true
-  generationDurationMs?: true
   url?: true
   thumbnailUrl?: true
-  storageProvider?: true
-  storagePath?: true
-  fileSize?: true
   mimeType?: true
   width?: true
   height?: true
-  tags?: true
-  collection?: true
   isFavorite?: true
-  downloadCount?: true
-  usedCount?: true
-  lastUsedAt?: true
   createdAt?: true
   updatedAt?: true
+  collection?: true
+  downloadCount?: true
+  fileSize?: true
+  generationDurationMs?: true
+  generationModel?: true
+  generationQuality?: true
+  generationSize?: true
+  lastUsedAt?: true
+  negativePrompt?: true
+  revisedPrompt?: true
+  storagePath?: true
+  storageProvider?: true
+  tags?: true
+  usedCount?: true
+  remark?: true
+  aiEnabled?: true
   _all?: true
 }
 
@@ -361,28 +373,30 @@ export type AssetGroupByOutputType = {
   provider: string | null
   platform: string | null
   prompt: string | null
-  revisedPrompt: string | null
-  negativePrompt: string | null
-  generationModel: string | null
-  generationSize: string | null
-  generationQuality: string | null
-  generationDurationMs: number | null
   url: string
   thumbnailUrl: string | null
-  storageProvider: string | null
-  storagePath: string | null
-  fileSize: number | null
   mimeType: string | null
   width: number | null
   height: number | null
-  tags: string[]
-  collection: string | null
   isFavorite: boolean
-  downloadCount: number
-  usedCount: number
-  lastUsedAt: Date | null
   createdAt: Date
   updatedAt: Date
+  collection: string | null
+  downloadCount: number
+  fileSize: number | null
+  generationDurationMs: number | null
+  generationModel: string | null
+  generationQuality: string | null
+  generationSize: string | null
+  lastUsedAt: Date | null
+  negativePrompt: string | null
+  revisedPrompt: string | null
+  storagePath: string | null
+  storageProvider: string | null
+  tags: string[]
+  usedCount: number
+  remark: string | null
+  aiEnabled: boolean
   _count: AssetCountAggregateOutputType | null
   _avg: AssetAvgAggregateOutputType | null
   _sum: AssetSumAggregateOutputType | null
@@ -418,28 +432,30 @@ export type AssetWhereInput = {
   provider?: Prisma.StringNullableFilter<"Asset"> | string | null
   platform?: Prisma.StringNullableFilter<"Asset"> | string | null
   prompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
   url?: Prisma.StringFilter<"Asset"> | string
   thumbnailUrl?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
-  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
   mimeType?: Prisma.StringNullableFilter<"Asset"> | string | null
   width?: Prisma.IntNullableFilter<"Asset"> | number | null
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
-  tags?: Prisma.StringNullableListFilter<"Asset">
-  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
-  downloadCount?: Prisma.IntFilter<"Asset"> | number
-  usedCount?: Prisma.IntFilter<"Asset"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
+  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  downloadCount?: Prisma.IntFilter<"Asset"> | number
+  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
+  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Asset">
+  usedCount?: Prisma.IntFilter<"Asset"> | number
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
   history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
@@ -455,28 +471,30 @@ export type AssetOrderByWithRelationInput = {
   provider?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrderInput | Prisma.SortOrder
   prompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  revisedPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  negativePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationModel?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationSize?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationQuality?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationDurationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   url?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
-  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
   mimeType?: Prisma.SortOrderInput | Prisma.SortOrder
   width?: Prisma.SortOrderInput | Prisma.SortOrder
   height?: Prisma.SortOrderInput | Prisma.SortOrder
-  tags?: Prisma.SortOrder
-  collection?: Prisma.SortOrderInput | Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
-  downloadCount?: Prisma.SortOrder
-  usedCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  collection?: Prisma.SortOrderInput | Prisma.SortOrder
+  downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationModel?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationQuality?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  negativePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
+  revisedPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
+  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   brand?: Prisma.BrandOrderByWithRelationInput
   campaign?: Prisma.CampaignOrderByWithRelationInput
   history?: Prisma.GenerationHistoryOrderByWithRelationInput
@@ -495,28 +513,30 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   provider?: Prisma.StringNullableFilter<"Asset"> | string | null
   platform?: Prisma.StringNullableFilter<"Asset"> | string | null
   prompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
   url?: Prisma.StringFilter<"Asset"> | string
   thumbnailUrl?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
-  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
   mimeType?: Prisma.StringNullableFilter<"Asset"> | string | null
   width?: Prisma.IntNullableFilter<"Asset"> | number | null
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
-  tags?: Prisma.StringNullableListFilter<"Asset">
-  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
-  downloadCount?: Prisma.IntFilter<"Asset"> | number
-  usedCount?: Prisma.IntFilter<"Asset"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
+  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  downloadCount?: Prisma.IntFilter<"Asset"> | number
+  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
+  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Asset">
+  usedCount?: Prisma.IntFilter<"Asset"> | number
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
   brand?: Prisma.XOR<Prisma.BrandScalarRelationFilter, Prisma.BrandWhereInput>
   campaign?: Prisma.XOR<Prisma.CampaignNullableScalarRelationFilter, Prisma.CampaignWhereInput> | null
   history?: Prisma.XOR<Prisma.GenerationHistoryNullableScalarRelationFilter, Prisma.GenerationHistoryWhereInput> | null
@@ -532,28 +552,30 @@ export type AssetOrderByWithAggregationInput = {
   provider?: Prisma.SortOrderInput | Prisma.SortOrder
   platform?: Prisma.SortOrderInput | Prisma.SortOrder
   prompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  revisedPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  negativePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationModel?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationSize?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationQuality?: Prisma.SortOrderInput | Prisma.SortOrder
-  generationDurationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   url?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
-  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
-  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
-  fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
   mimeType?: Prisma.SortOrderInput | Prisma.SortOrder
   width?: Prisma.SortOrderInput | Prisma.SortOrder
   height?: Prisma.SortOrderInput | Prisma.SortOrder
-  tags?: Prisma.SortOrder
-  collection?: Prisma.SortOrderInput | Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
-  downloadCount?: Prisma.SortOrder
-  usedCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  collection?: Prisma.SortOrderInput | Prisma.SortOrder
+  downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationModel?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationQuality?: Prisma.SortOrderInput | Prisma.SortOrder
+  generationSize?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  negativePrompt?: Prisma.SortOrderInput | Prisma.SortOrder
+  revisedPrompt?: Prisma.SortOrderInput | Prisma.SortOrder
+  storagePath?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageProvider?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
+  remark?: Prisma.SortOrderInput | Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
   _count?: Prisma.AssetCountOrderByAggregateInput
   _avg?: Prisma.AssetAvgOrderByAggregateInput
   _max?: Prisma.AssetMaxOrderByAggregateInput
@@ -574,28 +596,30 @@ export type AssetScalarWhereWithAggregatesInput = {
   provider?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   platform?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   prompt?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  revisedPrompt?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  negativePrompt?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  generationModel?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  generationSize?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  generationQuality?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  generationDurationMs?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
   url?: Prisma.StringWithAggregatesFilter<"Asset"> | string
   thumbnailUrl?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  storageProvider?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  storagePath?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
-  fileSize?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
   mimeType?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   width?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
   height?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
-  tags?: Prisma.StringNullableListFilter<"Asset">
-  collection?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   isFavorite?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
-  downloadCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
-  usedCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
-  lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
+  collection?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  downloadCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
+  fileSize?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
+  generationDurationMs?: Prisma.IntNullableWithAggregatesFilter<"Asset"> | number | null
+  generationModel?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  generationQuality?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  generationSize?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  lastUsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
+  negativePrompt?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  revisedPrompt?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  storagePath?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  storageProvider?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Asset">
+  usedCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
+  remark?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
 }
 
 export type AssetCreateInput = {
@@ -605,28 +629,30 @@ export type AssetCreateInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
   brand: Prisma.BrandCreateNestedOneWithoutAssetsInput
   campaign?: Prisma.CampaignCreateNestedOneWithoutAssetsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutAssetsInput
@@ -642,28 +668,30 @@ export type AssetUncheckedCreateInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetUpdateInput = {
@@ -673,28 +701,30 @@ export type AssetUpdateInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brand?: Prisma.BrandUpdateOneRequiredWithoutAssetsNestedInput
   campaign?: Prisma.CampaignUpdateOneWithoutAssetsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutAssetsNestedInput
@@ -710,28 +740,30 @@ export type AssetUncheckedUpdateInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetCreateManyInput = {
@@ -744,28 +776,30 @@ export type AssetCreateManyInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetUpdateManyMutationInput = {
@@ -775,28 +809,30 @@ export type AssetUpdateManyMutationInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetUncheckedUpdateManyInput = {
@@ -809,28 +845,30 @@ export type AssetUncheckedUpdateManyInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetListRelationFilter = {
@@ -853,36 +891,38 @@ export type AssetCountOrderByAggregateInput = {
   provider?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   prompt?: Prisma.SortOrder
-  revisedPrompt?: Prisma.SortOrder
-  negativePrompt?: Prisma.SortOrder
-  generationModel?: Prisma.SortOrder
-  generationSize?: Prisma.SortOrder
-  generationQuality?: Prisma.SortOrder
-  generationDurationMs?: Prisma.SortOrder
   url?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  fileSize?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
-  tags?: Prisma.SortOrder
-  collection?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
-  downloadCount?: Prisma.SortOrder
-  usedCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  collection?: Prisma.SortOrder
+  downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrder
+  generationModel?: Prisma.SortOrder
+  generationQuality?: Prisma.SortOrder
+  generationSize?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  negativePrompt?: Prisma.SortOrder
+  revisedPrompt?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
 }
 
 export type AssetAvgOrderByAggregateInput = {
-  generationDurationMs?: Prisma.SortOrder
-  fileSize?: Prisma.SortOrder
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
 }
 
@@ -896,27 +936,29 @@ export type AssetMaxOrderByAggregateInput = {
   provider?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   prompt?: Prisma.SortOrder
-  revisedPrompt?: Prisma.SortOrder
-  negativePrompt?: Prisma.SortOrder
-  generationModel?: Prisma.SortOrder
-  generationSize?: Prisma.SortOrder
-  generationQuality?: Prisma.SortOrder
-  generationDurationMs?: Prisma.SortOrder
   url?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  fileSize?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
-  collection?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
-  downloadCount?: Prisma.SortOrder
-  usedCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  collection?: Prisma.SortOrder
+  downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrder
+  generationModel?: Prisma.SortOrder
+  generationQuality?: Prisma.SortOrder
+  generationSize?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  negativePrompt?: Prisma.SortOrder
+  revisedPrompt?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
 }
 
 export type AssetMinOrderByAggregateInput = {
@@ -929,35 +971,37 @@ export type AssetMinOrderByAggregateInput = {
   provider?: Prisma.SortOrder
   platform?: Prisma.SortOrder
   prompt?: Prisma.SortOrder
-  revisedPrompt?: Prisma.SortOrder
-  negativePrompt?: Prisma.SortOrder
-  generationModel?: Prisma.SortOrder
-  generationSize?: Prisma.SortOrder
-  generationQuality?: Prisma.SortOrder
-  generationDurationMs?: Prisma.SortOrder
   url?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
-  storageProvider?: Prisma.SortOrder
-  storagePath?: Prisma.SortOrder
-  fileSize?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
-  collection?: Prisma.SortOrder
   isFavorite?: Prisma.SortOrder
-  downloadCount?: Prisma.SortOrder
-  usedCount?: Prisma.SortOrder
-  lastUsedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  collection?: Prisma.SortOrder
+  downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrder
+  generationModel?: Prisma.SortOrder
+  generationQuality?: Prisma.SortOrder
+  generationSize?: Prisma.SortOrder
+  lastUsedAt?: Prisma.SortOrder
+  negativePrompt?: Prisma.SortOrder
+  revisedPrompt?: Prisma.SortOrder
+  storagePath?: Prisma.SortOrder
+  storageProvider?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
+  remark?: Prisma.SortOrder
+  aiEnabled?: Prisma.SortOrder
 }
 
 export type AssetSumOrderByAggregateInput = {
-  generationDurationMs?: Prisma.SortOrder
-  fileSize?: Prisma.SortOrder
   width?: Prisma.SortOrder
   height?: Prisma.SortOrder
   downloadCount?: Prisma.SortOrder
+  fileSize?: Prisma.SortOrder
+  generationDurationMs?: Prisma.SortOrder
   usedCount?: Prisma.SortOrder
 }
 
@@ -1115,28 +1159,30 @@ export type AssetCreateWithoutBrandInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
   campaign?: Prisma.CampaignCreateNestedOneWithoutAssetsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutAssetsInput
 }
@@ -1150,28 +1196,30 @@ export type AssetUncheckedCreateWithoutBrandInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetCreateOrConnectWithoutBrandInput = {
@@ -1213,28 +1261,30 @@ export type AssetScalarWhereInput = {
   provider?: Prisma.StringNullableFilter<"Asset"> | string | null
   platform?: Prisma.StringNullableFilter<"Asset"> | string | null
   prompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
-  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
   url?: Prisma.StringFilter<"Asset"> | string
   thumbnailUrl?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
-  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
-  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
   mimeType?: Prisma.StringNullableFilter<"Asset"> | string | null
   width?: Prisma.IntNullableFilter<"Asset"> | number | null
   height?: Prisma.IntNullableFilter<"Asset"> | number | null
-  tags?: Prisma.StringNullableListFilter<"Asset">
-  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
   isFavorite?: Prisma.BoolFilter<"Asset"> | boolean
-  downloadCount?: Prisma.IntFilter<"Asset"> | number
-  usedCount?: Prisma.IntFilter<"Asset"> | number
-  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
+  collection?: Prisma.StringNullableFilter<"Asset"> | string | null
+  downloadCount?: Prisma.IntFilter<"Asset"> | number
+  fileSize?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationDurationMs?: Prisma.IntNullableFilter<"Asset"> | number | null
+  generationModel?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationQuality?: Prisma.StringNullableFilter<"Asset"> | string | null
+  generationSize?: Prisma.StringNullableFilter<"Asset"> | string | null
+  lastUsedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
+  negativePrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  revisedPrompt?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storagePath?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageProvider?: Prisma.StringNullableFilter<"Asset"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Asset">
+  usedCount?: Prisma.IntFilter<"Asset"> | number
+  remark?: Prisma.StringNullableFilter<"Asset"> | string | null
+  aiEnabled?: Prisma.BoolFilter<"Asset"> | boolean
 }
 
 export type AssetCreateWithoutCampaignInput = {
@@ -1244,28 +1294,30 @@ export type AssetCreateWithoutCampaignInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
   brand: Prisma.BrandCreateNestedOneWithoutAssetsInput
   history?: Prisma.GenerationHistoryCreateNestedOneWithoutAssetsInput
 }
@@ -1279,28 +1331,30 @@ export type AssetUncheckedCreateWithoutCampaignInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetCreateOrConnectWithoutCampaignInput = {
@@ -1336,28 +1390,30 @@ export type AssetCreateWithoutHistoryInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
   brand: Prisma.BrandCreateNestedOneWithoutAssetsInput
   campaign?: Prisma.CampaignCreateNestedOneWithoutAssetsInput
 }
@@ -1371,28 +1427,30 @@ export type AssetUncheckedCreateWithoutHistoryInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetCreateOrConnectWithoutHistoryInput = {
@@ -1430,28 +1488,30 @@ export type AssetCreateManyBrandInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetUpdateWithoutBrandInput = {
@@ -1461,28 +1521,30 @@ export type AssetUpdateWithoutBrandInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   campaign?: Prisma.CampaignUpdateOneWithoutAssetsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutAssetsNestedInput
 }
@@ -1496,28 +1558,30 @@ export type AssetUncheckedUpdateWithoutBrandInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetUncheckedUpdateManyWithoutBrandInput = {
@@ -1529,28 +1593,30 @@ export type AssetUncheckedUpdateManyWithoutBrandInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetCreateManyCampaignInput = {
@@ -1562,28 +1628,30 @@ export type AssetCreateManyCampaignInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetUpdateWithoutCampaignInput = {
@@ -1593,28 +1661,30 @@ export type AssetUpdateWithoutCampaignInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brand?: Prisma.BrandUpdateOneRequiredWithoutAssetsNestedInput
   history?: Prisma.GenerationHistoryUpdateOneWithoutAssetsNestedInput
 }
@@ -1628,28 +1698,30 @@ export type AssetUncheckedUpdateWithoutCampaignInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetUncheckedUpdateManyWithoutCampaignInput = {
@@ -1661,28 +1733,30 @@ export type AssetUncheckedUpdateManyWithoutCampaignInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetCreateManyHistoryInput = {
@@ -1694,28 +1768,30 @@ export type AssetCreateManyHistoryInput = {
   provider?: string | null
   platform?: string | null
   prompt?: string | null
-  revisedPrompt?: string | null
-  negativePrompt?: string | null
-  generationModel?: string | null
-  generationSize?: string | null
-  generationQuality?: string | null
-  generationDurationMs?: number | null
   url: string
   thumbnailUrl?: string | null
-  storageProvider?: string | null
-  storagePath?: string | null
-  fileSize?: number | null
   mimeType?: string | null
   width?: number | null
   height?: number | null
-  tags?: Prisma.AssetCreatetagsInput | string[]
-  collection?: string | null
   isFavorite?: boolean
-  downloadCount?: number
-  usedCount?: number
-  lastUsedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  collection?: string | null
+  downloadCount?: number
+  fileSize?: number | null
+  generationDurationMs?: number | null
+  generationModel?: string | null
+  generationQuality?: string | null
+  generationSize?: string | null
+  lastUsedAt?: Date | string | null
+  negativePrompt?: string | null
+  revisedPrompt?: string | null
+  storagePath?: string | null
+  storageProvider?: string | null
+  tags?: Prisma.AssetCreatetagsInput | string[]
+  usedCount?: number
+  remark?: string | null
+  aiEnabled?: boolean
 }
 
 export type AssetUpdateWithoutHistoryInput = {
@@ -1725,28 +1801,30 @@ export type AssetUpdateWithoutHistoryInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brand?: Prisma.BrandUpdateOneRequiredWithoutAssetsNestedInput
   campaign?: Prisma.CampaignUpdateOneWithoutAssetsNestedInput
 }
@@ -1760,28 +1838,30 @@ export type AssetUncheckedUpdateWithoutHistoryInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetUncheckedUpdateManyWithoutHistoryInput = {
@@ -1793,28 +1873,30 @@ export type AssetUncheckedUpdateManyWithoutHistoryInput = {
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   platform?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   prompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   mimeType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  tags?: Prisma.AssetUpdatetagsInput | string[]
-  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFavorite?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
-  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
-  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  collection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadCount?: Prisma.IntFieldUpdateOperationsInput | number
+  fileSize?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationDurationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  generationModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationQuality?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  generationSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  negativePrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  revisedPrompt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storagePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageProvider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.AssetUpdatetagsInput | string[]
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
+  remark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  aiEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -1829,28 +1911,30 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   provider?: boolean
   platform?: boolean
   prompt?: boolean
-  revisedPrompt?: boolean
-  negativePrompt?: boolean
-  generationModel?: boolean
-  generationSize?: boolean
-  generationQuality?: boolean
-  generationDurationMs?: boolean
   url?: boolean
   thumbnailUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  fileSize?: boolean
   mimeType?: boolean
   width?: boolean
   height?: boolean
-  tags?: boolean
-  collection?: boolean
   isFavorite?: boolean
-  downloadCount?: boolean
-  usedCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  collection?: boolean
+  downloadCount?: boolean
+  fileSize?: boolean
+  generationDurationMs?: boolean
+  generationModel?: boolean
+  generationQuality?: boolean
+  generationSize?: boolean
+  lastUsedAt?: boolean
+  negativePrompt?: boolean
+  revisedPrompt?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
+  tags?: boolean
+  usedCount?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.Asset$campaignArgs<ExtArgs>
   history?: boolean | Prisma.Asset$historyArgs<ExtArgs>
@@ -1866,28 +1950,30 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   provider?: boolean
   platform?: boolean
   prompt?: boolean
-  revisedPrompt?: boolean
-  negativePrompt?: boolean
-  generationModel?: boolean
-  generationSize?: boolean
-  generationQuality?: boolean
-  generationDurationMs?: boolean
   url?: boolean
   thumbnailUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  fileSize?: boolean
   mimeType?: boolean
   width?: boolean
   height?: boolean
-  tags?: boolean
-  collection?: boolean
   isFavorite?: boolean
-  downloadCount?: boolean
-  usedCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  collection?: boolean
+  downloadCount?: boolean
+  fileSize?: boolean
+  generationDurationMs?: boolean
+  generationModel?: boolean
+  generationQuality?: boolean
+  generationSize?: boolean
+  lastUsedAt?: boolean
+  negativePrompt?: boolean
+  revisedPrompt?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
+  tags?: boolean
+  usedCount?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.Asset$campaignArgs<ExtArgs>
   history?: boolean | Prisma.Asset$historyArgs<ExtArgs>
@@ -1903,28 +1989,30 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   provider?: boolean
   platform?: boolean
   prompt?: boolean
-  revisedPrompt?: boolean
-  negativePrompt?: boolean
-  generationModel?: boolean
-  generationSize?: boolean
-  generationQuality?: boolean
-  generationDurationMs?: boolean
   url?: boolean
   thumbnailUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  fileSize?: boolean
   mimeType?: boolean
   width?: boolean
   height?: boolean
-  tags?: boolean
-  collection?: boolean
   isFavorite?: boolean
-  downloadCount?: boolean
-  usedCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  collection?: boolean
+  downloadCount?: boolean
+  fileSize?: boolean
+  generationDurationMs?: boolean
+  generationModel?: boolean
+  generationQuality?: boolean
+  generationSize?: boolean
+  lastUsedAt?: boolean
+  negativePrompt?: boolean
+  revisedPrompt?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
+  tags?: boolean
+  usedCount?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.Asset$campaignArgs<ExtArgs>
   history?: boolean | Prisma.Asset$historyArgs<ExtArgs>
@@ -1940,31 +2028,33 @@ export type AssetSelectScalar = {
   provider?: boolean
   platform?: boolean
   prompt?: boolean
-  revisedPrompt?: boolean
-  negativePrompt?: boolean
-  generationModel?: boolean
-  generationSize?: boolean
-  generationQuality?: boolean
-  generationDurationMs?: boolean
   url?: boolean
   thumbnailUrl?: boolean
-  storageProvider?: boolean
-  storagePath?: boolean
-  fileSize?: boolean
   mimeType?: boolean
   width?: boolean
   height?: boolean
-  tags?: boolean
-  collection?: boolean
   isFavorite?: boolean
-  downloadCount?: boolean
-  usedCount?: boolean
-  lastUsedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  collection?: boolean
+  downloadCount?: boolean
+  fileSize?: boolean
+  generationDurationMs?: boolean
+  generationModel?: boolean
+  generationQuality?: boolean
+  generationSize?: boolean
+  lastUsedAt?: boolean
+  negativePrompt?: boolean
+  revisedPrompt?: boolean
+  storagePath?: boolean
+  storageProvider?: boolean
+  tags?: boolean
+  usedCount?: boolean
+  remark?: boolean
+  aiEnabled?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "historyId" | "name" | "type" | "provider" | "platform" | "prompt" | "revisedPrompt" | "negativePrompt" | "generationModel" | "generationSize" | "generationQuality" | "generationDurationMs" | "url" | "thumbnailUrl" | "storageProvider" | "storagePath" | "fileSize" | "mimeType" | "width" | "height" | "tags" | "collection" | "isFavorite" | "downloadCount" | "usedCount" | "lastUsedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "campaignId" | "historyId" | "name" | "type" | "provider" | "platform" | "prompt" | "url" | "thumbnailUrl" | "mimeType" | "width" | "height" | "isFavorite" | "createdAt" | "updatedAt" | "collection" | "downloadCount" | "fileSize" | "generationDurationMs" | "generationModel" | "generationQuality" | "generationSize" | "lastUsedAt" | "negativePrompt" | "revisedPrompt" | "storagePath" | "storageProvider" | "tags" | "usedCount" | "remark" | "aiEnabled", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   campaign?: boolean | Prisma.Asset$campaignArgs<ExtArgs>
@@ -1998,28 +2088,30 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     provider: string | null
     platform: string | null
     prompt: string | null
-    revisedPrompt: string | null
-    negativePrompt: string | null
-    generationModel: string | null
-    generationSize: string | null
-    generationQuality: string | null
-    generationDurationMs: number | null
     url: string
     thumbnailUrl: string | null
-    storageProvider: string | null
-    storagePath: string | null
-    fileSize: number | null
     mimeType: string | null
     width: number | null
     height: number | null
-    tags: string[]
-    collection: string | null
     isFavorite: boolean
-    downloadCount: number
-    usedCount: number
-    lastUsedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    collection: string | null
+    downloadCount: number
+    fileSize: number | null
+    generationDurationMs: number | null
+    generationModel: string | null
+    generationQuality: string | null
+    generationSize: string | null
+    lastUsedAt: Date | null
+    negativePrompt: string | null
+    revisedPrompt: string | null
+    storagePath: string | null
+    storageProvider: string | null
+    tags: string[]
+    usedCount: number
+    remark: string | null
+    aiEnabled: boolean
   }, ExtArgs["result"]["asset"]>
   composites: {}
 }
@@ -2455,28 +2547,30 @@ export interface AssetFieldRefs {
   readonly provider: Prisma.FieldRef<"Asset", 'String'>
   readonly platform: Prisma.FieldRef<"Asset", 'String'>
   readonly prompt: Prisma.FieldRef<"Asset", 'String'>
-  readonly revisedPrompt: Prisma.FieldRef<"Asset", 'String'>
-  readonly negativePrompt: Prisma.FieldRef<"Asset", 'String'>
-  readonly generationModel: Prisma.FieldRef<"Asset", 'String'>
-  readonly generationSize: Prisma.FieldRef<"Asset", 'String'>
-  readonly generationQuality: Prisma.FieldRef<"Asset", 'String'>
-  readonly generationDurationMs: Prisma.FieldRef<"Asset", 'Int'>
   readonly url: Prisma.FieldRef<"Asset", 'String'>
   readonly thumbnailUrl: Prisma.FieldRef<"Asset", 'String'>
-  readonly storageProvider: Prisma.FieldRef<"Asset", 'String'>
-  readonly storagePath: Prisma.FieldRef<"Asset", 'String'>
-  readonly fileSize: Prisma.FieldRef<"Asset", 'Int'>
   readonly mimeType: Prisma.FieldRef<"Asset", 'String'>
   readonly width: Prisma.FieldRef<"Asset", 'Int'>
   readonly height: Prisma.FieldRef<"Asset", 'Int'>
-  readonly tags: Prisma.FieldRef<"Asset", 'String[]'>
-  readonly collection: Prisma.FieldRef<"Asset", 'String'>
   readonly isFavorite: Prisma.FieldRef<"Asset", 'Boolean'>
-  readonly downloadCount: Prisma.FieldRef<"Asset", 'Int'>
-  readonly usedCount: Prisma.FieldRef<"Asset", 'Int'>
-  readonly lastUsedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Asset", 'DateTime'>
+  readonly collection: Prisma.FieldRef<"Asset", 'String'>
+  readonly downloadCount: Prisma.FieldRef<"Asset", 'Int'>
+  readonly fileSize: Prisma.FieldRef<"Asset", 'Int'>
+  readonly generationDurationMs: Prisma.FieldRef<"Asset", 'Int'>
+  readonly generationModel: Prisma.FieldRef<"Asset", 'String'>
+  readonly generationQuality: Prisma.FieldRef<"Asset", 'String'>
+  readonly generationSize: Prisma.FieldRef<"Asset", 'String'>
+  readonly lastUsedAt: Prisma.FieldRef<"Asset", 'DateTime'>
+  readonly negativePrompt: Prisma.FieldRef<"Asset", 'String'>
+  readonly revisedPrompt: Prisma.FieldRef<"Asset", 'String'>
+  readonly storagePath: Prisma.FieldRef<"Asset", 'String'>
+  readonly storageProvider: Prisma.FieldRef<"Asset", 'String'>
+  readonly tags: Prisma.FieldRef<"Asset", 'String[]'>
+  readonly usedCount: Prisma.FieldRef<"Asset", 'Int'>
+  readonly remark: Prisma.FieldRef<"Asset", 'String'>
+  readonly aiEnabled: Prisma.FieldRef<"Asset", 'Boolean'>
 }
     
 

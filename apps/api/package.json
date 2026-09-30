@@ -6,8 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "node scripts/check-background-job-regression.cjs",
+    "prebuild": "npm run check:prisma-generated && node scripts/check-background-job-regression.cjs",
     "build": "nest build",
+    "db:migrate": "DATABASE_URL=${MIGRATION_DATABASE_URL:-$DATABASE_URL} prisma migrate deploy --schema prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -18,7 +19,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "check:prisma-generated": "node scripts/check-prisma-generated-client.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -30,16 +32,25 @@
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "@supabase/supabase-js": "^2.110.8",
+    "@types/qrcode": "^1.5.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dd-trace": "6.12.0",
+    "https-proxy-agent": "^9.1.0",
     "jose": "^6.2.4",
     "mammoth": "^1.12.0",
     "multer": "^2.2.0",
     "openai": "^6.48.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.22.0",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "sharp": "^0.35.3",
+    "socks-proxy-agent": "^10.1.0",
+    "undici": "^8.10.0",
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -67,7 +78,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "yn": "^3.1.1"
   },
   "jest": {
     "moduleFileExtensions": [

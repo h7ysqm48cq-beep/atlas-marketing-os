@@ -195,6 +195,10 @@
   color: #88d8ff;
 }
 
+.instagram {
+  background: #e1306c;
+}
+
 .sidebarPanel {
   padding: 18px;
 }
@@ -277,13 +281,28 @@
 
 .modal {
   width: min(680px, 100%);
-  max-height: 90vh;
+  max-height: min(90dvh, 900px);
   overflow-y: auto;
   padding: 22px;
+  overscroll-behavior: contain;
+  scroll-padding-block: 82px 110px;
+}
+
+.modal > header {
+  position: sticky;
+  top: -22px;
+  z-index: 20;
+  margin: -22px -22px 0;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 20, 29, 0.96);
+  backdrop-filter: blur(16px);
 }
 
 .modal header button {
-  width: 38px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
   font-size: 22px;
 }
@@ -324,7 +343,14 @@
 }
 
 .modal footer {
-  margin-top: 20px;
+  position: sticky;
+  bottom: -22px;
+  z-index: 19;
+  margin: 20px -22px -22px;
+  padding: 15px 22px calc(15px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 20, 29, 0.96);
+  backdrop-filter: blur(16px);
 }
 
 .details {
@@ -390,7 +416,6 @@
   }
 }
 
-
 /* ===================================================
    Calendar Pro
 =================================================== */
@@ -419,8 +444,7 @@
 
 .quickStats {
   display: grid;
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 13px;
 }
 
@@ -430,15 +454,62 @@
   flex-direction: column;
   gap: 7px;
   padding: 18px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 14px;
-  background:
-    linear-gradient(
-      145deg,
-      rgba(24, 28, 41, 0.96),
-      rgba(17, 20, 30, 0.96)
-    );
+  background: linear-gradient(
+    145deg,
+    rgba(24, 28, 41, 0.96),
+    rgba(17, 20, 30, 0.96)
+  );
+}
+
+.quickStats .statAction {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  min-height: 108px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(24, 28, 41, .96), rgba(17, 20, 30, .96));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease;
+}
+
+.quickStats .statAction:hover,
+.quickStats .statAction:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(209, 163, 63, .44);
+  outline: none;
+}
+
+.quickStats .statAction i {
+  position: absolute;
+  right: 15px;
+  bottom: 13px;
+  color: var(--gold-light);
+  font-style: normal;
+}
+
+.quickStats .statAction span,
+.quickStats .statAction small {
+  color: var(--muted);
+}
+
+.quickStats .statAction strong {
+  color: var(--text);
+  font-size: 27px;
+}
+
+:global(html[data-theme="light"]) .quickStats .statAction {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
 }
 
 .quickStats span,
@@ -465,8 +536,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 11px;
   background: rgba(10, 13, 20, 0.55);
 }
@@ -483,17 +553,14 @@
 .platformToggle .activeToggle {
   background: #7868ff;
   color: white;
-  box-shadow:
-    0 4px 15px
-    rgba(120, 104, 255, 0.25);
+  box-shadow: 0 4px 15px rgba(120, 104, 255, 0.25);
 }
 
 .searchInput {
   width: 190px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 10px;
   outline: none;
   background: #171b27;
@@ -501,11 +568,8 @@
 }
 
 .searchInput:focus {
-  border-color:
-    rgba(130, 118, 255, 0.65);
-  box-shadow:
-    0 0 0 3px
-    rgba(130, 118, 255, 0.09);
+  border-color: rgba(130, 118, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(130, 118, 255, 0.09);
 }
 
 .event {
@@ -537,20 +601,17 @@
 
 .statusPUBLISHING {
   border-left-color: #f0a64b;
-  background:
-    rgba(240, 166, 75, 0.12);
+  background: rgba(240, 166, 75, 0.12);
 }
 
 .statusPUBLISHED {
   border-left-color: #4fd18b;
-  background:
-    rgba(79, 209, 139, 0.1);
+  background: rgba(79, 209, 139, 0.1);
 }
 
 .statusFAILED {
   border-left-color: #ff6b77;
-  background:
-    rgba(255, 107, 119, 0.12);
+  background: rgba(255, 107, 119, 0.12);
 }
 
 .statusCANCELLED {
@@ -560,45 +621,46 @@
 }
 
 .statusCardDRAFT {
-  box-shadow:
-    inset 3px 0 0 #818898;
+  box-shadow: inset 3px 0 0 #818898;
 }
 
 .statusCardSCHEDULED {
-  box-shadow:
-    inset 3px 0 0 #5d8cff;
+  box-shadow: inset 3px 0 0 #5d8cff;
 }
 
 .statusCardQUEUED {
-  box-shadow:
-    inset 3px 0 0 #9b7cff;
+  box-shadow: inset 3px 0 0 #9b7cff;
 }
 
 .statusCardPUBLISHING {
-  box-shadow:
-    inset 3px 0 0 #f0a64b;
+  box-shadow: inset 3px 0 0 #f0a64b;
 }
 
 .statusCardPUBLISHED {
-  box-shadow:
-    inset 3px 0 0 #4fd18b;
+  box-shadow: inset 3px 0 0 #4fd18b;
 }
 
-.statusCardFAILED {
+.dayPopoverPost.statusCardFAILED {
+  border: 1px solid rgba(255, 73, 73, 0.62);
+  border-left: 5px solid #ff4d4d;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 60, 60, 0.17),
+    rgba(255, 60, 60, 0.04)
+  );
   box-shadow:
-    inset 3px 0 0 #ff6b77;
+    0 0 0 1px rgba(255, 70, 70, 0.05),
+    0 8px 28px rgba(255, 40, 40, 0.08);
 }
 
 .statusCardCANCELLED {
   opacity: 0.5;
-  box-shadow:
-    inset 3px 0 0 #656d7d;
+  box-shadow: inset 3px 0 0 #656d7d;
 }
 
 @media (max-width: 1050px) {
   .quickStats {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -609,14 +671,27 @@
   }
 
   .quickStats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .quickStats article {
+    min-height: 150px;
+    padding: 18px;
+  }
+
+  .quickStats strong {
+    font-size: 40px;
+  }
+
+  .quickStats small {
+    line-height: 1.45;
   }
 
   .searchInput {
     width: 100%;
   }
 }
-
 
 /* ===================================================
    Calendar Pro Hover
@@ -663,13 +738,10 @@
   flex-direction: column;
   gap: 6px;
   padding: 13px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 11px;
   background: #191d29;
-  box-shadow:
-    0 18px 45px
-    rgba(0, 0, 0, 0.42);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
   color: #eef0f5;
   white-space: normal;
 }
@@ -699,11 +771,9 @@
   flex-direction: column;
   gap: 16px;
   padding: 15px;
-  border: 1px solid
-    rgba(79, 209, 139, 0.16);
+  border: 1px solid rgba(79, 209, 139, 0.16);
   border-radius: 12px;
-  background:
-    rgba(79, 209, 139, 0.045);
+  background: rgba(79, 209, 139, 0.045);
 }
 
 .healthPanel > div {
@@ -717,9 +787,7 @@
   height: 9px;
   border-radius: 50%;
   background: #4fd18b;
-  box-shadow:
-    0 0 0 5px
-    rgba(79, 209, 139, 0.1);
+  box-shadow: 0 0 0 5px rgba(79, 209, 139, 0.1);
 }
 
 .healthPanel dl {
@@ -733,8 +801,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 9px 0;
-  border-bottom: 1px solid
-    rgba(255, 255, 255, 0.055);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
 }
 
 .healthPanel dl div:last-child {
@@ -752,7 +819,6 @@
   font-weight: 700;
 }
 
-
 /* ===================================================
    Calendar Drag and Drop
 =================================================== */
@@ -768,19 +834,15 @@
 }
 
 .dropTarget {
-  background:
-    rgba(120, 104, 255, 0.12) !important;
-  box-shadow:
-    inset 0 0 0 2px
-    rgba(132, 119, 255, 0.8) !important;
+  background: rgba(120, 104, 255, 0.12) !important;
+  box-shadow: inset 0 0 0 2px rgba(132, 119, 255, 0.8) !important;
 }
 
 .dropTarget::after {
   display: block;
   margin-top: 7px;
   padding: 5px 7px;
-  border: 1px dashed
-    rgba(167, 156, 255, 0.55);
+  border: 1px dashed rgba(167, 156, 255, 0.55);
   border-radius: 7px;
   color: #bbb4ff;
   content: "Move post here";
@@ -815,11 +877,9 @@
   opacity: 0.45;
 }
 
-.calendarPage:has(.draggingEvent)
-.hoverPreview {
+.calendarPage:has(.draggingEvent) .hoverPreview {
   display: none;
 }
-
 
 /* ===================================================
    Calendar Edit Actions
@@ -838,16 +898,13 @@
 }
 
 .deleteButton {
-  border-color:
-    rgba(255, 107, 119, 0.3) !important;
-  background:
-    rgba(255, 107, 119, 0.08) !important;
+  border-color: rgba(255, 107, 119, 0.3) !important;
+  background: rgba(255, 107, 119, 0.08) !important;
   color: #ff8c96 !important;
 }
 
 .deleteButton:hover:not(:disabled) {
-  background:
-    rgba(255, 107, 119, 0.16) !important;
+  background: rgba(255, 107, 119, 0.16) !important;
 }
 
 .postActions button:disabled {
@@ -914,7 +971,6 @@
   }
 }
 
-
 /* ===================================================
    Scheduled Post Modal Pro
 =================================================== */
@@ -946,21 +1002,16 @@
 }
 
 .facebookIcon {
-  background:
-    linear-gradient(
-      145deg,
-      #377dff,
-      #1d55d8
-    );
+  background: linear-gradient(145deg, #377dff, #1d55d8);
 }
 
 .telegramIcon {
-  background:
-    linear-gradient(
-      145deg,
-      #31b5ef,
-      #1687c1
-    );
+  background: linear-gradient(145deg, #31b5ef, #1687c1);
+}
+
+.instagramIcon {
+  background: #e1306c;
+  color: white;
 }
 
 .platformValue {
@@ -989,11 +1040,9 @@
 .previewSection {
   margin-top: 16px;
   overflow: hidden;
-  border: 1px solid
-    rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 13px;
-  background:
-    rgba(255, 255, 255, 0.022);
+  background: rgba(255, 255, 255, 0.022);
 }
 
 .previewHeader {
@@ -1002,8 +1051,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 13px 15px;
-  border-bottom: 1px solid
-    rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .previewHeader strong {
@@ -1026,57 +1074,58 @@
 
 .secondaryActions {
   padding-right: 14px;
-  border-right: 1px solid
-    rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .editButton:hover:not(:disabled) {
-  border-color:
-    rgba(120, 104, 255, 0.7);
-  background:
-    rgba(120, 104, 255, 0.14);
+  border-color: rgba(120, 104, 255, 0.7);
+  background: rgba(120, 104, 255, 0.14);
   color: #c8c2ff;
 }
 
 .duplicateButton:hover:not(:disabled) {
-  border-color:
-    rgba(49, 181, 239, 0.5);
-  background:
-    rgba(49, 181, 239, 0.1);
+  border-color: rgba(49, 181, 239, 0.5);
+  background: rgba(49, 181, 239, 0.1);
   color: #8bdcff;
 }
 
 .deleteButton:hover:not(:disabled) {
-  border-color:
-    rgba(255, 107, 119, 0.65) !important;
-  background:
-    rgba(255, 107, 119, 0.17) !important;
+  border-color: rgba(255, 107, 119, 0.65) !important;
+  background: rgba(255, 107, 119, 0.17) !important;
   color: #ff9aa2 !important;
 }
 
 .cancelPostButton {
-  background:
-    rgba(255, 255, 255, 0.025)
-    !important;
+  background: rgba(255, 255, 255, 0.025) !important;
 }
 
-.primaryActions
-.primaryButton {
-  box-shadow:
-    0 8px 22px
-    rgba(120, 104, 255, 0.2);
+.primaryActions .primaryButton {
+  box-shadow: 0 8px 22px rgba(120, 104, 255, 0.2);
 }
 
 .modal header > button:hover {
-  border-color:
-    rgba(255, 255, 255, 0.16);
-  background:
-    rgba(255, 255, 255, 0.075);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.075);
 }
 
 @media (max-width: 680px) {
   .modal {
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
     padding: 18px;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .modal > header {
+    top: -18px;
+    margin: -18px -18px 0;
+    padding: 14px 18px;
+  }
+
+  .modal footer {
+    bottom: -18px;
+    margin: 18px -18px -18px;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
   }
 
   .secondaryActions {
@@ -1089,7 +1138,6 @@
   }
 }
 
-
 /* ===================================================
    Calendar Asset Picker
 =================================================== */
@@ -1099,11 +1147,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 14px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 12px;
-  background:
-    rgba(255, 255, 255, 0.022);
+  background: rgba(255, 255, 255, 0.022);
 }
 
 .mediaFieldHeader,
@@ -1136,10 +1182,21 @@
   font-size: 11px;
 }
 
+.mediaActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mediaActions > button {
+  flex: 1 1 150px;
+  touch-action: manipulation;
+}
+
 .selectedMedia {
   display: grid;
-  grid-template-columns:
-    repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -1147,8 +1204,7 @@
   position: relative;
   overflow: hidden;
   aspect-ratio: 1;
-  border: 1px solid
-    rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 10px;
   background: #10131c;
 }
@@ -1169,8 +1225,7 @@
   padding: 0;
   place-items: center;
   border-radius: 50%;
-  background:
-    rgba(5, 7, 12, 0.78);
+  background: rgba(5, 7, 12, 0.78);
   color: white;
 }
 
@@ -1188,16 +1243,14 @@
   flex-direction: column;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid
-    rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .assetPickerToolbar input {
   width: 210px;
   height: 36px;
   padding: 0 11px;
-  border: 1px solid
-    rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 9px;
   outline: none;
   background: #151925;
@@ -1207,8 +1260,7 @@
 .assetGrid {
   display: grid;
   overflow-y: auto;
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
   padding-right: 4px;
 }
@@ -1220,8 +1272,7 @@
   min-height: 142px !important;
   padding: 0 !important;
   flex-direction: column;
-  border: 1px solid
-    rgba(255, 255, 255, 0.075) !important;
+  border: 1px solid rgba(255, 255, 255, 0.075) !important;
   border-radius: 10px !important;
   background: #121620 !important;
   text-align: left;
@@ -1256,11 +1307,8 @@
 }
 
 .assetSelected {
-  border-color:
-    #7868ff !important;
-  box-shadow:
-    0 0 0 2px
-    rgba(120, 104, 255, 0.18);
+  border-color: #7868ff !important;
+  box-shadow: 0 0 0 2px rgba(120, 104, 255, 0.18);
 }
 
 .eventThumbnail {
@@ -1273,8 +1321,7 @@
 
 .postMediaPreview {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -1283,22 +1330,35 @@
   width: 100%;
   max-height: 260px;
   aspect-ratio: 1.35;
-  border: 1px solid
-    rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 11px;
   background: #10131c;
   object-fit: cover;
 }
 
 @media (max-width: 760px) {
+  .mediaFieldHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mediaActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .mediaActions > button {
+    min-height: 44px;
+    flex-basis: calc(50% - 4px);
+  }
+
   .selectedMedia {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .assetGrid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .assetPickerToolbar {
@@ -1332,7 +1392,6 @@
   text-decoration: underline;
 }
 
-
 /* ===== Calendar Expanded Day UI ===== */
 
 .expandedDayCell {
@@ -1350,9 +1409,7 @@
   overflow-y: auto;
   padding-right: 4px;
   scrollbar-width: thin;
-  scrollbar-color:
-    rgba(165, 180, 252, 0.45)
-    transparent;
+  scrollbar-color: rgba(165, 180, 252, 0.45) transparent;
 }
 
 .expandedDayPosts::-webkit-scrollbar {
@@ -1409,7 +1466,6 @@
   outline-offset: 2px;
 }
 
-
 /* ===== Calendar Day Popover ===== */
 
 .dayPopoverBackdrop {
@@ -1425,6 +1481,7 @@
 
 .dayPopover {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(620px, 100%);
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
@@ -1474,6 +1531,7 @@
 
 .dayPopoverList {
   display: grid;
+  min-height: 0;
   gap: 9px;
   padding: 18px 20px;
   overflow-y: auto;
@@ -1499,6 +1557,15 @@
   background: rgba(79, 70, 229, 0.08);
 }
 
+.dayPopoverPost.statusCardFAILED:hover {
+  border-color: rgba(255, 73, 73, 0.62);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 60, 60, 0.17),
+    rgba(255, 60, 60, 0.04)
+  );
+}
+
 .dayPopoverPost > div {
   display: grid;
   min-width: 0;
@@ -1521,6 +1588,10 @@
   color: #c4b5fd;
   font-size: 9px;
   text-transform: uppercase;
+}
+
+.dayPopoverPost b.detailStatusFAILED {
+  color: #ff929b;
 }
 
 .dayPopover > footer {
@@ -1561,11 +1632,381 @@
   }
 
   .dayPopoverPost {
-    grid-template-columns:
-      auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
   .dayPopoverPost b {
     grid-column: 2;
+  }
+}
+
+/* ===== Reliable light theme ===== */
+:global(html[data-theme="light"]) .quickStats article,
+:global(html[data-theme="light"]) .calendarPanel,
+:global(html[data-theme="light"]) .sidebarPanel,
+:global(html[data-theme="light"]) .healthPanel,
+:global(html[data-theme="light"]) .modal,
+:global(html[data-theme="light"]) .dayPopover,
+:global(html[data-theme="light"]) .previewSection,
+:global(html[data-theme="light"]) .assetPicker {
+  border-color: var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+}
+
+:global(html[data-theme="light"]) .modal > header,
+:global(html[data-theme="light"]) .modal > footer {
+  border-color: var(--border) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .dayCell,
+:global(html[data-theme="light"]) .upcomingList button,
+:global(html[data-theme="light"]) .contentPreview,
+:global(html[data-theme="light"]) .assetCard {
+  border-color: var(--border) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .quickStats strong,
+:global(html[data-theme="light"]) .quickStats span,
+:global(html[data-theme="light"]) .modal h2,
+:global(html[data-theme="light"]) .calendarPanel strong {
+  color: var(--text) !important;
+}
+
+:global(html[data-theme="light"]) .calendarPage input,
+:global(html[data-theme="light"]) .calendarPage select,
+:global(html[data-theme="light"]) .calendarPage textarea {
+  border-color: var(--border) !important;
+  background: var(--surface-input) !important;
+  color: var(--text) !important;
+}
+
+/* ===== Dashboard-style light KPI cards ===== */
+
+:global(html[data-theme="light"]) .quickStats article {
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border: 1px solid #d6dde8;
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--text);
+  box-shadow:
+    0 12px 30px rgba(36, 45, 62, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+:global(html[data-theme="light"]) .quickStats article > span,
+:global(html[data-theme="light"]) .quickStats article > small {
+  color: #718096;
+}
+
+:global(html[data-theme="light"]) .quickStats article > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:global(html[data-theme="light"]) .quickStats article > strong {
+  color: var(--text);
+  font-size: clamp(30px, 7vw, 42px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+:global(html[data-theme="light"]) .quickStats article > small {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  :global(html[data-theme="light"]) .quickStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  :global(html[data-theme="light"]) .quickStats article {
+    min-height: 142px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 390px) {
+  :global(html[data-theme="light"]) .quickStats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   Canonical Calendar mobile layout
+========================================================= */
+
+@media (max-width: 760px) {
+  .toolbar {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+  }
+
+  .monthNav {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 70px 44px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .monthNav h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1.2;
+    text-align: center;
+    letter-spacing: -0.025em;
+  }
+
+  .monthNav button {
+    min-width: 44px;
+    height: 44px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--panel-soft);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: none;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .platformToggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel-soft);
+  }
+
+  .platformToggle button {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .platformToggle .activeToggle {
+    background: var(--gold-soft);
+    color: var(--gold-light);
+    box-shadow: inset 0 0 0 1px rgba(209, 163, 63, 0.24);
+  }
+
+  .searchInput,
+  .filters select {
+    width: 100%;
+    min-height: 44px;
+    max-width: none;
+    padding: 0 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--surface-input);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .calendarPanel {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .weekdays,
+  .monthGrid {
+    min-width: 720px;
+  }
+
+  .weekdays > div {
+    min-height: 50px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+  }
+
+  .dayCell {
+    min-height: 170px;
+    padding: 12px;
+  }
+
+  .dayNumber {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .dayCount {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .dayPosts {
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .event {
+    min-height: 34px;
+    padding: 7px 8px;
+    border-radius: 9px;
+    font-size: 9px;
+  }
+
+  .morePostsButton {
+    margin-top: 5px;
+    color: var(--gold-light);
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  :global(html[data-theme="light"]) .toolbar,
+  :global(html[data-theme="light"]) .calendarPanel {
+    border-color: #d6dde8;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(36, 45, 62, 0.055);
+  }
+
+  :global(html[data-theme="light"]) .monthNav button,
+  :global(html[data-theme="light"]) .platformToggle {
+    border-color: #d6dde8;
+    background: #f6f8fb;
+  }
+
+  :global(html[data-theme="light"]) .searchInput,
+  :global(html[data-theme="light"]) .filters select {
+    border-color: #d6dde8;
+    background: #ffffff;
+    color: #171b24;
+  }
+
+  :global(html[data-theme="light"]) .dayCell {
+    border-color: #e1e6ee;
+    background: #ffffff;
+    color: #171b24;
+  }
+
+  :global(html[data-theme="light"]) .outside {
+    background: #f7f8fa;
+  }
+}
+
+@media (max-width: 430px) {
+  .monthNav {
+    grid-template-columns: 42px minmax(0, 1fr) 64px 42px;
+  }
+
+  .monthNav button {
+    min-width: 42px;
+    height: 42px;
+    font-size: 11px;
+  }
+
+  .monthNav h2 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .quickStats {
+    grid-template-columns: repeat(4, minmax(126px, 1fr));
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding: 0 16px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .quickStats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quickStats .statAction {
+    min-height: 104px;
+    padding: 13px;
+    scroll-snap-align: start;
+  }
+
+  .calendarPanel {
+    overflow: hidden;
+  }
+
+  .weekdays,
+  .monthGrid {
+    min-width: 0;
+  }
+
+  .weekdays > div {
+    min-height: 34px;
+    font-size: 8px;
+  }
+
+  .dayCell {
+    position: relative;
+    min-width: 0;
+    min-height: 61px;
+    padding: 7px 4px;
+  }
+
+  .dayHeader {
+    justify-content: center;
+  }
+
+  .dayNumber {
+    font-size: 12px;
+  }
+
+  .dayCount {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    min-width: 18px;
+    height: 18px;
+    overflow: hidden;
+    padding: 3px 4px 0;
+    border-radius: 999px;
+    background: var(--gold-soft);
+    color: var(--gold-light);
+    font-size: 7px;
+    white-space: nowrap;
+  }
+
+  .dayPosts {
+    display: none;
   }
 }
