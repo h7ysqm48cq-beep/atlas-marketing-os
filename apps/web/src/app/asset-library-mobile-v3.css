@@ -1,0 +1,186 @@
+/* Asset Library mobile-first correction.
+ * Loaded after component styles so it overrides older desktop-heavy rules.
+ */
+@media (max-width: 780px) {
+  main [class*="AssetLibrary_page"] {
+    gap: 12px !important;
+  }
+
+  main [class*="AssetLibrary_hero"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  main [class*="AssetLibrary_hero"] > div:first-child {
+    min-width: 0 !important;
+  }
+
+  main [class*="AssetLibrary_eyebrow"] {
+    display: block !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+
+  main [class*="AssetLibrary_hero"] h1 {
+    max-width: none !important;
+    margin: 4px 0 0 !important;
+    font-size: 22px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.025em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  main [class*="AssetLibrary_hero"] > div:first-child > p:last-child {
+    display: none !important;
+  }
+
+  main [class*="AssetLibrary_heroActions"] {
+    width: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 44px) !important;
+    gap: 7px !important;
+    justify-content: end !important;
+  }
+
+  main [class*="AssetLibrary_heroActions"] button {
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-indent: -9999px !important;
+    position: relative !important;
+  }
+
+  main [class*="AssetLibrary_uploadButton"]::after {
+    content: "↑";
+  }
+
+  main [class*="AssetLibrary_primaryButton"]::after {
+    content: "+";
+  }
+
+  main [class*="AssetLibrary_heroActions"] button::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-indent: 0;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  main [class*="AssetLibrary_stats"] {
+    display: none !important;
+  }
+
+  main [class*="AssetLibrary_toolbar"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    background: var(--panel) !important;
+  }
+
+  main [class*="AssetLibrary_toolbar"] > input {
+    grid-column: 1 / -1 !important;
+  }
+
+  main [class*="AssetLibrary_toolbar"] input,
+  main [class*="AssetLibrary_toolbar"] select,
+  main [class*="AssetLibrary_toolbar"] button {
+    width: 100% !important;
+    min-height: 42px !important;
+    padding-inline: 10px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+  }
+
+  main [class*="AssetLibrary_message"] {
+    display: none !important;
+  }
+
+  main [class*="AssetLibrary_emptyState"] {
+    min-height: 190px !important;
+    gap: 7px !important;
+    padding: 22px 16px !important;
+    border-radius: 14px !important;
+  }
+
+  main [class*="AssetLibrary_emptyState"] > span {
+    font-size: 26px !important;
+  }
+
+  main [class*="AssetLibrary_emptyState"] strong {
+    font-size: 17px !important;
+  }
+
+  main [class*="AssetLibrary_emptyState"] p {
+    font-size: 12px !important;
+  }
+
+  main [class*="AssetLibrary_emptyState"] button {
+    min-height: 40px !important;
+    margin-top: 4px !important;
+  }
+
+  main [class*="AssetLibrary_grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  main [class*="AssetLibrary_card"] {
+    border-radius: 12px !important;
+  }
+
+  main [class*="AssetLibrary_preview"] {
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 11px 11px 0 0 !important;
+  }
+
+  main [class*="AssetLibrary_preview"] img {
+    min-height: 0 !important;
+  }
+
+  main [class*="AssetLibrary_cardBody"] {
+    gap: 7px !important;
+    padding: 9px !important;
+  }
+
+  main [class*="AssetLibrary_cardBody"] h2 {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  main [class*="AssetLibrary_cardBody"] > p,
+  main [class*="AssetLibrary_meta"],
+  main [class*="AssetLibrary_aiNotePreview"] {
+    display: none !important;
+  }
+
+  main [class*="AssetLibrary_cardFooter"] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  main [class*="AssetLibrary_hero"] h1 {
+    font-size: 20px !important;
+  }
+
+  main [class*="AssetLibrary_toolbar"] {
+    padding: 8px !important;
+  }
+}

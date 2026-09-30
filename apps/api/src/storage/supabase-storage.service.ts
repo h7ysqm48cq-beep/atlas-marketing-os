@@ -38,6 +38,43 @@ export class SupabaseStorageService {
         : null;
   }
 
+  async health() {
+    if (!this.client) {
+      return {
+        status: 'critical',
+        provider: 'supabase',
+        bucket: this.bucket,
+        configured: false,
+        message: 'Supabase Storage is not configured.',
+      };
+    }
+
+    const { error } = await this.client.storage
+      .from(this.bucket)
+      .list('', {
+        limit: 1,
+        offset: 0,
+      });
+
+    if (error) {
+      return {
+        status: 'critical',
+        provider: 'supabase',
+        bucket: this.bucket,
+        configured: true,
+        message: error.message,
+      };
+    }
+
+    return {
+      status: 'healthy',
+      provider: 'supabase',
+      bucket: this.bucket,
+      configured: true,
+      message: null,
+    };
+  }
+
   async uploadImage(input: UploadImageInput): Promise<UploadedFile> {
     return this.uploadFile(input);
   }
@@ -85,7 +122,7 @@ export class SupabaseStorageService {
     };
   }
 
-  async remove(path: string) {
+  async download(path: string): Promise<Buffer> {
     if (!this.client) {
       throw new ServiceUnavailableException(
         'Supabase Storage is not configured.',
@@ -94,9 +131,49 @@ export class SupabaseStorageService {
 
     const normalizedPath = path.replace(/^\/+/, '');
 
+    const { data, error } = await this.client.storage
+      .from(this.bucket)
+      .download(normalizedPath);
+
+    if (error || !data) {
+      throw new InternalServerErrorException(
+        `Supabase download failed: ${
+          error?.message || 'File data was not returned.'
+        }`,
+      );
+    }
+
+    return Buffer.from(await data.arrayBuffer());
+  }
+
+  async removeMany(paths: string[]) {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'Supabase Storage is not configured.',
+      );
+    }
+
+    const normalizedPaths = [
+      ...new Set(
+        paths
+          .map((path) =>
+            path.replace(/^\/+/, '').trim(),
+          )
+          .filter(Boolean),
+      ),
+    ];
+
+    if (normalizedPaths.length === 0) {
+      return {
+        deleted: true,
+        bucket: this.bucket,
+        paths: normalizedPaths,
+      };
+    }
+
     const { error } = await this.client.storage
       .from(this.bucket)
-      .remove([normalizedPath]);
+      .remove(normalizedPaths);
 
     if (error) {
       throw new InternalServerErrorException(
@@ -107,7 +184,17 @@ export class SupabaseStorageService {
     return {
       deleted: true,
       bucket: this.bucket,
-      path: normalizedPath,
+      paths: normalizedPaths,
+    };
+  }
+
+  async remove(path: string) {
+    const result = await this.removeMany([path]);
+
+    return {
+      deleted: true,
+      bucket: result.bucket,
+      path: result.paths[0],
     };
   }
 }

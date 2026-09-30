@@ -1,0 +1,2080 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AiRuntimeSettingsService } from '../ai-runtime/ai-runtime-settings.service';
+import { Cron } from '@nestjs/schedule';
+import OpenAI from 'openai';
+import { AssetImageService } from '../asset-image/asset-image.service';
+import { MSportsImageBrandingService } from './msports/msports-image-branding.service';
+import { SportsNewsSettingsService } from './sports-news-settings.service';
+import {
+  SportsNewsSourceValidatorService,
+  type SportsNewsFreshnessRules,
+} from './sports-news-source-validator.service';
+import { PrismaService } from '../database/prisma.service';
+import {
+  ScheduledPostStatus,
+  SocialChannelStatus,
+  SocialPlatform,
+} from '../generated/prisma/enums';
+
+type Edition = 'MORNING' | 'EVENING';
+
+type SportsNewsChannelSettings = {
+  telegramEnabled: boolean;
+  facebookEnabled: boolean;
+  morningTelegramEnabled: boolean;
+  morningFacebookEnabled: boolean;
+  eveningTelegramEnabled: boolean;
+  eveningFacebookEnabled: boolean;
+};
+
+export function getEditionPlatforms(
+  edition: Edition,
+  settings: SportsNewsChannelSettings,
+): SocialPlatform[] {
+  const telegramEditionEnabled =
+    edition === 'MORNING'
+      ? settings.morningTelegramEnabled
+      : settings.eveningTelegramEnabled;
+  const facebookEditionEnabled =
+    edition === 'MORNING'
+      ? settings.morningFacebookEnabled
+      : settings.eveningFacebookEnabled;
+
+  return [
+    ...(settings.telegramEnabled && telegramEditionEnabled
+      ? [SocialPlatform.TELEGRAM]
+      : []),
+    ...(settings.facebookEnabled && facebookEditionEnabled
+      ? [SocialPlatform.FACEBOOK]
+      : []),
+  ];
+}
+
+export function resolveSportsNewsInitialStatus(input: {
+  autoPublishEnabled: boolean;
+  approvalRequired: boolean;
+  queueStatusOnCreate: string;
+}): ScheduledPostStatus {
+  if (!input.autoPublishEnabled || input.approvalRequired) {
+    return ScheduledPostStatus.DRAFT;
+  }
+
+  const normalized = input.queueStatusOnCreate.trim().toUpperCase();
+
+  switch (normalized) {
+    case 'DRAFT':
+      return ScheduledPostStatus.DRAFT;
+    case 'SCHEDULED':
+      return ScheduledPostStatus.SCHEDULED;
+    case 'QUEUED':
+      return ScheduledPostStatus.QUEUED;
+    default:
+      throw new Error(
+        `Unsupported Sports News queue status: ${input.queueStatusOnCreate}`,
+      );
+  }
+}
+
+export function shouldRunScheduledEdition(input: {
+  enabled: boolean;
+  currentTime: string;
+  scheduledTime: string;
+  beforeTime?: string;
+  lastCompletedAt: Date | null;
+  now: Date;
+  timezone: string;
+}) {
+  if (
+    !input.enabled ||
+    input.currentTime < input.scheduledTime ||
+    (input.beforeTime !== undefined && input.currentTime >= input.beforeTime)
+  ) {
+    return false;
+  }
+
+  if (!input.lastCompletedAt) {
+    return true;
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: input.timezone,
+  });
+
+  return (
+    dateFormatter.format(input.lastCompletedAt) !==
+    dateFormatter.format(input.now)
+  );
+}
+
+@Injectable()
+export class SportsNewsAutomationService {
+  private cleanPublishedContent(content: string): string {
+    return (
+      content
+        // Remove Markdown heading markers but keep heading text.
+        .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, '')
+
+        // Remove Markdown bold / italic markers.
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+
+        // Remove internal citation markers such as [1], [10][37], [3][20][30].
+        .replace(/(?:\s*\[\d+\])+/g, '')
+
+        // Remove common source-attribution wording from visible copy.
+        .replace(
+          /\b(?:according to|reported by|reports from|records show)\s+(?:Flashscore|Reuters|ESPN|BBC|Sky Sports|The New York Times|Yahoo Sports|Goal|Google News)[,:]?\s*/gi,
+          '',
+        )
+        .replace(
+          /(?:《纽约时报》|路透社|ESPN|BBC|天空体育|Flashscore|Goal)(?:报道|报道称|报道指出|分析称|记录显示)[，,:：]?\s*/g,
+          '',
+        )
+
+        // Remove Markdown separators.
+        .replace(/^[ \t]*---+[ \t]*$/gm, '')
+
+        // Collapse excessive blank lines.
+        .replace(/\n{3,}/g, '\n\n')
+
+        // Clean stray spaces before punctuation.
+        .replace(/[ \t]+([，。！？：；,.!?;:])/g, '$1')
+
+        .trim()
+    );
+  }
+
+  private readonly logger = new Logger(SportsNewsAutomationService.name);
+  private readonly client: OpenAI | null;
+  private running = false;
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+    private readonly assetImages: AssetImageService,
+    private readonly msportsBranding: MSportsImageBrandingService,
+    private readonly sportsNewsSettings: SportsNewsSettingsService,
+    private readonly sportsNewsSourceValidator: SportsNewsSourceValidatorService,
+    private readonly aiRuntime: AiRuntimeSettingsService,
+  ) {
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+    this.client = apiKey ? new OpenAI({ apiKey }) : null;
+  }
+
+  /*
+   * Runtime scheduler:
+   *
+   * The cron expression only provides a lightweight one-minute
+   * infrastructure tick. Actual publication time and timezone
+   * are controlled entirely by Sports News Settings.
+   *
+   * This allows operators to change timezone, morningTime and
+   * eveningTime from the frontend without redeploying Railway.
+   */
+  @Cron('0 * * * * *', {
+    name: 'm-sports-news-runtime-scheduler',
+    waitForCompletion: true,
+  })
+  async runScheduledEditions() {
+    const settings = await this.sportsNewsSettings.get();
+
+    if (!settings.enabled) {
+      return;
+    }
+
+    const now = new Date();
+
+    const localParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: settings.timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(now);
+
+    const hour = localParts.find((part) => part.type === 'hour')?.value ?? '00';
+
+    const minute =
+      localParts.find((part) => part.type === 'minute')?.value ?? '00';
+
+    const currentTime = `${hour}:${minute}`;
+
+    if (
+      shouldRunScheduledEdition({
+        enabled: settings.morningEnabled,
+        currentTime,
+        scheduledTime: settings.morningTime,
+        beforeTime: settings.eveningTime,
+        lastCompletedAt: settings.lastMorningRunAt,
+        now,
+        timezone: settings.timezone,
+      })
+    ) {
+      await this.createEdition('MORNING');
+    }
+
+    if (
+      shouldRunScheduledEdition({
+        enabled: settings.eveningEnabled,
+        currentTime,
+        scheduledTime: settings.eveningTime,
+        lastCompletedAt: settings.lastEveningRunAt,
+        now,
+        timezone: settings.timezone,
+      })
+    ) {
+      await this.createEdition('EVENING');
+    }
+  }
+
+  private async markEditionRunCompleted(edition: Edition, settingsId: string) {
+    await this.prisma.sportsNewsSetting.update({
+      where: {
+        id: settingsId,
+      },
+      data:
+        edition === 'MORNING'
+          ? {
+              lastMorningRunAt: new Date(),
+              lastRunStatus: 'SUCCESS',
+              lastError: null,
+            }
+          : {
+              lastEveningRunAt: new Date(),
+              lastRunStatus: 'SUCCESS',
+              lastError: null,
+            },
+    });
+  }
+
+  async createMorningEditionNow() {
+    return this.createEdition('MORNING');
+  }
+
+  async createEveningEditionNow() {
+    return this.createEdition('EVENING');
+  }
+
+  async getStatus() {
+    const settings = await this.sportsNewsSettings.get();
+
+    const channel = await this.resolveChannel(
+      SocialPlatform.TELEGRAM,
+      settings.telegramChannelId,
+    );
+
+    return {
+      enabled: settings.enabled,
+      hasOpenAiKey: Boolean(this.config.get<string>('OPENAI_API_KEY')),
+      configuredTelegramChannelId: settings.telegramChannelId ?? null,
+      resolvedChannel: channel
+        ? {
+            id: channel.id,
+            name: channel.name,
+            username: channel.username,
+            platform: channel.platform,
+            status: channel.status,
+          }
+        : null,
+      running: this.running,
+      timezone: settings.timezone,
+    };
+  }
+
+  private async createEdition(edition: Edition) {
+    if (!this.client || this.running) {
+      const reason = this.running
+        ? 'Sports news generation is already running.'
+        : 'OPENAI_API_KEY is unavailable; sports news was skipped.';
+
+      this.logger.warn(reason);
+
+      return {
+        success: false,
+        skipped: true,
+        reason,
+        edition,
+      };
+    }
+
+    this.running = true;
+    let settingsId: string | null = null;
+
+    try {
+      const settingsRaw = await this.sportsNewsSettings.get();
+
+      const settings = settingsRaw;
+      settingsId = settings.id;
+
+      if (!settings.enabled) {
+        return {
+          success: false,
+          skipped: true,
+          reason: 'Sports News is disabled in settings.',
+          edition,
+        };
+      }
+
+      const requestedPlatforms = getEditionPlatforms(edition, settings);
+
+      if (requestedPlatforms.length === 0) {
+        const reason = `No publishing channels are enabled for the ${edition.toLowerCase()} edition.`;
+
+        this.logger.log(reason);
+        await this.markEditionRunCompleted(edition, settings.id);
+
+        return {
+          success: true,
+          skipped: true,
+          reason,
+          edition,
+        };
+      }
+
+      const resolvedTargets = await Promise.all(
+        requestedPlatforms.map(async (platform) => ({
+          platform,
+          channel: await this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        })),
+      );
+      const missingPlatforms = resolvedTargets
+        .filter((target) => !target.channel)
+        .map((target) => target.platform);
+
+      if (missingPlatforms.length > 0) {
+        throw new Error(
+          `No connected channel was found for enabled platform(s): ${missingPlatforms.join(', ')}.`,
+        );
+      }
+
+      const targets = resolvedTargets as Array<{
+        platform: SocialPlatform;
+        channel: NonNullable<(typeof resolvedTargets)[number]['channel']>;
+      }>;
+      const primaryChannel = targets[0].channel;
+      const channelOverride = (
+        settings.channelOverrides as Record<
+          string,
+          {
+            customInstructions?: string | null;
+            morningPrompt?: string | null;
+            eveningPrompt?: string | null;
+            imagePrompt?: string | null;
+            morningImagePrompt?: string | null;
+            eveningImagePrompt?: string | null;
+          }
+        >
+      )?.[primaryChannel.id];
+
+      const dateKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: settings.timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const title = this.renderPostTitle(edition, dateKey, settings);
+
+      const targetStates = await Promise.all(
+        targets.map(async (target) => {
+          const dedupeKey =
+            settings.duplicateEditionPolicy === 'ALLOW'
+              ? null
+              : `sports-news:${target.channel.id}:${edition}:${dateKey}`;
+          const existing =
+            settings.duplicateEditionPolicy === 'ALLOW'
+              ? null
+              : await this.prisma.scheduledPost.findFirst({
+                  where: {
+                    OR: [
+                      { dedupeKey },
+                      {
+                        channelId: target.channel.id,
+                        title,
+                      },
+                    ],
+                  },
+                });
+
+          if (existing && settings.duplicateEditionPolicy === 'REPLACE') {
+            await this.prisma.scheduledPost.update({
+              where: { id: existing.id },
+              data: {
+                title: `${existing.title} [REPLACED ${new Date().toISOString()}]`,
+                dedupeKey: null,
+              },
+            });
+            this.logger.log(
+              `Existing Sports News edition marked as replaced: ${existing.id}`,
+            );
+          }
+
+          return {
+            ...target,
+            dedupeKey,
+            existing,
+            skip:
+              Boolean(existing) && settings.duplicateEditionPolicy === 'SKIP',
+          };
+        }),
+      );
+      const publishTargets = targetStates.filter((target) => !target.skip);
+
+      if (publishTargets.length === 0) {
+        this.logger.log(`Sports news already exists on all targets: ${title}`);
+        await this.markEditionRunCompleted(edition, settings.id);
+
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Sports news already exists on all enabled channels',
+          edition,
+          title,
+          postIds: targetStates
+            .map((target) => target.existing?.id)
+            .filter(Boolean),
+        };
+      }
+
+      const generatedNews = await this.generateNews(
+        edition,
+        dateKey,
+        {
+          timezone: settings.timezone,
+
+          sameDaySourcesOnly:
+            edition === 'MORNING'
+              ? settings.morningSameDaySourcesOnly
+              : settings.sameDaySourcesOnly,
+
+          maxSourceAgeHours: settings.maxSourceAgeHours,
+          requirePublishedAt: settings.requirePublishedAt,
+          requireSourceUrl: settings.requireSourceUrl,
+          minimumSources: settings.minimumSources,
+          freshnessFallbackEnabled: settings.freshnessFallbackEnabled,
+        },
+        settings,
+        channelOverride,
+      );
+      const content = this.cleanPublishedContent(generatedNews.content);
+
+      let finalMediaUrl: string | null = null;
+
+      if (settings.imageGenerationEnabled) {
+        try {
+          const image = await this.assetImages.generateAndSave({
+            name: title,
+            platform: publishTargets.map((target) => target.platform).join(','),
+
+            model:
+              settings.imageModelOverrideEnabled &&
+              settings.imageAiModel?.trim()
+                ? settings.imageAiModel.trim()
+                : undefined,
+
+            size: settings.imageGenerationSize as
+              '1024x1536' | '1024x1024' | '1536x1024',
+
+            quality: settings.imageGenerationQuality as
+              'low' | 'medium' | 'high',
+
+            logoMode: 'NEVER',
+
+            prompt: [
+              channelOverride?.imagePrompt?.trim() ||
+                settings.imagePrompt?.trim(),
+              settings.imageVisualStyle?.trim(),
+
+              edition === 'MORNING'
+                ? channelOverride?.morningImagePrompt?.trim() ||
+                  settings.morningImagePrompt?.trim()
+                : channelOverride?.eveningImagePrompt?.trim() ||
+                  settings.eveningImagePrompt?.trim(),
+
+              settings.visualDirectorEnabled
+                ? generatedNews.visualDirection?.trim()
+                : '',
+
+              generatedNews.visualContext
+                ? `Verified visual context: ${generatedNews.visualContext}`
+                : '',
+
+              settings.imageRulesEnabled
+                ? settings.imageRulesPrompt?.trim()
+                : '',
+
+              settings.imageBrandRulesEnabled
+                ? settings.imageBrandRulesPrompt?.trim()
+                : '',
+
+              settings.imagePhotographyPrompt?.trim(),
+              settings.imageNegativePrompt?.trim(),
+              settings.imageUpperSafeAreaPrompt?.trim(),
+              settings.imageLowerSafeAreaPrompt?.trim(),
+            ]
+              .filter(Boolean)
+              .join(' '),
+          });
+
+          finalMediaUrl = image.asset.url;
+
+          const activeBrand = await this.prisma.brand.findFirst({
+            where: {
+              id: primaryChannel.brandId,
+            },
+            select: {
+              primaryLogoAssetId: true,
+            },
+          });
+
+          try {
+            const branded = await this.msportsBranding.apply({
+              imageUrl: image.asset.url,
+
+              logoAssetId: settings.logoEnabled
+                ? (settings.logoAssetId ??
+                  activeBrand?.primaryLogoAssetId ??
+                  null)
+                : null,
+
+              footerText: settings.brandFooterEnabled
+                ? [
+                    settings.brandFooterText,
+                    settings.footerDateEnabled ? dateKey : '',
+                  ]
+                    .filter(Boolean)
+                    .join(settings.footerDateSeparator)
+                : '',
+              footerTextEnabled: settings.footerTextEnabled,
+              footerLogoAssetId: settings.footerLogoEnabled
+                ? settings.footerLogoAssetId
+                : null,
+
+              footerQrEnabled: settings.footerQrEnabled,
+
+              footerQrAssetId: settings.footerQrEnabled
+                ? settings.footerQrAssetId
+                : null,
+
+              footerQrLink: settings.footerQrEnabled
+                ? settings.footerQrLink
+                : null,
+
+              footerPlacement: settings.footerPlacement,
+
+              edition,
+
+              highlights: generatedNews.imageHighlights,
+
+              branding: {
+                mastheadBrandText: settings.mastheadBrandText,
+
+                morningEditionZh: settings.morningEditionZh,
+
+                eveningEditionZh: settings.eveningEditionZh,
+
+                morningEditionEn: settings.morningEditionEn,
+
+                eveningEditionEn: settings.eveningEditionEn,
+
+                sectionLabel: settings.imageSectionLabel,
+
+                morningAccentColor: settings.morningAccentColor,
+
+                eveningAccentColor: settings.eveningAccentColor,
+
+                morningSecondaryColor: settings.morningSecondaryColor,
+
+                eveningSecondaryColor: settings.eveningSecondaryColor,
+
+                mastheadPrimaryColor: settings.mastheadPrimaryColor,
+
+                mastheadEnglishColor: settings.mastheadEnglishColor,
+
+                headlinePrimaryColor: settings.headlinePrimaryColor,
+
+                headlineSecondaryColor: settings.headlineSecondaryColor,
+
+                panelBaseColor: settings.panelBaseColor,
+
+                watermarkEnabled: settings.watermarkEnabled,
+
+                watermarkScale: settings.watermarkScale,
+
+                watermarkOpacity: settings.watermarkOpacity,
+
+                watermarkPosition: settings.watermarkPosition,
+
+                qrSizePercent: settings.qrSizePercent,
+
+                qrMarginPercent: settings.qrMarginPercent,
+
+                footerBackgroundColor: settings.footerBackgroundColor,
+
+                footerSeparatorColor: settings.footerSeparatorColor,
+              },
+
+              layout: {
+                enabled: settings.imageLayoutEnabled,
+
+                storyPanelEnabled: settings.storyPanelEnabled,
+                mastheadEnabled: settings.mastheadEnabled,
+                headlineTextEnabled: settings.headlineTextEnabled,
+
+                mastheadScale: settings.mastheadScale,
+
+                mastheadTopPercent: settings.mastheadTopPercent,
+
+                panelWidthPercent: settings.highlightsPanelWidthPercent,
+
+                panelHeightPercent: settings.highlightsPanelHeightPercent,
+
+                panelTopPercent: settings.highlightsPanelTopPercent,
+
+                panelOpacityStart: settings.highlightsPanelOpacityStart,
+
+                panelOpacityMiddle: settings.highlightsPanelOpacityMiddle,
+
+                panelOpacityEnd: settings.highlightsPanelOpacityEnd,
+
+                panelRadius: settings.highlightsPanelRadius,
+
+                heroHeadlineScale: settings.heroHeadlineScale,
+
+                secondaryHeadlineScale: settings.secondaryHeadlineScale,
+
+                story02PositionPercent: settings.story02PositionPercent,
+
+                story03PositionPercent: settings.story03PositionPercent,
+
+                footerHeightPercent: settings.footerHeightPercent,
+              },
+            });
+
+            finalMediaUrl = branded.imageDataUrl;
+
+            this.logger.log(
+              [
+                `M-Sports branding applied for ${title}.`,
+                `logo=${branded.logoApplied}`,
+                `footer=${branded.footerApplied}`,
+                `qr=${branded.qrApplied}`,
+              ].join(' '),
+            );
+          } catch (error) {
+            const message =
+              `M-Sports branding failed for ${title}. ` +
+              `${
+                error instanceof Error
+                  ? error.message
+                  : 'Unknown branding error'
+              }`;
+
+            if (settings.brandingFailurePolicy === 'BLOCK') {
+              throw new Error(message);
+            }
+
+            this.logger.warn(
+              `${message} Using the newly generated image without deterministic branding.`,
+            );
+          }
+        } catch (error) {
+          const message =
+            `M-Sports image generation failed for ${title}. ` +
+            `${
+              error instanceof Error
+                ? error.message
+                : 'Unknown image generation error'
+            }`;
+
+          if (settings.imageFailurePolicy === 'BLOCK') {
+            throw new Error(message);
+          }
+
+          this.logger.warn(`${message} Continuing with text-only publication.`);
+
+          finalMediaUrl = null;
+        }
+      } else {
+        this.logger.log(
+          `Image generation disabled for ${title}; publishing text only.`,
+        );
+      }
+
+      const initialStatus = resolveSportsNewsInitialStatus(settings);
+      const scheduledAt = new Date();
+      const { history, posts } = await this.prisma.$transaction(
+        async (transaction) => {
+          const history = await transaction.generationHistory.create({
+            data: {
+              brandId: primaryChannel.brandId,
+              topic: title,
+              platforms: publishTargets.map((target) => target.platform),
+              style: 'M-SPORTS_NEWS',
+              language: settings.language,
+              facebook: publishTargets.some(
+                (target) => target.platform === SocialPlatform.FACEBOOK,
+              )
+                ? content
+                : '',
+              telegram: publishTargets.some(
+                (target) => target.platform === SocialPlatform.TELEGRAM,
+              )
+                ? content
+                : '',
+              reels: '',
+              imagePrompt: generatedNews.visualDirection ?? '',
+              analysis: {
+                source: 'SPORTS_NEWS_AUTOMATION',
+                edition,
+                dateKey,
+                visualContext: generatedNews.visualContext,
+                imageHighlights: generatedNews.imageHighlights,
+              },
+            },
+          });
+
+          const posts: Array<{
+            id: string;
+            status: ScheduledPostStatus;
+            channelId: string;
+            mediaUrls: string[];
+          }> = [];
+
+          for (const target of publishTargets) {
+            const post = await transaction.scheduledPost.create({
+              data: {
+                brandId: target.channel.brandId,
+                channelId: target.channel.id,
+                historyId: history.id,
+                platform: target.platform,
+                title,
+                dedupeKey: target.dedupeKey,
+                content,
+                mediaUrls: finalMediaUrl ? [finalMediaUrl] : [],
+                scheduledAt,
+                timezone: settings.timezone,
+                status: initialStatus,
+                brandRenderingSettings: {
+                  sportsNews: {
+                    publishRetryEnabled: settings.publishRetryEnabled,
+                    publishRetryLimit: settings.publishRetryLimit,
+                    publishRetryDelayMinutes: settings.publishRetryDelayMinutes,
+                  },
+                },
+              },
+            });
+
+            posts.push(post);
+            this.logger.log(
+              `Created ${title} for ${target.channel.name} with status ${post.status}.`,
+            );
+          }
+
+          return { history, posts };
+        },
+      );
+
+      const post = posts[0];
+
+      await this.markEditionRunCompleted(edition, settings.id);
+
+      return {
+        success: true,
+        skipped: false,
+        edition,
+        title,
+        postId: post.id,
+        postIds: posts.map((createdPost) => createdPost.id),
+        status: post.status,
+        channelId: post.channelId,
+        channelIds: posts.map((createdPost) => createdPost.channelId),
+        channelName: publishTargets[0].channel.name,
+        channelNames: publishTargets.map((target) => target.channel.name),
+        mediaUrls: post.mediaUrls,
+      };
+    } catch (error) {
+      const prismaError =
+        error && typeof error === 'object'
+          ? (error as {
+              code?: unknown;
+              meta?: unknown;
+            })
+          : null;
+
+      if (
+        prismaError?.code === 'P2002' &&
+        JSON.stringify(prismaError.meta ?? {}).includes('dedupeKey')
+      ) {
+        this.logger.log(
+          `Sports news duplicate prevented by database: ${edition}`,
+        );
+
+        if (settingsId) {
+          await this.markEditionRunCompleted(edition, settingsId);
+        }
+
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Sports news already exists',
+          edition,
+        };
+      }
+
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error(
+        `Sports news generation failed: ${message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+
+      if (settingsId) {
+        try {
+          await this.prisma.sportsNewsSetting.update({
+            where: { id: settingsId },
+            data: {
+              lastRunStatus: 'FAILED',
+              lastError: message.slice(0, 2000),
+            },
+          });
+        } catch (statusError) {
+          this.logger.error(
+            `Unable to persist Sports News failure status: ${
+              statusError instanceof Error
+                ? statusError.message
+                : String(statusError)
+            }`,
+          );
+        }
+      }
+
+      return {
+        success: false,
+        skipped: false,
+        edition,
+        error: message,
+      };
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private renderPostTitle(
+    edition: Edition,
+    dateKey: string,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ): string {
+    const template =
+      edition === 'MORNING'
+        ? settings.morningPostTitleTemplate
+        : settings.eveningPostTitleTemplate;
+
+    return template
+      .replaceAll('{date}', dateKey)
+      .replaceAll('{edition}', edition)
+      .trim();
+  }
+
+  private async resolveChannel(
+    platform: SocialPlatform,
+    settingsChannelId?: string | null,
+  ) {
+    const configuredId = settingsChannelId?.trim();
+    const connectedWhere = {
+      platform,
+      status: SocialChannelStatus.CONNECTED,
+      hiddenAt: null,
+    } as const;
+
+    if (configuredId) {
+      return this.prisma.socialChannel.findFirst({
+        where: { id: configuredId, ...connectedWhere },
+      });
+    }
+
+    const channels = await this.prisma.socialChannel.findMany({
+      where: connectedWhere,
+      orderBy: { updatedAt: 'desc' },
+    });
+    const named = channels.find((channel) =>
+      /sports|sport|体育|新聞|新闻/i.test(
+        `${channel.name} ${channel.username ?? ''}`,
+      ),
+    );
+
+    return named ?? (channels.length === 1 ? channels[0] : null);
+  }
+
+  private async generateNews(
+    edition: Edition,
+    dateKey: string,
+    freshness: SportsNewsFreshnessRules,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+    channelOverride?: {
+      customInstructions?: string | null;
+      morningPrompt?: string | null;
+      eveningPrompt?: string | null;
+    },
+  ) {
+    const editionInstruction =
+      edition === 'MORNING'
+        ? channelOverride?.morningPrompt?.trim() ||
+          settings.morningPrompt?.trim() ||
+          ''
+        : channelOverride?.eveningPrompt?.trim() ||
+          settings.eveningPrompt?.trim() ||
+          '';
+
+    const response = await this.client!.responses.create({
+      model: await this.aiRuntime.getSportsNewsModel(),
+      tools: settings.newsWebSearchEnabled
+        ? [{ type: 'web_search' as const }]
+        : [],
+      input: [
+        settings.systemPrompt?.trim(),
+
+        `Publication date in Malaysia is ${dateKey}.`,
+        `Publication timezone is ${freshness.timezone}.`,
+
+        editionInstruction,
+
+        channelOverride?.customInstructions?.trim() ||
+          settings.customInstructions?.trim(),
+
+        `Return between 1 and ${settings.storyMaximum} verified sports stories. Do not force a fixed number. If only 1 or 2 stories can be reliably verified, return those verified stories instead of returning an empty stories array.`,
+
+        settings.sportsPriority?.trim()
+          ? `Sports priority: ${settings.sportsPriority}.`
+          : '',
+
+        `Same-day sources only: ${
+          freshness.sameDaySourcesOnly ? 'YES' : 'NO'
+        }.`,
+
+        `Maximum source age: ${freshness.maxSourceAgeHours} hours.`,
+
+        `Published date required: ${
+          freshness.requirePublishedAt ? 'YES' : 'NO'
+        }.`,
+
+        `Source URL required internally: ${
+          freshness.requireSourceUrl ? 'YES' : 'NO'
+        }.`,
+
+        `Minimum verified sources: ${freshness.minimumSources}.`,
+
+        `Older-news fallback allowed: ${
+          freshness.freshnessFallbackEnabled ? 'YES' : 'NO'
+        }.`,
+
+        settings.verificationInstructions?.trim(),
+
+        settings.imageHeadlineInstructions?.trim(),
+
+        settings.visibleCopyInstructions?.trim(),
+
+        [
+          'If at least one sports story can be verified from reliable current sources, you MUST return that story. Do not return {"stories":[]} merely because fewer than the preferred number of stories are available.',
+          'Return JSON only.',
+          'Do not return Markdown.',
+          'Required JSON shape:',
+          '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+        ].join('\n'),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    });
+
+    const raw = response.output_text?.trim();
+
+    if (!raw) {
+      throw new Error('The news model returned empty structured content.');
+    }
+
+    let parsed: {
+      stories?: Array<{
+        headlineZh?: string;
+        headlineEn?: string;
+        imageHeadlineZh?: string;
+        imageHeadlineEn?: string;
+        summaryZh?: string;
+        summaryEn?: string;
+        eventStatus?: string;
+        eventTime?: string | null;
+        finalScore?: string | null;
+        sources?: Array<{
+          title?: string;
+          url?: string | null;
+          publishedAt?: string | null;
+          sourceName?: string | null;
+        }>;
+      }>;
+    };
+
+    try {
+      parsed = JSON.parse(
+        raw
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/\s*```$/, ''),
+      );
+    } catch {
+      throw new Error(
+        'The news model returned invalid JSON and publication was blocked.',
+      );
+    }
+
+    const stories = Array.isArray(parsed.stories) ? parsed.stories : [];
+
+    if (stories.length < settings.storyMinimum) {
+      throw new Error(
+        `Only ${stories.length} structured sports story/stories returned. Minimum ${settings.storyMinimum} required. Publication blocked.`,
+      );
+    }
+
+    const acceptedStories: typeof stories = [];
+
+    const acceptedSources: Array<{
+      title: string;
+      url?: string | null;
+      publishedAt?: string | Date | null;
+      sourceName?: string | null;
+    }> = [];
+
+    /*
+     * Validate freshness per story without applying the global
+     * minimumSources requirement to every individual story.
+     *
+     * Each story must satisfy the configured per-story source requirement.
+     * The configured minimumSources requirement is enforced
+     * across the complete edition after story validation.
+     */
+    const perStoryFreshness: SportsNewsFreshnessRules = {
+      ...freshness,
+      minimumSources: settings.minimumSourcesPerStory,
+      freshnessFallbackEnabled: false,
+    };
+
+    const validateAndAcceptStories = (candidateStories: typeof stories) => {
+      for (const story of candidateStories.slice(0, settings.storyMaximum)) {
+        const sources = Array.isArray(story.sources)
+          ? story.sources.map((source) => ({
+              title: source.title?.trim() || 'Untitled source',
+              url: source.url ?? null,
+              publishedAt: source.publishedAt ?? null,
+              sourceName: source.sourceName ?? null,
+            }))
+          : [];
+
+        const storyName =
+          story.headlineEn?.trim() ||
+          story.headlineZh?.trim() ||
+          'Unknown sports story';
+
+        try {
+          const validation = this.sportsNewsSourceValidator.validate(
+            sources,
+            perStoryFreshness,
+          );
+
+          if (
+            !validation.enoughSources ||
+            validation.accepted.length < settings.minimumSourcesPerStory
+          ) {
+            this.logger.error(
+              [
+                'Sports story rejected',
+                `story=${storyName}`,
+                `sourceCount=${sources.length}`,
+                `acceptedSources=${validation.accepted.length}`,
+                `enoughSources=${validation.enoughSources}`,
+                `sources=${JSON.stringify(sources)}`,
+                `rejected=${JSON.stringify(validation.rejected ?? [])}`,
+              ].join(' | '),
+            );
+
+            continue;
+          }
+
+          acceptedSources.push(...validation.accepted);
+        } catch (error) {
+          const sourceDiagnostics = sources.map((source) => ({
+            sourceName: source.sourceName,
+            publishedAt: source.publishedAt,
+            hasUrl: Boolean(source.url?.trim()),
+            title: source.title,
+          }));
+
+          const rejectionMessage =
+            `Sports story rejected by freshness validation: "${storyName}". ` +
+            `sources=${JSON.stringify(sourceDiagnostics)}. ` +
+            `${
+              error instanceof Error
+                ? error.message
+                : 'Unknown validation error'
+            }`;
+
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(rejectionMessage);
+          }
+
+          this.logger.warn(rejectionMessage);
+
+          continue;
+        }
+
+        if (
+          settings.completedEventPolicy === 'REQUIRE_FINAL_SCORE' &&
+          settings.completedScoreRequired &&
+          story.eventStatus === 'COMPLETED' &&
+          !story.finalScore?.trim()
+        ) {
+          const message = `Completed sports story rejected because finalScore is missing: "${storyName}".`;
+
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
+
+          this.logger.warn(message);
+          continue;
+        }
+
+        if (
+          story.eventStatus === 'UPCOMING' &&
+          settings.upcomingEventPolicy === 'BLOCK'
+        ) {
+          const message = `Upcoming sports story blocked by Settings: "${storyName}".`;
+
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
+
+          this.logger.warn(message);
+          continue;
+        }
+
+        if (
+          story.eventStatus === 'DEVELOPMENT' &&
+          settings.developmentStoryPolicy === 'BLOCK'
+        ) {
+          const message = `Development sports story blocked by Settings: "${storyName}".`;
+
+          if (settings.invalidStoryPolicy === 'BLOCK') {
+            throw new Error(message);
+          }
+
+          continue;
+        }
+
+        acceptedStories.push(story);
+      }
+    };
+
+    validateAndAcceptStories(stories);
+
+    /*
+     * SPORTS SUPPLEMENTAL SEARCH
+     *
+     * Editorial target: 3 stories when possible.
+     * Publication minimum remains controlled by Settings.
+     *
+     * If the first validated pass produces fewer than the preferred
+     * number, perform one additional web-search pass for distinct
+     * current stories. Failure to reach the preferred count does not
+     * block publication if the configured minimum is still satisfied.
+     */
+    const preferredStoryCount = Math.min(3, settings.storyMaximum);
+
+    if (
+      acceptedStories.length < preferredStoryCount &&
+      settings.newsWebSearchEnabled
+    ) {
+      const firstPassHeadlines = stories
+        .map(
+          (story) => story.headlineEn?.trim() || story.headlineZh?.trim() || '',
+        )
+        .filter(Boolean);
+
+      const remainingCapacity = Math.max(
+        1,
+        settings.storyMaximum - acceptedStories.length,
+      );
+
+      this.logger.log(
+        [
+          'SPORTS SUPPLEMENTAL SEARCH',
+          `edition=${edition}`,
+          `firstPassGenerated=${stories.length}`,
+          `firstPassAccepted=${acceptedStories.length}`,
+          `preferred=${preferredStoryCount}`,
+          `capacity=${remainingCapacity}`,
+        ].join(' | '),
+      );
+
+      const supplementalResponse = await this.client!.responses.create({
+        model: await this.aiRuntime.getSportsNewsModel(),
+
+        tools: settings.newsWebSearchEnabled
+          ? [{ type: 'web_search' as const }]
+          : [],
+
+        input: [
+          settings.systemPrompt?.trim(),
+
+          `Publication date in Malaysia is ${dateKey}.`,
+          `Publication timezone is ${freshness.timezone}.`,
+
+          editionInstruction,
+
+          settings.customInstructions?.trim(),
+
+          [
+            'This is a SECOND-PASS supplemental sports-news search.',
+            `The first validation pass produced only ${acceptedStories.length} verified story/stories.`,
+            `Find up to ${remainingCapacity} additional DISTINCT verified sports stories.`,
+            'Do not repeat stories from the first pass.',
+            'Prioritize important current sports developments that were not covered in the first pass.',
+            'Accuracy is more important than quantity.',
+            'If only one additional reliable story exists, return one.',
+            'Do not invent stories merely to reach the preferred count.',
+          ].join('\n'),
+
+          firstPassHeadlines.length
+            ? `DO NOT REPEAT these first-pass stories: ${JSON.stringify(
+                firstPassHeadlines,
+              )}.`
+            : '',
+
+          settings.sportsPriority?.trim()
+            ? `Sports priority: ${settings.sportsPriority}.`
+            : '',
+
+          `Same-day sources only: ${
+            freshness.sameDaySourcesOnly ? 'YES' : 'NO'
+          }.`,
+
+          `Maximum source age: ${freshness.maxSourceAgeHours} hours.`,
+
+          `Published date required: ${
+            freshness.requirePublishedAt ? 'YES' : 'NO'
+          }.`,
+
+          `Source URL required internally: ${
+            freshness.requireSourceUrl ? 'YES' : 'NO'
+          }.`,
+
+          settings.verificationInstructions?.trim(),
+
+          [
+            'Return JSON only.',
+            'Do not return Markdown.',
+            'Required JSON shape:',
+            '{"stories":[{"headlineZh":"","headlineEn":"","imageHeadlineZh":"","imageHeadlineEn":"","summaryZh":"","summaryEn":"","eventStatus":"COMPLETED|UPCOMING|DEVELOPMENT","eventTime":null,"finalScore":null,"sources":[{"title":"","url":"","publishedAt":"","sourceName":""}]}]}',
+          ].join('\n'),
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      });
+
+      const supplementalRaw = supplementalResponse.output_text?.trim();
+
+      if (supplementalRaw) {
+        try {
+          const supplementalParsed = JSON.parse(
+            supplementalRaw
+              .replace(/^```json\s*/i, '')
+              .replace(/^```\s*/i, '')
+              .replace(/\s*```$/, ''),
+          ) as typeof parsed;
+
+          const supplementalStories = Array.isArray(supplementalParsed.stories)
+            ? supplementalParsed.stories
+            : [];
+
+          /*
+           * Deduplicate against every first-pass generated story,
+           * not only accepted stories. This prevents the second
+           * search from repeatedly returning a story already rejected.
+           */
+          const existingStoryKeys = new Set(
+            stories.map((story) =>
+              (
+                story.headlineEn?.trim() ||
+                story.headlineZh?.trim() ||
+                ''
+              ).toLowerCase(),
+            ),
+          );
+
+          const distinctSupplementalStories = supplementalStories.filter(
+            (story) => {
+              const key = (
+                story.headlineEn?.trim() ||
+                story.headlineZh?.trim() ||
+                ''
+              ).toLowerCase();
+
+              if (!key) {
+                return false;
+              }
+
+              if (existingStoryKeys.has(key)) {
+                return false;
+              }
+
+              existingStoryKeys.add(key);
+
+              return true;
+            },
+          );
+
+          this.logger.log(
+            [
+              'SPORTS SUPPLEMENTAL RESULT',
+              `generated=${supplementalStories.length}`,
+              `distinct=${distinctSupplementalStories.length}`,
+              `beforeValidation=${acceptedStories.length}`,
+            ].join(' | '),
+          );
+
+          validateAndAcceptStories(distinctSupplementalStories);
+
+          this.logger.log(
+            [
+              'SPORTS SUPPLEMENTAL COMPLETE',
+              `accepted=${acceptedStories.length}`,
+              `preferred=${preferredStoryCount}`,
+            ].join(' | '),
+          );
+        } catch (error) {
+          /*
+           * Supplemental search is best-effort.
+           *
+           * Never throw here if the first pass already produced
+           * publishable stories.
+           */
+          this.logger.warn(
+            `Supplemental sports-news response could not be parsed: ${
+              error instanceof Error ? error.message : 'Unknown parsing error'
+            }`,
+          );
+        }
+      } else {
+        this.logger.warn(
+          'Supplemental sports-news search returned empty content.',
+        );
+      }
+    }
+
+    const requiredStoryCount = Math.max(
+      settings.storyMinimum,
+      settings.minimumStoriesPerEdition,
+    );
+
+    if (acceptedStories.length < requiredStoryCount) {
+      this.logger.error(
+        [
+          'SPORTS VALIDATION SUMMARY',
+          `edition=${edition}`,
+          `generated=${stories.length}`,
+          `accepted=${acceptedStories.length}`,
+          `required=${requiredStoryCount}`,
+          `dateKey=${dateKey}`,
+          `timezone=${settings.timezone}`,
+        ].join(' | '),
+      );
+
+      throw new Error(
+        `Only ${acceptedStories.length} sports stories passed validation. Minimum ${requiredStoryCount} required. Publication blocked.`,
+      );
+    }
+
+    /*
+     * Enforce the configured minimum source count across the
+     * complete edition rather than independently for each story.
+     *
+     * Duplicate URLs count only once.
+     */
+    const editionAcceptedSources = settings.sourceDeduplicationEnabled
+      ? Array.from(
+          new Map(
+            acceptedSources.map((source) => [
+              source.url?.trim() ||
+                `${source.sourceName ?? ''}:${source.title}:${source.publishedAt ?? ''}`,
+              source,
+            ]),
+          ).values(),
+        )
+      : acceptedSources;
+
+    const requiredSourceCount = Math.max(1, freshness.minimumSources);
+
+    if (editionAcceptedSources.length < requiredSourceCount) {
+      throw new Error(
+        `Sports edition has ${editionAcceptedSources.length} unique fresh verified source(s). ` +
+          `Minimum ${requiredSourceCount} required. Publication blocked.`,
+      );
+    }
+
+    this.logger.log(
+      `Sports edition verified: ${acceptedStories.length} stories, ` +
+        `${editionAcceptedSources.length} unique fresh source(s).`,
+    );
+
+    const lines: string[] = [
+      edition === 'MORNING'
+        ? settings.telegramMorningHeader
+        : settings.telegramEveningHeader,
+      '',
+      settings.telegramSectionLabel,
+      '',
+    ];
+
+    acceptedStories.forEach((story, index) => {
+      const headlineZh =
+        this.cleanSportsVisibleText(story.headlineZh) || '体育焦点';
+
+      const headlineEn =
+        this.cleanSportsVisibleText(story.headlineEn) || 'Sports Update';
+
+      lines.push(`${index + 1}. ${headlineZh}｜${headlineEn}`);
+
+      const summaryZh = this.cleanSportsVisibleText(story.summaryZh);
+      const summaryEn = this.cleanSportsVisibleText(story.summaryEn);
+
+      const scoreSuffix =
+        story.eventStatus === 'COMPLETED' && story.finalScore?.trim()
+          ? ` 比分：${story.finalScore.trim()}`
+          : '';
+
+      lines.push(`${summaryZh}${scoreSuffix}｜${summaryEn}`.trim());
+
+      lines.push('');
+    });
+
+    const cleanImageHeadline = (
+      preferred: string | undefined,
+      fallback: string | undefined,
+      maxLength: number,
+    ) => {
+      const selected = this.cleanSportsVisibleText(
+        preferred || fallback || '',
+      ).replace(/\s+/g, ' ');
+
+      if (!selected) {
+        return '';
+      }
+
+      /*
+       * imageHeadline* should already be concise because
+       * the news model is explicitly instructed to produce
+       * display-ready headlines.
+       *
+       * This hard limit is only a final layout safeguard.
+       */
+      if (selected.length <= maxLength) {
+        return selected;
+      }
+
+      return selected.slice(0, maxLength).trim();
+    };
+
+    const imageHighlights = acceptedStories.slice(0, 3).map((story) => ({
+      zh:
+        cleanImageHeadline(story.imageHeadlineZh, story.headlineZh, 22) ||
+        '今日体育焦点',
+
+      en:
+        cleanImageHeadline(story.imageHeadlineEn, story.headlineEn, 46) ||
+        'Sports Update',
+    }));
+
+    const parseSportKeywords = (value: string | null | undefined) =>
+      (value || '')
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+
+    const matchesSportKeywords = (source: string, keywords: string[]) =>
+      keywords.some((keyword) => source.includes(keyword));
+
+    const detectSport = (value: string): string => {
+      const source = value.toLowerCase();
+
+      const rules = [
+        {
+          sport: 'football',
+          keywords: parseSportKeywords(settings.footballKeywords),
+        },
+        {
+          sport: 'basketball',
+          keywords: parseSportKeywords(settings.basketballKeywords),
+        },
+        {
+          sport: 'motorsport',
+          keywords: parseSportKeywords(settings.motorsportKeywords),
+        },
+        {
+          sport: 'motorcycle racing',
+          keywords: parseSportKeywords(settings.motorcycleKeywords),
+        },
+        {
+          sport: 'tennis',
+          keywords: parseSportKeywords(settings.tennisKeywords),
+        },
+        {
+          sport: 'badminton',
+          keywords: parseSportKeywords(settings.badmintonKeywords),
+        },
+        {
+          sport: 'baseball',
+          keywords: parseSportKeywords(settings.baseballKeywords),
+        },
+        {
+          sport: 'combat sports',
+          keywords: parseSportKeywords(settings.combatKeywords),
+        },
+      ];
+
+      for (const rule of rules) {
+        if (matchesSportKeywords(source, rule.keywords)) {
+          return rule.sport;
+        }
+      }
+
+      return 'sports';
+    };
+
+    const visualStories = acceptedStories.slice(0, 3).map((story, index) => {
+      const headline =
+        story.headlineEn?.trim() || story.headlineZh?.trim() || '';
+
+      const summary = story.summaryEn?.trim() || story.summaryZh?.trim() || '';
+
+      const combined = `${headline} ${summary}`;
+
+      return {
+        priority: index + 1,
+        sport: detectSport(combined),
+        eventStatus: story.eventStatus || 'DEVELOPMENT',
+        headline,
+        summary,
+      };
+    });
+
+    const uniqueSports = Array.from(
+      new Set(visualStories.map((story) => story.sport)),
+    );
+
+    const heroStory = visualStories[0];
+
+    const visualMode =
+      uniqueSports.length === 1
+        ? 'SINGLE_SPORT_EDITORIAL_MONTAGE'
+        : 'MULTI_SPORT_EDITORIAL_MONTAGE';
+
+    const heroEmotion =
+      heroStory?.eventStatus === 'COMPLETED'
+        ? settings.completedEventVisualPrompt?.trim() || ''
+        : heroStory?.eventStatus === 'UPCOMING'
+          ? settings.upcomingEventVisualPrompt?.trim() || ''
+          : settings.developmentVisualPrompt?.trim() || '';
+
+    const visualDirection = settings.visualDirectorEnabled
+      ? [
+          settings.visualDirectorPrompt?.trim(),
+
+          `VISUAL MODE: ${visualMode}.`,
+
+          heroStory?.sport ? `HERO SPORT: ${heroStory.sport}.` : '',
+
+          heroEmotion,
+
+          `Story 01 visual weight: ${settings.heroStoryWeight}%.`,
+
+          uniqueSports.length === 1
+            ? settings.singleSportVisualPrompt?.trim()
+            : settings.multiSportVisualPrompt?.trim(),
+
+          edition === 'MORNING'
+            ? settings.morningVisualDirection?.trim()
+            : settings.eveningVisualDirection?.trim(),
+
+          ...visualStories.map(
+            (story) =>
+              `STORY ${story.priority}: sport=${story.sport}; status=${story.eventStatus}; verified context=${story.headline} — ${story.summary}`,
+          ),
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : '';
+
+    const visualContext = visualStories
+      .map((story) => `${story.headline} — ${story.summary}`)
+      .filter(Boolean)
+      .join(' | ');
+
+    return {
+      content: this.compactTelegramCaption(lines.join('\n'), edition, settings),
+      imageHighlights,
+      visualContext,
+      visualDirection,
+    };
+  }
+
+  private cleanSportsVisibleText(value: string | undefined | null): string {
+    return (
+      (value || '')
+        // Markdown headings / blockquotes.
+        .replace(/^[ \t]*#{1,6}[ \t]*/gm, '')
+        .replace(/^[ \t]*>{1,3}[ \t]*/gm, '')
+
+        // Markdown separators.
+        .replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '')
+
+        // Markdown emphasis.
+        .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+        .replace(/_{1,3}([^_]+)_{1,3}/g, '$1')
+
+        // Numeric citation markers: [1], [2,3], [1-3], 【1】.
+        .replace(/\[(?:\d+[\s,;–—-]*)+\]/g, '')
+        .replace(/【\s*\d+(?:\s*[-–—,]\s*\d+)*\s*】/g, '')
+
+        // Markdown links: [label](url) -> label.
+        .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1')
+
+        // Bare markdown control characters left behind.
+        .replace(/^[ \t]*[`*_~]+[ \t]*/gm, '')
+        .replace(/[ \t]+[`*_~]+[ \t]*$/gm, '')
+
+        // Normalise spacing.
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+    );
+  }
+
+  private compactTelegramCaption(
+    content: string,
+    edition: 'MORNING' | 'EVENING',
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ): string {
+    const sourceLine = new RegExp('^来源\\s*/\\s*Source\\s*:', 'i');
+    const numberedLine = new RegExp('^[0-9１-９]\\s*[️⃣.)、-]?');
+    const numberedEmojiLine = new RegExp('^[0-9]\\ufe0f?\\u20e3');
+
+    const normalised = (content || '')
+      .replace(new RegExp('\\\\\\n', 'g'), '\n')
+      .replace(new RegExp('<[^>]+>', 'g'), '')
+      .replace(
+        new RegExp('https?://(?!rebrand\\.ly/mgmbetae0dcf)\\S+', 'g'),
+        '',
+      )
+      .replace(new RegExp('\\*\\*', 'g'), '')
+      .replace(
+        new RegExp('Atlas Sports News', 'gi'),
+        settings.mastheadBrandText?.trim() || '',
+      )
+      .replace(
+        new RegExp('Atlas News', 'gi'),
+        settings.mastheadBrandText?.trim() || '',
+      )
+      .replace(new RegExp('[ \\t]+\\n', 'g'), '\n')
+      .replace(new RegExp('\\n{3,}', 'g'), '\n\n')
+      .trim();
+
+    const lines = normalised
+      .split(new RegExp('\\n+'))
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    type StoryBlock = {
+      title: string;
+      summary: string[];
+    };
+
+    const stories: StoryBlock[] = [];
+
+    let currentStory: StoryBlock | null = null;
+
+    for (const line of lines) {
+      if (sourceLine.test(line)) {
+        continue;
+      }
+
+      const isItemTitle =
+        numberedLine.test(line) || numberedEmojiLine.test(line);
+
+      if (isItemTitle) {
+        if (stories.length >= 3) {
+          break;
+        }
+
+        currentStory = {
+          title: line
+            .replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '')
+            .trim(),
+          summary: [],
+        };
+
+        stories.push(currentStory);
+        continue;
+      }
+
+      if (currentStory && stories.length <= 3) {
+        const cleanedLine = line
+          .replace(new RegExp('来源\\s*/\\s*Source.*$', 'i'), '')
+          .replace(new RegExp('Read more.*$', 'i'), '')
+          .trim();
+
+        if (cleanedLine) {
+          currentStory.summary.push(cleanedLine);
+        }
+      }
+    }
+
+    const cleanCompact = (value: string, maxLength: number) => {
+      const compact = value.replace(/[ \t]+/g, ' ').trim();
+
+      if (!compact || maxLength <= 0) {
+        return '';
+      }
+
+      if (compact.length <= maxLength) {
+        return compact;
+      }
+
+      /*
+       * Sentence-safe compression.
+       *
+       * Prefer a complete sentence. Never return a mechanically
+       * sliced English or Chinese sentence such as:
+       * "Malaysia time on"
+       */
+      const sentenceMatches =
+        compact.match(/[^。！？.!?]+[。！？.!?]+|[^。！？.!?]+$/g) || [];
+
+      const completeSentences: string[] = [];
+      let currentLength = 0;
+
+      for (const sentence of sentenceMatches) {
+        const cleanSentence = sentence.trim();
+
+        if (!cleanSentence) {
+          continue;
+        }
+
+        const nextLength =
+          currentLength +
+          cleanSentence.length +
+          (completeSentences.length > 0 ? 1 : 0);
+
+        if (nextLength > maxLength) {
+          break;
+        }
+
+        completeSentences.push(cleanSentence);
+        currentLength = nextLength;
+      }
+
+      if (completeSentences.length > 0) {
+        return completeSentences.join(' ');
+      }
+
+      /*
+       * If the first sentence itself is too long, reduce it to a
+       * complete clause instead of chopping at an arbitrary index.
+       */
+      const firstSentence = sentenceMatches[0]?.trim() || compact;
+
+      const clauses = firstSentence
+        .split(/(?<=[,，;；:：])/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      const completeClauses: string[] = [];
+      let clauseLength = 0;
+
+      for (const clause of clauses) {
+        const nextLength =
+          clauseLength + clause.length + (completeClauses.length > 0 ? 1 : 0);
+
+        if (nextLength > maxLength) {
+          break;
+        }
+
+        completeClauses.push(clause);
+        clauseLength = nextLength;
+      }
+
+      if (completeClauses.length > 0) {
+        return completeClauses.join(' ');
+      }
+
+      /*
+       * Last resort: omit the summary.
+       * Title + other language + CTA are preferable to broken prose.
+       */
+      return '';
+    };
+
+    const compactBilingualSummary = (
+      value: string,
+      zhMax: number,
+      enMax: number,
+    ) => {
+      const parts = value
+        .split('｜')
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+      if (parts.length >= 2) {
+        const zh = cleanCompact(parts[0], zhMax);
+        const en = cleanCompact(parts.slice(1).join('｜'), enMax);
+
+        return [zh, en].filter(Boolean).join('｜');
+      }
+
+      return cleanCompact(value, zhMax + enMax);
+    };
+
+    const header =
+      edition === 'MORNING'
+        ? settings.telegramMorningHeader
+        : settings.telegramEveningHeader;
+
+    const cta = settings.telegramCtaEnabled
+      ? [settings.telegramCtaText?.trim(), settings.telegramCtaUrl?.trim()]
+          .filter(Boolean)
+          .join('\n')
+      : '';
+
+    const targetLength = settings.telegramCaptionTarget;
+
+    const summaryBudgets = settings.telegramShowSummaries
+      ? [
+          {
+            zh: settings.telegramSummaryZhLong,
+            en: settings.telegramSummaryEnLong,
+          },
+          {
+            zh: settings.telegramSummaryZhMedium,
+            en: settings.telegramSummaryEnMedium,
+          },
+          {
+            zh: settings.telegramSummaryZhShort,
+            en: settings.telegramSummaryEnShort,
+          },
+          {
+            zh: settings.telegramSummaryZhCompact,
+            en: settings.telegramSummaryEnCompact,
+          },
+          { zh: 0, en: 0 },
+        ]
+      : [{ zh: 0, en: 0 }];
+
+    const buildCaption = (zhMax: number, enMax: number) => {
+      const output: string[] = [header, '', settings.telegramSectionLabel];
+
+      stories.slice(0, settings.storyMinimum).forEach((story) => {
+        output.push('');
+        output.push(story.title);
+
+        if (zhMax <= 0 || enMax <= 0) {
+          return;
+        }
+
+        const summary = story.summary.join(' ').trim();
+
+        if (!summary) {
+          return;
+        }
+
+        const compactSummary = compactBilingualSummary(summary, zhMax, enMax);
+
+        if (compactSummary) {
+          output.push(`   ${compactSummary}`);
+        }
+      });
+
+      const body = output.join('\n').trim();
+
+      return cta ? `${body}\n\n${cta}` : body;
+    };
+
+    for (const budget of summaryBudgets) {
+      const candidate = buildCaption(budget.zh, budget.en);
+
+      if (candidate.length <= targetLength) {
+        return candidate;
+      }
+    }
+
+    /*
+     * Final safety fallback:
+     * Never remove story titles or CTA.
+     */
+    return buildCaption(0, 0);
+  }
+
+  async forceCreateMorningEditionNow() {
+    return this.forceCreateEditionNow('MORNING');
+  }
+
+  async forceCreateEveningEditionNow() {
+    return this.forceCreateEditionNow('EVENING');
+  }
+
+  private async forceCreateEditionNow(edition: Edition) {
+    const settings = await this.sportsNewsSettings.get();
+
+    if (!settings.forceRunEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Run is disabled in Sports News Settings.',
+      };
+    }
+
+    if (edition === 'MORNING' && !settings.forceMorningEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Morning is disabled in Sports News Settings.',
+      };
+    }
+
+    if (edition === 'EVENING' && !settings.forceEveningEnabled) {
+      return {
+        success: false,
+        skipped: true,
+        edition,
+        reason: 'Force Evening is disabled in Sports News Settings.',
+      };
+    }
+
+    if (settings.forceRunExistingPolicy === 'MARK_OLD') {
+      await this.markTodayEditionAsOld(edition, settings);
+    }
+
+    if (settings.forceRunExistingPolicy === 'DELETE') {
+      await this.deleteTodayEdition(edition, settings);
+    }
+
+    return this.createEdition(edition);
+  }
+
+  private async markTodayEditionAsOld(
+    edition: Edition,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: settings.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const dateKey = formatter.format(new Date());
+
+    const title = this.renderPostTitle(edition, dateKey, settings);
+
+    const channels = (
+      await Promise.all(
+        getEditionPlatforms(edition, settings).map((platform) =>
+          this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        ),
+      )
+    ).filter((channel) => channel !== null);
+
+    if (channels.length === 0) {
+      return 0;
+    }
+
+    const posts = await this.prisma.scheduledPost.findMany({
+      where: {
+        channelId: {
+          in: channels.map((channel) => channel.id),
+        },
+        title,
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+      },
+    });
+
+    for (const post of posts) {
+      await this.prisma.scheduledPost.update({
+        where: {
+          id: post.id,
+        },
+        data: {
+          title: `${post.title} [OLD ${new Date().toISOString()}]`,
+          dedupeKey: null,
+        },
+      });
+    }
+
+    return posts.length;
+  }
+
+  private async deleteTodayEdition(
+    edition: Edition,
+    settings: Awaited<ReturnType<SportsNewsSettingsService['get']>>,
+  ) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: settings.timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const dateKey = formatter.format(new Date());
+
+    const title = this.renderPostTitle(edition, dateKey, settings);
+
+    const channels = (
+      await Promise.all(
+        getEditionPlatforms(edition, settings).map((platform) =>
+          this.resolveChannel(
+            platform,
+            platform === SocialPlatform.TELEGRAM
+              ? settings.telegramChannelId
+              : settings.facebookChannelId,
+          ),
+        ),
+      )
+    ).filter((channel) => channel !== null);
+
+    if (channels.length === 0) {
+      return 0;
+    }
+
+    const result = await this.prisma.scheduledPost.deleteMany({
+      where: {
+        channelId: {
+          in: channels.map((channel) => channel.id),
+        },
+        title,
+      },
+    });
+
+    return result.count;
+  }
+}

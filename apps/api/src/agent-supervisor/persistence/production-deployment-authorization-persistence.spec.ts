@@ -1,0 +1,196 @@
+import { mapTaskRecord } from './supervisor-persistence.mapper';
+import { createTestSupervisorAuthority } from '../authority/test-authority';
+import type { ConfigService } from '@nestjs/config';
+import { HumanOwnerApprovalService } from '../authority/human-owner-approval.service';
+
+const BASE_SHA = 'a'.repeat(40);
+const HEAD_SHA = 'b'.repeat(40);
+// R2A_OUT_OF_SCOPE_PERSISTENCE_OWNER_FIXTURE_BEGIN
+const R2A_PERSISTENCE_OWNER_ID =
+  'owner-user-1';
+
+const R2A_PERSISTENCE_OWNER_TOKEN =
+  'r2a-persistence-owner-token';
+
+function r2aDeployApprovalFixture() {
+  const authority =
+    createTestSupervisorAuthority();
+
+  const keyRegistry =
+    (
+      authority as unknown as {
+        keyRegistry?: unknown;
+      }
+    ).keyRegistry;
+
+  if (!keyRegistry) {
+    throw new Error(
+      'r2a_persistence_owner_keyring_missing',
+    );
+  }
+
+  const config = {
+    get: (key: string) => {
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_USER_ID'
+      ) {
+        return R2A_PERSISTENCE_OWNER_ID;
+      }
+
+      if (
+        key ===
+        'ATLAS_SUPERVISOR_OWNER_TOKEN'
+      ) {
+        return R2A_PERSISTENCE_OWNER_TOKEN;
+      }
+
+      return undefined;
+    },
+  } as unknown as ConfigService;
+
+  const approvals =
+    new HumanOwnerApprovalService(
+      config,
+      keyRegistry as never,
+    );
+
+  const candidate = {
+    action:
+      'deploy_production' as const,
+    targetBranch:
+      'production/atlas',
+    baseSha: BASE_SHA,
+    headSha: HEAD_SHA,
+    changedFiles: [
+      'apps/api/src/example.ts',
+    ],
+  };
+
+  const proof =
+    approvals.verifyAuthentication(
+      {
+        userId:
+          R2A_PERSISTENCE_OWNER_ID,
+        ownerAction: '1',
+        ownerToken:
+          R2A_PERSISTENCE_OWNER_TOKEN,
+      },
+      {
+        action: 'DEPLOY',
+        candidate,
+        service: 'api',
+      },
+    );
+
+  return approvals.issueDeployApproval(
+    proof,
+    candidate,
+    'api',
+    new Date(
+      '2026-09-02T00:00:00.000Z',
+    ),
+  );
+}
+
+const R2A_DEPLOY_AUTHORIZATION =
+  r2aDeployApprovalFixture();
+
+const SIGNATURE =
+  R2A_DEPLOY_AUTHORIZATION.signature;
+// R2A_OUT_OF_SCOPE_PERSISTENCE_OWNER_FIXTURE_END
+
+function record(ownerDeploymentAuthorization: unknown) {
+  const candidate = {
+    action: 'deploy_production',
+    targetBranch: 'production/atlas',
+    baseSha: BASE_SHA,
+    headSha: HEAD_SHA,
+    changedFiles: ['apps/api/src/example.ts'],
+  };
+  return {
+    id: 'ATLAS-20260902-persistence',
+    objective: 'Persist service-bound deployment authorization',
+    owner: 'infra',
+    status: 'APPROVED',
+    allowedPaths: ['apps/api/src/example.ts'],
+    forbiddenActions: ['merge'],
+    dependsOn: [],
+    acceptance: ['service binding'],
+    evidence: {
+      rootCause: 'Deployment authorization service was not persisted',
+      changedFiles: ['apps/api/src/example.ts'],
+      tests: ['persistence mapping'],
+      build: 'PASS',
+      regression: [],
+      deploymentState: 'NOT_DEPLOYED',
+      gitState: 'NO_INTEGRATION_PERFORMED',
+      remainingRisk: [],
+      reviewCandidate: candidate,
+      ownerDeploymentAuthorization,
+    },
+    blockingReason: null,
+    failureReason: null,
+    createdAt: new Date('2026-09-02T00:00:00.000Z'),
+    updatedAt: new Date('2026-09-02T00:00:00.000Z'),
+  };
+}
+
+function authorization(service: unknown = 'api') {
+  return {
+    candidate: {
+      action: 'deploy_production',
+      targetBranch: 'production/atlas',
+      baseSha: BASE_SHA,
+      headSha: HEAD_SHA,
+      changedFiles: ['apps/api/src/example.ts'],
+    },
+    service,
+    authorizedBy:
+      R2A_DEPLOY_AUTHORIZATION.authorizedBy,
+    authorizedAt:
+      R2A_DEPLOY_AUTHORIZATION.authorizedAt,
+    signature: SIGNATURE,
+  };
+}
+
+describe('production deployment authorization persistence', () => {
+  it('round-trips the authorized production service', () => {
+    const task = mapTaskRecord(record(authorization()));
+
+    expect(
+      (
+        task.evidence?.ownerDeploymentAuthorization as
+          | { service?: string }
+          | undefined
+      )?.service,
+    ).toBe('api');
+  });
+
+  it('round-trips engineering-verifier as an authorized production service', () => {
+    const task = mapTaskRecord(
+      record(authorization('engineering-verifier')),
+    );
+
+    expect(
+      task.evidence?.ownerDeploymentAuthorization?.service,
+    ).toBe('engineering-verifier');
+  });
+
+  it.each([undefined, 'unknown-service']) (
+    'fails closed for invalid persisted deployment service %p',
+    (service) => {
+      const value = authorization(service);
+      if (service === undefined) delete (value as { service?: unknown }).service;
+
+      expect(() => mapTaskRecord(record(value))).toThrow();
+      try {
+        mapTaskRecord(record(value));
+      } catch (error) {
+        expect(error).toMatchObject({
+          response: { code: 'supervisor_persistence_error' },
+        });
+      }
+    },
+  );
+});
