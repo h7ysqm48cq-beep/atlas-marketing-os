@@ -33,6 +33,7 @@ const FULL_GIT_SHA = /^[0-9a-f]{40}$/i;
 const PRODUCTION_QUALIFICATION_SERVICES = [
   'engineering-runner',
   'engineering-verifier',
+  'browser-worker',
 ] as const;
 
 export type ProductionDeploymentQualificationService =
@@ -76,6 +77,7 @@ const PRODUCTION_QUALIFICATION_ALLOWED_PATH: Record<
     'apps/engineering-runner/check-runner-production-deployment.cjs',
   'engineering-verifier':
     'apps/engineering-runner/check-verifier-production-deployment.cjs',
+  'browser-worker': 'apps/browser-worker/railway.json',
 };
 
 function productionQualificationTaskId(
