@@ -254,14 +254,57 @@ describe('production deployment dispatch reservation', () => {
     ).toBeUndefined();
   });
 
-  it('never claims the same approved deployment twice', async () => {
+  it('idempotently reclaims the exact reservation for the same stable dispatcher identity', async () => {
+    const { task, execution } = await createReadyWorkerDeployment();
+    await approve(task.id);
+
+    const dispatcherId =
+      'atlas-production-deploy-executor:engineering-runner';
+    const first = await gateway.claimProductionDeploymentDispatch({
+      service: 'engineering-runner',
+      github: CANONICAL_GITHUB,
+      dispatcherId,
+    });
+    expect(first.claimed).toBe(true);
+
+    const afterFirst = await supervisor.getTask(task.id);
+    const firstReservation =
+      afterFirst.evidence?.ownerDeploymentDispatchReservation;
+    expect(firstReservation).toBeDefined();
+
+    const second = await gateway.claimProductionDeploymentDispatch({
+      service: 'engineering-runner',
+      github: CANONICAL_GITHUB,
+      dispatcherId,
+    });
+
+    expect(second).toEqual({
+      claimed: true,
+      reason: null,
+      service: 'engineering-runner',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+      reservationId: first.reservationId,
+    });
+
+    const afterSecond = await supervisor.getTask(task.id);
+    expect(afterSecond.evidence?.ownerDeploymentDispatchReservation).toEqual(
+      firstReservation,
+    );
+    expect(
+      afterSecond.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+  });
+
+  it('does not allow a different dispatcher identity to take an existing reservation', async () => {
     const { task } = await createReadyWorkerDeployment();
     await approve(task.id);
 
     const first = await gateway.claimProductionDeploymentDispatch({
       service: 'engineering-runner',
       github: CANONICAL_GITHUB,
-      dispatcherId: 'github-actions:101:1:engineering-runner',
+      dispatcherId: 'atlas-production-deploy-executor:engineering-runner',
     });
     expect(first.claimed).toBe(true);
 
@@ -269,7 +312,7 @@ describe('production deployment dispatch reservation', () => {
       gateway.claimProductionDeploymentDispatch({
         service: 'engineering-runner',
         github: CANONICAL_GITHUB,
-        dispatcherId: 'github-actions:102:1:engineering-runner',
+        dispatcherId: 'other-dispatcher:engineering-runner',
       }),
     ).resolves.toMatchObject({
       claimed: false,
@@ -278,6 +321,11 @@ describe('production deployment dispatch reservation', () => {
       commitSha: SHA,
       taskId: task.id,
     });
+
+    const persisted = await supervisor.getTask(task.id);
+    expect(
+      persisted.evidence?.ownerDeploymentDispatchReservation?.reservedBy,
+    ).toBe('atlas-production-deploy-executor:engineering-runner');
   });
 
   it('does not claim a signed deployment before Human Owner task approval', async () => {

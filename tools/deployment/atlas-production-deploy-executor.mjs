@@ -20,6 +20,17 @@ export const SERVICES = Object.freeze([
 
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 const RESERVATION_ID = /^ATLAS-DISPATCH-[0-9a-f]{64}$/i;
+export function dispatcherIdFor(service) {
+  if (
+    !SERVICES.some(
+      (entry) => entry.name === service?.name && entry.id === service?.id,
+    )
+  ) {
+    throw new Error('unsupported executor service');
+  }
+  return 'atlas-production-deploy-executor:' + service.name;
+}
+
 const TERMINAL = new Set([
   'SUCCESS',
   'FAILED',
@@ -102,15 +113,18 @@ export async function fetchProductionSha(env, fetchImpl = fetch) {
   if (repository !== EXPECTED_REPOSITORY) {
     throw new Error('unexpected GitHub repository');
   }
-  const token = required(env, 'GITHUB_TOKEN');
+  const token = env.GITHUB_TOKEN?.trim() ?? '';
+  const headers = {
+    accept: 'application/vnd.github+json',
+    'x-github-api-version': '2022-11-28',
+  };
+  if (token) {
+    headers.authorization = 'Bearer ' + token;
+  }
   const response = await fetchImpl(
     `https://api.github.com/repos/${repository}/git/ref/heads/${PRODUCTION_BRANCH}`,
     {
-      headers: {
-        accept: 'application/vnd.github+json',
-        authorization: `Bearer ${token}`,
-        'x-github-api-version': '2022-11-28',
-      },
+      headers,
       signal: AbortSignal.timeout(15_000),
     },
   );
@@ -137,8 +151,6 @@ export async function claimDispatch(
   const ciToken = required(env, 'ATLAS_SUPERVISOR_CI_TOKEN');
   const repository = required(env, 'GITHUB_REPOSITORY');
   const [repositoryOwner, repositoryName] = repository.split('/');
-  const runId = required(env, 'GITHUB_RUN_ID');
-  const runAttempt = required(env, 'GITHUB_RUN_ATTEMPT');
 
   const response = await fetchImpl(
     `${apiBase}/engineering/supervisor/gateway/production-deployment/dispatch/claim`,
@@ -156,8 +168,7 @@ export async function claimDispatch(
           branch: PRODUCTION_BRANCH,
           commitSha: sha,
         },
-        dispatcherId:
-          `github-actions:${runId}:${runAttempt}:${service.name}`,
+        dispatcherId: dispatcherIdFor(service),
       }),
       signal: AbortSignal.timeout(15_000),
     },
