@@ -124,11 +124,12 @@ const CANONICAL_GITHUB = {
 describe('Production deployment resolver', () => {
   let supervisor: AgentSupervisorService;
   let dispatcher: WorkerDispatcherService;
+  let taskStore: MemorySupervisorTaskStore;
   let executionStore: MemorySupervisorExecutionStore;
   let gateway: AgentGatewayService;
 
   beforeEach(() => {
-    const taskStore = new MemorySupervisorTaskStore();
+    taskStore = new MemorySupervisorTaskStore();
     const fileStore = new MemoryFileOwnershipStore();
     executionStore = new MemorySupervisorExecutionStore();
     const config = {
@@ -303,6 +304,141 @@ describe('Production deployment resolver', () => {
       consumedBy: 'deploy-gate',
     });
     expect(execution.id).toBeDefined();
+  });
+
+  it('resolves a reserved deployment after the approval TTL and consumes it once', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const approvedAt = new Date('2026-09-30T00:00:00.000Z');
+      jest.setSystemTime(approvedAt);
+      const { task, execution } = await createApprovedDeployment(
+        'engineering-runner',
+        { runtimeRefresh: true },
+      );
+      const candidate = task.evidence?.reviewCandidate;
+      expect(candidate).toBeDefined();
+      if (!candidate) return;
+
+      await supervisor.reserveProductionDeploymentDispatch(
+        task.id,
+        candidate,
+        'engineering-runner',
+        'ATLAS-DISPATCH-' + 'c'.repeat(64),
+        'github-actions:200:1:engineering-runner',
+      );
+
+      jest.setSystemTime(
+        new Date(approvedAt.getTime() + 11 * 60_000),
+      );
+
+      await expect(
+        resolve({
+          service: 'engineering-runner',
+          github: CANONICAL_GITHUB,
+        }),
+      ).resolves.toEqual({
+        allowed: true,
+        reason: null,
+        taskId: task.id,
+        executionId: execution.id,
+      });
+
+      expect(
+        (await supervisor.getTask(task.id)).evidence
+          ?.ownerDeploymentAuthorizationConsumption,
+      ).toMatchObject({
+        consumedBy: 'deploy-gate',
+      });
+      await expect(
+        resolve({
+          service: 'engineering-runner',
+          github: CANONICAL_GITHUB,
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'owner_deployment_authorization_already_consumed',
+        },
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('fails closed when a persisted dispatch reservation is malformed', async () => {
+    const { task } = await createApprovedDeployment(
+      'engineering-runner',
+      { runtimeRefresh: true },
+    );
+    const candidate = task.evidence?.reviewCandidate;
+    expect(candidate).toBeDefined();
+    if (!candidate) return;
+
+    await supervisor.reserveProductionDeploymentDispatch(
+      task.id,
+      candidate,
+      'engineering-runner',
+      'ATLAS-DISPATCH-' + 'd'.repeat(64),
+      'github-actions:201:1:engineering-runner',
+    );
+    const persisted = await taskStore.get(task.id);
+    expect(persisted?.evidence?.ownerDeploymentDispatchReservation).toBeDefined();
+    if (!persisted?.evidence?.ownerDeploymentDispatchReservation) return;
+    persisted.evidence.ownerDeploymentDispatchReservation.reservedAt =
+      'not-a-timestamp';
+    await taskStore.saveIfUnchanged(
+      persisted,
+      new Date(persisted.updatedAt),
+    );
+
+    await expect(
+      resolve({
+        service: 'engineering-runner',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_dispatch_reservation_invalid',
+      },
+    });
+  });
+
+  it('fails closed when a persisted dispatch reservation does not match the service', async () => {
+    const { task } = await createApprovedDeployment(
+      'engineering-runner',
+      { runtimeRefresh: true },
+    );
+    const candidate = task.evidence?.reviewCandidate;
+    expect(candidate).toBeDefined();
+    if (!candidate) return;
+
+    await supervisor.reserveProductionDeploymentDispatch(
+      task.id,
+      candidate,
+      'engineering-runner',
+      'ATLAS-DISPATCH-' + 'e'.repeat(64),
+      'github-actions:202:1:engineering-runner',
+    );
+    const persisted = await taskStore.get(task.id);
+    expect(persisted?.evidence?.ownerDeploymentDispatchReservation).toBeDefined();
+    if (!persisted?.evidence?.ownerDeploymentDispatchReservation) return;
+    persisted.evidence.ownerDeploymentDispatchReservation.service =
+      'engineering-verifier';
+    await taskStore.saveIfUnchanged(
+      persisted,
+      new Date(persisted.updatedAt),
+    );
+
+    await expect(
+      resolve({
+        service: 'engineering-runner',
+        github: CANONICAL_GITHUB,
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_deployment_dispatch_reservation_invalid',
+      },
+    });
   });
 
   it('prefers the unique unconsumed authorization when an older same-SHA authorization is already consumed', async () => {

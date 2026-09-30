@@ -847,10 +847,16 @@ export class AgentSupervisorService {
       });
     }
 
+    const verifiedAt = this.ownerDeploymentAuthorizationVerificationTime(
+      task,
+      candidate,
+      service,
+    );
     const claims = this.verifyOwnerDeploymentAuthorization(
       authorization,
       candidate,
       service,
+      verifiedAt,
     );
     const consumer = consumedBy.trim();
     if (!consumer) {
@@ -1019,17 +1025,65 @@ export class AgentSupervisorService {
       });
     }
 
+    const verifiedAt = this.ownerDeploymentAuthorizationVerificationTime(
+      task,
+      requestedCandidate,
+      requestedService,
+    );
     this.verifyOwnerDeploymentAuthorization(
       authorization,
       requestedCandidate,
       requestedService,
+      verifiedAt,
     );
+  }
+
+  private ownerDeploymentAuthorizationVerificationTime(
+    task: SupervisorTask,
+    candidate: SupervisorReviewCandidate,
+    service: ProductionDeploymentService,
+  ): Date | undefined {
+    const reservation = task.evidence?.ownerDeploymentDispatchReservation;
+    if (!reservation) {
+      return undefined;
+    }
+
+    try {
+      const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
+      this.requireCanonicalProductionDeployment(requestedCandidate);
+      const requestedService = this.requireProductionDeploymentService(service);
+      const reservedCandidate = normalizeSupervisorReviewCandidate(
+        reservation.candidate,
+      );
+      const reservedService = this.requireProductionDeploymentService(
+        reservation.service,
+      );
+      const reservedAtMs = Date.parse(reservation.reservedAt);
+      if (
+        !/^ATLAS-DISPATCH-[0-9a-f]{64}$/i.test(reservation.reservationId) ||
+        !reservation.reservedBy ||
+        reservation.reservedBy !== reservation.reservedBy.trim() ||
+        reservation.reservedBy.length > 160 ||
+        reservedService !== requestedService ||
+        !this.sameCandidate(reservedCandidate, requestedCandidate) ||
+        !Number.isFinite(reservedAtMs) ||
+        new Date(reservedAtMs).toISOString() !== reservation.reservedAt
+      ) {
+        throw new Error('dispatch_reservation_invalid');
+      }
+      return new Date(reservedAtMs);
+    } catch {
+      throw new BadRequestException({
+        code: 'owner_deployment_dispatch_reservation_invalid',
+      });
+    }
   }
 
   private verifyOwnerDeploymentAuthorization(
     authorization: NonNullable<SupervisorEvidence['ownerDeploymentAuthorization']>,
     candidate: SupervisorReviewCandidate,
     service: ProductionDeploymentService,
+    verifiedAt?: Date,
   ): AuthorityClaims {
     const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
     const authorizedCandidate = normalizeSupervisorReviewCandidate(authorization.candidate);
@@ -1069,6 +1123,7 @@ export class AgentSupervisorService {
         actorType: 'HUMAN_OWNER',
         tokenType: 'DEPLOY_APPROVAL',
         purpose: 'APPROVE_DEPLOY',
+        ...(verifiedAt ? { now: verifiedAt } : {}),
       });
       if (
         claims.authorizedBy !== authorizedBy ||
