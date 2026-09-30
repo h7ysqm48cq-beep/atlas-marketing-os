@@ -553,7 +553,33 @@ export class AgentGatewayService {
     }
 
     const { task, candidate, execution } = matches[0];
-    if (task.evidence?.ownerDeploymentDispatchReservation) {
+    const reservationId = productionDeploymentDispatchReservationId(
+      task.id,
+      service,
+      sha,
+    );
+    const existingReservation =
+      task.evidence?.ownerDeploymentDispatchReservation;
+    if (existingReservation) {
+      const existingCandidate = this.normalizeCandidate(
+        existingReservation.candidate,
+      );
+      if (
+        existingReservation.reservationId === reservationId &&
+        existingReservation.reservedBy === dispatcherId &&
+        existingReservation.service === service &&
+        this.sameCandidate(candidate, existingCandidate)
+      ) {
+        return {
+          claimed: true,
+          reason: null,
+          service,
+          commitSha: sha,
+          taskId: task.id,
+          executionId: execution.id,
+          reservationId,
+        };
+      }
       return {
         claimed: false,
         reason: 'already_reserved',
@@ -564,11 +590,6 @@ export class AgentGatewayService {
       };
     }
 
-    const reservationId = productionDeploymentDispatchReservationId(
-      task.id,
-      service,
-      sha,
-    );
     await this.supervisor.reserveProductionDeploymentDispatch(
       task.id,
       candidate,
