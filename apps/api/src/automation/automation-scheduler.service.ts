@@ -1,26 +1,40 @@
 import {
   Injectable,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import {
   Cron,
+  CronExpression,
 } from '@nestjs/schedule';
 import { PublisherService } from './publisher.service';
 
 @Injectable()
-export class AutomationSchedulerService {
+export class AutomationSchedulerService implements OnModuleInit {
   private readonly logger =
     new Logger(
       AutomationSchedulerService.name,
     );
+
+  private readonly enabled =
+    process.env.AUTOMATION_SCHEDULER_ENABLED !==
+    'false';
 
   constructor(
     private readonly publisher:
       PublisherService,
   ) {}
 
+  onModuleInit() {
+    if (!this.enabled) {
+      this.logger.warn(
+        'Automation publisher scheduler is disabled by AUTOMATION_SCHEDULER_ENABLED=false.',
+      );
+    }
+  }
+
   @Cron(
-    '*/10 * * * *',
+    CronExpression.EVERY_MINUTE,
     {
       name: 'atlas-publisher',
       timeZone: 'Asia/Kuala_Lumpur',
@@ -28,6 +42,10 @@ export class AutomationSchedulerService {
     },
   )
   async publishDuePosts() {
+    if (!this.enabled) {
+      return;
+    }
+
     const startedAt = Date.now();
 
     try {
