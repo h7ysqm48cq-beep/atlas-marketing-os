@@ -996,6 +996,159 @@ test('Exact existing-candidate verifier refuses completion when production moves
   assert.match(failed, /existing_candidate_production_baseline_drift/);
 });
 
+
+test('existing-candidate heartbeat starts before slow candidate preparation', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let heartbeats = 0;
+  let heartbeatsDuringPrepare = 0;
+  active.heartbeat = async () => { heartbeats++; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => {
+        const deadline = Date.now() + 120;
+        while (heartbeats < 3 && Date.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 5));
+        }
+        heartbeatsDuringPrepare = heartbeats;
+        return {
+          path: '/tmp/head', baseSha: 'a'.repeat(40),
+          verifiedHeadSha: 'b'.repeat(40),
+          verifiedChangedPaths: ['apps/example.ts'],
+          verifyProductionBaseline: async () => undefined,
+          workspace: {
+            listChangedFiles: async () => [],
+            fingerprint: async () => 'unchanged-git-state',
+          },
+          cleanup: async () => undefined,
+        };
+      },
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 5,
+  });
+  assert.equal(await runner.runOnce(), 'completed');
+  assert.ok(heartbeatsDuringPrepare > 2,
+    'heartbeat must be active while candidate preparation is still running');
+});
+
+test('existing-candidate heartbeat failure during preparation fails closed', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let heartbeatCalls = 0;
+  let completed = 0;
+  let cleaned = 0;
+  let failed = '';
+  active.heartbeat = async () => {
+    heartbeatCalls++;
+    if (heartbeatCalls >= 2) throw new Error('heartbeat_during_prepare_failed');
+  };
+  active.complete = async () => { completed++; };
+  active.fail = async (reason: string) => { failed = reason; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => {
+        await new Promise(resolve => setTimeout(resolve, 25));
+        return {
+          path: '/tmp/head', baseSha: 'a'.repeat(40),
+          verifiedHeadSha: 'b'.repeat(40),
+          verifiedChangedPaths: ['apps/example.ts'],
+          verifyProductionBaseline: async () => undefined,
+          workspace: {
+            listChangedFiles: async () => [],
+            fingerprint: async () => 'unchanged-git-state',
+          },
+          cleanup: async () => { cleaned++; },
+        };
+      },
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 5,
+  });
+  assert.equal(await runner.runOnce(), 'failed');
+  const heartbeatsAtFailure = heartbeatCalls;
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(completed, 0);
+  assert.equal(cleaned, 1);
+  assert.equal(heartbeatCalls, heartbeatsAtFailure,
+    'heartbeat timer must stop after a failed execution');
+  assert.match(failed, /heartbeat_during_prepare_failed/);
+});
+
+test('existing-candidate heartbeat timer is cleared after completion', async () => {
+  const { EngineeringRunner } = await import('./runner.ts');
+  const assignment = {
+    ...implementationAssignment,
+    executionPurpose: 'INDEPENDENT_VERIFICATION' as const,
+    verificationMode: 'EXISTING_CANDIDATE' as const,
+    candidateBaseSha: 'a'.repeat(40),
+    candidateHeadSha: 'b'.repeat(40),
+    productionBaselineSha: 'c'.repeat(40),
+  };
+  const active = session(assignment) as any;
+  let heartbeats = 0;
+  active.heartbeat = async () => { heartbeats++; };
+  const runner = new EngineeringRunner({
+    client: { claimNext: async () => active },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    candidateWorkspaceManager: {
+      prepare: async () => ({
+        path: '/tmp/head', baseSha: 'a'.repeat(40),
+        verifiedHeadSha: 'b'.repeat(40),
+        verifiedChangedPaths: ['apps/example.ts'],
+        verifyProductionBaseline: async () => undefined,
+        workspace: {
+          listChangedFiles: async () => [],
+          fingerprint: async () => 'unchanged-git-state',
+        },
+        cleanup: async () => undefined,
+      }),
+    },
+    executorFactory: () => ({ execute: async () => result }),
+    heartbeatIntervalMs: 5,
+  });
+  assert.equal(await runner.runOnce(), 'completed');
+  const heartbeatsAtReturn = heartbeats;
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(heartbeats, heartbeatsAtReturn,
+    'heartbeat timer must stop once the execution is terminal');
+});
+
 test('existing-candidate heartbeat survives slow final canonical production check', async () => {
   const { EngineeringRunner } = await import('./runner.ts');
   const assignment = {

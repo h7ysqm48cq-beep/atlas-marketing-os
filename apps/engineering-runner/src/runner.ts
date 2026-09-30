@@ -187,6 +187,14 @@ export class EngineeringRunner {
     try {
       let activeWorkspace = this.workspace;
       let activeExecutor = this.executor;
+
+      await session.heartbeat();
+      heartbeatTimer = setInterval(() => {
+        void session.heartbeat().catch((error) => {
+          heartbeatError ??= error;
+        });
+      }, this.heartbeatIntervalMs);
+
       const frozenBaseSha = session.assignment.frozenBaseSha;
       const verificationTarget =
         session.assignment.targetBranch ?? 'production/atlas';
@@ -268,16 +276,12 @@ export class EngineeringRunner {
         }
         await this.verifyProductionHead(session.assignment.candidateHeadSha!);
       }
+      if (heartbeatError) throw heartbeatError;
+
       const before = await activeWorkspace.listChangedFiles();
       const beforeFingerprint = useExistingCandidateFlow || useRuntimeRefreshFlow ||
         useImplementationResultFlow
         ? await activeWorkspace.fingerprint!() : undefined;
-      await session.heartbeat();
-      heartbeatTimer = setInterval(() => {
-        void session.heartbeat().catch((error) => {
-          heartbeatError ??= error;
-        });
-      }, this.heartbeatIntervalMs);
 
       const executionResult: WorkerExecutionResult = useMainSyncFlow
         ? {
@@ -484,6 +488,8 @@ export class EngineeringRunner {
       }
       return 'failed';
     } finally {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = undefined;
       if (terminalRecorded && candidateLease) {
         try {
           await candidateLease.cleanup();
