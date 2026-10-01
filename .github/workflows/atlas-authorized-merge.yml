@@ -4,6 +4,12 @@ name: atlas-authorized-merge
   workflow_run:
     workflows: [atlas-supervisor-gate]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: "Merged governed PR number requiring trusted attestation recovery"
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -14,8 +20,9 @@ jobs:
   authorized-merge:
     name: atlas-authorized-merge
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -23,8 +30,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RECOVERY_PR_NUMBER: ${{ github.event.inputs.pull_request_number }}
           SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
           SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
         shell: bash
@@ -35,8 +44,10 @@ jobs:
           const {
             GITHUB_TOKEN,
             REPOSITORY,
+            EVENT_NAME,
             RUN_ID,
-            HEAD_SHA,
+            HEAD_SHA: WORKFLOW_HEAD_SHA,
+            RECOVERY_PR_NUMBER,
             SUPERVISOR_API_URL,
             SUPERVISOR_CI_TOKEN,
           } = process.env;
@@ -44,15 +55,15 @@ jobs:
           for (const [key, value] of Object.entries({
             GITHUB_TOKEN,
             REPOSITORY,
-            RUN_ID,
-            HEAD_SHA,
+            EVENT_NAME,
             SUPERVISOR_API_URL,
             SUPERVISOR_CI_TOKEN,
           })) {
             if (!value) throw new Error(`${key} is missing`);
           }
-          if (!/^\d+$/.test(RUN_ID)) throw new Error('invalid workflow run id');
-          if (!/^[0-9a-f]{40}$/i.test(HEAD_SHA)) throw new Error('invalid workflow head sha');
+          if (!['workflow_run', 'workflow_dispatch'].includes(EVENT_NAME)) {
+            throw new Error('unsupported trusted merge event');
+          }
 
           const githubHeaders = {
             Accept: 'application/vnd.github+json',
@@ -119,50 +130,74 @@ jobs:
           }
 
           async function main() {
-            const run = await github(`/actions/runs/${RUN_ID}`);
-            if (
-              Number(run?.id) !== Number(RUN_ID) ||
-              run?.name !== 'atlas-supervisor-gate' ||
-              run?.path !== '.github/workflows/atlas-supervisor-gate.yml' ||
-              run?.event !== 'pull_request' ||
-              run?.conclusion !== 'success' ||
-              run?.repository?.full_name !== REPOSITORY ||
-              run?.head_repository?.full_name !== REPOSITORY ||
-              run?.head_sha !== HEAD_SHA
-            ) {
-              throw new Error('upstream workflow identity is not trusted');
+            let HEAD_SHA;
+            let PR_NUMBER;
+            let pr;
+
+            if (EVENT_NAME === 'workflow_run') {
+              if (!/^\d+$/.test(RUN_ID ?? '')) throw new Error('invalid workflow run id');
+              if (!/^[0-9a-f]{40}$/i.test(WORKFLOW_HEAD_SHA ?? '')) {
+                throw new Error('invalid workflow head sha');
+              }
+              HEAD_SHA = WORKFLOW_HEAD_SHA;
+
+              const run = await github(`/actions/runs/${RUN_ID}`);
+              if (
+                Number(run?.id) !== Number(RUN_ID) ||
+                run?.name !== 'atlas-supervisor-gate' ||
+                run?.path !== '.github/workflows/atlas-supervisor-gate.yml' ||
+                run?.event !== 'pull_request' ||
+                run?.conclusion !== 'success' ||
+                run?.repository?.full_name !== REPOSITORY ||
+                run?.head_repository?.full_name !== REPOSITORY ||
+                run?.head_sha !== HEAD_SHA
+              ) {
+                throw new Error('upstream workflow identity is not trusted');
+              }
+
+              const jobsResponse = await github(
+                `/actions/runs/${RUN_ID}/jobs?per_page=100&filter=latest`,
+              );
+              const jobs = Array.isArray(jobsResponse?.jobs) ? jobsResponse.jobs : [];
+              const gates = jobs.filter((job) => job?.name === 'atlas-supervisor-gate');
+              const apiChecks = jobs.filter((job) => job?.name === 'api-verification');
+              if (gates.length !== 1 || gates[0]?.conclusion !== 'success') {
+                throw new Error('upstream Supervisor gate is not uniquely successful');
+              }
+              if (apiChecks.length === 1 && apiChecks[0]?.conclusion === 'skipped') {
+                console.log('Closed-event upstream run detected; authorized merge executor is a no-op.');
+                return;
+              }
+              if (apiChecks.length !== 1 || apiChecks[0]?.conclusion !== 'success') {
+                throw new Error('upstream API verification is not uniquely successful');
+              }
+
+              const associated = await github(`/commits/${HEAD_SHA}/pulls`);
+              const governed = (Array.isArray(associated) ? associated : []).filter((candidate) =>
+                candidate?.head?.sha === HEAD_SHA &&
+                candidate?.head?.repo?.full_name === REPOSITORY &&
+                ['production/atlas', 'main'].includes(candidate?.base?.ref) &&
+                (candidate?.state === 'open' || candidate?.merged_at != null),
+              );
+              if (governed.length !== 1) {
+                throw new Error(`expected exactly one governed pull request, found ${governed.length}`);
+              }
+              PR_NUMBER = String(governed[0].number);
+              pr = await github(`/pulls/${PR_NUMBER}`);
+            } else if (EVENT_NAME === 'workflow_dispatch') {
+              if (!/^\d+$/.test(RECOVERY_PR_NUMBER ?? '')) {
+                throw new Error('invalid recovery pull request number');
+              }
+              PR_NUMBER = RECOVERY_PR_NUMBER;
+              pr = await github(`/pulls/${PR_NUMBER}`);
+              HEAD_SHA = pr?.head?.sha;
+              if (!/^[0-9a-f]{40}$/i.test(HEAD_SHA ?? '')) {
+                throw new Error('invalid recovery pull request head sha');
+              }
+            } else {
+              throw new Error('unsupported trusted merge event');
             }
 
-            const jobsResponse = await github(
-              `/actions/runs/${RUN_ID}/jobs?per_page=100&filter=latest`,
-            );
-            const jobs = Array.isArray(jobsResponse?.jobs) ? jobsResponse.jobs : [];
-            const gates = jobs.filter((job) => job?.name === 'atlas-supervisor-gate');
-            const apiChecks = jobs.filter((job) => job?.name === 'api-verification');
-            if (gates.length !== 1 || gates[0]?.conclusion !== 'success') {
-              throw new Error('upstream Supervisor gate is not uniquely successful');
-            }
-            if (apiChecks.length === 1 && apiChecks[0]?.conclusion === 'skipped') {
-              console.log('Closed-event upstream run detected; authorized merge executor is a no-op.');
-              return;
-            }
-            if (apiChecks.length !== 1 || apiChecks[0]?.conclusion !== 'success') {
-              throw new Error('upstream API verification is not uniquely successful');
-            }
-
-            const associated = await github(`/commits/${HEAD_SHA}/pulls`);
-            const governed = (Array.isArray(associated) ? associated : []).filter((pr) =>
-              pr?.head?.sha === HEAD_SHA &&
-              pr?.head?.repo?.full_name === REPOSITORY &&
-              ['production/atlas', 'main'].includes(pr?.base?.ref) &&
-              (pr?.state === 'open' || pr?.merged_at != null),
-            );
-            if (governed.length !== 1) {
-              throw new Error(`expected exactly one governed pull request, found ${governed.length}`);
-            }
-
-            const PR_NUMBER = String(governed[0].number);
-            const pr = await github(`/pulls/${PR_NUMBER}`);
             const isOpenCandidate =
               pr?.state === 'open' &&
               pr?.merged !== true &&
@@ -175,6 +210,12 @@ jobs:
               Boolean(pr.merged_at) &&
               /^[0-9a-f]{40}$/i.test(pr?.merge_commit_sha ?? '');
 
+            if (EVENT_NAME === 'workflow_dispatch' && isOpenCandidate) {
+              throw new Error('manual recovery cannot execute a new merge');
+            }
+            if (EVENT_NAME === 'workflow_dispatch' && !isMergedCandidate) {
+              throw new Error('manual recovery requires an already merged governed pull request');
+            }
             if (!isOpenCandidate && !isMergedCandidate) {
               throw new Error('pull request is neither an eligible open candidate nor an exact merged candidate');
             }
