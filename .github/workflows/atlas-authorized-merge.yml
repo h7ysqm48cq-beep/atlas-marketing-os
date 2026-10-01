@@ -233,9 +233,59 @@ jobs:
               throw new Error(`GitHub normal merge was not confirmed: ${JSON.stringify(response)}`);
             }
 
+            const merged = await github(`/pulls/${PR_NUMBER}`);
+            if (
+              merged?.state !== 'closed' ||
+              merged?.merged !== true ||
+              merged?.merge_commit_sha !== response.sha ||
+              merged?.head?.sha !== HEAD_SHA ||
+              merged?.base?.ref !== pr.base.ref ||
+              merged?.base?.sha !== pr.base.sha ||
+              typeof merged?.merged_at !== 'string' ||
+              !merged.merged_at
+            ) {
+              throw new Error('merged pull request identity does not match the authorized candidate');
+            }
+
+            const mergeCommit = await github(`/commits/${response.sha}`);
+            if (
+              mergeCommit?.sha !== response.sha ||
+              mergeCommit?.parents?.length !== 2 ||
+              mergeCommit.parents[0]?.sha !== pr.base.sha ||
+              mergeCommit.parents[1]?.sha !== HEAD_SHA
+            ) {
+              throw new Error('merge commit parents do not match the authorized exact candidate');
+            }
+
+            const consumption = await supervisor(
+              '/engineering/supervisor/gateway/merge-authorization/consume',
+              {
+                taskId: TASK_ID,
+                executionId: EXECUTION_ID,
+                action: 'merge',
+                targetBranch: pr.base.ref,
+                baseSha: pr.base.sha,
+                headSha: HEAD_SHA,
+                changedFiles: normalizedFiles,
+                attestation: {
+                  pullRequestNumber: Number(PR_NUMBER),
+                  mergeCommitSha: response.sha,
+                  mergeParents: [pr.base.sha, HEAD_SHA],
+                  mergedAt: merged.merged_at,
+                },
+              },
+            );
+            if (
+              consumption?.allowed !== true ||
+              consumption?.taskId !== TASK_ID ||
+              consumption?.executionId !== EXECUTION_ID
+            ) {
+              throw new Error('trusted merge attestation consumption was not confirmed');
+            }
+
             console.log(
-              `Trusted exact merge confirmed for PR #${PR_NUMBER} at ${response.sha}. ` +
-              'Closed-event attestation consumption remains authoritative.',
+              `Trusted exact merge and attestation consumption confirmed for PR #${PR_NUMBER} ` +
+              `at ${response.sha}.`,
             );
           }
 
