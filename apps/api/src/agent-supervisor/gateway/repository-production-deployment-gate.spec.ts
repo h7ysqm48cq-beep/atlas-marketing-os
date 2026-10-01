@@ -10,6 +10,7 @@ type GateModule = {
   checkProductionDeploymentGate?: (options: {
     env: NodeJS.ProcessEnv;
     fetchImpl: typeof fetch;
+    sleepImpl?: (ms: number) => Promise<void>;
   }) => Promise<GateResult>;
 };
 
@@ -86,13 +87,70 @@ describe('repository-owned production deployment gate', () => {
 
   it('fails closed when the resolver returns HTTP 400', async () => {
     const gate = loadGate();
-    const fetchImpl = jest.fn().mockResolvedValue(
+    const fetchImpl = jest.fn().mockImplementation(async () =>
       response(400, { code: 'production_deployment_resolution_not_found' }),
     ) as unknown as typeof fetch;
+    const sleepImpl = jest.fn().mockResolvedValue(undefined);
 
     await expect(
-      gate.checkProductionDeploymentGate({ env: validEnv(), fetchImpl }),
+      gate.checkProductionDeploymentGate({
+        env: validEnv(),
+        fetchImpl,
+        sleepImpl,
+      }),
     ).rejects.toThrow(/production_deployment_resolution_not_found/);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(16);
+    expect(sleepImpl).toHaveBeenCalledTimes(15);
+  });
+
+  it('retries a transient resolver transport failure and accepts the next valid receipt', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce(
+        response(200, {
+          allowed: true,
+          reason: null,
+          taskId: 'ATLAS-DEPLOY-RETRY-1',
+          executionId: 'ATLAS-DEPLOY-RETRY-EXEC-1',
+        }),
+      ) as unknown as typeof fetch;
+    const sleepImpl = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv(),
+        fetchImpl,
+        sleepImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-DEPLOY-RETRY-1',
+      executionId: 'ATLAS-DEPLOY-RETRY-EXEC-1',
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleepImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed after exhausting transient resolver transport retries', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest
+      .fn()
+      .mockRejectedValue(new Error('timeout')) as unknown as typeof fetch;
+    const sleepImpl = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv(),
+        fetchImpl,
+        sleepImpl,
+      }),
+    ).rejects.toThrow(/resolver_unreachable: timeout/);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(16);
+    expect(sleepImpl).toHaveBeenCalledTimes(15);
   });
 
   it('fails closed when the resolver response is malformed JSON', async () => {

@@ -105,6 +105,11 @@ async function checkProductionDeploymentGate({
         signal: AbortSignal.timeout(10_000),
       });
     } catch (error) {
+      if (attempt < DEPLOYMENT_RESOLUTION_ATTEMPTS - 1) {
+        await sleepImpl(DEPLOYMENT_RESOLUTION_POLL_MS);
+        continue;
+      }
+
       throw new Error(
         `ATLAS_DEPLOY_GATE_DENY resolver_unreachable: ${
           error instanceof Error ? error.message : String(error)
