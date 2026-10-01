@@ -74,14 +74,17 @@ describe('production deployment dispatch reservation', () => {
     service:
       | 'engineering-runner'
       | 'engineering-verifier'
-      | 'browser-worker' = 'engineering-runner',
+      | 'browser-worker'
+      | 'production-deploy-executor' = 'engineering-runner',
   ) {
     const allowedPath =
       service === 'engineering-runner'
         ? 'apps/engineering-runner/check-runner-production-deployment.cjs'
         : service === 'engineering-verifier'
           ? 'apps/engineering-runner/check-verifier-production-deployment.cjs'
-          : 'apps/browser-worker/railway.json';
+          : service === 'browser-worker'
+            ? 'apps/browser-worker/railway.json'
+            : 'tools/deployment/atlas-production-deploy-executor.mjs';
     const task = await supervisor.createTask({
       objective:
         `zero-git-diff ${service} production qualification for exact canonical production SHA ${SHA}`,
@@ -384,18 +387,34 @@ describe('production deployment dispatch reservation', () => {
     });
   });
 
-  it('keeps production-deploy-executor outside the self-dispatch allowlist', async () => {
+  it('claims an approved production-deploy-executor deployment through bounded self-dispatch', async () => {
+    const { task, execution } =
+      await createReadyWorkerDeployment('production-deploy-executor');
+    await approve(task.id);
+
     await expect(
       gateway.claimProductionDeploymentDispatch({
-        service: 'production-deploy-executor' as never,
+        service: 'production-deploy-executor',
         github: CANONICAL_GITHUB,
         dispatcherId: 'atlas-production-deploy-executor:production-deploy-executor',
       }),
-    ).rejects.toMatchObject({
-      response: {
-        code: 'production_deployment_dispatch_service_unsupported',
-      },
+    ).resolves.toMatchObject({
+      claimed: true,
+      reason: null,
+      service: 'production-deploy-executor',
+      commitSha: SHA,
+      taskId: task.id,
+      executionId: execution.id,
+      reservationId: expect.stringMatching(/^ATLAS-DISPATCH-[0-9a-f]{64}$/i),
     });
+
+    const persisted = await supervisor.getTask(task.id);
+    expect(
+      persisted.evidence?.ownerDeploymentAuthorizationConsumption,
+    ).toBeUndefined();
+    expect(
+      persisted.evidence?.ownerDeploymentDispatchReservation?.reservedBy,
+    ).toBe('atlas-production-deploy-executor:production-deploy-executor');
   });
 
   it('blocks deployment authorization revocation after dispatch reservation', async () => {

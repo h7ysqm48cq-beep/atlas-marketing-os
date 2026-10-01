@@ -20,6 +20,10 @@ export const SERVICES = Object.freeze([
     name: 'browser-worker',
     id: 'e1efd98e-b853-4828-b9bd-b900eab68c19',
   },
+  {
+    name: 'production-deploy-executor',
+    id: '689174b6-63b6-475c-b1c2-c05edb8babf5',
+  },
 ]);
 
 const FULL_SHA = /^[0-9a-f]{40}$/i;
