@@ -297,6 +297,11 @@ describe('Production deployment resolver', () => {
 
     await resolve({ service: 'api', github: CANONICAL_GITHUB });
 
+    const persisted = await supervisor.getTask(task.id);
+    expect(persisted.evidence?.ownerDeploymentAuthorization).toBeUndefined();
+    expect(persisted.evidence?.deploymentState).toBe(
+      'DEPLOYMENT_AUTHORIZATION_CONSUMED',
+    );
     await expect(resolve({ service: 'api', github: CANONICAL_GITHUB })).rejects.toMatchObject({
       response: { code: 'owner_deployment_authorization_already_consumed' },
     });

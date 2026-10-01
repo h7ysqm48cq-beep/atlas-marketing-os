@@ -1230,6 +1230,10 @@ describe('AgentSupervisorService', () => {
         },
       },
     });
+    expect(consumed.evidence?.ownerDeploymentAuthorization).toBeUndefined();
+    expect(consumed.evidence?.deploymentState).toBe(
+      'DEPLOYMENT_AUTHORIZATION_CONSUMED',
+    );
     await expect(
       consumeProductionDeploymentAuthorization(
         ownerService,
