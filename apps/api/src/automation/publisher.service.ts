@@ -36,6 +36,9 @@ export class PublisherService {
   private readonly logger =
     new Logger(PublisherService.name);
 
+  private publisherScopeLogged =
+    false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly facebook: FacebookConnectorService,
@@ -58,12 +61,18 @@ export class PublisherService {
         process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS,
       );
 
-    if (allowedChannelIds) {
+    if (
+      allowedChannelIds &&
+      !this.publisherScopeLogged
+    ) {
       this.logger.log(
         allowedChannelIds.length > 0
           ? `Publisher channel allowlist is active for ${allowedChannelIds.length} channel(s).`
           : "Publisher channel allowlist is empty; no posts will be selected.",
       );
+
+      this.publisherScopeLogged =
+        true;
     }
 
     const posts =
@@ -99,9 +108,11 @@ export class PublisherService {
         },
       });
 
-    this.logger.log(
-      `Found ${posts.length} scheduled post(s).`,
-    );
+    if (posts.length > 0) {
+      this.logger.log(
+        `Found ${posts.length} scheduled post(s).`,
+      );
+    }
 
     let published = 0;
     let blocked = 0;
