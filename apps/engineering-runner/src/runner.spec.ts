@@ -279,6 +279,80 @@ test('EngineeringRunner stops its polling loop after AbortSignal cancellation', 
   assert.equal(claims, 1);
 });
 
+
+test('EngineeringRunner backs off repeated idle polling to a bounded four-times cap', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const controller = new AbortController();
+  const delays: number[] = [];
+  let claims = 0;
+  const fallback = setTimeout(() => controller.abort(), 120);
+  const runner = new Runner({
+    client: { claimNext: async () => { claims += 1; return null; } },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    pollIntervalMs: 5,
+    heartbeatIntervalMs: 10_000,
+    delayImpl: async (ms: number) => {
+      delays.push(ms);
+      if (delays.length === 4) controller.abort();
+    },
+  });
+
+  await runner.run(controller.signal);
+  clearTimeout(fallback);
+  assert.deepEqual(delays, [5, 10, 20, 20]);
+  assert.equal(claims, 4);
+});
+
+test('EngineeringRunner resets idle backoff immediately after claiming work', async () => {
+  const mod = await loadModule();
+  const Runner = mod.EngineeringRunner as
+    | (new (options: Record<string, unknown>) => { run(signal: AbortSignal): Promise<void> })
+    | undefined;
+  assert.ok(Runner, 'EngineeringRunner must exist');
+
+  const active = session(implementationAssignment);
+  const controller = new AbortController();
+  const delays: number[] = [];
+  let claims = 0;
+  const fallback = setTimeout(() => controller.abort(), 120);
+  const runner = new Runner({
+    client: {
+      claimNext: async () => {
+        claims += 1;
+        if (claims === 3) return active;
+        return null;
+      },
+    },
+    executor: { execute: async () => result },
+    workspace: { listChangedFiles: async () => [] },
+    scopeGuard: {
+      assertImplementationScope: () => undefined,
+      assertVerificationNoDrift: () => undefined,
+    },
+    pollIntervalMs: 5,
+    heartbeatIntervalMs: 10_000,
+    delayImpl: async (ms: number) => {
+      delays.push(ms);
+      if (delays.length === 4) controller.abort();
+    },
+  });
+
+  await runner.run(controller.signal);
+  clearTimeout(fallback);
+  assert.deepEqual(delays, [5, 10, 5, 5]);
+  assert.equal(claims, 4);
+});
+
 test('EngineeringRunner retries transient pre-claim HTTP failures without exiting', async () => {
   const mod = await loadModule();
   const Runner = mod.EngineeringRunner as
