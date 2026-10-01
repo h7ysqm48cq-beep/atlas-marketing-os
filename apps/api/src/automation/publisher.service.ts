@@ -30,6 +30,23 @@ import {
 } from "./publisher-result";
 import { NotificationService } from "../notifications/notification.service";
 
+export function sanitizePublishAttemptPayload(
+  value: unknown,
+) {
+  const serialized =
+    JSON.stringify(
+      value,
+      (key, nestedValue) =>
+        key === "base64"
+          ? undefined
+          : nestedValue,
+    );
+
+  return serialized === undefined
+    ? null
+    : JSON.parse(serialized);
+}
+
 @Injectable()
 export class PublisherService {
 
@@ -1059,7 +1076,10 @@ export class PublisherService {
           data: {
             status:
               PublishAttemptStatus.SUCCESS,
-            responsePayload: result,
+            responsePayload:
+              sanitizePublishAttemptPayload(
+                result,
+              ),
             completedAt:
               new Date(),
           },
@@ -1161,7 +1181,12 @@ export class PublisherService {
             e?.statusCode ??
             e?.response?.status ??
             null,
-          response: responseData,
+          response:
+            responseData
+              ? sanitizePublishAttemptPayload(
+                  responseData,
+                )
+              : responseData,
         };
 
         this.logger.error(
@@ -1179,8 +1204,8 @@ export class PublisherService {
             errorMessage,
             responsePayload:
               responseData
-                ? JSON.parse(
-                    JSON.stringify(responseData),
+                ? sanitizePublishAttemptPayload(
+                    responseData,
                   )
                 : undefined,
             completedAt:
