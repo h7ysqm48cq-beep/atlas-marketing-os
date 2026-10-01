@@ -29,6 +29,22 @@ function quietLogger() {
   return { log() {}, error() {} };
 }
 
+test('executor allowlist includes only the bounded deployment services including itself', () => {
+  assert.deepEqual(
+    SERVICES.map((service) => service.name),
+    [
+      'engineering-runner',
+      'engineering-verifier',
+      'browser-worker',
+      'production-deploy-executor',
+    ],
+  );
+  assert.equal(
+    SERVICES.find((service) => service.name === 'production-deploy-executor')?.id,
+    '689174b6-63b6-475c-b1c2-c05edb8babf5',
+  );
+});
+
 test('fetchProductionSha reads the public production ref through Git smart HTTP without GITHUB_TOKEN', async () => {
   let seenHeaders = null;
   const sha = await fetchProductionSha(
@@ -206,7 +222,12 @@ test('executor claims one authorized worker and deploys the exact production SHA
   });
   assert.deepEqual(
     seen.claims.map((claim) => claim.service),
-    ['engineering-runner', 'engineering-verifier', 'browser-worker'],
+    [
+      'engineering-runner',
+      'engineering-verifier',
+      'browser-worker',
+      'production-deploy-executor',
+    ],
   );
   assert.equal(seen.claims[0].github.commitSha, SHA);
 });
@@ -289,7 +310,7 @@ test('already-reserved workers never trigger another Railway deploy', async () =
   });
 
   assert.equal(deployMutations, 0);
-  assert.equal(result.results.length, 3);
+  assert.equal(result.results.length, 4);
   assert.ok(result.results.every((entry) => entry.deployment === null));
 });
 
