@@ -295,6 +295,38 @@ describe('repository-owned production deployment gate', () => {
     });
   });
 
+  it('sends exact production-deploy-executor provenance when that production service is selected', async () => {
+    const gate = loadGate();
+    const fetchImpl = jest.fn().mockResolvedValue(
+      response(200, {
+        allowed: true,
+        reason: null,
+        taskId: 'ATLAS-DEPLOY-EXECUTOR-1',
+        executionId: 'ATLAS-DEPLOY-EXECUTOR-EXEC-1',
+      }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      gate.checkProductionDeploymentGate({
+        env: validEnv({
+          ATLAS_DEPLOYMENT_SERVICE: 'production-deploy-executor',
+        }),
+        fetchImpl,
+      }),
+    ).resolves.toEqual({
+      taskId: 'ATLAS-DEPLOY-EXECUTOR-1',
+      executionId: 'ATLAS-DEPLOY-EXECUTOR-EXEC-1',
+    });
+
+    const [, init] = (fetchImpl as unknown as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      service: 'production-deploy-executor',
+    });
+  });
+
   it('fails closed before calling the resolver when the deployment service is unsupported', async () => {
     const gate = loadGate();
     const fetchImpl = jest.fn() as unknown as typeof fetch;
