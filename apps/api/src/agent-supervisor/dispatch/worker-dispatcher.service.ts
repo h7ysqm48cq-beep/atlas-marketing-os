@@ -362,7 +362,7 @@ export class WorkerDispatcherService {
       task.forbiddenActions.includes('commit_assigned_branch') &&
       /zero-git-diff.*api.*runtime refresh/i.test(task.objective);
     const workerQualificationMatch =
-      /zero-git-diff.*(engineering-runner|engineering-verifier|browser-worker|web).*production qualification/i
+      /zero-git-diff.*(engineering-runner|engineering-verifier|browser-worker|web|production-deploy-executor).*production qualification/i
         .exec(task.objective);
     const workerQualificationService = workerQualificationMatch?.[1]?.toLowerCase();
     const workerQualification =
