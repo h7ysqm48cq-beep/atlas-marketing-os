@@ -441,4 +441,80 @@ describe('BrowserRuntimeBridgeService Facebook login state', () => {
       180000,
     );
   });
+
+  it('lets automated publishing opt out of screenshot base64', async () => {
+    const {
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    const request = jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+    });
+
+    await service.publishFacebookPost(
+      'channel-1',
+      'PUBLISH',
+      {
+        includeScreenshotBase64:
+          false,
+      },
+    );
+
+    const [, init] =
+      request.mock.calls[0];
+
+    expect(
+      JSON.parse(
+        String(init.body),
+      ),
+    ).toEqual({
+      confirmation: 'PUBLISH',
+      includeScreenshotBase64: false,
+    });
+  });
+
+  it('keeps screenshot base64 enabled by default for interactive callers', async () => {
+    const {
+      service,
+    } = createService();
+
+    jest.spyOn(
+      service,
+      'ensureProfile',
+    ).mockResolvedValue(
+      profile as never,
+    );
+    const request = jest.spyOn(
+      service,
+      'request',
+    ).mockResolvedValue({
+      success: true,
+    });
+
+    await service.publishFacebookPost(
+      'channel-1',
+      'PUBLISH',
+    );
+
+    const [, init] =
+      request.mock.calls[0];
+
+    expect(
+      JSON.parse(
+        String(init.body),
+      ),
+    ).toEqual({
+      confirmation: 'PUBLISH',
+      includeScreenshotBase64: true,
+    });
+  });
 });

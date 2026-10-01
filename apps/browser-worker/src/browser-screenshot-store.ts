@@ -18,6 +18,33 @@ export type SavedBrowserScreenshot = {
   filename: string;
 };
 
+export type BrowserScreenshotResponse =
+  SavedBrowserScreenshot & {
+    mimeType: "image/jpeg";
+    base64?: string;
+  };
+
+export function browserScreenshotResponse(
+  input: {
+    buffer: Buffer;
+    saved: SavedBrowserScreenshot;
+    includeBase64: boolean;
+  },
+): BrowserScreenshotResponse {
+  return {
+    mimeType: "image/jpeg",
+    ...(input.includeBase64
+      ? {
+          base64:
+            input.buffer.toString(
+              "base64",
+            ),
+        }
+      : {}),
+    ...input.saved,
+  };
+}
+
 const screenshotRoot =
   process.env
     .BROWSER_SCREENSHOT_ROOT ||
