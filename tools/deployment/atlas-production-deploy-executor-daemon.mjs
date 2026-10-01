@@ -12,13 +12,29 @@ export async function runDaemon(
     executeCycle = execute,
     sleep = defaultSleep,
     intervalMs = 60_000,
+    maxIdleIntervalMs = 120_000,
     logger = console,
     signal,
   } = {},
 ) {
+  let nextIdleIntervalMs = intervalMs;
+
   while (!signal?.aborted) {
-    await executeCycle(env, { logger });
-    await sleep(intervalMs);
+    const result = await executeCycle(env, { logger });
+    const results = Array.isArray(result?.results) ? result.results : null;
+    const hadClaimedWork =
+      results === null ||
+      results.some((entry) => entry?.claim?.claimed === true);
+
+    const sleepMs = hadClaimedWork ? intervalMs : nextIdleIntervalMs;
+    await sleep(sleepMs);
+
+    nextIdleIntervalMs = hadClaimedWork
+      ? intervalMs
+      : Math.min(
+          Math.max(intervalMs, maxIdleIntervalMs),
+          Math.max(intervalMs, nextIdleIntervalMs * 2),
+        );
   }
 }
 

@@ -54,6 +54,65 @@ test('daemon never overlaps executor cycles', async () => {
   assert.equal(maxActive, 1);
 });
 
+
+test('daemon backs off repeated idle executor cycles to a two-minute cap', async () => {
+  const controller = new AbortController();
+  const sleeps = [];
+
+  await runDaemon(
+    {},
+    {
+      executeCycle: async () => ({
+        results: [
+          { service: 'engineering-runner', claim: { claimed: false } },
+          { service: 'engineering-verifier', claim: { claimed: false } },
+          { service: 'browser-worker', claim: { claimed: false } },
+        ],
+      }),
+      sleep: async (intervalMs) => {
+        sleeps.push(intervalMs);
+        if (sleeps.length === 3) controller.abort();
+      },
+      signal: controller.signal,
+    },
+  );
+
+  assert.deepEqual(sleeps, [60_000, 120_000, 120_000]);
+});
+
+test('daemon resets idle backoff after any deployment dispatch is claimed', async () => {
+  const controller = new AbortController();
+  const sleeps = [];
+  let cycles = 0;
+
+  await runDaemon(
+    {},
+    {
+      executeCycle: async () => {
+        cycles += 1;
+        const claimed = cycles === 3;
+        return {
+          results: [
+            {
+              service: 'engineering-runner',
+              claim: { claimed },
+            },
+            { service: 'engineering-verifier', claim: { claimed: false } },
+            { service: 'browser-worker', claim: { claimed: false } },
+          ],
+        };
+      },
+      sleep: async (intervalMs) => {
+        sleeps.push(intervalMs);
+        if (sleeps.length === 4) controller.abort();
+      },
+      signal: controller.signal,
+    },
+  );
+
+  assert.deepEqual(sleeps, [60_000, 120_000, 60_000, 60_000]);
+});
+
 test('daemon propagates an unexpected executor failure without sleeping or retrying in-process', async () => {
   const sentinel = new Error('sentinel executor failure');
   let sleeps = 0;
