@@ -873,8 +873,14 @@ export class AgentSupervisorService {
       });
     }
 
+    const {
+      ownerDeploymentAuthorization: _deploymentAuthorization,
+      ...evidence
+    } = task.evidence!;
+
     task.evidence = {
-      ...task.evidence!,
+      ...evidence,
+      deploymentState: 'DEPLOYMENT_AUTHORIZATION_CONSUMED',
       ownerDeploymentAuthorizationConsumption: {
         authorization: structuredClone(authorization),
         approvalJti: claims.jti,
@@ -1017,6 +1023,12 @@ export class AgentSupervisorService {
     const requestedCandidate = normalizeSupervisorReviewCandidate(candidate);
     this.requireCanonicalProductionDeployment(requestedCandidate);
     const requestedService = this.requireProductionDeploymentService(service);
+
+    if (task.evidence?.ownerDeploymentAuthorizationConsumption) {
+      throw new BadRequestException({
+        code: 'owner_deployment_authorization_already_consumed',
+      });
+    }
 
     const authorization = task.evidence?.ownerDeploymentAuthorization;
     if (!authorization) {
