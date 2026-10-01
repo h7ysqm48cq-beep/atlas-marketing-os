@@ -3,11 +3,75 @@ import {
   resolveSportsNewsRetryDecision,
 } from './publisher-retry-policy';
 import { PublishAttemptStatus, ScheduledPostStatus, SocialPlatform } from '../generated/prisma/enums';
-import { PublisherService } from './publisher.service';
+import {
+  PublisherService,
+  sanitizePublishAttemptPayload,
+} from './publisher.service';
 
 jest.mock('./runtime-profile.service', () => ({
   RuntimeProfileService: class RuntimeProfileService {},
 }));
+
+describe('sanitizePublishAttemptPayload', () => {
+  it('removes nested base64 blobs while preserving screenshot references and the source object', () => {
+    const payload = {
+      published: true,
+      screenshots: {
+        before: {
+          mimeType: 'image/jpeg',
+          base64: 'large-before-image',
+          absolutePath: '/data/browser-screenshots/before.jpg',
+          filename: 'before.jpg',
+        },
+        after: {
+          mimeType: 'image/jpeg',
+          base64: 'large-after-image',
+          relativePath: '2026/10/01/after.jpg',
+          filename: 'after.jpg',
+        },
+      },
+      executionTrace: [
+        {
+          metadata: {
+            screenshotPath: '/data/browser-screenshots/before.jpg',
+          },
+        },
+      ],
+    };
+
+    expect(
+      sanitizePublishAttemptPayload(payload),
+    ).toEqual({
+      published: true,
+      screenshots: {
+        before: {
+          mimeType: 'image/jpeg',
+          absolutePath: '/data/browser-screenshots/before.jpg',
+          filename: 'before.jpg',
+        },
+        after: {
+          mimeType: 'image/jpeg',
+          relativePath: '2026/10/01/after.jpg',
+          filename: 'after.jpg',
+        },
+      },
+      executionTrace: [
+        {
+          metadata: {
+            screenshotPath: '/data/browser-screenshots/before.jpg',
+          },
+        },
+      ],
+    });
+
+    expect(
+      payload.screenshots.before.base64,
+    ).toBe('large-before-image');
+    expect(
+      payload.screenshots.after.base64,
+    ).toBe('large-after-image');
+  });
+});
 
 describe('resolveSportsNewsRetryDecision', () => {
   const failedAt = new Date('2026-08-17T00:00:00.000Z');
