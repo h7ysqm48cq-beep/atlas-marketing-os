@@ -560,7 +560,7 @@ class SupervisorAssignmentExecutor:
             service = "api"
         else:
             match = re.search(
-                r"zero-git-diff.*(engineering-runner|engineering-verifier|browser-worker|web).*"
+                r"zero-git-diff.*(engineering-runner|engineering-verifier|browser-worker|web|production-deploy-executor).*"
                 r"production qualification",
                 lowered_objective,
             )
