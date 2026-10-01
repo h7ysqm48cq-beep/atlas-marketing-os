@@ -14,6 +14,7 @@ if __package__:
     from .natural_language import build_natural_language_engineer
     from .request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
+    from tools.runtime.executors import WorkspaceEditExecutor
     from tools.ir.action import (
         WorkspaceEdit,
         WorkspaceFileEdit,
@@ -27,6 +28,7 @@ else:
     from tools.ai_engineer.natural_language import build_natural_language_engineer
     from tools.ai_engineer.request import AIEngineerMode, AIEngineerOperation
     from tools.runtime import build_default_runtime
+    from tools.runtime.executors import WorkspaceEditExecutor
     from tools.ir.action import (
         WorkspaceEdit,
         WorkspaceFileEdit,
@@ -327,6 +329,24 @@ class SupervisorAssignmentExecutor:
 
             payload_paths.add(relative)
 
+            suffix = PurePosixPath(
+                relative
+            ).suffix.lower()
+
+            if suffix not in {
+                ".ts",
+                ".tsx",
+                ".yml",
+                ".yaml",
+                ".mjs",
+            }:
+                return self._failure(
+                    "supervisor_workspace_edit_failed:"
+                    "WorkspaceEdit target suffix is not "
+                    f"allowed: {relative}",
+                    planning=planning,
+                )
+
             replacements = file_item.get(
                 "replacements"
             )
@@ -414,6 +434,13 @@ class SupervisorAssignmentExecutor:
                 planning=planning,
             )
 
+        includes_mjs = any(
+            PurePosixPath(
+                file_edit.file_path
+            ).suffix.lower() == ".mjs"
+            for file_edit in file_edits
+        )
+
         action = WorkspaceEdit(
             files=tuple(file_edits),
             allowed_suffixes=(
@@ -421,54 +448,82 @@ class SupervisorAssignmentExecutor:
                 ".tsx",
                 ".yml",
                 ".yaml",
-            ),
+            )
+            + ((".mjs",) if includes_mjs else ()),
         )
 
-        plan = ExecutionPlan(
-            title="Supervisor exact workspace edit",
-            target_project=str(self.project_root),
-            actions=[action],
-            metadata={
-                "operation": "exact_workspace_edit",
-            },
-        )
+        if includes_mjs:
+            try:
+                WorkspaceEditExecutor(
+                    project_root=self.project_root,
+                    dry_run=False,
+                    show_preview=True,
+                ).execute(action)
+            except Exception as error:
+                changed = self._git_changed_files()
 
-        runtime = build_default_runtime(
-            project_root=self.project_root,
-            show_preview=True,
-        )
+                if changed:
+                    self._restore_clean_workspace(
+                        changed
+                    )
 
-        result = runtime.run(
-            plan,
-            dry_run=False,
-            rollback_on_failure=True,
-        )
+                normalized = re.sub(
+                    r"\s+",
+                    " ",
+                    str(error).strip(),
+                )[:500]
 
-        if not result.success:
-            changed = self._git_changed_files()
+                return self._failure(
+                    "supervisor_workspace_edit_failed:"
+                    + normalized,
+                    planning=planning,
+                )
+        else:
+            plan = ExecutionPlan(
+                title="Supervisor exact workspace edit",
+                target_project=str(self.project_root),
+                actions=[action],
+                metadata={
+                    "operation": "exact_workspace_edit",
+                },
+            )
 
-            if changed:
-                self._restore_clean_workspace(
-                    changed
+            runtime = build_default_runtime(
+                project_root=self.project_root,
+                show_preview=True,
+            )
+
+            result = runtime.run(
+                plan,
+                dry_run=False,
+                rollback_on_failure=True,
+            )
+
+            if not result.success:
+                changed = self._git_changed_files()
+
+                if changed:
+                    self._restore_clean_workspace(
+                        changed
+                    )
+
+                detail = (
+                    result.errors[0]
+                    if result.errors
+                    else "unknown"
                 )
 
-            detail = (
-                result.errors[0]
-                if result.errors
-                else "unknown"
-            )
+                normalized = re.sub(
+                    r"\s+",
+                    " ",
+                    str(detail).strip(),
+                )[:500]
 
-            normalized = re.sub(
-                r"\s+",
-                " ",
-                str(detail).strip(),
-            )[:500]
-
-            return self._failure(
-                "supervisor_workspace_edit_failed:"
-                + normalized,
-                planning=planning,
-            )
+                return self._failure(
+                    "supervisor_workspace_edit_failed:"
+                    + normalized,
+                    planning=planning,
+                )
 
         changed = self._git_changed_files()
 
