@@ -684,7 +684,9 @@ export class AgentGatewayService {
 
     const serviceMatches = shaMatches.filter(
       ({ task }) =>
-        task.evidence?.ownerDeploymentAuthorization?.service === input.service,
+        (task.evidence?.ownerDeploymentAuthorization?.service ??
+          task.evidence?.ownerDeploymentAuthorizationConsumption?.authorization
+            .service) === input.service,
     );
     if (serviceMatches.length === 0) {
       if (shaMatches.length === 1) {
