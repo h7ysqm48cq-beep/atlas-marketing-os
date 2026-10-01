@@ -957,3 +957,80 @@ describe('PublisherService Instagram Browser Runtime', () => {
     });
   });
 });
+
+describe('PublisherService idle polling observability', () => {
+  const originalChannelIds =
+    process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS;
+
+  afterEach(() => {
+    if (originalChannelIds === undefined) {
+      delete process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS;
+    } else {
+      process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS =
+        originalChannelIds;
+    }
+  });
+
+  it('logs the publisher scope once and suppresses empty poll noise', async () => {
+    process.env.AUTOMATION_PUBLISHER_CHANNEL_IDS =
+      'channel-1,channel-2';
+
+    const prisma = {
+      scheduledPost: {
+        findMany:
+          jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    const service =
+      new PublisherService(
+        prisma as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
+
+    const logSpy =
+      jest.spyOn(
+        (service as any).logger,
+        'log',
+      ).mockImplementation(
+        () => undefined,
+      );
+
+    await expect(
+      service.run(),
+    ).resolves.toEqual({
+      success: true,
+      found: 0,
+      published: 0,
+      blocked: 0,
+    });
+
+    await expect(
+      service.run(),
+    ).resolves.toEqual({
+      success: true,
+      found: 0,
+      published: 0,
+      blocked: 0,
+    });
+
+    expect(
+      logSpy,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      logSpy,
+    ).toHaveBeenCalledWith(
+      'Publisher channel allowlist is active for 2 channel(s).',
+    );
+    expect(
+      logSpy,
+    ).not.toHaveBeenCalledWith(
+      'Found 0 scheduled post(s).',
+    );
+  });
+});
+
