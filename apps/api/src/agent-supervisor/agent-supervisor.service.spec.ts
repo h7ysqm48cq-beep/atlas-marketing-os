@@ -1106,6 +1106,122 @@ describe('AgentSupervisorService', () => {
     expect(working.evidence?.ownerMergeAuthorization).toBeUndefined();
   });
 
+  it('revokes merge authorization from an APPROVED task without changing the reviewed candidate', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const reviewCandidate = candidate();
+    const ready = await makeReadyTask(ownerService, reviewCandidate);
+    const approved = await ownerService.approveTask(ready.id, true);
+
+    await authorizeMergeAsOwner(
+      ownerService,
+      approved.id,
+      reviewCandidate,
+      'owner-user-1',
+    );
+
+    const revoked = await ownerService.revokeMergeAuthorization(
+      approved.id,
+      'candidate already integrated by trusted merge',
+      'owner-user-2',
+    );
+
+    expect(revoked.status).toBe('APPROVED');
+    expect(revoked.evidence?.reviewCandidate).toEqual(reviewCandidate);
+    expect(revoked.evidence?.ownerMergeAuthorization).toBeUndefined();
+    expect(revoked.evidence?.ownerMergeAuthorizationRevocations).toHaveLength(1);
+    expect(
+      revoked.evidence?.ownerMergeAuthorizationRevocations?.[0],
+    ).toMatchObject({
+      candidate: reviewCandidate,
+      authorizedBy: 'owner-user-1',
+      revokedBy: 'owner-user-2',
+      reason: 'candidate already integrated by trusted merge',
+    });
+    expect(
+      revoked.evidence?.ownerMergeAuthorizationRevocations?.[0]?.authorizedAt,
+    ).toEqual(expect.any(String));
+    expect(
+      revoked.evidence?.ownerMergeAuthorizationRevocations?.[0]?.revokedAt,
+    ).toEqual(expect.any(String));
+  });
+
+  it('rejects merge authorization revocation when no authorization exists', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const ready = await makeReadyTask(ownerService, candidate());
+    const approved = await ownerService.approveTask(ready.id, true);
+
+    await expect(
+      ownerService.revokeMergeAuthorization(
+        approved.id,
+        'nothing to revoke',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_merge_authorization_not_found',
+      },
+    });
+  });
+
+  it('rejects merge authorization revocation without a reason', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const ready = await makeReadyTask(ownerService, candidate());
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeMergeAsOwner(
+      ownerService,
+      approved.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    await expect(
+      ownerService.revokeMergeAuthorization(
+        approved.id,
+        '   ',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'merge_authorization_revocation_reason_required',
+      },
+    });
+  });
+
+  it('rejects merge authorization revocation after authorization consumption', async () => {
+    const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
+    const ready = await makeReadyTask(ownerService, candidate());
+    const approved = await ownerService.approveTask(ready.id, true);
+    await authorizeMergeAsOwner(
+      ownerService,
+      approved.id,
+      candidate(),
+      'owner-user-1',
+    );
+
+    await ownerService.consumeMergeAuthorization(
+      approved.id,
+      {
+        pullRequestNumber: 80,
+        mergeCommitSha: 'd'.repeat(40),
+        mergeParents: [BASE_SHA, HEAD_SHA],
+        mergedAt: '2026-09-05T10:45:02.000Z',
+      },
+      'owner-user-2',
+    );
+
+    await expect(
+      ownerService.revokeMergeAuthorization(
+        approved.id,
+        'too late',
+        'owner-user-1',
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'owner_merge_authorization_already_consumed',
+      },
+    });
+  });
+
   it('persists deployment-specific owner authorization for the exact canonical deployment candidate', async () => {
     const ownerService = bindOwnerApprovalArtifacts(createOwnerService());
     const reviewCandidate = deploymentCandidate();

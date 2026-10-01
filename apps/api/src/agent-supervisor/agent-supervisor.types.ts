@@ -94,6 +94,15 @@ export interface SupervisorOwnerMergeAuthorizationConsumption {
   consumedAt: string;
 }
 
+export interface SupervisorOwnerMergeAuthorizationRevocation {
+  candidate: SupervisorReviewCandidate;
+  authorizedBy: string;
+  authorizedAt: string;
+  revokedBy: string;
+  revokedAt: string;
+  reason: string;
+}
+
 export interface SupervisorOwnerDeploymentAuthorization {
   candidate: SupervisorReviewCandidate;
   service: ProductionDeploymentService;
@@ -157,6 +166,7 @@ export interface SupervisorEvidence {
   reviewCandidate?: SupervisorReviewCandidate;
   ownerMergeAuthorization?: SupervisorOwnerMergeAuthorization;
   ownerMergeAuthorizationConsumption?: SupervisorOwnerMergeAuthorizationConsumption;
+  ownerMergeAuthorizationRevocations?: SupervisorOwnerMergeAuthorizationRevocation[];
   ownerDeploymentAuthorization?: SupervisorOwnerDeploymentAuthorization;
   ownerDeploymentAuthorizationConsumption?: SupervisorOwnerDeploymentAuthorizationConsumption;
   ownerDeploymentAuthorizationRevocations?: SupervisorOwnerDeploymentAuthorizationRevocation[];
