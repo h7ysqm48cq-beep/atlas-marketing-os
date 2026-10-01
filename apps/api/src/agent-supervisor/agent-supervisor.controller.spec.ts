@@ -468,6 +468,64 @@ describe('AgentSupervisorController', () => {
     );
   });
 
+  it('revokes merge authorization using authenticated owner identity only', async () => {
+    const decision = {
+      status: 'APPROVED',
+      evidence: {
+        ownerMergeAuthorization: undefined,
+      },
+    };
+
+    const revokeMergeAuthorization = jest
+      .fn()
+      .mockResolvedValue(decision);
+
+    const ownerController = new AgentSupervisorController(
+      {
+        revokeMergeAuthorization,
+      } as unknown as AgentSupervisorService,
+      {} as WorkerDispatcherService,
+      createControllerOwnerSigner({
+        revokeMergeAuthorization,
+      } as unknown as AgentSupervisorService),
+    ) as unknown as {
+      revokeMergeAuthorization?: (
+        id: string,
+        body: Record<string, unknown>,
+        request: { user?: { id?: string } },
+      ) => Promise<unknown>;
+    };
+
+    expect(ownerController.revokeMergeAuthorization).toEqual(
+      expect.any(Function),
+    );
+
+    if (!ownerController.revokeMergeAuthorization) {
+      return;
+    }
+
+    await expect(
+      ownerController.revokeMergeAuthorization(
+        'ATLAS-MERGE-1',
+        {
+          reason: 'stale authorization',
+          revokedBy: 'caller-controlled-owner',
+        },
+        {
+          user: {
+            id: 'authenticated-owner-id',
+          },
+        },
+      ),
+    ).resolves.toBe(decision);
+
+    expect(revokeMergeAuthorization).toHaveBeenCalledWith(
+      'ATLAS-MERGE-1',
+      'stale authorization',
+      'authenticated-owner-id',
+    );
+  });
+
   it('revokes deployment authorization using authenticated owner identity only', async () => {
     const decision = {
       status: 'APPROVED',

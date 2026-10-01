@@ -189,6 +189,19 @@ export class AgentSupervisorController {
     );
   }
 
+  @Post('tasks/:id/revoke-merge-authorization')
+  revokeMergeAuthorization(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() request: { user?: { id?: string } },
+  ) {
+    return this.supervisor.revokeMergeAuthorization(
+      id,
+      body.reason ?? '',
+      request.user?.id ?? '',
+    );
+  }
+
   @Post('tasks/:id/consume-merge-authorization')
   consumeMergeAuthorization(
     @Param('id') id: string,
