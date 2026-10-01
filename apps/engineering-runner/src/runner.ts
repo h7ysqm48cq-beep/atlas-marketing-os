@@ -61,6 +61,7 @@ export interface EngineeringRunnerOptions {
   verifyProductionHead?: (sha: string) => Promise<void>;
   preflight?: () => Promise<void>;
   singleShot?: boolean;
+  delayImpl?: (ms: number, signal: AbortSignal) => Promise<void>;
 }
 
 function errorReason(error: unknown): string {
@@ -140,6 +141,7 @@ export class EngineeringRunner {
   private readonly verifyProductionHead: (sha: string) => Promise<void>;
   private readonly preflight?: () => Promise<void>;
   private readonly singleShot: boolean;
+  private readonly delayImpl: (ms: number, signal: AbortSignal) => Promise<void>;
 
   constructor(options: EngineeringRunnerOptions) {
     this.client = options.client;
@@ -162,6 +164,7 @@ export class EngineeringRunner {
     });
     this.preflight = options.preflight;
     this.singleShot = options.singleShot === true;
+    this.delayImpl = options.delayImpl ?? delay;
     if (this.pollIntervalMs < 0 || this.heartbeatIntervalMs <= 0) {
       throw new Error('runner_timing_invalid');
     }
@@ -509,16 +512,38 @@ export class EngineeringRunner {
       await this.runOnce(signal);
       return;
     }
+    let idlePollIntervalMs = this.pollIntervalMs;
+    const maxIdlePollIntervalMs = this.pollIntervalMs * 4;
+
     while (!signal.aborted) {
+      let outcome:
+        | 'idle'
+        | 'completed'
+        | 'failed'
+        | 'cancelled'
+        | 'retryable_claim_error';
       try {
-        await this.runOnce(signal);
+        outcome = await this.runOnce(signal);
       } catch (error) {
         if (!(error instanceof RetryableSupervisorClaimError)) {
           throw error;
         }
+        outcome = 'retryable_claim_error';
       }
+
       if (signal.aborted) break;
-      await delay(this.pollIntervalMs, signal);
+
+      const pollDelayMs =
+        outcome === 'idle' ? idlePollIntervalMs : this.pollIntervalMs;
+      await this.delayImpl(pollDelayMs, signal);
+
+      idlePollIntervalMs =
+        outcome === 'idle'
+          ? Math.min(
+              maxIdlePollIntervalMs,
+              Math.max(this.pollIntervalMs, idlePollIntervalMs * 2),
+            )
+          : this.pollIntervalMs;
     }
   }
 }
