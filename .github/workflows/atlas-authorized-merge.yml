@@ -1,0 +1,246 @@
+name: atlas-authorized-merge
+
+"on":
+  workflow_run:
+    workflows: [atlas-supervisor-gate]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  authorized-merge:
+    name: atlas-authorized-merge
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Revalidate trusted upstream run and execute exact authorized merge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          SUPERVISOR_API_URL: ${{ secrets.ATLAS_SUPERVISOR_API_URL }}
+          SUPERVISOR_CI_TOKEN: ${{ secrets.ATLAS_SUPERVISOR_CI_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node <<'NODE'
+          const {
+            GITHUB_TOKEN,
+            REPOSITORY,
+            RUN_ID,
+            HEAD_SHA,
+            SUPERVISOR_API_URL,
+            SUPERVISOR_CI_TOKEN,
+          } = process.env;
+
+          for (const [key, value] of Object.entries({
+            GITHUB_TOKEN,
+            REPOSITORY,
+            RUN_ID,
+            HEAD_SHA,
+            SUPERVISOR_API_URL,
+            SUPERVISOR_CI_TOKEN,
+          })) {
+            if (!value) throw new Error(`${key} is missing`);
+          }
+          if (!/^\d+$/.test(RUN_ID)) throw new Error('invalid workflow run id');
+          if (!/^[0-9a-f]{40}$/i.test(HEAD_SHA)) throw new Error('invalid workflow head sha');
+
+          const githubHeaders = {
+            Accept: 'application/vnd.github+json',
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+          };
+
+          async function github(path, options = {}) {
+            const response = await fetch(
+              `https://api.github.com/repos/${REPOSITORY}${path}`,
+              {
+                ...options,
+                headers: {
+                  ...githubHeaders,
+                  ...(options.headers ?? {}),
+                },
+              },
+            );
+            const text = await response.text();
+            let body = null;
+            if (text) {
+              try { body = JSON.parse(text); } catch { body = text; }
+            }
+            if (!response.ok) {
+              throw new Error(`GitHub request failed ${response.status}: ${typeof body === 'string' ? body : JSON.stringify(body)}`);
+            }
+            return body;
+          }
+
+          async function supervisor(path, body) {
+            const response = await fetch(
+              `${SUPERVISOR_API_URL.replace(/\/$/, '')}${path}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Atlas-Supervisor-CI-Token': SUPERVISOR_CI_TOKEN,
+                },
+                body: JSON.stringify(body),
+              },
+            );
+            const text = await response.text();
+            let parsed = null;
+            if (text) {
+              try { parsed = JSON.parse(text); } catch { parsed = text; }
+            }
+            if (!response.ok) {
+              throw new Error(`Supervisor request failed ${response.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+            }
+            return parsed;
+          }
+
+          function requireMetadata(body, label, pattern) {
+            const match = String(body ?? '').match(pattern);
+            if (!match?.[1]) throw new Error(`missing ${label} metadata`);
+            return match[1];
+          }
+
+          async function main() {
+            const run = await github(`/actions/runs/${RUN_ID}`);
+            if (
+              Number(run?.id) !== Number(RUN_ID) ||
+              run?.name !== 'atlas-supervisor-gate' ||
+              run?.path !== '.github/workflows/atlas-supervisor-gate.yml' ||
+              run?.event !== 'pull_request' ||
+              run?.conclusion !== 'success' ||
+              run?.repository?.full_name !== REPOSITORY ||
+              run?.head_repository?.full_name !== REPOSITORY ||
+              run?.head_sha !== HEAD_SHA
+            ) {
+              throw new Error('upstream workflow identity is not trusted');
+            }
+
+            const jobsResponse = await github(
+              `/actions/runs/${RUN_ID}/jobs?per_page=100&filter=latest`,
+            );
+            const jobs = Array.isArray(jobsResponse?.jobs) ? jobsResponse.jobs : [];
+            const gates = jobs.filter((job) => job?.name === 'atlas-supervisor-gate');
+            const apiChecks = jobs.filter((job) => job?.name === 'api-verification');
+            if (gates.length !== 1 || gates[0]?.conclusion !== 'success') {
+              throw new Error('upstream Supervisor gate is not uniquely successful');
+            }
+            if (apiChecks.length === 1 && apiChecks[0]?.conclusion === 'skipped') {
+              console.log('Closed-event upstream run detected; authorized merge executor is a no-op.');
+              return;
+            }
+            if (apiChecks.length !== 1 || apiChecks[0]?.conclusion !== 'success') {
+              throw new Error('upstream API verification is not uniquely successful');
+            }
+
+            const associated = await github(`/commits/${HEAD_SHA}/pulls`);
+            const eligible = (Array.isArray(associated) ? associated : []).filter((pr) =>
+              pr?.state === 'open' &&
+              pr?.merged_at == null &&
+              pr?.head?.sha === HEAD_SHA &&
+              pr?.head?.repo?.full_name === REPOSITORY &&
+              ['production/atlas', 'main'].includes(pr?.base?.ref),
+            );
+            if (eligible.length !== 1) {
+              throw new Error(`expected exactly one eligible open pull request, found ${eligible.length}`);
+            }
+
+            const PR_NUMBER = String(eligible[0].number);
+            const pr = await github(`/pulls/${PR_NUMBER}`);
+            if (
+              pr?.state !== 'open' ||
+              pr?.merged === true ||
+              pr?.draft === true ||
+              pr?.head?.sha !== HEAD_SHA ||
+              pr?.head?.repo?.full_name !== REPOSITORY ||
+              !['production/atlas', 'main'].includes(pr?.base?.ref) ||
+              !/^[0-9a-f]{40}$/i.test(pr?.base?.sha ?? '')
+            ) {
+              throw new Error('pull request identity drifted or is not merge eligible');
+            }
+
+            const TASK_ID = requireMetadata(
+              pr.body,
+              'Supervisor task',
+              /^ATLAS-SUPERVISOR-TASK:\s*(ATLAS-[A-Za-z0-9-]+)\s*$/m,
+            );
+            const EXECUTION_ID = requireMetadata(
+              pr.body,
+              'Supervisor execution',
+              /^ATLAS-SUPERVISOR-EXECUTION:\s*(ATLAS-EXEC-[A-Za-z0-9-]+)\s*$/m,
+            );
+
+            const changedFiles = [];
+            for (let page = 1; ; page += 1) {
+              const batch = await github(
+                `/pulls/${PR_NUMBER}/files?per_page=100&page=${page}`,
+              );
+              if (!Array.isArray(batch)) throw new Error('invalid changed-files response');
+              changedFiles.push(...batch.map((entry) => entry?.filename));
+              if (batch.length < 100) break;
+            }
+            if (
+              changedFiles.length === 0 ||
+              changedFiles.some((path) => typeof path !== 'string' || !path)
+            ) {
+              throw new Error('invalid empty or malformed changed-file set');
+            }
+            const normalizedFiles = [...new Set(changedFiles)].sort();
+
+            const review = await supervisor(
+              '/engineering/supervisor/gateway/review-candidate',
+              {
+                taskId: TASK_ID,
+                executionId: EXECUTION_ID,
+                action: 'merge',
+                targetBranch: pr.base.ref,
+                baseSha: pr.base.sha,
+                headSha: HEAD_SHA,
+                changedFiles: normalizedFiles,
+                explicitUserAuthorization: false,
+              },
+            );
+            if (
+              review?.allowed !== true ||
+              review?.taskId !== TASK_ID ||
+              review?.executionId !== EXECUTION_ID
+            ) {
+              throw new Error('fresh signed Owner merge authorization is not valid for the exact candidate');
+            }
+
+            const response = await github(
+              `/pulls/${PR_NUMBER}/merge`,
+              {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  merge_method: 'merge',
+                  sha: HEAD_SHA,
+                }),
+              },
+            );
+            if (response?.merged !== true || !/^[0-9a-f]{40}$/i.test(response?.sha ?? '')) {
+              throw new Error(`GitHub normal merge was not confirmed: ${JSON.stringify(response)}`);
+            }
+
+            console.log(
+              `Trusted exact merge confirmed for PR #${PR_NUMBER} at ${response.sha}. ` +
+              'Closed-event attestation consumption remains authoritative.',
+            );
+          }
+
+          main().catch((error) => {
+            console.error(error?.message ?? 'trusted authorized merge failed');
+            process.exit(1);
+          });
+          NODE
