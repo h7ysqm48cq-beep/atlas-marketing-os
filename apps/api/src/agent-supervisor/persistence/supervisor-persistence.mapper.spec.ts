@@ -171,6 +171,17 @@ function ownerAuthorizationFixture() {
   };
 }
 
+function ownerMergeAuthorizationRevocationFixture() {
+  return {
+    candidate: reviewCandidateFixture(),
+    authorizedBy: 'owner-user-1',
+    authorizedAt: '2026-09-02T00:00:00.000Z',
+    revokedBy: 'owner-user-2',
+    revokedAt: '2026-09-05T15:30:00.000Z',
+    reason: 'stale merge authorization retired',
+  };
+}
+
 function deploymentCandidateFixture() {
   return {
     ...reviewCandidateFixture(),
@@ -446,6 +457,62 @@ describe('supervisor persistence mapper', () => {
       task.evidence?.ownerMergeAuthorization?.candidate.changedFiles,
     ).not.toBe(evidence.ownerMergeAuthorization.candidate.changedFiles);
   });
+
+  it('maps and clones persisted merge authorization revocation history', () => {
+    const revocation = ownerMergeAuthorizationRevocationFixture();
+    const evidence = {
+      ...evidenceFixture(),
+      ownerMergeAuthorizationRevocations: [revocation],
+    };
+
+    const task = mapTaskRecord(taskRecord({ evidence }));
+
+    expect(
+      task.evidence?.ownerMergeAuthorizationRevocations,
+    ).toEqual([revocation]);
+    expect(
+      task.evidence?.ownerMergeAuthorizationRevocations,
+    ).not.toBe(evidence.ownerMergeAuthorizationRevocations);
+    expect(
+      task.evidence?.ownerMergeAuthorizationRevocations?.[0]
+        ?.candidate.changedFiles,
+    ).not.toBe(revocation.candidate.changedFiles);
+  });
+
+  it.each([
+    { revokedBy: '   ' },
+    { revokedAt: 'not-a-date' },
+    { reason: '   ' },
+    {
+      candidate: {
+        ...reviewCandidateFixture(),
+        action: 'deploy_production',
+      },
+    },
+    {
+      candidate: {
+        ...reviewCandidateFixture(),
+        targetBranch: 'feature/not-governed',
+      },
+    },
+  ])(
+    'rejects malformed persisted merge revocation: %p',
+    (override) => {
+      const evidence = {
+        ...evidenceFixture(),
+        ownerMergeAuthorizationRevocations: [
+          {
+            ...ownerMergeAuthorizationRevocationFixture(),
+            ...override,
+          },
+        ],
+      };
+
+      expectPersistenceError(() =>
+        mapTaskRecord(taskRecord({ evidence })),
+      );
+    },
+  );
 
   it('maps and clones persisted signed owner deployment authorization', () => {
     const evidence = {
